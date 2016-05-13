@@ -1,4 +1,4 @@
-(defproject beat-link-trigger "0.1.0-SNAPSHOT"
+(defproject beat-link-trigger "0.1.0"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -17,6 +17,14 @@
 
   :main beat-link-trigger.core
   :uberjar-name "beat-link-trigger.jar"
+
+  ;; Add project name and version information to jar file manifest
+  :manifest {"Name" ~#(str (clojure.string/replace (:group %) "." "/")
+                            "/" (:name %) "/")
+             "Package" ~#(str (:group %) "." (:name %))
+             "Specification-Title" ~#(:name %)
+             "Specification-Version" ~#(:version %)}
+
   :min-lein-version "2.0.0"
 )
 
