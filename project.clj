@@ -25,6 +25,5 @@
              "Specification-Title" ~#(:name %)
              "Specification-Version" ~#(:version %)}
 
-  :min-lein-version "2.0.0"
-)
+  :min-lein-version "2.0.0")
 

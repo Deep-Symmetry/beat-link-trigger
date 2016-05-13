@@ -15,6 +15,9 @@ installed, and try running it from the command line:
 
     java -jar beat-link-trigger.jar
 
+> beat-link-trigger requires Java 7 or later. It is compiled and
+> tested using the latest release of Java 8, so that is your best bet.
+
 ## License
 
 <img align="right" alt="Deep Symmetry" src="https://github.com/brunchboy/beat-link/blob/master/assets/DS-logo-bw-200-padded-left.png">
