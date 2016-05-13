@@ -2,7 +2,7 @@
 
 A simple application to trigger a MIDI event when a CDJ starts
 playing, as an example of how to work with
-[https://github.com/brunchboy/beat-link#beat-link].
+[beat-link](https://github.com/brunchboy/beat-link#beat-link).
 
 ## Usage
 
@@ -12,7 +12,7 @@ using Leiningen, or run it interactively in a Leiningen repl.
 
 ## License
 
-<img align="right" alt="Deep Symmetry" src="https://github.com/brunchboy/afterglow/doc/assets/DS-logo-bw-200-padded-left.png">
+<img align="right" alt="Deep Symmetry" src="https://github.com/brunchboy/beat-link/blob/master/assets/DS-logo-bw-200-padded-left.png">
 Copyright © 2016 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
 Distributed under the
