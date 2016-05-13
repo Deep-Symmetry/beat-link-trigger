@@ -7,8 +7,8 @@ playing, as an example of how to work with
 ## Usage
 
 Download the latest executable `beat-link-trigger.jar` file from the
-[releases] page and double-click it to run it. If that doesn&rsquo;t
-work, make sure you have a recent
+[releases](releases) page and double-click it to run it. If that
+doesn&rsquo;t work, make sure you have a recent
 [Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp?locale=en)
 installed, and try running it from the command line:
 
