@@ -2,7 +2,8 @@
   "Send MIDI or OSC events when a CDJ starts playing."
   (:require [overtone.midi :as midi]
             [seesaw.cells]
-            [seesaw.core :as seesaw])
+            [seesaw.core :as seesaw]
+            [seesaw.mig :as mig])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]))
 
@@ -21,6 +22,11 @@
   []
   (filter usable-midi-device? (midi/midi-sinks)))
 
+;; The following should let us put the actual MIDI devices in the combo box, and have it display
+;; their names, by using the options `:renderer (string-renderer :name)` in creating it. That starts
+;; out working fine, but when you try to set the selection of the combo box, it displays the whole
+;; MIDI object until you click on it, and gets hugely wide forever, so I am giving up and just
+;; using the names alone in the combo box model for now.
 (defn string-renderer
   "Provide a way to render a string value for a more complex object within a combobox model.
   Takes a function `f` which is called with each element of the model, and returns the string
@@ -38,11 +44,10 @@
   []
   (let [output-menu (seesaw/select root [:#outputs])
         old-selection (seesaw/selection output-menu)
-        new-outputs (get-midi-outputs)]
+        new-outputs (map :name (get-midi-outputs))]
     (seesaw/config! output-menu :model new-outputs)  ; Update the content of the output menu
     (when ((set new-outputs) old-selection)  ; Our old selection is still available, so restore it
-      (seesaw/selection! output-menu old-selection)
-      (.repaint root))))  ; Work around a drawing but that was not rendering the name properly
+      (seesaw/selection! output-menu old-selection))))
 
 (defn -main
   "Present a user interface when invoked as an executable jar."
@@ -54,7 +59,11 @@
        (midiSystemUpdated [this]
          (midi-environment-changed)))))
   ;; Build the UI
-  (let [outputs (seesaw/combobox :model (get-midi-outputs) :renderer (string-renderer :name) :id :outputs)]
-    (seesaw/config! root :content outputs)
+  (let [outputs (seesaw/combobox :model (map :name (get-midi-outputs)) :id :outputs)
+        panel (mig/mig-panel
+               :id :panel
+               :items [["MIDI Output:"] [outputs "wrap"]
+                       ])]
+    (seesaw/config! root :content panel)
     (seesaw/pack! root)
     (seesaw/show! root)))
