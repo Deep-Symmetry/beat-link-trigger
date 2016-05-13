@@ -6,9 +6,13 @@ playing, as an example of how to work with
 
 ## Usage
 
-Once released, you will be able to just download the jar file and
-double-click it to run it. For now, you will need to build it yourself
-using Leiningen, or run it interactively in a Leiningen repl.
+Download the latest executable `beat-link-trigger.jar` file from the
+[releases] page and double-click it to run it. If that doesn&rsquo;t
+work, make sure you have a recent
+[Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp?locale=en)
+installed, and try running it from the command line:
+
+    java -jar beat-link-trigger.jar
 
 ## License
 
