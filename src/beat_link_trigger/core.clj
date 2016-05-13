@@ -5,7 +5,8 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig])
   (:import [javax.sound.midi Sequencer Synthesizer]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]))
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource])
+  (:gen-class))
 
 
 (defn usable-midi-device?
