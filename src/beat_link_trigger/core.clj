@@ -5,8 +5,7 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig])
   (:import [javax.sound.midi Sequencer Synthesizer]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource])
-  (:gen-class))
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]))
 
 
 (defn usable-midi-device?
@@ -50,9 +49,16 @@
     (when ((set new-outputs) old-selection)  ; Our old selection is still available, so restore it
       (seesaw/selection! output-menu old-selection))))
 
-(defn -main
-  "Present a user interface when invoked as an executable jar."
+(defn start
+  "Present a user interface. Called when jar startup has detected a
+  recent-enough Java version to succcessfully load this namespace."
   [& args]
+  (when (< (Float/valueOf (System/getProperty "java.specification.version")) 1.7)
+    (seesaw/alert (str "To run beat-link-trigger you will need to download a current\n"
+                       "Java Runtime Environment, or at least Java 1.7.")
+                  :type :error
+                  :title "Newer Java Version Required")
+    (System/exit 1))
   (seesaw/native!)  ; Adopt as native a look-and-feel as possible
   (when (CoreMidiDeviceProvider/isLibraryLoaded)  ; Request notifications when MIDI devices appear or vanish
     (CoreMidiDeviceProvider/addNotificationListener

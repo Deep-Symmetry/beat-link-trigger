@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- A first-stage loading process which checks the Java version and
+  presents an error dialog if it is too old to successfully load the
+  rest of the application, offering to open the download page.
 
 ## 0.1.0 - 2016-05-13
 

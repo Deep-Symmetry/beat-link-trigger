@@ -10,7 +10,7 @@ Download the latest executable `beat-link-trigger.jar` file from the
 [releases](https://github.com/brunchboy/beat-link-trigger/releases)
 page and double-click it to run it. If that doesn&rsquo;t work, make
 sure you have a recent
-[Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp?locale=en)
+[Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp)
 installed, and try running it from the command line:
 
     java -jar beat-link-trigger.jar
