@@ -6,6 +6,16 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- Move all interaction with UI objects to the AWT Event Dispatch
+  thread; we were trying to get the current output menu selection on
+  the MIDI event thread, which was causing a
+  ConcurrentModificationException within AWT.
+- Keep track of MIDI outputs as we open them, so we can reuse the same
+  instance rather than creating new outputs every time. Clean them up
+  when they disappear from the MIDI environment, like Afterglow does.
+
 ### Added
 
 - A first-stage loading process which checks the Java version and

@@ -43,6 +43,11 @@
              (filter #(instance? CdjStatus %)
                      (map #(VirtualCdj/getLatestStatusFor %) (DeviceFinder/currentDevices))))))
 
+(defonce ^{:private true
+           :doc "Holds a map of all the MIDI output devices we have
+  opened, keyed by their names, so we can reuse them."}
+  opened-outputs (atom {}))
+
 (def root
   "The main frame of the user interface"
   (seesaw/frame :title "Beat Link Trigger" :on-close :dispose))
@@ -51,20 +56,30 @@
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
   available MIDI outputs."
   []
-  (let [output-menu (seesaw/select root [:#outputs])
+  (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
+   (let [output-menu (seesaw/select root [:#outputs])
         old-selection (seesaw/selection output-menu)
         new-outputs (map :name (get-midi-outputs))]
-    (seesaw/invoke-later
      (seesaw/config! output-menu :model new-outputs)  ; Update the content of the output menu
-     (when ((set new-outputs) old-selection)  ; Our old selection is still available, so restore it
+
+     ;; Remove any opened outputs that are no longer available in the MIDI environment
+     (swap! opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
+
+     ;; If our old output selection is still available, restore it
+     (when ((set new-outputs) old-selection)
        (seesaw/selection! output-menu old-selection)))))
 
 (defn- get-chosen-output
-  "Return the MIDI output to which messages should be sent."
+  "Return the MIDI output to which messages should be sent, opening it
+  if this is the first time we are using it, or reusing it if we
+  already opened it."
   []
   (let [output-menu (seesaw/select root [:#outputs])
         selection (seesaw/selection output-menu)]
-    (midi/midi-out selection)))
+    (or (get @opened-outputs selection)
+        (let [new-output (midi/midi-out selection)]
+          (swap! opened-outputs assoc selection new-output)
+          new-output))))
 
 (defn- report-activation
   "Send a message indicating the player we are watching has started playing."
