@@ -82,7 +82,8 @@
     (seesaw/config! root :content panel)
     (seesaw/pack! root)
     (seesaw/listen root :window-closed (fn [e]  ; Clean up when we are closed
-                                         (swap! open-triggers dissoc root)))
+                                         (when (empty? (swap! open-triggers dissoc root))
+                                           (System/exit 0))))  ; The last window was closed.
     (swap! open-triggers assoc root false)
     (seesaw/show! root)))
 
