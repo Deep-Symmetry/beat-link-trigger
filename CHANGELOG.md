@@ -6,21 +6,24 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- You can now open multiple trigger windows using the new Window menu,
+  and have each watching a different player and sending a different
+  MIDI message. Closing the last window quits.
+- A first-stage loading process which checks the Java version and
+  presents an error dialog if it is too old to successfully load the
+  rest of the application, offering to open the download page.
+
 ### Fixed
 
-- Move all interaction with UI objects to the AWT Event Dispatch
+- Moved all interaction with UI objects to the AWT Event Dispatch
   thread; we were trying to get the current output menu selection on
   the MIDI event thread, which was causing a
   ConcurrentModificationException within AWT.
 - Keep track of MIDI outputs as we open them, so we can reuse the same
   instance rather than creating new outputs every time. Clean them up
   when they disappear from the MIDI environment, like Afterglow does.
-
-### Added
-
-- A first-stage loading process which checks the Java version and
-  presents an error dialog if it is too old to successfully load the
-  rest of the application, offering to open the download page.
 
 ## 0.1.0 - 2016-05-13
 
