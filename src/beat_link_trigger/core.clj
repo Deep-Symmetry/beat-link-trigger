@@ -8,6 +8,11 @@
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
            [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus]))
 
+;; Used to represent the available players in the Watch menu. The `toString` method tells
+;; Swing how to display it, and the number is what we need for comparisons.
+(defrecord PlayerChoice [number]
+  Object
+  (toString [_] (str "Player " number)))
 
 (defn usable-midi-device?
   "Returns true if a MIDI device should be visible. Filters out non-CoreMidi4J devices when that library
@@ -35,13 +40,13 @@
   [f]
   (seesaw.cells/default-list-cell-renderer (fn [this {:keys [value]}] (.setText this (str (f value))))))
 
-(defn get-player-numbers
-  "Returns a sorted list of the player numbers of all devices which
+(defn get-player-choices
+  "Returns a sorted list of the player choices of all devices which
   are reporting CDJ status information on the network at the moment."
   []
-  (sort (map #(str "Player " (.getDeviceNumber %))
-             (filter #(instance? CdjStatus %)
-                     (map #(VirtualCdj/getLatestStatusFor %) (DeviceFinder/currentDevices))))))
+  (map #(PlayerChoice. %) (sort (map #(.getDeviceNumber %)
+                                     (filter #(instance? CdjStatus %)
+                                             (map #(VirtualCdj/getLatestStatusFor %) (DeviceFinder/currentDevices)))))))
 
 (defonce ^{:private true
            :doc "Holds a map of all the MIDI output devices we have
@@ -70,7 +75,7 @@
         panel (mig/mig-panel
                :id :panel
                :items [["Watch:" "alignx trailing"]
-                       [(seesaw/combobox :model (get-player-numbers) :id :players) "wrap"]
+                       [(seesaw/combobox :model (get-player-choices) :id :players) "wrap"]
 
                        ["MIDI Output:" "alignx trailing"]
                        [(seesaw/combobox :model (map :name (get-midi-outputs)) :id :outputs)]
@@ -150,7 +155,7 @@
   currently found on the network. If the previously selected player
   has disappeared, so we should deactivate it if it had been active."
   []
-  (let [new-options (get-player-numbers)]
+  (let [new-options (get-player-choices)]
     (doseq [trigger (keys @open-triggers)]
       (let [player-menu (seesaw/select trigger [:#players])
             old-selection (seesaw/selection player-menu)]
@@ -179,7 +184,7 @@
       (doseq [trigger (keys @open-triggers)]
         (let [player-menu (seesaw/select trigger [:#players])
               selection (seesaw/selection player-menu)]
-          (when (and (instance? CdjStatus status) (= selection (str "Player " (.getDeviceNumber status))))
+          (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
             (update-device-state trigger (.isPlaying status))))))))
 
 (defn- searching-frame
@@ -187,7 +192,7 @@
   []
   (let [result (seesaw/frame :title "Watching Network" :on-close :dispose
                              :content (mig/mig-panel
-                                       :items [["beat-link-trigger is looking for DJ Link devices..." "wrap"]
+                                       :items [["BeatLinkTrigger is looking for DJ Link devices..." "wrap"]
                                                [(seesaw/progress-bar :indeterminate? true) "span, grow"]]))]
     (seesaw/pack! result)
     (.setLocationRelativeTo result nil)
