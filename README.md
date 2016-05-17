@@ -18,6 +18,12 @@ installed, and try running it from the command line:
 > beat-link-trigger requires Java 7 or later. It is compiled and
 > tested using the latest release of Java 8, so that is your best bet.
 
+A trigger window will open, in which you can choose the player you
+want to watch, and the kind of MIDI message to send when it starts and
+stops:
+
+![Trigger window](doc/assets/TriggerWindow.png)
+
 ## License
 
 <img align="right" alt="Deep Symmetry" src="https://github.com/brunchboy/beat-link/blob/master/assets/DS-logo-bw-200-padded-left.png">
