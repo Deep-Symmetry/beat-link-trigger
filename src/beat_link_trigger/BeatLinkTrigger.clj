@@ -1,4 +1,4 @@
-(ns beat-link-trigger.startup
+(ns beat-link-trigger.BeatLinkTrigger
   "This is configured as the main class which is run when the jar is
   executed. Its task is to check whether the Java version is high
   enough to support running beat-link-trigger, and if so, proceed to
@@ -15,7 +15,7 @@
     (let [options (to-array ["Download" "Cancel"])
           choice (JOptionPane/showOptionDialog
                   nil
-                  (str "To run beat-link-trigger you will need to install a current\n"
+                  (str "To run BeatLinkTrigger you will need to install a current\n"
                        "Java Runtime Environment, or at least Java 1.7.")
                   "Newer Java Version Required"
                   JOptionPane/YES_NO_OPTION JOptionPane/ERROR_MESSAGE nil

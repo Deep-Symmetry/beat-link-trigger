@@ -15,7 +15,7 @@
                    :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]}
              :uberjar {:aot :all}}
 
-  :main beat-link-trigger.startup
+  :main beat-link-trigger.BeatLinkTrigger
   :uberjar-name "beat-link-trigger.jar"
 
   ;; Add project name and version information to jar file manifest
