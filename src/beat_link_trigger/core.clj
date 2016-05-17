@@ -14,6 +14,12 @@
   Object
   (toString [_] (str "Player " number)))
 
+;; Used to represent the available MIDI outputs in the output menu. The `toString` method
+;; tells Swing how to display it, so we can suppress the CoreMidi4J prefix.
+(defrecord MidiChoice [full-name]
+  Object
+  (toString [_] (clojure.string/replace full-name #"^CoreMIDI4J - " "")))
+
 (defn usable-midi-device?
   "Returns true if a MIDI device should be visible. Filters out non-CoreMidi4J devices when that library
   is active."
@@ -24,9 +30,9 @@
             (instance? CoreMidiDestination raw-device) (instance? CoreMidiSource raw-device)))))
 
 (defn get-midi-outputs
-  "Returns all available MIDI output devices"
+  "Returns all available MIDI output devices as menu choice model objects"
   []
-  (filter usable-midi-device? (midi/midi-sinks)))
+  (map #(MidiChoice. (:name %)) (filter usable-midi-device? (midi/midi-sinks))))
 
 ;; The following should let us put the actual MIDI devices in the combo box, and have it display
 ;; their names, by using the options `:renderer (string-renderer :name)` in creating it. That starts
@@ -78,7 +84,7 @@
                        [(seesaw/combobox :model (get-player-choices) :id :players) "wrap"]
 
                        ["MIDI Output:" "alignx trailing"]
-                       [(seesaw/combobox :model (map :name (get-midi-outputs)) :id :outputs)]
+                       [(seesaw/combobox :model (get-midi-outputs) :id :outputs)]
 
                        ["Message:" "gap unrelated, alignx trailing"]
                        [(seesaw/combobox :model ["Note" "CC"] :id :message)]
@@ -97,7 +103,7 @@
   available MIDI outputs."
   []
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
-   (let [new-outputs (map :name (get-midi-outputs))]
+   (let [new-outputs (get-midi-outputs)]
      (doseq [trigger (keys @open-triggers)]  ; Update the output menus in all trigger windows
        (let [output-menu (seesaw/select trigger [:#outputs])
              old-selection (seesaw/selection output-menu)]
@@ -116,10 +122,11 @@
   reusing it if we already opened it."
   [trigger]
   (let [output-menu (seesaw/select trigger [:#outputs])
-        selection (seesaw/selection output-menu)]
-    (or (get @opened-outputs selection)
-        (let [new-output (midi/midi-out selection)]
-          (swap! opened-outputs assoc selection new-output)
+        selection (seesaw/selection output-menu)
+        device-name (.full_name selection)]
+    (or (get @opened-outputs device-name)
+        (let [new-output (midi/midi-out device-name)]
+          (swap! opened-outputs assoc device-name new-output)
           new-output))))
 
 (defn- report-activation
