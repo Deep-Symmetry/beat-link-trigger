@@ -8,12 +8,20 @@ This change log follows the conventions of
 
 ### Added
 
+- A status summary of the selected player is shown after the menu.
 - You can now open multiple trigger windows using the new Window menu,
   and have each watching a different player and sending a different
   MIDI message. Closing the last window quits.
 - A first-stage loading process which checks the Java version and
   presents an error dialog if it is too old to successfully load the
   rest of the application, offering to open the download page.
+
+### Changed
+
+- The MIDI Output menu now reformats names so you don't need to see
+  the CoreMIDI4J prefix even when it is in use.
+- The Player menu stores its choices in a format that is more
+  efficient for comparing with the incoming player packets.
 
 ### Fixed
 
