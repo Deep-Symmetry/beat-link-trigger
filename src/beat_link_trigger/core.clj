@@ -81,15 +81,17 @@
         panel (mig/mig-panel
                :id :panel
                :items [["Watch:" "alignx trailing"]
-                       [(seesaw/combobox :model (get-player-choices) :id :players) "wrap"]
+                       [(seesaw/combobox :id :players :model (get-player-choices))]
+
+                       [(seesaw/label :id :status :text "No status received...")  "gap unrelated, span, wrap"]
 
                        ["MIDI Output:" "alignx trailing"]
-                       [(seesaw/combobox :model (get-midi-outputs) :id :outputs)]
+                       [(seesaw/combobox :id :outputs :model (get-midi-outputs))]
 
-                       ["Message:" "gap unrelated, alignx trailing"]
-                       [(seesaw/combobox :model ["Note" "CC"] :id :message)]
+                       ["Message:" "gap unrelated"]
+                       [(seesaw/combobox :id :message :model ["Note" "CC"])]
 
-                       [(seesaw/spinner :model (seesaw/spinner-model 127 :from 1 :to 127) :id :note) "wrap"]])]
+                       [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)) "wrap"]])]
     (seesaw/config! root :content panel)
     (seesaw/pack! root)
     (seesaw/listen root :window-closed (fn [e]  ; Clean up when we are closed
@@ -182,6 +184,17 @@
     (deviceLost [this announcement]
       (rebuild-player-menu))))
 
+(defn build-status-label
+  "Create a brief textual summary of a player state given a status
+  update object from beat-link."
+  [status]
+  (let [beat (.getBeatNumber status)]
+    (str (if (.isPlaying status) "Playing" "Stopped") ", Track #" (.getTrackNumber status)
+         (cond
+           (neg? beat) ", beat n/a"
+           (zero? beat) ", lead-in"
+           :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")")))))
+
 (defonce ^{:private true
            :doc "Responds to player status updates and updates the
   state of any triggers watching them."}
@@ -190,9 +203,11 @@
     (received [this status]
       (doseq [trigger (keys @open-triggers)]
         (let [player-menu (seesaw/select trigger [:#players])
-              selection (seesaw/selection player-menu)]
+              selection (seesaw/selection player-menu)
+              status-label (seesaw/select trigger [:#status])]
           (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
-            (update-device-state trigger (.isPlaying status))))))))
+            (update-device-state trigger (.isPlaying status))
+            (seesaw/value! status-label (build-status-label status))))))))
 
 (defn- searching-frame
   "Create and show a frame that explains we are looking for devices."
