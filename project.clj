@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.deepsymmetry/beat-link "0.1.4-SNAPSHOT"]
+                 [org.deepsymmetry/beat-link "0.1.4"]
                  [overtone/midi-clj "0.5.0"]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.4.5"]
