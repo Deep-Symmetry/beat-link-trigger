@@ -9,6 +9,8 @@ This change log follows the conventions of
 ### Added
 
 - A status summary of the selected player is shown after the menu.
+- The trigger can be enabled or disabled with a checkbox.
+- You can specify the channel on which the MIDI message should be sent.
 - You can now open multiple trigger windows using the new Window menu,
   and have each watching a different player and sending a different
   MIDI message. Closing the last window quits.
@@ -22,6 +24,8 @@ This change log follows the conventions of
   the CoreMIDI4J prefix even when it is in use.
 - The Player menu stores its choices in a format that is more
   efficient for comparing with the incoming player packets.
+- The Player menu always lists Players 1 through 4 as choices, and
+  reports when you have chosen one that is not currently visible.
 
 ### Fixed
 

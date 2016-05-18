@@ -20,7 +20,7 @@ installed, and try running it from the command line:
 
 A trigger window will open, in which you can choose the player you
 want to watch, and the kind of MIDI message to send when it starts and
-stops:
+stops, and whether the trigger is enabled:
 
 ![Trigger window](doc/assets/TriggerWindow.png)
 
