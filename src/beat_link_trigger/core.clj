@@ -6,7 +6,7 @@
             [seesaw.mig :as mig])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
-           [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus]))
+           [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
 
 ;; Used to represent the available players in the Watch menu. The `toString` method tells
 ;; Swing how to display it, and the number is what we need for comparisons.
@@ -142,6 +142,8 @@
   [status]
   (let [beat (.getBeatNumber status)]
     (str (if (.isPlaying status) "Playing" "Stopped") ", Track #" (.getTrackNumber status)
+         ", " (format "%.1f" (.getEffectiveTempo status)) " BPM ("
+         (format "%+.2f%%" (Util/pitchToPercentage (.getPitch status))) ")"
          (cond
            (neg? beat) ", beat n/a"
            (zero? beat) ", lead-in"
@@ -171,7 +173,9 @@
             (do (seesaw/config! status-label :foreground "black")
                 (seesaw/value! status-label (build-status-label status)))
             (do (seesaw/config! status-label :foreground "red")
-              (seesaw/value! status-label "Non-Player status received."))))))))
+                (seesaw/value! status-label (if (some? status)
+                                              "Non-Player status received."
+                                              "No status received.")))))))))
 
 (defn- rebuild-all-device-status
   "Updates all player status descriptions to reflect the devices
@@ -190,9 +194,10 @@
       (doseq [trigger (keys @open-triggers)]
         (let [player-menu (seesaw/select trigger [:#players])
               selection (seesaw/selection player-menu)
-              status-label (seesaw/select trigger [:#status])]
+              status-label (seesaw/select trigger [:#status])
+              enabled (seesaw/value (seesaw/select trigger [:#enabled]))]
           (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
-            (update-device-state trigger (.isPlaying status))
+            (update-device-state trigger (and enabled (.isPlaying status)))
             (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
 
@@ -227,7 +232,10 @@
                        [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127))]
 
                        ["Channel:" "gap unrelated"]
-                       [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16)) "wrap"]])]
+                       [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16))]
+
+                       ["Enabled:" "gap unrelated"]
+                       [(seesaw/checkbox :id :enabled) "wrap"]])]
     (seesaw/config! root :content panel)
     (seesaw/pack! root)
     (seesaw/listen (seesaw/select root [:#players])
