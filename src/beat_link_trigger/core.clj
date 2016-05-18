@@ -47,12 +47,13 @@
   (seesaw.cells/default-list-cell-renderer (fn [this {:keys [value]}] (.setText this (str (f value))))))
 
 (defn get-player-choices
-  "Returns a sorted list of the player choices of all devices which
-  are reporting CDJ status information on the network at the moment."
+  "Returns a sorted list of the player choices. This used to only
+  return currently-visible players, but we now return all valid
+  choices because you might be loading a configuration you want to
+  edit in an offline setting."
   []
-  (map #(PlayerChoice. %) (sort (map #(.getDeviceNumber %)
-                                     (filter #(instance? CdjStatus %)
-                                             (map #(VirtualCdj/getLatestStatusFor %) (DeviceFinder/currentDevices)))))))
+  (for [i (range 1 5)]
+    (PlayerChoice. i)))
 
 (defonce ^{:private true
            :doc "Holds a map of all the MIDI output devices we have
@@ -73,32 +74,6 @@
   has been reported as active."}
   open-triggers (atom {}))
 
-(defn- create-trigger-window
-  "Create a new Beat Link Trigger window."
-  []
-  (let [root (seesaw/frame :title "Beat Link Trigger" :on-close :dispose
-                           :menubar (seesaw/menubar :items [(seesaw/menu :text "Window" :items [new-trigger-action])]))
-        panel (mig/mig-panel
-               :id :panel
-               :items [["Watch:" "alignx trailing"]
-                       [(seesaw/combobox :id :players :model (get-player-choices))]
-
-                       [(seesaw/label :id :status :text "No status received...")  "gap unrelated, span, wrap"]
-
-                       ["MIDI Output:" "alignx trailing"]
-                       [(seesaw/combobox :id :outputs :model (get-midi-outputs))]
-
-                       ["Message:" "gap unrelated"]
-                       [(seesaw/combobox :id :message :model ["Note" "CC"])]
-
-                       [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)) "wrap"]])]
-    (seesaw/config! root :content panel)
-    (seesaw/pack! root)
-    (seesaw/listen root :window-closed (fn [e]  ; Clean up when we are closed
-                                         (when (empty? (swap! open-triggers dissoc root))
-                                           (System/exit 0))))  ; The last window was closed.
-    (swap! open-triggers assoc root false)
-    (seesaw/show! root)))
 
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
@@ -135,19 +110,21 @@
   "Send a message indicating the player a trigger is watching has
   started playing."
   [trigger]
-  (let [note (seesaw/value (seesaw/select trigger [:#note]))]
+  (let [note (seesaw/value (seesaw/select trigger [:#note]))
+        channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
     (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
-      (midi/midi-note-on (get-chosen-output trigger) note 127)
-      (midi/midi-control (get-chosen-output trigger) note 127))))
+      (midi/midi-note-on (get-chosen-output trigger) note 127 channel)
+      (midi/midi-control (get-chosen-output trigger) note 127 channel))))
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
   started playing."
   [trigger]
-  (let [note (seesaw/value (seesaw/select trigger [:#note]))]
+  (let [note (seesaw/value (seesaw/select trigger [:#note]))
+        channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
     (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
-      (midi/midi-note-off (get-chosen-output trigger) note)
-      (midi/midi-control (get-chosen-output trigger) note 0))))
+      (midi/midi-note-off (get-chosen-output trigger) note channel)
+      (midi/midi-control (get-chosen-output trigger) note 0 channel))))
 
 (defn- update-device-state
   "If the device state being watched by a trigger has changed, send an
@@ -159,31 +136,6 @@
              (if new-state (report-activation trigger) (report-deactivation trigger)))
            (assoc triggers trigger new-state))))
 
-(defn- rebuild-player-menu
-  "Updates the combo box of available players to reflect the ones
-  currently found on the network. If the previously selected player
-  has disappeared, so we should deactivate it if it had been active."
-  []
-  (let [new-options (get-player-choices)]
-    (doseq [trigger (keys @open-triggers)]
-      (let [player-menu (seesaw/select trigger [:#players])
-            old-selection (seesaw/selection player-menu)]
-        (seesaw/config! player-menu :model new-options)
-        (if ((set new-options) old-selection)
-          (seesaw/selection! player-menu old-selection)  ; Old selection still available, restore it
-          (update-device-state trigger false)))))) ; Selected player disappeared, need to deactivate if it was active
-
-
-(defonce ^{:private true
-           :doc "Responds to the arrival or departure of DJ Link
-  devices by updating our user interface appropriately."}
-  device-listener
-  (reify org.deepsymmetry.beatlink.DeviceAnnouncementListener
-    (deviceFound [this announcement]
-      (rebuild-player-menu))
-    (deviceLost [this announcement]
-      (rebuild-player-menu))))
-
 (defn build-status-label
   "Create a brief textual summary of a player state given a status
   update object from beat-link."
@@ -194,6 +146,40 @@
            (neg? beat) ", beat n/a"
            (zero? beat) ", lead-in"
            :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")")))))
+
+(defn- show-device-status
+  "Set the device satus label for a trigger outside of the context of
+  receiving an update from the device (for example, the user chose a
+  device in the menu which is not present on the network, or we just
+  received a notification from the DeviceFinder that the device has
+  disappeared."
+  [trigger]
+  (let [player-menu (seesaw/select trigger [:#players])
+        selection (seesaw/selection player-menu)
+        status-label (seesaw/select trigger [:#status])]
+    (if (nil? selection)
+      (do (seesaw/config! status-label :foreground "red")
+          (seesaw/value! status-label "No Player selected.")
+          (update-device-state trigger false))
+      (let [found (DeviceFinder/getLatestAnnouncementFrom (int (.number selection)))
+            status (VirtualCdj/getLatestStatusFor (int (.number selection)))]
+        (if (nil? found)
+          (do (seesaw/config! status-label :foreground "red")
+              (seesaw/value! status-label "Player not found.")
+              (update-device-state trigger false))
+          (if (instance? CdjStatus status)
+            (do (seesaw/config! status-label :foreground "black")
+                (seesaw/value! status-label (build-status-label status)))
+            (do (seesaw/config! status-label :foreground "red")
+              (seesaw/value! status-label "Non-Player status received."))))))))
+
+(defn- rebuild-all-device-status
+  "Updates all player status descriptions to reflect the devices
+  currently found on the network. Called when the set of available
+  devices changes."
+  []
+  (doseq [trigger (keys @open-triggers)]
+    (show-device-status trigger)))
 
 (defonce ^{:private true
            :doc "Responds to player status updates and updates the
@@ -207,7 +193,52 @@
               status-label (seesaw/select trigger [:#status])]
           (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
             (update-device-state trigger (.isPlaying status))
+            (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
+
+(defonce ^{:private true
+           :doc "Responds to the arrival or departure of DJ Link
+  devices by updating our user interface appropriately."}
+  device-listener
+  (reify org.deepsymmetry.beatlink.DeviceAnnouncementListener
+    (deviceFound [this announcement]
+      (rebuild-all-device-status))
+    (deviceLost [this announcement]
+      (rebuild-all-device-status))))
+
+(defn- create-trigger-window
+  "Create a new Beat Link Trigger window."
+  []
+  (let [root (seesaw/frame :title "Beat Link Trigger" :on-close :dispose
+                           :menubar (seesaw/menubar :items [(seesaw/menu :text "Window" :items [new-trigger-action])]))
+        panel (mig/mig-panel
+               :id :panel
+               :items [["Watch:" "alignx trailing"]
+                       [(seesaw/combobox :id :players :model (get-player-choices))]
+
+                       [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
+
+                       ["MIDI Output:" "alignx trailing"]
+                       [(seesaw/combobox :id :outputs :model (get-midi-outputs))]
+
+                       ["Message:" "gap unrelated"]
+                       [(seesaw/combobox :id :message :model ["Note" "CC"])]
+
+                       [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127))]
+
+                       ["Channel:" "gap unrelated"]
+                       [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16)) "wrap"]])]
+    (seesaw/config! root :content panel)
+    (seesaw/pack! root)
+    (seesaw/listen (seesaw/select root [:#players])
+                   :item-state-changed (fn [e]  ; Update player status when selection changes
+                                         (show-device-status root)))
+    (seesaw/listen root :window-closed (fn [e]  ; Clean up when we are closed
+                                         (when (empty? (swap! open-triggers dissoc root))
+                                           (System/exit 0))))  ; The last window was closed.
+    (show-device-status root)
+    (swap! open-triggers assoc root false)
+    (seesaw/show! root)))
 
 (defn- searching-frame
   "Create and show a frame that explains we are looking for devices."
@@ -250,5 +281,5 @@
   (create-trigger-window)
 
   (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
-  (rebuild-player-menu)  ; In case we missed an update between creating the UI and registering the listener
+  (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
   (VirtualCdj/addUpdateListener status-listener))  ; Watch for and react to changes in player state
