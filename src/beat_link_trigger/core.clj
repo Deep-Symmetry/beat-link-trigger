@@ -297,12 +297,10 @@
                       "No DJ Link Devices Found"
                       javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
                       options (aget options 0))]
-          (when (#{1 -1} choice)  ; Quit or just close the window, which means the same
-            (System/exit 1))
-          (when (zero? choice)  ; Try again
-            (seesaw/show! searching)
-            (recur)))))
-    (seesaw/dispose! searching))
+          (case choice
+            0 (do (seesaw/show! searching) (recur))  ; Try Again
+            2 (do (seesaw/dispose! searching) (DeviceFinder/stop))  ; Continue Offline
+            (System/exit 1))))))  ; Quit, or just closed the window, which means the same
 
   ;; Request notifications when MIDI devices appear or vanish
   (when (CoreMidiDeviceProvider/isLibraryLoaded)
