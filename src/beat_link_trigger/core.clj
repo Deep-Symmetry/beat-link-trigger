@@ -8,6 +8,15 @@
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
            [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
 
+(defn on-mac?
+  "Do we seem to be running on a Mac?"
+  []
+  (try
+    (Class/forName "com.apple.eawt.Application")
+    true  ; We found the Mac-only Java interaction classes
+    (catch Exception e
+      false)))
+
 ;; Used to represent the available players in the Watch menu. The `toString` method tells
 ;; Swing how to display it, and the number is what we need for comparisons.
 (defrecord PlayerChoice [number]
@@ -259,12 +268,21 @@
     (.setLocationRelativeTo result nil)
     (seesaw/show! result)))
 
+(defn- install-mac-about-handler
+  "If we are running on a Mac, load the namespace that only works
+  there (and is only needed there) to install our About handler."
+  []
+  (when (on-mac?)
+    (require '[beat-link-trigger.mac-about])
+    ((resolve 'beat-link-trigger.mac-about/install-handler))))
+
 (defn start
   "Make sure we can start the Virtual CDJ, then present a user
   interface. Called when jar startup has detected a recent-enough Java
   version to succcessfully load this namespace."
   [& args]
   (seesaw/native!)  ; Adopt as native a look-and-feel as possible
+  (install-mac-about-handler)
   (let [searching (searching-frame)]
     (while (not (VirtualCdj/start))  ; Make sure we can see some DJ Link devices and start the VirtualCdj
       (seesaw/hide! searching)
