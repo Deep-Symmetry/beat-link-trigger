@@ -172,19 +172,19 @@
       (do (seesaw/config! status-label :foreground "red")
           (seesaw/value! status-label "No Player selected.")
           (update-device-state trigger false))
-      (let [found (DeviceFinder/getLatestAnnouncementFrom (int (.number selection)))
-            status (VirtualCdj/getLatestStatusFor (int (.number selection)))]
+      (let [found (when (DeviceFinder/isActive) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
+            status (when (VirtualCdj/isActive) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
         (if (nil? found)
           (do (seesaw/config! status-label :foreground "red")
-              (seesaw/value! status-label "Player not found.")
+              (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
               (update-device-state trigger false))
           (if (instance? CdjStatus status)
             (do (seesaw/config! status-label :foreground "black")
                 (seesaw/value! status-label (build-status-label status)))
             (do (seesaw/config! status-label :foreground "red")
-                (seesaw/value! status-label (if (some? status)
-                                              "Non-Player status received."
-                                              "No status received.")))))))))
+                (seesaw/value! status-label (cond (some? status) "Non-Player status received."
+                                                  (not (VirtualCdj/isActive)) "Offline."
+                                                  :else "No status received.")))))))))
 
 (defn- rebuild-all-device-status
   "Updates all player status descriptions to reflect the devices
@@ -284,16 +284,24 @@
   (seesaw/native!)  ; Adopt as native a look-and-feel as possible
   (install-mac-about-handler)
   (let [searching (searching-frame)]
-    (while (not (VirtualCdj/start))  ; Make sure we can see some DJ Link devices and start the VirtualCdj
-      (seesaw/hide! searching)
-      (let [options (to-array ["Try Again" "Cancel"])
-            choice (javax.swing.JOptionPane/showOptionDialog
-                    nil "No DJ Link devices were seen on any network. Search again?"
-                    "No DJ Link Devices Found"
-                    javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                    options (aget options 0))]
-        (when-not (zero? choice) (System/exit 1))
-        (seesaw/show! searching)))
+    (loop []
+      (when (not (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
+                      (catch Exception e
+                        (seesaw/hide! searching)
+                        (seesaw/alert (str "<html>Unable to create Virtual CDJ<br><br>" e)
+                :title "DJ Link Connection Failed" :type :error))))
+        (seesaw/hide! searching)
+        (let [options (to-array ["Try Again" "Quit" "Continue Offline"])
+              choice (javax.swing.JOptionPane/showOptionDialog
+                      nil "No DJ Link devices were seen on any network. Search again?"
+                      "No DJ Link Devices Found"
+                      javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
+                      options (aget options 0))]
+          (when (#{1 -1} choice)  ; Quit or just close the window, which means the same
+            (System/exit 1))
+          (when (zero? choice)  ; Try again
+            (seesaw/show! searching)
+            (recur)))))
     (seesaw/dispose! searching))
 
   ;; Request notifications when MIDI devices appear or vanish
@@ -308,4 +316,4 @@
 
   (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
   (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-  (VirtualCdj/addUpdateListener status-listener))  ; Watch for and react to changes in player state
+  (when (VirtualCdj/isActive) (VirtualCdj/addUpdateListener status-listener))) ; React to changes in player state
