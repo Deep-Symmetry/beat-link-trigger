@@ -3,7 +3,8 @@
   (:require [overtone.midi :as midi]
             [seesaw.cells]
             [seesaw.core :as seesaw]
-            [seesaw.mig :as mig])
+            [seesaw.mig :as mig]
+            [beat-link-trigger.about :as about])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
            [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
@@ -257,17 +258,6 @@
     (swap! open-triggers assoc root false)
     (seesaw/show! root)))
 
-(defn- searching-frame
-  "Create and show a frame that explains we are looking for devices."
-  []
-  (let [result (seesaw/frame :title "Watching Network" :on-close :dispose
-                             :content (mig/mig-panel
-                                       :items [["BeatLinkTrigger is looking for DJ Link devices..." "wrap"]
-                                               [(seesaw/progress-bar :indeterminate? true) "span, grow"]]))]
-    (seesaw/pack! result)
-    (.setLocationRelativeTo result nil)
-    (seesaw/show! result)))
-
 (defn- install-mac-about-handler
   "If we are running on a Mac, load the namespace that only works
   there (and is only needed there) to install our About handler."
@@ -283,7 +273,7 @@
   [& args]
   (seesaw/native!)  ; Adopt as native a look-and-feel as possible
   (install-mac-about-handler)
-  (let [searching (searching-frame)]
+  (let [searching (about/create-searching-frame)]
     (loop []
       (when (not (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
                       (catch Exception e

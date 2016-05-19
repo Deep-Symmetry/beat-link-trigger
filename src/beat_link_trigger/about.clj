@@ -21,8 +21,8 @@
            :doc "Holds the About window when it is open."}
   frame (atom nil))
 
-(defn- paint-frame
-  "Draw the custom graphics in the About window."
+(defn- paint-backdrop
+  "Draw the animated Deep Symmetry backdrop in a component."
   [c g backdrop start]
   (let [w (seesaw/width c)
         h (seesaw/height c)]
@@ -54,14 +54,19 @@
     panel))
 
 (defn- create-frame
-  "Create the About window."
-  []
+  "Create a window with an animated backdrop, and call `content-fn` to
+  create the elements to be displayed in front. Used for both the
+  About window, and the Looking for DJ Link Devices window.
+  `content-fn` will be called with the function that should be used to
+  paint the backdrop; it should assign that as the `:paint` option of
+  the container it creates."
+  [content-fn & {:keys [title] :or {title "About BeatLinkTrigger"}}]
   (let [backdrop (ImageIO/read (clojure.java.io/resource "images/Backdrop.png"))
         start (System/currentTimeMillis)
-        paint-fn (fn [c g] (paint-frame c g backdrop start))
-        root (seesaw/frame :title "About BeatLinkTrigger" :on-close :dispose
+        paint-fn (fn [c g] (paint-backdrop c g backdrop start))
+        root (seesaw/frame :title title :on-close :dispose
                            :minimum-size [400 :by 400]
-                           :content (create-about-panel paint-fn))
+                           :content (content-fn paint-fn))
         animator (future (loop [] (Thread/sleep 15) (.repaint root) (recur)))]
     (seesaw/listen root
                    :window-closed (fn [e]  ; Clean up our resources and record we are closed
@@ -81,5 +86,22 @@
   "Show the About window."
   []
   (seesaw/invoke-later
-   (.toFront (swap! frame #(or % (create-frame))))))
+   (.toFront (swap! frame #(or % (create-frame create-about-panel))))))
 
+(defn- create-searching-panel
+  "Create the panel explaining that we are searching for DJ Link
+  devices, given the function which paints the animated backdrop."
+  [paint-fn]
+  (let [panel (seesaw/xyz-panel
+               :id :xyz :background "black"
+               :paint paint-fn
+               :items [(seesaw/progress-bar :indeterminate? true :bounds [10 350 380 20])])]
+    panel))
+
+(defn create-searching-frame
+  "Create and show a frame that explains we are looking for devices."
+  []
+  (let [searching (create-frame create-searching-panel :title "Looking for DJ Link devices…")]
+    (seesaw/config! searching :resizable? false :on-close :nothing)
+    (.toFront searching)
+    searching))
