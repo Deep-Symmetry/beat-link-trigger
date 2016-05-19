@@ -14,9 +14,11 @@ This change log follows the conventions of
 - You can now open multiple trigger windows using the new Window menu,
   and have each watching a different player and sending a different
   MIDI message. Closing the last window quits.
+- Support for offline operation when no DJ Link device can be found.
 - A first-stage loading process which checks the Java version and
   presents an error dialog if it is too old to successfully load the
   rest of the application, offering to open the download page.
+- The beginnings of an informative and attractive About box.
 
 ### Changed
 
