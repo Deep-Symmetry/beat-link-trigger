@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [environ "1.0.2"]
                  [org.deepsymmetry/beat-link "0.1.4"]
                  [overtone/midi-clj "0.5.0"]
                  [overtone/osc-clj "0.9.0"]
@@ -24,6 +25,8 @@
              "Package" ~#(str (:group %) "." (:name %))
              "Specification-Title" ~#(:name %)
              "Specification-Version" ~#(:version %)}
+
+  :plugins [[lein-environ "1.0.2"]]
 
   :min-lein-version "2.0.0")
 
