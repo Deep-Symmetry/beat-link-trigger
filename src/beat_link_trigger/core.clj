@@ -62,35 +62,42 @@
 (defn- get-chosen-output
   "Return the MIDI output to which messages should be sent for a given
   trigger, opening it if this is the first time we are using it, or
-  reusing it if we already opened it."
+  reusing it if we already opened it. Returns `nil` if the output can
+  not currently be found (it was disconnected, or present in a loaded
+  file but not on this system)."
   [trigger]
   (let [output-menu (seesaw/select trigger [:#outputs])
         selection (seesaw/selection output-menu)
         device-name (.full_name selection)]
     (or (get @opened-outputs device-name)
-        (let [new-output (midi/midi-out device-name)]
-          (swap! opened-outputs assoc device-name new-output)
-          new-output))))
+        (try
+          (let [new-output (midi/midi-out device-name)]
+            (swap! opened-outputs assoc device-name new-output)
+            new-output)
+          (catch IllegalArgumentException e  ; The chosen output is not currently available
+            nil)))))
 
 (defn- report-activation
   "Send a message indicating the player a trigger is watching has
-  started playing."
+  started playing, as long as the chosen output exists."
   [trigger]
-  (let [note (seesaw/value (seesaw/select trigger [:#note]))
-        channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
-    (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
-      (midi/midi-note-on (get-chosen-output trigger) note 127 channel)
-      (midi/midi-control (get-chosen-output trigger) note 127 channel))))
+  (when-let [output (get-chosen-output trigger)]
+    (let [note (seesaw/value (seesaw/select trigger [:#note]))
+          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
+      (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
+        (midi/midi-note-on output note 127 channel)
+        (midi/midi-control output note 127 channel)))))
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
-  started playing."
+  started playing, as long as the chosen output exists."
   [trigger]
-  (let [note (seesaw/value (seesaw/select trigger [:#note]))
-        channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
-    (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
-      (midi/midi-note-off (get-chosen-output trigger) note channel)
-      (midi/midi-control (get-chosen-output trigger) note 0 channel))))
+  (when-let [output (get-chosen-output trigger)]
+    (let [note (seesaw/value (seesaw/select trigger [:#note]))
+          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
+      (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
+        (midi/midi-note-off output note channel)
+        (midi/midi-control output note 0 channel)))))
 
 (defn- update-playing-state
   "If the Playing state of a device being watched by a trigger has
@@ -145,6 +152,21 @@
                                                   (not (VirtualCdj/isActive)) "Offline."
                                                   :else "No status received.")))))))))
 
+(defn- show-midi-status
+  "Set the visibility of the Enabled checkbox and the text and color
+  of its label based on whether the currently-selected MIDI output can
+  be found."
+  [trigger]
+  (let [enabled-label (seesaw/select trigger [:#enabled-label])
+        enabled (seesaw/select trigger [:#enabled])]
+    (if-let [output (get-chosen-output trigger)]
+      (do (seesaw/config! enabled-label :foreground "black")
+          (seesaw/value! enabled-label "Enabled:")
+          (seesaw/config! enabled :visible? true))
+      (do (seesaw/config! enabled-label :foreground "red")
+          (seesaw/value! enabled-label "Not found.")
+          (seesaw/config! enabled :visible? false)))))
+
 (defonce ^{:private true
            :doc "Holds the trigger window, through which we can access and
   manipulate the triggers themselves."}
@@ -164,7 +186,8 @@
   ([]
    (create-trigger-row nil))
   ([m]
-   (let [panel (mig/mig-panel
+   (let [outputs (get-midi-outputs)
+         panel (mig/mig-panel
                 :id :panel
                 :items [["Watch:" "alignx trailing"]
                         [(seesaw/combobox :id :players :model (get-player-choices))]
@@ -172,7 +195,9 @@
                         [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
 
                         ["MIDI Output:" "alignx trailing"]
-                        [(seesaw/combobox :id :outputs :model (get-midi-outputs))]
+                        [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
+                                                                      (when-not ((set outputs) (:outputs m))
+                                                                        [(:outputs m)])))]
 
                         ["Message:" "gap unrelated"]
                         [(seesaw/combobox :id :message :model ["Note" "CC"])]
@@ -182,12 +207,15 @@
                         ["Channel:" "gap unrelated"]
                         [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16))]
 
-                        ["Enabled:" "gap unrelated"]
+                        [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                         [(seesaw/checkbox :id :enabled) "wrap"]]
                 :user-data (atom {:playing false}))]
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [e]  ; Update player status when selection changes
                                           (show-device-status panel)))
+     (seesaw/listen (seesaw/select panel [:#outputs])
+                    :item-state-changed (fn [e]  ; Update output status when selection changes
+                                          (show-midi-status panel)))
      (when (some? m)
        (seesaw/value! panel m))
      (show-device-status panel)
@@ -219,16 +247,17 @@
   saved and recreated."
   []
   (vec (for [trigger (get-triggers)]
-         (seesaw/value trigger))))
+         (dissoc (seesaw/value trigger) :status :enabled-label))))
 
 (defn- save-triggers-to-preferences
   "Saves the current Trigger window configuration to the application
   preferences."
   []
   (prefs/put-preferences (assoc (prefs/get-preferences) :triggers (trigger-configuration))))
+
+;; Register the custom readers needed to read back in the defrecords that we use.
 (prefs/add-reader 'beat_link_trigger.core.PlayerChoice map->PlayerChoice)
 (prefs/add-reader 'beat_link_trigger.core.MidiChoice map->MidiChoice)
-
 
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
@@ -236,17 +265,18 @@
   []
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
    (let [new-outputs (get-midi-outputs)]
+     ;; Remove any opened outputs that are no longer available in the MIDI environment
+     (swap! opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
+
      (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
        (let [output-menu (seesaw/select trigger [:#outputs])
              old-selection (seesaw/selection output-menu)]
-         (seesaw/config! output-menu :model new-outputs)  ; Update the content of the output menu
+         (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
+                                                    (when-not ((set new-outputs) old-selection) [old-selection])))
 
-         ;; If our old output selection is still available, restore it
-         (when ((set new-outputs) old-selection)
-           (seesaw/selection! output-menu old-selection))))
-
-     ;; Remove any opened outputs that are no longer available in the MIDI environment
-     (swap! opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs)))))))
+         ;; Keep our original selection chosen, even if it is now missing
+         (seesaw/selection! output-menu old-selection))
+       (show-midi-status trigger)))))
 
 (defn- rebuild-all-device-status
   "Updates all player status descriptions to reflect the devices
