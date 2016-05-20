@@ -110,7 +110,7 @@
     (str (if (.isPlaying status) "Playing" "Stopped")
          (when (.isOnAir status) ", On-Air")
          ", Track #" (.getTrackNumber status)
-         ", " (format "%.1f" (.getEffectiveTempo status)) " BPM ("
+         ", " (if (= 65535 (.getBpm status)) "--.-" (format "%.1f" (.getEffectiveTempo status))) " BPM ("
          (format "%+.2f%%" (Util/pitchToPercentage (.getPitch status))) ")"
          (cond
            (neg? beat) ", beat n/a"
