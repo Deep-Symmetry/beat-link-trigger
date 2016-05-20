@@ -6,7 +6,13 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- The About box and the Searching for Devices box would appear in the
+  top left corner of the screen momentarily before jumping to where
+  they belonged.
+- Newly created trigger rows had a blank choice at the bottom of the
+  MIDI Output menu.
 
 ## [0.1.1] - 2016-05-20
 

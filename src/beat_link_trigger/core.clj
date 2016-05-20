@@ -209,7 +209,8 @@
 
                         ["MIDI Output:" "alignx trailing"]
                         [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
-                                                                      (when-not ((set outputs) (:outputs m))
+                                                                      (when (and (some? m)
+                                                                                 (not ((set outputs) (:outputs m))))
                                                                         [(:outputs m)])))]
 
                         ["Message:" "gap unrelated"]
