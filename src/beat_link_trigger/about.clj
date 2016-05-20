@@ -80,8 +80,8 @@
                                           (when (not= w h)
                                             (let [side (Math/min w h)]
                                               (seesaw/config! root :size [side :by side]))))))
-    (seesaw/show! root)
     (.setLocationRelativeTo root nil)
+    (seesaw/show! root)
     root))
 
 (defn show
