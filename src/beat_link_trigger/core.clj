@@ -4,6 +4,7 @@
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
+            [seesaw.util]
             [beat-link-trigger.about :as about]
             [beat-link-trigger.prefs :as prefs])
   (:import [javax.sound.midi Sequencer Synthesizer]
@@ -250,7 +251,23 @@
                                             :items (concat (get-triggers) [(create-trigger-row)]))
                             (adjust-to-new-trigger))
                  :name "New Trigger"
-                 :key "menu T"))
+                 :key "menu T"
+                 :mnemonic (seesaw.util/to-mnemonic-keycode \T)))
+
+(def ^:private clear-triggers-action
+  "The menu action which empties the Trigger list."
+  (seesaw/action :handler (fn [e]
+                            (let [confirm (seesaw/dialog
+                                           :content "Clear Triggers?\nYou will be left with one default Trigger."
+                                           :type :warning :option-type :yes-no)]
+                              (.pack confirm)
+                              (.setLocationRelativeTo confirm @trigger-frame)
+                              (when (= :success (seesaw/show! confirm))
+                                (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                :items [(create-trigger-row)])
+                                (adjust-to-new-trigger))
+                              (seesaw/dispose! confirm)))
+                 :name "Clear Triggers"))
 
 (defn- trigger-configuration
   "Returns the current Trigger window configuration, so it can be
@@ -280,7 +297,8 @@
                                   (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
                                :title "Problem Writing File" :type :error)))))
                  :name "Save"
-                 :key "menu S"))
+                 :key "menu S"
+                 :mnemonic (seesaw.util/to-mnemonic-keycode \S)))
 
 (declare recreate-trigger-rows)
 
@@ -299,7 +317,20 @@
                                   (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
                                :title "Problem Reading File" :type :error)))))
                  :name "Load"
-                 :key "menu L"))
+                 :key "menu L"
+                 :mnemonic (seesaw.util/to-mnemonic-keycode \L)))
+
+(def ^:private non-mac-actions
+  "The actions which are automatically available in the Application
+  menu on the Mac, but must be added to the File menu on other
+  platforms. This value will be empty when running on the Mac."
+  (when-not (on-mac?)
+    [(seesaw/action :handler (fn [e] (about/show))
+                    :name "About BeatLinkTrigger"
+                    :mnemonic (seesaw.util/to-mnemonic-keycode \A))
+     (seesaw/action :handler (fn [e] (System/exit 0))
+                    :name "Exit"
+                    :mnemonic (seesaw.util/to-mnemonic-keycode \x))]))
 
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
@@ -369,8 +400,13 @@
   "Create and show the trigger window."
   []
   (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
-                           :menubar (seesaw/menubar :items [(seesaw/menu :text "File" :items [load-action save-action])
-                                                            (seesaw/menu :text "Window" :items [new-trigger-action])]))
+                           :menubar (seesaw/menubar
+                                     :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
+                                                                                      non-mac-actions)
+                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \F))
+                                             (seesaw/menu :text "Triggers"
+                                                          :items [new-trigger-action clear-triggers-action]
+                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \T))]))
         panel (seesaw/scrollable (seesaw/vertical-panel
                                   :id :triggers
                                   :items (recreate-trigger-rows)))]
