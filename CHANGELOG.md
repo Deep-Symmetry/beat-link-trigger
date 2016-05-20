@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.1.1] - 2016-05-20
+
 ### Added
 
 - A status summary of the selected player is shown after the menu.
@@ -17,6 +21,9 @@ This change log follows the conventions of
 - Support for offline operation when no DJ Link device can be found.
 - The list of triggers is saved when the application exits and
   restored when it starts.
+- You can save or load the configuration to a text file of your choice.
+- Triggers can be deleted by right-clicking on them as long as there
+  is more than one in the list.
 - A first-stage loading process which checks the Java version and
   presents an error dialog if it is too old to successfully load the
   rest of the application, offering to open the download page.
@@ -48,4 +55,5 @@ This change log follows the conventions of
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.0...v0.1.1

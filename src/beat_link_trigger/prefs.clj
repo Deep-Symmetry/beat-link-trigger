@@ -1,6 +1,7 @@
 (ns beat-link-trigger.prefs
   "Functions for managing application preferences"
   (:require [clojure.edn :as edn]
+            [fipp.edn :as fipp]
             [beat-link-trigger.about :as about])
   (:import java.util.prefs.Preferences))
 
@@ -34,3 +35,30 @@
   (let [prefs (prefs-node)]
     (.put prefs "prefs" (prn-str m))
     (.flush prefs)))
+
+(defn save-to-file
+  "Saves the preferences to a text file."
+  [file]
+  (spit file (with-out-str (fipp/pprint (get-preferences)))))
+
+(defn valid-file?
+  "Checks whether the specified file seems to be a valid save file. If
+  so, returns it; otherwiser returns nil."
+  [file]
+  (try
+    (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
+      (let [m (edn/read {:readers @prefs-readers} in)]
+        (when (some? (:beat-link-trigger-version m))
+          m)))
+    (catch Exception e
+      nil)))
+
+(defn load-from-file
+  "Read the preferences from a text file."
+  [file]
+  (if (valid-file? file)
+    (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
+      (let [m (edn/read {:readers @prefs-readers} in)]
+        (put-preferences m)
+        m))
+    (throw (IllegalArgumentException. (str "Unreadable file: " file)))))

@@ -1,7 +1,7 @@
 (ns beat-link-trigger.core
   "Send MIDI or OSC events when a CDJ starts playing."
   (:require [overtone.midi :as midi]
-            [seesaw.cells]
+            [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [beat-link-trigger.about :as about]
@@ -179,6 +179,19 @@
   (when-let [frame @trigger-frame]
     (seesaw/config (seesaw/select frame [:#triggers]) :items)))
 
+(defn- adjust-to-new-trigger
+  "Called when a trigger is added or removed to restore the proper
+  alternation of background colors, expand the window if it still fits
+  the screen, and update any other user interface elements that might
+  be affected."
+  []
+  (doall (map (fn [trigger color]
+                (seesaw/config! trigger :background color))
+              (get-triggers) (cycle ["#eee" "#ddd"])))
+  (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
+                                            (.height (.getBounds @trigger-frame))))
+                              (.pack @trigger-frame)))
+
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
@@ -209,7 +222,15 @@
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                         [(seesaw/checkbox :id :enabled) "wrap"]]
-                :user-data (atom {:playing false}))]
+
+                :user-data (atom {:playing false}))
+         delete-action (seesaw/action :handler (fn [e]
+                                                 (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                                 :items (remove #(= % panel) (get-triggers)))
+                                                 (adjust-to-new-trigger)
+                                                 (.pack @trigger-frame))
+                                      :name "Delete Trigger")]
+     (seesaw/config! panel :popup (fn [e] (when (> (count (get-triggers)) 1) [delete-action])))
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [e]  ; Update player status when selection changes
                                           (show-device-status panel)))
@@ -221,24 +242,12 @@
      (show-device-status panel)
      panel)))
 
-(defn- adjust-to-new-trigger
-  "Called when a trigger is added or removed to restore the proper
-  alternation of background colors, and update any other user
-  interface elements that might be affected."
-  []
-  (doall (map (fn [trigger color]
-                (seesaw/config! trigger :background color))
-              (get-triggers) (cycle ["#eee" "#ddd"]))))
-
 (def ^:private new-trigger-action
-  "The menu action which adds a new Trigger to the end of the list"
+  "The menu action which adds a new Trigger to the end of the list."
   (seesaw/action :handler (fn [e]
                             (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                             :items (concat (get-triggers) [(create-trigger-row)]))
-                            (adjust-to-new-trigger)
-                            (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
-                                            (.height (.getBounds @trigger-frame))))1
-                              (.pack @trigger-frame)))
+                            (adjust-to-new-trigger))
                  :name "New Trigger"
                  :key "menu T"))
 
@@ -258,6 +267,38 @@
 ;; Register the custom readers needed to read back in the defrecords that we use.
 (prefs/add-reader 'beat_link_trigger.core.PlayerChoice map->PlayerChoice)
 (prefs/add-reader 'beat_link_trigger.core.MidiChoice map->MidiChoice)
+
+(def ^:private save-action
+  "The menu action which saves the configuration to a user-specified file."
+  (seesaw/action :handler (fn [e]
+                            (save-triggers-to-preferences)
+                            (when-let [file (chooser/choose-file :type :save)]
+                              (try
+                                (prefs/save-to-file file)
+                                (catch Exception e
+                                  (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
+                               :title "Problem Writing File" :type :error)))))
+                 :name "Save"
+                 :key "menu S"))
+
+(declare recreate-trigger-rows)
+
+(def ^:private load-action
+  "The menu action which loads the configuration from a user-specified file."
+  (seesaw/action :handler (fn [e]
+                            (when-let [file (chooser/choose-file
+                                             :filters [(chooser/file-filter "BeatLinkTrigger Files"
+                                                                            prefs/valid-file?)])]
+                              (try
+                                (prefs/load-from-file file)
+                                (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                :items (recreate-trigger-rows))
+                                (adjust-to-new-trigger)
+                                (catch Exception e
+                                  (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
+                               :title "Problem Reading File" :type :error)))))
+                 :name "Load"
+                 :key "menu L"))
 
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
@@ -327,15 +368,15 @@
   "Create and show the trigger window."
   []
   (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
-                           :menubar (seesaw/menubar :items [(seesaw/menu :text "Window" :items [new-trigger-action])]))
+                           :menubar (seesaw/menubar :items [(seesaw/menu :text "File" :items [load-action save-action])
+                                                            (seesaw/menu :text "Window" :items [new-trigger-action])]))
         panel (seesaw/scrollable (seesaw/vertical-panel
                                   :id :triggers
                                   :items (recreate-trigger-rows)))]
     (seesaw/config! root :content panel)
-    (seesaw/pack! root)
-    (seesaw/show! root)
     (reset! trigger-frame root)
-    (adjust-to-new-trigger)))
+    (adjust-to-new-trigger)
+    (seesaw/show! root)))
 
 (defn- install-mac-about-handler
   "If we are running on a Mac, load the namespace that only works
