@@ -4,7 +4,8 @@
             [environ.core :refer [env]]
             [seesaw.core :as seesaw]
             [seesaw.graphics :as graphics])
-  (:import [java.awt.image BufferedImage]
+  (:import [java.awt RenderingHints]
+           [java.awt.image BufferedImage]
            [javax.imageio ImageIO]))
 
 (defn get-version
@@ -24,6 +25,7 @@
 (defn- paint-backdrop
   "Draw the animated Deep Symmetry backdrop in a component."
   [c g backdrop start]
+  (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
   (let [w (seesaw/width c)
         h (seesaw/height c)]
     (.translate g (/ w 2.0) (/ h 2.0))
