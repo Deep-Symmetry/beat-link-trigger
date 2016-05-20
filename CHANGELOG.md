@@ -15,6 +15,8 @@ This change log follows the conventions of
   and have each watching a different player and sending a different
   MIDI message. Closing the last window quits.
 - Support for offline operation when no DJ Link device can be found.
+- The list of triggers is saved when the application exits and
+  restored when it starts.
 - A first-stage loading process which checks the Java version and
   presents an error dialog if it is too old to successfully load the
   rest of the application, offering to open the download page.
