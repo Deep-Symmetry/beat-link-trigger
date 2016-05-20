@@ -8,6 +8,7 @@
             [beat-link-trigger.about :as about]
             [beat-link-trigger.prefs :as prefs])
   (:import [javax.sound.midi Sequencer Synthesizer]
+           [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
            [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
 
@@ -186,12 +187,27 @@
   the screen, and update any other user interface elements that might
   be affected."
   []
-  (doall (map (fn [trigger color]
-                (seesaw/config! trigger :background color))
-              (get-triggers) (cycle ["#eee" "#ddd"])))
+  (doall (map (fn [trigger color index]
+                (seesaw/config! trigger :background color)
+                (seesaw/config! (seesaw/select trigger [:#index])
+                                :text (str (inc index) ".")))
+              (get-triggers) (cycle ["#eee" "#ddd"]) (range)))
   (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
                                             (.height (.getBounds @trigger-frame))))
                               (.pack @trigger-frame)))
+
+(defn paint-placeholder
+  "A function which will paint placeholder text in a text field if the
+  user has not added any text of their own, since Swing does not have
+  this ability built in. Takes the text of the placeholder, the
+  component into which it should be painted, and the graphics content
+  in which painting is taking place."
+  [text c g]
+  (when (zero? (.. c (getText) (length)))
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setColor g (.getDisabledTextColor c))
+    (.drawString g text (.. c (getInsets) left)
+                 (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
 
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
@@ -203,12 +219,15 @@
    (let [outputs (get-midi-outputs)
          panel (mig/mig-panel
                 :id :panel
-                :items [["Watch:" "alignx trailing"]
+                :items [[(seesaw/label :id :index :text "1.") "align right"]
+                        [(seesaw/text :id :comment :paint (partial paint-placeholder "Comment")) "span, grow, wrap"]
+
+                        ["Watch:" "span 2, alignx trailing"]
                         [(seesaw/combobox :id :players :model (get-player-choices))]
 
                         [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
 
-                        ["MIDI Output:" "alignx trailing"]
+                        ["MIDI Output:" "span 2, alignx trailing"]
                         [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
                                                                       (when (and (some? m)
                                                                                  (not ((set outputs) (:outputs m))))
@@ -223,7 +242,7 @@
                         [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16))]
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                        [(seesaw/checkbox :id :enabled) "wrap"]]
+                        [(seesaw/checkbox :id :enabled) "hidemode 1, wrap"]]
 
                 :user-data (atom {:playing false}))
          delete-action (seesaw/action :handler (fn [e]
@@ -290,7 +309,7 @@
   "The menu action which saves the configuration to a user-specified file."
   (seesaw/action :handler (fn [e]
                             (save-triggers-to-preferences)
-                            (when-let [file (chooser/choose-file :type :save)]
+                            (when-let [file (chooser/choose-file @trigger-frame :type :save)]
                               (try
                                 (prefs/save-to-file file)
                                 (catch Exception e
@@ -306,6 +325,7 @@
   "The menu action which loads the configuration from a user-specified file."
   (seesaw/action :handler (fn [e]
                             (when-let [file (chooser/choose-file
+                                             @trigger-frame
                                              :filters [(chooser/file-filter "BeatLinkTrigger Files"
                                                                             prefs/valid-file?)])]
                               (try
