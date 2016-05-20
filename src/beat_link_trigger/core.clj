@@ -304,7 +304,8 @@
     (seesaw/config! root :content panel)
     (seesaw/pack! root)
     (seesaw/show! root)
-    (reset! trigger-frame root)))
+    (reset! trigger-frame root)
+    (adjust-to-new-trigger)))
 
 (defn- install-mac-about-handler
   "If we are running on a Mac, load the namespace that only works
