@@ -101,15 +101,23 @@
         (midi/midi-note-off output note channel)
         (midi/midi-control output note 0 channel)))))
 
+(defn- enabled?
+  "Check whether a trigger is enabled."
+  [trigger]
+  ;; For now, we just look at the checkbox, but soon we will potentially be using custom logic
+  (seesaw/value (seesaw/select trigger [:#enabled])))
+
 (defn- update-playing-state
   "If the Playing state of a device being watched by a trigger has
   changed, send an appropriate message and record the new state."
   [trigger new-state]
   (swap! (seesaw/user-data trigger)
          (fn [data]
-           (when (not= new-state (:playing data))
-             (if new-state (report-activation trigger) (report-deactivation trigger)))
-           (assoc data :playing new-state))))
+           (let [tripped (and new-state (enabled? trigger))]
+             (when (not= tripped (:tripped data))
+               (if tripped (report-activation trigger) (report-deactivation trigger)))
+             (assoc data :playing new-state :tripped tripped))))
+  (seesaw/repaint! (seesaw/select trigger [:#state])))
 
 (defn build-status-label
   "Create a brief textual summary of a player state given a status
@@ -160,14 +168,17 @@
   be found."
   [trigger]
   (let [enabled-label (seesaw/select trigger [:#enabled-label])
-        enabled (seesaw/select trigger [:#enabled])]
+        enabled (seesaw/select trigger [:#enabled])
+        state (seesaw/select trigger [:#state])]
     (if-let [output (get-chosen-output trigger)]
       (do (seesaw/config! enabled-label :foreground "black")
           (seesaw/value! enabled-label "Enabled:")
-          (seesaw/config! enabled :visible? true))
+          (seesaw/config! enabled :visible? true)
+          (seesaw/config! state :visible? true))
       (do (seesaw/config! enabled-label :foreground "red")
           (seesaw/value! enabled-label "Not found.")
-          (seesaw/config! enabled :visible? false)))))
+          (seesaw/config! enabled :visible? false)
+          (seesaw/config! state :visible? false)))))
 
 (defonce ^{:private true
            :doc "Holds the trigger window, through which we can access and
@@ -209,6 +220,34 @@
     (.drawString g text (.. c (getInsets) left)
                  (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
 
+(defn paint-state
+  "Draws a representation of the state of the trigger, including both
+  whether it is enabled and whether it has tripped (or would have, if
+  it were not disabled)."
+  [trigger c g]
+  (let [w (double (seesaw/width c))
+        h (double (seesaw/height c))
+        outline (java.awt.geom.Ellipse2D$Double. 0.0 0.0 (dec w) (dec h))
+        enabled? (enabled? trigger)
+        state @(seesaw/user-data trigger)]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+
+    ;; Draw the inner filled circle if the trigger is tripped
+    (if (:tripped state)
+      (do
+        (.setPaint g java.awt.Color/green)
+        (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5))))
+      (when (:playing state)
+        (.setPaint g java.awt.Color/gray)
+        (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5)))))
+
+    ;; Draw the outer circle that reflects the enabled state
+    (.setPaint g (if enabled? java.awt.Color/green java.awt.Color/red))
+    (.draw g outline)
+    (when-not enabled?
+      (.clip g outline)
+      (.draw g (java.awt.geom.Line2D$Double. 0.0 (dec h) (dec w) 0.0)))))
+
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
@@ -242,16 +281,26 @@
                         [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16))]
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                        [(seesaw/checkbox :id :enabled) "hidemode 1, wrap"]]
+                        [(seesaw/checkbox :id :enabled) "hidemode 1"]
+                        [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false)  "wrap"]]
 
-                :user-data (atom {:playing false}))
+                :user-data (atom {:playing false :tripped false}))
          delete-action (seesaw/action :handler (fn [e]
                                                  (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                                  :items (remove #(= % panel) (get-triggers)))
                                                  (adjust-to-new-trigger)
                                                  (.pack @trigger-frame))
                                       :name "Delete Trigger")]
+     ;; Create our contextual menu
      (seesaw/config! panel :popup (fn [e] (when (> (count (get-triggers)) 1) [delete-action])))
+
+     ;; Attach the custom paint function to render the graphical trigger state
+     (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))
+
+     (seesaw/listen (seesaw/select panel [:#enabled])
+                    :state-changed (fn [e]  ; Update the trigger state when the enabled state changes
+                                     (seesaw/repaint! (seesaw/select panel [:#state]))))
+
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [e]  ; Update player status when selection changes
                                           (show-device-status panel)))
@@ -388,10 +437,9 @@
       (doseq [trigger (get-triggers)]
         (let [player-menu (seesaw/select trigger [:#players])
               selection (seesaw/selection player-menu)
-              status-label (seesaw/select trigger [:#status])
-              enabled (seesaw/value (seesaw/select trigger [:#enabled]))]
+              status-label (seesaw/select trigger [:#status])]
           (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
-            (update-playing-state trigger (and enabled (.isPlaying status)))
+            (update-playing-state trigger (.isPlaying status))
             (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
 
