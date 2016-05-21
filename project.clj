@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [com.fifesoft/rsyntaxtextarea "2.5.8"]
                  [environ "1.0.3"]
                  [fipp "0.6.5"]
                  [org.deepsymmetry/beat-link "0.1.4"]

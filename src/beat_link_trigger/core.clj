@@ -105,18 +105,22 @@
   "Check whether a trigger is enabled."
   [trigger]
   ;; For now, we just look at the checkbox, but soon we will potentially be using custom logic
-  (seesaw/value (seesaw/select trigger [:#enabled])))
+  (case (seesaw/value (seesaw/select trigger [:#enabled]))
+    "Always" true
+    "On-Air" (:on-air @(seesaw/user-data trigger))
+    "Custom" (:custom-enabled-result @(seesaw/user-data trigger))
+    false))
 
-(defn- update-playing-state
+(defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
   changed, send an appropriate message and record the new state."
-  [trigger new-state]
+  [trigger playing on-air]
   (swap! (seesaw/user-data trigger)
          (fn [data]
-           (let [tripped (and new-state (enabled? trigger))]
+           (let [tripped (and playing (enabled? trigger))]
              (when (not= tripped (:tripped data))
                (if tripped (report-activation trigger) (report-deactivation trigger)))
-             (assoc data :playing new-state :tripped tripped))))
+             (assoc data :playing playing :on-air on-air :tripped tripped))))
   (seesaw/repaint! (seesaw/select trigger [:#state])))
 
 (defn build-status-label
@@ -147,13 +151,13 @@
     (if (nil? selection)
       (do (seesaw/config! status-label :foreground "red")
           (seesaw/value! status-label "No Player selected.")
-          (update-playing-state trigger false))
+          (update-player-state trigger false false))
       (let [found (when (DeviceFinder/isActive) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
             status (when (VirtualCdj/isActive) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
         (if (nil? found)
           (do (seesaw/config! status-label :foreground "red")
               (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
-              (update-playing-state trigger false))
+              (update-player-state trigger false false))
           (if (instance? CdjStatus status)
             (do (seesaw/config! status-label :foreground "black")
                 (seesaw/value! status-label (build-status-label status)))
@@ -192,6 +196,13 @@
   (when-let [frame @trigger-frame]
     (seesaw/config (seesaw/select frame [:#triggers]) :items)))
 
+(defn- enabled-editor-title
+  "Return the text to use as the title bar in a window editing the
+  custom enabled expression for a trigger."
+  [trigger]
+  (let [index (:index (seesaw/value trigger))]
+    (str "Trigger " (subs index 0 (dec (count index))) " Custom Enabled Expression")))
+
 (defn- adjust-to-new-trigger
   "Called when a trigger is added or removed to restore the proper
   alternation of background colors, expand the window if it still fits
@@ -201,7 +212,9 @@
   (doall (map (fn [trigger color index]
                 (seesaw/config! trigger :background color)
                 (seesaw/config! (seesaw/select trigger [:#index])
-                                :text (str (inc index) ".")))
+                                :text (str (inc index) "."))
+                (when-let [editor (:custom-enabled-editor @(seesaw/user-data trigger))]
+                  (seesaw/config! editor :title (enabled-editor-title trigger))))
               (get-triggers) (cycle ["#eee" "#ddd"]) (range)))
   (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
                                             (.height (.getBounds @trigger-frame))))
@@ -232,12 +245,11 @@
         state @(seesaw/user-data trigger)]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
-    ;; Draw the inner filled circle if the trigger is tripped
     (if (:tripped state)
-      (do
+      (do  ; Draw the inner filled circle showing the trigger is tripped
         (.setPaint g java.awt.Color/green)
         (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5))))
-      (when (:playing state)
+      (when (:playing state)  ; Draw the inner gray circle showing it would trip if it were not disabled
         (.setPaint g java.awt.Color/gray)
         (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5)))))
 
@@ -247,6 +259,56 @@
     (when-not enabled?
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 0.0 (dec h) (dec w) 0.0)))))
+
+(defn- create-editor-window
+  "Create and show a window for editing Clojure code."
+  [title text save-fn]
+  (let [root (seesaw/frame :title title :on-close :dispose
+                           #_:menubar #_(seesaw/menubar
+                                     :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
+                                                                                      non-mac-actions)
+                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \F))
+                                             (seesaw/menu :text "Triggers"
+                                                          :items [new-trigger-action clear-triggers-action]
+                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \T))]))
+        editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])]
+    (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
+    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap"]
+                                                         [save-button "push, align center"]]))
+    (seesaw/config! editor :id :source)
+    (seesaw/value! root {:source text})
+    (seesaw/pack! root)))
+
+(defn update-enabled-expression
+  "Called when the editor for a custom enabled expression is ending
+  and the user has asked to update the expression with new text."
+  [trigger text]
+  (try
+    (swap! (seesaw/user-data trigger) assoc :custom-enabled-fn (eval (read-string (str "(fn [status] " text ")"))))
+    (when-let [root (:custom-enabled-editor @(seesaw/user-data trigger))] (.dispose root)) ; Close the editor
+    (swap! (seesaw/user-data trigger)
+           (fn [data]
+             (assoc (dissoc data :custom-enabled-editor)
+                    :custom-enabled text)))
+    (catch Exception e
+      (seesaw/alert (str "<html>Unable to use custom Enabled expression<br><br>" e)
+                               :title "Exception during Clojure Evaluation" :type :error))))
+
+(defn- show-enabled-editor
+  "If there is currently no editor open for the custom enabled
+  expression for a trigger, create it. If it exists, bring it to the
+  front."
+  [trigger]
+  (let [editor (or (:custom-enabled-editor @(seesaw/user-data trigger))
+                   (create-editor-window (enabled-editor-title trigger)
+                                         (:custom-enabled @(seesaw/user-data trigger))
+                                         (fn [text] (update-enabled-expression trigger text))))]
+    (.setLocationRelativeTo editor trigger)
+    (swap! (seesaw/user-data trigger) assoc :custom-enabled-editor editor)
+    (seesaw/show! editor)
+    (.toFront editor)))
 
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
@@ -281,25 +343,35 @@
                         [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16))]
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                        [(seesaw/checkbox :id :enabled) "hidemode 1"]
-                        [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false)  "wrap"]]
+                        [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]) "hidemode 1"]
+                        [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false)  "wrap, hidemode 1"]]
 
                 :user-data (atom {:playing false :tripped false}))
          delete-action (seesaw/action :handler (fn [e]
+                                                 (when-let [editor (:custom-enabled-editor @(seesaw/user-data panel))]
+                                                   (seesaw/dispose! editor))
                                                  (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                                  :items (remove #(= % panel) (get-triggers)))
                                                  (adjust-to-new-trigger)
                                                  (.pack @trigger-frame))
-                                      :name "Delete Trigger")]
+                                      :name "Delete Trigger")
+         edit-enabled-action (seesaw/action :handler (fn [e] (show-enabled-editor panel))
+                                      :name "Edit Enabled Expression")]
      ;; Create our contextual menu
-     (seesaw/config! panel :popup (fn [e] (when (> (count (get-triggers)) 1) [delete-action])))
+     (seesaw/config! panel :popup (fn [e] (when (> (count (get-triggers)) 1) [edit-enabled-action delete-action])))
 
      ;; Attach the custom paint function to render the graphical trigger state
      (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))
 
-     (seesaw/listen (seesaw/select panel [:#enabled])
-                    :state-changed (fn [e]  ; Update the trigger state when the enabled state changes
-                                     (seesaw/repaint! (seesaw/select panel [:#state]))))
+     ;; Update the trigger state when the enabled state changes, and open an editor window if Custom is
+     ;; chosen and the custom expression is empty
+     (let [enabled-menu (seesaw/select panel [:#enabled])]
+       (seesaw/listen enabled-menu
+        :action-performed (fn [e]
+                            (seesaw/repaint! (seesaw/select panel [:#state]))
+                            (when (and (= "Custom" (seesaw/selection enabled-menu))
+                                       (empty? (:custom-enabled @(seesaw/user-data panel))))
+                              (show-enabled-editor panel)))))
 
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [e]  ; Update player status when selection changes
@@ -308,6 +380,13 @@
                     :item-state-changed (fn [e]  ; Update output status when selection changes
                                           (show-midi-status panel)))
      (when (some? m)
+       (when-let [custom-enabled (:custom-enabled m)]
+         (try
+           (swap! (seesaw/user-data panel) assoc :custom-enabled custom-enabled
+                  :custom-enabled-fn (eval (read-string (str "(fn [status] " custom-enabled ")"))))
+           (catch Exception e
+             ;; TODO: Log error here!
+             )))
        (seesaw/value! panel m))
      (show-device-status panel)
      panel)))
@@ -342,7 +421,10 @@
   saved and recreated."
   []
   (vec (for [trigger (get-triggers)]
-         (dissoc (seesaw/value trigger) :status :enabled-label))))
+         (-> (seesaw/value trigger)
+             (dissoc :status :enabled-label :index)
+             (merge (when-let [custom-enabled (:custom-enabled @(seesaw/user-data trigger))]
+                      {:custom-enabled custom-enabled}))))))
 
 (defn- save-triggers-to-preferences
   "Saves the current Trigger window configuration to the application
@@ -439,7 +521,16 @@
               selection (seesaw/selection player-menu)
               status-label (seesaw/select trigger [:#status])]
           (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
-            (update-playing-state trigger (.isPlaying status))
+            (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
+              (swap! (seesaw/user-data trigger)
+                     (fn [data]
+                       (assoc data :custom-enabled-result
+                              (try
+                                ((:custom-enabled-fn data) status)
+                                (catch Exception e
+                                  ;; TODO: Log error, possibly flag for display in UI!
+                                  ))))))
+            (update-player-state trigger (.isPlaying status) (.isOnAir status))
             (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
 
@@ -453,15 +544,29 @@
     (deviceLost [this announcement]
       (rebuild-all-device-status))))
 
+(defn- translate-enabled-values
+  "Convert from the old true/false model of enabled stored in early
+  preference file versions to the new choices so they load correctly."
+  [trigger]
+  (if-some [enabled (:enabled trigger)]
+    (assoc trigger :enabled (case enabled
+                              true "Always"
+                              false "Never"
+                              enabled))
+    trigger))
+
 (defn- recreate-trigger-rows
   "Reads the preferences and recreates any trigger rows that were
   specified in them. If none were found, returns a single, default
   trigger."
   []
+  (doseq [trigger (get-triggers)]
+    (when-let [editor (:custom-enabled-editor @(seesaw/user-data trigger))]
+      (seesaw/dispose! editor)))  ; Close any custom enabled expression editors that were open
   (let [triggers (:triggers (prefs/get-preferences))]
     (if (seq triggers)
       (vec (for [trigger triggers]
-             (create-trigger-row trigger)))
+             (create-trigger-row (translate-enabled-values trigger))))
       [(create-trigger-row)])))
 
 (defn- create-trigger-window

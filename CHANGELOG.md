@@ -6,6 +6,17 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- A comment field for keeping notes about each trigger.
+- In addition to the former yes/no values (now renamed Always and
+  Never), the Enabled setting of a trigger can be set to On-Air
+  (enabled when its player reports being on the air), and Custom,
+  which allows you to evaluate a Clojure expression on the player's
+  status report and decide however you want.
+- A graphical indicator to summarize the trigger's enabled and tripped
+  state.
+
 ### Fixed
 
 - The About box and the Searching for Devices box would appear in the
