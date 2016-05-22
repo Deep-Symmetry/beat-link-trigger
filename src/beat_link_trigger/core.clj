@@ -70,7 +70,7 @@
                        (- this-device))
         [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
         better (or (= existing-device this-device)
-                   (> match-score (or existing-score 0)))]
+                   (> match-score (or existing-score -256)))]
     (when better
       (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
 
