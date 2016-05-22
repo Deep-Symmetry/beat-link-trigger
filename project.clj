@@ -5,8 +5,10 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [com.fifesoft/rsyntaxtextarea "2.5.8"]
+                 [com.taoensso/timbre "4.3.1"]
                  [environ "1.0.3"]
                  [fipp "0.6.5"]
+                 [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.1.4"]
                  [overtone/midi-clj "0.5.0"]
                  [overtone/osc-clj "0.9.0"]

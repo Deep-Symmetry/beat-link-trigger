@@ -1,12 +1,15 @@
 (ns beat-link-trigger.core
   "Send MIDI or OSC events when a CDJ starts playing."
-  (:require [overtone.midi :as midi]
+  (:require [beat-link-trigger.about :as about]
+            [beat-link-trigger.prefs :as prefs]
+            [me.raynes.fs :as fs]
+            [overtone.midi :as midi]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [seesaw.util]
-            [beat-link-trigger.about :as about]
-            [beat-link-trigger.prefs :as prefs])
+            [taoensso.timbre.appenders.3rd-party.rotor :as rotor]
+            [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
@@ -77,7 +80,7 @@
             (swap! opened-outputs assoc device-name new-output)
             new-output)
           (catch IllegalArgumentException e  ; The chosen output is not currently available
-            nil)))))
+            (timbre/debug e "Trigger using nonexisting MIDI output" device-name))))))
 
 (defn- report-activation
   "Send a message indicating the player a trigger is watching has
@@ -85,8 +88,10 @@
   [trigger]
   (when-let [output (get-chosen-output trigger)]
     (let [note (seesaw/value (seesaw/select trigger [:#note]))
-          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
-      (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
+          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
+          message (seesaw/value (seesaw/select trigger [:#message]))]
+      (timbre/info "Reporting activation:" message note "on channel" (inc channel))
+      (if (= "Note" message)
         (midi/midi-note-on output note 127 channel)
         (midi/midi-control output note 127 channel)))))
 
@@ -96,8 +101,10 @@
   [trigger]
   (when-let [output (get-chosen-output trigger)]
     (let [note (seesaw/value (seesaw/select trigger [:#note]))
-          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))]
-      (if (= "Note" (seesaw/value (seesaw/select trigger [:#message])))
+          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
+          message (seesaw/value (seesaw/select trigger [:#message]))]
+      (timbre/info "Reporting deactivation:" message note "on channel" (inc channel))
+      (if (= "Note" message)
         (midi/midi-note-off output note channel)
         (midi/midi-control output note 0 channel)))))
 
@@ -285,6 +292,7 @@
   "Called when the editor for a custom enabled expression is ending
   and the user has asked to update the expression with new text."
   [trigger text]
+  (swap! (seesaw/user-data trigger) dissoc :custom-enabled-fn)  ; In case the parse fails, leave nothing there.
   (try
     (swap! (seesaw/user-data trigger) assoc :custom-enabled-fn (eval (read-string (str "(fn [status] " text ")"))))
     (when-let [root (:custom-enabled-editor @(seesaw/user-data trigger))] (.dispose root)) ; Close the editor
@@ -293,7 +301,9 @@
              (assoc (dissoc data :custom-enabled-editor)
                     :custom-enabled text)))
     (catch Exception e
-      (seesaw/alert (str "<html>Unable to use custom Enabled expression<br><br>" e)
+      (timbre/error e "Problem parsing custom Enabled expression.")
+      (seesaw/alert (str "<html>Unable to use custom Enabled expression.<br><br>" e
+                         "<br><br>You may wish to check the log file for the detailed stack trace.")
                                :title "Exception during Clojure Evaluation" :type :error))))
 
 (defn- show-enabled-editor
@@ -381,12 +391,14 @@
                                           (show-midi-status panel)))
      (when (some? m)
        (when-let [custom-enabled (:custom-enabled m)]
+         (swap! (seesaw/user-data panel) assoc :custom-enabled custom-enabled)
          (try
-           (swap! (seesaw/user-data panel) assoc :custom-enabled custom-enabled
-                  :custom-enabled-fn (eval (read-string (str "(fn [status] " custom-enabled ")"))))
+           (swap! (seesaw/user-data panel) assoc :custom-enabled-fn
+                  (eval (read-string (str "(fn [status] " custom-enabled ")"))))
            (catch Exception e
-             ;; TODO: Log error here!
-             )))
+             (swap! (seesaw/user-data panel) assoc :custom-enabled-load-error true)
+             (timbre/error e (str "Problem parsing custom Enabled expression when loading Triggers. Expression:\n"
+                                  custom-enabled "\n")))))
        (seesaw/value! panel m))
      (show-device-status panel)
      panel)))
@@ -452,6 +464,23 @@
 
 (declare recreate-trigger-rows)
 
+(defn- check-for-parse-error
+  "Called after loading the triggers from a file or the preferences to
+  see if there were problems parsing any of the custom Enable
+  expressions. If so, reports that to the user and clears the warning
+  flags."
+  []
+  (let [failed (filter identity (for [trigger (get-triggers)]
+                                  (when (:custom-enabled-load-error @(seesaw/user-data trigger))
+                                    (swap! (seesaw/user-data trigger) dissoc :custom-enabled-load-error)
+                                    (let [label (seesaw/value (seesaw/select trigger [:#index]))]
+                                      (subs label 0 (dec (count label)))))))]
+    (when (seq failed)
+      (seesaw/alert (str "<html>Unable to use custom Enabled expression for Trigger "
+                         (clojure.string/join ", " failed) ".<br><br>"
+                         "Check the log file for details.")
+                    :title "Exception during Clojure Evaluation" :type :error))))
+
 (def ^:private load-action
   "The menu action which loads the configuration from a user-specified file."
   (seesaw/action :handler (fn [e]
@@ -466,19 +495,32 @@
                                 (adjust-to-new-trigger)
                                 (catch Exception e
                                   (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
-                               :title "Problem Reading File" :type :error)))))
+                                                :title "Problem Reading File" :type :error)))
+                              (check-for-parse-error)))
                  :name "Load"
                  :key "menu L"
                  :mnemonic (seesaw.util/to-mnemonic-keycode \L)))
+
+(defonce ^{:private true
+           :doc "The temporary directory into which we will log."}
+  log-path (atom (fs/temp-dir "blt_logs")))
+
+(def ^:private logs-action
+  "The menu action which opens the logs folder."
+  (seesaw/action :handler (fn [e]
+                            (.open (java.awt.Desktop/getDesktop) @log-path))
+                 :name "Open Logs Folder"))
 
 (def ^:private non-mac-actions
   "The actions which are automatically available in the Application
   menu on the Mac, but must be added to the File menu on other
   platforms. This value will be empty when running on the Mac."
   (when-not (on-mac?)
-    [(seesaw/action :handler (fn [e] (about/show))
+    [(seesaw/separator)
+     (seesaw/action :handler (fn [e] (about/show))
                     :name "About BeatLinkTrigger"
                     :mnemonic (seesaw.util/to-mnemonic-keycode \A))
+     (seesaw/separator)
      (seesaw/action :handler (fn [e] (System/exit 0))
                     :name "Exit"
                     :mnemonic (seesaw.util/to-mnemonic-keycode \x))]))
@@ -528,8 +570,8 @@
                               (try
                                 ((:custom-enabled-fn data) status)
                                 (catch Exception e
-                                  ;; TODO: Log error, possibly flag for display in UI!
-                                  ))))))
+                                  (timbre/error e "Problem running custom Enabled expression,"
+                                                (:custom-enabled data))))))))
             (update-player-state trigger (.isPlaying status) (.isOnAir status))
             (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
@@ -574,7 +616,9 @@
   []
   (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
                            :menubar (seesaw/menubar
-                                     :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
+                                     :items [(seesaw/menu :text "File"
+                                                          :items (concat [load-action save-action
+                                                                          (seesaw/separator) logs-action]
                                                                                       non-mac-actions)
                                                           :mnemonic (seesaw.util/to-mnemonic-keycode \F))
                                              (seesaw/menu :text "Triggers"
@@ -586,7 +630,8 @@
     (seesaw/config! root :content panel)
     (reset! trigger-frame root)
     (adjust-to-new-trigger)
-    (seesaw/show! root)))
+    (seesaw/show! root)
+    (check-for-parse-error)))
 
 (defn- install-mac-about-handler
   "If we are running on a Mac, load the namespace that only works
@@ -596,17 +641,70 @@
     (require '[beat-link-trigger.mac-about])
     ((resolve 'beat-link-trigger.mac-about/install-handler))))
 
+(defn- create-appenders
+  "Create a set of appenders which rotate the file at the specified path."
+  []
+  {:rotor (rotor/rotor-appender {:path (fs/file @log-path "blt.log")
+                                 :max-size 100000
+                                 :backlog 5})})
+
+(defonce ^{:private true
+           :doc "The default log appenders, which rotate between files
+           in a logs subdirectory."}
+  appenders (atom (create-appenders)))
+
+(defn- init-logging-internal
+  "Performs the actual initialization of the logging environment,
+  protected by the delay below to insure it happens only once."
+  []
+  (timbre/set-config!
+   {:level :info  ; #{:trace :debug :info :warn :error :fatal :report}
+    :enabled? true
+
+    ;; Control log filtering by namespaces/patterns. Useful for turning off
+    ;; logging in noisy libraries, etc.:
+    :ns-whitelist  [] #_["my-app.foo-ns"]
+    :ns-blacklist  [] #_["taoensso.*"]
+
+    :middleware [] ; (fns [data]) -> ?data, applied left->right
+
+    :timestamp-opts {:pattern "yyyy-MMM-dd HH:mm:ss"
+                     :locale :jvm-default
+                     :timezone (java.util.TimeZone/getDefault)}
+
+    :output-fn timbre/default-output-fn ; (fn [data]) -> string
+    })
+
+  ;; Install the desired log appenders
+  (timbre/merge-config!
+   {:appenders @appenders}))
+
+(defonce ^{:private true
+           :doc "Used to ensure log initialization takes place exactly once."}
+  initialized (delay (init-logging-internal)))
+
+(defn init-logging
+  "Set up the logging environment."
+  ([] ;; Resolve the delay, causing initialization to happen if it has not yet.
+   @initialized)
+  ([appenders-map] ;; Override the default appenders, then initialize as above.
+   (reset! appenders appenders-map)
+   (init-logging)))
+
 (defn start
-  "Make sure we can start the Virtual CDJ, then present a user
-  interface. Called when jar startup has detected a recent-enough Java
-  version to succcessfully load this namespace."
+  "Set up logging, make sure we can start the Virtual CDJ, then
+  present a user interface. Called when jar startup has detected a
+  recent-enough Java version to succcessfully load this namespace."
   [& args]
   (seesaw/native!)  ; Adopt as native a look-and-feel as possible
+  (init-logging)
+  (timbre/info "Beat Link Trigger starting.")
   (install-mac-about-handler)
   (let [searching (about/create-searching-frame)]
     (loop []
       (if (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
+                 (timbre/log e "Unable to create Virtual CDJ")
                  (seesaw/hide! searching)
                  (seesaw/alert (str "<html>Unable to create Virtual CDJ<br><br>" e)
                                :title "DJ Link Connection Failed" :type :error)))
