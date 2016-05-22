@@ -24,11 +24,24 @@
     (catch Exception e
       false)))
 
+(defn- matching-player-number?
+  "Checks whether a CDJ status update matches a trigger, handling
+  the special case of the Master Player."
+  [status trigger]
+  (let [player-menu (seesaw/select trigger [:#players])
+        selection (seesaw/selection player-menu)]
+    (and (some? selection)
+         (or (= (:number selection) (.getDeviceNumber status))
+             (and (zero? (:number selection)) (.isTempoMaster status))))))
+
 ;; Used to represent the available players in the Watch menu. The `toString` method tells
 ;; Swing how to display it, and the number is what we need for comparisons.
 (defrecord PlayerChoice [number]
   Object
-  (toString [_] (str "Player " number)))
+  (toString [_] (cond
+                  (neg? number) "Any Player"  ; Requires more thought about how to implement
+                  (zero? number) "Master Player"
+                  :else (str "Player " number))))
 
 ;; Used to represent the available MIDI outputs in the output menu. The `toString` method
 ;; tells Swing how to display it, so we can suppress the CoreMidi4J prefix.
@@ -56,7 +69,7 @@
   choices because you might be loading a configuration you want to
   edit in an offline setting."
   []
-  (for [i (range 1 5)]
+  (for [i (range 5)]
     (PlayerChoice. i)))
 
 (defonce ^{:private true
@@ -136,6 +149,7 @@
   [status]
   (let [beat (.getBeatNumber status)]
     (str (if (.isPlaying status) "Playing" "Stopped")
+         (when (.isTempoMaster status) ", Master")
          (when (.isOnAir status) ", On-Air")
          ", Track #" (.getTrackNumber status)
          ", " (if (= 65535 (.getBpm status)) "--.-" (format "%.1f" (.getEffectiveTempo status))) " BPM ("
@@ -559,10 +573,8 @@
   (reify org.deepsymmetry.beatlink.DeviceUpdateListener
     (received [this status]
       (doseq [trigger (get-triggers)]
-        (let [player-menu (seesaw/select trigger [:#players])
-              selection (seesaw/selection player-menu)
-              status-label (seesaw/select trigger [:#status])]
-          (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
+        (let [status-label (seesaw/select trigger [:#status])]
+          (when (and (instance? CdjStatus status) (matching-player-number? status trigger))
             (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
               (swap! (seesaw/user-data trigger)
                        (fn [data]
