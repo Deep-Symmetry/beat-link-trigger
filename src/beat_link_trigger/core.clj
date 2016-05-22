@@ -553,7 +553,7 @@
     (show-device-status trigger)))
 
 (defonce ^{:private true
-           :doc "Responds to player status updates and updates the
+           :doc "Responds to player status packets and updates the
   state of any triggers watching them."}
   status-listener
   (reify org.deepsymmetry.beatlink.DeviceUpdateListener
@@ -565,13 +565,14 @@
           (when (and (instance? CdjStatus status) (some? selection) (= (.number selection) (.getDeviceNumber status)))
             (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
               (swap! (seesaw/user-data trigger)
-                     (fn [data]
-                       (assoc data :custom-enabled-result
-                              (try
-                                ((:custom-enabled-fn data) status)
-                                (catch Exception e
-                                  (timbre/error e "Problem running custom Enabled expression,"
-                                                (:custom-enabled data))))))))
+                       (fn [data]
+                         (assoc data :custom-enabled-result
+                                (when-let [custom-fn (:custom-enabled-fn data)]
+                                  (try
+                                    (custom-fn status)
+                                    (catch Exception e
+                                      (timbre/error e "Problem running custom Enabled expression,"
+                                                    (:custom-enabled data)))))))))
             (update-player-state trigger (.isPlaying status) (.isOnAir status))
             (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
