@@ -351,7 +351,9 @@
   (swap! (seesaw/user-data trigger) dissoc :custom-enabled-fn)  ; In case the parse fails, leave nothing there.
   (try
     (swap! (seesaw/user-data trigger) assoc :custom-enabled-fn (eval (read-string (str "(fn [status] " text ")"))))
-    (when-let [root (:custom-enabled-editor @(seesaw/user-data trigger))] (.dispose root)) ; Close the editor
+    (when-let [root (:custom-enabled-editor @(seesaw/user-data trigger))]
+      (.dispose root)  ; Close the editor
+      (swap! (seesaw/user-data trigger) dissoc :custom-enabled-editor))
     (swap! (seesaw/user-data trigger)
            (fn [data]
              (assoc (dissoc data :custom-enabled-editor)
