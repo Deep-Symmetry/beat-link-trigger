@@ -24,15 +24,68 @@
     (catch Exception e
       false)))
 
-(defn- matching-player-number?
-  "Checks whether a CDJ status update matches a trigger, handling
-  the special case of the Master Player."
+(defn- enabled?
+  "Check whether a trigger is enabled."
+  [trigger]
+  (case (seesaw/value (seesaw/select trigger [:#enabled]))
+    "Always" true
+    "On-Air" (:on-air @(seesaw/user-data trigger))
+    "Custom" (:custom-enabled-result @(seesaw/user-data trigger))
+    false))
+
+(defn- run-custom-enabled
+  "Invokes the custom enabled filter assigned to a trigger, if any,
+  recording the result in the trigger user data."
   [status trigger]
-  (let [player-menu (seesaw/select trigger [:#players])
-        selection (seesaw/selection player-menu)]
-    (and (some? selection)
-         (or (= (:number selection) (.getDeviceNumber status))
-             (and (zero? (:number selection)) (.isTempoMaster status))))))
+  (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
+    (swap! (seesaw/user-data trigger)
+           (fn [data]
+             (assoc data :custom-enabled-result
+                    (when-let [custom-fn (:custom-enabled-fn data)]
+                      (try
+                        (custom-fn status)
+                        (catch Exception e
+                          (timbre/error e "Problem running custom Enabled expression,"
+                                        (:custom-enabled data))))))))))
+
+(defn- is-better-match?
+  "Checks whether the current status packet represents a better
+  matching device for a trigger to track than the one it is currently
+  tracking. The best kind of match is both enabled and playing, second
+  best is at least enabled, third best is playing. Ties are broken in
+  favor of the player with the lowest number.
+
+  In order to determine the enabled state, we need to run the custom
+  enabled function if there is one, so that will be called for all
+  incoming packets.
+
+  We always match if we are the same device as the last match, even if
+  it is a downgrade, to make sure we update the match score and
+  relinquish control on the next packet from a better match."
+  [status trigger]
+  (run-custom-enabled status trigger)
+  (let [this-device (.getDeviceNumber status)
+        match-score (+ (if (enabled? trigger) 1024 0)
+                       (if (.isPlaying status) 512 0)
+                       (- this-device))
+        [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
+        better (or (= existing-device this-device)
+                   (> match-score (or existing-score 0)))]
+    (when better
+      (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
+
+(defn- matching-player-number?
+  "Checks whether a CDJ status update matches a trigger, handling the
+  special cases of the Master Player and Any Player. For Any Player we
+  want to stay tracking the same Player most of the time, so we will
+  keep track of the last one we matched, and change only if this is a
+  better match."
+  [status trigger player-selection]
+  (let []
+    (and (some? player-selection)
+         (or (= (:number player-selection) (.getDeviceNumber status))
+             (and (zero? (:number player-selection)) (.isTempoMaster status))
+             (and (neg? (:number player-selection)) (is-better-match? status trigger))))))
 
 ;; Used to represent the available players in the Watch menu. The `toString` method tells
 ;; Swing how to display it, and the number is what we need for comparisons.
@@ -64,12 +117,10 @@
   (map #(MidiChoice. (:name %)) (filter usable-midi-device? (midi/midi-sinks))))
 
 (defn get-player-choices
-  "Returns a sorted list of the player choices. This used to only
-  return currently-visible players, but we now return all valid
-  choices because you might be loading a configuration you want to
-  edit in an offline setting."
+  "Returns a sorted list of the player watching choices, including
+  options to watch Any Player and the Master Player."
   []
-  (for [i (range 5)]
+  (for [i (range -1 5)]
     (PlayerChoice. i)))
 
 (defonce ^{:private true
@@ -121,16 +172,6 @@
         (midi/midi-note-off output note channel)
         (midi/midi-control output note 0 channel)))))
 
-(defn- enabled?
-  "Check whether a trigger is enabled."
-  [trigger]
-  ;; For now, we just look at the checkbox, but soon we will potentially be using custom logic
-  (case (seesaw/value (seesaw/select trigger [:#enabled]))
-    "Always" true
-    "On-Air" (:on-air @(seesaw/user-data trigger))
-    "Custom" (:custom-enabled-result @(seesaw/user-data trigger))
-    false))
-
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
   changed, send an appropriate message and record the new state."
@@ -148,7 +189,7 @@
   update object from beat-link."
   [status]
   (let [beat (.getBeatNumber status)]
-    (str (if (.isPlaying status) "Playing" "Stopped")
+    (str (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
          (when (.isTempoMaster status) ", Master")
          (when (.isOnAir status) ", On-Air")
          ", Track #" (.getTrackNumber status)
@@ -573,18 +614,12 @@
   (reify org.deepsymmetry.beatlink.DeviceUpdateListener
     (received [this status]
       (doseq [trigger (get-triggers)]
-        (let [status-label (seesaw/select trigger [:#status])]
-          (when (and (instance? CdjStatus status) (matching-player-number? status trigger))
-            (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
-              (swap! (seesaw/user-data trigger)
-                       (fn [data]
-                         (assoc data :custom-enabled-result
-                                (when-let [custom-fn (:custom-enabled-fn data)]
-                                  (try
-                                    (custom-fn status)
-                                    (catch Exception e
-                                      (timbre/error e "Problem running custom Enabled expression,"
-                                                    (:custom-enabled data)))))))))
+        (let [status-label (seesaw/select trigger [:#status])
+              player-menu (seesaw/select trigger [:#players])
+              selection (seesaw/selection player-menu)]
+          (when (and (instance? CdjStatus status) (matching-player-number? status trigger selection))
+            (when-not (neg? (:number selection))
+              (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
             (update-player-state trigger (.isPlaying status) (.isOnAir status))
             (seesaw/config! status-label :foreground "black")
             (seesaw/value! status-label (build-status-label status))))))))
