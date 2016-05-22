@@ -70,6 +70,7 @@
                        (- this-device))
         [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
         better (or (= existing-device this-device)
+                   (nil? (DeviceFinder/getLatestAnnouncementFrom existing-device))
                    (> match-score (or existing-score -256)))]
     (when better
       (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
