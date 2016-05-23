@@ -142,27 +142,34 @@
   "Send a message indicating the player a trigger is watching has
   started playing, as long as the chosen output exists."
   [trigger]
-  (when-let [output (get-chosen-output trigger)]
-    (let [note (seesaw/value (seesaw/select trigger [:#note]))
-          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
-          message (seesaw/value (seesaw/select trigger [:#message]))]
-      (timbre/info "Reporting activation:" message note "on channel" (inc channel))
-      (if (= "Note" message)
-        (midi/midi-note-on output note 127 channel)
-        (midi/midi-control output note 127 channel)))))
+  (try
+    (when-let [output (get-chosen-output trigger)]
+      (let [note (seesaw/value (seesaw/select trigger [:#note]))
+            channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
+            message (seesaw/value (seesaw/select trigger [:#message]))]
+        (timbre/info "Reporting activation:" message note "on channel" (inc channel))
+        (if (= "Note" message)
+          (midi/midi-note-on output note 127 channel)
+          (midi/midi-control output note 127 channel))))
+    (catch Exception e
+        (timbre/error e "Problem reporting player activation."))))
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
   started playing, as long as the chosen output exists."
   [trigger]
-  (when-let [output (get-chosen-output trigger)]
-    (let [note (seesaw/value (seesaw/select trigger [:#note]))
-          channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
-          message (seesaw/value (seesaw/select trigger [:#message]))]
-      (timbre/info "Reporting deactivation:" message note "on channel" (inc channel))
-      (if (= "Note" message)
-        (midi/midi-note-off output note channel)
-        (midi/midi-control output note 0 channel)))))
+  (try
+    (when-let [output (get-chosen-output trigger)]
+      (let [note (seesaw/value (seesaw/select trigger [:#note]))
+            channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
+            message (seesaw/value (seesaw/select trigger [:#message]))]
+        (timbre/info "Reporting deactivation:" message note "on channel" (inc channel))
+        (if (= "Note" message)
+          (midi/midi-note-off output note channel)
+          (midi/midi-control output note 0 channel)))
+      )
+    (catch Exception e
+        (timbre/error e "Problem reporting player deactivation."))))
 
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
@@ -199,44 +206,50 @@
   received a notification from the DeviceFinder that the device has
   disappeared."
   [trigger]
-  (let [player-menu (seesaw/select trigger [:#players])
-        selection (seesaw/selection player-menu)
-        status-label (seesaw/select trigger [:#status])]
-    (if (nil? selection)
-      (do (seesaw/config! status-label :foreground "red")
-          (seesaw/value! status-label "No Player selected.")
-          (update-player-state trigger false false))
-      (let [found (when (DeviceFinder/isActive) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
-            status (when (VirtualCdj/isActive) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
-        (if (nil? found)
-          (do (seesaw/config! status-label :foreground "red")
-              (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
-              (update-player-state trigger false false))
-          (if (instance? CdjStatus status)
-            (do (seesaw/config! status-label :foreground "black")
-                (seesaw/value! status-label (build-status-label status)))
+  (try
+    (let [player-menu (seesaw/select trigger [:#players])
+          selection (seesaw/selection player-menu)
+          status-label (seesaw/select trigger [:#status])]
+      (if (nil? selection)
+        (do (seesaw/config! status-label :foreground "red")
+            (seesaw/value! status-label "No Player selected.")
+            (update-player-state trigger false false))
+        (let [found (when (DeviceFinder/isActive) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
+              status (when (VirtualCdj/isActive) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
+          (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
-                (seesaw/value! status-label (cond (some? status) "Non-Player status received."
-                                                  (not (VirtualCdj/isActive)) "Offline."
-                                                  :else "No status received.")))))))))
+                (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
+                (update-player-state trigger false false))
+            (if (instance? CdjStatus status)
+              (do (seesaw/config! status-label :foreground "black")
+                  (seesaw/value! status-label (build-status-label status)))
+              (do (seesaw/config! status-label :foreground "red")
+                  (seesaw/value! status-label (cond (some? status) "Non-Player status received."
+                                                    (not (VirtualCdj/isActive)) "Offline."
+                                                    :else "No status received."))))))))
+    (catch Exception e
+      (timbre/error e "Problem showing Trigger Player status."))))
 
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color
   of its label based on whether the currently-selected MIDI output can
   be found."
   [trigger]
-  (let [enabled-label (seesaw/select trigger [:#enabled-label])
-        enabled (seesaw/select trigger [:#enabled])
-        state (seesaw/select trigger [:#state])]
-    (if-let [output (get-chosen-output trigger)]
-      (do (seesaw/config! enabled-label :foreground "black")
-          (seesaw/value! enabled-label "Enabled:")
-          (seesaw/config! enabled :visible? true)
-          (seesaw/config! state :visible? true))
-      (do (seesaw/config! enabled-label :foreground "red")
-          (seesaw/value! enabled-label "Not found.")
-          (seesaw/config! enabled :visible? false)
-          (seesaw/config! state :visible? false)))))
+  (try
+    (let [enabled-label (seesaw/select trigger [:#enabled-label])
+          enabled (seesaw/select trigger [:#enabled])
+          state (seesaw/select trigger [:#state])]
+      (if-let [output (get-chosen-output trigger)]
+        (do (seesaw/config! enabled-label :foreground "black")
+            (seesaw/value! enabled-label "Enabled:")
+            (seesaw/config! enabled :visible? true)
+            (seesaw/config! state :visible? true))
+        (do (seesaw/config! enabled-label :foreground "red")
+            (seesaw/value! enabled-label "Not found.")
+            (seesaw/config! enabled :visible? false)
+            (seesaw/config! state :visible? false))))
+    (catch Exception e
+      (timbre/error e "Problem showing Trigger MIDI status."))))
 
 (defonce ^{:private true
            :doc "Holds the trigger window, through which we can access and
@@ -360,14 +373,17 @@
   expression for a trigger, create it. If it exists, bring it to the
   front."
   [trigger]
-  (let [editor (or (:custom-enabled-editor @(seesaw/user-data trigger))
-                   (create-editor-window (enabled-editor-title trigger)
-                                         (:custom-enabled @(seesaw/user-data trigger))
-                                         (fn [text] (update-enabled-expression trigger text))))]
-    (.setLocationRelativeTo editor trigger)
-    (swap! (seesaw/user-data trigger) assoc :custom-enabled-editor editor)
-    (seesaw/show! editor)
-    (.toFront editor)))
+  (try
+    (let [editor (or (:custom-enabled-editor @(seesaw/user-data trigger))
+                     (create-editor-window (enabled-editor-title trigger)
+                                           (:custom-enabled @(seesaw/user-data trigger))
+                                           (fn [text] (update-enabled-expression trigger text))))]
+      (.setLocationRelativeTo editor trigger)
+      (swap! (seesaw/user-data trigger) assoc :custom-enabled-editor editor)
+      (seesaw/show! editor)
+      (.toFront editor))
+    (catch Exception e
+      (timbre/error e "Problem showing Custom Enabled editor"))))
 
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
@@ -407,12 +423,15 @@
 
                 :user-data (atom {:playing false :tripped false}))
          delete-action (seesaw/action :handler (fn [e]
-                                                 (when-let [editor (:custom-enabled-editor @(seesaw/user-data panel))]
-                                                   (seesaw/dispose! editor))
-                                                 (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                                 :items (remove #(= % panel) (get-triggers)))
-                                                 (adjust-to-new-trigger)
-                                                 (.pack @trigger-frame))
+                                                 (try
+                                                   (when-let [editor (:custom-enabled-editor @(seesaw/user-data panel))]
+                                                     (seesaw/dispose! editor))
+                                                   (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                                   :items (remove #(= % panel) (get-triggers)))
+                                                   (adjust-to-new-trigger)
+                                                   (.pack @trigger-frame)
+                                                   (catch Exception e
+                                                     (timbre/error e "Problem deleting Trigger."))))
                                       :name "Delete Trigger")
          edit-enabled-action (seesaw/action :handler (fn [e] (show-enabled-editor panel))
                                       :name "Edit Enabled Expression")]
@@ -465,16 +484,19 @@
 (def ^:private clear-triggers-action
   "The menu action which empties the Trigger list."
   (seesaw/action :handler (fn [e]
-                            (let [confirm (seesaw/dialog
-                                           :content "Clear Triggers?\nYou will be left with one default Trigger."
-                                           :type :warning :option-type :yes-no)]
-                              (.pack confirm)
-                              (.setLocationRelativeTo confirm @trigger-frame)
-                              (when (= :success (seesaw/show! confirm))
-                                (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                :items [(create-trigger-row)])
-                                (adjust-to-new-trigger))
-                              (seesaw/dispose! confirm)))
+                            (try
+                              (let [confirm (seesaw/dialog
+                                             :content "Clear Triggers?\nYou will be left with one default Trigger."
+                                             :type :warning :option-type :yes-no)]
+                                (.pack confirm)
+                                (.setLocationRelativeTo confirm @trigger-frame)
+                                (when (= :success (seesaw/show! confirm))
+                                  (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                  :items [(create-trigger-row)])
+                                  (adjust-to-new-trigger))
+                                (seesaw/dispose! confirm))
+                              (catch Exception e
+                                (timbre/error e "Problem clearing Trigger list."))))
                  :name "Clear Triggers"))
 
 (defn- trigger-configuration
@@ -558,19 +580,22 @@
   available MIDI outputs."
   []
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
-   (let [new-outputs (get-midi-outputs)]
-     ;; Remove any opened outputs that are no longer available in the MIDI environment
-     (swap! opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
+   (try
+     (let [new-outputs (get-midi-outputs)]
+       ;; Remove any opened outputs that are no longer available in the MIDI environment
+       (swap! opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
 
-     (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
-       (let [output-menu (seesaw/select trigger [:#outputs])
-             old-selection (seesaw/selection output-menu)]
-         (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
-                                                    (when-not ((set new-outputs) old-selection) [old-selection])))
+       (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
+         (let [output-menu (seesaw/select trigger [:#outputs])
+               old-selection (seesaw/selection output-menu)]
+           (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
+                                                      (when-not ((set new-outputs) old-selection) [old-selection])))
 
-         ;; Keep our original selection chosen, even if it is now missing
-         (seesaw/selection! output-menu old-selection))
-       (show-midi-status trigger)))))
+           ;; Keep our original selection chosen, even if it is now missing
+           (seesaw/selection! output-menu old-selection))
+         (show-midi-status trigger)))
+     (catch Exception e
+       (timbre/error e "Problem responding to change in MIDI environment.")))))
 
 (defn- rebuild-all-device-status
   "Updates all player status descriptions to reflect the devices
@@ -586,16 +611,19 @@
   status-listener
   (reify org.deepsymmetry.beatlink.DeviceUpdateListener
     (received [this status]
-      (doseq [trigger (get-triggers)]
-        (let [status-label (seesaw/select trigger [:#status])
-              player-menu (seesaw/select trigger [:#players])
-              selection (seesaw/selection player-menu)]
-          (when (and (instance? CdjStatus status) (matching-player-number? status trigger selection))
-            (when-not (neg? (:number selection))
-              (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
-            (update-player-state trigger (.isPlaying status) (.isOnAir status))
-            (seesaw/config! status-label :foreground "black")
-            (seesaw/value! status-label (build-status-label status))))))))
+      (try
+        (doseq [trigger (get-triggers)]
+          (let [status-label (seesaw/select trigger [:#status])
+                player-menu (seesaw/select trigger [:#players])
+                selection (seesaw/selection player-menu)]
+            (when (and (instance? CdjStatus status) (matching-player-number? status trigger selection))
+              (when-not (neg? (:number selection))
+                (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
+              (update-player-state trigger (.isPlaying status) (.isOnAir status))
+              (seesaw/config! status-label :foreground "black")
+              (seesaw/value! status-label (build-status-label status)))))
+        (catch Exception e
+          (timbre/error e "Problem responding to Player status packet."))))))
 
 (defonce ^{:private true
            :doc "Responds to the arrival or departure of DJ Link
@@ -635,24 +663,27 @@
 (defn- create-trigger-window
   "Create and show the trigger window."
   []
-  (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
-                           :menubar (seesaw/menubar
-                                     :items [(seesaw/menu :text "File"
-                                                          :items (concat [load-action save-action
-                                                                          (seesaw/separator) logs/logs-action]
-                                                                         menus/non-mac-actions)
-                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \F))
-                                             (seesaw/menu :text "Triggers"
-                                                          :items [new-trigger-action clear-triggers-action]
-                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \T))]))
-        panel (seesaw/scrollable (seesaw/vertical-panel
-                                  :id :triggers
-                                  :items (recreate-trigger-rows)))]
-    (seesaw/config! root :content panel)
-    (reset! trigger-frame root)
-    (adjust-to-new-trigger)
-    (seesaw/show! root)
-    (check-for-parse-error)))
+  (try
+    (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
+                             :menubar (seesaw/menubar
+                                       :items [(seesaw/menu :text "File"
+                                                            :items (concat [load-action save-action
+                                                                            (seesaw/separator) logs/logs-action]
+                                                                           menus/non-mac-actions)
+                                                            :mnemonic (seesaw.util/to-mnemonic-keycode \F))
+                                               (seesaw/menu :text "Triggers"
+                                                            :items [new-trigger-action clear-triggers-action]
+                                                            :mnemonic (seesaw.util/to-mnemonic-keycode \T))]))
+          panel (seesaw/scrollable (seesaw/vertical-panel
+                                    :id :triggers
+                                    :items (recreate-trigger-rows)))]
+      (seesaw/config! root :content panel)
+      (reset! trigger-frame root)
+      (adjust-to-new-trigger)
+      (seesaw/show! root)
+      (check-for-parse-error))
+    (catch Exception e
+      (timbre/error e "Problem creating Trigger window."))))
 
 (defn start
   "Create the Triggers window, and register all the notification

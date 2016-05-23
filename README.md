@@ -1,7 +1,7 @@
 # beat-link-trigger
 
-An application to trigger a MIDI event when CDJs start
-playing tracks, as an example of how to work with
+An application to trigger MIDI events when CDJs start playing tracks,
+as an example of how to work with
 [beat-link](https://github.com/brunchboy/beat-link#beat-link).
 
 ## Usage

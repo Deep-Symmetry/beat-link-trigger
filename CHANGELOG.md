@@ -16,6 +16,8 @@ This change log follows the conventions of
   status report and decide however you want.
 - A graphical indicator to summarize the trigger's enabled and tripped
   state.
+- Errors and other important events are now logged to a log file,
+  which is available for inspection via the File menu.
 
 ### Fixed
 

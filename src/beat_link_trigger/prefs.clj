@@ -2,7 +2,8 @@
   "Functions for managing application preferences"
   (:require [clojure.edn :as edn]
             [fipp.edn :as fipp]
-            [beat-link-trigger.about :as about])
+            [beat-link-trigger.about :as about]
+            [taoensso.timbre :as timbre])
   (:import java.util.prefs.Preferences))
 
 (defonce ^{:private true
@@ -21,20 +22,32 @@
   []
   (.node (Preferences/userRoot) "org.deepsymmetry.beat_link_trigger"))
 
+(defn- empty-preferences
+  "Returns the basic framework of an empty set of preferences."
+  []
+  {:beat-link-trigger-version (about/get-version)})
+
 (defn get-preferences
   "Returns the current values of the user preferences, creating them
   if they did not exist."
   []
   (if-let [existing (.get (prefs-node) "prefs" nil)]
-    (edn/read-string {:readers @prefs-readers} existing)
-    {:beat-link-trigger-version (about/get-version)}))
+    (try
+      (edn/read-string {:readers @prefs-readers} existing)
+      (catch Exception e
+        (timbre/error e "Problem reading preferences, starting with empty set.")
+        (empty-preferences)))
+    (empty-preferences)))
 
 (defn put-preferences
   "Updates the user preferences to reflect the map supplied."
   [m]
-  (let [prefs (prefs-node)]
-    (.put prefs "prefs" (prn-str m))
-    (.flush prefs)))
+  (try
+    (let [prefs (prefs-node)]
+      (.put prefs "prefs" (prn-str m))
+      (.flush prefs))
+    (catch Exception e
+      (timbre/error e "Problem saving preferences."))))
 
 (defn save-to-file
   "Saves the preferences to a text file."
@@ -51,7 +64,7 @@
         (when (some? (:beat-link-trigger-version m))
           m)))
     (catch Exception e
-      nil)))
+      (timbre/info e "Problem reading save file" file))))
 
 (defn load-from-file
   "Read the preferences from a text file."
