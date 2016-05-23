@@ -1,7 +1,7 @@
 # beat-link-trigger
 
-A simple application to trigger a MIDI event when a CDJ starts
-playing, as an example of how to work with
+An application to trigger a MIDI event when CDJs start
+playing tracks, as an example of how to work with
 [beat-link](https://github.com/brunchboy/beat-link#beat-link).
 
 ## Usage
@@ -18,11 +18,11 @@ installed, and try running it from the command line:
 > beat-link-trigger requires Java 7 or later. It is compiled and
 > tested using the latest release of Java 8, so that is your best bet.
 
-A trigger window will open, in which you can choose the player you
-want to watch, and the kind of MIDI message to send when it starts and
-stops, and whether the trigger is enabled:
+A trigger window will open, in which you can choose the players you
+want to watch, and the kind of MIDI message to send when they start
+and stop, and when the triggers are enabled:
 
-![Trigger window](doc/assets/TriggerWindow.png)
+<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="800">
 
 ## License
 
