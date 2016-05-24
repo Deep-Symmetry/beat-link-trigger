@@ -37,11 +37,9 @@
                                  (about/show)
                                  (catch Exception e
                                    (timbre/error e "Problem showing About window."))))
-                    :name "About BeatLinkTrigger"
-                    :mnemonic (seesaw.util/to-mnemonic-keycode \A))
+                    :name "About BeatLinkTrigger")
      (seesaw/separator)
      (seesaw/action :handler (fn [e] (System/exit 0))
-                    :name "Exit"
-                    :mnemonic (seesaw.util/to-mnemonic-keycode \x))]))
+                    :name "Exit")]))
 
 

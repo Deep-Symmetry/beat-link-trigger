@@ -317,7 +317,7 @@
         (.setPaint g java.awt.Color/green)
         (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5))))
       (when (:playing state)  ; Draw the inner gray circle showing it would trip if it were not disabled
-        (.setPaint g java.awt.Color/gray)
+        (.setPaint g java.awt.Color/lightGray)
         (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5)))))
 
     ;; Draw the outer circle that reflects the enabled state
@@ -327,21 +327,27 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 0.0 (dec h) (dec w) 0.0)))))
 
+(def ^:private editor-theme
+  "The color theme to use in the code editor, so it can match the
+  overall application look."
+  (with-open [s (clojure.java.io/input-stream
+                 (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
+    (org.fife.ui.rsyntaxtextarea.Theme/load s)))
+
 (defn- create-editor-window
   "Create and show a window for editing Clojure code."
   [title text save-fn]
   (let [root (seesaw/frame :title title :on-close :dispose
                            #_:menubar #_(seesaw/menubar
                                      :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
-                                                                                      non-mac-actions)
-                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \F))
+                                                                                      non-mac-actions))
                                              (seesaw/menu :text "Triggers"
-                                                          :items [new-trigger-action clear-triggers-action]
-                                                          :mnemonic (seesaw.util/to-mnemonic-keycode \T))]))
+                                                          :items [new-trigger-action clear-triggers-action])]))
         editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
         save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])]
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
+    (.apply editor-theme editor)
     (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap"]
                                                          [save-button "push, align center"]]))
     (seesaw/config! editor :id :source)
@@ -478,8 +484,7 @@
                                             :items (concat (get-triggers) [(create-trigger-row)]))
                             (adjust-to-new-trigger))
                  :name "New Trigger"
-                 :key "menu T"
-                 :mnemonic (seesaw.util/to-mnemonic-keycode \T)))
+                 :key "menu T"))
 
 (def ^:private clear-triggers-action
   "The menu action which empties the Trigger list."
@@ -533,8 +538,7 @@
                                   (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
                                :title "Problem Writing File" :type :error)))))
                  :name "Save"
-                 :key "menu S"
-                 :mnemonic (seesaw.util/to-mnemonic-keycode \S)))
+                 :key "menu S"))
 
 (declare recreate-trigger-rows)
 
@@ -568,12 +572,12 @@
                                                 :items (recreate-trigger-rows))
                                 (adjust-to-new-trigger)
                                 (catch Exception e
+                                  (timbre/error e "Problem loading" file)
                                   (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
                                                 :title "Problem Reading File" :type :error)))
                               (check-for-parse-error)))
                  :name "Load"
-                 :key "menu L"
-                 :mnemonic (seesaw.util/to-mnemonic-keycode \L)))
+                 :key "menu L"))
 
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
@@ -669,11 +673,9 @@
                                        :items [(seesaw/menu :text "File"
                                                             :items (concat [load-action save-action
                                                                             (seesaw/separator) logs/logs-action]
-                                                                           menus/non-mac-actions)
-                                                            :mnemonic (seesaw.util/to-mnemonic-keycode \F))
+                                                                           menus/non-mac-actions))
                                                (seesaw/menu :text "Triggers"
-                                                            :items [new-trigger-action clear-triggers-action]
-                                                            :mnemonic (seesaw.util/to-mnemonic-keycode \T))]))
+                                                            :items [new-trigger-action clear-triggers-action])]))
           panel (seesaw/scrollable (seesaw/vertical-panel
                                     :id :triggers
                                     :items (recreate-trigger-rows)))]

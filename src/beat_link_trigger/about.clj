@@ -105,7 +105,8 @@
 (defn create-searching-frame
   "Create and show a frame that explains we are looking for devices."
   []
-  (let [searching (create-frame create-searching-panel :title "Looking for DJ Link devices…")]
-    (seesaw/config! searching :resizable? false :on-close :nothing)
-    (.toFront searching)
-    searching))
+  (seesaw/invoke-now
+   (let [searching (create-frame create-searching-panel :title "Looking for DJ Link devices…")]
+     (seesaw/config! searching :resizable? false :on-close :nothing)
+     (.toFront searching)
+     searching)))

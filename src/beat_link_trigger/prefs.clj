@@ -27,13 +27,34 @@
   []
   {:beat-link-trigger-version (about/get-version)})
 
+(defn convert-longs-to-integers
+  "Walks the map built from the preferences, changing any Long
+  values to Integers, since some Swing objects cannot cope with being
+  set to a Long value."
+  [elem]
+  (cond
+    (record? elem)  ; Don't dive into elements of our custom menu objects
+    elem
+
+    (map-entry? elem)
+    (let [[k v] elem]
+      (clojure.lang.MapEntry. k (convert-longs-to-integers v)))
+
+    (or (sequential? elem) (map? elem))
+    (clojure.walk/walk #(convert-longs-to-integers %) identity elem)
+
+    (instance? Long elem)
+    (int elem)
+
+    :else elem))
+
 (defn get-preferences
   "Returns the current values of the user preferences, creating them
   if they did not exist."
   []
   (if-let [existing (.get (prefs-node) "prefs" nil)]
     (try
-      (edn/read-string {:readers @prefs-readers} existing)
+      (convert-longs-to-integers (edn/read-string {:readers @prefs-readers} existing))
       (catch Exception e
         (timbre/error e "Problem reading preferences, starting with empty set.")
         (empty-preferences)))
@@ -71,7 +92,7 @@
   [file]
   (if (valid-file? file)
     (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
-      (let [m (edn/read {:readers @prefs-readers} in)]
+      (let [m (convert-longs-to-integers (edn/read {:readers @prefs-readers} in))]
         (put-preferences m)
         m))
     (throw (IllegalArgumentException. (str "Unreadable file: " file)))))
