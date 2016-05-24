@@ -221,7 +221,7 @@
                 (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
                 (update-player-state trigger false false))
             (if (instance? CdjStatus status)
-              (do (seesaw/config! status-label :foreground "black")
+              (do (seesaw/config! status-label :foreground "cyan")
                   (seesaw/value! status-label (build-status-label status)))
               (do (seesaw/config! status-label :foreground "red")
                   (seesaw/value! status-label (cond (some? status) "Non-Player status received."
@@ -240,7 +240,7 @@
           enabled (seesaw/select trigger [:#enabled])
           state (seesaw/select trigger [:#state])]
       (if-let [output (get-chosen-output trigger)]
-        (do (seesaw/config! enabled-label :foreground "black")
+        (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
             (seesaw/config! enabled :visible? true)
             (seesaw/config! state :visible? true))
