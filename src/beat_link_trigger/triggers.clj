@@ -446,7 +446,8 @@
          edit-enabled-action (seesaw/action :handler (fn [e] (show-enabled-editor panel))
                                       :name "Edit Enabled Expression")]
      ;; Create our contextual menu
-     (seesaw/config! panel :popup (fn [e] (when (> (count (get-triggers)) 1) [edit-enabled-action delete-action])))
+     (seesaw/config! panel :popup (fn [e] (concat [edit-enabled-action]
+                                                  (when (> (count (get-triggers)) 1) [delete-action]))))
 
      ;; Attach the custom paint function to render the graphical trigger state
      (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))
