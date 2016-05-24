@@ -331,9 +331,10 @@
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
   overall application look."
-  (with-open [s (clojure.java.io/input-stream
-                 (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
-    (org.fife.ui.rsyntaxtextarea.Theme/load s)))
+  (seesaw/invoke-now
+   (with-open [s (clojure.java.io/input-stream
+                  (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
+     (org.fife.ui.rsyntaxtextarea.Theme/load s))))
 
 (defn- create-editor-window
   "Create and show a window for editing Clojure code."
