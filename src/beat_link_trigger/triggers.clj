@@ -625,8 +625,9 @@
               (when-not (neg? (:number selection))
                 (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
               (update-player-state trigger (.isPlaying status) (.isOnAir status))
-              (seesaw/config! status-label :foreground "black")
-              (seesaw/value! status-label (build-status-label status)))))
+              (seesaw/invoke-later
+               (seesaw/config! status-label :foreground "cyan")
+               (seesaw/value! status-label (build-status-label status))))))
         (catch Exception e
           (timbre/error e "Problem responding to Player status packet."))))))
 
