@@ -56,9 +56,14 @@ This change log follows the conventions of
   efficient for comparing with the incoming player packets.
 - The Player menu always lists Players 1 through 4 as choices, and
   reports when you have chosen one that is not currently visible.
+- Switched to a dark UI theme to fit in better with the kind of
+  software this will be used with, and the dark environments in which
+  it will be used.
 
 ### Fixed
 
+- Identified a source of potential and unpredictable latency in the
+  upstream beat-link library, and fixed it.
 - Moved all interaction with UI objects to the AWT Event Dispatch
   thread; we were trying to get the current output menu selection on
   the MIDI event thread, which was causing a
