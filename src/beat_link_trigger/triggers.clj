@@ -296,7 +296,7 @@
   [text c g]
   (when (zero? (.. c (getText) (length)))
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
-    (.setColor g (.getDisabledTextColor c))
+    (.setColor g java.awt.Color/gray)
     (.drawString g text (.. c (getInsets) left)
                  (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
 
