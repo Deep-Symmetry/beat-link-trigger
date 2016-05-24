@@ -307,7 +307,7 @@
   [trigger c g]
   (let [w (double (seesaw/width c))
         h (double (seesaw/height c))
-        outline (java.awt.geom.Ellipse2D$Double. 0.0 0.0 (dec w) (dec h))
+        outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
         enabled? (enabled? trigger)
         state @(seesaw/user-data trigger)]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
@@ -315,17 +315,18 @@
     (if (:tripped state)
       (do  ; Draw the inner filled circle showing the trigger is tripped
         (.setPaint g java.awt.Color/green)
-        (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5))))
+        (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
       (when (:playing state)  ; Draw the inner gray circle showing it would trip if it were not disabled
         (.setPaint g java.awt.Color/lightGray)
-        (.fill g (java.awt.geom.Ellipse2D$Double. 3.0 3.0 (- w 6.5) (- h 6.5)))))
+        (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0)))))
 
     ;; Draw the outer circle that reflects the enabled state
+    (.setStroke g (java.awt.BasicStroke. 2.0))
     (.setPaint g (if enabled? java.awt.Color/green java.awt.Color/red))
     (.draw g outline)
     (when-not enabled?
       (.clip g outline)
-      (.draw g (java.awt.geom.Line2D$Double. 0.0 (dec h) (dec w) 0.0)))))
+      (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
