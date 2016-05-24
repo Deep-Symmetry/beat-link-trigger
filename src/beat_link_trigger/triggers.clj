@@ -427,7 +427,9 @@
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                         [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]) "hidemode 1"]
-                        [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false)  "wrap, hidemode 1"]]
+                        [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
+                                        :tip "Trigger state: Outer ring shows enabled, inner light when tripped.")
+                         "wrap, hidemode 1"]]
 
                 :user-data (atom {:playing false :tripped false}))
          delete-action (seesaw/action :handler (fn [e]
