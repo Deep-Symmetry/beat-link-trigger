@@ -8,6 +8,7 @@
             [overtone.midi :as midi]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
+            [seesaw.icon :as icon]
             [seesaw.mig :as mig]
             [seesaw.util]
             [taoensso.timbre :as timbre])
@@ -391,6 +392,12 @@
     (catch Exception e
       (timbre/error e "Problem showing Custom Enabled editor"))))
 
+(defn- show-popup-from-button
+  "Displays the popup menu when the gear button is clicked as an
+  ordinary mouse event."
+  [target popup event]
+  (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
+
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
@@ -399,12 +406,14 @@
    (create-trigger-row nil))
   ([m]
    (let [outputs (get-midi-outputs)
+         gear (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-icon.png"))
          panel (mig/mig-panel
                 :id :panel
                 :items [[(seesaw/label :id :index :text "1.") "align right"]
                         [(seesaw/text :id :comment :paint (partial paint-placeholder "Comment")) "span, grow, wrap"]
 
-                        ["Watch:" "span 2, alignx trailing"]
+                        [gear]
+                        ["Watch:" "alignx trailing"]
                         [(seesaw/combobox :id :players :model (get-player-choices))]
 
                         [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
@@ -442,10 +451,16 @@
                                                      (timbre/error e "Problem deleting Trigger."))))
                                       :name "Delete Trigger")
          edit-enabled-action (seesaw/action :handler (fn [e] (show-enabled-editor panel))
-                                      :name "Edit Enabled Expression")]
-     ;; Create our contextual menu
-     (seesaw/config! panel :popup (fn [e] (concat [edit-enabled-action]
-                                                  (when (> (count (get-triggers)) 1) [delete-action]))))
+                                            :name "Edit Enabled Expression")
+         popup-fn (fn [e] (concat [edit-enabled-action] (when (> (count (get-triggers)) 1) [delete-action])))]
+
+     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
+     ;; or right click on the gear button.
+     (seesaw/config! [panel gear] :popup popup-fn)
+     (seesaw/listen gear
+                    :mouse-pressed (fn [e]
+                                     (let [popup (seesaw/popup :items (popup-fn e))]
+                                       (show-popup-from-button gear popup e))))
 
      ;; Attach the custom paint function to render the graphical trigger state
      (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))
