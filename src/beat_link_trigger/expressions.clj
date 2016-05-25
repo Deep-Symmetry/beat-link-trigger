@@ -14,15 +14,18 @@
   the expression that will be used to automatically bind that symbol
   if it is used in the expression."
   '{at-end?                     (.isAtEnd status)
+    beat?                       (instance? beat status)
     beat-number                 (.getBeatNumber status)
     beat-within-bar             (.getBeatWithinBar status)
     beat-within-bar-meaningful? (.isBeatWithinBarMeaningful status)
     busy?                       (.isBusy status)
+    cdj?                        (instance? CdjStatus status)
     cue-countdown               (.getCueCountdown status)
     cue-countdown-display       (.formatCueCountdown status)
     cued?                       (.isCued status)
     effective-tempo             (.getEffectiveTempo status)
     looping?                    (.isLooping status)
+    mixer?                      (instance? MixerStatus status)
     device-name                 (.getDeviceName status)
     device-number               (.getDeviceNumber status)
     on-air?                     (.isOnAir status)
