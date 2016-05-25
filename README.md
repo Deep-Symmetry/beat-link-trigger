@@ -29,7 +29,7 @@ and stop, and when the triggers are enabled:
 A great deal of the power of Beat Link Trigger is in what you can do
 with custom expressions in the Enabled filters, and that is under
 rapid development right now, and I haven&rsquo;t even started
-documenting that. I was not expecting people to find and start trying
+documenting it. I was not expecting people to find and start trying
 to use this so quickly! :calendar: So please bear with me for a few
 more days while I get this part of the interface into really good
 shape, then write up how to use it.
