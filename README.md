@@ -24,6 +24,20 @@ and stop, and when the triggers are enabled:
 
 <image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="800">
 
+### More to Come
+
+A great deal of the power of Beat Link Trigger is in what you can do
+with custom expressions in the Enabled filters, and that is under
+rapid development right now, and I haven&rsquo;t even started
+documenting that. I was not expecting people to find and start trying
+to use this so quickly! :calendar: So please bear with me for a few
+more days while I get this part of the interface into really good
+shape, then write up how to use it.
+
+> :warning: If you are playing with this already, please be aware it
+> is not finished, and you are getting a sneak preview with no
+> schedule or guarantees!
+
 ## License
 
 <img align="right" alt="Deep Symmetry" src="https://github.com/brunchboy/beat-link/blob/master/assets/DS-logo-bw-200-padded-left.png">
