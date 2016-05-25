@@ -1,15 +1,16 @@
 (ns beat-link-trigger.triggers
   "Implements the list of triggers that send events when a CDJ starts
   playing."
-  (:require [beat-link-trigger.prefs :as prefs]
+  (:require [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.logs :as logs]
+            [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.prefs :as prefs]
             [overtone.midi :as midi]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [seesaw.util]
-            [taoensso.timbre :as timbre]
-            [beat-link-trigger.logs :as logs]
-            [beat-link-trigger.menus :as menus])
+            [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
@@ -362,15 +363,12 @@
   [trigger text]
   (swap! (seesaw/user-data trigger) dissoc :custom-enabled-fn)  ; In case the parse fails, leave nothing there.
   (try
-    (swap! (seesaw/user-data trigger) assoc :custom-enabled-fn (eval (read-string (str "(fn [status] " text ")"))))
+    (swap! (seesaw/user-data trigger) assoc :custom-enabled-fn (expressions/build-user-expression text))
     (when-let [root (:custom-enabled-editor @(seesaw/user-data trigger))]
       (.dispose root)  ; Close the editor
       (swap! (seesaw/user-data trigger) dissoc :custom-enabled-editor))
-    (swap! (seesaw/user-data trigger)
-           (fn [data]
-             (assoc (dissoc data :custom-enabled-editor)
-                    :custom-enabled text)))
-    (catch Exception e
+    (swap! (seesaw/user-data trigger) assoc :custom-enabled text)
+    (catch Throwable e
       (timbre/error e "Problem parsing custom Enabled expression.")
       (seesaw/alert (str "<html>Unable to use custom Enabled expression.<br><br>" e
                          "<br><br>You may wish to check the log file for the detailed stack trace.")
@@ -473,7 +471,7 @@
          (swap! (seesaw/user-data panel) assoc :custom-enabled custom-enabled)
          (try
            (swap! (seesaw/user-data panel) assoc :custom-enabled-fn
-                  (eval (read-string (str "(fn [status] " custom-enabled ")"))))
+                  (expressions/build-user-expression custom-enabled))
            (catch Exception e
              (swap! (seesaw/user-data panel) assoc :custom-enabled-load-error true)
              (timbre/error e (str "Problem parsing custom Enabled expression when loading Triggers. Expression:\n"
