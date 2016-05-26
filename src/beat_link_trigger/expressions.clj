@@ -146,10 +146,11 @@
   expression in that context."
   [body available-bindings]
   (let [bindings (gather-convenience-bindings body available-bindings)]
-    `(fn [~'status] ~(if (seq bindings)
-                       `(let [~@bindings]
-                          ~body)
-                       body))))
+    `(fn ~'[status locals globals]
+       ~(if (seq bindings)
+          `(let [~@bindings]
+             ~body)
+          body))))
 
 (defn build-user-expression
   "Takes a string that a user has entered as a custom expression, adds

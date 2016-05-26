@@ -17,6 +17,10 @@
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
            [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
 
+(defonce ^{:doc "Provides a space for trigger expressions to store
+  values they want to share across triggers."}
+  expression-globals (atom {}))
+
 (defn- enabled?
   "Check whether a trigger is enabled."
   [trigger]
@@ -36,7 +40,7 @@
              (assoc-in data [:expression-results :enabled]
                     (when-let [custom-fn (get-in data [:expression-fns :enabled])]
                       (try
-                        (custom-fn status)
+                        (custom-fn status (:locals data) expression-globals)
                         (catch Exception e
                           (timbre/error e "Problem running Enabled expression,"
                                         (get-in data [:expressions :enabled]))))))))))
@@ -369,7 +373,7 @@
                                         :tip "Trigger state: Outer ring shows enabled, inner light when tripped.")
                          "wrap, hidemode 1"]]
 
-                :user-data (atom {:playing false :tripped false}))
+                :user-data (atom {:playing false :tripped false :locals (atom {})}))
          delete-action (seesaw/action :handler (fn [e]
                                                  (try
                                                    (doseq [editor (vals (:expression-editors
