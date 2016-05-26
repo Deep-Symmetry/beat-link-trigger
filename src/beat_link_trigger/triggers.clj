@@ -423,8 +423,8 @@
                     (expressions/build-user-expression expr (get-in editors/trigger-editors [kind :bindings])))
              (catch Exception e
                (swap! (seesaw/user-data panel) assoc :expression-load-error true)
-               (timbre/error e (str "Problem parsing" (get-in editors/trigger-editors [kind :title])
-                                    "when loading Triggers. Expression:\n" expr "\n"))))))
+               (timbre/error e (str "Problem parsing " (get-in editors/trigger-editors [kind :title])
+                                    " when loading Triggers. Expression:\n" expr "\n"))))))
        (seesaw/value! panel m))
      (show-device-status panel)
      panel)))
