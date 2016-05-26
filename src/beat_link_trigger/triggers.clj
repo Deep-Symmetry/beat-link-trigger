@@ -1,7 +1,8 @@
 (ns beat-link-trigger.triggers
   "Implements the list of triggers that send events when a CDJ starts
   playing."
-  (:require [beat-link-trigger.expressions :as expressions]
+  (:require [beat-link-trigger.editors :as editors]
+            [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
@@ -10,7 +11,6 @@
             [seesaw.core :as seesaw]
             [seesaw.icon :as icon]
             [seesaw.mig :as mig]
-            [seesaw.util]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
@@ -23,7 +23,7 @@
   (case (seesaw/value (seesaw/select trigger [:#enabled]))
     "Always" true
     "On-Air" (:on-air @(seesaw/user-data trigger))
-    "Custom" (:custom-enabled-result @(seesaw/user-data trigger))
+    "Custom" (get-in @(seesaw/user-data trigger) [:expression-results :enabled])
     false))
 
 (defn- run-custom-enabled
@@ -33,13 +33,13 @@
   (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
     (swap! (seesaw/user-data trigger)
            (fn [data]
-             (assoc data :custom-enabled-result
-                    (when-let [custom-fn (:custom-enabled-fn data)]
+             (assoc-in data [:expression-results :enabled]
+                    (when-let [custom-fn (get-in data [:expression-fns :enabled])]
                       (try
                         (custom-fn status)
                         (catch Exception e
-                          (timbre/error e "Problem running custom Enabled expression,"
-                                        (:custom-enabled data))))))))))
+                          (timbre/error e "Problem running Enabled expression,"
+                                        (get-in data [:expressions :enabled]))))))))))
 
 (defn- is-better-match?
   "Checks whether the current status packet represents a better
@@ -265,13 +265,6 @@
   (when-let [frame @trigger-frame]
     (seesaw/config (seesaw/select frame [:#triggers]) :items)))
 
-(defn- enabled-editor-title
-  "Return the text to use as the title bar in a window editing the
-  custom enabled expression for a trigger."
-  [trigger]
-  (let [index (:index (seesaw/value trigger))]
-    (str "Trigger " (subs index 0 (dec (count index))) " Custom Enabled Expression")))
-
 (defn- adjust-to-new-trigger
   "Called when a trigger is added or removed to restore the proper
   alternation of background colors, expand the window if it still fits
@@ -282,8 +275,8 @@
                 (seesaw/config! trigger :background color)
                 (seesaw/config! (seesaw/select trigger [:#index])
                                 :text (str (inc index) "."))
-                (when-let [editor (:custom-enabled-editor @(seesaw/user-data trigger))]
-                  (seesaw/config! editor :title (enabled-editor-title trigger))))
+                (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
+                  (editors/retitle editor)))
               (get-triggers) (cycle ["#eee" "#ddd"]) (range)))
   (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
                                             (.height (.getBounds @trigger-frame))))
@@ -329,68 +322,6 @@
     (when-not enabled?
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
-
-(def ^:private editor-theme
-  "The color theme to use in the code editor, so it can match the
-  overall application look."
-  (seesaw/invoke-now
-   (with-open [s (clojure.java.io/input-stream
-                  (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
-     (org.fife.ui.rsyntaxtextarea.Theme/load s))))
-
-(defn- create-editor-window
-  "Create and show a window for editing Clojure code."
-  [title text save-fn]
-  (let [root (seesaw/frame :title title :on-close :dispose
-                           #_:menubar #_(seesaw/menubar
-                                     :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
-                                                                                      non-mac-actions))
-                                             (seesaw/menu :text "Triggers"
-                                                          :items [new-trigger-action clear-triggers-action])]))
-        editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])]
-    (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
-    (.apply editor-theme editor)
-    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap"]
-                                                         [save-button "push, align center"]]))
-    (seesaw/config! editor :id :source)
-    (seesaw/value! root {:source text})
-    (seesaw/pack! root)))
-
-(defn update-enabled-expression
-  "Called when the editor for a custom enabled expression is ending
-  and the user has asked to update the expression with new text."
-  [trigger text]
-  (swap! (seesaw/user-data trigger) dissoc :custom-enabled-fn)  ; In case the parse fails, leave nothing there.
-  (try
-    (swap! (seesaw/user-data trigger) assoc :custom-enabled-fn (expressions/build-user-expression text))
-    (when-let [root (:custom-enabled-editor @(seesaw/user-data trigger))]
-      (.dispose root)  ; Close the editor
-      (swap! (seesaw/user-data trigger) dissoc :custom-enabled-editor))
-    (swap! (seesaw/user-data trigger) assoc :custom-enabled text)
-    (catch Throwable e
-      (timbre/error e "Problem parsing custom Enabled expression.")
-      (seesaw/alert (str "<html>Unable to use custom Enabled expression.<br><br>" e
-                         "<br><br>You may wish to check the log file for the detailed stack trace.")
-                               :title "Exception during Clojure Evaluation" :type :error))))
-
-(defn- show-enabled-editor
-  "If there is currently no editor open for the custom enabled
-  expression for a trigger, create it. If it exists, bring it to the
-  front."
-  [trigger]
-  (try
-    (let [editor (or (:custom-enabled-editor @(seesaw/user-data trigger))
-                     (create-editor-window (enabled-editor-title trigger)
-                                           (:custom-enabled @(seesaw/user-data trigger))
-                                           (fn [text] (update-enabled-expression trigger text))))]
-      (.setLocationRelativeTo editor trigger)
-      (swap! (seesaw/user-data trigger) assoc :custom-enabled-editor editor)
-      (seesaw/show! editor)
-      (.toFront editor))
-    (catch Exception e
-      (timbre/error e "Problem showing Custom Enabled editor"))))
 
 (defn- show-popup-from-button
   "Displays the popup menu when the gear button is clicked as an
@@ -441,8 +372,9 @@
                 :user-data (atom {:playing false :tripped false}))
          delete-action (seesaw/action :handler (fn [e]
                                                  (try
-                                                   (when-let [editor (:custom-enabled-editor @(seesaw/user-data panel))]
-                                                     (seesaw/dispose! editor))
+                                                   (doseq [editor (vals (:expression-editors
+                                                                         @(seesaw/user-data panel)))]
+                                                     (editors/dispose editor))
                                                    (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                                    :items (remove #(= % panel) (get-triggers)))
                                                    (adjust-to-new-trigger)
@@ -450,7 +382,8 @@
                                                    (catch Exception e
                                                      (timbre/error e "Problem deleting Trigger."))))
                                       :name "Delete Trigger")
-         edit-enabled-action (seesaw/action :handler (fn [e] (show-enabled-editor panel))
+         ;; TODO: Build this up from map of available editor types
+         edit-enabled-action (seesaw/action :handler (fn [e] (editors/show-trigger-editor :enabled panel))
                                             :name "Edit Enabled Expression")
          popup-fn (fn [e] (concat [edit-enabled-action] (when (> (count (get-triggers)) 1) [delete-action])))]
 
@@ -472,8 +405,8 @@
         :action-performed (fn [e]
                             (seesaw/repaint! (seesaw/select panel [:#state]))
                             (when (and (= "Custom" (seesaw/selection enabled-menu))
-                                       (empty? (:custom-enabled @(seesaw/user-data panel))))
-                              (show-enabled-editor panel)))))
+                                       (empty? (get-in @(seesaw/user-data panel) [:expressions :enabled])))
+                              (editors/show-trigger-editor :enabled panel)))))
 
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [e]  ; Update player status when selection changes
@@ -482,15 +415,16 @@
                     :item-state-changed (fn [e]  ; Update output status when selection changes
                                           (show-midi-status panel)))
      (when (some? m)
-       (when-let [custom-enabled (:custom-enabled m)]
-         (swap! (seesaw/user-data panel) assoc :custom-enabled custom-enabled)
-         (try
-           (swap! (seesaw/user-data panel) assoc :custom-enabled-fn
-                  (expressions/build-user-expression custom-enabled))
-           (catch Exception e
-             (swap! (seesaw/user-data panel) assoc :custom-enabled-load-error true)
-             (timbre/error e (str "Problem parsing custom Enabled expression when loading Triggers. Expression:\n"
-                                  custom-enabled "\n")))))
+       (when-let [exprs (:expressions m)]
+         (swap! (seesaw/user-data panel) assoc :expressions exprs)
+         (doseq [[kind expr] exprs]
+           (try
+             (swap! (seesaw/user-data panel) assoc-in [:expression-fns kind]
+                    (expressions/build-user-expression expr (get-in editors/trigger-editors [kind :bindings])))
+             (catch Exception e
+               (swap! (seesaw/user-data panel) assoc :expression-load-error true)
+               (timbre/error e (str "Problem parsing" (get-in editors/trigger-editors [kind :title])
+                                    "when loading Triggers. Expression:\n" expr "\n"))))))
        (seesaw/value! panel m))
      (show-device-status panel)
      panel)))
@@ -504,6 +438,14 @@
                  :name "New Trigger"
                  :key "menu T"))
 
+(defn- close-all-editors
+  "Close any custom expression editors windows that are open, in
+  preparation for deleting all triggers."
+  []
+  (doseq [trigger (get-triggers)]
+    (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
+      (editors/dispose editor))))
+
 (def ^:private clear-triggers-action
   "The menu action which empties the Trigger list."
   (seesaw/action :handler (fn [e]
@@ -514,6 +456,7 @@
                                 (.pack confirm)
                                 (.setLocationRelativeTo confirm @trigger-frame)
                                 (when (= :success (seesaw/show! confirm))
+                                  (close-all-editors)
                                   (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                   :items [(create-trigger-row)])
                                   (adjust-to-new-trigger))
@@ -529,8 +472,8 @@
   (vec (for [trigger (get-triggers)]
          (-> (seesaw/value trigger)
              (dissoc :status :enabled-label :index)
-             (merge (when-let [custom-enabled (:custom-enabled @(seesaw/user-data trigger))]
-                      {:custom-enabled custom-enabled}))))))
+             (merge (when-let [exprs (:expressions @(seesaw/user-data trigger))]
+                      {:expressions exprs}))))))
 
 (defn- save-triggers-to-preferences
   "Saves the current Trigger window configuration to the application
@@ -562,20 +505,18 @@
 
 (defn- check-for-parse-error
   "Called after loading the triggers from a file or the preferences to
-  see if there were problems parsing any of the custom Enable
-  expressions. If so, reports that to the user and clears the warning
-  flags."
+  see if there were problems parsing any of the custom expressions. If
+  so, reports that to the user and clears the warning flags."
   []
   (let [failed (filter identity (for [trigger (get-triggers)]
-                                  (when (:custom-enabled-load-error @(seesaw/user-data trigger))
-                                    (swap! (seesaw/user-data trigger) dissoc :custom-enabled-load-error)
-                                    (let [label (seesaw/value (seesaw/select trigger [:#index]))]
-                                      (subs label 0 (dec (count label)))))))]
+                                  (when (:expression-load-error @(seesaw/user-data trigger))
+                                    (swap! (seesaw/user-data trigger) dissoc :expression-load-error)
+                                    (editors/trigger-index trigger))))]
     (when (seq failed)
-      (seesaw/alert (str "<html>Unable to use custom Enabled expression for Trigger "
+      (seesaw/alert (str "<html>Unable to use an expression for Trigger "
                          (clojure.string/join ", " failed) ".<br><br>"
                          "Check the log file for details.")
-                    :title "Exception during Clojure Evaluation" :type :error))))
+                    :title "Exception during Clojure evaluation" :type :error))))
 
 (def ^:private load-action
   "The menu action which loads the configuration from a user-specified file."
@@ -669,18 +610,25 @@
                               enabled))
     trigger))
 
+(defn- translate-custom-enabled
+  "Convert from the old format for storing a single custom expression
+  into the new extensible approach, so we can read old preference file
+  versions."
+  [trigger]
+  (merge (translate-enabled-values trigger)
+         (when-let [expr (:custom-enabled trigger)]
+           {:expressions {:enabled expr}})))
+
 (defn- recreate-trigger-rows
   "Reads the preferences and recreates any trigger rows that were
   specified in them. If none were found, returns a single, default
   trigger."
   []
-  (doseq [trigger (get-triggers)]
-    (when-let [editor (:custom-enabled-editor @(seesaw/user-data trigger))]
-      (seesaw/dispose! editor)))  ; Close any custom enabled expression editors that were open
+  (close-all-editors)
   (let [triggers (:triggers (prefs/get-preferences))]
     (if (seq triggers)
       (vec (for [trigger triggers]
-             (create-trigger-row (translate-enabled-values trigger))))
+             (create-trigger-row (translate-custom-enabled trigger))))
       [(create-trigger-row)])))
 
 (defn- create-trigger-window
