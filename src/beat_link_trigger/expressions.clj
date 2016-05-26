@@ -168,7 +168,7 @@ in the CDJ's browse interface."}}}})
   (let [result (atom (sorted-map))]
     (clojure.walk/postwalk (fn [elem]
                              (when-let [binding (get available-bindings elem)]
-                               (swap! result assoc elem binding)))
+                               (swap! result assoc elem (:code binding))))
                            form)
     (apply concat (seq @result))))
 
