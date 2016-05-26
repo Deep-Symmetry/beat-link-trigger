@@ -16,6 +16,13 @@ This change log follows the conventions of
   status report and decide however you want.
 - A graphical indicator to summarize the trigger's enabled and tripped
   state.
+- A general framework for editing Clojure expressions to customize the
+  application, including a large variety of convenienve variable to
+  simplify the task, and built-in help about the expressions and
+  variables.
+- A visible button to let people know about the trigger contextual
+  menu even if they don't think of trying to control or right-click on
+  it.
 - Errors and other important events are now logged to a log file,
   which is available for inspection via the File menu.
 
