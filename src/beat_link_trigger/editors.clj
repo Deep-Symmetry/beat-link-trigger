@@ -21,13 +21,13 @@
   make up the body of a function that customizes application
   behavior."
   (show [this]
-    "Make the window visible again if it had been closed or dropped
+  "Make the window visible again if it had been closed or dropped
   behind others.")
   (retitle [this]
-    "Update the window title to reflect a new index for its associated
-    trigger.")
+  "Update the window title to reflect a new index for its associated
+  trigger.")
   (dispose [this]
-    "Permanently close the window and release its resources."))))
+  "Permanently close the window and release its resources."))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -35,12 +35,15 @@
   expressions they edit."
   {:enabled {:title "Enabled Expression"
              :description
-"Called whenever a status update packet is received from the watched player(s). Return a <code>true</code> value<br>
-as the last expression to enable the trigger. The status update object, a beat-link <b><code>CdjStatus</code></b> object,<br>
-is available as <b><code>status</code></b>, and you can use normal Clojure/Java interop syntax to access its fields<br>
-and methods, but it is generally easier to use the convenience variables described below.<br><br>
-The atom <b><code>locals</code></b> is available for use by all expressions on this trigger, and the atom <b><code>globals</code></b><br>
-is shared across all expressions everywhere."
+  "Called whenever a status update packet is received from the watched
+  player(s). Return a <code>true</code> value as the last expression
+  to enable the trigger. The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described
+  below."
              :bindings (merge (expressions/bindings-for-update-class CdjStatus)
                               (expressions/bindings-for-update-class MixerStatus))}})
 
@@ -82,14 +85,38 @@ is shared across all expressions everywhere."
                          "<br><br>You may wish to check the log file for the detailed stack trace.")
                                :title "Exception during Clojure evaluation" :type :error))))
 
+(def ^:private help-header
+  "The HTML header added to style the help text."
+  "<html><head><style type=\"text/css\">
+body {
+  color: white;
+  font-size: 18pt;
+}
+code {
+  color: #bbccff;
+  font-size: 15pt;
+  font-weight: bold;
+}
+a {
+  color: #9999ff;
+}
+</style></head>")
+
 (defn- build-help
   "Create the help information for an editor with the specified kind."
   [kind]
-  (clojure.string/join (concat ["<html><h2>Description</h2>" (get-in trigger-editors [kind :description])
-                                "<h2>Values Available</h2>"
-                                "The following values are available for you to use in writing your expression:<dl>"]
+  (clojure.string/join (concat [help-header "<h1>Description</h1>" (get-in trigger-editors [kind :description])
+  "<p>
+
+  The atom <code>locals</code> is available for use by all expressions
+  on this trigger, and the atom <code>globals</code> is shared across
+  all expressions everywhere.
+
+  <h1>Values Available</h1>
+
+  The following values are available for you to use in writing your expression:<dl>"]
                                (for [[sym spec] (into (sorted-map) (get-in trigger-editors [kind :bindings]))]
-                                 (str "<dt><b><code>" (name sym) "</code></b></dt><dd>" (:doc spec) "</dd>"))
+                                 (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))
                                ["</dl>"])))
 
 (defn- create-editor-window
@@ -109,21 +136,28 @@ is shared across all expressions everywhere."
         editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
         save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])
-        help (seesaw/label :id :help :text (build-help kind))]
+        help (seesaw/styled-text :id :help :wrap-lines? true)]
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.apply editor-theme editor)
+    (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
                                                          [save-button "push, align center, wrap"]
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "sizegroup a, gapy unrelated, width 100%"]]))
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
-    #_(seesaw/listen root :component-resized
+    (.setContentType help "text/html")
+    (.setText help (build-help kind))
+    (seesaw/scroll! help :to :top)
+    (seesaw/config! help :background :black)
+    (seesaw/listen help :hyperlink-update
                    (fn [e]
-                     (seesaw/config! help :bounds [:* :* (- (.getWidth (seesaw/config root :size)) 40) :*])))
+                     (let [type (.getEventType e)
+                           url (.getURL e)]
+                       (when (= type (. javax.swing.event.HyperlinkEvent$EventType ACTIVATED))
+                         (clojure.java.browse/browse-url url)))))
     (seesaw/listen root :window-closed
                    (fn [_] (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind)))
-    #_(seesaw/pack! root)
     (let [result
           (reify IExpressionEditor
             (retitle [_]

@@ -22,17 +22,10 @@
                                               :doc  "Will be <code>true</code> if this update is announcing a new beat."}
                             'beat-within-bar {:code '(.getBeatWithinBar status)
                                               :doc
-"The position within a measure of music at which the most recent beat beat fell (a value from 1 to 4,<br>
-where 1 represents the down beat). This value will be accurate for players when the track was<br>
-properly configured within rekordbox (and if the music follows a standard House 4/4 time signature).<br>
-The mixer makes no effort to synchronize down beats with players, however, so this value is<br>
-meaningless when coming from the mixer. The usefulness of this value can be checked with<br>
-<b><code>bar-meaningful?</code></b>"}
+"The position within a measure of music at which the most recent beat beat fell (a value from 1 to 4, where 1 represents the down beat). This value will be accurate for players when the track was properly configured within rekordbox (and if the music follows a standard House 4/4 time signature). The mixer makes no effort to synchronize down beats with players, however, so this value is meaningless when coming from the mixer. The usefulness of this value can be checked with <code>bar-meaningful?</code>"}
                             'bar-meaningful? {:code '(.isBeatWithinBarMeaningful status)
                                               :doc
-"Will be <code>true</code> if this update is coming from a device where <b><code>beat-within-bar</code></b> can<br>
-reasonably be expected to have musical significance, because it respects the way a track was configured<br>
-within rekordbox."}
+"Will be <code>true</code> if this update is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
                             'cdj?            {:code '(instance? CdjStatus status)
                                               :doc  "Will be <code>true</code> if this update is reporting the status of a CDJ."}
                             'device-name     {:code '(.getDeviceName status)
@@ -49,107 +42,80 @@ within rekordbox."}
    Beat         {:inherit  [DeviceUpdate]
                  :bindings {'pitch-multiplier {:code '(Util/pitchToMultiplier (.getPitch status))
                                                :doc
-"Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where<br>
-normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
+"Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
                             'pitch-percent    {:code '(Util/pitchToPercentage (.getPitch status))
                                                :doc
-"Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%,<br>
-where normal, unadjusted pitch has the value 0%."}
+"Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
                             'raw-bpm          {:code '(.getBpm status)
                                                :doc
-"Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track<br>
-running at 120.5 BPM would be represented by the value 12050."}
+"Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
                             'raw-pitch        {:code '(.getPitch status)
                                                :doc
-"Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2097152, which<br>
-corresponds to a range between completely stopping playback to playing at twice normal tempo.
-<br>See <b><code>pitch-multiplier</code></b> and <b><code>pitch-percent</code></b> for more useful forms of this information."}
+"Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo.
+<p>See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
 
                             'tempo-master?    {:code '(.isTempoMaster status)
                                                :doc  "Is this mixer the current tempo master?"}
                             'track-bpm        {:code '(/ (.getBpm status) 100.0)
                                                :doc
-"Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 655.35.<br>
-See <b><code>effective-tempo</code></b> for the speed at which it is currently playing."}}}
+"Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}}}
 
    MixerStatus  {:inherit  [DeviceUpdate]
                  :bindings {'raw-bpm       {:code '(.getBpm status)
                                             :doc
-"Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so<br>
-a track running at 120.5 BPM would be represented by the value 12050."}
+"Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
                             'tempo-master? {:code '(.isTempoMaster status)
                                             :doc  "Was this beat sent by the current tempo master?"}
                             'track-bpm     {:code '(/ (.getBpm status) 100.0)
                                             :doc
-"Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 655.35.<br>
-See <b><code>effective-tempo</code></b> for the speed at which it is currently playing."}}}
+"Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}}}
 
    CdjStatus    {:inherit  [DeviceUpdate]
                  :bindings {'at-end?            {:code '(.isAtEnd status)
                                                  :doc  "Is the player currently stopped at the end of a track?"}
                             'beat-number        {:code '(.getBeatNumber status)
                                                  :doc
-"Identifies the beat of the track that being played. This counter starts at beat 1 as the track is played,<br>
-and increments on each beat. When the player is paused at the start of the track before playback begins,<br>
-the value reported is 0.<br><br>
-When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus<br>
-player, this information is not available, and the value -1 is reported."}
+"Identifies the beat of the track that being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
                             'busy?              {:code '(.isBusy status)
                                                  :doc  "Will be <code>true</code> if the player is doing anything."}
                             'cue-countdown      {:code '(.getCueCountdown status)
                                                  :doc
-"How many beats away is the next cue point in the track? If there is no saved cue point after the current<br>
-play location, or if it is further than 64 bars ahead, the value 511 is returned (and the CDJ will display<br>
-&ldquo;--.- bars&rdquo;. As soon as there are just 64 bars (256 beats) to go before the next cue point, this value<br>
-becomes 256. This is the point at which the CDJ starts to display a countdown, which it displays as<br>
- &ldquo;63.4 Bars&rdquo;.<br><br>
-As each beat goes by, this value decrements by 1, until the cue point is about to be reached, at which<br>
-point the value is 1 and the CDJ displays &ldquo;00.1 Bars&rdquo;. On the beat on which the cue point was saved<br>
-the value is 0  and the CDJ displays &ldquo;00.0 Bars&rdquo;. On the next beat, the value becomes determined by<br>
-the next cue point (if any) in the track."}
+"How many beats away is the next cue point in the track? If there is no saved cue point after the current play location, or if it is further than 64 bars ahead, the value 511 is returned (and the CDJ will display &ldquo;--.- bars&rdquo;. As soon as there are just 64 bars (256 beats) to go before the next cue point, this value becomes 256. This is the point at which the CDJ starts to display a countdown, which it displays as  &ldquo;63.4 Bars&rdquo;.<p> As each beat goes by, this value decrements by 1, until the cue point is about to be reached, at which point the value is 1 and the CDJ displays &ldquo;00.1 Bars&rdquo;. On the beat on which the cue point was saved the value is 0  and the CDJ displays &ldquo;00.0 Bars&rdquo;. On the next beat, the value becomes determined by the next cue point (if any) in the track."}
                             'cue-countdown-text {:code '(.formatCueCountdown status)
-                                                 :doc  "Contains the information from <b><code>cue-countdown</code></b> formatted the way it would be displayed on the player."}
+                                                 :doc  "Contains the information from <code>cue-countdown</code> formatted the way it would be displayed on the player."}
                             'cued?              {:code '(.isCued status)
                                                  :doc  "Is the player currently cued (paused at the cue point)?"}
                             'looping?           {:code '(.isLooping status)
                                                  :doc  "Is the player currently playing a loop?"}
                             'on-air?            {:code '(.isOnAir status)
                                                  :doc
-"Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel<br>
-that is not faded out. Only Nexus mixers seem to support this capability."}
+"Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}
                             'paused?            {:code '(.isPaused status)
                                                  :doc  "Is the player currently paused?"}
                             'pitch-multiplier   {:code '(Util/pitchToMultiplier (.getPitch status))
                                                  :doc
-"Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where<br>
-normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
+"Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
                             'pitch-percent      {:code '(Util/pitchToPercentage (.getPitch status))
                                                  :doc
-"Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where<br>
-normal, unadjusted pitch has the value 0%."}
+"Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
                             'playing?           {:code '(.isPlaying status)
                                                  :doc  "Is the player currently playing a track?"}
                             'raw-bpm            {:code '(.getBpm status)
                                                  :doc
-"Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track<br>
-running at 120.5 BPM would be represented by the value 12050."}
+"Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
                             'raw-pitch          {:code '(.getPitch status)
                                                  :doc
-"Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2097152, which<br>
-corresponds to a range between completely stopping playback to playing at twice normal tempo.<br>
-See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
+"Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo. See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
                             'tempo-master?      {:code '(.isTempoMaster status)
                                                  :doc  "Is this player the current tempo master?"}
                             'track-bpm          {:code '(/ (.getBpm status) 100.0)
                                                  :doc
-"Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 655.35.<br>
-See <b><code>effective-tempo</code></b> for the speed at which it is currently playing."}
+"Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}
                             'synced?            {:code '(.isSynced status)
                                                  :doc  "Is the player currently in Sync mode?"}
                             'track-number       {:code '(.getTrackNumber status)
                                                  :doc
-"The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks<br>
-in the CDJ's browse interface."}}}})
+"The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks in the CDJ's browse interface."}}}})
 
 (defn bindings-for-update-class
   "Returns the convenience bindings which should be made available for
