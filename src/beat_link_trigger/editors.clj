@@ -90,11 +90,13 @@
   "<html><head><style type=\"text/css\">
 body {
   color: white;
-  font-size: 18pt;
+  font-family: \"Roboto\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;
+  line-height: 1.42857143;
+  font-size 16pt;
 }
 code {
   color: #bbccff;
-  font-size: 15pt;
+  font-size: 14pt;
   font-weight: bold;
 }
 a {
