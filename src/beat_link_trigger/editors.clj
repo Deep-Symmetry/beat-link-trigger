@@ -34,7 +34,13 @@
   along with the details needed to describe and compile the
   expressions they edit."
   {:enabled {:title "Enabled Expression"
-             :description "Determines whether the trigger is enabled. Slurp some HTML from a resource?"
+             :description
+"Called whenever a status update packet is received from the watched player(s). Return a <code>true</code> value<br>
+as the last expression to enable the trigger. The status update object, a beat-link <b><code>CdjStatus</code></b> object,<br>
+is available as <b><code>status</code></b>, and you can use normal Clojure/Java interop syntax to access its fields<br>
+and methods, but it is generally easier to use the convenience variables described below.<br><br>
+The atom <b><code>locals</code></b> is available for use by all expressions on this trigger, and the atom <b><code>globals</code></b><br>
+is shared across all expressions everywhere."
              :bindings (merge (expressions/bindings-for-update-class CdjStatus)
                               (expressions/bindings-for-update-class MixerStatus))}})
 
@@ -76,13 +82,23 @@
                          "<br><br>You may wish to check the log file for the detailed stack trace.")
                                :title "Exception during Clojure evaluation" :type :error))))
 
+(defn- build-help
+  "Create the help information for an editor with the specified kind."
+  [kind]
+  (clojure.string/join (concat ["<html><h2>Description</h2>" (get-in trigger-editors [kind :description])
+                                "<h2>Values Available</h2>"
+                                "The following values are available for you to use in writing your expression:<dl>"]
+                               (for [[sym spec] (into (sorted-map) (get-in trigger-editors [kind :bindings]))]
+                                 (str "<dt><b><code>" (name sym) "</code></b></dt><dd>" (:doc spec) "</dd>"))
+                               ["</dl>"])))
+
 (defn- create-editor-window
   "Create and show a window for editing the Clojure code of a
   particular kind of expression."
   [kind trigger]
   (let [text (get-in @(seesaw/user-data trigger) [:expressions kind])
         save-fn (fn [text] (update-expression kind trigger text))
-        root (seesaw/frame :title (editor-title kind trigger) :on-close :dispose
+        root (seesaw/frame :title (editor-title kind trigger) :on-close :dispose :size [800 :by 600]
                            ;; TODO: Add save/load capabilities
                            ;; TODO: Add documentation and binding help
                            #_:menubar #_(seesaw/menubar
@@ -92,16 +108,22 @@
                                                           :items [new-trigger-action clear-triggers-action])]))
         editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])]
+        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])
+        help (seesaw/label :id :help :text (build-help kind))]
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.apply editor-theme editor)
-    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap"]
-                                                         [save-button "push, align center"]]))
+    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
+                                                         [save-button "push, align center, wrap"]
+                                                         [(seesaw/scrollable help :hscroll :never)
+                                                          "sizegroup a, gapy unrelated, width 100%"]]))
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
+    #_(seesaw/listen root :component-resized
+                   (fn [e]
+                     (seesaw/config! help :bounds [:* :* (- (.getWidth (seesaw/config root :size)) 40) :*])))
     (seesaw/listen root :window-closed
                    (fn [_] (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind)))
-    (seesaw/pack! root)
+    #_(seesaw/pack! root)
     (let [result
           (reify IExpressionEditor
             (retitle [_]
