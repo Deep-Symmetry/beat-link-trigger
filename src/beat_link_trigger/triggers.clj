@@ -416,14 +416,18 @@
                 :user-data (atom {:playing false :tripped false :locals (atom {})}))
          delete-action (seesaw/action :handler (fn [e] (delete-trigger panel))
                                       :name "Delete Trigger")
-         editor-actions (for [[kind spec] editors/trigger-editors]
-                          (let [update-fn (when (get-in editors/trigger-editors [kind :run-when-saved])
-                                            #(run-trigger-function panel kind nil true))]
-                            (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
-                                           :name (str "Edit " (:title spec))
-                                           :tip (:tip spec))))
+         editor-actions (fn []
+                          (for [[kind spec] editors/trigger-editors]
+                            (let [update-fn (when (get-in editors/trigger-editors [kind :run-when-saved])
+                                              #(run-trigger-function panel kind nil true))]
+                              (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
+                                             :name (str "Edit " (:title spec))
+                                             :tip (:tip spec)
+                                             :icon (if (empty? (get-in @(seesaw/user-data panel) [:expressions kind]))
+                                                     (seesaw/icon "images/Gear-outline.png")
+                                                     (seesaw/icon "images/Gear-icon.png"))))))
 
-         popup-fn (fn [e] (concat editor-actions (when (> (count (get-triggers)) 1) [delete-action])))]
+         popup-fn (fn [e] (concat (editor-actions) (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
      ;; or right click on the gear button.
