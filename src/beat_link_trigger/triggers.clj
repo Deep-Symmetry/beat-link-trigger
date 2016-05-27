@@ -15,7 +15,7 @@
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
-           [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
+           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers."}
@@ -73,17 +73,18 @@
   it is a downgrade, to make sure we update the match score and
   relinquish control on the next packet from a better match."
   [status trigger]
-  (run-custom-enabled status trigger)
-  (let [this-device (.getDeviceNumber status)
-        match-score (+ (if (enabled? trigger) 1024 0)
-                       (if (.isPlaying status) 512 0)
-                       (- this-device))
-        [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
-        better (or (= existing-device this-device)
-                   (when (some? existing-device) (nil? (DeviceFinder/getLatestAnnouncementFrom existing-device)))
-                   (> match-score (or existing-score -256)))]
-    (when better
-      (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
+  (when-not (instance? Beat status)  ; Beat packets do not get considered
+    (run-custom-enabled status trigger)
+    (let [this-device (.getDeviceNumber status)
+          match-score (+ (if (enabled? trigger) 1024 0)
+                         (if (.isPlaying status) 512 0)
+                         (- this-device))
+          [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
+          better (or (= existing-device this-device)
+                     (when (some? existing-device) (nil? (DeviceFinder/getLatestAnnouncementFrom existing-device)))
+                     (> match-score (or existing-score -256)))]
+      (when better
+        (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device])))))
 
 (defn- matching-player-number?
   "Checks whether a CDJ status update matches a trigger, handling the
@@ -630,6 +631,23 @@
           (timbre/error e "Problem responding to Player status packet."))))))
 
 (defonce ^{:private true
+           :doc "Responds to beat packets and run any registered
+  beat expressions."}
+  beat-listener
+  (reify org.deepsymmetry.beatlink.BeatListener
+    (newBeat [this beat]
+      (try
+        (doseq [trigger (get-triggers)]
+          (let [status-label (seesaw/select trigger [:#status])
+                player-menu (seesaw/select trigger [:#players])
+                selection (seesaw/selection player-menu)]
+            (when (and (matching-player-number? beat trigger selection)
+                       (enabled? trigger))
+              (run-trigger-function trigger :beat beat false))))
+        (catch Exception e
+          (timbre/error e "Problem responding to beat packet."))))))
+
+(defonce ^{:private true
            :doc "Responds to the arrival or departure of DJ Link
   devices by updating our user interface appropriately."}
   device-listener
@@ -712,4 +730,6 @@
 
   (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
   (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-  (when (VirtualCdj/isActive) (VirtualCdj/addUpdateListener status-listener)))  ; React to changes in player state
+  (when (VirtualCdj/isActive) (VirtualCdj/addUpdateListener status-listener))  ; React to changes in player state
+  (BeatFinder/start)
+  (BeatFinder/addBeatListener beat-listener))  ; Allow triggers to respond to beats

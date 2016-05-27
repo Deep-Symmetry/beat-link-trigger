@@ -4,7 +4,8 @@
   (:require [overtone.midi :as midi]
             [overtone.osc :as osc]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util]))
+  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util]
+           [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 (defonce ^{:doc "Holds global variables shared between user expressions."}
   globals (atom {}))

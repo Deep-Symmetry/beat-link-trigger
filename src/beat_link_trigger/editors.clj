@@ -33,7 +33,17 @@
   "Specifies the kinds of editor which can be opened for a trigger,
   along with the details needed to describe and compile the
   expressions they edit."
-  {:enabled {:title "Enabled Expression"
+  {:setup {:title "Setup Expression"
+             :tip "Called once to set up any state your other expressions may need."
+             :description
+  "Called once when the triggers are loaded, or when you edit the
+  expression. Set up any state (such as counters, flags, or network
+  connections) that your other expressions for this trigger need. Use
+  the Shutdown expression to clean up resources when the trigger is
+  shutting down."
+           :bindings nil
+           :run-when-saved true}
+   :enabled {:title "Enabled Filter Expression"
              :tip "Called to see if the trigger should be enabled."
              :description
   "Called whenever a status update packet is received from the watched
@@ -47,16 +57,13 @@
   below."
              :bindings (merge (expressions/bindings-for-update-class CdjStatus)
                               (expressions/bindings-for-update-class MixerStatus))}
-   :setup {:title "Setup Expression"
-             :tip "Called once to set up any state your other expressions may need."
-             :description
-  "Called once when the triggers are loaded, or when you edit the
-  expression. Set up any state (such as counters, flags, or network
-  connections) that your other expressions for this trigger need. Use
-  the Shutdown expression to clean up resources when the trigger is
-  shutting down."
-           :bindings nil
-           :run-when-saved true}
+   :beat {:title "Beat Expression"
+          :tip "Called on each beat when the trigger is enabled."
+          :description
+  "Called whenever a beat packet is received from the watched
+  player(s) as long as the trigger is enabled. You can use this for
+  beat-driven integrations with other systems."
+          :bindings (expressions/bindings-for-update-class Beat)}
    :shutdown {:title "Shutdown Expression"
               :tip "Called once to release resources your trigger had been using."
               :description
