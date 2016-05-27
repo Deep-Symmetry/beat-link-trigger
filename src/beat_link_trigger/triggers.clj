@@ -30,20 +30,33 @@
     "Custom" (get-in @(seesaw/user-data trigger) [:expression-results :enabled])
     false))
 
+(defn- run-trigger-function
+  "Checks whether the trigger has a custom function of the specified
+  kind installed, and if so runs it with the supplied status argument
+  and the trigger local and global atoms. Returns a tuple of the
+  function return value and any thrown exception. If `alert?` is
+  `true` the user will be alerted when there is a problem running the
+  function."
+  [trigger kind status alert?]
+  (let [data @(seesaw/user-data trigger)]
+    (when-let [custom-fn (get-in data [:expression-fns kind])]
+      (try
+        [(custom-fn status (:locals data) expression-globals) nil]
+        (catch Throwable t
+          (timbre/error t "Problem running " kind " expression,"
+                        (get-in data [:expressions kind]))
+          (when alert?
+            (seesaw/alert (str "<html>Problem running trigger " (name kind) " expression.<br><br>" t)
+                    "Exception in Custom Expression" :type :error))
+          [nil t])))))
+
 (defn- run-custom-enabled
   "Invokes the custom enabled filter assigned to a trigger, if any,
   recording the result in the trigger user data."
   [status trigger]
   (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
-    (swap! (seesaw/user-data trigger)
-           (fn [data]
-             (assoc-in data [:expression-results :enabled]
-                    (when-let [custom-fn (get-in data [:expression-fns :enabled])]
-                      (try
-                        (custom-fn status (:locals data) expression-globals)
-                        (catch Exception e
-                          (timbre/error e "Problem running Enabled expression,"
-                                        (get-in data [:expressions :enabled]))))))))))
+    (let [[enabled? _] (run-trigger-function trigger :enabled status false)]
+      (swap! (seesaw/user-data trigger) assoc-in [:expression-results :enabled] enabled?))))
 
 (defn- is-better-match?
   "Checks whether the current status packet represents a better
@@ -269,7 +282,7 @@
   (when-let [frame @trigger-frame]
     (seesaw/config (seesaw/select frame [:#triggers]) :items)))
 
-(defn- adjust-to-new-trigger
+(defn- adjust-triggers
   "Called when a trigger is added or removed to restore the proper
   alternation of background colors, expand the window if it still fits
   the screen, and update any other user interface elements that might
@@ -333,6 +346,32 @@
   [target popup event]
   (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
+(defn- delete-trigger
+  "Removes a trigger row from the window, running its shutdown
+  function if needed, closing any editor windows associated with it,
+  and readjusting any triggers that remain."
+  [trigger]
+  (run-trigger-function trigger :shutdown nil true)
+  (try
+    (doseq [editor (vals (:expression-editors
+                          @(seesaw/user-data trigger)))]
+      (editors/dispose editor))
+    (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                    :items (remove #(= % trigger) (get-triggers)))
+    (adjust-triggers)
+    (.pack @trigger-frame)
+    (catch Exception e
+      (timbre/error e "Problem deleting Trigger."))))
+
+(defn- delete-all-triggers
+  "Removes all triggers, running their own shutdown functions, and
+  then runs the global shutdown function."
+  []
+  (for [trigger (get-triggers)]
+    (delete-trigger trigger))
+  ;; TODO: Run global shutdown function once it exists
+  )
+
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
@@ -374,22 +413,16 @@
                          "wrap, hidemode 1"]]
 
                 :user-data (atom {:playing false :tripped false :locals (atom {})}))
-         delete-action (seesaw/action :handler (fn [e]
-                                                 (try
-                                                   (doseq [editor (vals (:expression-editors
-                                                                         @(seesaw/user-data panel)))]
-                                                     (editors/dispose editor))
-                                                   (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                                   :items (remove #(= % panel) (get-triggers)))
-                                                   (adjust-to-new-trigger)
-                                                   (.pack @trigger-frame)
-                                                   (catch Exception e
-                                                     (timbre/error e "Problem deleting Trigger."))))
+         delete-action (seesaw/action :handler (fn [e] (delete-trigger panel))
                                       :name "Delete Trigger")
-         ;; TODO: Build this up from map of available editor types
-         edit-enabled-action (seesaw/action :handler (fn [e] (editors/show-trigger-editor :enabled panel))
-                                            :name "Edit Enabled Expression")
-         popup-fn (fn [e] (concat [edit-enabled-action] (when (> (count (get-triggers)) 1) [delete-action])))]
+         editor-actions (for [[kind spec] editors/trigger-editors]
+                          (let [update-fn (when (get-in editors/trigger-editors [kind :run-when-saved])
+                                            #(run-trigger-function panel kind nil true))]
+                            (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
+                                           :name (str "Edit " (:title spec))
+                                           :tip (:tip spec))))
+
+         popup-fn (fn [e] (concat editor-actions (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
      ;; or right click on the gear button.
@@ -410,7 +443,7 @@
                             (seesaw/repaint! (seesaw/select panel [:#state]))
                             (when (and (= "Custom" (seesaw/selection enabled-menu))
                                        (empty? (get-in @(seesaw/user-data panel) [:expressions :enabled])))
-                              (editors/show-trigger-editor :enabled panel)))))
+                              (editors/show-trigger-editor :enabled panel nil)))))
 
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [e]  ; Update player status when selection changes
@@ -429,7 +462,10 @@
                (swap! (seesaw/user-data panel) assoc :expression-load-error true)
                (timbre/error e (str "Problem parsing " (get-in editors/trigger-editors [kind :title])
                                     " when loading Triggers. Expression:\n" expr "\n"))))))
-       (seesaw/value! panel m))
+       (seesaw/value! panel m)
+       (let [[_ exception] (run-trigger-function panel :setup nil false)]
+         (when exception
+           (swap! (seesaw/user-data panel) assoc :expression-load-error true))))
      (show-device-status panel)
      panel)))
 
@@ -438,7 +474,7 @@
   (seesaw/action :handler (fn [e]
                             (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                             :items (concat (get-triggers) [(create-trigger-row)]))
-                            (adjust-to-new-trigger))
+                            (adjust-triggers))
                  :name "New Trigger"
                  :key "menu T"))
 
@@ -460,10 +496,10 @@
                                 (.pack confirm)
                                 (.setLocationRelativeTo confirm @trigger-frame)
                                 (when (= :success (seesaw/show! confirm))
-                                  (close-all-editors)
+                                  (delete-all-triggers)
                                   (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                   :items [(create-trigger-row)])
-                                  (adjust-to-new-trigger))
+                                  (adjust-triggers))
                                 (seesaw/dispose! confirm))
                               (catch Exception e
                                 (timbre/error e "Problem clearing Trigger list."))))
@@ -533,7 +569,7 @@
                                 (prefs/load-from-file file)
                                 (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                 :items (recreate-trigger-rows))
-                                (adjust-to-new-trigger)
+                                (adjust-triggers)
                                 (catch Exception e
                                   (timbre/error e "Problem loading" file)
                                   (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
@@ -628,7 +664,7 @@
   specified in them. If none were found, returns a single, default
   trigger."
   []
-  (close-all-editors)
+  (delete-all-triggers)
   (let [triggers (:triggers (prefs/get-preferences))]
     (if (seq triggers)
       (vec (for [trigger triggers]
@@ -652,7 +688,7 @@
                                     :items (recreate-trigger-rows)))]
       (seesaw/config! root :content panel)
       (reset! trigger-frame root)
-      (adjust-to-new-trigger)
+      (adjust-triggers)
       (seesaw/show! root)
       (check-for-parse-error))
     (catch Exception e
