@@ -9,6 +9,7 @@
                  [com.taoensso/timbre "4.3.1"]
                  [environ "1.0.3"]
                  [fipp "0.6.5"]
+                 [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.1.6-SNAPSHOT"]
                  [overtone/midi-clj "0.5.0"]

@@ -6,6 +6,7 @@
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
@@ -425,6 +426,10 @@
                 :user-data (atom {:playing false :tripped false :locals (atom {})}))
          delete-action (seesaw/action :handler (fn [e] (delete-trigger panel))
                                       :name "Delete Trigger")
+         inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @(:locals @(seesaw/user-data panel))
+                                                                           :window-name "Trigger Expression Locals"))
+                                       :name "Inspect Expression Locals"
+                                       :tip "Examine any values set as Trigger locals by its Expressions.")
          editor-actions (fn []
                           (for [[kind spec] editors/trigger-editors]
                             (let [update-fn (fn []
@@ -438,8 +443,9 @@
                                              :icon (if (empty? (get-in @(seesaw/user-data panel) [:expressions kind]))
                                                      (seesaw/icon "images/Gear-outline.png")
                                                      (seesaw/icon "images/Gear-icon.png"))))))
-
-         popup-fn (fn [e] (concat (editor-actions) (when (> (count (get-triggers)) 1) [delete-action])))]
+         popup-fn (fn [e] (concat (editor-actions)
+                                  [inspect-action]
+                                  (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
      ;; or right click on the gear button.
@@ -710,14 +716,19 @@
   "Create and show the trigger window."
   []
   (try
-    (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
+    (let [inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
+                                                                            :window-name "Expression Globals"))
+                                       :name "Inspect Expression Globals"
+                                       :tip "Examine any values set as globals by any Trigger Expressions.")
+          root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
                              :menubar (seesaw/menubar
                                        :items [(seesaw/menu :text "File"
                                                             :items (concat [load-action save-action
                                                                             (seesaw/separator) logs/logs-action]
                                                                            menus/non-mac-actions))
                                                (seesaw/menu :text "Triggers"
-                                                            :items [new-trigger-action clear-triggers-action])]))
+                                                            :items [new-trigger-action clear-triggers-action
+                                                                    (seesaw/separator) inspect-action])]))
           panel (seesaw/scrollable (seesaw/vertical-panel
                                     :id :triggers
                                     :items (recreate-trigger-rows)))]
