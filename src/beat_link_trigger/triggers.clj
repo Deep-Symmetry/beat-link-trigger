@@ -373,6 +373,15 @@
   ;; TODO: Run global shutdown function once it exists
   )
 
+(defn- update-gear-icon
+  "Determiens whether the gear button for a trigger should be hollow
+  or filled in, depending on whether any expressions have been
+  assigned to it."
+  [trigger gear]
+  (seesaw/config! gear :icon (if (every? empty? (vals (:expressions @(seesaw/user-data trigger))))
+                               (seesaw/icon "images/Gear-outline.png")
+                               (seesaw/icon "images/Gear-icon.png"))))
+
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
@@ -381,7 +390,7 @@
    (create-trigger-row nil))
   ([m]
    (let [outputs (get-midi-outputs)
-         gear (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-icon.png"))
+         gear (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
          panel (mig/mig-panel
                 :id :panel
                 :items [[(seesaw/label :id :index :text "1.") "align right"]
@@ -418,8 +427,10 @@
                                       :name "Delete Trigger")
          editor-actions (fn []
                           (for [[kind spec] editors/trigger-editors]
-                            (let [update-fn (when (get-in editors/trigger-editors [kind :run-when-saved])
-                                              #(run-trigger-function panel kind nil true))]
+                            (let [update-fn (fn []
+                                              (when (get-in editors/trigger-editors [kind :run-when-saved])
+                                                (run-trigger-function panel kind nil true))
+                                              (update-gear-icon panel gear))]
                               (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
                                              :name (str "Edit " (:title spec))
                                              :tip (:tip spec)
@@ -470,7 +481,8 @@
        (seesaw/value! panel m)
        (let [[_ exception] (run-trigger-function panel :setup nil false)]
          (when exception
-           (swap! (seesaw/user-data panel) assoc :expression-load-error true))))
+           (swap! (seesaw/user-data panel) assoc :expression-load-error true)))
+       (update-gear-icon panel gear))
      (show-device-status panel)
      panel)))
 
