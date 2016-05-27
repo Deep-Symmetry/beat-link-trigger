@@ -41,8 +41,7 @@
   connections) that your other expressions for this trigger need. Use
   the Shutdown expression to clean up resources when the trigger is
   shutting down."
-           :bindings nil
-           :run-when-saved true}
+           :bindings nil}
    :enabled {:title "Enabled Filter Expression"
              :tip "Called to see if the trigger should be enabled."
              :description

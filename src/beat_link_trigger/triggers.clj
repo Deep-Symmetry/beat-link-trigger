@@ -428,8 +428,9 @@
          editor-actions (fn []
                           (for [[kind spec] editors/trigger-editors]
                             (let [update-fn (fn []
-                                              (when (get-in editors/trigger-editors [kind :run-when-saved])
-                                                (run-trigger-function panel kind nil true))
+                                              (when (= kind :setup)  ; Clean up then run the new setup function
+                                                (run-trigger-function panel :shutdown nil true)
+                                                (run-trigger-function panel :setup nil true))
                                               (update-gear-icon panel gear))]
                               (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
                                              :name (str "Edit " (:title spec))
