@@ -74,25 +74,25 @@
   it is a downgrade, to make sure we update the match score and
   relinquish control on the next packet from a better match."
   [status trigger]
-  (when-not (instance? Beat status)  ; Beat packets do not get considered
-    (run-custom-enabled status trigger)
-    (let [this-device (.getDeviceNumber status)
-          match-score (+ (if (enabled? trigger) 1024 0)
-                         (if (.isPlaying status) 512 0)
-                         (- this-device))
-          [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
-          better (or (= existing-device this-device)
-                     (when (some? existing-device) (nil? (DeviceFinder/getLatestAnnouncementFrom existing-device)))
-                     (> match-score (or existing-score -256)))]
-      (when better
-        (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device])))))
+  (run-custom-enabled status trigger)
+  (let [this-device (.getDeviceNumber status)
+        match-score (+ (if (enabled? trigger) 1024 0)
+                       (if (.isPlaying status) 512 0)
+                       (- this-device))
+        [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
+        better (or (= existing-device this-device)
+                   (when (some? existing-device) (nil? (DeviceFinder/getLatestAnnouncementFrom existing-device)))
+                   (> match-score (or existing-score -256)))]
+    (when better
+      (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
 
 (defn- matching-player-number?
   "Checks whether a CDJ status update matches a trigger, handling the
   special cases of the Master Player and Any Player. For Any Player we
   want to stay tracking the same Player most of the time, so we will
   keep track of the last one we matched, and change only if this is a
-  better match."
+  better match. This should only be called with full-blown status
+  updates, not beats."
   [status trigger player-selection]
   (let []
     (and (some? player-selection)
@@ -105,7 +105,7 @@
 (defrecord PlayerChoice [number]
   Object
   (toString [_] (cond
-                  (neg? number) "Any Player"  ; Requires more thought about how to implement
+                  (neg? number) "Any Player"
                   (zero? number) "Master Player"
                   :else (str "Player " number))))
 
@@ -654,18 +654,19 @@
           (timbre/error e "Problem responding to Player status packet."))))))
 
 (defonce ^{:private true
-           :doc "Responds to beat packets and run any registered
-  beat expressions."}
+           :doc "Responds to beat packets and runs any registered beat
+  expressions."}
   beat-listener
   (reify org.deepsymmetry.beatlink.BeatListener
     (newBeat [this beat]
       (try
         (doseq [trigger (get-triggers)]
-          (let [status-label (seesaw/select trigger [:#status])
-                player-menu (seesaw/select trigger [:#players])
+          (let [player-menu (seesaw/select trigger [:#players])
                 selection (seesaw/selection player-menu)]
-            (when (and (matching-player-number? beat trigger selection)
-                       (enabled? trigger))
+            (when (and (some? selection)
+                       (or (neg? (:number selection))
+                           (= (:number selection) (.getDeviceNumber beat))
+                           (and (zero? (:number selection)) (.isTempoMaster beat))))
               (run-trigger-function trigger :beat beat false))))
         (catch Exception e
           (timbre/error e "Problem responding to beat packet."))))))
