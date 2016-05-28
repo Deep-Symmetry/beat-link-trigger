@@ -32,20 +32,23 @@
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
   along with the details needed to describe and compile the
-  expressions they edit."
-  {:setup {:title "Setup Expression"
-             :tip "Called once to set up any state your other expressions may need."
-             :description
-  "Called once when the triggers are loaded, or when you edit the
+  expressions they edit. Created as an explicit array map to keep the
+  keys in the order they are found here."
+  (array-map
+   :setup {:title "Setup Expression"
+           :tip "Called once to set up any state your other expressions may need."
+           :description
+           "Called once when the triggers are loaded, or when you edit the
   expression. Set up any state (such as counters, flags, or network
   connections) that your other expressions for this trigger need. Use
   the Shutdown expression to clean up resources when the trigger is
   shutting down."
            :bindings nil}
+
    :enabled {:title "Enabled Filter Expression"
              :tip "Called to see if the trigger should be enabled."
              :description
-  "Called whenever a status update packet is received from the watched
+             "Called whenever a status update packet is received from the watched
   player(s). Return a <code>true</code> value as the last expression
   to enable the trigger. The status update object, a beat-link <a
   href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
@@ -54,23 +57,47 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described
   below."
-             :bindings (merge (expressions/bindings-for-update-class CdjStatus)
-                              (expressions/bindings-for-update-class MixerStatus))}
+             :bindings (expressions/bindings-for-update-class CdjStatus)}
+
+   :activation {:title "Activation Expression"
+                :tip "Called when the trigger becomes enabled and tripped."
+                :description
+                "Called when the trigger is enabled and the first device that it is
+  watching starts playing. You can use this to trigger systems that do
+  not respond to MIDI, or to send more detailed information than MIDI
+  allows."
+                :bindings (expressions/bindings-for-update-class CdjStatus)}
+
    :beat {:title "Beat Expression"
-          :tip "Called on each beat when the trigger is enabled."
+          :tip "Called on each beat from the watched devices."
           :description
-  "Called whenever a beat packet is received from the watched
-  player(s) as long as the trigger is enabled. You can use this for
-  beat-driven integrations with other systems."
+          "Called whenever a beat packet is received from the watched
+  player(s). You can use this for beat-driven integrations with other
+  systems."
           :bindings (expressions/bindings-for-update-class Beat)}
+
+   :deactivation {:title "Deactivation Expression"
+                  :tip "Called when the trigger becomes disabled or idle."
+                  :description
+                  "Called when the trigger becomes disabled or when the last device it
+  is watching stops playing, if it had been active. You can use this
+  to trigger systems that do not respond to MIDI, or to send more
+  detailed information than MIDI allows. Note that sometimes
+  <code>status</code> will be <code>nil</code>, such as when a device
+  has disappeared or the trigger settings have been changed, so your
+  expression must be able to cope with <code>nil</code> values for all
+  the convenience values that it uses."
+                  :bindings (expressions/bindings-for-update-class CdjStatus)
+                  :nil-status? true}
+
    :shutdown {:title "Shutdown Expression"
               :tip "Called once to release resources your trigger had been using."
               :description
-  "Called when when the trigger is shutting down, either because it
+              "Called when when the trigger is shutting down, either because it
   was deleted, the window was closed, or a new trigger file is being
   loaded. Close and release any system resources (such as network
   connections) that you opened in the Setup expression."
-             :bindings nil}})
+              :bindings nil}))
 
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
@@ -99,8 +126,9 @@
   [kind trigger text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
   (try
-    (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-           (expressions/build-user-expression text (get-in trigger-editors [kind :bindings])))
+    (let [editor-info (get trigger-editors kind)]
+      (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
+             (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info))))
     (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
       (dispose editor)  ; Close the editor
       (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))

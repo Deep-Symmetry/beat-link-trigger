@@ -162,7 +162,7 @@
 (defn- report-activation
   "Send a message indicating the player a trigger is watching has
   started playing, as long as the chosen output exists."
-  [trigger]
+  [trigger status]
   (try
     (when-let [output (get-chosen-output trigger)]
       (let [note (seesaw/value (seesaw/select trigger [:#note]))
@@ -172,13 +172,14 @@
         (if (= "Note" message)
           (midi/midi-note-on output note 127 channel)
           (midi/midi-control output note 127 channel))))
+    (run-trigger-function trigger :activation status false)
     (catch Exception e
         (timbre/error e "Problem reporting player activation."))))
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
   started playing, as long as the chosen output exists."
-  [trigger]
+  [trigger status]
   (try
     (when-let [output (get-chosen-output trigger)]
       (let [note (seesaw/value (seesaw/select trigger [:#note]))
@@ -188,19 +189,19 @@
         (if (= "Note" message)
           (midi/midi-note-off output note channel)
           (midi/midi-control output note 0 channel)))
-      )
+      (run-trigger-function trigger :deactivation status false))
     (catch Exception e
         (timbre/error e "Problem reporting player deactivation."))))
 
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
   changed, send an appropriate message and record the new state."
-  [trigger playing on-air]
+  [trigger playing on-air status]
   (swap! (seesaw/user-data trigger)
          (fn [data]
            (let [tripped (and playing (enabled? trigger))]
              (when (not= tripped (:tripped data))
-               (if tripped (report-activation trigger) (report-deactivation trigger)))
+               (if tripped (report-activation trigger status) (report-deactivation trigger status)))
              (assoc data :playing playing :on-air on-air :tripped tripped))))
   (seesaw/repaint! (seesaw/select trigger [:#state])))
 
@@ -234,13 +235,13 @@
       (if (nil? selection)
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
-            (update-player-state trigger false false))
+            (update-player-state trigger false false nil))
         (let [found (when (DeviceFinder/isActive) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
               status (when (VirtualCdj/isActive) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
                 (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
-                (update-player-state trigger false false))
+                (update-player-state trigger false false nil))
             (if (instance? CdjStatus status)
               (do (seesaw/config! status-label :foreground "cyan")
                   (seesaw/value! status-label (build-status-label status)))
@@ -444,7 +445,7 @@
                                                      (seesaw/icon "images/Gear-outline.png")
                                                      (seesaw/icon "images/Gear-icon.png"))))))
          popup-fn (fn [e] (concat (editor-actions)
-                                  [inspect-action]
+                                  [(seesaw/separator) inspect-action (seesaw/separator)]
                                   (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
@@ -478,13 +479,14 @@
        (when-let [exprs (:expressions m)]
          (swap! (seesaw/user-data panel) assoc :expressions exprs)
          (doseq [[kind expr] exprs]
-           (try
-             (swap! (seesaw/user-data panel) assoc-in [:expression-fns kind]
-                    (expressions/build-user-expression expr (get-in editors/trigger-editors [kind :bindings])))
-             (catch Exception e
-               (swap! (seesaw/user-data panel) assoc :expression-load-error true)
-               (timbre/error e (str "Problem parsing " (get-in editors/trigger-editors [kind :title])
-                                    " when loading Triggers. Expression:\n" expr "\n"))))))
+           (let [editor-info (get editors/trigger-editors kind)]
+             (try
+               (swap! (seesaw/user-data panel) assoc-in [:expression-fns kind]
+                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)))
+               (catch Exception e
+                 (swap! (seesaw/user-data panel) assoc :expression-load-error true)
+                 (timbre/error e (str "Problem parsing " (:title editor-info)
+                                      " when loading Triggers. Expression:\n" expr "\n")))))))
        (seesaw/value! panel m)
        (let [[_ exception] (run-trigger-function panel :setup nil false)]
          (when exception
@@ -646,7 +648,7 @@
             (when (and (instance? CdjStatus status) (matching-player-number? status trigger selection))
               (when-not (neg? (:number selection))
                 (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
-              (update-player-state trigger (.isPlaying status) (.isOnAir status))
+              (update-player-state trigger (.isPlaying status) (.isOnAir status) status)
               (seesaw/invoke-later
                (seesaw/config! status-label :foreground "cyan")
                (seesaw/value! status-label (build-status-label status))))))

@@ -130,23 +130,28 @@
   "Scans a Clojure form for any occurrences of the convenience symbols
   we know how to make available with useful values, and returns the
   symbols found along with the expressions to which they should be
-  bound."
-  [form available-bindings]
+  bound. If `nil-status?` is `true`, the bindings must be built in a
+  way that protects against the possibility of `status` being `nil`."
+  [form available-bindings nil-status?]
   (let [result (atom (sorted-map))]
     (clojure.walk/postwalk (fn [elem]
                              (when-let [binding (get available-bindings elem)]
-                               (swap! result assoc elem (:code binding))))
+                               (swap! result assoc elem (if nil-status?
+                                                          `(when ~'status ~(:code binding))
+                                                          (:code binding)))))
                            form)
     (apply concat (seq @result))))
 
 (defmacro ^:private wrap-user-expression
-  "Takes a Clojure form containing a user expression, adds bindings for
-  any convenience symbols that were found in it, and builds a function
-  that accepts a status object, binds the convenience symbols based on
-  the status, and returns the results of evaluating the user
-  expression in that context."
-  [body available-bindings]
-  (let [bindings (gather-convenience-bindings body available-bindings)]
+  "Takes a Clojure form containing a user expression, adds bindings
+  for any convenience symbols that were found in it, and builds a
+  function that accepts a status object, binds the convenience symbols
+  based on the status, and returns the results of evaluating the user
+  expression in that context. If `nil-status?` is `true`, the bindings
+  must be built in a way that protects against the possibility of
+  `status` being `nil`."
+  [body available-bindings nil-status?]
+  (let [bindings (gather-convenience-bindings body available-bindings nil-status?)]
     `(fn ~'[status locals globals]
        ~(if (seq bindings)
           `(let [~@bindings]
@@ -158,8 +163,10 @@
   bindings for any convenience symbols that were found in it, and
   builds a function that accepts a status object, binds the
   convenience symbols based on the status, and returns the results of
-  evaluating the user expression in that context."
-  [expr available-bindings]
+  evaluating the user expression in that context. If `nil-status?` is
+  `true`, the bindings must be built in a way that protects against
+  the possibility of `status` being `nil`."
+  [expr available-bindings nil-status?]
   (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
     (let [body (read-string (str "(do " expr "\n)"))]
-      (eval `(wrap-user-expression ~body ~available-bindings)))))
+      (eval `(wrap-user-expression ~body ~available-bindings ~nil-status?)))))

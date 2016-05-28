@@ -17,7 +17,7 @@ This change log follows the conventions of
 - A graphical indicator to summarize the trigger's enabled and tripped
   state.
 - A general framework for editing Clojure expressions to customize the
-  application, including a large variety of convenienve variable to
+  application, including a large variety of convenience variables to
   simplify the task, and built-in help about the expressions and
   variables.
 - A visible button to let people know about the trigger contextual
