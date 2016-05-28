@@ -1,11 +1,13 @@
 (ns beat-link-trigger.triggers
   "Implements the list of triggers that send events when a CDJ starts
   playing."
-  (:require [beat-link-trigger.editors :as editors]
+  (:require [beat-link-trigger.about :as about]
+            [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
             [seesaw.chooser :as chooser]
@@ -349,16 +351,22 @@
   [target popup event]
   (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
+(defn- cleanup-trigger
+  "Prepare for the removal of a trigger, either via deletion, or
+  importing a different trigger on top of it."
+  [trigger]
+  (run-trigger-function trigger :shutdown nil true)
+  (doseq [editor (vals (:expression-editors
+                          @(seesaw/user-data trigger)))]
+      (editors/dispose editor)))
+
 (defn- delete-trigger
   "Removes a trigger row from the window, running its shutdown
   function if needed, closing any editor windows associated with it,
   and readjusting any triggers that remain."
   [trigger]
-  (run-trigger-function trigger :shutdown nil true)
   (try
-    (doseq [editor (vals (:expression-editors
-                          @(seesaw/user-data trigger)))]
-      (editors/dispose editor))
+    (cleanup-trigger trigger)
     (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                     :items (remove #(= % trigger) (get-triggers)))
     (adjust-triggers)
@@ -383,6 +391,32 @@
   (seesaw/config! gear :icon (if (every? empty? (vals (:expressions @(seesaw/user-data trigger))))
                                (seesaw/icon "images/Gear-outline.png")
                                (seesaw/icon "images/Gear-icon.png"))))
+
+(declare export-trigger)
+(declare import-trigger)
+
+(defn- load-trigger-from-map
+  "Repopulate the content of a trigger row from a map as obtained from
+  the preferences, a save file, or an export file."
+  ([trigger m]
+   (load-trigger-from-map trigger m (seesaw/select trigger [:#gear])))
+  ([trigger m gear]
+   (when-let [exprs (:expressions m)]
+     (swap! (seesaw/user-data trigger) assoc :expressions exprs)
+     (doseq [[kind expr] exprs]
+       (let [editor-info (get editors/trigger-editors kind)]
+         (try
+           (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
+                  (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)))
+           (catch Exception e
+             (swap! (seesaw/user-data trigger) assoc :expression-load-error true)
+             (timbre/error e (str "Problem parsing " (:title editor-info)
+                                  " when loading Triggers. Expression:\n" expr "\n")))))))
+   (seesaw/value! trigger m)
+   (let [[_ exception] (run-trigger-function trigger :setup nil false)]
+     (when exception
+       (swap! (seesaw/user-data trigger) assoc :expression-load-error true)))
+   (update-gear-icon trigger gear)))
 
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
@@ -425,9 +459,13 @@
                          "wrap, hidemode 1"]]
 
                 :user-data (atom {:playing false :tripped false :locals (atom {})}))
-         delete-action (seesaw/action :handler (fn [e] (delete-trigger panel))
+         export-action (seesaw/action :handler (fn [_] (export-trigger panel))
+                                      :name "Export Trigger")
+         import-action (seesaw/action :handler (fn [_] (import-trigger panel))
+                                      :name "Import Trigger")
+         delete-action (seesaw/action :handler (fn [_] (delete-trigger panel))
                                       :name "Delete Trigger")
-         inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @(:locals @(seesaw/user-data panel))
+         inspect-action (seesaw/action :handler (fn [_] (inspector/inspect @(:locals @(seesaw/user-data panel))
                                                                            :window-name "Trigger Expression Locals"))
                                        :name "Inspect Expression Locals"
                                        :tip "Examine any values set as Trigger locals by its Expressions.")
@@ -445,7 +483,7 @@
                                                      (seesaw/icon "images/Gear-outline.png")
                                                      (seesaw/icon "images/Gear-icon.png"))))))
          popup-fn (fn [e] (concat (editor-actions)
-                                  [(seesaw/separator) inspect-action (seesaw/separator)]
+                                  [(seesaw/separator) inspect-action (seesaw/separator) import-action export-action]
                                   (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
@@ -476,22 +514,7 @@
                     :item-state-changed (fn [e]  ; Update output status when selection changes
                                           (show-midi-status panel)))
      (when (some? m)
-       (when-let [exprs (:expressions m)]
-         (swap! (seesaw/user-data panel) assoc :expressions exprs)
-         (doseq [[kind expr] exprs]
-           (let [editor-info (get editors/trigger-editors kind)]
-             (try
-               (swap! (seesaw/user-data panel) assoc-in [:expression-fns kind]
-                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)))
-               (catch Exception e
-                 (swap! (seesaw/user-data panel) assoc :expression-load-error true)
-                 (timbre/error e (str "Problem parsing " (:title editor-info)
-                                      " when loading Triggers. Expression:\n" expr "\n")))))))
-       (seesaw/value! panel m)
-       (let [[_ exception] (run-trigger-function panel :setup nil false)]
-         (when exception
-           (swap! (seesaw/user-data panel) assoc :expression-load-error true)))
-       (update-gear-icon panel gear))
+       (load-trigger-from-map panel m gear))
      (show-device-status panel)
      panel)))
 
@@ -531,15 +554,32 @@
                                 (timbre/error e "Problem clearing Trigger list."))))
                  :name "Clear Triggers"))
 
+(defn- format-trigger
+  "Organizes the portions of a trigger which are saved or exported."
+  [trigger]
+  (-> (seesaw/value trigger)
+             (dissoc :status :enabled-label :index)
+             (merge (when-let [exprs (:expressions @(seesaw/user-data trigger))]
+                      {:expressions exprs}))))
+
+(defn- export-trigger
+  "Saves a single trigger to a file for exchange or archival
+  purposes."
+  [trigger]
+  (when-let [file (chooser/choose-file @trigger-frame :type "Export")]
+    (try
+      (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (about/get-version)
+                                             :item (format-trigger trigger)})))
+      (catch Exception e
+        (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
+                      :title "Problem Writing File" :type :error)))))
+
 (defn- trigger-configuration
   "Returns the current Trigger window configuration, so it can be
   saved and recreated."
   []
   (vec (for [trigger (get-triggers)]
-         (-> (seesaw/value trigger)
-             (dissoc :status :enabled-label :index)
-             (merge (when-let [exprs (:expressions @(seesaw/user-data trigger))]
-                      {:expressions exprs}))))))
+         (format-trigger trigger))))
 
 (defn- save-triggers-to-preferences
   "Saves the current Trigger window configuration to the application
@@ -702,6 +742,24 @@
   (merge (translate-enabled-values trigger)
          (when-let [expr (:custom-enabled trigger)]
            {:expressions {:enabled expr}})))
+
+(defn- import-trigger
+  "Replaces the content of a single trigger with a previously exported
+  version."
+  [trigger]
+  (when-let [file (chooser/choose-file
+                   @trigger-frame
+                   :filters [(chooser/file-filter "BeatLinkTrigger Export Files"
+                                                  (partial prefs/valid-file? :beat-link-trigger-export))])]
+                              (try
+                                (cleanup-trigger trigger)
+                                (let [m (prefs/read-file :beat-link-trigger-export file)]
+                                  (load-trigger-from-map trigger (translate-custom-enabled (:item m))))
+                                (catch Exception e
+                                  (timbre/error e "Problem importing" file)
+                                  (seesaw/alert (str "<html>Unable to Import.<br><br>" e)
+                                                :title "Problem Importing Trigger" :type :error)))
+                              (check-for-parse-error)))
 
 (defn- recreate-trigger-rows
   "Reads the preferences and recreates any trigger rows that were

@@ -78,21 +78,33 @@
 (defn valid-file?
   "Checks whether the specified file seems to be a valid save file. If
   so, returns it; otherwiser returns nil."
-  [file]
-  (try
-    (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
-      (let [m (edn/read {:readers @prefs-readers} in)]
-        (when (some? (:beat-link-trigger-version m))
-          m)))
-    (catch Exception e
-      (timbre/info e "Problem reading save file" file))))
+  ([file]
+   (valid-file? :beat-link-trigger-version file))
+  ([required-key file]
+   (try
+     (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
+       (let [m (edn/read {:readers @prefs-readers} in)]
+         (when (some? (get m required-key))
+           m)))
+     (catch Exception e
+       (timbre/info e "Problem reading save file" file)))))
+
+(defn read-file
+  "Load a file with our custom readers but do not store the results in
+  the preferences. Used to import individual triggers."
+  ([file]
+   (load-file :beat-link-trigger-version file))
+  ([required-key file]
+   (if (valid-file? required-key file)
+     (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
+       (convert-longs-to-integers (edn/read {:readers @prefs-readers} in)))
+     (throw (IllegalArgumentException. (str "Unreadable file: " file))))))
 
 (defn load-from-file
   "Read the preferences from a text file."
   [file]
   (if (valid-file? file)
-    (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
-      (let [m (convert-longs-to-integers (edn/read {:readers @prefs-readers} in))]
-        (put-preferences m)
-        m))
-    (throw (IllegalArgumentException. (str "Unreadable file: " file)))))
+    (let [m (read-file file)]
+      (put-preferences m)
+      m)))
+
