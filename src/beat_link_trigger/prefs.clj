@@ -65,7 +65,7 @@
   [m]
   (try
     (let [prefs (prefs-node)]
-      (.put prefs "prefs" (prn-str m))
+      (.put prefs "prefs" (prn-str (merge m {:beat-link-trigger-version (about/get-version)})))
       (.flush prefs))
     (catch Exception e
       (timbre/error e "Problem saving preferences."))))
