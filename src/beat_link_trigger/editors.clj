@@ -125,19 +125,21 @@
   `update-fn` is not nil, it will be called with no arguments."
   [kind trigger text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
-  (try
-    (let [editor-info (get trigger-editors kind)]
-      (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-             (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info))))
-    (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
-      (dispose editor)  ; Close the editor
-      (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
-    (swap! (seesaw/user-data trigger) assoc-in [:expressions kind] text)
-    (catch Throwable e
-      (timbre/error e "Problem parsing" (get-in trigger-editors [kind :title]))
-      (seesaw/alert (str "<html>Unable to use " (get-in trigger-editors [kind :title]) ".<br><br>" e
-                         "<br><br>You may wish to check the log file for the detailed stack trace.")
-                    :title "Exception during Clojure evaluation" :type :error)))
+  (let [text (clojure.string/trim text)  ; Remove whitespace on either end
+        editor-info (get trigger-editors kind)]
+    (try
+      (when-not (empty? text)  ; If we got a new expression, try to compile it
+        (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
+               (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info))))
+      (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
+        (dispose editor)  ; Close the editor
+        (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
+      (swap! (seesaw/user-data trigger) assoc-in [:expressions kind] text)  ; Save the new text
+      (catch Throwable e
+        (timbre/error e "Problem parsing" (get-in trigger-editors [kind :title]))
+        (seesaw/alert (str "<html>Unable to use " (get-in trigger-editors [kind :title]) ".<br><br>" e
+                           "<br><br>You may wish to check the log file for the detailed stack trace.")
+                      :title "Exception during Clojure evaluation" :type :error))))
   (when update-fn
     (try
       (update-fn)
