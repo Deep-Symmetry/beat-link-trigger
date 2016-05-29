@@ -29,6 +29,51 @@
   (dispose [this]
   "Permanently close the window and release its resources."))))
 
+(def trigger-bindings
+  "Identifies symbols which can be used inside any trigger expression,
+  along with the expression that will be used to automatically bind
+  that symbol if it is used in the expression, and the documentation
+  to show the user what the binding is for."
+  {'trigger-comment {:code '(get-in trigger-data [:value :comment])
+                     :doc "The descriptive comment about the trigger."}
+
+   'trigger-output {:code '((resolve 'beat-link-trigger.triggers/get-chosen-output) nil trigger-data)
+                    :doc "The MIDI output object chosen for this
+  trigger. May be <code>nil</code> if the output device cannot be
+  found in the current MIDI environment."}
+
+   'trigger-message {:code '(get-in trigger-data [:value :message])
+                     :doc "The type of MIDI message the trigger is
+   configured to send; one of <code>\"Note\"</code>,
+   <code>\"CC\"</code>, or <code>\"Custom\"</code>."}
+
+   'trigger-note {:code
+                  '(get-in trigger-data [:value :note])
+                  :doc "The MIDI note or CC number the trigger is
+  configured to send."}
+
+   'trigger-channel {:code '(get-in trigger-data [:value :channel])
+                     :doc "The MIDI channel on which the trigger is
+  configured to send."}
+
+   'trigger-enabled {:code '(get-in trigger-data [:value :enabled])
+                     :doc "The conditions under which the trigger is
+  enabled to send MIDI; one of , <code>\"Never\"</code>,
+  <code>\"On-Air\"</code>, <code>\"Custom\"</code>, or
+  <code>\"Always\"</code>."}
+
+   'trigger-active? {:code '(:tripped trigger-data)
+                     :doc "Will be <code>true</code> when the trigger
+  is enabled and any of the players it is watching are playing."}})
+
+(defn- trigger-bindings-for-class
+  "Collects the set of bindings for a trigger editor which is called
+  with a particular class of status object. Merges the standard
+  trigger convenience bindings with those associated with the
+  specified class, which may be `nil`."
+  [update-class]
+  (merge trigger-bindings (when update-class (expressions/bindings-for-update-class update-class))))
+
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
   along with the details needed to describe and compile the
@@ -43,7 +88,7 @@
   connections) that your other expressions for this trigger need. Use
   the Shutdown expression to clean up resources when the trigger is
   shutting down."
-           :bindings nil}
+           :bindings (trigger-bindings-for-class nil)}
 
    :enabled {:title "Enabled Filter Expression"
              :tip "Called to see if the trigger should be enabled."
@@ -57,7 +102,7 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described
   below."
-             :bindings (expressions/bindings-for-update-class CdjStatus)}
+             :bindings (trigger-bindings-for-class CdjStatus)}
 
    :activation {:title "Activation Expression"
                 :tip "Called when the trigger becomes enabled and tripped."
@@ -66,7 +111,7 @@
   watching starts playing. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-                :bindings (expressions/bindings-for-update-class CdjStatus)}
+                :bindings (trigger-bindings-for-class CdjStatus)}
 
    :beat {:title "Beat Expression"
           :tip "Called on each beat from the watched devices."
@@ -74,7 +119,7 @@
           "Called whenever a beat packet is received from the watched
   player(s). You can use this for beat-driven integrations with other
   systems."
-          :bindings (expressions/bindings-for-update-class Beat)}
+          :bindings (trigger-bindings-for-class Beat)}
 
    :deactivation {:title "Deactivation Expression"
                   :tip "Called when the trigger becomes disabled or idle."
@@ -87,7 +132,7 @@
   has disappeared or the trigger settings have been changed, so your
   expression must be able to cope with <code>nil</code> values for all
   the convenience values that it uses."
-                  :bindings (expressions/bindings-for-update-class CdjStatus)
+                  :bindings (trigger-bindings-for-class CdjStatus)
                   :nil-status? true}
 
    :shutdown {:title "Shutdown Expression"
@@ -97,7 +142,7 @@
   was deleted, the window was closed, or a new trigger file is being
   loaded. Close and release any system resources (such as network
   connections) that you opened in the Setup expression."
-              :bindings nil}))
+              :bindings (trigger-bindings-for-class nil)}))
 
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the

@@ -144,7 +144,7 @@
   opened, keyed by their names, so we can reuse them."}
   opened-outputs (atom {}))
 
-(defn- get-chosen-output
+(defn get-chosen-output
   "Return the MIDI output to which messages should be sent for a given
   trigger, opening it if this is the first time we are using it, or
   reusing it if we already opened it. Returns `nil` if the output can
