@@ -27,11 +27,12 @@
 (defn- enabled?
   "Check whether a trigger is enabled."
   [trigger]
-  (case (seesaw/value (seesaw/select trigger [:#enabled]))
-    "Always" true
-    "On-Air" (:on-air @(seesaw/user-data trigger))
-    "Custom" (get-in @(seesaw/user-data trigger) [:expression-results :enabled])
-    false))
+  (let [data @(seesaw/user-data trigger)]
+    (case (get-in data [:value :enabled])
+      "Always" true
+      "On-Air" (:on-air data)
+      "Custom" (get-in data [:expression-results :enabled])
+      false)))
 
 (defn- run-trigger-function
   "Checks whether the trigger has a custom function of the specified
@@ -57,7 +58,7 @@
   "Invokes the custom enabled filter assigned to a trigger, if any,
   recording the result in the trigger user data."
   [status trigger]
-  (when (= "Custom" (seesaw/value (seesaw/select trigger [:#enabled])))
+  (when (= "Custom" (get-in @(seesaw/user-data trigger) [:value :enabled]))
     (let [[enabled? _] (run-trigger-function trigger :enabled status false)]
       (swap! (seesaw/user-data trigger) assoc-in [:expression-results :enabled] enabled?))))
 
@@ -148,28 +149,31 @@
   trigger, opening it if this is the first time we are using it, or
   reusing it if we already opened it. Returns `nil` if the output can
   not currently be found (it was disconnected, or present in a loaded
-  file but not on this system)."
-  [trigger]
-  (let [output-menu (seesaw/select trigger [:#outputs])
-        selection (seesaw/selection output-menu)
-        device-name (.full_name selection)]
-    (or (get @opened-outputs device-name)
-        (try
-          (let [new-output (midi/midi-out device-name)]
-            (swap! opened-outputs assoc device-name new-output)
-            new-output)
-          (catch IllegalArgumentException e  ; The chosen output is not currently available
-            (timbre/debug e "Trigger using nonexisting MIDI output" device-name))))))
+  file but not on this system). When available, `data` contains the
+  map retrieved from the trigger `user-data` atom so it does not need
+  to be reloaded."
+  ([trigger]
+   (get-chosen-output trigger @(seesaw/user-data trigger)))
+  ([trigger data]
+   (let [selection (get-in data [:value :outputs])
+         device-name (.full_name selection)]
+     (or (get @opened-outputs device-name)
+         (try
+           (let [new-output (midi/midi-out device-name)]
+             (swap! opened-outputs assoc device-name new-output)
+             new-output)
+           (catch IllegalArgumentException e  ; The chosen output is not currently available
+             (timbre/debug e "Trigger using nonexisting MIDI output" device-name)))))))
 
 (defn- report-activation
   "Send a message indicating the player a trigger is watching has
-  started playing, as long as the chosen output exists."
-  [trigger status]
+  started playing, as long as the chosen output exists.. `data`
+  contains the map retrieved from the trigger `user-data` atom so it
+  does not need to be reloaded."
+  [trigger status data]
   (try
-    (when-let [output (get-chosen-output trigger)]
-      (let [note (seesaw/value (seesaw/select trigger [:#note]))
-            channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
-            message (seesaw/value (seesaw/select trigger [:#message]))]
+    (when-let [output (get-chosen-output trigger data)]
+      (let [{:keys [note channel message]} (:value data)]
         (timbre/info "Reporting activation:" message note "on channel" (inc channel))
         (if (= "Note" message)
           (midi/midi-note-on output note 127 channel)
@@ -180,13 +184,13 @@
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
-  started playing, as long as the chosen output exists."
-  [trigger status]
+  started playing, as long as the chosen output exists. `data`
+  contains the map retrieved from the trigger `user-data` atom so it
+  does not need to be reloaded."
+  [trigger status data]
   (try
-    (when-let [output (get-chosen-output trigger)]
-      (let [note (seesaw/value (seesaw/select trigger [:#note]))
-            channel (dec (seesaw/value (seesaw/select trigger [:#channel])))
-            message (seesaw/value (seesaw/select trigger [:#message]))]
+    (when-let [output (get-chosen-output trigger data)]
+      (let [{:keys [note channel message]} (:value data)]
         (timbre/info "Reporting deactivation:" message note "on channel" (inc channel))
         (if (= "Note" message)
           (midi/midi-note-off output note channel)
@@ -203,7 +207,7 @@
          (fn [data]
            (let [tripped (and playing (enabled? trigger))]
              (when (not= tripped (:tripped data))
-               (if tripped (report-activation trigger status) (report-deactivation trigger status)))
+               (if tripped (report-activation trigger status data) (report-deactivation trigger status data)))
              (assoc data :playing playing :on-air on-air :tripped tripped))))
   (seesaw/repaint! (seesaw/select trigger [:#state])))
 
@@ -228,7 +232,8 @@
   receiving an update from the device (for example, the user chose a
   device in the menu which is not present on the network, or we just
   received a notification from the DeviceFinder that the device has
-  disappeared."
+  disappeared. In either case, we are already on the Swing Event
+  Update thread."
   [trigger]
   (try
     (let [player-menu (seesaw/select trigger [:#players])
@@ -257,7 +262,8 @@
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color
   of its label based on whether the currently-selected MIDI output can
-  be found."
+  be found. This function must be called on the Swing Event Update
+  thread since it interacts with UI objects."
   [trigger]
   (try
     (let [enabled-label (seesaw/select trigger [:#enabled-label])
@@ -384,7 +390,7 @@
   )
 
 (defn- update-gear-icon
-  "Determiens whether the gear button for a trigger should be hollow
+  "Determines whether the gear button for a trigger should be hollow
   or filled in, depending on whether any expressions have been
   assigned to it."
   [trigger gear]
@@ -401,6 +407,7 @@
   ([trigger m]
    (load-trigger-from-map trigger m (seesaw/select trigger [:#gear])))
   ([trigger m gear]
+   (reset! (seesaw/user-data trigger) {:playing false :tripped false :locals (atom {})})
    (when-let [exprs (:expressions m)]
      (swap! (seesaw/user-data trigger) assoc :expressions exprs)
      (doseq [[kind expr] exprs]
@@ -418,6 +425,18 @@
        (swap! (seesaw/user-data trigger) assoc :expression-load-error true)))
    (update-gear-icon trigger gear)))
 
+(defn cache-value
+  "Make a copy of the values of the UI elements of a trigger into its
+  user data map, so that it can safely be used by threads other than
+  the Swing Event Dispatch thread. The alternative would be for other
+  threads to use `invoke-now` to call functions on the Event Dispatch
+  thread to read the values, but that would be far too slow for time
+  sensitive high priority threads that are processing status and beat
+  packets."
+  [e]
+  (let [trigger (.getParent (seesaw/to-widget e))]
+       (swap! (seesaw/user-data trigger) assoc :value (seesaw/value trigger))))
+
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
@@ -434,7 +453,8 @@
 
                         [gear]
                         ["Watch:" "alignx trailing"]
-                        [(seesaw/combobox :id :players :model (get-player-choices))]
+                        [(seesaw/combobox :id :players :model (get-player-choices)
+                                          :listen [:item-state-changed cache-value])]
 
                         [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
 
@@ -442,18 +462,23 @@
                         [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
                                                                       (when (and (some? m)
                                                                                  (not ((set outputs) (:outputs m))))
-                                                                        [(:outputs m)])))]
+                                                                        [(:outputs m)]))
+                                          :listen [:item-state-changed cache-value])]
 
                         ["Message:" "gap unrelated"]
-                        [(seesaw/combobox :id :message :model ["Note" "CC"])]
+                        [(seesaw/combobox :id :message :model ["Note" "CC"]
+                                          :listen [:item-state-changed cache-value])]
 
-                        [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127))]
+                        [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
+                                         :listen [:state-changed cache-value])]
 
                         ["Channel:" "gap unrelated"]
-                        [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16))]
+                        [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16)
+                                         :listen [:state-changed cache-value])]
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                        [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]) "hidemode 1"]
+                        [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]
+                                          :listen [:item-state-changed cache-value]) "hidemode 1"]
                         [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
                                         :tip "Trigger state: Outer ring shows enabled, inner light when tripped.")
                          "wrap, hidemode 1"]]
@@ -497,6 +522,11 @@
      ;; Attach the custom paint function to render the graphical trigger state
      (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))
 
+     ;; Add listener to update the cached values when the comment changes, since the trigger cannot be
+     ;; found from the DocumentEvent as it can for the other events.
+     (let [comment (seesaw/select panel [:#comment])]
+       (seesaw/listen comment :document (fn [_] (cache-value comment))))
+
      ;; Update the trigger state when the enabled state changes, and open an editor window if Custom is
      ;; chosen and the custom expression is empty
      (let [enabled-menu (seesaw/select panel [:#enabled])]
@@ -516,6 +546,7 @@
      (when (some? m)
        (load-trigger-from-map panel m gear))
      (show-device-status panel)
+     (cache-value gear)  ; Cache the initial values of the choice sections
      panel)))
 
 (def ^:private new-trigger-action
@@ -633,6 +664,7 @@
                                                                             prefs/valid-file?)])]
                               (try
                                 (prefs/load-from-file file)
+                                (delete-all-triggers)
                                 (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                 :items (recreate-trigger-rows))
                                 (adjust-triggers)
@@ -682,16 +714,15 @@
     (received [this status]
       (try
         (doseq [trigger (get-triggers)]
-          (let [status-label (seesaw/select trigger [:#status])
-                player-menu (seesaw/select trigger [:#players])
-                selection (seesaw/selection player-menu)]
+          (let [selection (get-in @(seesaw/user-data trigger) [:value :players])]
             (when (and (instance? CdjStatus status) (matching-player-number? status trigger selection))
               (when-not (neg? (:number selection))
                 (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
               (update-player-state trigger (.isPlaying status) (.isOnAir status) status)
               (seesaw/invoke-later
-               (seesaw/config! status-label :foreground "cyan")
-               (seesaw/value! status-label (build-status-label status))))))
+               (let [status-label (seesaw/select trigger [:#status])]
+                 (seesaw/config! status-label :foreground "cyan")
+                 (seesaw/value! status-label (build-status-label status)))))))
         (catch Exception e
           (timbre/error e "Problem responding to Player status packet."))))))
 
@@ -703,8 +734,7 @@
     (newBeat [this beat]
       (try
         (doseq [trigger (get-triggers)]
-          (let [player-menu (seesaw/select trigger [:#players])
-                selection (seesaw/selection player-menu)]
+          (let [selection (get-in @(seesaw/user-data trigger) [:value :players])]
             (when (and (some? selection)
                        (or (neg? (:number selection))
                            (= (:number selection) (.getDeviceNumber beat))
@@ -766,7 +796,6 @@
   specified in them. If none were found, returns a single, default
   trigger."
   []
-  (delete-all-triggers)
   (let [triggers (:triggers (prefs/get-preferences))]
     (if (seq triggers)
       (vec (for [trigger triggers]
