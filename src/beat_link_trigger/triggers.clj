@@ -401,13 +401,19 @@
 (declare export-trigger)
 (declare import-trigger)
 
+(defn- initial-trigger-user-data
+  "Create the values to assign the user-data atom for a freshly
+  created trigger."
+  []
+  {:creating true :playing false :tripped false :locals (atom {})})
+
 (defn- load-trigger-from-map
   "Repopulate the content of a trigger row from a map as obtained from
   the preferences, a save file, or an export file."
   ([trigger m]
    (load-trigger-from-map trigger m (seesaw/select trigger [:#gear])))
   ([trigger m gear]
-   (reset! (seesaw/user-data trigger) {:playing false :tripped false :locals (atom {})})
+   (reset! (seesaw/user-data trigger) (initial-trigger-user-data))
    (when-let [exprs (:expressions m)]
      (swap! (seesaw/user-data trigger) assoc :expressions exprs)
      (doseq [[kind expr] exprs]
@@ -420,6 +426,7 @@
              (timbre/error e (str "Problem parsing " (:title editor-info)
                                   " when loading Triggers. Expression:\n" expr "\n")))))))
    (seesaw/value! trigger m)
+   (swap! (seesaw/user-data trigger) dissoc :creating)
    (let [[_ exception] (run-trigger-function trigger :setup nil false)]
      (when exception
        (swap! (seesaw/user-data trigger) assoc :expression-load-error true)))
@@ -483,7 +490,7 @@
                                         :tip "Trigger state: Outer ring shows enabled, inner light when tripped.")
                          "wrap, hidemode 1"]]
 
-                :user-data (atom {:playing false :tripped false :locals (atom {})}))
+                :user-data (atom (initial-trigger-user-data)))
          export-action (seesaw/action :handler (fn [_] (export-trigger panel))
                                       :name "Export Trigger")
          import-action (seesaw/action :handler (fn [_] (import-trigger panel))
@@ -549,11 +556,13 @@
        (seesaw/listen message-menu
         :action-performed (fn [_]
                             (when (and (= "Custom" (seesaw/selection message-menu))
+                                       (not (:creating @(seesaw/user-data panel)))
                                        (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
                               (editors/show-trigger-editor :activation panel nil)))))
 
      (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))
+     (swap! (seesaw/user-data panel) dissoc :creating)
      (show-device-status panel)
      (cache-value gear)  ; Cache the initial values of the choice sections
      panel)))
