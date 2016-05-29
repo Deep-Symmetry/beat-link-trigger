@@ -172,9 +172,9 @@
   does not need to be reloaded."
   [trigger status data]
   (try
-    (when-let [output (get-chosen-output trigger data)]
-      (let [{:keys [note channel message]} (:value data)]
-        (timbre/info "Reporting activation:" message note "on channel" channel)
+    (let [{:keys [note channel message]} (:value data)]
+      (timbre/info "Reporting activation:" message note "on channel" channel)
+      (when-let [output (get-chosen-output trigger data)]
         (if (= "Note" message)
           (midi/midi-note-on output note 127 (dec channel))
           (when (= "CC" message) (midi/midi-control output note 127 (dec channel))))))
@@ -189,13 +189,13 @@
   does not need to be reloaded."
   [trigger status data]
   (try
-    (when-let [output (get-chosen-output trigger data)]
-      (let [{:keys [note channel message]} (:value data)]
-        (timbre/info "Reporting deactivation:" message note "on channel" channel)
+    (let [{:keys [note channel message]} (:value data)]
+      (timbre/info "Reporting deactivation:" message note "on channel" channel)
+      (when-let [output (get-chosen-output trigger data)]
         (if (= "Note" message)
           (midi/midi-note-off output note (dec channel))
-          (when (= "CC" message) (midi/midi-control output note 0 (dec channel)))))
-      (run-trigger-function trigger :deactivation status false))
+          (when (= "CC" message) (midi/midi-control output note 0 (dec channel))))))
+    (run-trigger-function trigger :deactivation status false)
     (catch Exception e
         (timbre/error e "Problem reporting player deactivation."))))
 
