@@ -174,10 +174,10 @@
   (try
     (when-let [output (get-chosen-output trigger data)]
       (let [{:keys [note channel message]} (:value data)]
-        (timbre/info "Reporting activation:" message note "on channel" (inc channel))
+        (timbre/info "Reporting activation:" message note "on channel" channel)
         (if (= "Note" message)
-          (midi/midi-note-on output note 127 channel)
-          (midi/midi-control output note 127 channel))))
+          (midi/midi-note-on output note 127 (dec channel))
+          (when (= "CC" message) (midi/midi-control output note 127 (dec channel))))))
     (run-trigger-function trigger :activation status false)
     (catch Exception e
         (timbre/error e "Problem reporting player activation."))))
@@ -191,10 +191,10 @@
   (try
     (when-let [output (get-chosen-output trigger data)]
       (let [{:keys [note channel message]} (:value data)]
-        (timbre/info "Reporting deactivation:" message note "on channel" (inc channel))
+        (timbre/info "Reporting deactivation:" message note "on channel" channel)
         (if (= "Note" message)
-          (midi/midi-note-off output note channel)
-          (midi/midi-control output note 0 channel)))
+          (midi/midi-note-off output note (dec channel))
+          (when (= "CC" message) (midi/midi-control output note 0 (dec channel)))))
       (run-trigger-function trigger :deactivation status false))
     (catch Exception e
         (timbre/error e "Problem reporting player deactivation."))))
@@ -466,7 +466,7 @@
                                           :listen [:item-state-changed cache-value])]
 
                         ["Message:" "gap unrelated"]
-                        [(seesaw/combobox :id :message :model ["Note" "CC"]
+                        [(seesaw/combobox :id :message :model ["Note" "CC" "Custom"]
                                           :listen [:item-state-changed cache-value])]
 
                         [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
@@ -528,7 +528,7 @@
        (seesaw/listen comment :document (fn [_] (cache-value comment))))
 
      ;; Update the trigger state when the enabled state changes, and open an editor window if Custom is
-     ;; chosen and the custom expression is empty
+     ;; chosen and the enabled filter expression is empty.
      (let [enabled-menu (seesaw/select panel [:#enabled])]
        (seesaw/listen enabled-menu
         :action-performed (fn [e]
@@ -538,12 +538,21 @@
                               (editors/show-trigger-editor :enabled panel nil)))))
 
      (seesaw/listen (seesaw/select panel [:#players])
-                    :item-state-changed (fn [e]  ; Update player status when selection changes
+                    :item-state-changed (fn [_]  ; Update player status when selection changes
                                           (show-device-status panel)))
      (seesaw/listen (seesaw/select panel [:#outputs])
-                    :item-state-changed (fn [e]  ; Update output status when selection changes
+                    :item-state-changed (fn [_]  ; Update output status when selection changes
                                           (show-midi-status panel)))
-     (when (some? m)
+
+     ;; Open an editor window if Custom is chosen for a message type and the activation expression is empty.
+     (let [message-menu (seesaw/select panel [:#message])]
+       (seesaw/listen message-menu
+        :action-performed (fn [_]
+                            (when (and (= "Custom" (seesaw/selection message-menu))
+                                       (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
+                              (editors/show-trigger-editor :activation panel nil)))))
+
+     (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))
      (show-device-status panel)
      (cache-value gear)  ; Cache the initial values of the choice sections
