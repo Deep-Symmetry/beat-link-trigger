@@ -27,7 +27,9 @@
                             'bar-meaningful? {:code '(.isBeatWithinBarMeaningful status)
                                               :doc
 "Will be <code>true</code> if this update is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
-                            'cdj?            {:code '(instance? CdjStatus status)
+                            'cdj?            {:code '(or (instance? CdjStatus status)
+                                                         (and (instance? Beat status)
+                                                              (< (.getDeviceNumber status 17))))
                                               :doc  "Will be <code>true</code> if this update is reporting the status of a CDJ."}
                             'device-name     {:code '(.getDeviceName status)
                                               :doc  "The name reported by the device sending the update."}
@@ -35,7 +37,9 @@
                                               :doc  "The player/device number sending the update."}
                             'effective-tempo {:code '(.getEffectiveTempo status)
                                               :doc  "The effective tempo reflected by this update, which reflects both its track BPM and pitch as needed."}
-                            'mixer?          {:code '(instance? MixerStatus status)
+                            'mixer?          {:code '(or (instance? MixerStatus status)
+                                                         (and (instance? Beat status)
+                                                              (> (.getDeviceNumber status) 32)))
                                               :doc  "Will be <code>true</code> if this update is reporting the status of a Mixer."}
                             'timestamp       {:code '(.getTimestamp status)
                                               :doc  "Records the millisecond at which we received this update."}}}
@@ -56,7 +60,7 @@
 <p>See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
 
                             'tempo-master?    {:code '(.isTempoMaster status)
-                                               :doc  "Is this mixer the current tempo master?"}
+                                               :doc  "Was this beat sent by the current tempo master?"}
                             'track-bpm        {:code '(/ (.getBpm status) 100.0)
                                                :doc
 "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}}}
@@ -66,7 +70,7 @@
                                             :doc
 "Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
                             'tempo-master? {:code '(.isTempoMaster status)
-                                            :doc  "Was this beat sent by the current tempo master?"}
+                                            :doc  "Is this mixer the current tempo master?"}
                             'track-bpm     {:code '(/ (.getBpm status) 100.0)
                                             :doc
 "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}}}
