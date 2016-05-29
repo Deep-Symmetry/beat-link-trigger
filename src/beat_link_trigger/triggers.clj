@@ -44,7 +44,7 @@
   (let [data @(seesaw/user-data trigger)]
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
-        [(custom-fn status (:locals data) expression-globals) nil]
+        [(custom-fn status data expression-globals) nil]
         (catch Throwable t
           (timbre/error t "Problem running " kind " expression,"
                         (get-in data [:expressions kind]))

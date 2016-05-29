@@ -156,7 +156,7 @@
   `status` being `nil`."
   [body available-bindings nil-status?]
   (let [bindings (gather-convenience-bindings body available-bindings nil-status?)]
-    `(fn ~'[status locals globals]
+    `(fn ~'[status {:keys [locals] :as trigger-data} globals]
        ~(if (seq bindings)
           `(let [~@bindings]
              ~body)
