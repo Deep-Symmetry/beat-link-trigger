@@ -193,8 +193,7 @@ a {
   (let [text (get-in @(seesaw/user-data trigger) [:expressions kind])
         save-fn (fn [text] (update-expression kind trigger text update-fn))
         root (seesaw/frame :title (editor-title kind trigger) :on-close :dispose :size [800 :by 600]
-                           ;; TODO: Add save/load capabilities
-                           ;; TODO: Add documentation and binding help
+                           ;; TODO: Add save/load capabilities?
                            #_:menubar #_(seesaw/menubar
                                      :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
                                                                                       non-mac-actions))

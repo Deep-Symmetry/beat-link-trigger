@@ -19,7 +19,7 @@
   {DeviceUpdate {:bindings {'address         {:code
                                               '(.getAddress status)
                                               :doc "The address of the device from which this update was received."}
-                            'beat?           {:code '(instance? beat status)
+                            'beat?           {:code '(instance? Beat status)
                                               :doc  "Will be <code>true</code> if this update is announcing a new beat."}
                             'beat-within-bar {:code '(.getBeatWithinBar status)
                                               :doc
