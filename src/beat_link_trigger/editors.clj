@@ -74,6 +74,32 @@
   [update-class]
   (merge trigger-bindings (when update-class (expressions/bindings-for-update-class update-class))))
 
+(def global-editors
+  "Specifies the kinds of editor which can be opened for the Trigger
+  window overall, along with the details needed to describe and
+  compile the expressions they edit. Created as an explicit array map
+  to keep the keys in the order they are found here."
+  (array-map
+   :setup {:title "Global Setup Expression"
+           :tip "Called once to set up any state your triggers&rsquo;
+           expressions may need."
+           :description
+           "Called once when the triggers are loaded, or when you edit
+  the expression. Set up any global state (such as counters, flags, or
+  network connections) that your expressions within any trigger need.
+  Use the Global Shutdown expression to clean up resources when the
+  trigger window is shutting down."
+           :bindings nil}
+
+   :shutdown {:title "Global Shutdown Expression"
+              :tip "Called once to release global resources."
+              :description
+              "Called when when the trigger window is closing, or a
+  new trigger file is being loaded. Close and release any shared
+  system resources (such as network connections) that you opened in
+  the Global Setup expression."
+              :bindings nil}))
+
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
   along with the details needed to describe and compile the
@@ -160,18 +186,22 @@
     (subs index 0 (dec (count index)))))
 
 (defn- editor-title
-  "Determines the title for an editor window."
-  [kind trigger]
-  (str "Trigger " (trigger-index trigger) " " (get-in trigger-editors [kind :title])))
+  "Determines the title for an editor window. If it is from an
+  individual trigger, identifies it as such."
+  [kind trigger global?]
+  (let [title (get-in (if global? global-editors trigger-editors) [kind :title])]
+    (if global?
+      title
+      (str "Trigger " (trigger-index trigger) " " title))))
 
 (defn update-expression
   "Called when an expression's editor is ending and the user has asked
   to update the expression with the value they have edited. If
   `update-fn` is not nil, it will be called with no arguments."
-  [kind trigger text update-fn]
+  [kind trigger global? text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
   (let [text (clojure.string/trim text)  ; Remove whitespace on either end
-        editor-info (get trigger-editors kind)]
+        editor-info (get (if global? global-editors trigger-editors) kind)]
     (try
       (when-not (empty? text)  ; If we got a new expression, try to compile it
         (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
@@ -181,9 +211,9 @@
         (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
       (swap! (seesaw/user-data trigger) assoc-in [:expressions kind] text)  ; Save the new text
       (catch Throwable e
-        (timbre/error e "Problem parsing" (get-in trigger-editors [kind :title]))
-        (seesaw/alert (str "<html>Unable to use " (get-in trigger-editors [kind :title]) ".<br><br>" e
-                           "<br><br>You may wish to check the log file for the detailed stack trace.")
+        (timbre/error e "Problem parsing" (:title editor-info))
+        (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                           ".<br><br>" e "<br><br>You may wish to check the log file for the detailed stack trace.")
                       :title "Exception during Clojure evaluation" :type :error))))
   (when update-fn
     (try
@@ -212,32 +242,34 @@ a {
 
 (defn- build-help
   "Create the help information for an editor with the specified kind."
-  [kind]
-  (clojure.string/join (concat [help-header "<h1>Description</h1>" (get-in trigger-editors [kind :description])
-  "<p>
-
-  The atom <code>locals</code> is available for use by all expressions
-  on this trigger, and the atom <code>globals</code> is shared across
-  all expressions everywhere."
-                                ] (when (seq (get-in trigger-editors [kind :bindings]))
-                                    (concat ["
+  [kind global?]
+  (let [editor-info (get (if global? global-editors trigger-editors) kind)]
+    (clojure.string/join (concat [help-header "<h1>Description</h1>"
+                                  (:description editor-info)
+                                  "<p>The "
+                                  (when-not global? "The atom
+  <code>locals</code> is available for use by all expressions on this
+  trigger, and the ")
+                                  "atom <code>globals</code> is shared across all expressions everywhere."]
+                                 (when (seq (:bindings editor-info))
+                                      (concat ["
 
   <h1>Values Available</h1>
 
   The following values are available for you to use in writing your expression:<dl>"]
-                                            (for [[sym spec] (into (sorted-map)
-                                                                   (get-in trigger-editors [kind :bindings]))]
-                                              (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
-                               ["</dl>"])))
+                                              (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
+                                                (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
+                                 ["</dl>"]))))
 
 (defn- create-editor-window
   "Create and show a window for editing the Clojure code of a
   particular kind of expression, with an update function to be called
   when the editor successfully updates the expression.."
   [kind trigger update-fn]
-  (let [text (get-in @(seesaw/user-data trigger) [:expressions kind])
-        save-fn (fn [text] (update-expression kind trigger text update-fn))
-        root (seesaw/frame :title (editor-title kind trigger) :on-close :dispose :size [800 :by 600]
+  (let [global? (:global @(seesaw/user-data trigger))
+        text (get-in @(seesaw/user-data trigger) [:expressions kind])
+        save-fn (fn [text] (update-expression kind trigger global? text update-fn))
+        root (seesaw/frame :title (editor-title kind trigger global?) :on-close :dispose :size [800 :by 600]
                            ;; TODO: Add save/load capabilities?
                            #_:menubar #_(seesaw/menubar
                                      :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
@@ -258,7 +290,7 @@ a {
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setContentType help "text/html")
-    (.setText help (build-help kind))
+    (.setText help (build-help kind global?))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -272,7 +304,7 @@ a {
     (let [result
           (reify IExpressionEditor
             (retitle [_]
-              (seesaw/config! root :title (editor-title kind trigger)))
+              (seesaw/config! root :title (editor-title kind trigger global?)))
             (show [_]
               (.setLocationRelativeTo root trigger)
               (seesaw/show! root)
@@ -288,11 +320,13 @@ a {
   associated with the specified trigger, make it visible, and add it
   to the trigger's list of active editors. Register an update function
   to be invoked with no arguments when the user has successfully
-  updated the expression."
+  updated the expression. Also supports being passed the top-level
+  trigger frame, rather than an individual trigger, for editing global
+  expressions."
   [kind trigger update-fn]
   (try
     (let [editor (or (get-in @(seesaw/user-data trigger) [:expression-editors kind])
                      (create-editor-window kind trigger update-fn))]
       (show editor))
     (catch Exception e
-      (timbre/error e "Problem showing trigger" (get-in trigger-editors [kind :title]) "editor"))))
+      (timbre/error e "Problem showing trigger" kind "editor"))))

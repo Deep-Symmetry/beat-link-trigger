@@ -310,6 +310,33 @@
                                             (.height (.getBounds @trigger-frame))))
                               (.pack @trigger-frame)))
 
+(defn- global-user-data
+  "Locates the user data attached to the whole triggers frame, for
+  working with global expressions."
+  []
+  (if (nil? @trigger-frame)
+    (atom {})  ; Don't crash during initial window setup
+    (seesaw/user-data (seesaw/config @trigger-frame :content))))
+
+(defn- run-global-function
+  "Checks whether the trigger frame has a custom function of the
+  specified kind installed, and if so runs it with a nil status and
+  trigger local atom, and the trigger global atom. Returns a tuple of
+  the function return value and any thrown exception. If `alert?` is
+  `true` the user will be alerted when there is a problem running the
+  function."
+  [kind]
+  (let [data @(global-user-data)]
+    (when-let [custom-fn (get-in data [:expression-fns kind])]
+      (try
+        [(custom-fn nil nil expression-globals) nil]
+        (catch Throwable t
+          (timbre/error t "Problem running global " kind " expression,"
+                        (get-in data [:expressions kind]))
+          (seesaw/alert (str "<html>Problem running global " (name kind) " expression.<br><br>" t)
+                        "Exception in Custom Expression" :type :error)
+          [nil t])))))
+
 (defn paint-placeholder
   "A function which will paint placeholder text in a text field if the
   user has not added any text of their own, since Swing does not have
@@ -362,8 +389,7 @@
   importing a different trigger on top of it."
   [trigger]
   (run-trigger-function trigger :shutdown nil true)
-  (doseq [editor (vals (:expression-editors
-                          @(seesaw/user-data trigger)))]
+  (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
       (editors/dispose editor)))
 
 (defn- delete-trigger
@@ -380,14 +406,26 @@
     (catch Exception e
       (timbre/error e "Problem deleting Trigger."))))
 
+(defn- initial-global-user-data
+  "Create the values to assign the user-data atom for the window
+  as a whole"
+  []
+  {:global true})
+
+(declare update-global-expression-icons)
+
 (defn- delete-all-triggers
-  "Removes all triggers, running their own shutdown functions, and
-  then runs the global shutdown function."
+  "Closes any global expression editors, then removes all triggers,
+  running their own shutdown functions, and finally runs the global
+  shutdown function."
   []
   (for [trigger (get-triggers)]
     (delete-trigger trigger))
-  ;; TODO: Run global shutdown function once it exists
-  )
+  (doseq [editor (vals (:expression-editors @(global-user-data)))]
+    (editors/dispose editor))
+  (run-global-function :shutdown)
+  (reset! (global-user-data) (initial-global-user-data))
+  (update-global-expression-icons))
 
 (defn- update-gear-icon
   "Determines whether the gear button for a trigger should be hollow
@@ -634,7 +672,10 @@
   "Saves the current Trigger window configuration to the application
   preferences."
   []
-  (prefs/put-preferences (assoc (prefs/get-preferences) :triggers (trigger-configuration))))
+  (prefs/put-preferences (merge (prefs/get-preferences)
+                                {:triggers (trigger-configuration)}
+                                (when-let [exprs (:expressions @(global-user-data))]
+                                  {:expressions exprs}))))
 
 ;; Register the custom readers needed to read back in the defrecords that we use,
 ;; including under the old package name before they were moved to the triggers namespace.
@@ -812,36 +853,96 @@
 (defn- recreate-trigger-rows
   "Reads the preferences and recreates any trigger rows that were
   specified in them. If none were found, returns a single, default
-  trigger."
+  trigger. Also updates the global setup and shutdown expressions,
+  running them as needed."
   []
-  (let [triggers (:triggers (prefs/get-preferences))]
-    (if (seq triggers)
-      (vec (for [trigger triggers]
-             (create-trigger-row (translate-custom-enabled trigger))))
-      [(create-trigger-row)])))
+  (let [m (prefs/get-preferences)]
+    (when-let [exprs (:expressions m)]
+      (swap! (global-user-data) assoc :expressions exprs)
+      (doseq [[kind expr] exprs]
+        (let [editor-info (get editors/global-editors kind)]
+          (try
+            (swap! (global-user-data) assoc-in [:expression-fns kind]
+                   (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)))
+            (catch Exception e
+              (timbre/error e (str "Problem parsing " (:title editor-info)
+                                   " when loading Triggers. Expression:\n" expr "\n"))
+              (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                                 "Check the log file for details.")
+                            :title "Exception during Clojure evaluation" :type :error)))))
+      (run-global-function :setup))
+    (update-global-expression-icons)
+    (let [triggers (:triggers m)]
+      (if (seq triggers)
+        (vec (for [trigger triggers]
+               (create-trigger-row (translate-custom-enabled trigger))))
+        [(create-trigger-row)]))))
+
+(defn build-global-editor-action
+  "Creates an action which edits one of the global expressions."
+  [kind]
+  (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind (seesaw/config @trigger-frame :content)
+                                                               (fn []
+                                                                 (when (= :setup kind)
+                                                                   (run-global-function :shutdown)
+                                                                   (run-global-function :setup))
+                                                                 (update-global-expression-icons))))
+                 :name (str "Edit " (get-in editors/global-editors [kind :title]))
+                 :tip (get-in editors/global-editors [kind :tip])
+                 :icon (seesaw/icon (if (empty? (get-in @(global-user-data) [:expressions kind]))
+                                       "images/Gear-outline.png"
+                                       "images/Gear-icon.png"))))
+
+(defn- build-trigger-menubar
+  "Creates the menu bar for the trigger window; will be recreated when
+  global expressions are edited, becaue they can affect its
+  appearance."
+  []
+  (let [inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
+                                                                          :window-name "Expression Globals"))
+                                      :name "Inspect Expression Globals"
+                                      :tip "Examine any values set as globals by any Trigger Expressions.")]
+    (seesaw/menubar :items [(seesaw/menu :text "File"
+                                         :items (concat [load-action save-action
+                                                         (seesaw/separator) logs/logs-action]
+                                                        menus/non-mac-actions))
+                            (seesaw/menu :text "Triggers"
+                                         :items (concat [new-trigger-action (seesaw/separator)]
+                                                        (map build-global-editor-action (keys editors/global-editors))
+                                                        [(seesaw/separator) inspect-action (seesaw/separator)
+                                                         clear-triggers-action])
+                                         :id :triggers-menu)])))
+
+(defn update-global-expression-icons
+  "Updates the icons next to expressions in the Trigger menu to
+  reflect whether they have been assigned a non-empty value."
+  []
+  (let [menu (seesaw/select @trigger-frame [:#triggers-menu])]
+    (doseq [i (range (.getItemCount menu))]
+      (let [item (.getItem menu i)]
+        (when item
+          (let [label (.getText item)]
+            (cond (= label "Edit Global Setup Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in @(global-user-data) [:expressions :setup]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png")))
+
+                  (= label "Edit Global Shutdown Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in @(global-user-data) [:expressions :shutdown]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png"))))))))))
 
 (defn- create-trigger-window
   "Create and show the trigger window."
   []
   (try
-    (let [inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
-                                                                            :window-name "Expression Globals"))
-                                       :name "Inspect Expression Globals"
-                                       :tip "Examine any values set as globals by any Trigger Expressions.")
-          root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
-                             :menubar (seesaw/menubar
-                                       :items [(seesaw/menu :text "File"
-                                                            :items (concat [load-action save-action
-                                                                            (seesaw/separator) logs/logs-action]
-                                                                           menus/non-mac-actions))
-                                               (seesaw/menu :text "Triggers"
-                                                            :items [new-trigger-action clear-triggers-action
-                                                                    (seesaw/separator) inspect-action])]))
-          panel (seesaw/scrollable (seesaw/vertical-panel
-                                    :id :triggers
-                                    :items (recreate-trigger-rows)))]
+    (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
+                             :menubar (build-trigger-menubar))
+          triggers (seesaw/vertical-panel :id :triggers)
+          panel (seesaw/scrollable triggers :user-data (atom (initial-global-user-data)))]
       (seesaw/config! root :content panel)
       (reset! trigger-frame root)
+      (seesaw/config! triggers :items (recreate-trigger-rows))
       (adjust-triggers)
       (seesaw/show! root)
       (check-for-parse-error))
