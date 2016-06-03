@@ -22,9 +22,10 @@ and stop, and when the triggers are enabled:
 
 ### Using Beat Link Trigger
 
-Please see the [online guide](doc/README.adoc) for an introduction in how to
-configure triggers, and hopefully you will soon be coming up with
-interesting integration projects of your own.
+Please see the
+[user guide](doc/README.adoc#beat-link-trigger-user-guide) for an
+introduction in how to configure triggers, and hopefully you will soon
+be coming up with interesting integration projects of your own.
 
 ### Startup Issues
 

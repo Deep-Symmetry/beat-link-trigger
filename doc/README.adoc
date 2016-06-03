@@ -1,4 +1,4 @@
-= Beat Link Trigger Guide
+= Beat Link Trigger User Guide
 James Elliott <james@deepsymmetry.org>
 :icons: font
 :experimental:
