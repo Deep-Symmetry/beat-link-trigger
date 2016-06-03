@@ -26,13 +26,15 @@
 
 (defn- enabled?
   "Check whether a trigger is enabled."
-  [trigger]
-  (let [data @(seesaw/user-data trigger)]
-    (case (get-in data [:value :enabled])
-      "Always" true
-      "On-Air" (:on-air data)
-      "Custom" (get-in data [:expression-results :enabled])
-      false)))
+  ([trigger]
+   (let [data @(seesaw/user-data trigger)]
+     (enabled? trigger data)))
+  ([trigger data]
+   (case (get-in data [:value :enabled])
+     "Always" true
+     "On-Air" (:on-air data)
+     "Custom" (get-in data [:expression-results :enabled])
+     false)))
 
 (defn- run-trigger-function
   "Checks whether the trigger has a custom function of the specified
@@ -165,50 +167,147 @@
            (catch IllegalArgumentException e  ; The chosen output is not currently available
              (timbre/debug e "Trigger using nonexisting MIDI output" device-name)))))))
 
+(def ^:private clock-message
+  "A MIDI timing clock message that can be sent by any trigger that is
+  sending clock pulses."
+  (javax.sound.midi.ShortMessage. javax.sound.midi.ShortMessage/TIMING_CLOCK))
+
+(defn- clock-interval
+  "Calculate how many milliseconds there should be between clock
+  pulses to represent the tempo reported by the latest status update
+  seen by the current trigger, as found cached in the user data."
+  [data]
+  (/ 2500.0 (if-let [cached-status(:status data)]
+              (if (= 65535 (.getBpm cached-status))
+                120.0  ; Default to 120 bpm if the player has not loaded a track
+                (.getEffectiveTempo cached-status))
+              120.0)))  ; Default to 120 bpm if we lost status information momentarily
+
+(defn- clock-sender
+  "The loop which sends MIDI clock messages to synchronize a MIDI
+  device with the tempo received from beat-link, as long as the
+  trigger is enabled."
+  [trigger]
+  (try
+    (timbre/info "Midi clock thread starting for Trigger"
+                 (:index (seesaw/value trigger)))
+    (loop [adjustment 0.0]  ; The amount we should subtract from the interval to fix missed timing
+      (let [data @(seesaw/user-data trigger)
+            output (get-chosen-output trigger data)
+            interval (- (clock-interval data) adjustment)  ; The ideal amount we should sleep
+            ms (Math/round (max 0.0 interval))  ; The actual amount we will try to sleep
+            error (- ms interval)  ; The difference between ideal and actual sleep time
+            target (+ (System/currentTimeMillis) ms)]  ; The time we are trying to wake up
+        (when (some? output)  ; Send a clock pulse as long as our MIDI output is present
+          (midi/midi-send-msg (:receiver output) clock-message -1))
+
+        #_(timbre/info "adjustment" adjustment "interval" interval "ms" ms "error" error)
+        (when (pos? ms) (Thread/sleep ms)) ; Sleep the appropriate amount based on the tempo
+
+        (let [data @(seesaw/user-data trigger)]  ; Get updated data
+          (when (and (= "Clock" (:message (:value data))) (enabled? trigger data))
+            ;; We are still enabled, and still set to send clock messages, so continue the loop
+            (let [miss (- target (System/currentTimeMillis))]
+              #_(timbre/info "miss" miss "new adjustment" (- error miss))
+              (recur (- error miss)))))))  ; Accumulate both kinds of error for next interval calculation
+    (catch InterruptedException e)               ; No error to log, just asked to end ourselves
+    (catch Throwable t
+      (timbre/error t "Problem running MIDI clock loop, exiting, for Trigger"
+                    (:index (seesaw/value trigger)))))
+  (timbre/info "Midi Clock thread ending for Trigger"
+               (:index (seesaw/value trigger))))
+
+(defn- start-clock
+  "Checks for, and creates if necessary, a thread that sends MIDI
+  clock pulses based on the effective BPM of the watched player.
+  `trigger-data` contains the map retrieved from the trigger
+  `user-data` atom which is in the process of being updated, to save
+  us having to look it up again."
+  [trigger trigger-data]
+  (when (or (nil? (:clock trigger-data)) (not (.isAlive (:clock trigger-data))))
+    (swap! (seesaw/user-data trigger)
+           (fn [data]
+             (if (and (:clock data) (.isAlive (:clock data)))
+               data  ; Someone already started it, so we can leave it as-is
+               (assoc data :clock
+                      (let [thread (Thread. #(clock-sender trigger))]
+                        (.setPriority thread (dec Thread/MAX_PRIORITY))
+                        (.start thread)
+                        thread)))))))
+
+(defn- stop-clock
+  "Checks for, and stops and cleans up if necessary, any clock
+  synchronization thread that might be running on the trigger.
+  `trigger-data` contains the map retrieved from the trigger
+  `user-data` atom which is in the process of being updated, to save
+  us having to look it up again."
+  [trigger trigger-data]
+  (when (:clock trigger-data)
+    (swap! (seesaw/user-data trigger)
+           (fn [data]
+             (when-let [thread (:clock data)]
+               (when (.isAlive thread) (.interrupt thread)))
+             (dissoc data :clock)))))
+
 (defn- report-activation
   "Send a message indicating the player a trigger is watching has
-  started playing, as long as the chosen output exists.. `data`
-  contains the map retrieved from the trigger `user-data` atom so it
-  does not need to be reloaded."
+  started playing, as long as the chosen output exists. `data`
+  contains the map retrieved from the trigger `user-data` atom which
+  is in the process of being updated, to save us from having to look
+  it up again."
   [trigger status data]
   (try
     (let [{:keys [note channel message]} (:value data)]
       (timbre/info "Reporting activation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
-        (if (= "Note" message)
-          (midi/midi-note-on output note 127 (dec channel))
-          (when (= "CC" message) (midi/midi-control output note 127 (dec channel))))))
-    (run-trigger-function trigger :activation status false)
+        (case message
+          "Note" (midi/midi-note-on output note 127 (dec channel))
+          "CC" (midi/midi-control output note 127 (dec channel))
+          "Clock" (timbre/error "Still need to implement Start/Continue message code!!!")
+          nil))
+      (run-trigger-function trigger :activation status false))
     (catch Exception e
-        (timbre/error e "Problem reporting player activation."))))
+      (timbre/error e "Problem reporting player activation."))))
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
   started playing, as long as the chosen output exists. `data`
-  contains the map retrieved from the trigger `user-data` atom so it
-  does not need to be reloaded."
+  contains the map retrieved from the trigger `user-data` atom which
+  is in the process of being updated, to save us from having to look
+  it up again."
   [trigger status data]
   (try
     (let [{:keys [note channel message]} (:value data)]
       (timbre/info "Reporting deactivation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
-        (if (= "Note" message)
-          (midi/midi-note-off output note (dec channel))
-          (when (= "CC" message) (midi/midi-control output note 0 (dec channel))))))
-    (run-trigger-function trigger :deactivation status false)
+        (case message
+          "Note" (do (midi/midi-note-off output note (dec channel)))
+          "CC" (do (midi/midi-control output note 0 (dec channel)))
+          "Clock" (timbre/error "Still need to implement Stop message code!!!")
+          nil))
+      (run-trigger-function trigger :deactivation status false))
     (catch Exception e
-        (timbre/error e "Problem reporting player deactivation."))))
+      (timbre/error e "Problem reporting player deactivation."))))
 
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
-  changed, send an appropriate message and record the new state."
+  changed, send appropriate messages, start or stop its associated
+  clock synchronization thread, and record the new state."
   [trigger playing on-air status]
-  (swap! (seesaw/user-data trigger)
-         (fn [data]
-           (let [tripped (and playing (enabled? trigger))]
-             (when (not= tripped (:tripped data))
-               (if tripped (report-activation trigger status data) (report-deactivation trigger status data)))
-             (assoc data :playing playing :on-air on-air :tripped tripped))))
+  (let [old-data @(seesaw/user-data trigger)
+        updated (swap! (seesaw/user-data trigger)
+                       (fn [data]
+                         (let [tripped (and playing (enabled? trigger))]
+                           (merge data {:playing playing :on-air on-air :tripped tripped}
+                                  (when some? status {:status status})))))]
+    (let [tripped (:tripped updated)]
+      (when-not (= tripped (:tripped old-data))
+        (if tripped
+          (report-activation trigger status updated)
+          (report-deactivation trigger status updated))))
+    (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
+      (start-clock trigger updated)
+      (stop-clock trigger updated)))
   (seesaw/repaint! (seesaw/select trigger [:#state])))
 
 (defn build-status-label
@@ -385,10 +484,11 @@
   (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
 (defn- cleanup-trigger
-  "Prepare for the removal of a trigger, either via deletion, or
-  importing a different trigger on top of it."
+  "Process the removal of a trigger, either via deletion, or importing
+  a different trigger on top of it."
   [trigger]
   (run-trigger-function trigger :shutdown nil true)
+  (seesaw/selection! (seesaw/select trigger [:#enabled]) "Never")   ; Ensures any clock thread stops
   (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
       (editors/dispose editor)))
 
@@ -398,9 +498,9 @@
   and readjusting any triggers that remain."
   [trigger]
   (try
-    (cleanup-trigger trigger)
     (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                     :items (remove #(= % trigger) (get-triggers)))
+    (cleanup-trigger trigger)
     (adjust-triggers)
     (.pack @trigger-frame)
     (catch Exception e
@@ -511,7 +611,7 @@
                                           :listen [:item-state-changed cache-value])]
 
                         ["Message:" "gap unrelated"]
-                        [(seesaw/combobox :id :message :model ["Note" "CC" "Custom"]
+                        [(seesaw/combobox :id :message :model ["Note" "CC" "Clock" "Custom"]
                                           :listen [:item-state-changed cache-value])]
 
                         [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
@@ -583,7 +683,8 @@
                               (editors/show-trigger-editor :enabled panel nil)))))
 
      (seesaw/listen (seesaw/select panel [:#players])
-                    :item-state-changed (fn [_]  ; Update player status when selection changes
+                    :item-state-changed (fn [_]  ; Update player status when selection changes, clear any cached status
+                                          (swap! (seesaw/user-data panel) dissoc :status)
                                           (show-device-status panel)))
      (seesaw/listen (seesaw/select panel [:#outputs])
                     :item-state-changed (fn [_]  ; Update output status when selection changes
