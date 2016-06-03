@@ -1,6 +1,6 @@
 (defproject beat-link-trigger "0.1.2-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "Trigger events in response to CDJ activity."
+  :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
