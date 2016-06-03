@@ -1,19 +1,15 @@
 # beat-link-trigger
 
 An application to trigger MIDI events when CDJs start playing tracks,
-as an example of how to work with
+reach particular beats, or whatever else you can think of. Built using
 [beat-link](https://github.com/brunchboy/beat-link#beat-link).
 
 ## Usage
 
 Download the latest executable `beat-link-trigger.jar` file from the
 [releases](https://github.com/brunchboy/beat-link-trigger/releases)
-page and double-click it to run it. If that doesn&rsquo;t work, make
-sure you have a recent
-[Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp)
-installed, and try running it from the command line:
-
-    java -jar beat-link-trigger.jar
+page and double-click it to run it. If that doesn&rsquo;t work,
+[see below](#startup-issues).
 
 > beat-link-trigger requires Java 7 or later. It is compiled and
 > tested using the latest release of Java 8, so that is your best bet.
@@ -24,19 +20,46 @@ and stop, and when the triggers are enabled:
 
 <image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="800">
 
-### More to Come
+### Using Beat Link Trigger
 
-A great deal of the power of Beat Link Trigger is in what you can do
-with custom expressions in the Enabled filters, and that is under
-rapid development right now, and I haven&rsquo;t even started
-documenting it. I was not expecting people to find and start trying
-to use this so quickly! :calendar: So please bear with me for a few
-more days while I get this part of the interface into really good
-shape, then write up how to use it.
+Please see the [online guide](doc/README.adoc) for an introduction in how to
+configure triggers, and hopefully you will soon be coming up with
+interesting integration projects of your own.
 
-> :warning: If you are playing with this already, please be aware it
-> is not finished, and you are getting a sneak preview with no
-> schedule or guarantees!
+### Startup Issues
+
+If double-clicking doesn&rsquo;t open up the application, make sure you
+have a recent
+[Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp)
+installed, and try running it from the command line:
+
+    java -jar beat-link-trigger.jar
+
+If that does not work, at least you will be able to see a detailed
+report of what went wrong, which can help you troubleshoot the issue.
+
+#### Mac Trust Confirmation
+
+If you are on a Mac, the first time you try to launch the downloaded
+jar file by double-clicking it you will see an error like this because
+it is not a Mac-specific application:
+
+<image src="doc/assets/Unsigned.png" alt="Unsigned jar">
+
+You can fix that by control-clicking on the Jar and choosing
+&ldquo;Open&rdquo; at the top of the contextual menu that pops up. You
+will be asked to confirm that you really want to run it. Click the
+&ldquo;Open&rdquo; button in that confirmation dialog, and from then
+on, you will be able to run that copy by just double-clicking it.
+
+<image src="doc/assets/ReallyOpen.png" alt="Confirmation dialog">
+
+> Someday we may release a Mac-specific bundle of the application,
+> perhaps even through the Mac App Store, which will avoid the need to
+> take this step. But that will be a much larger download because it
+> will have to bundle its own copy of the entire Java environment. In
+> the mean time, at least you only need to do this once for each new
+> release you download.
 
 ## License
 
