@@ -59,11 +59,12 @@ will be missing and the trigger will simply say Offline.
 If you choose to watch Any Player, then just as you would expect, the
 trigger will respond to activity on any player in the network. It will
 track whatever player seems "best" at the moment: If there is an
-Enabled filter which causes some players to be enabled and others not,
-it will watch the enabled players. Within that group, if one player is
-playing and the others are not, it will watch the one that is playing.
-Finally, if there are still multiple players to choose between, it
-will pick the lowest-numbered one.
+Enabled Filter expression which causes the trigger to be enabled for
+some players and not for others, it will watch the players that enable
+it. Within that group, if one player is playing and the others are
+not, it will watch the one that is playing. Finally, if there are
+still multiple players to choose between, it will pick the
+lowest-numbered one.
 
 ==== Master Player
 
