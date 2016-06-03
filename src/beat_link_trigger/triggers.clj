@@ -10,6 +10,7 @@
             [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
+            [seesaw.bind :as bind]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.icon :as icon]
@@ -172,6 +173,21 @@
   sending clock pulses."
   (javax.sound.midi.ShortMessage. javax.sound.midi.ShortMessage/TIMING_CLOCK))
 
+(def ^:private start-message
+  "A MIDI clock start message that can be sent by any trigger that is
+  sending clock pulses."
+  (javax.sound.midi.ShortMessage. javax.sound.midi.ShortMessage/START))
+
+(def ^:private stop-message
+  "A MIDI clock stop message that can be sent by any trigger that is
+  sending clock pulses."
+  (javax.sound.midi.ShortMessage. javax.sound.midi.ShortMessage/STOP))
+
+(def ^:private continue-message
+  "A MIDI clock continue message that can be sent by any trigger that
+  is sending clock pulses."
+  (javax.sound.midi.ShortMessage. javax.sound.midi.ShortMessage/CONTINUE))
+
 (defn- clock-interval
   "Calculate how many milliseconds there should be between clock
   pulses to represent the tempo reported by the latest status update
@@ -257,13 +273,14 @@
   it up again."
   [trigger status data]
   (try
-    (let [{:keys [note channel message]} (:value data)]
+    (let [{:keys [note channel message send start]} (:value data)]
       (timbre/info "Reporting activation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
         (case message
           "Note" (midi/midi-note-on output note 127 (dec channel))
           "CC" (midi/midi-control output note 127 (dec channel))
-          "Clock" (timbre/error "Still need to implement Start/Continue message code!!!")
+          "Clock" (when send
+                    (midi/midi-send-msg (:receiver output) (if (= "Start" start) start-message continue-message) -1))
           nil))
       (run-trigger-function trigger :activation status false))
     (catch Exception e
@@ -277,13 +294,13 @@
   it up again."
   [trigger status data]
   (try
-    (let [{:keys [note channel message]} (:value data)]
+    (let [{:keys [note channel message stop]} (:value data)]
       (timbre/info "Reporting deactivation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
         (case message
           "Note" (do (midi/midi-note-off output note (dec channel)))
           "CC" (do (midi/midi-control output note 0 (dec channel)))
-          "Clock" (timbre/error "Still need to implement Stop message code!!!")
+          "Clock" (when stop (midi/midi-send-msg (:receiver output) stop-message -1))
           nil))
       (run-trigger-function trigger :deactivation status false))
     (catch Exception e
@@ -615,11 +632,18 @@
                                           :listen [:item-state-changed cache-value])]
 
                         [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
-                                         :listen [:state-changed cache-value])]
+                                         :listen [:state-changed cache-value]) "hidemode 3"]
+                        [(seesaw/checkbox :id :send :selected? true :visible? false
+                                          :listen [:state-changed cache-value]) "hidemode 3"]
 
-                        ["Channel:" "gap unrelated"]
+                        [(seesaw/label :id :channel-label :text "Channel:") "gap unrelated, hidemode 3"]
+                        [(seesaw/combobox :id :start :model ["Start" "Continue"] :visible? false
+                                          :listen [:item-state-changed cache-value]) "hidemode 3"]
+
                         [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16)
-                                         :listen [:state-changed cache-value])]
+                                         :listen [:state-changed cache-value]) "hidemode 3"]
+                        [(seesaw/checkbox :id :stop :text "Stop" :selected? true :visible? false
+                                          :listen [:item-state-changed cache-value]) "hidemode 3"]
 
                         [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                         [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]
@@ -690,14 +714,27 @@
                     :item-state-changed (fn [_]  ; Update output status when selection changes
                                           (show-midi-status panel)))
 
+     ;; Tie the enabled state of the start/continue menu to the send checkbox
+     (let [{:keys [send start]} (seesaw/group-by-id panel)]
+       (bind/bind (bind/selection send)
+                  (bind/property start :enabled?)))
+
      ;; Open an editor window if Custom is chosen for a message type and the activation expression is empty.
+     ;; Also swap channel and note values for start/stop options when Clock is chosen.
      (let [message-menu (seesaw/select panel [:#message])]
        (seesaw/listen message-menu
         :action-performed (fn [_]
-                            (when (and (= "Custom" (seesaw/selection message-menu))
-                                       (not (:creating @(seesaw/user-data panel)))
-                                       (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
-                              (editors/show-trigger-editor :activation panel nil)))))
+                            (let [choice (seesaw/selection message-menu)
+                                  {:keys [note send channel-label start channel stop]} (seesaw/group-by-id panel)]
+                              (when (and (= "Custom" choice)
+                                         (not (:creating @(seesaw/user-data panel)))
+                                         (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
+                                (editors/show-trigger-editor :activation panel nil))
+                              (if (= "Clock" choice)
+                                (do (seesaw/hide! [note channel-label channel])
+                                    (seesaw/show! [send start stop]))
+                                (do (seesaw/show! [note channel-label channel])
+                                    (seesaw/hide! [send start stop])))))))
 
      (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))
