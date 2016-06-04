@@ -16,9 +16,9 @@ ten seconds you will see this window:
 image:assets/NoDevices.png[No devices found]
 
 If you were expecting to find devices, double-check that they are
-powered on, and properly connected to your computer (and that any hub
-or wireless router you are using is also properly turned on and
-configured).  Then click kbd:[Try Again] to try again.
+powered on, and properly networked with your computer (and that any
+hub or wireless router you are using is also properly turned on and
+configured). Then click kbd:[Try Again] to try again.
 
 If you just wanted to work on setting up your triggers or expressions,
 and don't have any actual players handy, you can also click
@@ -34,8 +34,21 @@ you used the program.
 
 Each row in the Trigger window defines a single trigger, which watches
 a player or category of players, and can be configured to send
-different messages in response to what the player is doing. Here are
-the sections of a trigger, and how they work:
+different messages in response to what the player is doing.
+
+If this is the first time you have opened Beat Link Trigger, you will
+see just one trigger containing default options.
+
+image:assets/FirstTrigger.png[First Trigger]
+
+To create additional triggers you can choose `New Trigger` in the
+`Triggers` menu, or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on
+other platforms). You can get back to this default state at any time
+by choosing `Clear Triggers` in the `Triggers` menu.
+
+image:assets/TriggersMenu.png[Triggers Menu, 341]
+
+Here are the sections of a trigger, and how they work:
 
 === Comment
 
@@ -48,23 +61,25 @@ The Watch menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player 1 through Player 4,
 as well as two special choices.
 
+image:assets/WatchMenu.png[Watch Menu]
+
 NOTE: If a player is chosen which is not currently present on the
-network, the player will be reported missing, and the trigger will not
-operate until either the player reappears, or a different player is
-chosen. Of course when you are working in Offline mode, all players
-will be missing and the trigger will simply say Offline.
+network, the player will be reported “not found”, and the trigger will
+not operate until either the player reappears, or a different player
+is chosen. Of course when you are working in Offline mode, all players
+will be missing and the trigger will simply say “Offline”.
 
 ==== Any Player
 
 If you choose to watch Any Player, then just as you would expect, the
 trigger will respond to activity on any player in the network. It will
-track whatever player seems "best" at the moment: If there is an
-Enabled Filter expression which causes the trigger to be enabled for
-some players and not for others, it will watch the players that enable
-it. Within that group, if one player is playing and the others are
-not, it will watch the one that is playing. Finally, if there are
-still multiple players to choose between, it will pick the
-lowest-numbered one.
+track whatever player seems “best” at the moment: If there is an
+Enabled condition which causes the trigger to be enabled for some
+players and not for others, it will watch the players that enable it.
+Within that group, if some players are playing and others are not, it
+will watch the ones that are playing. Finally, if there are still
+multiple players to choose between, it will pick the lowest-numbered
+one.
 
 ==== Master Player
 
@@ -73,12 +88,22 @@ whichever player is the current Tempo (sync) Master.
 
 ==== Player Status
 
-Right after the Watch menu, the trigger row displays the current
-status received from the watched player.
+Right after the Watch menu, the trigger row displays the player number
+and latest status received from the watched player, if one was found.
 
-=== MIDI Output
+=== MIDI Output Menu
 
-(To be continued from here...)
+The MIDI Output Menu lets you choose the MIDI device to which the
+trigger will send messages. It will show all MIDI outputs currently
+available on your system.
+
+image:assets/MidiMenu.png[MIDI Output Menu]
+
+NOTE: If a MIDI Output is chosen which is no longer available on the
+system (as shown in trigger 3 above), it will remain in that row's
+menu, but the Enabled section of the trigger will be replaced with the
+message “Not found.” Once the output reappears, or a different output
+is chosen, the trigger will become fully operational again.
 
 == Expressions
 
