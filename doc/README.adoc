@@ -62,8 +62,8 @@ up the entire width of the first line of the trigger row.
 === Watch Menu
 
 The Watch menu tells the trigger what player(s) it should pay
-attention to. It lets you choose Player 1 through Player 4,
-as well as two special choices.
+attention to. It lets you choose Player&nbsp;1 through Player&nbsp;4,
+as well as two dynamic choices.
 
 image:assets/WatchMenu.png[Watch Menu, 810]
 
@@ -73,24 +73,22 @@ not operate until either the player reappears, or a different player
 is chosen. Of course when you are working in Offline mode, all players
 will be missing and the trigger will simply say “Offline”.
 
-==== Any Player
+.Dynamic Watch Menu Options
 
-If you choose to watch Any Player, then just as you would expect, the
-trigger will respond to activity on any player in the network. It will
-track whatever player seems “best” at the moment: If there is an
-Enabled condition which causes the trigger to be enabled for some
-players and not for others, it will watch the players that enable it.
-Within that group, if some players are playing and others are not, it
-will watch the ones that are playing. Finally, if there are still
-multiple players to choose between, it will pick the lowest-numbered
-one.
+Any Player:: If you choose to watch Any Player, then just as you would
+expect, the trigger will respond to activity on any player in the
+network. It will track whatever player seems “best” at the moment: If
+there is an Enabled condition which causes the trigger to be enabled
+for some players and not for others, it will watch the players that
+enable it. Within that group, if some players are playing and others
+are not, it will watch the ones that are playing. Finally, if there
+are still multiple players to choose between, it will pick the
+lowest-numbered one.
 
-==== Master Player
+Master Player:: If you choose to watch the Master Player, the trigger
+will focus on whichever player is the current Tempo (sync) Master.
 
-If you choose to watch the Master Player, the trigger will focus on
-whichever player is the current Tempo (sync) Master.
-
-==== Player Status
+.Player Status
 
 Right after the Watch menu, the trigger row displays the player number
 and latest status received from the watched player, if one was found.
