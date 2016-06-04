@@ -39,7 +39,7 @@ different messages in response to what the player is doing.
 If this is the first time you have opened Beat Link Trigger, you will
 see just one trigger containing default options.
 
-image:assets/FirstTrigger.png[First Trigger]
+image:assets/FirstTrigger.png[First Trigger, 848]
 
 To create additional triggers you can choose `New Trigger` in the
 `Triggers` menu, or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on
@@ -65,7 +65,7 @@ The Watch menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player 1 through Player 4,
 as well as two special choices.
 
-image:assets/WatchMenu.png[Watch Menu]
+image:assets/WatchMenu.png[Watch Menu, 810]
 
 NOTE: If a player is chosen which is not currently present on the
 network, the player will be reported “not found”, and the trigger will
@@ -101,7 +101,7 @@ The MIDI Output Menu lets you choose the MIDI device to which the
 trigger will send messages. It will show all MIDI outputs currently
 available on your system.
 
-image:assets/MidiMenu.png[MIDI Output Menu]
+image:assets/MidiMenu.png[MIDI Output Menu, 810]
 
 NOTE: If a MIDI Output is chosen which is no longer available on the
 system (as shown in trigger 3 above), it will remain in that row's
