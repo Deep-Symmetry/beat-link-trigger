@@ -93,7 +93,7 @@
   "Load a file with our custom readers but do not store the results in
   the preferences. Used to import individual triggers."
   ([file]
-   (load-file :beat-link-trigger-version file))
+   (read-file :beat-link-trigger-version file))
   ([required-key file]
    (if (valid-file? required-key file)
      (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
