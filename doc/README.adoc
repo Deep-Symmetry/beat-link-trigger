@@ -54,6 +54,10 @@ Here are the sections of a trigger, and how they work:
 
 The Comment field is a free-form text area you can use to describe the
 purpose of the trigger, to remind you when you later come back to it.
+Apart from the trigger index, a number by which Beat Link Trigger
+identifies the trigger when it is reporting errors or naming related
+windows (like expression editors, described below), the comment takes
+up the entire width of the first line of the trigger row.
 
 === Watch Menu
 
@@ -104,6 +108,28 @@ system (as shown in trigger 3 above), it will remain in that row's
 menu, but the Enabled section of the trigger will be replaced with the
 message “Not found.” Once the output reappears, or a different output
 is chosen, the trigger will become fully operational again.
+
+=== Message Menu
+
+(to be continued...)
+
+=== Context Menu
+
+Each trigger row has a context menu attached to it, which can be
+accessed by right-clicking (or control-clicking) anywhere on the row's
+background, but you can also open the context menu with a regular
+mouse click on the button with a gear icon in it. Most of the menu is
+devoted to editing various expressions to customize the trigger, as
+described below. The gear icon next to an expression will be filled in
+if that expression has a value, and the gear in the button will be
+filled in if any expression associated with the trigger has a value.
+
+image:assets/ContextMenu.png[Context Menu, 254]
+
+Below the expression-related options, you can export the current
+trigger configuration to a text file which can be imported into a
+different trigger or shared with colleagues, and you can delete the
+trigger, unless it is the only remaining trigger in the window.
 
 == Expressions
 
