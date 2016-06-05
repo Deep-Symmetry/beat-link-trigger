@@ -8,7 +8,7 @@ This change log follows the conventions of
 
 Nothing so far.
 
-## 0.1.2 - 2016-06-05
+## [0.1.2] - 2016-06-05
 
 ### Added
 
