@@ -19,8 +19,8 @@ page and double-click it to run it. If that doesn&rsquo;t work,
 > tested using the latest release of Java 8, so that is your best bet.
 
 A trigger window will open, in which you can choose the players you
-want to watch, and the kind of MIDI message to send when they start
-and stop, and when the triggers are enabled:
+want to watch, the kind of MIDI message to send when they start and
+stop, and when the triggers are enabled:
 
 <image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="840">
 
