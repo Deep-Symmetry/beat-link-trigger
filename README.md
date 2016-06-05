@@ -22,7 +22,7 @@ A trigger window will open, in which you can choose the players you
 want to watch, and the kind of MIDI message to send when they start
 and stop, and when the triggers are enabled:
 
-<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="800">
+<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="840">
 
 ### Using Beat Link Trigger
 
