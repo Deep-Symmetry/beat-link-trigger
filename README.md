@@ -47,7 +47,7 @@ You should also not expect to be able to run Beat Link Trigger, or any
 project like it, on the same machine that you are running rekordbox,
 because they will compete over access to network ports.
 
-Beat Link Trigger seems to work greate with CDJ-2000 Nexus gear, and
+Beat Link Trigger seems to work great with CDJ-2000 Nexus gear, and
 works fairly well (with less information available) with older
 CDJ-2000s. It has also been reported to work with XDJ-1000 gear. If
 you can try it with anything else, *please* let us know what you learn
