@@ -73,8 +73,6 @@ not operate until either the player reappears, or a different player
 is chosen. Of course when you are working in Offline mode, all players
 will be missing and the trigger will simply say “Offline”.
 
-.Dynamic Watch Menu Options
-
 Any Player:: If you choose to watch Any Player, then just as you would
 expect, the trigger will respond to activity on any player in the
 network. It will track whatever player seems “best” at the moment: If
@@ -87,8 +85,6 @@ lowest-numbered one.
 
 Master Player:: If you choose to watch the Master Player, the trigger
 will focus on whichever player is the current Tempo (sync) Master.
-
-.Player Status
 
 Right after the Watch menu, the trigger row displays the player number
 and latest status received from the watched player, if one was found.
@@ -109,7 +105,103 @@ is chosen, the trigger will become fully operational again.
 
 === Message Menu
 
-(to be continued...)
+The Message Menu determines what kind of MIDI message is sent by the
+trigger.
+
+image:assets/MessageMenu.png[Message Menu, 814]
+
+Note:: With this setting, the trigger sends a Note On message, with
+the velocity shown to the right of the menu, when the watched player
+starts playing (as long as the trigger is enabled), and a Note Off
+message when the watched player stops or the trigger is disabled.
+
+CC:: With this setting, the trigger sends a Control Change message,
+with the value shown to the right of the menu, when the watched player
+starts playing (as long as the trigger is enabled), and sends a CC
+with value 0 when the player stops or the trigger is disabled.
+
+Clock:: With this setting, the trigger sends MIDI Beat Clock messages
+whenever the trigger is enabled, to synchronize the tempo of the
+target device with the tempo reported by the watched player. If the
+check box to the right of the menu is checked, it will either send a
+Start or Continue message (as chosen in the following menu) when the
+watched player starts playing, and if the Stop box is checked, it will
+send a Stop message when the watched player stops.
+
+Custom:: When this option is chosen, the trigger will not send any
+messages on its own, and it is up to you to send them in code you
+write in the trigger expressions, as described below. This gives you
+the most flexibility because in addition to MIDI messages, you can
+send arbitrary UDP packets, HTTP requests, or whatever you might need.
+
+=== Velocity/Value Spinner
+
+Immediately to the right of the Message Menu (unless MIDI Beat Clock
+is chosen as the Message type), this lets you set the MIDI Velocity
+for Note On messages, or the controller value for Control Change
+messages, if those Message options are chosen. The value chosen here
+is sent when the trigger is enabled and the watched player starts
+playing. The value is also available to your trigger expressions if
+they want to use it.
+
+=== Channel Spinner
+
+For triggers sending anything but MIDI Beat Clock, this lets you
+specify the MIDI channel on which messages are sent.
+
+=== Enabled Menu
+
+The Enabled menu controls when the trigger will respond to the watched
+player starting or stopping playback.
+
+image:assets/EnabledMenu.png[Enabled Menu, 814]
+
+Always:: With this setting, the trigger is enabled until you disable
+it.
+
+Never:: With this setting, the trigger is disabled until you re-enable
+it.
+
+On-Air:: With this setting, the trigger is enabled whenever the
+watched player reports that it is On the Air. (For that to work, the
+player must be connected to a Nexus mixer, and must have the feature
+turned on.)
+
+Custom:: With this setting, the trigger is controlled by an Enabled
+Filter expression that you write yourself. Whenever a status update is
+received from any watched player, your expression is called. If it
+returns a `true` value, the trigger will be enabled. This lets you
+apply sophisticated logic, like enabling the trigger when a particular
+track number is loaded into the player, and it has reached a
+particular beat during playback. Expressions are further explained
+below. If you choose Custom and have not yet written an Enabled Filter
+expression, the expression editor will be opened to let you do that.
+
+=== Trigger Status
+
+To the right of the Enabled menu there is a Trigger Status indicator
+which shows whether the trigger is currently enabled (a green circle)
+or disabled (a red circle with a slash). If the player is currently
+playing, there is a filled circle inside the enabled circle:
+
+[width="50%",cols=".^,.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, Not Playing
+|image:assets/Disabled.png[Disabled]
+
+|Enabled, Not Playing
+|image:assets/Enabled.png[Enabled]
+
+|Disabled, Playing
+|image:assets/DisabledPlaying.png[Disabled, Playing]
+
+|Enabled, Playing
+|image:assets/EnabledPlaying.png[Enabled, Playing]
+
+|===
 
 === Context Menu
 
