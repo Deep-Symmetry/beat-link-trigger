@@ -541,6 +541,7 @@
   (doseq [editor (vals (:expression-editors @(global-user-data)))]
     (editors/dispose editor))
   (run-global-function :shutdown)
+  (reset! expression-globals {})
   (reset! (global-user-data) (initial-global-user-data))
   (update-global-expression-icons))
 
@@ -668,6 +669,7 @@
                             (let [update-fn (fn []
                                               (when (= kind :setup)  ; Clean up then run the new setup function
                                                 (run-trigger-function panel :shutdown nil true)
+                                                (reset! (:locals @(seesaw/user-data panel) {}))
                                                 (run-trigger-function panel :setup nil true))
                                               (update-gear-icon panel gear))]
                               (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
@@ -1023,6 +1025,7 @@
                                                                (fn []
                                                                  (when (= :setup kind)
                                                                    (run-global-function :shutdown)
+                                                                   (reset! expression-globals {})
                                                                    (run-global-function :setup))
                                                                  (update-global-expression-icons))))
                  :name (str "Edit " (get-in editors/global-editors [kind :title]))
