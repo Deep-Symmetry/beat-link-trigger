@@ -68,7 +68,7 @@ on, you will be able to run that copy by just double-clicking it.
 
 ## License
 
-<img align="right" alt="Deep Symmetry" src="https://github.com/brunchboy/beat-link/blob/master/assets/DS-logo-bw-200-padded-left.png">
+<a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry" src="doc/assets/DS-logo-bw-200-padded-left.png"></a>
 Copyright © 2016 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
 Distributed under the
