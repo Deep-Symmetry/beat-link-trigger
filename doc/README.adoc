@@ -276,15 +276,91 @@ Try entering that as the Enabled Filter expression for your filter,
 set the Enabled menu to Custom, and watch the Trigger Status indicator
 as you load and play different tracks to confirm that it works!
 
-As you use the editor, you will notice that it provides syntax
+TIP: As you use the editor, you will notice that it provides syntax
 coloring and parenthesis-matching help. But if you end up making a
 mistake in your expression, Beat Link Trigger will likely report an
-error during compilation, and you can check the <<logs,log>> for a
-more detailed stack trace. You can try googling for information about
-the error, or looking in the Clojure
+compilation error when you click kbd:[Update], and you can check the
+<<logs,log>> for a more detailed stack trace. You can try googling for
+information about the error, or looking in the Clojure
 http://clojuredocs.org[documentation], but you can also ask for help
 in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
+
+=== Global Expressions
+
+The Triggers menu at the top of the window lets you define two
+expressions that can manage values you want to make available to all
+your other expressions. To make that convenient, all expressions have
+access to a Clojure http://clojure.org/reference/atoms[atom] named
+`globals` that is shared with all other expressions, so that is a
+great place to put things for them to find. The atom starts out
+holding an empty
+http://clojure.org/reference/data_structures#Maps[map], which allows
+you to add key/value pairs to organize the information you want to
+share across expressions.
+
+Global Setup Expression:: This is run when Beat Link Trigger starts
+up, or when you open a new Trigger file, so it runs before any of your
+individual trigger expressions. Here is a fairly sophisticated example that
+creates a
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[DatagramSocket]
+for sending a remote trigger command to the ChamSys MagicQ lighting
+control software using its
+https://secure.chamsys.co.uk/help/documentation/magicq/ch31.html[remote
+protocol]:
++
+```clojure
+(let [chamsys-address (InetSocketAddress.
+                       (InetAddress/getByName "172.16.42.255") 6553)
+      trigger-on (byte-array (map int "71,1H"))
+      trigger-off (byte-array (map int "71,0H"))]
+  (swap! globals assoc
+         :chamsys-socket (DatagramSocket.)
+         :chamsys-on (DatagramPacket. trigger-on (count trigger-on)
+                                      chamsys-address)
+         :chamsys-off (DatagramPacket. trigger-off (count trigger-off)
+                                      chamsys-address)))
+```
++
+This begins with a `let` binding which sets up some values that will
+be used later in the expression. `chamsys-address` gets set to a
+https://docs.oracle.com/javase/8/docs/api/java/net/SocketAddress.html[SocketAddress]
+representing port 6553 (the default port used by MagicQ) on the
+broadcast address for the Deep Symmetry show network (you will need to
+use the value appropriate for your own newtork). `trigger-on` and
+`trigger-off` are arrays of bytes containing the characters that make
+up the commands for turning a MagicQ remote programming trigger on and
+off.
++
+Those values are then used in the http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/swap![`swap!`]
+call, which is the way you modify a Clojure atom. In this case we are modifying the map in `globals` by
+using http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/assoc[`assoc`]
+to add some new key-value pairs to it: `:chamsys-socket`
+gets associated with a newly-allocated
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[DatagramSocket]
+that triggers will be able to use for sending UDP messages to MagicQ,
+and the actual command packets are created as
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramPacket.html[DatagramPacket]
+objects preconfigured with the correct command bytes and destination
+address and port, in `:chamsys-on` and `:chamsys-off`.
++
+The Beat Expression below shows how these globals are actually used.
+
+Global Shutdown Expression:: This is run when Beat Link Trigger is
+exiting, or before it opens a new Trigger file (or when you choose to
+delete all triggers). It gives you a chance to close any connections
+and release any system resources that you allocated in your Global
+Setup Expression. Here is how we would do that for the ChamSys MagicQ
+example we started above:
++
+```clojure
+(.close (:chamsys-socket @globals))
+```
++
+
+This simply looks up the `DatagramSocket` that was created in the
+setup expression, and closes it. There is no need to remove the
+key/value pairs themselves from the `globals` atom
 
 == Logs
 
