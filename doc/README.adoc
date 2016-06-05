@@ -56,8 +56,9 @@ The Comment field is a free-form text area you can use to describe the
 purpose of the trigger, to remind you when you later come back to it.
 Apart from the trigger index, a number by which Beat Link Trigger
 identifies the trigger when it is reporting errors or naming related
-windows (like expression editors, described below), the comment takes
-up the entire width of the first line of the trigger row.
+windows (like expression editors, described <<expressions,below>>),
+the comment takes up the entire width of the first line of the trigger
+row.
 
 === Watch Menu
 
@@ -132,9 +133,10 @@ send a Stop message when the watched player stops.
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
-write in the trigger expressions, as described below. This gives you
-the most flexibility because in addition to MIDI messages, you can
-send arbitrary UDP packets, HTTP requests, or whatever you might need.
+write in the trigger expressions, as described <<expressions,below>>.
+This gives you the most flexibility because in addition to MIDI
+messages, you can send arbitrary UDP packets, HTTP requests, or
+whatever you might need.
 
 === Note/Controller Spinner
 
@@ -174,8 +176,9 @@ returns a `true` value, the trigger will be enabled. This lets you
 apply sophisticated logic, like enabling the trigger when a particular
 track number is loaded into the player, and it has reached a
 particular beat during playback. Expressions are further explained
-below. If you choose Custom and have not yet written an Enabled Filter
-expression, the expression editor will be opened to let you do that.
+<<expressions,below>>. If you choose Custom and have not yet written
+an Enabled Filter expression, the expression editor will be opened to
+let you do that.
 
 === Trigger Status
 
@@ -184,7 +187,7 @@ which shows whether the trigger is currently enabled (a green circle)
 or disabled (a red circle with a slash). If the player is currently
 playing, there is a filled circle inside the enabled circle:
 
-[width="50%",cols=".^,.^",options="header"]
+[width="50%",cols=".^,^.^",options="header"]
 |===
 |State
 |Indicator
@@ -210,9 +213,10 @@ accessed by right-clicking (or control-clicking) anywhere on the row's
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the trigger, as
-described below. The gear icon next to an expression will be filled in
-if that expression has a value, and the gear in the button will be
-filled in if any expression associated with the trigger has a value.
+described <<expressions,below>>. The gear icon next to an expression
+will be filled in if that expression has a value, and the gear in the
+button will be filled in if any expression associated with the trigger
+has a value.
 
 image:assets/ContextMenu.png[Context Menu, 254]
 
@@ -224,11 +228,63 @@ trigger, unless it is the only remaining trigger in the window.
 == Expressions
 
 A great deal of the power of Beat Link Trigger is in what you can do
-with custom expressions.
+with custom expressions. The user interface lets you configure
+triggers to send simple MIDI messages in response to basic state
+changes, but with expressions you can write your own logic to
+determine when the trigger should be enabled, using all of the
+information provided by the DJ Link protocol, and you can even send
+other kinds of messages locally or over the network to integrate with
+systems that do not respond to MIDI.
 
-WARNING: If you are playing with this already, please be aware it
-is not finished, and you are getting a sneak preview with no
-schedule or guarantees!
+NOTE: Expressions are written in http://clojure.org[Clojure], the same
+language that was used to write Beat Link Trigger. When you write one,
+it gets compiled to Java byte-code and loaded, essentially becoming
+part of Beat Link Trigger as if it had been there all along. So you
+have access to the full power of the language and Java environment,
+and can do anything you need to. But you will need to learn a little
+Clojure to do it. http://www.tryclj.com[Try Clojure] is a five-minute
+online introduction that is a great starting point. Please give it a
+try!
+
+The expression you are first likely to want to use is the Enabled
+Filter, which is found in each trigger's context menu. In fact, as
+soon as you set a trigger's Enabled menu to Custom, Beat Link Triggger
+will pop open the editor for that expression for you, if you have not
+yet created it:
+
+image:assets/Editor.png[Enabled Filter Editor, 880]
+
+The editor window for each type of expression provides documentation
+about the purpose of the expression and guidance on how to write it.
+Most expression types have a variety of values that are available to
+help you in writing the expression, and those are described and
+explained in the help section as well.
+
+Reading through the documentation, we see that the Enabled filter
+should return a `true` value to enable the filter, and has access to a
+lot of information about the watched player that it can use to decide.
+Suppose we want the trigger to be enabled when the player has track
+number 5 loaded, and has reached the fourth bar of music (which starts
+on beat 17, since there are four beats per bar, and the track starts
+with beat 1). Armed with the Clojure knowledge gained from our
+http://www.tryclj.com[Try Clojure] detour, and the help text in the
+editor window, we come up with the following expression:
+
+image:assets/EnabledExample.png[Enabled Example, 609]
+
+Try entering that as the Enabled Filter expression for your filter,
+set the Enabled menu to Custom, and watch the Trigger Status indicator
+as you load and play different tracks to confirm that it works!
+
+As you use the editor, you will notice that it provides syntax
+coloring and parenthesis-matching help. But if you end up making a
+mistake in your expression, Beat Link Trigger will likely report an
+error during compilation, and you can check the <<logs,log>> for a
+more detailed stack trace. You can try googling for information about
+the error, or looking in the Clojure
+http://clojuredocs.org[documentation], but you can also ask for help
+in the Beat Link Trigger
+https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
 == Logs
 
