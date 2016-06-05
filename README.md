@@ -24,14 +24,49 @@ and stop, and when the triggers are enabled:
 
 <image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="840">
 
-### Using Beat Link Trigger
+### Going Further
 
 Please see the
 [user guide](doc/README.adoc#beat-link-trigger-user-guide) for an
 introduction in how to configure triggers, and hopefully you will soon
 be coming up with interesting integration projects of your own.
 
-### Startup Issues
+## Compatibility
+
+This is in no way a sanctioned implementation of the protocols. It should be clear, but:
+
+> :warning: Use at your own risk! For example, there are reports that
+> the XDJ-RX crashes when a related project starts, so don't use this
+> with one on your network unless we can figure that out.
+
+While these techniques appear to work for us so far, there are many
+gaps in our knowledge, and things could change at any time with new
+releases of hardware or even firmware updates from Pioneer.
+
+You should also not expect to be able to run Beat Link Trigger, or any
+project like it, on the same machine that you are running rekordbox,
+because they will compete over access to network ports.
+
+Beat Link Trigger seems to work greate with CDJ-2000 Nexus gear, and
+works fairly well (with less information available) with older
+CDJ-2000s. It has also been reported to work with XDJ-1000 gear. If
+you can try it with anything else, *please* let us know what you learn
+in the
+[Gitter chat room](https://gitter.im/brunchboy/beat-link-trigger), or
+if you have worked out actionable details about something that could
+be improved,
+[open an Issue](https://github.com/brunchboy/beat-link-trigger/issues)
+or submit a pull request so we can all improve our understanding
+together.
+
+If something isn't working with your hardware and you don't yet know
+the details why, but are willing to learn a little and help figure it
+out, look at the
+[dysentery project](https://github.com/brunchboy/dysentery#dysentery),
+which is where we are organizing the research tools and results which
+made programs like Beat Link Trigger possible.
+
+## Startup Issues
 
 If double-clicking doesn&rsquo;t open up the application, make sure you
 have a recent
@@ -43,7 +78,7 @@ installed, and try running it from the command line:
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
 
-#### Mac Trust Confirmation
+### Mac Trust Confirmation
 
 If you are on a Mac, the first time you try to launch the downloaded
 jar file by double-clicking it you will see an error like this because
