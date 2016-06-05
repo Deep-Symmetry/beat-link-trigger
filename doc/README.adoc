@@ -101,7 +101,7 @@ NOTE: If a MIDI Output is chosen which is no longer available on the
 system (as shown in trigger 3 above), it will remain in that row's
 menu, but the Enabled section of the trigger will be replaced with the
 message “Not found.” Once the output reappears, or a different output
-is chosen, the trigger will become fully operational again.
+is chosen, the trigger will become operational again.
 
 === Message Menu
 
@@ -111,14 +111,16 @@ trigger.
 image:assets/MessageMenu.png[Message Menu, 814]
 
 Note:: With this setting, the trigger sends a Note On message, with
-the velocity shown to the right of the menu, when the watched player
-starts playing (as long as the trigger is enabled), and a Note Off
-message when the watched player stops or the trigger is disabled.
+velocity 127 and the note number shown to the right of the menu, when
+the watched player starts playing (as long as the trigger is enabled),
+and a Note Off message when the watched player stops or the trigger is
+disabled.
 
 CC:: With this setting, the trigger sends a Control Change message,
-with the value shown to the right of the menu, when the watched player
-starts playing (as long as the trigger is enabled), and sends a CC
-with value 0 when the player stops or the trigger is disabled.
+with value 127 and the controller number shown to the right of the
+menu, when the watched player starts playing (as long as the trigger
+is enabled), and sends a CC with value 0 when the player stops or the
+trigger is disabled.
 
 Clock:: With this setting, the trigger sends MIDI Beat Clock messages
 whenever the trigger is enabled, to synchronize the tempo of the
@@ -134,15 +136,13 @@ write in the trigger expressions, as described below. This gives you
 the most flexibility because in addition to MIDI messages, you can
 send arbitrary UDP packets, HTTP requests, or whatever you might need.
 
-=== Velocity/Value Spinner
+=== Note/Controller Spinner
 
-Immediately to the right of the Message Menu (unless MIDI Beat Clock
-is chosen as the Message type), this lets you set the MIDI Velocity
-for Note On messages, or the controller value for Control Change
-messages, if those Message options are chosen. The value chosen here
-is sent when the trigger is enabled and the watched player starts
-playing. The value is also available to your trigger expressions if
-they want to use it.
+Found immediately to the right of the Message Menu (unless MIDI Beat
+Clock is chosen as the Message type), this field lets you set the MIDI
+note number used for Note messages, or the controller number used for
+Control Change messages. The value is also available to your trigger
+expressions if they want to use it.
 
 === Channel Spinner
 
