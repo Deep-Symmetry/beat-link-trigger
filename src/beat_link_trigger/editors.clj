@@ -247,7 +247,7 @@ a {
     (clojure.string/join (concat [help-header "<h1>Description</h1>"
                                   (:description editor-info)
                                   "<p>The "
-                                  (when-not global? "The atom
+                                  (when-not global? "atom
   <code>locals</code> is available for use by all expressions on this
   trigger, and the ")
                                   "atom <code>globals</code> is shared across all expressions everywhere."]
