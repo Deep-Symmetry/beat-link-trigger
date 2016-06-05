@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## 0.1.2 - 2016-06-05
+
 ### Added
 
 - A comment field for keeping notes about each trigger.
@@ -20,11 +24,13 @@ This change log follows the conventions of
   application, including a large variety of convenience variables to
   simplify the task, and built-in help about the expressions and
   variables.
+- Support for sending MIDI Beat Clock.
 - A visible button to let people know about the trigger contextual
   menu even if they don't think of trying to control or right-click on
   it.
 - Errors and other important events are now logged to a log file,
   which is available for inspection via the File menu.
+- A user guide.
 
 ### Fixed
 
@@ -86,5 +92,6 @@ This change log follows the conventions of
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.0...v0.1.1
