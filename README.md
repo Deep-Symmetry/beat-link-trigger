@@ -1,8 +1,12 @@
 # beat-link-trigger
 
+[![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
+
 An application to trigger MIDI events when CDJs start playing tracks,
 reach particular beats, or whatever else you can think of. Built using
 [beat-link](https://github.com/brunchboy/beat-link#beat-link).
+
+[![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%201.0-blue.svg)](#license)
 
 ## Usage
 
