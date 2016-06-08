@@ -203,7 +203,7 @@
   (let [text (clojure.string/trim text)  ; Remove whitespace on either end
         editor-info (get (if global? global-editors trigger-editors) kind)]
     (try
-      (when-not (empty? text)  ; If we got a new expression, try to compile it
+      (when (seq text)  ; If we got a new expression, try to compile it
         (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
                (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info))))
       (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
@@ -297,7 +297,7 @@ a {
                    (fn [e]
                      (let [type (.getEventType e)
                            url (.getURL e)]
-                       (when (= type (. javax.swing.event.HyperlinkEvent$EventType ACTIVATED))
+                       (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
     (seesaw/listen root :window-closed
                    (fn [_] (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind)))

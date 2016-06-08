@@ -41,7 +41,7 @@
       (clojure.lang.MapEntry. k (convert-longs-to-integers v)))
 
     (or (sequential? elem) (map? elem))
-    (clojure.walk/walk #(convert-longs-to-integers %) identity elem)
+    (clojure.walk/walk convert-longs-to-integers identity elem)
 
     (instance? Long elem)
     (int elem)

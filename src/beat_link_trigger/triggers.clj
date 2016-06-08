@@ -298,8 +298,8 @@
       (timbre/info "Reporting deactivation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
         (case message
-          "Note" (do (midi/midi-note-off output note (dec channel)))
-          "CC" (do (midi/midi-control output note 0 (dec channel)))
+          "Note" (midi/midi-note-off output note (dec channel))
+          "CC" (midi/midi-control output note 0 (dec channel))
           "Clock" (when stop (midi/midi-send-msg (:receiver output) stop-message -1))
           nil))
       (run-trigger-function trigger :deactivation status false))
