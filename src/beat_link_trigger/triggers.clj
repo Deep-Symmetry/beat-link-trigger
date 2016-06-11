@@ -669,7 +669,7 @@
                             (let [update-fn (fn []
                                               (when (= kind :setup)  ; Clean up then run the new setup function
                                                 (run-trigger-function panel :shutdown nil true)
-                                                (reset! (:locals @(seesaw/user-data panel) {}))
+                                                (reset! (:locals @(seesaw/user-data panel)) {})
                                                 (run-trigger-function panel :setup nil true))
                                               (update-gear-icon panel gear))]
                               (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))

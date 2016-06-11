@@ -6,7 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- An exception which occurred trying, and failing, to clean out any
+  previous local bindings when editing a trigger's Setup Expression.
 
 ## [0.1.2] - 2016-06-05
 
