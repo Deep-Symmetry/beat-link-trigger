@@ -442,6 +442,7 @@ current tempo of the CDJ:
 ```clojure
 (let [pitch (/ (- pitch-multiplier 0.05) 2)]
   (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch)))
+true
 ```
 +
 
@@ -455,6 +456,13 @@ which it should be playing. (The OSC path was found by Editing the OSC
 Applicaton Map within Arena 5 and clicking on the parameter I wanted
 to control, as described in the
 https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
++
+
+The `true` on the last line is there because even when we want to use
+the Enabled Filter Expression for another purpose like this, it will
+_still_ control whether the trigger is enabled or not, and needs to
+return a true value or it will disable the filter. (And, as it turns
+out, `osc-send` returns `nil`, which is not considered a true value.)
 +
 
 Of course, we may want to still have this trigger active only when the
