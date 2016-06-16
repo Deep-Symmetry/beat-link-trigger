@@ -458,19 +458,20 @@ to control, as described in the
 https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
 +
 
-The `true` on the last line is there because even when we want to use
-the Enabled Filter Expression for another purpose like this, it will
-_still_ control whether the trigger is enabled or not, and needs to
-return a true value or it will disable the filter. (And, as it turns
-out, `osc-send` returns `nil`, which is not considered a true value.)
+TIP: The `true` on the last line is there because even when we want to
+use the Enabled Filter Expression for another purpose like this, it
+will _still_ control whether the trigger is enabled or not, and needs
+to return a true value or it will disable the filter. (And, as it
+turns out, `osc-send` returns `nil`, which is not considered a true
+value.)
 +
 
-Of course, we may want to still have this trigger active only when the
-correct track is loaded into the CDJ, and we can do both things in a
-single expression. Here is how we would check that the track number is
-8 before sending anything to Resolume, and pass that information along
-to Beat Link Trigger so that the trigger itself is only enabled when
-that track is loaded:
+Of course, we may want to still have this trigger enabled only when a
+particular track is loaded into the CDJ, and we can do both things in
+a single expression. Here is how we would check that the track number
+is 8 before sending anything to Resolume, and pass that information
+along to Beat Link Trigger so that the trigger itself is only enabled
+when that track is loaded:
 +
 
 ```clojure
