@@ -6,6 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- Takes advantage of beat-link's new slf4j integration to redirect any
+  log output that beat-link produces into the beat-link-trigger log
+  file.
+
 ### Fixed
 
 - An exception which occurred trying, and failing, to clean out any

@@ -28,6 +28,23 @@
            in a logs subdirectory."}
   appenders (atom (create-appenders)))
 
+(defn output-fn
+  "Log format (fn [data]) -> string output fn.
+  You can modify default options with `(partial default-output-fn <opts-map>)`.
+  This is based on timbre's default, but removes the hostname."
+  ([data] (output-fn nil data))
+  ([{:keys [no-stacktrace? stacktrace-fonts] :as opts} data]
+   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_
+                 timestamp_ ?line]} data]
+     (str
+             @timestamp_       " "
+       (clojure.string/upper-case (name level))  " "
+       "[" (or ?ns-str "?") ":" (or ?line "?") "] - "
+       (force msg_)
+       (when-not no-stacktrace?
+         (when-let [err (force ?err_)]
+           (str "\n" (timbre/stacktrace err opts))))))))
+
 (defn- init-logging-internal
   "Performs the actual initialization of the logging environment,
   protected by the delay below to insure it happens only once."
@@ -47,7 +64,7 @@
                      :locale :jvm-default
                      :timezone (java.util.TimeZone/getDefault)}
 
-    :output-fn timbre/default-output-fn ; (fn [data]) -> string
+    :output-fn output-fn ; (fn [data]) -> string
     })
 
   ;; Install the desired log appenders
