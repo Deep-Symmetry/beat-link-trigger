@@ -8,6 +8,9 @@ This change log follows the conventions of
 
 ### Added
 
+- Thanks to new beat-link features, expressions can now determine the
+  rekordbox ID number and source (player number and slot) of a track
+  being played.
 - Takes advantage of beat-link's new slf4j integration to redirect any
   log output that beat-link produces into the beat-link-trigger log
   file.
