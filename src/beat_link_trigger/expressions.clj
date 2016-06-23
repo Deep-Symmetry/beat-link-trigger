@@ -4,11 +4,33 @@
   (:require [overtone.midi :as midi]
             [overtone.osc :as osc]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util]
+  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util
+            CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 (defonce ^{:doc "Holds global variables shared between user expressions."}
   globals (atom {}))
+
+(defn track-source-slot
+  "Converts the Java enum value representing the slot from which a track
+  was loaded to a more convenient Clojure keyword."
+  [status]
+  (case (.getTrackSourceSlot status)
+    CdjStatus$TrackSourceSlot/NO_TRACK :no-track
+    CdjStatus$TrackSourceSlot/CD_SLOT :cd-slot
+    CdjStatus$TrackSourceSlot/SD_SLOT :sd-slot
+    CdjStatus$TrackSourceSlot/USB_SLOT :usb-slot
+    :unknown))
+
+(defn track-type
+  "Converts the Java enum value representing the type of track that
+  was loaded to a more convenient Clojure keyword."
+  [status]
+  (case (.getTrackType status)
+    CdjStatus$TrackType/NO_TRACK :no-track
+    CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
+    CdjStatus$TrackType/REKORDBOX :rekordbox
+    :unknown))
 
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
@@ -111,16 +133,24 @@
                             'raw-pitch          {:code '(.getPitch status)
                                                  :doc
 "Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo. See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
+                            'rekordbox-id       {:code '(.getRekordboxId status)
+                                                 :doc "The rekordbox id of the loaded track. Will be 0 if no track is loaded. If the track was loaded from an ordinary audio CD in the CD slot, this will just be the track number."}
+                            'synced?            {:code '(.isSynced status)
+                                                 :doc  "Is the player currently in Sync mode?"}
                             'tempo-master?      {:code '(.isTempoMaster status)
                                                  :doc  "Is this player the current tempo master?"}
                             'track-bpm          {:code '(/ (.getBpm status) 100.0)
                                                  :doc
 "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}
-                            'synced?            {:code '(.isSynced status)
-                                                 :doc  "Is the player currently in Sync mode?"}
                             'track-number       {:code '(.getTrackNumber status)
-                                                 :doc
-"The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks in the CDJ's browse interface."}}}})
+                                                 :doc "The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks in the CDJ's browse interface."}
+                            'track-source-player {:code '(.getTrackSourcePlayer status)
+                                                :doc "Which player was the track loaded from? Returns the device number, or 0 if there is no track loaded."}
+                            'track-source-slot {:code '(track-source-slot status)
+                                                :doc "Which slot was the track loaded from? Values are <code>:no-track</code>, <code>:cd-slot</code>, <code>:sd-slot</code>, <code>:usb-slot</code>, or <code>:unknown</code>."}
+                            'track-type {:code '(track-type status)
+                                                :doc "What kind of track was loaded? Values are <code>:no-track</code>, <code>:cd-digital-audio</code>, <code>:rekordbox</code>, or <code>:unknown</code>."}
+                            }}})
 
 (defn bindings-for-update-class
   "Returns the convenience bindings which should be made available for
