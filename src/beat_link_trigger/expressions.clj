@@ -11,14 +11,26 @@
 (defonce ^{:doc "Holds global variables shared between user expressions."}
   globals (atom {}))
 
+(defmacro case-enum
+  "Like `case`, but explicitly dispatch on Java enum ordinals."
+  [e & clauses]
+  (letfn [(enum-ordinal [e] `(let [^Enum e# ~e] (.ordinal e#)))]
+    `(case ~(enum-ordinal e)
+       ~@(concat
+          (mapcat (fn [[test result]]
+                    [(eval (enum-ordinal test)) result])
+                  (partition 2 clauses))
+          (when (odd? (count clauses))
+            (list (last clauses)))))))
+
 (defn track-source-slot
   "Converts the Java enum value representing the slot from which a track
   was loaded to a more convenient Clojure keyword."
   [status]
-  (case (.getTrackSourceSlot status)
+  (case-enum (.getTrackSourceSlot status)
     CdjStatus$TrackSourceSlot/NO_TRACK :no-track
-    CdjStatus$TrackSourceSlot/CD_SLOT :cd-slot
-    CdjStatus$TrackSourceSlot/SD_SLOT :sd-slot
+    CdjStatus$TrackSourceSlot/CD_SLOT  :cd-slot
+    CdjStatus$TrackSourceSlot/SD_SLOT  :sd-slot
     CdjStatus$TrackSourceSlot/USB_SLOT :usb-slot
     :unknown))
 
@@ -26,10 +38,10 @@
   "Converts the Java enum value representing the type of track that
   was loaded to a more convenient Clojure keyword."
   [status]
-  (case (.getTrackType status)
-    CdjStatus$TrackType/NO_TRACK :no-track
+  (case-enum (.getTrackType status)
+    CdjStatus$TrackType/NO_TRACK         :no-track
     CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
-    CdjStatus$TrackType/REKORDBOX :rekordbox
+    CdjStatus$TrackType/REKORDBOX        :rekordbox
     :unknown))
 
 (def convenience-bindings
