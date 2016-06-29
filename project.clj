@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [com.fifesoft/rsyntaxtextarea "2.5.8"]
                  [com.github.insubstantial/substance "7.3"]
-                 [com.taoensso/timbre "4.5.0"]
+                 [com.taoensso/timbre "4.5.1"]
                  [environ "1.0.3"]
                  [fipp "0.6.5"]
                  [inspector-jay "0.3"]
