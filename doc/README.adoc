@@ -497,12 +497,23 @@ https://github.com/rosejn/midi-clj[midi-clj] library and aliases it to
 messages. The trigger's chosen MIDI output is available as
 `trigger-output` (but may be `nil` if the device is currently not
 available). So as an example of how you could send a Note On message
-with velocity 42 on the note chosen in the trigger window:
+with velocity 42 on the note and channel chosen in the trigger window:
 +
 
 ```clojure
-(when trigger-output (midi/midi-note-on trigger-output trigger-note 42))
+(when trigger-output
+  (midi/midi-note-on trigger-output trigger-note 42 (dec trigger-channel))
 ```
++
+
+Note that the user-oriented channel number displayed in the Trigger's
+Channel menu is actually one larger than the value you actually need
+to send in the MIDI protocol (Channel 1 is represented in protocol by
+the number 0, and Channel 16 by the number 15, so that the channel can
+fit into four bits). So you need to decrement the value of
+`trigger-channel` before passing it to the midi library, as shown
+above.
+
 
 Deactivation Expression:: This is called when the player that the
 trigger is watching stops playing, or when the trigger becomes

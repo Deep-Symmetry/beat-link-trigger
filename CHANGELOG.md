@@ -11,6 +11,11 @@ This change log follows the conventions of
 - Thanks to new beat-link features, expressions can now determine the
   rekordbox ID number and source (player number and slot) of a track
   being played.
+- In describing tracks, triggers show the rekordbox ID when available
+  in preference to the simple playlist position.
+- User expressions can override how a track is described by storing a
+  custom description string under the key `:track-description` in the
+  trigger locals map.
 - Takes advantage of beat-link's new slf4j integration to redirect any
   log output that beat-link produces into the beat-link-trigger log
   file.

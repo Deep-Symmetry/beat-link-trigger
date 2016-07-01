@@ -327,15 +327,32 @@
       (stop-clock trigger updated)))
   (seesaw/repaint! (seesaw/select trigger [:#state])))
 
+(defn describe-track
+  "Identifies a track with the best information available from its
+  status update. If a non-nil `custom-description` is available, use
+  it. Otherwise, if there is a rekordbox id associated with it, use
+  that, otherwise just show the track's position within its playlist."
+  [status custom-description]
+  (cond
+    (some? custom-description)
+    custom-description
+
+    (pos? (.getRekordboxId status))
+    (str "Track id " (.getRekordboxId status))
+
+    :else
+    (str "Track #" (.getTrackNumber status))))
+
 (defn build-status-label
   "Create a brief textual summary of a player state given a status
-  update object from beat-link."
-  [status]
+  update object from beat-link, and a track description override from
+  the trigger's custom expression locals (which may be nil)."
+  [status track-description]
   (let [beat (.getBeatNumber status)]
     (str (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
          (when (.isTempoMaster status) ", Master")
          (when (.isOnAir status) ", On-Air")
-         ", Track #" (.getTrackNumber status)
+         ", " (describe-track status track-description)
          ", " (if (= 65535 (.getBpm status)) "--.-" (format "%.1f" (.getEffectiveTempo status))) " BPM ("
          (format "%+.2f%%" (Util/pitchToPercentage (.getPitch status))) ")"
          (cond
@@ -354,7 +371,8 @@
   (try
     (let [player-menu (seesaw/select trigger [:#players])
           selection (seesaw/selection player-menu)
-          status-label (seesaw/select trigger [:#status])]
+          status-label (seesaw/select trigger [:#status])
+          track-description (:track-description @(:locals @(seesaw/user-data trigger)))]
       (if (nil? selection)
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
@@ -367,7 +385,7 @@
                 (update-player-state trigger false false nil))
             (if (instance? CdjStatus status)
               (do (seesaw/config! status-label :foreground "cyan")
-                  (seesaw/value! status-label (build-status-label status)))
+                  (seesaw/value! status-label (build-status-label status track-description)))
               (do (seesaw/config! status-label :foreground "red")
                   (seesaw/value! status-label (cond (some? status) "Non-Player status received."
                                                     (not (VirtualCdj/isActive)) "Offline."
@@ -919,9 +937,10 @@
                 (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
               (update-player-state trigger (.isPlaying status) (.isOnAir status) status)
               (seesaw/invoke-later
-               (let [status-label (seesaw/select trigger [:#status])]
+               (let [status-label (seesaw/select trigger [:#status])
+                     track-description (:track-description @(:locals @(seesaw/user-data trigger)))]
                  (seesaw/config! status-label :foreground "cyan")
-                 (seesaw/value! status-label (build-status-label status)))))))
+                 (seesaw/value! status-label (build-status-label status track-description)))))))
         (catch Exception e
           (timbre/error e "Problem responding to Player status packet."))))))
 
