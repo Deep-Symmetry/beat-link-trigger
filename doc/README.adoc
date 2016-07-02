@@ -638,7 +638,7 @@ to do fundamentally different things in response to detecting each
 track is being played, this approach might work well. The triggers are
 set to Watch Any Player, and the Enabled Filter expression activates
 each when any player has loaded the track that the trigger cares
-about. For example, in the following figure we have two triggers
+about. For example, in the following screen shot we have two triggers
 watching for two specific tracks:
 
 image:assets/MatchTracks.png[Matching Tracks, 870]
@@ -662,12 +662,12 @@ trigger is similar:
   (>= beat-number 17))
 ```
 
-Note that in figure, both triggers are enabled, and watching different
-players, but the tracks were both loaded from the USB slot in player
-3, which is exactly what the expressions specified. Also note that
-using normal Clojure expressions, you can combine matching the track
-with whatever other conditions you care about (in this example, beat
-position).
+Notice in the screen shot that both triggers are enabled, and watching
+different players, but the tracks were both loaded from the USB slot
+in player 3, which is exactly what the expressions specified. Also
+note that using normal Clojure expressions, you can combine matching
+the track with whatever other conditions you care about (in this
+example, beat position).
 
 ==== Adapting to Changes
 
@@ -679,10 +679,10 @@ separately and correct the player that it is looking for. This is
 tedious and error-prone, and with more than a few triggers, frankly
 unmanageable. But there is a better way.
 
-We can use the Global Setup expression to set up global variables that
-specify where our DJ has loaded his rekordbox database, so that there
-is only one place to update during the performance once we see where
-his tracks are being loaded from:
+We can use the Global Setup expression to set up global configuration
+information that specifies where our DJ has loaded his rekordbox
+database, so that there is only one place to update during the
+performance once we see where his tracks are being loaded from:
 
 ```clojure
 (swap! globals assoc :symmetry-media
@@ -709,7 +709,7 @@ looked up in the map stored at `:symmetry-media` in the Beat Link
 Trigger `globals` atom. It then uses those values instead of the
 formerly hard-coded literal values in the expression. Once each
 Enabled Filter expression is written this way, as soon as you edit the
-Global Setup expression to change the layer number or slot, all of the
+Global Setup expression to change the player number or slot, all of the
 filter expressions immediately start watching for tracks loaded from
 the updated location.
 
