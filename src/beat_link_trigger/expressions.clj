@@ -13,6 +13,7 @@
 
 (defmacro case-enum
   "Like `case`, but explicitly dispatch on Java enum ordinals."
+  {:style/indent 1}
   [e & clauses]
   (letfn [(enum-ordinal [e] `(let [^Enum e# ~e] (.ordinal e#)))]
     `(case ~(enum-ordinal e)
