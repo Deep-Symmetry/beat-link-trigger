@@ -12,7 +12,8 @@ This change log follows the conventions of
   rekordbox ID number and source (player number and slot) of a track
   being played.
 - In describing tracks, triggers show the rekordbox ID when available
-  in preference to the simple playlist position.
+  in preference to the simple playlist position, as well as the source
+  player and slot.
 - User expressions can override how a track is described by storing a
   custom description string under the key `:track-description` in the
   trigger locals map.

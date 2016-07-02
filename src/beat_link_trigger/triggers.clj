@@ -19,7 +19,8 @@
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
-           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util]))
+           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util
+            CdjStatus$TrackSourceSlot]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers."}
@@ -338,7 +339,12 @@
     custom-description
 
     (pos? (.getRekordboxId status))
-    (str "Track id " (.getRekordboxId status))
+    (str "Track id " (.getRekordboxId status) " [" (.getTrackSourcePlayer status) ":"
+         (expressions/case-enum (.getTrackSourceSlot status)
+           CdjStatus$TrackSourceSlot/USB_SLOT "usb"
+           CdjStatus$TrackSourceSlot/SD_SLOT "sd"
+           "?")
+         "]")
 
     :else
     (str "Track #" (.getTrackNumber status))))
