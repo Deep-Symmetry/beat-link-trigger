@@ -828,30 +828,30 @@ above, that would set `track` to:
 ```
 
 When `track` is successfully bound to a value like this, the `if-let`
-form executes the first form in its body, labeled with the "Recognized
-track" comment. That code copies the track name that was found into
-the `:track-description` local so that Beat Link Trigger will display
-it in the trigger row, then goes on to check whether the curent beat
-is one of the keys in the `:beat-ccs` map. If it is, the following
-value is copied to the trigger local named `:activate-cc`, which will
-be used by the custom Activation expression below to send the
-appropriate MIDI CC message, and a non-empty value is returned, which
-tells the trigger that it is enabled.
+form executes the first form in its body, labeled with the
+&ldquo;Recognized track&rdquo; comment. That code copies the track
+name that was found into the `:track-description` local so that Beat
+Link Trigger will display it in the trigger row, then goes on to check
+whether the curent beat is one of the keys in the `:beat-ccs` map. If
+it is, the following value is copied to the trigger local named
+`:activate-cc`, which will be used by the custom Activation expression
+below to send the appropriate MIDI CC message, and a non-empty value
+is returned, which tells the trigger that it is enabled.
 
 In this particular example, when the beat number is `33`, the trigger
-will activate and set `:activate-cc` to `1`. If the beat number has
-any other value, the track name is still displayed, but the trigger is
-disabled.
+will enable itself and set `:activate-cc` to `1`. If the beat number
+has any other value, the track name is still displayed, but the
+trigger is disabled.
 
 If any of the `:watched-tracks` key lookups in the first line fails
 anywhere along the way (the track ID is not in the map, or perhaps
 `track-source-slot` has the value `:no-track` because no track has
 even been loaded) then the `if-let` form does not assign a value to
 `track`, and it executes the second part of its body (with the
-"Unknown track" comment). That code removes the `:track-description`
-local so Beat Link Trigger will display its normal numerical
-descripton of the track status, and returns `nil` to indicate that the
-filter should not be enabled.
+&ldquo;Unknown track&rdquo; comment). That code removes the
+`:track-description` local so Beat Link Trigger will display its
+normal numerical descripton of the track status, and returns `nil` to
+indicate that the filter should not be enabled.
 
 Here's what this set of expressions looks like in action:
 
@@ -859,8 +859,8 @@ image:assets/MatchTracks2.png[Matching Tracks 2, 848]
 
 Notice that as planned, each trigger is configured to watch a single
 player. They each have identical copies of the above Enabled filter
-installed, and are set to use it, which is why the track names are
-showing up in the blue Player Status section. The first trigger is
+installed, and are set to use it, which is why the loaded track names
+are showing up in the blue Player Status section. The first trigger is
 enabled, because that player is sitting at the beat mentioned in the
 track's `:beat-ccs` map. As soon as that player starts playing, the
 trigger will activate. But how will it know which controller number it
@@ -888,9 +888,9 @@ different CC when another beat of interest is reached (the Just a Gent
 remix of Best Day of my Life in this example sends CC 2 on beat 17,
 and CC 3 on beat 65, using `:beat-ccs {17 2 65 3}`).
 
-If there was a need to send a CC to the same controller with the value
-0 when the trigger deactivates, a very similar Deactivation expression
-could be installed:
+If we need to send a CC to the same controller with the value 0 when
+the trigger deactivates, a very similar Deactivation expression can
+be installed:
 
 ```clojure
 (when trigger-output
