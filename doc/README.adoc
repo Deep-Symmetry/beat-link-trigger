@@ -784,7 +784,7 @@ lets us do some pretty useful things.
 
 In this example, we are tracking a `:name` string for each track, and
 another map we store as `:beat-ccs` that will tell us the particular
-beats within the track where we want to activate, as well as the midi
+beats within the track where we want to activate, as well as the MIDI
 Controller Change number we want to send to identify the track that's
 activating when that beat is reached.
 
@@ -835,22 +835,23 @@ it in the trigger row, then goes on to check whether the curent beat
 is one of the keys in the `:beat-ccs` map. If it is, the following
 value is copied to the trigger local named `:activate-cc`, which will
 be used by the custom Activation expression below to send the
-appropriate MIDI CC message, and a true value is returned, which tells
-the trigger that it is active.
+appropriate MIDI CC message, and a non-empty value is returned, which
+tells the trigger that it is active.
 
 In this particular example, when the beat number is `33`, the trigger
 will activate and set `:activate-cc` to `1`. If the beat number has
 any other value, the track name is still displayed, but the trigger is
 deactivated.
 
-If any of the `:watched-tracks` key lookups fails anywhere along the
-way (the track ID is not in the map, or perhaps `track-source-slot`
-has the value `:no-track` because no track has even been loaded) then
-the `if-let` form does not assign a value to `track`, and it executes
-the second part of its body (with the "Unknown track" comment). That
-code removes the `:track-description` local so Beat Link Trigger will
-display its normal numerical descripton of the track status, and
-returns `nil` to indicate that the filter should not be enabled.
+If any of the `:watched-tracks` key lookups in the first line fails
+anywhere along the way (the track ID is not in the map, or perhaps
+`track-source-slot` has the value `:no-track` because no track has
+even been loaded) then the `if-let` form does not assign a value to
+`track`, and it executes the second part of its body (with the
+"Unknown track" comment). That code removes the `:track-description`
+local so Beat Link Trigger will display its normal numerical
+descripton of the track status, and returns `nil` to indicate that the
+filter should not be enabled.
 
 Here's what this set of expressions looks like in action:
 
