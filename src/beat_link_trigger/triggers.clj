@@ -730,7 +730,7 @@
                             (seesaw/repaint! (seesaw/select panel [:#state]))
                             (when (and (= "Custom" (seesaw/selection enabled-menu))
                                        (empty? (get-in @(seesaw/user-data panel) [:expressions :enabled])))
-                              (editors/show-trigger-editor :enabled panel nil)))))
+                              (editors/show-trigger-editor :enabled panel #(update-gear-icon panel gear))))))
 
      (seesaw/listen (seesaw/select panel [:#players])
                     :item-state-changed (fn [_]  ; Update player status when selection changes, clear any cached status
@@ -755,7 +755,7 @@
                               (when (and (= "Custom" choice)
                                          (not (:creating @(seesaw/user-data panel)))
                                          (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
-                                (editors/show-trigger-editor :activation panel nil))
+                                (editors/show-trigger-editor :activation panel #(update-gear-icon panel gear)))
                               (if (= "Clock" choice)
                                 (do (seesaw/hide! [note channel-label channel])
                                     (seesaw/show! [send start stop]))

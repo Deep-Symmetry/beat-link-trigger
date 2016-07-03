@@ -25,6 +25,13 @@ This change log follows the conventions of
 
 - An exception which occurred trying, and failing, to clean out any
   previous local bindings when editing a trigger's Setup Expression.
+- Triggers were not being properly cleaned up (including leaving open
+  now-orphaned expression editor windows) when replacing the entire
+  trigger window, for example by opening a different trigger file.
+- Creating a trigger expression using the expression editor window
+  that was automatically opened when you chose Custom as a Message or
+  Enabled option for the trigger was not updating the state of the
+  gear button.
 
 ## [0.1.2] - 2016-06-05
 
