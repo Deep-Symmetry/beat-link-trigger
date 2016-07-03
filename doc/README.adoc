@@ -746,8 +746,8 @@ rekordbox database was loaded in:
   {3  ; The outermost key specifies the player tracks must be loaded from
     {:usb-slot  ; Next key specifies the slot
       ;; And now the map of track IDs and information about each
-      {1 {:name "Rainbow (Jack rmx)" :beat-ccs {33 1}}
-       2 {:name "Best Day (Gent rmx)" :beat-ccs {17 2 65 3}}
+      {1   {:name "Rainbow (Jack rmx)" :beat-ccs {33 1}}
+       2   {:name "Best Day (Gent rmx)" :beat-ccs {17 2 65 3}}
        73  {:name "Azuca (Club mix)" :beat-ccs {1 4}}
        584 {:name "Bubble Control" :beat-ccs {9 5}}
        873 {:name "Climax" :beat-ccs {63 6}}
