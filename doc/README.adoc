@@ -719,7 +719,7 @@ though! So Beat Link Trigger includes a convenience macro called
 above code to this much simpler version:
 
 ```clojure
-(and (track-matches :symmetry-media 73)
+(and (track-matches :symmetry-media 15)
      (>= beat-number 225))
 ```
 
