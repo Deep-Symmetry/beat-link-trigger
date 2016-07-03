@@ -45,6 +45,38 @@
     CdjStatus$TrackType/REKORDBOX        :rekordbox
     :unknown))
 
+(defn track-matches*
+  "A convenience function for checking whether a track matches a
+  particular source and rekordbox ID number. Compares the source
+  player and slot of the track associated with the supplied status
+  update with the values found in a media map that is looked up in the
+  Beat Link Trigger globals atom using the specified key (the map
+  must be structured like the example shown in the
+  [Adapting to
+  Changes](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#adapting-to-changes)
+  section of the user guide, with `:player` and `:slot` entries). If
+  the source matches, the id is compared with the specified value, and
+  returns the result."
+  [status globals source-key rekordbox-id]
+  (let [{:keys [player slot]} (get @globals source-key)]
+    (and (= (.getTrackSourcePlayer status) player) (= (track-source-slot status) slot)
+         (= (.getRekordboxId status) rekordbox-id))))
+
+(defmacro track-matches
+  "Convenience macro for use in an Enabled Filter Expression. Checks
+  whether the track contained in the current status update matches a
+  particular source and rekordbox ID number. Compares the track source
+  player and slot with the values found in a media map that is looked
+  up in the Beat Link Trigger globals atom using the specified
+  key (the map must be structured like the example shown in the
+  [Adapting to
+  Changes](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#adapting-to-changes)
+  section of the user guide, with `:player` and `:slot` entries). If
+  the source matches, the id is compared with the specified value, and
+  returns the result."
+  [source-key rekordbox-id]
+  `(track-matches* ~'status ~'globals ~source-key ~rekordbox-id))
+
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
   processing a particular kind of device update, along with the

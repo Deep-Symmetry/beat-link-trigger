@@ -713,6 +713,16 @@ Global Setup expression to change the player number or slot, all of the
 filter expressions immediately start watching for tracks loaded from
 the updated location.
 
+That's a lot of code to type for what is likely to be a common desire,
+though! So Beat Link Trigger includes a convenience macro called
+`track-matches` which does it for you. Using it, we can transform the
+above code to this much simpler version:
+
+```clojure
+(and (track-matches :symmetry-media 73)
+     (>= beat-number 225))
+```
+
 Of course if you have multiple media that you are watching for
 different tracks on, you can store the location of each under a
 separate key in the globals, and look them up using that key in the
