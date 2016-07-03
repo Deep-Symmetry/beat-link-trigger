@@ -836,12 +836,12 @@ is one of the keys in the `:beat-ccs` map. If it is, the following
 value is copied to the trigger local named `:activate-cc`, which will
 be used by the custom Activation expression below to send the
 appropriate MIDI CC message, and a non-empty value is returned, which
-tells the trigger that it is active.
+tells the trigger that it is enabled.
 
 In this particular example, when the beat number is `33`, the trigger
 will activate and set `:activate-cc` to `1`. If the beat number has
 any other value, the track name is still displayed, but the trigger is
-deactivated.
+disabled.
 
 If any of the `:watched-tracks` key lookups in the first line fails
 anywhere along the way (the track ID is not in the map, or perhaps
