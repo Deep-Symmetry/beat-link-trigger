@@ -736,6 +736,150 @@ matches the global map, this approach relies on having you set up an
 individual trigger for each player you want to watch, rather than
 having the trigger watch Any Player.
 
+So what does this global map of tracks look like? It is only slightly
+more elaborate than what we already did in the previous example to
+keep track of the player and slot our DJ's rekordbox database was
+loaded in:
+
+```clojure
+(swap! globals assoc :watched-tracks
+  {3  ; The outermost key specifies the player tracks must be loaded from
+    {:usb-slot  ; Next key specifies the slot
+      {1 {:name "Rainbow (Jack rmx)" :beat-ccs {33 1}}
+       2 {:name "Best Day (Gent rmx)" :beat-ccs {17 2 65 3}}
+       73  {:name "Azuca (Club mix)" :beat-ccs {1 4}}
+       584  {:name "Bubble Control" :beat-ccs {9 5}}
+       873 {:name "Climax" :beat-ccs {63 6}}
+  }}})
+```
+
+We build a series of nested maps. As noted, the outermost key is the
+number of a player containing a database holding tracks we are
+watching for. This plays the same role as the `:player` key in the
+earlier example: a single place to edit when we determine where our DJ
+has loaded the media containing the tracks we are watching for. Inside
+that is the keyword identifying the slot holding the database of
+interest. And inside that comes the main map identifying and
+describing the tracks we are watching for.
+
+NOTE: We could have used a variety of structures for organizing this
+information. Nested maps have a few advantages. As you'll see in the
+Enabled filter source below, it's easy to navigate into them using the
+`get-in` function. And this approach lets us keep track of more than
+one rekordbox database containing tracks we want to watch for, by
+simply adding additional player numbers paired with appropriate nested
+content at the right level in the map.
+http://www.braveclojure.com/do-things/#Maps[Clojure for the Brave and
+True] is one place where you can learn more about Clojure maps.
+
+The map nested after the slot specification key (`:usb-slot` in the
+example above) identifies the tracks we are interested in when they
+are loaded from that slot. It pairs the rekordbox ID number of each
+track with whatever other information we might need to know about that
+track. Finding a track's ID in this map after we've navigated down
+through the player number and slot keyword means that we are
+interested in the track, and the other information we attach to its ID
+lets us do some pretty useful things.
+
+In this example, we are tracking a `:name` string for each track, and
+another map we store as `:beat-ccs` that will tell us the particular
+beats within the track where we want to activate, as well as the midi
+Controller Change number we want to send to identify the track that's
+activating when that beat is reached.
+
+The `:name` entries in the track description maps play a double role.
+First, they help us when looking at this expression itself to remember
+what track each entry is matching. But the Enabled filter can also use
+the name string to show the user what track has been matched. This
+didn't matter in the One Trigger per Track approach, because each
+trigger had a Comment field where you could enter the track name it
+matched. But in this approach, we have only a trigger for each player,
+and the trigger will activate whenever the player loads a track that
+is listed in the `:watched-tracks` global. So, without memorizing all
+the track IDs, how can you tell which one has been matched? Well, as
+described <<player-status,above>>, the Enabled filter can tell Beat
+Link Trigger to display the name of the track it has matched by
+copying the `:name` string to the key `:track-description` in the
+trigger `locals` atom. Let's look at the Enabled filter's code now:
+
+
+```clojure
+(if-let [track (get-in @globals [:watched-tracks track-source-player
+                                 track-source-slot rekordbox-id])]
+  (do  ; Recognized track; set the name, enable if on a flagged beat
+    (swap! locals assoc :track-description (:name track))
+    (when-let [cc (get-in track [:beat-ccs beat-number])]
+      (swap! locals assoc :activate-cc cc)))
+  (do  ; Unknown track, clear name, return nil to prevent activation
+    (swap! locals dissoc :track-description)
+    nil))
+```
+
+The first part uses `get-in` to navigate through the nested map
+structure we created to describe tracks, looking up a value by
+starting with the player number from which the track has been loaded,
+then the slot from which it was loaded, and finally the rekordbox ID.
+If, for example the track was loaded from player `3` in the
+`:usb-slot` and the ID was `1`, looking at the `:watched-tracks` map
+above, that would set `track` to:
+
+```clojure
+{:name "Rainbow (Jack rmx)" :beat-ccs {33 1}}
+```
+
+When `track` is successfully bound to a value like this, the `if-let`
+form executes the first form in its body, labeled with the "Recognized
+track" comment. That code copies the track name that was found into
+the `:track-description` local so that Beat Link Trigger will display
+it in the trigger row, then goes on to check whether the curent beat
+is one of the keys in the `:beat-ccs` map. If it is, the following
+value is copied to the trigger local named `:activate-cc`, which will
+be used by the custom Activation expression below to send the
+appropriate MIDI CC message, and a true value is returned, which tells
+the trigger that it is active.
+
+In this particular example, when the beat number is `33`, the trigger
+will activate and set `:activate-cc` to `1`. If the beat number has
+any other value, the track name is still displayed, but the trigger is
+deactivated.
+
+If any of the `:watched-tracks` key lookups fails anywhere along the
+way (the track ID is not in the map, or perhaps `track-source-slot`
+has the value `:no-track` because no track has even been loaded) then
+the `if-let` form does not assign a value to `track`, and it executes
+the second part of its body (with the "Unknown track" comment). That
+code removes the `:track-description` local so Beat Link Trigger will
+display its normal numerical descripton of the track status, and
+returns `nil` to indicate that the filter should not be enabled.
+
+Here's what this set of expressions looks like in action:
+
+image:assets/MatchTracks2.png[Matching Tracks 2, 848]
+
+Notice that as planned, each trigger is configured to watch a single
+player. They each have identical copies of the above Enabled filter
+installed, and are set to use it, which is why the track names are
+showing up in the blue Player Status section. The first trigger is
+enabled, because that player is sitting at the beat mentioned in the
+track's `:beat-ccs` map. As soon as that player starts playing, the
+trigger will activate. But how will it know which controller number it
+is supposed to send in its activation message? That's taken care of by
+the custom Activation expression that has been installed:
+
+```clojure
+(when trigger-output
+  (when-let [cc (:activate-cc @locals)]
+    (midi/midi-control trigger-output cc 127 (dec trigger-channel))))
+```
+
+This expression first checks that the trigger's chosen MIDI Output can
+be found (to avoid throwing exceptions trying to send to a missing
+device), then looks for the value that the Enabled filter stored in
+the `:activate-cc` local. It then sends a MIDI CC message to that
+controller number, with the value 127, on the channel chosen by the
+trigger. (It calls `dec` because the MIDI protocol actually uses the
+numbers `0`&mdash;`15` to refer to the channels described as `1`&mdash;`16`.)
+
 == Logs
 
 When Beat Link Trigger is running it reports events to a log file. As
