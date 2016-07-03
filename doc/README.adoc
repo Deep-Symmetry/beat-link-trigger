@@ -721,7 +721,7 @@ triggers that need to work with tracks from that media.
 === One Trigger per Player
 
 When you have a great many tracks that you want to watch for, managing
-so many triggers becomes awkward, even when you use the globals to
+so many triggers becomes awkward, even when you use globals to
 identify the player and slot where tracks should be loaded from.
 Instead, you can take that idea even further, and set up a global map
 that describes all the tracks you are interested in, along with
@@ -729,26 +729,27 @@ whatever other information you need to react to them. In this
 approach, your Enabled Filter Expression will look up the track in the
 global map, and when it finds a match, mark the trigger as enabled,
 along with recording whatever other information about the track might
-be needed to react appropriately in a custom Activation Expression.
+be needed to react appropriately in a custom Activation expression.
 
-Because more than one track might be loaded at the same time which
-matches the global map, this approach relies on having you set up an
+TIP: Because more than one track which matches the global map might be
+loaded at the same time, this approach relies on having you set up an
 individual trigger for each player you want to watch, rather than
 having the trigger watch Any Player.
 
-So what does this global map of tracks look like? It is only slightly
-more elaborate than what we already did in the previous example to
-keep track of the player and slot our DJ's rekordbox database was
-loaded in:
+So what does this global map of tracks look like? Our new Global Setup
+expression is only slightly more elaborate than the one we used in the
+previous example to keep track of the player and slot our DJ's
+rekordbox database was loaded in:
 
 ```clojure
 (swap! globals assoc :watched-tracks
   {3  ; The outermost key specifies the player tracks must be loaded from
     {:usb-slot  ; Next key specifies the slot
+      ;; And now the map of track IDs and information about each
       {1 {:name "Rainbow (Jack rmx)" :beat-ccs {33 1}}
        2 {:name "Best Day (Gent rmx)" :beat-ccs {17 2 65 3}}
        73  {:name "Azuca (Club mix)" :beat-ccs {1 4}}
-       584  {:name "Bubble Control" :beat-ccs {9 5}}
+       584 {:name "Bubble Control" :beat-ccs {9 5}}
        873 {:name "Climax" :beat-ccs {63 6}}
   }}})
 ```
@@ -804,8 +805,7 @@ trigger `locals` atom. Let's look at the Enabled filter's code now:
 
 
 ```clojure
-(if-let [track (get-in @globals [:watched-tracks track-source-player
-                                 track-source-slot rekordbox-id])]
+(if-let [track (get-in @globals [:watched-tracks track-source-player track-source-slot rekordbox-id])]
   (do  ; Recognized track; set the name, enable if on a flagged beat
     (swap! locals assoc :track-description (:name track))
     (when-let [cc (get-in track [:beat-ccs beat-number])]
