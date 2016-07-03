@@ -878,7 +878,39 @@ device), then looks for the value that the Enabled filter stored in
 the `:activate-cc` local. It then sends a MIDI CC message to that
 controller number, with the value 127, on the channel chosen by the
 trigger. (It calls `dec` because the MIDI protocol actually uses the
-numbers `0`&mdash;`15` to refer to the channels described as `1`&mdash;`16`.)
+numbers 0--15 to refer to the channels described as 1--16.)
+
+In this example, the system being triggered only needs to know when
+the track reaches that point, so the enabled filter can disable the
+trigger as soon as the next beat is reached, and reactivate with a
+different CC when another beat of interest is reached (the Just a Gent
+remix of Best Day of my Life in this example sends CC 2 on beat 17,
+and CC 3 on beat 65, using `:beat-ccs {17 2 65 3}`).
+
+If there was a need to send a CC to the same controller with the value
+0 when the trigger deactivates, a very similar Deactivation expression
+could be installed:
+
+```clojure
+(when trigger-output
+  (when-let [cc (:activate-cc @locals)]
+    (midi/midi-control trigger-output cc 0 (dec trigger-channel))))
+```
+
+And of course if you can use OSC to communicate rather than MIDI, you
+are already writing custom Activation and Deactivation expressions,
+which is what you need to use for that, and you can send much more
+information about the track that way: the name, the actual rekordbox
+ID number, or some other value that you add under a new key in the
+`:watched-tracks` map. You can structure this as richly as you need.
+
+If you need the trigger to deactivate on specific beats, rather than
+always on the beat after it activates, that can be done with only
+slightly more code and tracking structures. I will leave it as an
+exercise to the reader, but if you get stuck or want to discuss your
+approach, please say so in the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
+
 
 == Logs
 
