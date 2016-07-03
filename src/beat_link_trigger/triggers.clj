@@ -560,7 +560,7 @@
   running their own shutdown functions, and finally runs the global
   shutdown function."
   []
-  (for [trigger (get-triggers)]
+  (doseq [trigger (get-triggers)]
     (delete-trigger trigger))
   (doseq [editor (vals (:expression-editors @(global-user-data)))]
     (editors/dispose editor))
