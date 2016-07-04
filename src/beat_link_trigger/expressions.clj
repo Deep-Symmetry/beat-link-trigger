@@ -29,10 +29,11 @@
   was loaded to a more convenient Clojure keyword."
   [status]
   (case-enum (.getTrackSourceSlot status)
-    CdjStatus$TrackSourceSlot/NO_TRACK :no-track
-    CdjStatus$TrackSourceSlot/CD_SLOT  :cd-slot
-    CdjStatus$TrackSourceSlot/SD_SLOT  :sd-slot
-    CdjStatus$TrackSourceSlot/USB_SLOT :usb-slot
+    CdjStatus$TrackSourceSlot/NO_TRACK   :no-track
+    CdjStatus$TrackSourceSlot/CD_SLOT    :cd-slot
+    CdjStatus$TrackSourceSlot/SD_SLOT    :sd-slot
+    CdjStatus$TrackSourceSlot/USB_SLOT   :usb-slot
+    CdjStatus$TrackSourceSlot/COLLECTION :collection
     :unknown))
 
 (defn track-type

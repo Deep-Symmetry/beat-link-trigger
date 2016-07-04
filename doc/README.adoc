@@ -613,8 +613,14 @@ multiple different tracks with the same `rekordbox-id` value. To be
 safe you will also need to consider the `track-source-player` value,
 which tells you the player from which the track was loaded, and the
 `track-source-slot` value, which will be `:sd-slot` for tracks loaded
-from SD cards, and `:usb-slot` for tracks loaded from USB drives. For
-as long as the same set of media is mounted in the CDJs, the
+from SD cards, and `:usb-slot` for tracks loaded from USB drives.
+
+When tracks are loaded from rekordbox running on a laptop,
+`track-source-player` will match the device number reported by
+rekordbox (which seems to be 41 when there is only one copy running),
+and `track-source-slot` has the value `:collection`.
+
+For as long as the same set of media is mounted in the CDJs, the
 combination of `track-source-player`, `track-source-slot`, and
 `rekordbox-id` will uniquely identify a track.
 
