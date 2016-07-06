@@ -869,6 +869,21 @@ even been loaded) then the `if-let` form does not assign a value to
 normal numerical descripton of the track status, and returns `nil` to
 indicate that the filter should not be enabled.
 
+Since looking up tracks this way is a commonly useful task, Beat Link
+Trigger includes another convenience macro to shorten the code you
+need to write. As long as you have structured your nested track map as
+described in this example, starting with its identifying keyword,
+followed by the player number, slot identifier, and rekordbox ID as
+the nested keys, you can simplify the lookup by just calling
+`find-track` with the keyword you used to store your track map in the
+globals. So we could shorten the expression above to be:
+
+```clojure
+(if-let [track (find-track :watched-tracks)]
+  ;; "then" and "else" forms omitted as they are the same as above
+)
+```
+
 Here's what this set of expressions looks like in action:
 
 image:assets/MatchTracks2.png[Matching Tracks 2, 848]

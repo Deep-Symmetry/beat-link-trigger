@@ -78,6 +78,32 @@
   [source-key rekordbox-id]
   `(track-matches* ~'status ~'globals ~source-key ~rekordbox-id))
 
+(defn find-track*
+  "A convenience function for looking for the track described by the
+  current status update within a nested map structured as described in
+  the [One Trigger per
+  Player](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#one-trigger-per-player)
+  example in the user guide. The specified key is looked up in the
+  Beat Link Trigger globals atom, followed by the player number from
+  which the current track was loaded, its slot identifier, and the
+  rekordbox ID of the track. Any value found is returned. If any of
+  the lookups fails, `nil` is returned."
+  [status globals source-key]
+  (get-in @globals [source-key (.getTrackSourcePlayer status) (track-source-slot status) (.getRekordboxId status)]))
+
+(defmacro find-track
+  "Convenience macro for use in an Enabled Filter Expression. Looks
+  for the track described by the current status update within a nested
+  map structured as described in the [One Trigger per
+  Player](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#one-trigger-per-player)
+  example in the user guide. The specified key is looked up in the
+  Beat Link Trigger globals atom, followed by the player number from
+  which the current track was loaded, its slot identifier, and the
+  rekordbox ID of the track. Any value found is returned. If any of
+  the lookups fails, `nil` is returned."
+  [source-key]
+  `(find-track* ~'status ~'globals ~source-key))
+
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
   processing a particular kind of device update, along with the
