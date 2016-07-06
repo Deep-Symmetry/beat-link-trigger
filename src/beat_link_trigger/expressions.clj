@@ -88,8 +88,16 @@
   which the current track was loaded, its slot identifier, and the
   rekordbox ID of the track. Any value found is returned. If any of
   the lookups fails, `nil` is returned."
-  [status globals source-key]
-  (get-in @globals [source-key (.getTrackSourcePlayer status) (track-source-slot status) (.getRekordboxId status)]))
+  ([status locals globals source-key]
+   (find-track* status locals globals source-key nil))
+  ([status locals globals source-key description-key]
+   (let [result (get-in @globals [source-key (.getTrackSourcePlayer status) (track-source-slot status)
+                                  (.getRekordboxId status)])]
+     (when (some? source-key)
+       (if result
+         (swap! locals assoc :track-description (get result description-key))
+         (swap! locals dissoc :track-description)))
+     result)))
 
 (defmacro find-track
   "Convenience macro for use in an Enabled Filter Expression. Looks
@@ -100,9 +108,13 @@
   Beat Link Trigger globals atom, followed by the player number from
   which the current track was loaded, its slot identifier, and the
   rekordbox ID of the track. Any value found is returned. If any of
-  the lookups fails, `nil` is returned."
-  [source-key]
-  `(find-track* ~'status ~'globals ~source-key))
+  the lookups fails, `nil` is returned.
+
+  If you pass a value for `description-key`, "
+  ([source-key]
+   `(find-track* ~'status ~'locals ~'globals ~source-key nil))
+  ([source-key description-key]
+   `(find-track* ~'status ~'locals ~'globals ~source-key ~description-key)))
 
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when

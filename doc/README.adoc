@@ -819,6 +819,10 @@ Link Trigger to display the name of the track it has matched by
 copying the `:name` string to the key `:track-description` in the
 trigger `locals` atom. Let's look at the Enabled filter's code now:
 
+TIP: :sparkles: Don't worry if this looks a little long--this first
+version shows how you could do it all on your own, and explains how
+each piece works; right after that, we'll introduce another
+convenience macro that can spare you from writing most of this code.
 
 ```clojure
 (if-let [track (get-in @globals [:watched-tracks track-source-player track-source-slot rekordbox-id])]
@@ -869,14 +873,21 @@ even been loaded) then the `if-let` form does not assign a value to
 normal numerical descripton of the track status, and returns `nil` to
 indicate that the filter should not be enabled.
 
-Since looking up tracks this way is a commonly useful task, Beat Link
-Trigger includes another convenience macro to shorten the code you
-need to write. As long as you have structured your nested track map as
-described in this example, starting with its identifying keyword,
-followed by the player number, slot identifier, and rekordbox ID as
-the nested keys, you can simplify the lookup by just calling
-`find-track` with the keyword you used to store your track map in the
-globals. So we could shorten the expression above to be:
+Here's what this set of expressions looks like in action:
+
+image:assets/MatchTracks2.png[Matching Tracks 2, 848]
+
+==== Simplifying the Expression
+
+As promised above, since looking up tracks this way is a commonly
+useful task, Beat Link Trigger includes another convenience macro to
+shorten the code you need to write. As long as you have structured
+your nested track map as described in this example, starting with its
+identifying keyword, followed by the player number, slot identifier,
+and rekordbox ID as the nested keys, you can simplify the lookup by
+just calling `find-track` with the keyword you used to store your
+track map in the globals. So we could shorten the expression above to
+be:
 
 ```clojure
 (if-let [track (find-track :watched-tracks)]
@@ -884,19 +895,48 @@ globals. So we could shorten the expression above to be:
 )
 ```
 
-Here's what this set of expressions looks like in action:
+That helps--the first line is a lot shorter and simpler now. But the
+middle part was still long enough that we felt like omitting it for
+brevity in this example... can we do better? Well, again, setting the
+track description based on some value that you have stored in your
+track map seems like a very common desire, so the `find-track` macro
+can do that for you too. All you need to do is pass it a second
+argument, telling it what keyword in the value it found in your map
+should be used to set the track description. In our case, we had
+`:name` strings that we wanted to use. So we can rewrite the entire
+Enabled Filter to this much simpler version:
 
-image:assets/MatchTracks2.png[Matching Tracks 2, 848]
+```clojure
+(when-let [track (find-track :watched-tracks :name)]
+  (when-let [cc (get-in track [:beat-ccs beat-number])]
+    (swap! locals assoc :activate-cc cc)))
+```
 
-Notice that as planned, each trigger is configured to watch a single
-player. They each have identical copies of the above Enabled filter
-installed, and are set to use it, which is why the loaded track names
-are showing up in the blue Player Status section. The first trigger is
-enabled, because that player is sitting at the beat mentioned in the
-track's `:beat-ccs` map. As soon as that player starts playing, the
-trigger will activate. But how will it know which controller number it
-is supposed to send in its activation message? That's taken care of by
-the custom Activation expression that has been installed:
+Notice that since now `find-track` is taking care of setting the
+`:track-description` local to the value at `:name` in the matched
+track map, as well as clearing it again if no track matches, we no
+longer need the &ldquo;else&rdquo; logic we were using to take care of
+cleaning up the description, so we can use a simpler `when-let` form
+rather than `if-let`. And the only thing we need to have in the body
+is whatever logic we want to use to decide when the trigger is enabled
+for a matched track.
+
+This is now a very compact, focused, and easy-to-understand filter, so
+structuring the nested maps that you use to look up tracks in the way
+that `find-track` expects to find them is quite handy.
+
+==== Using your Track Details
+
+Notice in the figure above that, as planned, each trigger is
+configured to watch a single player. They each have identical copies
+of the above Enabled filter installed, and are set to use it, which is
+why the loaded track names are showing up in the blue Player Status
+section. The first trigger is enabled, because that player is sitting
+at the beat mentioned in the track's `:beat-ccs` map. As soon as that
+player starts playing, the trigger will activate. But how will it know
+which controller number it is supposed to send in its activation
+message? That's taken care of by the custom Activation expression that
+has been installed:
 
 ```clojure
 (when trigger-output
