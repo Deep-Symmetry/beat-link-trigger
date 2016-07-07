@@ -1067,15 +1067,97 @@ As mentioned in the <<context-menu,Context Menu>> section, individual
 triggers can be exported on their own, and imported into other trigger
 configurations.
 
+== Integration Examples
+
+In explaining the Beat Link Trigger interface and how to extend it
+with custom expressions, we showed a few examples of ways to integrate
+other systems. This section builds on the concepts you've learned, to
+show some useful and practical integrations with systems that we have
+actually used.
+
+=== Pangolin BEYOND Advanced
+
+http://pangolin.com/shop/lasershow-designer-beyond-advanced/#tab-description[Pangolin
+BEYOND] is such flexible and powerful laser show software that Deep
+Symmetry invested in a Windows virtual machine purely to be able to
+use it to control our best laser projector. With an Advanced license,
+you can send it PangoScript commands over the network to achieve a
+deep level of integration with other systems. Here are some ways you
+can use it with Beat Link Trigger.
+
+To begin with, in the Global Setup Expression, we tell Beat Link
+Trigger how to communicate with BEYOND, by specifying the broadcast
+address of the network interface it is listening on, and the port on
+which the PangoTalk UDP server is listening. To determine those
+things, you can choose menu:Tools[Network Monitor...] within BEYOND to
+bring up a window like this:
+
+image:assets/BeyondNetworkMonitor.png[Network Monitor, 584]
+
+By looking at the Adapter IP and Mask lines, we can determine that the
+broadcast address we want to use to reach the BEYOND Talk server is
+`172.16.1.255`.
+
+TIP: In versions of BEYOND prior to 2.1, it was possible to send UDP
+unicast messages directly to the Adapter IP address. however, starting
+with version 2.1, you must actually send UDP broadcast packets to the
+broadcast address of the subnet the server is attached to.
+
+Then, make sure the BEYOND UDP Talk server is enabled
+(menu:Settings[Network > Network Settings...]):
+
+image:assets/BeyondNetworkSettings.png[Network Monitor, 424]
+
+Choose a port that is not in use by anything else on your system (the
+default of `16062` is likely fine), check the Enable Talk Server check
+box, and click btn:[OK]. Make a note of the broadcast address and UDP
+port it is listening on, and then make sure the talk server is fully
+enabled by choosing menu:Settings[Network > BEYOND Talk server]:
+
+image:assets/BeyondTalkServer.png[Talk Server, 720]
+
+TIP: In older versions of BEYOND, we sometimes had to quit and restart
+the program after making these configuration changes in order for them
+to take effect. That is probably no longer true, but we mention this
+as a potential trouleshooting step. You can also test connectivity
+using a tool like https://packetsender.com[Packet Sender] to send
+commands like `SetBpm 123.4\r\n` as UDP packets to the broadcast
+address and port you determined above, verifying that BEYOND's BPM
+updates to the value that you sent. Packet Sender also has a Subnet
+Calculator found at menu:Tools[Subnet Calculator] that can help you
+determine the broadcast address.
+
+Once you have the UDP Talk server up and working, edit your Global
+Setup expression to use the broadcast address and port to define a new
+function, `beyond-command`, that your other expressions will be able
+to use to send PangoScript commands to it:
+
+```clojure
+(let [beyond-address (InetSocketAddress. (InetAddress/getByName "172.16.1.255") 16062)
+       send-socket (DatagramSocket.)]
+   (defn beyond-command
+     "Sends a PangoScript command to the configured Beyond Talk server."
+     [command]
+     (let [payload (str command \return \newline)
+           packet (DatagramPacket. (.getBytes payload) (.length payload) beyond-address)]
+       (.send send-socket packet))))
+```
+
+> Of course, replace the address and port in the first line with the
+> correct values to use for your BEYOND UDP Talk server.
+
+
+=== Laser Show Tempo Synchronization
+
 == What Next?
 
 Hopefully this has been enough to get you started, and thinking about
 interesting ways you can synchronize your CDJs with other elements of
 your show.
 
-If you have any thoughts, questions, or even crazy ideas, please share
-them in the https://gitter.im/brunchboy/beat-link-trigger[Gitter
-chat]!
+If you have any thoughts, questions, your own integration examples, or
+even crazy ideas, please share them in the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]!
 
 If you find what seems to be an actual problem with the software,
 please open an
