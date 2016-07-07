@@ -1190,11 +1190,64 @@ tempo. Either way, we record the current effective tempo in the
 Finally, the expression always returns `nil`, because there is never
 any reason for it to be enabled. It is not actually triggering
 anything in response to a particular track playing, it is simply
-always keeping BEYOND's tempo tied to the master player.
+always keeping BEYOND's tempo tied to the master player. (For the same
+reason, it doesn't matter what you choose in the MIDI Output, Message,
+and Channel menus; they will never be sent.)
 
 Once you have this expression saved, try playing a track on the Master
 Player, adjust the pitch fader, and watch BEYOND smoothly and
 precisely track the BPM of the music being played.
+
+==== Triggering a Laser Cue
+
+With this framework in place, it is very easy to have a laser cue
+controlled by a trigger. Create another new Trigger, label it to
+describe the cue you want it to control, and set it up to be activated
+when an interesting track reaches an interesting beat, using the
+techniques described above. The only thing you need to do different is
+set the Message menu to Custom, so it will send its Activation message
+to Beyond's Talk server rather than a MIDI message.
+
+> Actually, you can map MIDI and OSC messages to BEYOND cues, so once
+> you have the BPM sync working, feel free to go that route if you
+> prefer. But since we already have a Talk server running, here is how
+> to use it.
+
+The easiest way to identify the proper PangoScript message to use to
+refer to a particular cue is to take advantage of a special mode of
+the BEYOND laser preview window that shows you all the internal
+PangoScript messages it is sending itself when you interact with its
+user interface. Choose menu:Settings[Configuration...] and click the
+Laser Preview tab. Check the Display Internal BEYOND Command check
+box, and click btn:[OK]:
+
+image:assets/BeyondPreviewConfig.png[Beyond Laser Preview configuration, 486]
+
+One that is done, as you interact with the interface, you will see
+small messages at the bottom left of the laser preview section showing
+you the equivalent PangoScript command for what you just did:
+
+image:assets/BeyondPreview.png[Beyond Laser Preview, 336]
+
+In this case, I just activated cue 16, 20 (cue 20 on page 16). So in
+the trigger's Activation Expression editor, I would use the following:
+
+```clojure
+(beyond-command "StartCue 16,20")
+```
+
+And finally, adding the corresponding Deactivation Expression rounds
+out the trigger:
+
+```clojure
+(beyond-command "StopCue 16,20")
+```
+
+With that in place, whenever this trigger activates, the specified
+BEYOND laser cue will start, and whenever the trigger deactivates, so
+will the laser cue. And when combined with the tempo synchronization
+set up in the previous section, the cue will look great with the
+music.
 
 == What Next?
 
