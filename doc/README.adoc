@@ -1088,7 +1088,7 @@ can use it with Beat Link Trigger.
 To begin with, in the Global Setup Expression, we tell Beat Link
 Trigger how to communicate with BEYOND, by specifying the broadcast
 address of the network interface it is listening on, and the port on
-which the PangoTalk UDP server is listening. To determine those
+which the BEYOND Talk UDP server is listening. To determine these
 things, you can choose menu:Tools[Network Monitor...] within BEYOND to
 bring up a window like this:
 
@@ -1136,7 +1136,7 @@ to use to send PangoScript commands to it:
 (let [beyond-address (InetSocketAddress. (InetAddress/getByName "172.16.1.255") 16062)
        send-socket (DatagramSocket.)]
    (defn beyond-command
-     "Sends a PangoScript command to the configured Beyond Talk server."
+     "Sends a PangoScript command to the configured BEYOND Talk server."
      [command]
      (let [payload (str command \return \newline)
            packet (DatagramPacket. (.getBytes payload) (.length payload) beyond-address)]
@@ -1146,8 +1146,55 @@ to use to send PangoScript commands to it:
 > Of course, replace the address and port in the first line with the
 > correct values to use for your BEYOND UDP Talk server.
 
+With that in place, we are ready to integrate laser shows. First,
+let's see how to have the tempo within BEYOND always precisely match
+the tempo of your master player.
 
-=== Laser Show Tempo Synchronization
+==== Laser Show Tempo Synchronization
+
+Create a new Trigger in Beat Link Trigger (menu:Triggers[New Trigger])
+and label it something like Beyond BPM Sync in the Comment field.
+Configure it to Watch the Master Player, and give it a Custom Enabled
+Filter:
+
+image:assets/BeyondBPMSync.png[Beyond BPM Sync, 810]
+
+The Enabled Filter editor will pop open, so you can paste in the
+following code:
+
+```clojure
+(swap! locals update-in [:beyond-bpm]
+       (fn [old-bpm]
+         (when (not= effective-tempo old-bpm)
+           (beyond-command (str "SetBpm " effective-tempo)))
+         effective-tempo))
+nil  ;; Never need to actually activate.
+```
+
+What this function will do is look at every status update packet that
+is received from the Master Player, and see if the BPM being reported
+is different from what we last told BEYOND to use (it tracks this in a
+value stored in the trigger locals map under the key `:beyond-bpm`,
+and the first time the expression is called, nothing will be found
+there, so it will always start by sending the current BPM value to
+BEYOND).
+
+When the current tempo is different from what we have sent to BEYOND,
+we use the `beyond-command` function that we defined in the Global
+Setup expression to send a `SetBpm` command to BEYOND, containing the
+current tempo at which the Master Player is playing. If there is no
+difference, we send nothing, because BEYOND is already at the right
+tempo. Either way, we record the current effective tempo in the
+`locals` map for use when the next update packet is received.
+
+Finally, the expression always returns `nil`, because there is never
+any reason for it to be enabled. It is not actually triggering
+anything in response to a particular track playing, it is simply
+always keeping BEYOND's tempo tied to the master player.
+
+Once you have this expression saved, try playing a track on the Master
+Player, adjust the pitch fader, and watch BEYOND smoothly and
+precisely track the BPM of the music being played.
 
 == What Next?
 
