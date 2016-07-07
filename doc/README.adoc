@@ -1069,11 +1069,11 @@ configurations.
 
 == Integration Examples
 
-In explaining the Beat Link Trigger interface and how to extend it
-with custom expressions, we showed a few examples of ways to integrate
-other systems. This section builds on the concepts you've learned, to
-show some useful and practical integrations with systems that we have
-actually used.
+When explaining the Beat Link Trigger interface and how to extend it
+with custom expressions, we showed some examples of ways to integrate
+other systems. This section builds on the concepts introduced there,
+to demonstrate useful and practical integrations with systems we use
+regularly.
 
 === Pangolin BEYOND Advanced
 
@@ -1134,7 +1134,7 @@ to use to send PangoScript commands to it:
 
 ```clojure
 (let [beyond-address (InetSocketAddress. (InetAddress/getByName "172.16.1.255") 16062)
-       send-socket (DatagramSocket.)]
+      send-socket (DatagramSocket.)]
    (defn beyond-command
      "Sends a PangoScript command to the configured BEYOND Talk server."
      [command]
