@@ -1127,10 +1127,10 @@ updates to the value that you sent. Packet Sender also has a Subnet
 Calculator found at menu:Tools[Subnet Calculator] that can help you
 determine the broadcast address.
 
-Once you have the UDP Talk server up and working, edit your Global
-Setup expression to use the broadcast address and port to define a new
-function, `beyond-command`, that your other expressions will be able
-to use to send PangoScript commands to it:
+Once you have the UDP Talk server up and working, edit Beat Link
+Trigger's Global Setup expression to use the broadcast address and
+port to define a new function, `beyond-command`, that your other
+expressions will be able to use to send PangoScript commands to it:
 
 ```clojure
 (let [beyond-address (InetSocketAddress. (InetAddress/getByName "172.16.1.255") 16062)
@@ -1174,7 +1174,7 @@ nil  ;; Never need to actually activate.
 What this function will do is look at every status update packet that
 is received from the Master Player, and see if the BPM being reported
 is different from what we last told BEYOND to use (it tracks this in a
-value stored in the trigger locals map under the key `:beyond-bpm`,
+value stored in the trigger `locals` map under the key `:beyond-bpm`,
 and the first time the expression is called, nothing will be found
 there, so it will always start by sending the current BPM value to
 BEYOND).
