@@ -87,15 +87,23 @@
   Beat Link Trigger globals atom, followed by the player number from
   which the current track was loaded, its slot identifier, and the
   rekordbox ID of the track. Any value found is returned. If any of
-  the lookups fails, `nil` is returned."
+  the lookups fails, `nil` is returned.
+
+  If you pass a value for `description-fn`, it will be called with the
+  matched track and the result will be used to set the track
+  description that Beat Link Trigger should display. A common and easy
+  use for this is to pass a keyword, and the value stored at that
+  keyword, if any, in the matched track, will be used as the track
+  description, since keywords are functions that look themselves up in
+  a map given to them as an argument."
   ([status locals globals source-key]
    (find-track* status locals globals source-key nil))
-  ([status locals globals source-key description-key]
+  ([status locals globals source-key description-fn]
    (let [result (get-in @globals [source-key (.getTrackSourcePlayer status) (track-source-slot status)
                                   (.getRekordboxId status)])]
      (when (some? source-key)
-       (if result
-         (swap! locals assoc :track-description (get result description-key))
+       (if (and result (some? description-fn))
+         (swap! locals assoc :track-description (description-fn result))
          (swap! locals dissoc :track-description)))
      result)))
 
@@ -110,11 +118,17 @@
   rekordbox ID of the track. Any value found is returned. If any of
   the lookups fails, `nil` is returned.
 
-  If you pass a value for `description-key`, "
+  If you pass a value for `description-fn`, it will be called with the
+  matched track and the result will be used to set the track
+  description that Beat Link Trigger should display. A common and easy
+  use for this is to pass a keyword, and the value stored at that
+  keyword, if any, in the matched track, will be used as the track
+  description, since keywords are functions that look themselves up in
+  a map given to them as an argument."
   ([source-key]
    `(find-track* ~'status ~'locals ~'globals ~source-key nil))
-  ([source-key description-key]
-   `(find-track* ~'status ~'locals ~'globals ~source-key ~description-key)))
+  ([source-key description-fn]
+   `(find-track* ~'status ~'locals ~'globals ~source-key ~description-fn)))
 
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when

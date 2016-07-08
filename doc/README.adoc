@@ -961,9 +961,57 @@ This is now a very compact, focused, and easy-to-understand filter, so
 structuring the nested maps that you use to look up tracks in the way
 that `find-track` expects to find them is quite handy.
 
+==== Fancier Name Formatting
+
+You can actually do more than pass a keyword as the second argument to
+`find-track`; what it actually takes is a _function_ that it calls with
+the matching track map, and uses the result as the description.
+Keywords work because in Clojure a keyword is also a function that
+looks itself up in the map you pass it as an argument. Cool trick! But
+if you want to combine multiple pieces of the map, or do anything
+else, you can. As a small example, this is how you could limit the
+length of the description to at most ten characters, even if the track
+name is longer than that:
+
+```clojure
+(when-let [track (find-track :watched-tracks #(subs (:name %) 0 (min 10 (count (:name %)))))]
+  (when-let [cc (get-in track [:beat-ccs beat-number])]
+    (swap! locals assoc :activate-cc cc)))
+```
+
+That syntax probably looks really strange; `#(...)` is a compact way
+to write an anonymous function in Clojure, and `%` is the single
+argument that function was called with. If you want to avoid such
+terse and cryptic code, you can take the more readable approach of
+actually declaring a named function in your Global Setup expression,
+and then using it in your Enabled Filter expressions. So, adding this
+to Global Setup:
+
+```clojure
+(defn name-10-chars
+  "Looks up the :name key in a track map, and shortens
+  to 10 characters if needed."
+  [track]
+  (let [name (:name track)]
+    (subs name 0 (min 10 (count name)))))
+```
+
+defines the function `name-10-chars`, which you can then use in your
+Enabled Filter:
+
+```clojure
+(when-let [track (find-track :watched-tracks name-10-chars)]
+  (when-let [cc (get-in track [:beat-ccs beat-number])]
+    (swap! locals assoc :activate-cc cc)))
+```
+
+Which brings us back to a concise, readable expression. And of course,
+your description format function can use more than one value from your
+track map, and have as much elaborate logic as you like.
+
 ==== Using your Track Details
 
-Notice in the figure above that, as planned, each trigger is
+Notice that in the screen shot above, as planned, each trigger is
 configured to watch a single player. They each have identical copies
 of the above Enabled filter installed, and are set to use it, which is
 why the loaded track names are showing up in the blue Player Status
