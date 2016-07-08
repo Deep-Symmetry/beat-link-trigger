@@ -522,6 +522,42 @@ when that track is loaded:
     (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
   result)
 ```
++
+
+There is one more improvement we can make, though. Our code as it
+stands sends an OSC message to Resolume for every status packet, even
+when the pitch is not changing. That's inefficient; it puts needless
+traffic on the network, and makes Resolume waste time processing
+messages that don't change anything. By adding a little more
+sophistication, we can keep track of the last value we sent to
+Resolume, and only send a new one when it is different. We will use a
+local named `:resolume-pitch` to keep track of the last value we sent:
++
+
+```clojure
+(let [result (= track-number 8)
+      pitch (/ (- pitch-multiplier 0.05) 2)]
+  (when result
+    (swap! locals update-in [:resolume-pitch]
+           (fn [old-pitch]
+             (when (not= pitch old-pitch)
+               (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch)))
+           pitch))
+  result)
+```
++
+
+So once again we are only doing anything when we want to be active
+(that's what the `when result` clause ensures). Within that, we
+compare the current calculated pitch value we want Resolume to be
+using with the value that was found in the `locals` map under
+`:resolume-pitch`. Only if they are different does `osc-send` get
+called to notify Resolume of the new value. Then we store the
+calculated value at `:resolume-pitch` so that it is available for
+comparison when we get the next status update. The first time this
+runs, there will be no comparison value found in `locals`, so we will
+always send an initial pitch message to Resolume when the right track
+loads for the first time.
 
 Activation Expression:: This is called when the trigger trips (in
 other words, when it would send a MIDI message reporting that its
@@ -1153,9 +1189,9 @@ the tempo of your master player.
 ==== Laser Show Tempo Synchronization
 
 Create a new Trigger in Beat Link Trigger (menu:Triggers[New Trigger])
-and label it something like Beyond BPM Sync in the Comment field.
-Configure it to Watch the Master Player, and give it a Custom Enabled
-Filter:
+and label it something like &ldquo;Beyond BPM Sync&rdquo; in the
+Comment field. Configure it to Watch the Master Player, and give it a
+Custom Enabled Filter:
 
 image:assets/BeyondBPMSync.png[Beyond BPM Sync, 810]
 
