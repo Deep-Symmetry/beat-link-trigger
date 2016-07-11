@@ -1469,8 +1469,8 @@ BEYOND into Flash mode:
 image:assets/BeyondFlashMode.png[Beyond Flash Cue Mode,706]
 
 Alternately, if you want to leave it in the default Toggle mode, you
-could use a custom Deactivation Script in Beat Link Trigger to send
-another Note On message when the trigger deactivates.
+could use a custom Deactivation Expression in Beat Link Trigger to
+send another Note On message when the trigger deactivates.
 
 If you just jumped to this section to get a look at how to get BEYOND
 to respond to CDJs, and you think it will be useful, you will want to
