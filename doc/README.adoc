@@ -1452,10 +1452,10 @@ to the hexadecimal numbers `90 7d 7f` for the Note 125 On (with
 velocity 127) and `80 7d 00` for the Note 125 Off, you could
 double-click in those cells and enter the values directly. Far more
 likely, you will select the Cell Down box for the cell you want the
-trigger to effect, then click the btn:[Learn 1+2] button, and cause
-the trigger to activate and deactivate in Beat Link Trigger. The Learn
-command tells BEYOND to watch for those two MIDI events and enter them
-into the grid cells for you:
+trigger to affect, then click the btn:[Learn 1+2] button, and while
+BEYOND is in Learn mode, activate and deactivate the trigger in Beat
+Link Trigger. The Learn 1+2 command tells BEYOND to watch for the next
+two MIDI events and enter them into the grid cells for you:
 
 image:assets/BeyondMIDILearn.png[Beyond MIDI Main Grid,770]
 
