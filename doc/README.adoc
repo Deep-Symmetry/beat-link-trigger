@@ -1399,6 +1399,7 @@ communicate the current BPM:
 
 image:assets/BeyondClockTrigger.png[Clock Trigger for BEYOND,806]
 
+image:assets/BeyondMIDIsynced.png["BEYOND synced to MIDI Clock", 162, float=right]
 Once that trigger activates, the BPM display in BEYOND will turn
 yellow and will track the tempo of the track that activated the
 trigger, although not quite as precisely as it can using the PangoTalk
@@ -1410,7 +1411,73 @@ corresponding check boxes in the trigger row. You may want to
 experiment to see how BEYOND responds to them, or ask an expert in
 BEYOND MIDI integration.
 
-image:assets/BeyondMIDIsynced.png[BEYOND synced to MIDI Clock, 162]
+==== Triggering Laser Cues via MIDI
+
+Once you have the MIDI connection established, getting cues to run
+when triggers are active is fairly straightforward. You just have to
+assign each trigger a unique MIDI Note or Controller number, and then
+map that to the appropriate cue cell in BEYOND.
+
+The screen capture below shows the addition of a basic MIDI Note
+trigger to the clock trigger from the previous example. This new
+trigger will send a MIDI Note On message for note 125 on channel 1
+when the trigger activates, and the corresponding Note Off message
+when it deactivates:
+
+image:assets/BeyondMIDITrigger.png[Beyond MIDI Trigger,814]
+
+To tie that to a cue cell in BEYOND, choose
+menu:Settings[MIDI>"(device)" settings...], picking the name of the
+device that you connected in order to receive MIDI messages from Beat
+Link Trigger:
+
+image:assets/BeyondPortSettings.png[Beyond MIDI Device Settings,574]
+
+That will open a window that gives you access to a great many MIDI
+mapping options, allowing you to cause BEYOND to react to incoming
+MIDI events in different ways. For mcuh more information about it, see
+the BEYOND MIDI Settings manual section, accesible through
+menu:Help[Documentation>Settings>MIDI settings]. In this example we
+will just take a quick look at mapping the first cue cell to respond
+to the Beat Link Trigger we have just created. To do that, click the
+btn:[Configure...] button for the Main Grid MIDI surface:
+
+image:assets/BeyondMIDIMapping.png[Beyond MIDI Mapping,502]
+
+This section allows you to set the MIDI messages which BEYOND will
+interpret as a mouse down or mouse up event in each of the cue cells.
+If you happen to know that the MIDI message we chose above corresponds
+to the hexadecimal numbers `90 7d 7f` for the Note 125 On (with
+velocity 127) and `80 7d 00` for the Note 125 Off, you could
+double-click in those cells and enter the values directly. Far more
+likely, you will select the Cell Down box for the cell you want the
+trigger to effect, then click the btn:[Learn 1+2] button, and cause
+the trigger to activate and deactivate in Beat Link Trigger. The Learn
+command tells BEYOND to watch for those two MIDI events and enter them
+into the grid cells for you:
+
+image:assets/BeyondMIDILearn.png[Beyond MIDI Main Grid,770]
+
+Once you have that mapping set up, whenever Beat Link Trigger reports
+that the trigger is activated, BEYOND will act as though you have
+clicked the mouse in the first cue cell, and when the trigger is
+deactivated, BEYOND will act as though you have released the mouse. In
+order to have cues end when triggers deactivate, you will want to put
+BEYOND into Flash mode:
+
+image:assets/BeyondFlashMode.png[Beyond Flash Cue Mode,706]
+
+Alternately, if you want to leave it in the default Toggle mode, you
+could use a custom Deactivation Script in Beat Link Trigger to send
+another Note On message when the trigger deactivates.
+
+If you just jumped to this section to get a look at how to get BEYOND
+to respond to CDJs, and you think it will be useful, you will want to
+go back and read this entire user guide to get a better understanding
+of how to make your triggers activate for just the portions of the
+tracks that you want them to. And again, this barely scratches the
+surface of MIDI mapping in BEYOND; see the BEYOND documentation and
+Pangolin forums for more information about that.
 
 == What Next?
 
