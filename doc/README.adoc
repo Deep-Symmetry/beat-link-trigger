@@ -1436,11 +1436,11 @@ image:assets/BeyondPortSettings.png[Beyond MIDI Device Settings,574]
 
 That will open a window that gives you access to a great many MIDI
 mapping options, allowing you to cause BEYOND to react to incoming
-MIDI events in different ways. For mcuh more information about it, see
+MIDI events in different ways. For much more information about it, see
 the BEYOND MIDI Settings manual section, accesible through
-menu:Help[Documentation>Settings>MIDI settings]. In this example we
-will just take a quick look at mapping the first cue cell to respond
-to the Beat Link Trigger we have just created. To do that, click the
+menu:Help[Documentation>Settings>MIDI settings]. In this example we'll
+just take a quick look at mapping the first cue cell to respond to the
+Beat Link Trigger we have just created. To do that, click the
 btn:[Configure...] button for the Main Grid MIDI surface:
 
 image:assets/BeyondMIDIMapping.png[Beyond MIDI Mapping,502]
