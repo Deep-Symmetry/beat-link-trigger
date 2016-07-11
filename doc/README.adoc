@@ -1399,7 +1399,8 @@ communicate the current BPM:
 
 image:assets/BeyondClockTrigger.png[Clock Trigger for BEYOND,806]
 
-image:assets/BeyondMIDIsynced.png["BEYOND synced to MIDI Clock", 162, float=right]
++++<img src="assets/BeyondMIDIsynced.png" width="162"
+align="right" alt="BEYOND synced to MIDI Clock">+++
 Once that trigger activates, the BPM display in BEYOND will turn
 yellow and will track the tempo of the track that activated the
 trigger, although not quite as precisely as it can using the PangoTalk
