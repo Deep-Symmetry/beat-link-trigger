@@ -770,6 +770,24 @@ different tracks on, you can store the location of each under a
 separate key in the globals, and look them up using that key in the
 triggers that need to work with tracks from that media.
 
+[TIP]
+====================================================================
+If you want to completely ignore track IDs and where they were
+loaded from, and simply base your triggers on the tracks' position
+within a playlist, you can use the `track-number` variable in your
+Enabled Filter expression, and start the expression by setting the
+trigger to display this number as its description, instead of the ID
+and slot information:
+
+```clojure
+(swap! locals assoc :track-description (str "Track #" track-number))
+```
+
+This isn't the default, because playlists change more often than track
+IDs, and there is no way of telling what playlist a track was loaded
+from. But it can work for certain kinds of planned shows.
+====================================================================
+
 === One Trigger per Player
 
 When you have a great many tracks that you want to watch for, managing
