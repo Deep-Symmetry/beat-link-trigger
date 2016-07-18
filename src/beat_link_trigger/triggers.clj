@@ -26,6 +26,20 @@
   values they want to share across triggers."}
   expression-globals (atom {}))
 
+(defonce ^{:private true
+           :doc "Holds the trigger window, through which we can access and
+  manipulate the triggers themselves."}
+  trigger-frame
+  (atom nil))
+
+(defn- global-user-data
+  "Locates the user data attached to the whole triggers frame, for
+  working with global expressions."
+  []
+  (if (nil? @trigger-frame)
+    (atom {})  ; Don't crash during initial window setup
+    (seesaw/user-data (seesaw/config @trigger-frame :content))))
+
 (defn- enabled?
   "Check whether a trigger is enabled."
   ([trigger]
@@ -338,7 +352,7 @@
     (some? custom-description)
     custom-description
 
-    (pos? (.getRekordboxId status))
+    (and (pos? (.getRekordboxId status)) (not (:tracks-using-playlists? @(global-user-data))))
     (str "Track id " (.getRekordboxId status) " [" (.getTrackSourcePlayer status) ":"
          (expressions/case-enum (.getTrackSourceSlot status)
            CdjStatus$TrackSourceSlot/USB_SLOT "usb"
@@ -421,12 +435,6 @@
     (catch Exception e
       (timbre/error e "Problem showing Trigger MIDI status."))))
 
-(defonce ^{:private true
-           :doc "Holds the trigger window, through which we can access and
-  manipulate the triggers themselves."}
-  trigger-frame 
-  (atom nil))
-
 (defn- get-triggers
   "Returns the list of triggers that currently exist."
   []
@@ -449,14 +457,6 @@
   (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
                                             (.height (.getBounds @trigger-frame))))
                               (.pack @trigger-frame)))
-
-(defn- global-user-data
-  "Locates the user data attached to the whole triggers frame, for
-  working with global expressions."
-  []
-  (if (nil? @trigger-frame)
-    (atom {})  ; Don't crash during initial window setup
-    (seesaw/user-data (seesaw/config @trigger-frame :content))))
 
 (defn- run-global-function
   "Checks whether the trigger frame has a custom function of the
@@ -839,7 +839,8 @@
   (prefs/put-preferences (merge (prefs/get-preferences)
                                 {:triggers (trigger-configuration)}
                                 (when-let [exprs (:expressions @(global-user-data))]
-                                  {:expressions exprs}))))
+                                  {:expressions exprs})
+                                {:tracks-using-playlists? (:tracks-using-playlists? @(global-user-data))})))
 
 ;; Register the custom readers needed to read back in the defrecords that we use,
 ;; including under the old package name before they were moved to the triggers namespace.
@@ -1019,9 +1020,10 @@
   "Reads the preferences and recreates any trigger rows that were
   specified in them. If none were found, returns a single, default
   trigger. Also updates the global setup and shutdown expressions,
-  running them as needed."
+  running them as needed, and sets the default track description."
   []
   (let [m (prefs/get-preferences)]
+    (.doClick (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m) :#track-position :#track-id)]))
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
       (doseq [[kind expr] exprs]
@@ -1068,18 +1070,17 @@
                                                                           :window-name "Expression Globals"))
                                       :name "Inspect Expression Globals"
                                       :tip "Examine any values set as globals by any Trigger Expressions.")
-        using-playlists? (get-in @(global-user-data) [:tracks-using-playlists?])
+        using-playlists? (:tracks-using-playlists? @(global-user-data))
         bg (seesaw/button-group)
         track-submenu (seesaw/menu :text "Default Track Description"
-                                   :items [(seesaw/radio-menu-item :text "recordbox id [player, slot]"
+                                   :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
                                                                    :selected? (not using-playlists?) :group bg)
-                                           (seesaw/radio-menu-item :text "playlist position"
+                                           (seesaw/radio-menu-item :text "playlist position" :id :track-position
                                                                    :selected? using-playlists? :group bg)])]
     (seesaw/listen bg :selection
                    (fn [e]
-                     (timbre/info "e" e)
                      (when-let [s (seesaw/selection bg)]
-                       (timbre/info "Selected" s))))
+                       (swap! (global-user-data) assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) logs/logs-action]
