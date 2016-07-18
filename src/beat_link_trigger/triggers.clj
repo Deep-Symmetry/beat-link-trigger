@@ -1067,7 +1067,19 @@
   (let [inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
                                                                           :window-name "Expression Globals"))
                                       :name "Inspect Expression Globals"
-                                      :tip "Examine any values set as globals by any Trigger Expressions.")]
+                                      :tip "Examine any values set as globals by any Trigger Expressions.")
+        using-playlists? (get-in @(global-user-data) [:tracks-using-playlists?])
+        bg (seesaw/button-group)
+        track-submenu (seesaw/menu :text "Default Track Description"
+                                   :items [(seesaw/radio-menu-item :text "recordbox id [player, slot]"
+                                                                   :selected? (not using-playlists?) :group bg)
+                                           (seesaw/radio-menu-item :text "playlist position"
+                                                                   :selected? using-playlists? :group bg)])]
+    (seesaw/listen bg :selection
+                   (fn [e]
+                     (timbre/info "e" e)
+                     (when-let [s (seesaw/selection bg)]
+                       (timbre/info "Selected" s))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) logs/logs-action]
@@ -1075,8 +1087,8 @@
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-editors))
-                                                        [(seesaw/separator) inspect-action (seesaw/separator)
-                                                         clear-triggers-action])
+                                                        [(seesaw/separator) track-submenu inspect-action
+                                                         (seesaw/separator) clear-triggers-action])
                                          :id :triggers-menu)])))
 
 (defn update-global-expression-icons
