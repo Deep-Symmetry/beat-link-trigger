@@ -54,7 +54,7 @@ To create additional triggers you can choose `New Trigger` in the
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu.png[Triggers Menu, 341]
+image:assets/TriggersMenu.png[Triggers Menu, 392]
 
 Here are the sections of a trigger, and how they work:
 
@@ -772,12 +772,18 @@ triggers that need to work with tracks from that media.
 
 [TIP]
 ====================================================================
-If you want to completely ignore track IDs and where they were
-loaded from, and simply base your triggers on the tracks' position
-within a playlist, you can use the `track-number` variable in your
-Enabled Filter expression, and start the expression by setting the
-trigger to display this number as its description, instead of the ID
-and slot information:
+If you want to completely ignore track IDs and where they were loaded
+from, and simply base your triggers on the tracks' position within a
+playlist, you can use the `track-number` variable in your Enabled
+Filter expression, and tell Beat Link Trigger to display this number
+as its description, instead of the ID and slot information, by
+choosing menu:Triggers[Default Track Description>playlist position] in
+the Triggers window menu:
+
+image:assets/TrackDescriptionMenu.png[Track Description Menu, 678]
+
+This is equivalent to including the following form in your Enabled
+Filter expression:
 
 ```clojure
 (swap! locals assoc :track-description (str "Track #" track-number))
