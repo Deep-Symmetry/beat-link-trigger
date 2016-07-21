@@ -541,8 +541,8 @@ local named `:resolume-pitch` to keep track of the last value we sent:
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
              (when (not= pitch old-pitch)
-               (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch)))
-           pitch))
+               (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
+             pitch)))
   result)
 ```
 +
