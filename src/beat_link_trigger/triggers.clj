@@ -324,7 +324,8 @@
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
   changed, send appropriate messages, start or stop its associated
-  clock synchronization thread, and record the new state."
+  clock synchronization thread, and record the new state. Finally, run
+  the Tracked Update Expression if there is one."
   [trigger playing on-air status]
   (let [old-data @(seesaw/user-data trigger)
         updated (swap! (seesaw/user-data trigger)
@@ -340,6 +341,7 @@
     (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
       (start-clock trigger updated)
       (stop-clock trigger updated)))
+  (run-trigger-function trigger :tracked status false)
   (seesaw/repaint! (seesaw/select trigger [:#state])))
 
 (defn describe-track

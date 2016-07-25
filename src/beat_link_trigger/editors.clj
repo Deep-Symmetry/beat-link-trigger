@@ -147,6 +147,25 @@
   systems."
           :bindings (trigger-bindings-for-class Beat)}
 
+   :tracked {:title "Tracked Update Expression"
+             :tip "Called for each update from the player a trigger is tracking."
+             :description
+             "Called whenever a status update packet is received from
+  the player a trigger is tracking, after the Enabled Filter
+  Expression, if any, has had a chance to decide if the trigger is
+  enabled, and after the Activaction or Deactivation expression, if
+  appropriate. The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below.
+  If you want to only relay updates when the trigger is active (is
+  enabled, and the watched player is playing), wrap your code inside a
+  <code>when</code> expression conditioned on the
+  <code>trigger-active?</code> convenience variable."
+             :bindings (trigger-bindings-for-class CdjStatus)}
+
    :deactivation {:title "Deactivation Expression"
                   :tip "Called when the trigger becomes disabled or idle."
                   :description
