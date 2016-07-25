@@ -17,6 +17,9 @@ This change log follows the conventions of
 - User expressions can override how a track is described by storing a
   custom description string under the key `:track-description` in the
   trigger locals map.
+- A new, separate Tracked Update expression to use for relaying status
+  updates about the tracked player to other systems, simplifying the
+  purpose and use of the Enabled Filter expression
 - An example of how to control Pangolin BEYOND laser shows.
 - Takes advantage of beat-link's new slf4j integration to redirect any
   log output that beat-link produces into the beat-link-trigger log

@@ -259,7 +259,7 @@ will be filled in if that expression has a value, and the gear in the
 button will be filled in if any expression associated with the trigger
 has a value.
 
-image:assets/ContextMenu.png[Context Menu, 254]
+image:assets/ContextMenu.png[Context Menu, 314]
 
 Below the expression-related options, you can export the current
 trigger configuration to a text file which can be imported into a
@@ -474,16 +474,35 @@ enabled or not.
 +
 
 Since this expression is called every time we get a status update from
-a watched player, it can be very useful even if you don't need a
-custom Enabled state for the trigger. In our example, we can use it to
+a watched player, you might find it useful even if you don't need a
+custom Enabled state for the trigger, to relay ongoing state
+information to other systems like Resolume. But because it is called
+to decide which player to track, if your trigger is set to watch Any
+Player, it will be called more times than you might expect, so there
+is a better expression to use for that kind of integration:
+
+Tracked Update Expression:: This is similar to the Enabled Filter
+Expression, but even when a trigger is configured to potentially watch
+multiple players, it is called only for the player that is currently
+being tracked, which will be the one that is considered “best” as
+described in the Watch Menu section above. players which enable the
+trigger are better than ones that don't; within that group, it is
+better to be playing, and as a tie-breaker the lowest numbered player
+is chosen.
++
+
+Continuing our example, we can use a Tracked Update Expression to
 update the playback speed within Arena 5 to stay synced with the
-current tempo of the CDJ:
+current tempo of the CDJ. We want to send messages to Resolume only
+when the trigger is active, which means it is enabled and the player
+it is watching is currently playing, so we wrap our expression in a
+`when` clause like this:
 +
 
 ```clojure
-(let [pitch (/ (- pitch-multiplier 0.05) 2)]
-  (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch)))
-true
+(when trigger-active?
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]
+    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))
 ```
 +
 
@@ -499,56 +518,42 @@ to control, as described in the
 https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
 +
 
-TIP: The `true` on the last line is there because even when we want to
-use the Enabled Filter Expression for another purpose like this, it
-will _still_ control whether the trigger is enabled or not, and needs
-to return a true value or it will disable the filter. (And, as it
-turns out, `osc-send` returns `nil`, which is not considered a true
-value.)
-+
-
 Of course, we may want to still have this trigger enabled only when a
-particular track is loaded into the CDJ, and we can do both things in
-a single expression. Here is how we would check that the track number
-is 8 before sending anything to Resolume, and pass that information
-along to Beat Link Trigger so that the trigger itself is only enabled
-when that track is loaded:
+particular track is loaded into the CDJ. To do that we would add an
+Enabled Filter expression along these lines (details will vary
+depending on how you want to match the track, with several options
+described <<matching-tracks,below>>):
 +
 
 ```clojure
-(let [result (= track-number 8)
-      pitch (/ (- pitch-multiplier 0.05) 2)]
-  (when result
-    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
-  result)
+(and (= rekordbox-id 148) (= track-source-player 3))
 ```
 +
 
 There is one more improvement we can make, though. Our code as it
-stands sends an OSC message to Resolume for every status packet, even
-when the pitch is not changing. That's inefficient; it puts needless
-traffic on the network, and makes Resolume waste time processing
-messages that don't change anything. By adding a little more
-sophistication, we can keep track of the last value we sent to
-Resolume, and only send a new one when it is different. We will use a
-local named `:resolume-pitch` to keep track of the last value we sent:
+stands sends an OSC message to Resolume for every status packet from
+the watched player, even when the pitch is not changing. That's
+inefficient; it puts needless traffic on the network, and makes
+Resolume waste time processing messages that don't change anything. By
+adding a little more sophistication to our Tracked Update Expression,
+we can keep track of the last value we sent to Resolume, and only send
+a new one when it is different. We will use a local named
+`:resolume-pitch` to keep track of the last value we sent:
 +
 
 ```clojure
-(let [result (= track-number 8)
-      pitch (/ (- pitch-multiplier 0.05) 2)]
-  (when result
+(when trigger-active?
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
              (when (not= pitch old-pitch)
                (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
-             pitch)))
-  result)
+             pitch))))
 ```
 +
 
-So once again we are only doing anything when we want to be active
-(that's what the `when result` clause ensures). Within that, we
+So once again we are only doing anything when the trigger is active
+(that's what the `when` clause ensures). Within that, we
 compare the current calculated pitch value we want Resolume to be
 using with the value that was found in the `locals` map under
 `:resolume-pitch`. Only if they are different does `osc-send` get
@@ -558,6 +563,33 @@ comparison when we get the next status update. The first time this
 runs, there will be no comparison value found in `locals`, so we will
 always send an initial pitch message to Resolume when the right track
 loads for the first time.
++
+
+If you want to watch this happening, you can add a log statement that
+will report the new pitch value each time it is sent, like this:
++
+```clojure
+(when trigger-active?
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]
+    (swap! locals update-in [:resolume-pitch]
+           (fn [old-pitch]
+             (when (not= pitch old-pitch)
+               (timbre/info "New pitch:" pitch)
+               (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
+             pitch))))
+```
++
+
+With this expression in place, when the trigger is active and you
+fiddle with the Pitch fader on the CDJ that is playing the track, you
+will see entries like this in the <<logs,log file>>:
++
+
+```
+2016-Jul-24 23:21:31 INFO [beat-link-trigger.expressions:?] - New pitch: 0.475
+2016-Jul-24 23:22:18 INFO [beat-link-trigger.expressions:?] - New pitch: 0.4782496452331543
+2016-Jul-24 23:22:18 INFO [beat-link-trigger.expressions:?] - New pitch: 0.4802499771118164
+```
 
 Activation Expression:: This is called when the trigger trips (in
 other words, when it would send a MIDI message reporting that its
