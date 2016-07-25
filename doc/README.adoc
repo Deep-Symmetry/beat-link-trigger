@@ -485,7 +485,7 @@ Tracked Update Expression:: This is similar to the Enabled Filter
 Expression, but even when a trigger is configured to potentially watch
 multiple players, it is called only for the player that is currently
 being tracked, which will be the one that is considered “best” as
-described in the Watch Menu section above. players which enable the
+described in the Watch Menu section above. Players which enable the
 trigger are better than ones that don't; within that group, it is
 better to be playing, and as a tie-breaker the lowest numbered player
 is chosen.
