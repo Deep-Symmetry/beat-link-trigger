@@ -466,36 +466,46 @@ we created to talk to Resolume:
 (osc/osc-close (:resolume @locals))
 ```
 
-Enabled Filter Expression:: As described in the introduction to this
-section, this is used when you set a trigger's Enabled menu to Custom.
-It is called whenever a status update packet is received from a
-watched player, and tells Beat Link Trigger if the trigger should be
-enabled or not.
+Enabled Filter Expression:: As described in the
+<<expressions,introduction>> to this section, this is used when you
+set a trigger's Enabled menu to Custom. It is called whenever a status
+update packet is received from a watched player, and tells Beat Link
+Trigger if the trigger should be enabled or not. Often you will want a
+trigger to be enabled when a DJ has loaded a particular track, and a
+variety of strategies for achieving that are described in their own
+<<matching-tracks,section below>>, see that for lots of great ideas.
+Following some of its suggestions, our Resolume example could enable
+its trigger with a custom Enabled Filter along the lines of:
++
+
+```clojure
+(= rekordbox-id 7)
+```
 +
 
 Since this expression is called every time we get a status update from
-a watched player, you might find it useful even if you don't need a
-custom Enabled state for the trigger, to relay ongoing state
-information to other systems like Resolume. But because it is called
-to decide which player to track, if your trigger is set to watch Any
-Player, it will be called more times than you might expect, so there
-is a better expression to use for that kind of integration:
+a watched player, you might think it could be useful even when you
+don't need a custom Enabled state for the trigger, to relay ongoing
+state information to other systems like Resolume. But because it is
+called to decide which player to track when your trigger is set to
+watch Any Player, it will be called more times than you might expect,
+so there is a better expression to use for that kind of integration:
 
 Tracked Update Expression:: This is similar to the Enabled Filter
 Expression, but even when a trigger is configured to potentially watch
 multiple players, it is called only for the player that is currently
 being tracked, which will be the one that is considered “best” as
-described in the Watch Menu section above. Players which enable the
-trigger are better than ones that don't; within that group, it is
-better to be playing, and as a tie-breaker the lowest numbered player
-is chosen.
+described in the <<watch-menu,Watch Menu>> section above. Players which
+enable the trigger are better than ones that don't; within that group,
+it is better to be playing, and as a tie-breaker the lowest numbered
+player is chosen.
 +
 
 Continuing our example, we can use a Tracked Update Expression to
 update the playback speed within Arena 5 to stay synced with the
 current tempo of the CDJ. We want to send messages to Resolume only
-when the trigger is active, which means it is enabled and the player
-it is watching is currently playing, so we wrap our expression in a
+when the trigger is active--which means it is enabled and the player
+it is watching is currently playing--so we wrap our expression in a
 `when` clause like this:
 +
 
@@ -518,18 +528,6 @@ to control, as described in the
 https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
 +
 
-Of course, we may want to still have this trigger enabled only when a
-particular track is loaded into the CDJ. To do that we would add an
-Enabled Filter expression along these lines (details will vary
-depending on how you want to match the track, with several options
-described <<matching-tracks,below>>):
-+
-
-```clojure
-(and (= rekordbox-id 148) (= track-source-player 3))
-```
-+
-
 There is one more improvement we can make, though. Our code as it
 stands sends an OSC message to Resolume for every status packet from
 the watched player, even when the pitch is not changing. That's
@@ -547,7 +545,7 @@ a new one when it is different. We will use a local named
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
              (when (not= pitch old-pitch)
-               (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
+               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))
              pitch))))
 ```
 +
@@ -575,7 +573,7 @@ will report the new pitch value each time it is sent, like this:
            (fn [old-pitch]
              (when (not= pitch old-pitch)
                (timbre/info "New pitch:" pitch)
-               (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))
+               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))
              pitch))))
 ```
 +
@@ -600,7 +598,19 @@ the trigger to do, you can set its Message menu to Custom, to suppress
 the default MIDI messages that it would otherwise send.
 +
 
-Beat Link Trigger embeds Project Overtone's
+Continuing our Resolume example, here is an Activation expression that
+would use OSC to trigger the clip that our Tracked Update expression
+was adjusting the pitch for:
++
+
+```clojure
+(osc/osc-send (:resolume @locals) "/layer3/clip3/connect/" (int 1))
+```
++
+
+You can also use the Activation expression to send MIDI messages that
+differ from the ones available through the graphical interface. Beat
+Link Trigger embeds Project Overtone's
 https://github.com/rosejn/midi-clj[midi-clj] library and aliases it to
 `midi` within the context of expressions to make it easy to send MIDI
 messages. The trigger's chosen MIDI output is available as
