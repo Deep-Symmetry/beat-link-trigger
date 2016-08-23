@@ -6,17 +6,17 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [com.fifesoft/rsyntaxtextarea "2.5.8"]
                  [com.github.insubstantial/substance "7.3"]
-                 [com.taoensso/timbre "4.6.0"]
+                 [com.taoensso/timbre "4.7.4"]
                  [com.fzakaria/slf4j-timbre "0.3.2"]
-                 [environ "1.0.3"]
-                 [fipp "0.6.5"]
+                 [environ "1.1.0"]
+                 [fipp "0.6.6"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.1.8"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.4.5"]
-                 [uk.co.xfactory-librarians/coremidi4j "0.8"]]
+                 [uk.co.xfactory-librarians/coremidi4j "0.9-SNAPSHOT"]]
 
   :profiles {:dev {:repl-options {:init-ns beat-link-trigger.core
                                   :welcome (println "beat-link-trigger loaded.")}
