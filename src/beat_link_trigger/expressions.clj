@@ -8,9 +8,6 @@
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
-(defonce ^{:doc "Holds global variables shared between user expressions."}
-  globals (atom {}))
-
 (defmacro case-enum
   "Like `case`, but explicitly dispatch on Java enum ordinals."
   {:style/indent 1}
