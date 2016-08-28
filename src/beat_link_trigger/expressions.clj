@@ -46,6 +46,23 @@
     CdjStatus$TrackType/REKORDBOX        :rekordbox
     :unknown))
 
+(defn- add-media*
+  "A convenience function for adding keywords that identify media
+  which can be assigned to player slots for use with track matching
+  and the Media Locations window."
+  [globals & ks]
+  {:pre [(every? keyword? ks)]}
+  (doseq [k ks]
+    (swap! globals update-in [:media k] merge {})))
+
+(defmacro add-media
+  "Convenience macro for use in the Global Setup Expression.
+  Accepts a list of keywords that identify media which can be assigned
+  to player slots for use with track matching and the Media Locations
+  window."
+  [& ks]
+  `(add-media* ~'globals ~@ks))
+
 (defn track-matches*
   "A convenience function for checking whether a track matches a
   particular source and rekordbox ID number. Compares the source
