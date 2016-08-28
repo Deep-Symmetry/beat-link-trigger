@@ -5,6 +5,7 @@
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.logs :as logs]
+            [beat-link-trigger.media :as media]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
             [fipp.edn :as fipp]
@@ -1063,10 +1064,21 @@
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
 
+(def ^:private media-locations-action
+  "The menu action which opens the Media Locations window."
+  (letfn [(cleanup-fn []
+            (run-global-function :shutdown)
+            (reset! expression-globals {})
+            (run-global-function :setup)
+            (update-global-expression-icons))
+          (editor-fn []
+            (editors/show-trigger-editor :setup (seesaw/config @trigger-frame :content) cleanup-fn))]
+    (seesaw/action :handler (fn [e] (media/show-window @trigger-frame expression-globals editor-fn))
+                   :name "Set Media Locations"
+                   :key "menu M")))
+
 (defn- build-trigger-menubar
-  "Creates the menu bar for the trigger window; will be recreated when
-  global expressions are edited, becaue they can affect its
-  appearance."
+  "Creates the menu bar for the trigger window."
   []
   (let [inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
                                                                           :window-name "Expression Globals"))
@@ -1090,7 +1102,8 @@
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-editors))
-                                                        [(seesaw/separator) track-submenu inspect-action
+                                                        [(seesaw/separator)
+                                                         track-submenu media-locations-action inspect-action
                                                          (seesaw/separator) clear-triggers-action])
                                          :id :triggers-menu)])))
 
