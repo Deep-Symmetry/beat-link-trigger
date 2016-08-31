@@ -1148,7 +1148,7 @@
   handlers it needs in order to stay up to date with events on the
   MIDI and DJ Link networks."
   []
-    ;; Request notifications when MIDI devices appear or vanish
+  ;; Request notifications when MIDI devices appear or vanish
   (when (CoreMidiDeviceProvider/isLibraryLoaded)
     (CoreMidiDeviceProvider/addNotificationListener
      (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
