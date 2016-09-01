@@ -50,11 +50,11 @@
                       (swap! globals assoc-in [:media-locations n slot] chosen)))
         media-model (concat [""] (map str (sort (keys (:media @globals)))))
         usb-slot (seesaw/combobox :model media-model
-                                  :listen [:item-state-changed (fn [e] (set-media :usb e))])
+                                  :listen [:item-state-changed (fn [e] (set-media :usb-slot e))])
         sd-slot (seesaw/combobox :model media-model
-                                 :listen [:item-state-changed (fn [e] (set-media :sd e))])]
-    (seesaw/value! usb-slot (str (get-in @globals [:media-locations n :usb])))
-    (seesaw/value! sd-slot (str (get-in @globals [:media-locations n :sd])))
+                                 :listen [:item-state-changed (fn [e] (set-media :sd-slot e))])]
+    (seesaw/value! usb-slot (str (get-in @globals [:media-locations n :usb-slot])))
+    (seesaw/value! sd-slot (str (get-in @globals [:media-locations n :sd-slot])))
     (mig/mig-panel
      :background color
      :items [[(str "Player " n ".") "align right"]
