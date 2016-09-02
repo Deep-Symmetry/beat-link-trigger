@@ -764,53 +764,67 @@ tedious and error-prone, and with more than a few triggers, frankly
 unmanageable. But there is a better way.
 
 We can use the Global Setup expression to set up global configuration
-information that specifies where our DJ has loaded his rekordbox
-database, so that there is only one place to update during the
-performance once we see where his tracks are being loaded from:
+information about the media library or libraries our DJs are using.
+For example, If you have USB sticks named “Show 1” and “extra”,
+with different tracks on each. you can configure them like this:
 
 ```clojure
-(swap! globals assoc :symmetry-media
-  {:player 3
-   :slot :usb-slot})
+(add-media :show-1 :extra)
 ```
 
-The USB drive on my keychain is named Symmetry, so this Global Setup
-expression adds the key `:symmetry-media` to the Beat Link Trigger
-`globals` map, and stores a map there containing the player number 3
-and the slot `:usb-slot`. This can then be used in each Enabled Filter
-expression, like so:
+This sets up a map in the expression globals that can track the player
+and slot into which these track collections have been inserted for a
+given show. To actually assign them, choose
+menu:Triggers[Set Media Locations]
+in the Triggers window menu:
+
+image:assets/MediaLocations.png[Set Media Locations, 420]
+
+Each player found on the network will have a row in this window, and
+using the menus you can assign any of the media libraries you
+configured with `add-media` to either of its slots, or you can
+indicate that a slot contains no known media.
+
+If you used menu:Triggers[Inspect Expression Globals] after making
+these choices, you'd see that a `:media-locations` entry has been
+added to the expression globals, containing a map reflecting your
+choices like this:
 
 ```clojure
-(let [{:keys [player slot]} (:symmetry-media @globals)]
-  (and
-    (= rekordbox-id 15) (= track-source-player player) (= track-source-slot slot)
-    (>= beat-number 225)))
+{2 {:usb-slot :show-1}
+ 3 {:sd-slot :extra}}
 ```
 
-This uses Clojure's handy map destructuring feature in the `let` form
-to bind the symbols `player` and `slot` to the corresponding values
-looked up in the map stored at `:symmetry-media` in the Beat Link
-Trigger `globals` atom. It then uses those values instead of the
-formerly hard-coded literal values in the expression. Once each
-Enabled Filter expression is written this way, as soon as you edit the
-Global Setup expression to change the player number or slot, all of the
-filter expressions immediately start watching for tracks loaded from
-the updated location.
-
-That's a lot of code to type for what is likely to be a common desire,
-though! So Beat Link Trigger includes a convenience macro called
-`track-matches` which does it for you. Using it, we can transform the
-above code to this much simpler version:
+With the media map properly configured for the current show, it can be
+used in each Enabled Filter expression, like this (but don't panic if
+this expression looks complicated; it is just to explain the low-level
+workings, the idea is so useful that Beat Link Trigger offers a helper
+function to make it much easier, which will be explained next):
 
 ```clojure
-(and (track-matches :symmetry-media 15)
+(and (= rekordbox-id 209)
+     (= (get-in @globals [:media-locations
+                          track-source-player track-source-slot]) :show-1)
      (>= beat-number 225))
 ```
 
-Of course if you have multiple media that you are watching for
-different tracks on, you can store the location of each under a
-separate key in the globals, and look them up using that key in the
-triggers that need to work with tracks from that media.
+This uses Clojure's map traversal `get-in` function with the
+`:media-locations` map to see what media key has been assigned to the
+player slot the track was loaded from. Once each Enabled Filter
+expression is written this way, as soon as you use the Set Media
+Locations window to move media around, all of the filter expressions
+immediately start watching for tracks loaded from the updated
+locations.
+
+As mentioned, though, that's a lot of code to type for what is likely
+to be a common desire! So Beat Link Trigger includes a convenience
+macro called `track-matches` which does it for you. Using it, we can
+transform the above code to this much simpler version:
+
+```clojure
+(and (track-matches :show-1 209)
+     (>= beat-number 225))
+```
 
 [TIP]
 ====================================================================
