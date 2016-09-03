@@ -54,7 +54,7 @@ To create additional triggers you can choose `New Trigger` in the
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu.png[Triggers Menu, 392]
+image:assets/TriggersMenu.png[Triggers Menu, 396]
 
 Here are the sections of a trigger, and how they work:
 
@@ -766,7 +766,7 @@ unmanageable. But there is a better way.
 We can use the Global Setup expression to set up global configuration
 information about the media library or libraries our DJs are using.
 For example, If you have USB sticks named “Show 1” and “extra”,
-with different tracks on each. you can configure them like this:
+with different tracks on each, you can configure them like this:
 
 ```clojure
 (add-media :show-1 :extra)
@@ -836,7 +836,7 @@ as its description, instead of the ID and slot information, by
 choosing menu:Triggers[Default Track Description>playlist position] in
 the Triggers window menu:
 
-image:assets/TrackDescriptionMenu.png[Track Description Menu, 678]
+image:assets/TrackDescriptionMenu.png[Track Description Menu, 680]
 
 This is equivalent to including the following form in your Enabled
 Filter expression:
