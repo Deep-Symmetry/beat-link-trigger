@@ -113,8 +113,8 @@
   ([status locals globals source-key]
    (find-track* status locals globals source-key nil))
   ([status locals globals source-key description-fn]
-   (let [result (get-in @globals [source-key (.getTrackSourcePlayer status) (track-source-slot status)
-                                  (.getRekordboxId status)])]
+   (let [media-key (get-in @globals [:media-locations (.getTrackSourcePlayer status) (track-source-slot status)])
+         result (get-in @globals [source-key media-key (.getRekordboxId status)])]
      (when (some? source-key)
        (if (and result (some? description-fn))
          (swap! locals assoc :track-description (description-fn result))
