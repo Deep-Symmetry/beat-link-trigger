@@ -144,6 +144,18 @@
   ([source-key description-fn]
    `(find-track* ~'status ~'locals ~'globals ~source-key ~description-fn)))
 
+(defn add-track*
+  "A convenience function for registering a track in the format
+  supported by `find-track`."
+  [globals source-key media-key rekordbox-id track]
+  (swap! globals assoc-in [source-key media-key rekordbox-id] track))
+
+(defmacro add-track
+  "Convenience macro for use in the Global Setup Expression to add a
+  track to the structure used by `find-track`."
+  [source-key media-key rekordbox-id track-name & others]
+  `(add-track* ~'globals ~source-key ~media-key ~rekordbox-id (hash-map :name ~track-name ~@others)))
+
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
   processing a particular kind of device update, along with the
