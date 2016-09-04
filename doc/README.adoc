@@ -868,11 +868,10 @@ loaded at the same time, this approach relies on having you set up an
 individual trigger for each player you want to watch, rather than
 having the trigger watch Any Player.
 
-So what does this global map of tracks look like? Our new Global Setup
-expression is only slightly more elaborate than the one used by the
-Set Media Locations window to keep track of the player and slot each
-media database was loaded into (and we will introduce a function that
-helps you build it shortly):
+So what does this global map of tracks look like? Here is one example
+(and if you don't like the idea of creating such a deeply nested map
+on your own, we'll introduce a macro to help you build it
+<<adding-tracks-individually,at the end of this section>>):
 
 ```clojure
 (swap! globals assoc :watched-tracks
@@ -919,42 +918,51 @@ beats within the track where we want to activate, as well as the MIDI
 Controller Change number we want to send to identify the track that's
 activating when that beat is reached.
 
+NOTE: There is nothing special about the `:name` and `:beat-ccs`
+keywords; you can use any keywords you want in your track maps, and
+store any information that you need. You probably will want the track
+names, since they can be displayed right in the interface as described
+below, but the `:beat-ccs` entry is made up for this example, to show
+how you can combine it with <<using-your-track-details,other code>> to
+cause a trigger to be activated on specific beats, sending
+configurable MIDI CC messages, for each track you care about.
+
 The `:name` entries in the track description maps play a double role.
 First, they help us when looking at this expression itself to remember
 what track each entry is matching. But the Enabled filter can also use
 the name string to show the user what track has been matched. This
 didn't matter in the One Trigger per Track approach, because each
 trigger had a Comment field where you could enter the track name it
-matched. But in this new approach, we have only a trigger for each
-player, and that trigger will activate whenever the player loads a
-track that is listed in the `:watched-tracks` global. So, without
-memorizing all the track IDs, how can you tell which one has been
-matched? Well, as described <<player-status,above>>, the Enabled
-filter can tell Beat Link Trigger to display the name of the track it
-has matched by copying the `:name` string to the key
+matched. But in this new approach, we have only a single trigger for
+each player, and that trigger will activate whenever the player loads
+a track that is listed in the `:watched-tracks` map. So, without
+memorizing all the track IDs, how will you be able to tell which one
+has been matched? Well, as described <<player-status,above>>, the
+Enabled filter can tell Beat Link Trigger to display the name of the
+track it has matched by copying the `:name` string to the key
 `:track-description` in the trigger `locals` atom. Let's look at the
 Enabled filter's code now:
 
 TIP: :sparkles: Don't worry if this looks a little long--this first
-version shows how you could do it all on your own, and explains how
-each piece works; right after that, we'll introduce another
-convenience macro that can spare you from writing most of this code.
+version shows how you could do it all on your own, so we can explain
+how each piece works. Right after that, we'll introduce another
+convenience macro that lets you avoid writing most of this code.
 
 ```clojure
 (let [media-key (get-in @globals [:media-locations track-source-player track-source-slot])]
   (if-let [track (get-in @globals [:watched-tracks media-key rekordbox-id])]
-    (do  ; Recognized track; set the name, enable if on a flagged beat
+    (do  ; Recognized track, so set the name, then enable if on a flagged beat
       (swap! locals assoc :track-description (:name track))
       (when-let [cc (get-in track [:beat-ccs beat-number])]
         (swap! locals assoc :activate-cc cc)))
-    (do  ; Unknown track, clear name, return nil to prevent activation
+    (do  ; Unknown track, so clear name, then return nil to prevent activation
       (swap! locals dissoc :track-description)
       nil)))
 ```
 
 The first part looks up the media key, if any, which has been assigned
-to the player and slot from which the track was loaded (using the
-Media Locations window). The second line uses `get-in` to navigate
+(using the Media Locations window) to the player and slot from which
+the track was loaded. The second line uses `get-in` to navigate
 through the nested map structure we created to describe tracks,
 looking up a value by starting with the media key we found, then
 looking for the rekordbox ID in the nested map. If, for example the
@@ -982,7 +990,7 @@ has any other value, the track name is still displayed, but the
 trigger is disabled.
 
 If any of the `:watched-tracks` key lookups fail anywhere along the
-way (there is no media key assigned to the player and slot through Set
+way (no media key was assigned to the player and slot through Set
 Media Locations, the media key can't be found in the `:watched-tracks`
 map, the track ID is not in the map, or perhaps `track-source-slot`
 has the value `:no-track` because no track has even been loaded) then
@@ -1005,7 +1013,7 @@ shorten the code you need to write. As long as you have structured
 your nested track map as described in this example, starting with its
 identifying keyword (`:watched-tracks` in our example), followed by
 the media library keyword and rekordbox ID as the nested keys to reach
-each track's information map, you can simplify the lookup by just
+each track's information map, you can perform the lookup by simply
 calling `find-track` with the keyword you used to store your track map
 in the globals. So we could shorten the expression above to be:
 
@@ -1033,13 +1041,13 @@ Enabled Filter to this much simpler version:
 ```
 
 Notice that since now `find-track` is taking care of setting the
-`:track-description` local to the value at `:name` in the matched
-track map, as well as clearing it again if no track matches, we no
-longer need the &ldquo;else&rdquo; logic we were using to take care of
-cleaning up the description, so we can use a simpler `when-let` form
-rather than `if-let`. And the only thing we need to have in the body
-is whatever logic we want to use to decide when the trigger is enabled
-for a matched track.
+`:track-description` local to the value found at `:name` in the
+matched track map, as well as clearing it again if no track matches,
+we no longer need the &ldquo;else&rdquo; logic we were using to take
+care of cleaning up the description, so we can use a simpler
+`when-let` form rather than `if-let`. And the only thing we need to
+have in the body is whatever logic we want to use to decide when the
+trigger is enabled for a matched track.
 
 This is now a very compact, focused, and easy-to-understand filter, so
 structuring the nested maps that you use to look up tracks in the way
@@ -1102,9 +1110,9 @@ why the loaded track names are showing up in the blue Player Status
 section. The first trigger is enabled, because that player is sitting
 at the beat mentioned in the track's `:beat-ccs` map. As soon as that
 player starts playing, the trigger will activate. But how will it know
-which controller number it is supposed to send in its activation
-message? That's taken care of by the custom Activation expression that
-has been installed:
+which MIDI CC number it is supposed to send in its activation message?
+That's taken care of by a custom Activation expression that has been
+installed:
 
 ```clojure
 (when trigger-output
@@ -1124,7 +1132,7 @@ In this example, the system being triggered only needs to know when
 the track reaches that point, so the enabled filter can disable the
 trigger as soon as the next beat is reached, and reactivate with a
 different CC when another beat of interest is reached (the Just a Gent
-remix of Best Day of my Life in this example sends CC 2 on beat 17,
+remix of _Best Day of my Life_ in this example sends CC 2 on beat 17,
 and CC 3 on beat 65, using `:beat-ccs {17 2 65 3}`).
 
 If we need to send a CC to the same controller with the value 0 when
@@ -1137,12 +1145,12 @@ be installed:
     (midi/midi-control trigger-output cc 0 (dec trigger-channel))))
 ```
 
-And of course if you can use OSC to communicate rather than MIDI, you
-are already writing custom Activation and Deactivation expressions,
-which is what you need to use for that, and you can send much more
-information about the track that way: the name, the actual rekordbox
-ID number, or some other value that you add under a new key in the
-`:watched-tracks` map. You can structure this as richly as you need.
+And of course if you are using OSC to communicate rather than MIDI,
+you are already writing custom Activation and Deactivation
+expressions, and you can send much more information about the track
+that way: the name, the actual rekordbox ID number, or some other
+value that you add under a new key in the `:watched-tracks` map. You
+can structure this as richly as you need.
 
 If you need the trigger to deactivate on specific beats, rather than
 always on the beat after it activates, that can be done with only
@@ -1151,6 +1159,52 @@ exercise to the reader, but if you get stuck or want to discuss your
 approach, please say so in the
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
+==== Adding Tracks Individually
+
+As promised a ways back (the track matching section has become pretty
+big, and probably deserves to be moved to its own document), there is
+a way to avoid having to create big nested maps all at once. If you
+prefer, you can use the `add-track` macro to add them one at a time.
+It takes four required arguments followed by any additional keyword
+and value pairs you want to store about your track. The initial four
+arguments are:
+
+`source-key`:: Identifies how you want your track map named within the
+expression globals. We were using `:watched-tracks`.
+
+`media-key`:: Identifies the media library on which the track you are
+adding resides. In our example this was either `:show-1` or `:extra`.
+
+`rekordbox-id`:: The ID of the track that you are adding.
+
+`track-name`:: The name of the track you are adding. This will be
+stored within the track map under the `:name` keyword.
+
+Any additional arguments (there must be an even number) will be
+treated as key and value pairs to be included within the map
+describing the track you are adding. So here is how we could create
+the same example map we have been using, with `add-track` rather than
+explicitly:
+
+```clojure
+(add-track :watched-tracks :show-1 1 "Rainbow (Jack rmx)" :beat-ccs {33 1})
+(add-track :watched-tracks :show-1 2 "Best Day (Gent rmx)" :beat-ccs {17 2 65 3})
+(add-track :watched-tracks :show-1 73 "Azuca (Club mix)" :beat-ccs {1 4})
+(add-track :watched-tracks :show-1 584 "Bubble Control" :beat-ccs {9 5})
+(add-track :watched-tracks :show-1 873 "Climax" :beat-ccs {63 6})
+```
+
+Of course by changing the arguments you give, you can build maps for
+multiple media libraries, without having to worry about how to nest
+and indent your maps. And as noted above, the `:beat-ccs` key and
+values were invented for this example; you can store whatever keys and
+values you need for your own purposes in your track entries.
+
+Finally, here is an example of using the
+<<inspecting-locals-and-globals,Globals Inspector>> to dive into the
+structure we have created, illustrating its hierarchical nature:
+
+image:assets/InspectingTrackMap.png[Inspecting our Track Map, 566]
 
 == Logs
 
