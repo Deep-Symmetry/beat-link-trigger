@@ -977,9 +977,11 @@
   device-listener
   (reify org.deepsymmetry.beatlink.DeviceAnnouncementListener
     (deviceFound [this announcement]
-      (rebuild-all-device-status))
+      (rebuild-all-device-status)
+      (media/update-window expression-globals 2500))
     (deviceLost [this announcement]
-      (rebuild-all-device-status))))
+      (rebuild-all-device-status)
+      (media/update-window expression-globals 2500))))
 
 (defn- translate-enabled-values
   "Convert from the old true/false model of enabled stored in early
@@ -1056,7 +1058,8 @@
                                                                  (when (= :setup kind)
                                                                    (run-global-function :shutdown)
                                                                    (reset! expression-globals {})
-                                                                   (run-global-function :setup))
+                                                                   (run-global-function :setup)
+                                                                   (media/update-window expression-globals))
                                                                  (update-global-expression-icons))))
                  :name (str "Edit " (get-in editors/global-editors [kind :title]))
                  :tip (get-in editors/global-editors [kind :tip])

@@ -113,3 +113,20 @@
 
     :else
     (make-window-visible trigger-frame)))
+
+(defn update-window
+  "If the Media Locations window is showing, update it to reflect any
+  changes which might have occurred to available players and
+  assignable media. If `ms` is supplied, delay for that many
+  milliseconds in the background in order to give the CDJ state time
+  to settle down."
+  ([globals]
+   (when-let [root @media-window]
+     (let [players (seesaw/config root :content)]
+          (seesaw/config! players :items (create-player-rows globals))
+          (seesaw/pack! root))))
+  ([globals ms]
+   (when @media-window
+     (future
+       (Thread/sleep ms)
+       (seesaw/invoke-later (update-window globals))))))

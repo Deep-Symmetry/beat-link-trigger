@@ -17,6 +17,10 @@ This change log follows the conventions of
 - User expressions can override how a track is described by storing a
   custom description string under the key `:track-description` in the
   trigger locals map.
+- A Media Locations window to help keep track of media library
+  locations so that triggers can identify tracks by their rekordbox ID
+  regardless of where the DJ ends up needing to insert media during
+  show setup.
 - A new, separate Tracked Update expression to use for relaying status
   updates about the tracked player to other systems, simplifying the
   purpose and use of the Enabled Filter expression
