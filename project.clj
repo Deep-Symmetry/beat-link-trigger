@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [com.fifesoft/rsyntaxtextarea "2.5.8"]
+                 [com.fifesoft/rsyntaxtextarea "2.6.0"]
                  [com.github.insubstantial/substance "7.3"]
                  [com.taoensso/timbre "4.7.4"]
                  [com.fzakaria/slf4j-timbre "0.3.2"]
@@ -33,7 +33,7 @@
              "Specification-Title" ~#(:name %)
              "Specification-Version" ~#(:version %)}
 
-  :plugins [[lein-environ "1.0.3"]]
+  :plugins [[lein-environ "1.1.0"]]
 
   :min-lein-version "2.0.0")
 
