@@ -40,6 +40,10 @@ This change log follows the conventions of
   that was automatically opened when you chose Custom as a Message or
   Enabled option for the trigger was not updating the state of the
   gear button.
+- Spurious exceptions could appear in the log file when triggers had
+  Tracked Update expressions because they were being called during
+  window creation without an actual status update. These expressions
+  are now only called when a status update has been received.
 
 ## [0.1.2] - 2016-06-05
 
