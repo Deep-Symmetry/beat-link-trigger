@@ -39,7 +39,8 @@
   adjusts it if needed."
   []
   (let [state @client]
-    (when (> (Math/abs (- (:link-bpm state 0.0) (:target-bpm state))) bpm-tolerance)
+    (when (and (some? (:target-bpm state))
+               (> (Math/abs (- (:link-bpm state 0.0) (:target-bpm state))) bpm-tolerance))
       (send-message (str "bpm " (:target-bpm state))))))
 
 (defn- handle-status
@@ -73,23 +74,16 @@
         (recur)))
     (.close socket)))
 
-(defn- validate-tempo
-  "Makes sure a tempo request is a reasonable number of beats per minute."
-  [bpm]
-  (if (< 0.9 bpm 400.0)
-    (double bpm)
-    (throw (IllegalArgumentException. "Tempo must be between 1 and 400 BPM"))))
-
 (defn connect
-  "Try to establish a connection to Carabiner, with a target BPM
-  value. Returns truthy if the initial open succeeded. If port is not
-  specified, the default Carabiner port of 17000 is used."
-  ([bpm]
-   (connect bpm 17000))
-  ([bpm port]
+  "Try to establish a connection to Carabiner. Returns truthy if the
+  initial open succeeded. If port is not specified, the default
+  Carabiner port of 17000 is used."
+  ([]
+   (connect 17000))
+  ([port]
    (swap! client (fn [oldval]
                    (if (:running oldval)
-                     (assoc oldval :target-bpm (validate-tempo bpm))
+                     oldval
                      (try
                        (let [socket (java.net.Socket. "127.0.0.1" port)
                              running (inc (:last oldval))
@@ -97,8 +91,7 @@
                          {:running running
                           :last running
                           :processor processor
-                          :socket socket
-                          :target-bpm (validate-tempo bpm)})
+                          :socket socket})
                        (catch Exception e
                          (timbre/warn e "Unable to connect to Carabiner"))))))
    (active?)))
@@ -113,10 +106,31 @@
                   (dissoc oldval :running)))
   nil)
 
-(defn set-tempo
-  "Sets the tempo of the Link session to the specified number of beats
-  per minute."
+(defn- validate-tempo
+  "Makes sure a tempo request is a reasonable number of beats per minute."
+  [bpm]
+  (if (< 0.9 bpm 400.0)
+    (double bpm)
+    (throw (IllegalArgumentException. "Tempo must be between 1 and 400 BPM"))))
+
+(defn lock-tempo
+  "Starts holding the tempo of the Link session to the specified
+  number of beats per minute."
   [bpm]
   (ensure-active)
   (swap! client assoc :target-bpm (validate-tempo bpm))
   (check-tempo))
+
+(defn unlock-tempo
+  "Allow the tempo of the Link session to be controlled by other
+  participants."
+  []
+  (ensure-active)
+  (swap! client dissoc :target-bpm))
+
+(defn beat-at-time
+  "Find out what beat falls at the specified time in the Link
+  timeline, given a quantum (number of beats per bar)."
+  [when quantum]
+  (ensure-active)
+  (send-message (str "beat-at-time " when " " quantum)))
