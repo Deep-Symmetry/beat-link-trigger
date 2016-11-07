@@ -50,6 +50,23 @@
   (check-tempo)
   (println "Link bpm:" (:bpm status)))
 
+(def skew-tolerance
+  "The amount by which the start of a beat can be off without
+  triggering an adjustment. This can't be larger than the normal beat
+  packet jitter without causing spurious readjustments."
+  0.0166)
+
+(defn handle-beat-at-time
+  "Processes a beat probe response from Carabiner."
+  [info]
+  ;; TODO: Check whether user wants bar-phase sync as well, and if so, compare the rounded beat mod 4 to the
+  ;; beat reported by the player, and adjust that as well if needed.
+  (let [skew (mod (:beat info) 1.0)]
+    (when (and (> skew skew-tolerance)
+               (< skew (- 1.0 skew-tolerance)))
+      (println "Realigning beat by" skew)
+      (send-message (str "force-beat-at-time " (Math/round (:beat info)) " " (:when info) " " (:quantum info))))))
+
 (defn- response-handler
   "A loop that reads messages from Carabiner as long as it is supposed
   to be running, and takes appropriate action."
@@ -66,7 +83,8 @@
                     cmd (clojure.edn/read reader)]
                 (println "Received:" message)
                 (case cmd
-                  'status (handle-status (clojure.edn/read reader))
+                  status (handle-status (clojure.edn/read reader))
+                  beat-at-time (handle-beat-at-time (clojure.edn/read reader))
                   (timbre/error "Unrecognized message from Carabiner:" message)))
               (swap! client dissoc :running)))
           (catch Exception e
