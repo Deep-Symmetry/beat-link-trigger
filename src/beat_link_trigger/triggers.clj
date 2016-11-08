@@ -2,6 +2,7 @@
   "Implements the list of triggers that send events when a CDJ starts
   playing."
   (:require [beat-link-trigger.about :as about]
+            [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.logs :as logs]
@@ -1110,7 +1111,10 @@
                                                         [(seesaw/separator)
                                                          track-submenu media-locations-action inspect-action
                                                          (seesaw/separator) clear-triggers-action])
-                                         :id :triggers-menu)])))
+                                         :id :triggers-menu)
+                            (seesaw/menu :text "Link"
+                                         :items [(seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
+                                                                :name "Carabiner Connection")])])))
 
 (defn update-global-expression-icons
   "Updates the icons next to expressions in the Trigger menu to
