@@ -53,15 +53,52 @@
                (> (Math/abs (- (:link-bpm state 0.0) (:target-bpm state))) bpm-tolerance))
       (send-message (str "bpm " (:target-bpm state))))))
 
+(defn- update-target-tempo
+  "Displays the current target BPM value, if any."
+  []
+  (when-let [frame @carabiner-window]
+    (seesaw/invoke-later
+     (seesaw/value! (seesaw/select frame [:#target])
+                    (if-some [target (:target-bpm @client)]
+                      (format "%.2f" target)
+                      "---"))
+     ;; TODO: update status icon once implemented
+     )))
+
+(defn- update-connected-status
+  "Make the state of the window reflect the current state of our
+  connection to the Carabiner daemon."
+  []
+  (when-let [frame @carabiner-window]
+    (seesaw/invoke-later
+     (let [connected (boolean (active?))]
+       (seesaw/config! (seesaw/select frame [:#master]) :enabled? connected)
+       (seesaw/config! (seesaw/select frame [:#port]) :enabled? (not connected))
+       (seesaw/value! (seesaw/select frame [:#connect]) connected)
+       ;; TODO: Update state icon once implemented
+       ))))
+
+(defn- update-link-status
+  "Make the state of the window reflect the current state of the Link
+  session."
+  []
+  (when-let [frame @carabiner-window]
+    (seesaw/invoke-later
+     (let [state @client]
+       (seesaw/value! (seesaw/select frame [:#bpm]) (if-some [bpm (:link-bpm state)]
+                                                      (format "%.2f" bpm)
+                                                      "---"))
+       (seesaw/value! (seesaw/select frame [:#peers]) (if-some [peers (:link-peers state)]
+                                                        (str peers)
+                                                        "---"))))))
+
 (defn- handle-status
   "Processes a status update from Carabiner."
   [status]
   (let [bpm (double (:bpm status))
         peers (int (:peers status))]
     (swap! client assoc :link-bpm bpm :link-peers peers)
-    (when-let [frame @carabiner-window]
-      (seesaw/value! (seesaw/select frame [:#bpm]) (format "%.2f" bpm))
-      (seesaw/value! (seesaw/select frame [:#peers]) (str peers))))
+    (update-link-status))
   (check-tempo))
 
 (def skew-tolerance
@@ -69,6 +106,17 @@
   triggering an adjustment. This can't be larger than the normal beat
   packet jitter without causing spurious readjustments."
   0.0166)
+
+(def connect-timeout
+  "How long the connection attempt to the Carabiner daemon can take
+  before we give up on being able to reach it."
+  5000)
+
+(def read-timeout
+  "How long reads from the Carabiner daemon should block so we can
+  periodically check if we have been instructed to close the
+  connection."
+  2000)
 
 (defn handle-beat-at-time
   "Processes a beat probe response from Carabiner."
@@ -78,72 +126,100 @@
   (let [skew (mod (:beat info) 1.0)]
     (when (and (> skew skew-tolerance)
                (< skew (- 1.0 skew-tolerance)))
-      (println "Realigning beat by" skew)
+      (timbre/info "Realigning beat by" skew)
       (send-message (str "force-beat-at-time " (Math/round (:beat info)) " " (:when info) " " (:quantum info))))))
 
 (defn- response-handler
   "A loop that reads messages from Carabiner as long as it is supposed
   to be running, and takes appropriate action."
   [socket running]
-  (let [buffer (byte-array 1024)
-        input (.getInputStream socket)]
-    (loop []
-      (when (= running (:running @client))
-        (try
-          (let [n (.read input buffer)]
-            (if (pos? n)
-              (let [message (String. buffer 0 n)
-                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message)))
-                    cmd (clojure.edn/read reader)]
-                (println "Received:" message)
-                (case cmd
-                  status (handle-status (clojure.edn/read reader))
-                  beat-at-time (handle-beat-at-time (clojure.edn/read reader))
-                  (timbre/error "Unrecognized message from Carabiner:" message)))
-              (swap! client dissoc :running)))
-          (catch Exception e
-            (timbre/error e "Problem reading from Carabiner.")))
-        (recur)))
-    (.close socket)))
+  (try
+    (let [buffer (byte-array 1024)
+          input (.getInputStream socket)]
+      (loop []
+        (when (and (= running (:running @client)) (not (.isClosed socket)))
+          (try
+            (let [n (.read input buffer)]
+              (if (and (pos? n) (= running (:running @client)))  ; We got data, and were not shut down while reading
+                (let [message (String. buffer 0 n)
+                      reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message)))
+                      cmd (clojure.edn/read reader)]
+                  (timbre/debug "Received:" message)
+                  (case cmd
+                    status (handle-status (clojure.edn/read reader))
+                    beat-at-time (handle-beat-at-time (clojure.edn/read reader))
+                    (timbre/error "Unrecognized message from Carabiner:" message)))
+                (do  ; We read zero, means the other side closed; force our loop to terminate.
+                  (future
+                    (javax.swing.JOptionPane/showMessageDialog
+                     @carabiner-window
+                     "Carabiner unexpectedly closed our connection; is it still running?"
+                     "Carabiner Connection Closed"
+                     javax.swing.JOptionPane/WARNING_MESSAGE))
+                  (.close socket))))
+            (catch java.net.SocketTimeoutException e
+              (timbre/debug "Read from Carabiner timed out, checking if we should exit loop."))
+            (catch Exception e
+              (timbre/error e "Problem reading from Carabiner.")))
+          (recur))))
+    (timbre/info "Ending read loop from Carabiner.")
+    (swap! client (fn [oldval]
+                    (if (= running (:running oldval))
+                      (dissoc oldval :running :socket :link-bpm :link-peers)  ; We are causing the ending.
+                      oldval)))  ; Someone else caused the ending, so leave client alone; may be new connection.
+    (.close socket)  ; Either way, close the socket we had been using to communicate, and update the window state.
+    (update-connected-status)
+    (catch Exception e
+      (timbre/error e "Problem managing Carabiner read loop."))))
+
+(defn disconnect
+  "Shut down any active Carabiner connection. The run loop will notice
+  that its run ID is no longer current, and gracefully terminate,
+  closing its socket without processing any more responses."
+  []
+  (swap! client dissoc :running :socket :link-bpm :link-peers)
+  (update-connected-status)
+  (update-link-status))
 
 (defn connect
   "Try to establish a connection to Carabiner. Returns truthy if the
-  initial open succeeded."
+  initial open succeeded. Sets up a background thread to reject the
+  connection if we have not received an initial status report from the
+  Carabiner daemon within a second of opening it."
   []
   (swap! client (fn [oldval]
                   (if (:running oldval)
                     oldval
                     (try
-                      (let [socket (java.net.Socket. "127.0.0.1" (:port oldval))
-                            running (inc (:last oldval))
-                            processor (future (response-handler socket running))]
+                      (let [socket (java.net.Socket.)
+                            running (inc (:last oldval))]
+                        (.connect socket (java.net.InetSocketAddress. "127.0.0.1" (:port oldval)) connect-timeout)
+                        (.setSoTimeout socket read-timeout)
+                        (future (response-handler socket running))
                         (merge oldval {:running running
                                        :last running
-                                       :processor processor
                                        :socket socket}))
                       (catch Exception e
                         (timbre/warn e "Unable to connect to Carabiner")
+                        (javax.swing.JOptionPane/showMessageDialog
+                         @carabiner-window
+                         "Unable to connect to Carabiner; make sure it is running on the specified port."
+                         "Carabiner Connection failed"
+                         javax.swing.JOptionPane/WARNING_MESSAGE)
                         oldval)))))
+  (update-connected-status)
+  (when (active?)
+    (future
+      (Thread/sleep 1000)
+      (when-not (:link-bpm @client)
+        (timbre/warn "Did not receive inital status packet from Carabiner daemon; disconnecting.")
+        (javax.swing.JOptionPane/showMessageDialog
+         @carabiner-window
+         "Did not receive expected response from Carabiner; is something else running on the specified port?"
+         "Carabiner Connection Rejected"
+         javax.swing.JOptionPane/WARNING_MESSAGE)
+        (disconnect))))
   (active?))
-
-(defn disconnect
-  "Shut down any active Carabiner connection."
-  []
-  (swap! client (fn [oldval]
-                  (when (:running oldval)
-                    (.close (:socket oldval))
-                    (future-cancel (:processor oldval)))
-                  (dissoc oldval :running)))
-  nil)
-
-(defn- update-target-tempo
-  "Displays the current target BPM value, if any."
-  []
-  (when-let [frame @carabiner-window]
-    (seesaw/value! (seesaw/select frame [:#target])
-                   (if-some [target (:target-bpm @client)]
-                     (format "%.2f" target)
-                     "---"))))
 
 (defn- validate-tempo
   "Makes sure a tempo request is a reasonable number of beats per minute."
@@ -175,35 +251,18 @@
   (send-message (str "beat-at-time " when " " quantum)))
 
 (defn- make-window-visible
-  "Ensures that the Carabiner window is centered on the triggers
-  window, in front, and shown."
-  [trigger-frame]
+  "Ensures that the Carabiner window is in front, and shown."
+  []
   (let [our-frame @carabiner-window]
-    (.setLocationRelativeTo our-frame trigger-frame)
     (seesaw/show! our-frame)
     (.toFront our-frame)))
 
 (defn- connect-choice
   "Respond to the user changing the state of the Connect checkbox."
   [checked]
-  (if checked  ; Attempt to connect
-    (if (connect)
-      (do  ; Success
-        (seesaw/config! (seesaw/select @carabiner-window [:#master]) :enabled? true)
-        (seesaw/config! (seesaw/select @carabiner-window [:#port]) :enabled? false))
-      (do  ; Failed
-        (seesaw/value! (seesaw/select @carabiner-window [:#connect]) false)
-        (seesaw/invoke-now (javax.swing.JOptionPane/showMessageDialog
-                      @carabiner-window
-                      "Unable to connect to Carabiner; make sure it is running on the specified port."
-                      "Carabiner Connection failed"
-                      javax.swing.JOptionPane/WARNING_MESSAGE))))
-    (do  ; Disconnect
-      (disconnect)
-      (seesaw/config! (seesaw/select @carabiner-window [:#master]) :enabled? false)
-      (seesaw/config! (seesaw/select @carabiner-window [:#port]) :enabled? true)
-      (seesaw/value! (seesaw/select @carabiner-window [:#bpm]) "---")
-      (seesaw/value! (seesaw/select @carabiner-window [:#peers]) "---"))))
+  (if checked
+    (connect)
+    (disconnect)))
 
 (defn- create-window
   "Creates the Carabiner window."
@@ -244,8 +303,11 @@
       (seesaw/config! root :content panel)
       (seesaw/pack! root)
       (reset! carabiner-window root)
+      (update-connected-status)
+      (update-link-status)
       (update-target-tempo)
-      (make-window-visible trigger-frame))
+      (.setLocationRelativeTo root trigger-frame)
+      (make-window-visible))
     (catch Exception e
       (timbre/error e "Problem creating Carabiner window."))))
 
@@ -253,5 +315,5 @@
   "Make the Carabiner window visible, creating it if necessary."
   [trigger-frame]
   (if @carabiner-window
-    (make-window-visible trigger-frame)
+    (make-window-visible)
     (create-window trigger-frame)))
