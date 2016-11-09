@@ -31,6 +31,14 @@
   []
   (:running @client))
 
+(defn master?
+  "Checks whether we have an active connection for which we are
+  controlling the tempo."
+  []
+  (let [state @client]
+    (and (:running state)
+         (some? (:target-bpm state)))))
+
 (defn- ensure-active
   "Throws an exception if there is no active connection."
   []
@@ -118,7 +126,7 @@
   connection."
   2000)
 
-(defn handle-beat-at-time
+(defn- handle-beat-at-time
   "Processes a beat probe response from Carabiner."
   [info]
   ;; TODO: Check whether user wants bar-phase sync as well, and if so, compare the rounded beat mod 4 to the
@@ -245,10 +253,11 @@
 
 (defn beat-at-time
   "Find out what beat falls at the specified time in the Link
-  timeline, given a quantum (number of beats per bar)."
+  timeline, given a quantum (number of beats per bar), taking into
+  account the configured latency."
   [when quantum]
   (ensure-active)
-  (send-message (str "beat-at-time " when " " quantum)))
+  (send-message (str "beat-at-time " (- when (* (:latency @client) 1000)) " " quantum)))
 
 (defn- make-window-visible
   "Ensures that the Carabiner window is in front, and shown."

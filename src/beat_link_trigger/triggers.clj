@@ -305,7 +305,7 @@
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
-  started playing, as long as the chosen output exists. `data`
+  stopped playing, as long as the chosen output exists. `data`
   contains the map retrieved from the trigger `user-data` atom which
   is in the process of being updated, to save us from having to look
   it up again."
@@ -319,6 +319,7 @@
           "CC" (midi/midi-control output note 0 (dec channel))
           "Clock" (when stop (midi/midi-send-msg (:receiver output) stop-message -1))
           nil))
+      (when (= message "Link") (carabiner/unlock-tempo))
       (run-trigger-function trigger :deactivation status false))
     (catch Exception e
       (timbre/error e "Problem reporting player deactivation."))))
@@ -340,7 +341,9 @@
       (when-not (= tripped (:tripped old-data))
         (if tripped
           (report-activation trigger status updated)
-          (report-deactivation trigger status updated))))
+          (report-deactivation trigger status updated)))
+      (when (and tripped (= "Link" (:message (:value updated))))
+        (carabiner/lock-tempo (.getEffectiveTempo status))))
     (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
       (start-clock trigger updated)
       (stop-clock trigger updated)))
@@ -659,12 +662,14 @@
                                           :listen [:item-state-changed cache-value])]
 
                         ["Message:" "gap unrelated"]
-                        [(seesaw/combobox :id :message :model ["Note" "CC" "Clock" "Custom"]
+                        [(seesaw/combobox :id :message :model ["Note" "CC" "Clock" "Link" "Custom"]
                                           :listen [:item-state-changed cache-value])]
 
                         [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
                                          :listen [:state-changed cache-value]) "hidemode 3"]
                         [(seesaw/checkbox :id :send :selected? true :visible? false
+                                          :listen [:state-changed cache-value]) "hidemode 3"]
+                        [(seesaw/checkbox :id :bar :text "Align at bar level        " :selected? true :visible? false
                                           :listen [:state-changed cache-value]) "hidemode 3"]
 
                         [(seesaw/label :id :channel-label :text "Channel:") "gap unrelated, hidemode 3"]
@@ -751,22 +756,33 @@
        (bind/bind (bind/selection send)
                   (bind/property start :enabled?)))
 
-     ;; Open an editor window if Custom is chosen for a message type and the activation expression is empty.
-     ;; Also swap channel and note values for start/stop options when Clock is chosen.
+     ;; Open an editor window if Custom is chosen for a message type and the activation expression is empty,
+     ;; and open the Carabiner Connection window if Link is chosen and there is no current connection.
+     ;; Also swap channel and note values for start/stop options when Clock is chosen, and for bar alignment
+     ;; when Link is chosen.
      (let [message-menu (seesaw/select panel [:#message])]
        (seesaw/listen message-menu
         :action-performed (fn [_]
                             (let [choice (seesaw/selection message-menu)
-                                  {:keys [note send channel-label start channel stop]} (seesaw/group-by-id panel)]
+                                  {:keys [note send channel-label start channel stop bar outputs]} (seesaw/group-by-id
+                                                                                                    panel)]
                               (when (and (= "Custom" choice)
                                          (not (:creating @(seesaw/user-data panel)))
                                          (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
                                 (editors/show-trigger-editor :activation panel #(update-gear-icon panel gear)))
-                              (if (= "Clock" choice)
-                                (do (seesaw/hide! [note channel-label channel])
-                                    (seesaw/show! [send start stop]))
-                                (do (seesaw/show! [note channel-label channel])
-                                    (seesaw/hide! [send start stop])))))))
+                              (when (and (= "Link" choice)
+                                         (not (carabiner/active?)))
+                                (carabiner/show-window @trigger-frame))
+                              (cond
+                                (= "Clock" choice) (do (seesaw/hide! [note channel-label channel bar])
+                                                       (seesaw/show! [send start stop])
+                                                       (seesaw/config! [outputs] :enabled? true))
+                                (= "Link" choice) (do (seesaw/hide! [note channel-label channel send start stop])
+                                                      (seesaw/show! [bar])
+                                                      (seesaw/config! [outputs] :enabled? false))
+                                :else (do (seesaw/show! [note channel-label channel])
+                                          (seesaw/hide! [send start stop bar])
+                                          (seesaw/config! [outputs] :enabled? true)))))))
 
      (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))
@@ -959,18 +975,23 @@
 
 (defonce ^{:private true
            :doc "Responds to beat packets and runs any registered beat
-  expressions."}
+  expressions, and performs beat alignment for any tripped triggers
+  that are assigned to Ableton Link."}
   beat-listener
   (reify org.deepsymmetry.beatlink.BeatListener
     (newBeat [this beat]
       (try
         (doseq [trigger (get-triggers)]
-          (let [selection (get-in @(seesaw/user-data trigger) [:value :players])]
+          (let [data @(seesaw/user-data trigger)
+                value (:value data)
+                selection (:players value)]
             (when (and (some? selection)
                        (or (neg? (:number selection))
                            (= (:number selection) (.getDeviceNumber beat))
                            (and (zero? (:number selection)) (.isTempoMaster beat))))
-              (run-trigger-function trigger :beat beat false))))
+              (run-trigger-function trigger :beat beat false)
+              (when (and (:tripped data) (= "Link" (:message value)) (carabiner/master?))
+                (carabiner/beat-at-time (long (/ (.getTimestamp beat) 1000)) 4.0)))))
         (catch Exception e
           (timbre/error e "Problem responding to beat packet."))))))
 
