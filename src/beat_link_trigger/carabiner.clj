@@ -37,8 +37,7 @@
   []
   (let [state @client]
     (and (:running state)
-         (:master state)
-         (some? (:target-bpm state)))))
+         (:master state))))
 
 (defn- ensure-active
   "Throws an exception if there is no active connection."
@@ -71,8 +70,7 @@
                     (if-some [target (:target-bpm @client)]
                       (format "%.2f" target)
                       "---"))
-     ;; TODO: update status icon once implemented
-     )))
+     (seesaw/repaint! (seesaw/select frame [:#state])))))
 
 (defn- update-connected-status
   "Make the state of the window reflect the current state of our
@@ -84,8 +82,7 @@
        (seesaw/config! (seesaw/select frame [:#master]) :enabled? connected)
        (seesaw/config! (seesaw/select frame [:#port]) :enabled? (not connected))
        (seesaw/value! (seesaw/select frame [:#connect]) connected)
-       ;; TODO: Update state icon once implemented
-       ))))
+       (seesaw/repaint! (seesaw/select frame [:#state]))))))
 
 (defn- update-link-status
   "Make the state of the window reflect the current state of the Link
@@ -130,8 +127,6 @@
 (defn- handle-beat-at-time
   "Processes a beat probe response from Carabiner."
   [info]
-  ;; TODO: Check whether user wants bar-phase sync as well, and if so, compare the rounded beat mod 4 to the
-  ;; beat reported by the player, and adjust that as well if needed.
   (let [raw-beat (Math/round (:beat info))
         beat-skew (mod (:beat info) 1.0)
         [time beat-number] (:beat @client)
@@ -291,6 +286,35 @@
     (connect)
     (disconnect)))
 
+(defn paint-state
+  "Draws a representation of the sync state, including both whether it
+  is enabled (connected to Carabiner and set to Master) and whether
+  any Link-mode trigger has tripped."
+  [c g]
+  (let [w (double (seesaw/width c))
+        h (double (seesaw/height c))
+        outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
+        enabled? (master?)
+        tripped? (some? (:target-bpm @client))]
+    (.setRenderingHint g java.awt.RenderingHints/KEY_ANTIALIASING java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
+
+    (when tripped?
+      (if enabled?
+        (do  ; Draw the inner filled circle showing sync is actively taking place.
+          (.setPaint g java.awt.Color/green)
+          (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
+        (do  ; Draw the inner gray circle showing sync would be active if we were connected and master.
+          (.setPaint g java.awt.Color/lightGray)
+          (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))))
+
+    ;; Draw the outer circle that reflects the enabled state
+    (.setStroke g (java.awt.BasicStroke. 2.0))
+    (.setPaint g (if enabled? java.awt.Color/green java.awt.Color/red))
+    (.draw g outline)
+    (when-not enabled?
+      (.clip g outline)
+      (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
+
 (defn- create-window
   "Creates the Carabiner window."
   [trigger-frame]
@@ -306,7 +330,7 @@
                                                                 (swap! client assoc :port (seesaw/selection e)))])]
                          [(seesaw/checkbox :id :connect :text "Connect"
                                            :listen [:action (fn [e]
-                                                              (connect-choice (seesaw/value e)))]) "wrap"]
+                                                              (connect-choice (seesaw/value e)))]) "span 2, wrap"]
 
                          [(seesaw/label :text "Latency (ms):") "align right"]
                          [(seesaw/spinner :id :latency
@@ -321,13 +345,23 @@
                                            :listen [:item-state-changed (fn [e]
                                                                           (swap! client assoc :master
                                                                                  (seesaw/value e))
-                                                                          (when (master?) (check-tempo)))]) "wrap"]
+                                                                          (seesaw/repaint!
+                                                                           (seesaw/select @carabiner-window [:#state]))
+                                                                          (when (master?) (check-tempo)))])]
+                         [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
+                                        :tip "Sync state: Outer ring shows enabled, inner light when active.")
+                          "wrap"]
 
                          [(seesaw/label :text "Link BPM:") "align right"]
                          [(seesaw/label :id :bpm :text "---") "wrap"]
 
                          [(seesaw/label :text "Link Peers:") "align right"]
                          [(seesaw/label :id :peers :text "---")]])]
+
+      ;; Attach the custom paint function to render the graphical trigger state
+      (seesaw/config! (seesaw/select panel [:#state]) :paint paint-state)
+
+      ;; Assemble the window
       (seesaw/config! root :content panel)
       (seesaw/pack! root)
       (reset! carabiner-window root)
