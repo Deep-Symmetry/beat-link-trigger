@@ -991,7 +991,8 @@
                            (and (zero? (:number selection)) (.isTempoMaster beat))))
               (run-trigger-function trigger :beat beat false)
               (when (and (:tripped data) (= "Link" (:message value)) (carabiner/master?))
-                (carabiner/beat-at-time (long (/ (.getTimestamp beat) 1000)) 4.0)))))
+                (carabiner/beat-at-time (long (/ (.getTimestamp beat) 1000))
+                                        (when (:bar value) (.getBeatWithinBar beat)))))))
         (catch Exception e
           (timbre/error e "Problem responding to beat packet."))))))
 

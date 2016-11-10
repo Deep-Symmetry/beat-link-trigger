@@ -37,6 +37,7 @@
   []
   (let [state @client]
     (and (:running state)
+         (:master state)
          (some? (:target-bpm state)))))
 
 (defn- ensure-active
@@ -131,11 +132,19 @@
   [info]
   ;; TODO: Check whether user wants bar-phase sync as well, and if so, compare the rounded beat mod 4 to the
   ;; beat reported by the player, and adjust that as well if needed.
-  (let [skew (mod (:beat info) 1.0)]
-    (when (and (> skew skew-tolerance)
-               (< skew (- 1.0 skew-tolerance)))
-      (timbre/info "Realigning beat by" skew)
-      (send-message (str "force-beat-at-time " (Math/round (:beat info)) " " (:when info) " " (:quantum info))))))
+  (let [raw-beat (Math/round (:beat info))
+        beat-skew (mod (:beat info) 1.0)
+        [time beat-number] (:beat @client)
+        candidate-beat (if (and beat-number (= time (:when info)))
+                         (let [bar-skew (- (dec beat-number) (mod raw-beat 4))
+                               adjustment (if (<= bar-skew -2) (+ bar-skew 4) bar-skew)]
+                           (+ raw-beat adjustment))
+                         raw-beat)
+        target-beat (if (neg? candidate-beat) (+ candidate-beat 4) candidate-beat)]
+    (when (or (> (Math/abs beat-skew) skew-tolerance)
+              (not= target-beat raw-beat))
+      (timbre/info "Realigning to beat" target-beat "by" beat-skew)
+      (send-message (str "force-beat-at-time " target-beat " " (:when info) " 4.0")))))
 
 (defn- response-handler
   "A loop that reads messages from Carabiner as long as it is supposed
@@ -253,11 +262,20 @@
 
 (defn beat-at-time
   "Find out what beat falls at the specified time in the Link
-  timeline, given a quantum (number of beats per bar), taking into
-  account the configured latency."
-  [when quantum]
-  (ensure-active)
-  (send-message (str "beat-at-time " (- when (* (:latency @client) 1000)) " " quantum)))
+  timeline, assuming 4 beats per bar since we are dealing with Pro DJ
+  Link, and taking into account the configured latency. When the
+  response comes, if we are configured to be the tempo master, nudge
+  the Link timeline so that it had a beat at the same time. If a
+  beat-number (ranging from 1 to the quantum) is supplied, move the
+  timeline by more than a beat if necessary in order to get the Link
+  session's bars aligned as well."
+  ([time]
+   (beat-at-time time nil))
+  ([time beat-number]
+   (ensure-active)
+   (let [adjusted-time (- time (* (:latency @client) 1000))]
+     (swap! client assoc :beat [adjusted-time beat-number])
+     (send-message (str "beat-at-time " adjusted-time " 4.0")))))
 
 (defn- make-window-visible
   "Ensures that the Carabiner window is in front, and shown."
@@ -302,7 +320,8 @@
                          [(seesaw/checkbox :id :master :text "Master" :enabled? false
                                            :listen [:item-state-changed (fn [e]
                                                                           (swap! client assoc :master
-                                                                                 (seesaw/value e)))]) "wrap"]
+                                                                                 (seesaw/value e))
+                                                                          (when (master?) (check-tempo)))]) "wrap"]
 
                          [(seesaw/label :text "Link BPM:") "align right"]
                          [(seesaw/label :id :bpm :text "---") "wrap"]

@@ -6,7 +6,13 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- You can now tie an [Ableton Link](https://www.ableton.com/en/link/)
+  session's timeline to the beat grid being received on a trigger
+  (setting its BPM and aligning either at the level of individual
+  beats full bars), with the help of
+  [carabiner](https://github.com/brunchboy/carabiner).
 
 ## [0.1.3] - 2016-10-02
 
