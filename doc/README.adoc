@@ -1268,8 +1268,8 @@ image:assets/LinkTrigger.png[Link trigger, 772]
 
 Triggers that work with Link can align the beat grid with either
 individual beats, or entire bars of four beats (the default). If you
-want simple beat-level alignment, uncheck the trigger's `Align at Bar
-Level` check box.
+want simple beat-level alignment, uncheck the trigger's `Align at bar
+level` check box.
 
 Once a trigger like this activates, the tempo of its watched player
 will show up as the `Target BPM` within the Carabiner Connection
