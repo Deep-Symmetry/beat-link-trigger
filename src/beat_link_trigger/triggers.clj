@@ -775,14 +775,11 @@
                                 (carabiner/show-window @trigger-frame))
                               (cond
                                 (= "Clock" choice) (do (seesaw/hide! [note channel-label channel bar])
-                                                       (seesaw/show! [send start stop])
-                                                       (seesaw/config! [outputs] :enabled? true))
+                                                       (seesaw/show! [send start stop]))
                                 (= "Link" choice) (do (seesaw/hide! [note channel-label channel send start stop])
-                                                      (seesaw/show! [bar])
-                                                      (seesaw/config! [outputs] :enabled? false))
+                                                      (seesaw/show! [bar]))
                                 :else (do (seesaw/show! [note channel-label channel])
-                                          (seesaw/hide! [send start stop bar])
-                                          (seesaw/config! [outputs] :enabled? true)))))))
+                                          (seesaw/hide! [send start stop bar])))))))
 
      (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))
@@ -799,6 +796,11 @@
                             (adjust-triggers))
                  :name "New Trigger"
                  :key "menu T"))
+
+(def ^:private carabiner-action
+  "The menu action which opens the Carabiner configuration window."
+  (seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
+                 :name "Ableton Link: Carabiner Connection"))
 
 (defn- close-all-editors
   "Close any custom expression editors windows that are open, in
@@ -1132,11 +1134,9 @@
                                                         (map build-global-editor-action (keys editors/global-editors))
                                                         [(seesaw/separator)
                                                          track-submenu media-locations-action inspect-action
+                                                         (seesaw/separator) carabiner-action
                                                          (seesaw/separator) clear-triggers-action])
-                                         :id :triggers-menu)
-                            (seesaw/menu :text "Link"
-                                         :items [(seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
-                                                                :name "Carabiner Connection")])])))
+                                         :id :triggers-menu)])))
 
 (defn update-global-expression-icons
   "Updates the icons next to expressions in the Trigger menu to

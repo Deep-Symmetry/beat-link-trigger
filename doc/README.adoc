@@ -54,7 +54,7 @@ To create additional triggers you can choose `New Trigger` in the
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu.png[Triggers Menu, 396]
+image:assets/TriggersMenu.png[Triggers Menu, 415]
 
 Here are the sections of a trigger, and how they work:
 
@@ -150,7 +150,7 @@ is chosen, the trigger will become operational again.
 The Message Menu determines what kind of MIDI message is sent by the
 trigger.
 
-image:assets/MessageMenu.png[Message Menu, 814]
+image:assets/MessageMenu.png[Message Menu, 790]
 
 Note:: With this setting, the trigger sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -171,6 +171,15 @@ check box to the right of the menu is checked, it will either send a
 Start or Continue message (as chosen in the following menu) when the
 watched player starts playing, and if the Stop box is checked, it will
 send a Stop message when the watched player stops.
+
+Link:: When this option is chosen, the trigger does not send MIDI
+messages at all. Instead, when activated, it tries to synchronize an
+Ableton Link session to the tempo and beat grid being established by
+the player that it is watching. For this to work, you need to have
+Carabiner installed, running, and connected, as described in
+<<working-with-ableton-link,Working with Ableton Link>>. You can also
+use expressions, as described <<expressions,below>>, to send additional
+messages over MIDI or other communication protocols.
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
@@ -836,7 +845,7 @@ as its description, instead of the ID and slot information, by
 choosing menu:Triggers[Default Track Description>playlist position] in
 the Triggers window menu:
 
-image:assets/TrackDescriptionMenu.png[Track Description Menu, 680]
+image:assets/TrackDescriptionMenu.png[Track Description Menu, 675]
 
 This is equivalent to including the following form in your Enabled
 Filter expression:
@@ -1205,6 +1214,104 @@ Finally, here is an example of using the
 structure we have created, illustrating its hierarchical nature:
 
 image:assets/InspectingTrackMap.png[Inspecting our Track Map, 566]
+
+== Working with Ableton Link
+
+With the help of
+https://github.com/brunchboy/carabiner#carabiner[Carabiner], Beat Link
+Trigger can tie into an https://www.ableton.com/en/link/[Ableton Link]
+session, so you can synchronize programs like Ableton Live, Traktor,
+and an increasing collection of others, to the tempo and beat grid
+established by the players being watched by your triggers. Once you
+have installed Carabiner and have it running, bring up the Carabiner
+Connection window by choosing
+menu:Triggers[Ableton Link: Carabiner Connection] in the Triggers window menu:
+
+image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 415]
+
+This will open the Carabiner Connection window:
+
+image:assets/CarabinerWindow.png[Carabiner Connection window, 412]
+
+NOTE: This window will also open whenever you choose Link in a
+trigger's <<message-menu,Message Menu>>, or load a trigger that is
+configured that way, if Carabiner is not already connected.
+
+Set the Carabiner Port value to match the port on which your Carabiner
+daemon is listening. The default value of 17000 will work unless you
+have had to explicitly tell it to use a different port because some
+other program is using that one on your system.
+
+The Latency value is the number of milliseconds it takes from when a
+beat is actually playing on the players in your DJ Link Pro network to
+when the corresponding beat packet is received by Beat Link Trigger.
+The default value of 20 ms seems to work well, but if your Ableton
+Link session seems to be running audibly behind beats from your
+Pioneer gear, you can increase this value until things sound right.
+
+Once your port value is correct, you can click the Connect check box
+to establish a connection with Carabiner:
+
+image:assets/CarabinerConnected.png[Carabiner connection established, 412]
+
+Once connected, you can no longer adjust the port value, but you can
+tweak the latency at any time while listening to sound from your
+Pioneer gear and Link-enabled software.
+
+The current tempo of the Link session is shown, as well as the number
+of other Link-enabled programs (Link Peers) visible on the network.
+
+In order to influence the Link session, configure a trigger to send to Link by choosing
+menu:Message:[Link]:
+
+image:assets/LinkTrigger.png[Link trigger, 772]
+
+Triggers that work with Link can align the beat grid with either
+individual beats, or entire bars of four beats (the default). If you
+want simple beat-level alignment, uncheck the trigger's Align at Bar
+Level check box.
+
+Once a trigger like this activates, the tempo of its watched player
+will show up as the Target BPM within the Carabiner Connection window:
+
+image:assets/CarabinerTargeting.png[Carabiner targeting a tempo, 412]
+
+As you can see, the Link session's tempo is not yet tracking the
+trigger's tempo. In order to allow that to happen, check the Master
+check box in the Carabiner Connection window. Once Carabiner is
+connected and set to Master, whenever a Link trigger is active, Beat
+Link Trigger will control the Link session tempo, and will align it to
+the beat (or bar) of the trigger's watched player:
+
+image:assets/CarabinerMastering.png[Carabiner controlling the tempo, 412]
+
+=== Carabiner Status
+
+To the right of the Master check box there is a status indicator which
+shows whether Carabiner is currently enabled (a green circle) or
+disabled (a red circle with a slash). To be enabled, both the Connect
+and Master check boxes must be checked. If a Link trigger is currently
+active and thus trying to affect the Link session, there is a filled
+circle inside the enabled circle:
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, No Link Trigger Active
+|image:assets/Disabled.png[Disabled]
+
+|Enabled, No Link Trigger Active
+|image:assets/Enabled.png[Enabled]
+
+|Disabled, Link Trigger Active
+|image:assets/DisabledPlaying.png[Disabled, Trigger Active]
+
+|Enabled, Link Trigger Active
+|image:assets/EnabledPlaying.png[Enabled, Trigger Active]
+
+|===
 
 == Logs
 
