@@ -1225,7 +1225,7 @@ and an increasing collection of others, to the tempo and beat grid
 established by the players being watched by your triggers. Once you
 have installed Carabiner and have it running, bring up the Carabiner
 Connection window by choosing
-menu:Triggers[Ableton Link: Carabiner Connection] in the Triggers window menu:
+`Ableton Link: Carabiner Connection` in the `Triggers` menu:
 
 image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 415]
 
@@ -1233,16 +1233,16 @@ This will open the Carabiner Connection window:
 
 image:assets/CarabinerWindow.png[Carabiner Connection window, 412]
 
-NOTE: This window will also open whenever you choose Link in a
+NOTE: This window will also open whenever you choose `Link` in a
 trigger's <<message-menu,Message Menu>>, or load a trigger that is
 configured that way, if Carabiner is not already connected.
 
-Set the Carabiner Port value to match the port on which your Carabiner
-daemon is listening. The default value of 17000 will work unless you
-have had to explicitly tell it to use a different port because some
-other program is using that one on your system.
+Set the `Carabiner Port` value to match the port on which your
+Carabiner daemon is listening. The default value of 17000 will work
+unless you have had to explicitly tell it to use a different port
+because some other program is using that one on your system.
 
-The Latency value is the number of milliseconds it takes from when a
+The `Latency` value is the number of milliseconds it takes from when a
 beat is actually playing on the players in your DJ Link Pro network to
 when the corresponding beat packet is received by Beat Link Trigger.
 The default value of 20 ms seems to work well, but if your Ableton
@@ -1262,22 +1262,23 @@ The current tempo of the Link session is shown, as well as the number
 of other Link-enabled programs (Link Peers) visible on the network.
 
 In order to influence the Link session, configure a trigger to send to Link by choosing
-menu:Message:[Link]:
+`Link` in its `Message` menu:
 
 image:assets/LinkTrigger.png[Link trigger, 772]
 
 Triggers that work with Link can align the beat grid with either
 individual beats, or entire bars of four beats (the default). If you
-want simple beat-level alignment, uncheck the trigger's Align at Bar
-Level check box.
+want simple beat-level alignment, uncheck the trigger's `Align at Bar
+Level` check box.
 
 Once a trigger like this activates, the tempo of its watched player
-will show up as the Target BPM within the Carabiner Connection window:
+will show up as the `Target BPM` within the Carabiner Connection
+window:
 
 image:assets/CarabinerTargeting.png[Carabiner targeting a tempo, 412]
 
 As you can see, the Link session's tempo is not yet tracking the
-trigger's tempo. In order to allow that to happen, check the Master
+trigger's tempo. In order to allow that to happen, check the `Master`
 check box in the Carabiner Connection window. Once Carabiner is
 connected and set to Master, whenever a Link trigger is active, Beat
 Link Trigger will control the Link session tempo, and will align it to
@@ -1287,12 +1288,12 @@ image:assets/CarabinerMastering.png[Carabiner controlling the tempo, 412]
 
 === Carabiner Status
 
-To the right of the Master check box there is a status indicator which
-shows whether Carabiner is currently enabled (a green circle) or
-disabled (a red circle with a slash). To be enabled, both the Connect
-and Master check boxes must be checked. If a Link trigger is currently
-active and thus trying to affect the Link session, there is a filled
-circle inside the enabled circle:
+To the right of the `Master` check box there is a status indicator
+which shows whether Carabiner is currently enabled (a green circle) or
+disabled (a red circle with a slash). To be enabled, both the
+`Connect` and `Master` check boxes must be checked. If a Link trigger
+is currently active and thus trying to affect the Link session, there
+is a filled circle inside the enabled circle:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
