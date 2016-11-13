@@ -9,7 +9,7 @@
                  [com.taoensso/timbre "4.7.4"]
                  [com.fzakaria/slf4j-timbre "0.3.2"]
                  [environ "1.1.0"]
-                 [fipp "0.6.6"]
+                 [fipp "0.6.7"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.1.9"]
