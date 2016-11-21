@@ -233,12 +233,22 @@
         (disconnect))))
   (active?))
 
-(defn- validate-tempo
-  "Makes sure a tempo request is a reasonable number of beats per minute."
+(defn valid-tempo?
+  "Checks whether a tempo request is a reasonable number of beats per
+  minute. Link supports the range 20 to 999 BPM. If you want something
+  outside that range, pick the closest multiple or fraction; for
+  example for 15 BPM, propose 30 BPM."
   [bpm]
-  (if (< 0.9 bpm 400.0)
+  (< 20.0 bpm 999.0))
+
+(defn- validate-tempo
+  "Makes sure a tempo request is a reasonable number of beats per
+  minute. Coerces it to a double value if it is in the legal Link
+  range, otherwise throws an exception."
+  [bpm]
+  (if (valid-tempo? bpm)
     (double bpm)
-    (throw (IllegalArgumentException. "Tempo must be between 1 and 400 BPM"))))
+    (throw (IllegalArgumentException. "Tempo must be between 20 and 999 BPM"))))
 
 (defn lock-tempo
   "Starts holding the tempo of the Link session to the specified

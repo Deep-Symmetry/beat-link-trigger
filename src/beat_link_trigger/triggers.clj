@@ -343,7 +343,10 @@
           (report-activation trigger status updated)
           (report-deactivation trigger status updated)))
       (when (and tripped (= "Link" (:message (:value updated))))
-        (carabiner/lock-tempo (.getEffectiveTempo status))))
+        (let [tempo (.getEffectiveTempo status)]
+          (if (carabiner/valid-tempo? tempo)
+            (carabiner/lock-tempo tempo)
+            (carabiner/unlock-tempo)))))
     (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
       (start-clock trigger updated)
       (stop-clock trigger updated)))
