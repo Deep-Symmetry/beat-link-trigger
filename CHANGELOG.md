@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far
+### Added
+
+- You can now request track metadata from the CDJs, and display it in
+  the trigger windows. Soon you will be able to use it in your trigger
+  logic.
 
 ## [0.1.4] - 2016-11-20
 

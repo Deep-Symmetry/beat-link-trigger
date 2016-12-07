@@ -21,8 +21,8 @@
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
-           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus Util
-            CdjStatus$TrackSourceSlot]))
+           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj MetadataFinder Beat CdjStatus MixerStatus
+            Util CdjStatus$TrackSourceSlot]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers."}
@@ -375,13 +375,21 @@
     :else
     (str "Track #" (.getTrackNumber status))))
 
+(defn- format-metadata
+  "Include the appropriate track metadata items for display."
+  [status]
+  (when-let [metadata (MetadataFinder/getLatestMetadataFor status)]
+    (str "<br>&nbsp;&nbsp; " (.getTitle metadata) "&mdash;" (.getArtist metadata))))
+
 (defn build-status-label
   "Create a brief textual summary of a player state given a status
   update object from beat-link, and a track description override from
   the trigger's custom expression locals (which may be nil)."
   [status track-description]
-  (let [beat (.getBeatNumber status)]
-    (str (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
+  (let [beat (.getBeatNumber status)
+        using-metadata? (:request-metadata? @(global-user-data))]
+    (str (when using-metadata? "<html>")
+         (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
          (when (.isTempoMaster status) ", Master")
          (when (.isOnAir status) ", On-Air")
          ", " (describe-track status track-description)
@@ -390,7 +398,8 @@
          (cond
            (neg? beat) ", beat n/a"
            (zero? beat) ", lead-in"
-           :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")")))))
+           :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")"))
+         (when using-metadata? (format-metadata status)))))
 
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
@@ -867,7 +876,7 @@
                                 {:triggers (trigger-configuration)}
                                 (when-let [exprs (:expressions @(global-user-data))]
                                   {:expressions exprs})
-                                {:tracks-using-playlists? (:tracks-using-playlists? @(global-user-data))})))
+                                (select-keys @(global-user-data) [:tracks-using-playlists? :request-metadata?]))))
 
 ;; Register the custom readers needed to read back in the defrecords that we use,
 ;; including under the old package name before they were moved to the triggers namespace.
@@ -1059,6 +1068,7 @@
   []
   (let [m (prefs/get-preferences)]
     (.doClick (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m) :#track-position :#track-id)]))
+    (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) (true? (:request-metadata? m)))
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
       (doseq [[kind expr] exprs]
@@ -1118,16 +1128,26 @@
                                       :name "Inspect Expression Globals"
                                       :tip "Examine any values set as globals by any Trigger Expressions.")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
+        metadata-item (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
+                                                 :selected? (:request-metadata? @(global-user-data)))
         bg (seesaw/button-group)
         track-submenu (seesaw/menu :text "Default Track Description"
                                    :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
                                                                    :selected? (not using-playlists?) :group bg)
                                            (seesaw/radio-menu-item :text "playlist position" :id :track-position
-                                                                   :selected? using-playlists? :group bg)])]
+                                                                   :selected? using-playlists? :group bg)
+                                           (seesaw/separator)
+                                           metadata-item])]
     (seesaw/listen bg :selection
                    (fn [e]
                      (when-let [s (seesaw/selection bg)]
                        (swap! (global-user-data) assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
+    (seesaw/listen metadata-item :item-state-changed
+                   (fn [e]
+                     (swap! (global-user-data) update :request-metadata? not)
+                     (if (:request-metadata? @(global-user-data))
+                       (MetadataFinder/start)
+                       (MetadataFinder/stop))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) logs/logs-action]
