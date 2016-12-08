@@ -277,7 +277,8 @@
                                                :doc  "The label of the loaded track, if metadata is available."}
                          'track-length        {:code '(when (some? track-metadata) (.getLength track-metadata))
                                                :doc  "The length in seconds of the loaded track, if metadata is available."}
-                         'track-metadata      {:code '(org.deepsymmetry.beatlink.MetadataFinder/getLatestMetadataFor status)
+                         'track-metadata      {:code '(when (org.deepsymmetry.beatlink.MetadataFinder/isRunning)
+                                                        (org.deepsymmetry.beatlink.MetadataFinder/getLatestMetadataFor status))
                                                :doc  "The metadata object for the loaded track, if one is available."}
                          'track-number        {:code '(.getTrackNumber status)
                                                :doc  "The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks in the CDJ's browse interface."}
