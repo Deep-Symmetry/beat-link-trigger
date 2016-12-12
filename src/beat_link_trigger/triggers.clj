@@ -357,8 +357,9 @@
 (defn describe-track
   "Identifies a track with the best information available from its
   status update. If a non-nil `custom-description` is available, use
-  it. Otherwise, if there is a rekordbox id associated with it, use
-  that, otherwise just show the track's position within its playlist."
+  it. Otherwise, honor the user preference setting to display either
+  the rekordbox id information associated with it (when available), or
+  simply the track's position within its playlist."
   [status custom-description]
   (cond
     (some? custom-description)
@@ -377,16 +378,21 @@
     (str "Track #" (.getTrackNumber status))))
 
 (defn- format-metadata
-  "Include the appropriate track metadata items for display."
-  [status]
+  "Include the appropriate track metadata items for display. If a
+  non-nil `custom-summary` is available, use it. Otherwise show the
+  track title, an em dash, and the track artist."
+  [status custom-summary]
   (when-let [metadata (MetadataFinder/getLatestMetadataFor status)]
-    (str "<br>&nbsp;&nbsp; " (.getTitle metadata) "&mdash;" (.getArtist metadata))))
+    (let [summary (or custom-summary (str (.getTitle metadata) "&mdash;" (.getArtist metadata)))]
+      (str "<br>&nbsp;&nbsp; " summary))))
 
 (defn build-status-label
   "Create a brief textual summary of a player state given a status
-  update object from beat-link, and a track description override from
-  the trigger's custom expression locals (which may be nil)."
-  [status track-description]
+  update object from beat-link, and track description and metadata
+  summary overrides from the trigger's custom expression
+  locals (either of which may be nil, which means to build the
+  standard description and summary for the track)."
+  [status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
         using-metadata? (:request-metadata? @(global-user-data))]
     (str (when using-metadata? "<html>")
@@ -400,7 +406,7 @@
            (neg? beat) ", beat n/a"
            (zero? beat) ", lead-in"
            :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")"))
-         (when using-metadata? (format-metadata status)))))
+         (when using-metadata? (format-metadata status metadata-summary)))))
 
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
@@ -414,7 +420,8 @@
     (let [player-menu (seesaw/select trigger [:#players])
           selection (seesaw/selection player-menu)
           status-label (seesaw/select trigger [:#status])
-          track-description (:track-description @(:locals @(seesaw/user-data trigger)))]
+          track-description (:track-description @(:locals @(seesaw/user-data trigger)))
+          metadata-summary (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
       (if (nil? selection)
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
@@ -427,7 +434,7 @@
                 (update-player-state trigger false false nil))
             (if (instance? CdjStatus status)
               (do (seesaw/config! status-label :foreground "cyan")
-                  (seesaw/value! status-label (build-status-label status track-description)))
+                  (seesaw/value! status-label (build-status-label status track-description metadata-summary)))
               (do (seesaw/config! status-label :foreground "red")
                   (seesaw/value! status-label (cond (some? status) "Non-Player status received."
                                                     (not (VirtualCdj/isActive)) "Offline."
@@ -982,9 +989,10 @@
               (update-player-state trigger (.isPlaying status) (.isOnAir status) status)
               (seesaw/invoke-later
                (let [status-label (seesaw/select trigger [:#status])
-                     track-description (:track-description @(:locals @(seesaw/user-data trigger)))]
+                     track-description (:track-description @(:locals @(seesaw/user-data trigger)))
+                     metadata-summary (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
                  (seesaw/config! status-label :foreground "cyan")
-                 (seesaw/value! status-label (build-status-label status track-description)))))))
+                 (seesaw/value! status-label (build-status-label status track-description metadata-summary)))))))
         (catch Exception e
           (timbre/error e "Problem responding to Player status packet."))))))
 
