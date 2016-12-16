@@ -15,6 +15,13 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
+NOTE: These instructions are in the process of being updated to
+prepare for the release of a new version of Beat Link Trigger with
+important track metadata support. Any discussion you see of the
+Network menu, or requesting and using track metadata, work only with
+the PREVIEW version available for download at the top of the Releases
+page.
+
 == Startup
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ
@@ -38,6 +45,16 @@ Once a device is found, or you choose to continue offline, the Trigger
 window opens, in the same configuration that you left it the last time
 you used the program.
 
+=== Connecting Later
+
+If you connect to a DJ Link network after a period of working on your
+triggers in offline mode, you can take Beat Link Trigger online by
+checking `Online?` in the `Network` menu:
+
+image:assets/GoingOnline.png[Going Online, 338]
+
+You can also go offline at any time by unchecking the menu option.
+
 == Triggers
 
 Each row in the Trigger window defines a single trigger, which watches
@@ -54,7 +71,7 @@ To create additional triggers you can choose `New Trigger` in the
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu.png[Triggers Menu, 415]
+image:assets/TriggersMenu.png[Triggers Menu, 396]
 
 Here are the sections of a trigger, and how they work:
 
@@ -130,6 +147,53 @@ recognized, and the string `Apex` has been stored under
 `:track-description` in the trigger's `locals`:
 
 image:assets/ApexRecognized.png[Track Apex Recognized, 804]
+
+==== Metadata
+
+Now that Beat Link Trigger can request track metadata from the CDJs,
+that is often the most convenient and flexible way of matching tracks.
+To enable this feature, check `Request Track Metadata?` in the
+`Network` menu:
+
+image:assets/RequestMetadata.png[Requesting Metadata, 338]
+
+When metadata is available for a track, the Player Status section
+grows to two lines, and displays the track title and artist on the
+second line, without any effort on the part of your trigger code:
+
+image:assets/MetadataStatus.png[Player Status with Metadata, 794]
+
+Your trigger can also change the content of the metadata line by
+setting whatever value it wants under the key `:metadata-summary` in
+the trigger's `locals`. Metadata values available to your trigger
+expressions include `track-artist`, `track-comment`, `track-genre`,
+`track-key`, `track-label`, `track-length` (in seconds), and
+`track-title`.
+
+[NOTE]
+====
+There are limitations on when you can reliably obtain metadata.
+To be safe, you should not have more than three actual CDJs or other
+players on the DJ Link network, so that Beat Link Trigger can assign
+itself a device number in the range 1 through 4.
+
+Although you can still try to request metadata when Beat Link Trigger
+has to use a device number of 5 or higher, it needs to
+&ldquo;borrow&rdquo; one of the actual players&rsquo; device numbers
+in order to make the metadata requests. It can't do that at all if
+every player has loaded tracks from the SD or USB slot on a single
+player. And even when the players have loaded tracks from different
+sources, there is a possibility that by borrowing their device
+numbers, Beat Link Trigger will confuse them and interfere with the
+DJ's ability to use the Link Info feature.
+
+It seems to be safe and reliable to request metadata as long as there
+are no more than three other players on the network, so Beat Link
+Trigger can reseve a device number from 1 to 4, or as long as the four
+players are only loading tracks from rekordbox instead of each other,
+because rekordbox will happily reply to metadata requests from device
+numbers larger than 5.
+====
 
 === MIDI Output Menu
 
@@ -510,6 +574,13 @@ it is better to be playing, and as a tie-breaker the lowest numbered
 player is chosen.
 +
 
+NOTE: The Tracked Update expression is the ideal place to adjust the
+track description displayed in the Player Status section of the
+trigger by storing values in the `:track-description` and/or
+`:metadata-summary` keys of the trigger locals.
+
++
+
 Continuing our example, we can use a Tracked Update Expression to
 update the playback speed within Arena 5 to stay synced with the
 current tempo of the CDJ. We want to send messages to Resolume only
@@ -845,7 +916,7 @@ as its description, instead of the ID and slot information, by
 choosing menu:Triggers[Default Track Description>playlist position] in
 the Triggers window menu:
 
-image:assets/TrackDescriptionMenu.png[Track Description Menu, 675]
+image:assets/TrackDescriptionMenu.png[Track Description Menu, 680]
 
 This is equivalent to including the following form in your Enabled
 Filter expression:
@@ -1225,13 +1296,13 @@ and an increasing collection of others, to the tempo and beat grid
 established by the players being watched by your triggers. Once you
 have installed Carabiner and have it running, bring up the Carabiner
 Connection window by choosing
-`Ableton Link: Carabiner Connection` in the `Triggers` menu:
+`Ableton Link: Carabiner Connection` in the `Network` menu:
 
-image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 415]
+image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 292]
 
 This will open the Carabiner Connection window:
 
-image:assets/CarabinerWindow.png[Carabiner Connection window, 412]
+image:assets/CarabinerWindow.png[Carabiner Connection window, 338]
 
 NOTE: This window will also open whenever you choose `Link` in a
 trigger's <<message-menu,Message Menu>>, or load a trigger that is
