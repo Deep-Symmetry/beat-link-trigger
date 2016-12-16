@@ -8,18 +8,12 @@
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj]))
 
-(defn start
-  "Set up logging, make sure we can start the Virtual CDJ, then
-  present the Triggers interface. Called when jar startup has detected
-  a recent-enough Java version to succcessfully load this namespace."
-  [& args]
-  (seesaw/native!)  ; Adopt as native a look-and-feel as possible
-  (javax.swing.UIManager/setLookAndFeel "org.pushingpixels.substance.api.skin.SubstanceRavenLookAndFeel")
-  (logs/init-logging)
-  (timbre/info "Beat Link Trigger starting.")
-  (menus/install-mac-about-handler)
+(defn try-going-online
+  "Search for a DJ link network, presenting a UI in the process."
+  []
   (let [searching (about/create-searching-frame)]
     (loop []
+      (VirtualCdj/setUseStandardPlayerNumber (triggers/want-metadata?))
       (if (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
                  (timbre/log e "Unable to create Virtual CDJ")
@@ -39,8 +33,20 @@
                          options (aget options 0)))]
             (case choice
               0 (do (seesaw/invoke-now (seesaw/show! searching)) (recur)) ; Try Again
-              2 (do (seesaw/invoke-soon (seesaw/dispose! searching)) (DeviceFinder/stop)) ; Continue Offline
+              2 (seesaw/invoke-soon (seesaw/dispose! searching))  ; Continue Offline
               (System/exit 1)))))))  ; Quit, or just closed the window, which means the same
 
   (seesaw/invoke-now
-   (triggers/start))) ; We are online, or the user said to continue offline, so set up the Triggers window.
+   (triggers/start)))  ; We are online, or the user said to continue offline, so set up the Triggers window.
+
+(defn start
+  "Set up logging, make sure we can start the Virtual CDJ, then
+  present the Triggers interface. Called when jar startup has detected
+  a recent-enough Java version to succcessfully load this namespace."
+  [& args]
+  (seesaw/native!)  ; Adopt as native a look-and-feel as possible
+  (javax.swing.UIManager/setLookAndFeel "org.pushingpixels.substance.api.skin.SubstanceRavenLookAndFeel")
+  (logs/init-logging)
+  (timbre/info "Beat Link Trigger starting.")
+  (menus/install-mac-about-handler)
+  (try-going-online))

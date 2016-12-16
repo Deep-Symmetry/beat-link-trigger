@@ -34,13 +34,24 @@
   trigger-frame
   (atom nil))
 
+(defn- initial-global-user-data
+  "Create the values to assign the user-data atom for the window
+  as a whole"
+  []
+  (merge {:global true} (select-keys (prefs/get-preferences) [:request-metadata?])))
+
 (defn- global-user-data
   "Locates the user data attached to the whole triggers frame, for
   working with global expressions."
   []
   (if (nil? @trigger-frame)
-    (atom {})  ; Don't crash during initial window setup
+    (atom (initial-global-user-data)) ; Don't crash during initial window setup
     (seesaw/user-data (seesaw/config @trigger-frame :content))))
+
+(defn want-metadata?
+  "Checks whether the user has requested metadata."
+  []
+  (boolean (:request-metadata? @(global-user-data))))
 
 (defn- enabled?
   "Check whether a trigger is enabled."
@@ -394,7 +405,7 @@
   standard description and summary for the track)."
   [status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
-        using-metadata? (:request-metadata? @(global-user-data))]
+        using-metadata? (want-metadata?)]
     (str (when using-metadata? "<html>")
          (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
          (when (.isTempoMaster status) ", Master")
@@ -407,6 +418,12 @@
            (zero? beat) ", lead-in"
            :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")"))
          (when using-metadata? (format-metadata status metadata-summary)))))
+
+(defn- online?
+  "Check whether we are in online mode, with all the required
+  beat-link finder objects running."
+  []
+  (and (DeviceFinder/isActive) (VirtualCdj/isActive)))
 
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
@@ -426,18 +443,18 @@
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
-        (let [found (when (DeviceFinder/isActive) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
-              status (when (VirtualCdj/isActive) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
+        (let [found (when (online?) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
+              status (when (online?) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
-                (seesaw/value! status-label (if (DeviceFinder/isActive) "Player not found." "Offline."))
+                (seesaw/value! status-label (if (online?) "Player not found." "Offline."))
                 (update-player-state trigger false false nil))
             (if (instance? CdjStatus status)
               (do (seesaw/config! status-label :foreground "cyan")
                   (seesaw/value! status-label (build-status-label status track-description metadata-summary)))
               (do (seesaw/config! status-label :foreground "red")
                   (seesaw/value! status-label (cond (some? status) "Non-Player status received."
-                                                    (not (VirtualCdj/isActive)) "Offline."
+                                                    (not (online?)) "Offline."
                                                     :else "No status received."))))))))
     (catch Exception e
       (timbre/error e "Problem showing Trigger Player status."))))
@@ -575,12 +592,6 @@
     (.pack @trigger-frame)
     (catch Exception e
       (timbre/error e "Problem deleting Trigger."))))
-
-(defn- initial-global-user-data
-  "Create the values to assign the user-data atom for the window
-  as a whole"
-  []
-  {:global true})
 
 (declare update-global-expression-icons)
 
@@ -1129,6 +1140,36 @@
                    :name "Set Media Locations"
                    :key "menu M")))
 
+(declare go-offline)
+
+(defn- enable-metadata
+  "Try to start gathering metadata if we are online. Warn the user if
+  our device number will make that unreliable, and give them choices
+  about how to proceed."
+  []
+  (when (online?)
+    (if (> (VirtualCdj/getDeviceNumber) 4)
+      (let [options (to-array ["Cancel" "Use Unreliable Metadata" "Go Offline"])
+            message (str "Beat Link Trigger is using device number " (VirtualCdj/getDeviceNumber)
+                         ".\nTo reliably request metadata, it needs to use number 1, 2, 3, or 4.\n\n"
+                         "Please go offline, make sure there are no more than 3 CDJs on the network,\n"
+                         "then go back online, which will try to use a suitable device number.\n\n"
+                         "You may also choose to use unreliable metadata, which will work unless all\n"
+                         "of the CDJs load tracks from a media slot on the same player, and which\n"
+                         "may cause problems for DJs trying to use Link Info.")
+            choice (seesaw/invoke-now
+                    (javax.swing.JOptionPane/showOptionDialog
+                     nil message "Incompatible Device Number for Metadata Requests"
+                     javax.swing.JOptionPane/YES_NO_CANCEL_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
+                     options (aget options 2)))]
+        (case choice
+          0 (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)  ; Cancel
+          1 (MetadataFinder/start)  ; Use unreliable metadata
+          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))  ; Go offline
+      (MetadataFinder/start))))
+
+(declare go-online)
+
 (defn- build-trigger-menubar
   "Creates the menu bar for the trigger window."
   []
@@ -1137,25 +1178,30 @@
                                       :name "Inspect Expression Globals"
                                       :tip "Examine any values set as globals by any Trigger Expressions.")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
+        online-item (seesaw/checkbox-menu-item :text "Online?" :id :online :selected? (online?))
         metadata-item (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
-                                                 :selected? (:request-metadata? @(global-user-data)))
+                                                 :selected? (want-metadata?))
         bg (seesaw/button-group)
         track-submenu (seesaw/menu :text "Default Track Description"
                                    :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
                                                                    :selected? (not using-playlists?) :group bg)
                                            (seesaw/radio-menu-item :text "playlist position" :id :track-position
-                                                                   :selected? using-playlists? :group bg)
-                                           (seesaw/separator)
-                                           metadata-item])]
+                                                                   :selected? using-playlists? :group bg)])]
     (seesaw/listen bg :selection
                    (fn [e]
                      (when-let [s (seesaw/selection bg)]
                        (swap! (global-user-data) assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
+    (seesaw/listen online-item :item-state-changed
+                   (fn [e]
+                     (if (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
+                       (go-online)
+                       (go-offline))))
     (seesaw/listen metadata-item :item-state-changed
                    (fn [e]
-                     (swap! (global-user-data) update :request-metadata? not)
-                     (if (:request-metadata? @(global-user-data))
-                       (MetadataFinder/start)
+                     (swap! (global-user-data) assoc :request-metadata? (= (.getStateChange e)
+                                                                           java.awt.event.ItemEvent/SELECTED))
+                     (if (want-metadata?)
+                       (enable-metadata)
                        (MetadataFinder/stop))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
@@ -1166,9 +1212,12 @@
                                                         (map build-global-editor-action (keys editors/global-editors))
                                                         [(seesaw/separator)
                                                          track-submenu media-locations-action inspect-action
-                                                         (seesaw/separator) carabiner-action
                                                          (seesaw/separator) clear-triggers-action])
-                                         :id :triggers-menu)])))
+                                         :id :triggers-menu)
+
+                            (seesaw/menu :text "Network"
+                                         :items [online-item metadata-item (seesaw/separator) carabiner-action]
+                                         :id :network-menu)])))
 
 (defn update-global-expression-icons
   "Updates the icons next to expressions in the Trigger menu to
@@ -1209,21 +1258,42 @@
 (defn start
   "Create the Triggers window, and register all the notification
   handlers it needs in order to stay up to date with events on the
-  MIDI and DJ Link networks."
+  MIDI and DJ Link networks. If the window already exists, just bring
+  it to the front, to support returning to online operation."
   []
-  ;; Request notifications when MIDI devices appear or vanish
-  (when (CoreMidiDeviceProvider/isLibraryLoaded)
-    (CoreMidiDeviceProvider/addNotificationListener
-     (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
-       (midiSystemUpdated [this]
-         (midi-environment-changed)))))
+  (if @trigger-frame
+    (do
+      (rebuild-all-device-status)
+      (seesaw/show! @trigger-frame))
+    (do
+      ;; Request notifications when MIDI devices appear or vanish
+      (when (CoreMidiDeviceProvider/isLibraryLoaded)
+        (CoreMidiDeviceProvider/addNotificationListener
+         (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
+           (midiSystemUpdated [this]
+             (midi-environment-changed)))))
 
-  ;; Open the trigger window
-  (create-trigger-window)
-  (.addShutdownHook (Runtime/getRuntime) (Thread. save-triggers-to-preferences))
+      ;; Open the trigger window
+      (create-trigger-window)
+      (.addShutdownHook (Runtime/getRuntime) (Thread. save-triggers-to-preferences))
 
-  (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
-  (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-  (when (VirtualCdj/isActive) (VirtualCdj/addUpdateListener status-listener))  ; React to changes in player state
-  (BeatFinder/start)
-  (BeatFinder/addBeatListener beat-listener))  ; Allow triggers to respond to beats
+      (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
+      (VirtualCdj/addUpdateListener status-listener)
+      (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
+      (BeatFinder/addBeatListener beat-listener))))  ; Allow triggers to respond to beats
+
+(defn go-offline
+  "Transition to an offline state, updating the UI appropriately."
+  []
+  (VirtualCdj/stop)
+  (Thread/sleep 200)  ; Wait for straggling update packets
+  (rebuild-all-device-status))
+
+(defn go-online
+  "Try to transition to an online state, updating the UI appropriately."
+  []
+  (seesaw/hide! @trigger-frame)
+  (future ((resolve 'beat-link-trigger.core/try-going-online))
+          (if (online?)
+            (when (want-metadata?) (MetadataFinder/start))
+            (.setSelected (seesaw/select @trigger-frame [:#online]) false))))

@@ -108,5 +108,5 @@
   (seesaw/invoke-now
    (let [searching (create-frame create-searching-panel :title "Looking for DJ Link devices…")]
      (seesaw/config! searching :resizable? false :on-close :nothing)
-     (.toFront searching)
+     (seesaw/show! searching)
      searching)))
