@@ -1280,7 +1280,8 @@
       (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
       (VirtualCdj/addUpdateListener status-listener)
       (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-      (BeatFinder/addBeatListener beat-listener))))  ; Allow triggers to respond to beats
+      (BeatFinder/addBeatListener beat-listener)))  ; Allow triggers to respond to beats
+  (when (want-metadata?) (enable-metadata)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
@@ -1294,6 +1295,5 @@
   []
   (seesaw/hide! @trigger-frame)
   (future ((resolve 'beat-link-trigger.core/try-going-online))
-          (if (online?)
-            (when (want-metadata?) (MetadataFinder/start))
+          (when-not (online?)
             (.setSelected (seesaw/select @trigger-frame [:#online]) false))))
