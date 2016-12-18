@@ -12,6 +12,11 @@ This change log follows the conventions of
   the trigger windows. Soon you will be able to use it in your trigger
   logic.
 
+### Fixed
+
+- The `BeatListener` was not being started, so Beat Expressions would
+  never be run.
+
 ## [0.1.4] - 2016-11-20
 
 ### Added
