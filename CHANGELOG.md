@@ -11,6 +11,9 @@ This change log follows the conventions of
 - You can now request track metadata from the CDJs, and display it in
   the trigger windows. Soon you will be able to use it in your trigger
   logic.
+- You can take Beat Link Trigger online after starting it in offline
+  mode, or go offline when operating in online mode, at will using a
+  new Network menu.
 
 ### Fixed
 
@@ -25,6 +28,10 @@ This change log follows the conventions of
   trigger number and type description, with better formatting, to help
   track them down.
 
+### Changed
+
+- The Carabiner connection is now configured through the new Network
+  menu.
 
 ## [0.1.4] - 2016-11-20
 

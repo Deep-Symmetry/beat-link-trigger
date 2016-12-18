@@ -1282,13 +1282,14 @@
       (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
       (VirtualCdj/addUpdateListener status-listener)
       (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-      (BeatFinder/start)
       (BeatFinder/addBeatListener beat-listener)))  ; Allow triggers to respond to beats
+  (BeatFinder/start)
   (when (want-metadata?) (enable-metadata)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
   []
+  (BeatFinder/stop)
   (VirtualCdj/stop)
   (Thread/sleep 200)  ; Wait for straggling update packets
   (rebuild-all-device-status))
