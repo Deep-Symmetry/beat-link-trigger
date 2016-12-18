@@ -204,7 +204,7 @@
   (let [index (:index (seesaw/value trigger))]
     (subs index 0 (dec (count index)))))
 
-(defn- editor-title
+(defn editor-title
   "Determines the title for an editor window. If it is from an
   individual trigger, identifies it as such."
   [kind trigger global?]
@@ -224,7 +224,8 @@
     (try
       (when (seq text)  ; If we got a new expression, try to compile it
         (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-               (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info))))
+               (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
+                                                  (editor-title kind trigger global?))))
       (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
         (dispose editor)  ; Close the editor
         (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))

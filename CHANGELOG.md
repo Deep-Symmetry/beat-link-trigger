@@ -16,6 +16,15 @@ This change log follows the conventions of
 
 - The `BeatListener` was not being started, so Beat Expressions would
   never be run.
+- Previously an extra closing parenthesis in an Expression would cause
+  anything after it to be silently ignored. Now it will properly
+  cause a parse failure due to an unmatched delimiter.
+- Parse errors are also now identified with the trigger number and
+  expression type, as well as proper line and column numbers.
+- Runtime exceptions within triggers are now also logged with the
+  trigger number and type description, with better formatting, to help
+  track them down.
+
 
 ## [0.1.4] - 2016-11-20
 

@@ -78,8 +78,8 @@
       (try
         [(custom-fn status data expression-globals) nil]
         (catch Throwable t
-          (timbre/error t "Problem running " kind " expression,"
-                        (get-in data [:expressions kind]))
+          (timbre/error t (str "Problem running " (editors/editor-title kind trigger false) ":\n"
+                               (get-in data [:expressions kind])))
           (when alert?
             (seesaw/alert (str "<html>Problem running trigger " (name kind) " expression.<br><br>" t)
                     "Exception in Custom Expression" :type :error))
@@ -640,7 +640,8 @@
        (let [editor-info (get editors/trigger-editors kind)]
          (try
            (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-                  (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)))
+                  (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                     (editors/editor-title kind trigger false)))
            (catch Exception e
              (swap! (seesaw/user-data trigger) assoc :expression-load-error true)
              (timbre/error e (str "Problem parsing " (:title editor-info)
@@ -1095,7 +1096,8 @@
         (let [editor-info (get editors/global-editors kind)]
           (try
             (swap! (global-user-data) assoc-in [:expression-fns kind]
-                   (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)))
+                   (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                      (editors/editor-title kind nil true)))
             (catch Exception e
               (timbre/error e (str "Problem parsing " (:title editor-info)
                                    " when loading Triggers. Expression:\n" expr "\n"))

@@ -1,7 +1,9 @@
 (ns beat-link-trigger.expressions
   "A namespace in which user-entered custom expressions will be
   evaluated, which provides support for making them easier to write."
-  (:require [overtone.midi :as midi]
+  (:require [clojure.tools.reader :as r]
+            [clojure.tools.reader.reader-types :as rt]
+            [overtone.midi :as midi]
             [overtone.osc :as osc]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util
@@ -352,8 +354,12 @@
   convenience symbols based on the status, and returns the results of
   evaluating the user expression in that context. If `nil-status?` is
   `true`, the bindings must be built in a way that protects against
-  the possibility of `status` being `nil`."
-  [expr available-bindings nil-status?]
+  the possibility of `status` being `nil`. The `title` describes the
+  expression and is reported as the file name in any exception arising
+  during parsing or execution of the expression."
+  [expr available-bindings nil-status? title]
   (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-    (let [body (read-string (str "(do " expr "\n)"))]
-      (eval `(wrap-user-expression ~body ~available-bindings ~nil-status?)))))
+    (let [reader (rt/indexing-push-back-reader expr 1 title)
+          eof (Object.)
+          forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
+      (eval `(wrap-user-expression (do ~@forms) ~available-bindings ~nil-status?)))))
