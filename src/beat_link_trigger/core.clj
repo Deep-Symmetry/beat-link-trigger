@@ -16,7 +16,7 @@
       (VirtualCdj/setUseStandardPlayerNumber (triggers/want-metadata?))
       (if (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
-                 (timbre/log e "Unable to create Virtual CDJ")
+                 (timbre/warn e "Unable to create Virtual CDJ")
                  (seesaw/invoke-now
                   (seesaw/hide! searching)
                   (seesaw/alert (str "<html>Unable to create Virtual CDJ<br><br>" e)
