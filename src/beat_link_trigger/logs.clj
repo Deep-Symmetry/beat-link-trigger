@@ -43,12 +43,16 @@
        (force msg_)
        (when-not no-stacktrace?
          (when-let [err (force ?err_)]
-           (str "\n" (timbre/stacktrace err opts))))))))
+           (str "\n" (timbre/stacktrace err (assoc opts :stacktrace-fonts {})))))))))
 
 (defn- init-logging-internal
   "Performs the actual initialization of the logging environment,
   protected by the delay below to insure it happens only once."
   []
+  (Thread/setDefaultUncaughtExceptionHandler
+   (reify Thread$UncaughtExceptionHandler
+     (uncaughtException [_ thread e]
+       (timbre/error e "Uncaught exception on" (.getName thread)))))
   (timbre/set-config!
    {:level :info  ; #{:trace :debug :info :warn :error :fatal :report}
     :enabled? true

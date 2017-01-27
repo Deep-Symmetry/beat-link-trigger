@@ -104,7 +104,7 @@ on, you will be able to run that copy by just double-clicking it.
 ## License
 
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry" src="doc/assets/DS-logo-bw-200-padded-left.png"></a>
-Copyright © 2016 [Deep Symmetry, LLC](http://deepsymmetry.org)
+Copyright © 2016&ndash;2017 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
 Distributed under the
 [Eclipse Public License 1.0](http://opensource.org/licenses/eclipse-1.0.php),
