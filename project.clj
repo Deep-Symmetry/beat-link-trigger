@@ -4,12 +4,12 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [com.fifesoft/rsyntaxtextarea "2.6.0"]
+                 [com.fifesoft/rsyntaxtextarea "2.6.1"]
                  [com.github.insubstantial/substance "7.3"]
-                 [com.taoensso/timbre "4.7.4"]
-                 [com.fzakaria/slf4j-timbre "0.3.2"]
+                 [com.taoensso/timbre "4.8.0"]
+                 [com.fzakaria/slf4j-timbre "0.3.4"]
                  [environ "1.1.0"]
-                 [fipp "0.6.7"]
+                 [fipp "0.6.9"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.2.1-SNAPSHOT"]
