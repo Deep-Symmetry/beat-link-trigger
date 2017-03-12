@@ -148,32 +148,30 @@
   (try
     (let [buffer (byte-array 1024)
           input (.getInputStream socket)]
-      (loop []
-        (when (and (= running (:running @client)) (not (.isClosed socket)))
-          (try
-            (let [n (.read input buffer)]
-              (if (and (pos? n) (= running (:running @client)))  ; We got data, and were not shut down while reading
-                (let [message (String. buffer 0 n)
-                      reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message)))
-                      cmd (clojure.edn/read reader)]
-                  (timbre/debug "Received:" message)
-                  (case cmd
-                    status (handle-status (clojure.edn/read reader))
-                    beat-at-time (handle-beat-at-time (clojure.edn/read reader))
-                    (timbre/error "Unrecognized message from Carabiner:" message)))
-                (do  ; We read zero, means the other side closed; force our loop to terminate.
-                  (future
-                    (javax.swing.JOptionPane/showMessageDialog
-                     @carabiner-window
-                     "Carabiner unexpectedly closed our connection; is it still running?"
-                     "Carabiner Connection Closed"
-                     javax.swing.JOptionPane/WARNING_MESSAGE))
-                  (.close socket))))
-            (catch java.net.SocketTimeoutException e
-              (timbre/debug "Read from Carabiner timed out, checking if we should exit loop."))
-            (catch Exception e
-              (timbre/error e "Problem reading from Carabiner.")))
-          (recur))))
+      (while (and (= running (:running @client)) (not (.isClosed socket)))
+        (try
+          (let [n (.read input buffer)]
+            (if (and (pos? n) (= running (:running @client)))  ; We got data, and were not shut down while reading
+              (let [message (String. buffer 0 n)
+                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message)))
+                    cmd (clojure.edn/read reader)]
+                (timbre/debug "Received:" message)
+                (case cmd
+                  status (handle-status (clojure.edn/read reader))
+                  beat-at-time (handle-beat-at-time (clojure.edn/read reader))
+                  (timbre/error "Unrecognized message from Carabiner:" message)))
+              (do  ; We read zero, means the other side closed; force our loop to terminate.
+                (future
+                  (javax.swing.JOptionPane/showMessageDialog
+                   @carabiner-window
+                   "Carabiner unexpectedly closed our connection; is it still running?"
+                   "Carabiner Connection Closed"
+                   javax.swing.JOptionPane/WARNING_MESSAGE))
+                (.close socket))))
+          (catch java.net.SocketTimeoutException e
+            (timbre/debug "Read from Carabiner timed out, checking if we should exit loop."))
+          (catch Exception e
+            (timbre/error e "Problem reading from Carabiner.")))))
     (timbre/info "Ending read loop from Carabiner.")
     (swap! client (fn [oldval]
                     (if (= running (:running oldval))
