@@ -49,7 +49,7 @@
   "Sends a message to the active Carabiner daemon."
   [message]
   (ensure-active)
-  (.write (.getOutputStream (:socket @client)) (.getBytes (str message))))
+  (.write (.getOutputStream (:socket @client)) (.getBytes (str message) "UTF-8")))
 
 (defn- check-tempo
   "If we are supposed to master the Link tempo, make sure the Link
@@ -152,8 +152,8 @@
         (try
           (let [n (.read input buffer)]
             (if (and (pos? n) (= running (:running @client)))  ; We got data, and were not shut down while reading
-              (let [message (String. buffer 0 n)
-                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message)))
+              (let [message (String. buffer 0 n "UTF-8")
+                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message "UTF-8")))
                     cmd (clojure.edn/read reader)]
                 (timbre/debug "Received:" message)
                 (case cmd
