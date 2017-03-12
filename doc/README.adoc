@@ -189,7 +189,7 @@ DJ's ability to use the Link Info feature.
 
 It seems to be safe and reliable to request metadata as long as there
 are no more than three other players on the network, so Beat Link
-Trigger can reseve a device number from 1 to 4, or as long as the four
+Trigger can reserve a device number from 1 to 4, or as long as the four
 players are only loading tracks from rekordbox instead of each other,
 because rekordbox will happily reply to metadata requests from device
 numbers larger than 5.
@@ -362,7 +362,7 @@ try!
 
 The expression you are first likely to want to use is the Enabled
 Filter, which is found in each trigger's context menu. In fact, as
-soon as you set a trigger's Enabled menu to Custom, Beat Link Triggger
+soon as you set a trigger's Enabled menu to Custom, Beat Link Trigger
 will pop open the editor for that expression for you, if you have not
 yet created it:
 
@@ -441,7 +441,7 @@ be used later in the expression. `chamsys-address` gets set to a
 https://docs.oracle.com/javase/8/docs/api/java/net/SocketAddress.html[`SocketAddress`]
 representing port 6553 (the default port used by MagicQ) on the
 broadcast address for the Deep Symmetry show network (you will need to
-use the value appropriate for your own newtork). `trigger-on` and
+use the value appropriate for your own network). `trigger-on` and
 `trigger-off` are arrays of bytes containing the characters that make
 up the commands for turning a MagicQ remote programming trigger on and
 off.
@@ -814,7 +814,7 @@ expressions. For example, to match any track whose title begins with
 ```
 
 Of course, you might also want the trigger to activate only when
-playback reaches a particular beat. You can combine as many diferent
+playback reaches a particular beat. You can combine as many different
 kinds of rules and logic as you need in your Enabled expression to
 achieve your goals:
 
@@ -1307,7 +1307,7 @@ image:assets/BeyondPortSettings.png[Beyond MIDI Device Settings,574]
 That will open a window that gives you access to a great many MIDI
 mapping options, allowing you to cause BEYOND to react to incoming
 MIDI events in different ways. For much more information about it, see
-the BEYOND MIDI Settings manual section, accesible through
+the BEYOND MIDI Settings manual section, accessible through
 menu:Help[Documentation>Settings>MIDI settings]. In this example we'll
 just take a quick look at mapping the first cue cell to respond to the
 Beat Link Trigger we have just created. To do that, click the
