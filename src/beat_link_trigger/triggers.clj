@@ -186,15 +186,15 @@
   ([trigger]
    (get-chosen-output trigger @(seesaw/user-data trigger)))
   ([trigger data]
-   (let [selection (get-in data [:value :outputs])
-         device-name (.full_name selection)]
-     (or (get @opened-outputs device-name)
-         (try
-           (let [new-output (midi/midi-out device-name)]
-             (swap! opened-outputs assoc device-name new-output)
-             new-output)
-           (catch IllegalArgumentException e  ; The chosen output is not currently available
-             (timbre/debug e "Trigger using nonexisting MIDI output" device-name)))))))
+   (when-let [selection (get-in data [:value :outputs])]
+     (let [device-name (.full_name selection)]
+       (or (get @opened-outputs device-name)
+           (try
+             (let [new-output (midi/midi-out device-name)]
+               (swap! opened-outputs assoc device-name new-output)
+               new-output)
+             (catch IllegalArgumentException e ; The chosen output is not currently available
+               (timbre/debug e "Trigger using nonexisting MIDI output" device-name))))))))
 
 (def ^:private clock-message
   "A MIDI timing clock message that can be sent by any trigger that is
