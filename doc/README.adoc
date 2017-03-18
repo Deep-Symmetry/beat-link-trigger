@@ -839,6 +839,53 @@ Including that within the trigger will enable it when a player that
 has loaded that specific track, and playback is positioned anywhere
 from beat 65 to 192, inclusive.
 
+=== Writing a Playlist
+
+Another way to take advantage of the new metadata support is to write
+out a file that logs all the tracks that were played during a DJ set.
+Here is a simple example of how to do that, although you can certainly
+get fancier in terms of how you format the timestamps and what
+information you log.
+
+Set up a Trigger that is configured to watch the Master Player, and
+install the following Tracked Update Expression:
+
+```clojure
+(when trigger-active?
+  (when (not= track-metadata (:last-track @locals))
+    (swap! locals assoc :last-track track-metadata)
+    (when (some? track-metadata)
+      (let [log-entry (with-out-str
+                        (println "Timestamp:" (str (java.time.LocalDateTime/now)))
+                        (println "   Artist:" track-artist)
+                        (println "    Title:" track-title)
+                        (println))]
+       (spit "/Users/james/Desktop/playlist.txt" log-entry :append true)))))
+```
+
+TIP: This version creates a file called `playlist.txt` on my desktop;
+change the file path in the `spit` call to match where you want the
+file created.
+
+Whenever this trigger is enabled, as soon as a new track is being
+played by whatever player is currently the tempo master, a new entry
+will be written to the playlist log. The file content will look like
+this:
+
+```
+Timestamp: 2017-03-18T18:21:43.705
+   Artist: Exige & EJR
+    Title: Escape ft. Zoë Phillips (Bazarro Remix)
+
+Timestamp: 2017-03-18T18:21:56.170
+   Artist: Imogen Heap
+    Title: Hide and Seek (Tiësto In Search of Summer mix)
+
+Timestamp: 2017-03-18T18:22:07.713
+   Artist: Faithless
+    Title: insomnia 2008 (a1 electro mix)
+```
+
 == Working with Ableton Link
 
 With the help of
