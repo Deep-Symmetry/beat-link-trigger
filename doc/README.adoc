@@ -1470,7 +1470,7 @@ Expression:
   [bpm]
   (let [bpm (Math/round bpm)]
     (when-not (= bpm (get-in @globals [:live-connection :bpm]))
-      (send-live-command (str "BPM|"bpm))
+      (send-live-command (str "BPM|" bpm))
       (swap! globals assoc-in [:live-connection :bpm] bpm)
       (timbre/info "ShowXpress Live tempo set to" bpm))))
 
