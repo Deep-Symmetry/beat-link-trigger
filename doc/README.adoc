@@ -1593,6 +1593,15 @@ will want to go back and read this entire user guide to get a better
 understanding of how to make your triggers activate, and the other
 things you can do with beat-link-trigger.
 
+Additionally, you can send any other command supported by the external
+control protocol (documented
+http://forum.thelightingcontroller.com/viewtopic.php?f=72&t=4183[here]),
+like this, which would tell it to set fader number 2 to position 0:
+
+```clojure
+(send-live-command "FADER_CHANGE|2|0")
+```
+
 == What Next?
 
 Hopefully this has been enough to get you started, and thinking about
