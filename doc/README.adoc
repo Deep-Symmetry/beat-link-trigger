@@ -1411,7 +1411,7 @@ turned on in the ShowXpress Live Preferences, and choose a password.
 Quit and relaunch the application if this was not turned on when you
 initially opened it.
 
-image:assets/LiveExternalControl.png[ShowXpress Live Preferences, 739]
+image:assets/LiveExternalControl.png[ShowXpress Live Preferences, 700]
 
 Then paste this block of code into beat-link-trigger's Global Setup
 Expression:
@@ -1522,7 +1522,8 @@ so by editing the Global Setup Expression and saving it--even without
 making any changes, that will run both the shutdown and setup code
 again for you.
 
-Then, here is the corresponding Global Shutdown Expression:
+Also paste this smaller block of code into the Global Shutdown
+Expression:
 
 ```clojure
 ;; Disconnect from the Live external application port.
@@ -1531,9 +1532,12 @@ Then, here is the corresponding Global Shutdown Expression:
   (swap! globals dissoc :live-connection))
 ```
 
-With these in place you can set up triggers which are enabled as
-appropriate by tracks loaded and beat numbers reached (examples
-below). If you want to control the Live BPM, it is probably easiest to
+With these in place, beat-link-trigger will maintain a connection to
+the ShowXpress Live external control port while it runs, and make
+a new set of functions available to all your trigger expressions which
+make it easy to send tempo information and cue commands.
+
+If you want to control the Live BPM, it is probably easiest to
 set up a single trigger to Watch the Master Player, and set its
 Tracked Update Expression to:
 
@@ -1550,7 +1554,7 @@ You may also want to set this trigger's Beat Expression to:
 (when trigger-active? (send-live-beat))
 ```
 
-That way, if Live has requested that we send BEAT messages on each
+That way, if Live has requested that we send `BEAT` messages on each
 beat, the triggers will do so when they are active. (But if it has not
 requested that, they will not.)
 
@@ -1579,9 +1583,15 @@ Expression to something like:
 
 And, as with all triggers, you can configure it to be active only when
 a CDJ is playing a particular track, or is within a particular range
-of beats within that track, as shown in the other examples above. This
-allows you to have certain looks called up automatically when the
-right parts of the right tracks are played.
+of beats within that track, as shown in <<matching-tracks,Matching
+Tracks>> above. This allows you to have certain looks called up
+automatically when the right parts of the right tracks are played.
+
+TIP: If you jumped to this section to learn about how to integrate the
+lighting controller with CDJs, and you think it looks promising, you
+will want to go back and read this entire user guide to get a better
+understanding of how to make your triggers activate, and the other
+things you can do with beat-link-trigger.
 
 == What Next?
 
