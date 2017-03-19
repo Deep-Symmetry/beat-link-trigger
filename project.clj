@@ -1,4 +1,4 @@
-(defproject beat-link-trigger "0.2.1-SNAPSHOT"
+(defproject beat-link-trigger "0.2.1"
   :description "Trigger events in response to CDJ activity."
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"

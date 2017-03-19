@@ -6,14 +6,23 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.2.1] - 2017-03-18
+
 ### Added
 
-- You can now request track metadata from the CDJs, and display it in
-  the trigger windows. Soon you will be able to use it in your trigger
-  logic.
+- You can now request track metadata from the CDJs, display it in the
+  trigger windows, and use it in your trigger logic.
 - You can take Beat Link Trigger online after starting it in offline
   mode, or go offline when operating in online mode, at will using a
   new Network menu.
+- A sample integration with
+  [The Lighting Controller](http://thelightingcontroller.com), also
+  known as ShowXpress, QuickDMX, and SweetLight, a widely-used DMX
+  lighting control package.
+- An example of how to automatically create a playlist logging all
+  tracks played.
 
 ### Fixed
 
@@ -168,7 +177,8 @@ This change log follows the conventions of
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.4...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.4...v0.2.1
 [0.1.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.1...v0.1.2
