@@ -1406,7 +1406,15 @@ commands on a TCP socket, and asked for some help in figuring out how
 to take advantage of that from beat-link-trigger. I was happy to do
 so, and it turns out to work quite well.
 
-Here is the code that is needed in the Global Setup Expression:
+To enable this integration, make sure that **External control** is
+turned on in the ShowXpress Live Preferences, and choose a password.
+Quit and relaunch the application if this was not turned on when you
+initially opened it.
+
+image:assets/LiveExternalControl.png[ShowXpress Live Preferences, 739]
+
+Then paste this block of code into beat-link-trigger's Global Setup
+Expression:
 
 ```clojure
 (defn live-response-handler
