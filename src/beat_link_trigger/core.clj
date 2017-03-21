@@ -1,5 +1,6 @@
 (ns beat-link-trigger.core
-  "Send MIDI or OSC events when a CDJ starts playing."
+  "Top level organization for starting up the interface, logging, and
+  managing online presence."
   (:require [beat-link-trigger.about :as about]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
