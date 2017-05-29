@@ -6,6 +6,15 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- File management is much improved, adding standard file extensions
+  for configuration and trigger export files, filtering on those
+  extensions to make it easier to see the right files, asking for
+  confirmation before overwriting an existing file, and still letting
+  you load a file with the wrong extension (such as one you saved
+  before this release) by choosing "All files" in the Open dialog.
+
 Nothing so far.
 
 ## [0.2.1] - 2017-03-18

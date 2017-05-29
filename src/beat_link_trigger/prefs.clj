@@ -103,8 +103,7 @@
 (defn load-from-file
   "Read the preferences from a text file."
   [file]
-  (if (valid-file? file)
-    (let [m (read-file file)]
-      (put-preferences m)
-      m)))
+  (let [m (read-file file)]
+    (put-preferences m)
+    m))
 
