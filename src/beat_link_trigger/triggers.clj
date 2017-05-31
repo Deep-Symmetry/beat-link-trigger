@@ -48,8 +48,8 @@
     (atom (initial-global-user-data)) ; Don't crash during initial window setup
     (seesaw/user-data (seesaw/config @trigger-frame :content))))
 
-(defn want-metadata?
-  "Checks whether the user has requested metadata."
+(defn request-metadata?
+  "Checks whether the user wants us to actively request metadata."
   []
   (boolean (:request-metadata? @(global-user-data))))
 
@@ -392,10 +392,9 @@
   "Include the appropriate track metadata items for display. If a
   non-nil `custom-summary` is available, use it. Otherwise show the
   track title, an em dash, and the track artist."
-  [status custom-summary]
-  (when-let [metadata (MetadataFinder/getLatestMetadataFor status)]
-    (let [summary (or custom-summary (str (.getTitle metadata) "&mdash;" (.getArtist metadata)))]
-      (str "<br>&nbsp;&nbsp; " summary))))
+  [status metadata custom-summary]
+  (let [summary (or custom-summary (str (.getTitle metadata) "&mdash;" (.getArtist metadata)))]
+    (str "<br>&nbsp;&nbsp; " summary)))
 
 (defn build-status-label
   "Create a brief textual summary of a player state given a status
@@ -405,7 +404,8 @@
   standard description and summary for the track)."
   [status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
-        using-metadata? (want-metadata?)]
+        metadata (MetadataFinder/getLatestMetadataFor status)
+        using-metadata? (or metadata metadata-summary)]
     (str (when using-metadata? "<html>")
          (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
          (when (.isTempoMaster status) ", Master")
@@ -417,7 +417,7 @@
            (neg? beat) ", beat n/a"
            (zero? beat) ", lead-in"
            :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")"))
-         (when using-metadata? (format-metadata status metadata-summary)))))
+         (when using-metadata? (format-metadata status metadata metadata-summary)))))
 
 (defn- online?
   "Check whether we are in online mode, with all the required
@@ -1068,10 +1068,10 @@
   (reify org.deepsymmetry.beatlink.DeviceAnnouncementListener
     (deviceFound [this announcement]
       (rebuild-all-device-status)
-      (media/update-window expression-globals 2500))
+      (media/update-window expression-globals 2500))  ; TODO: Get rid of this once moved to metadata.
     (deviceLost [this announcement]
       (rebuild-all-device-status)
-      (media/update-window expression-globals 2500))))
+      (media/update-window expression-globals 2500))))  ;  TODO: And this one too.
 
 (defn- translate-enabled-values
   "Convert from the old true/false model of enabled stored in early
@@ -1175,7 +1175,7 @@
 
 (declare go-offline)
 
-(defn- enable-metadata
+(defn- actively-request-metadata
   "Try to start gathering metadata if we are online. Warn the user if
   our device number will make that unreliable, and give them choices
   about how to proceed."
@@ -1189,7 +1189,9 @@
                          "then go back online, which will try to use a suitable device number.\n\n"
                          "You may also choose to use unreliable metadata, which will work unless all\n"
                          "of the CDJs load tracks from a media slot on the same player, and which\n"
-                         "may cause problems for DJs trying to use Link Info.")
+                         "may cause problems for DJs trying to use Link Info.\n\n"
+                         "Alternatively, you can create a metadata cache from the media in a player,\n"
+                         "and use that without turning on active metadata requests.")
             choice (seesaw/invoke-now
                     (javax.swing.JOptionPane/showOptionDialog
                      nil message "Incompatible Device Number for Metadata Requests"
@@ -1197,9 +1199,9 @@
                      options (aget options 2)))]
         (case choice
           0 (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)  ; Cancel
-          1 (MetadataFinder/start)  ; Use unreliable metadata
+          1 (MetadataFinder/setPassive false)  ; Use unreliable metadata requests.
           (.setSelected (seesaw/select @trigger-frame [:#online]) false)))  ; Go offline
-      (MetadataFinder/start))))
+      (MetadataFinder/setPassive false))))  ; We can reliably request metadata.
 
 (declare go-online)
 
@@ -1213,7 +1215,7 @@
         using-playlists? (:tracks-using-playlists? @(global-user-data))
         online-item (seesaw/checkbox-menu-item :text "Online?" :id :online :selected? (online?))
         metadata-item (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
-                                                 :selected? (want-metadata?))
+                                                 :selected? (request-metadata?))
         bg (seesaw/button-group)
         track-submenu (seesaw/menu :text "Default Track Description"
                                    :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
@@ -1233,9 +1235,9 @@
                    (fn [e]
                      (swap! (global-user-data) assoc :request-metadata? (= (.getStateChange e)
                                                                            java.awt.event.ItemEvent/SELECTED))
-                     (if (want-metadata?)
-                       (enable-metadata)
-                       (MetadataFinder/stop))))
+                     (if (request-metadata?)
+                       (actively-request-metadata)
+                       (MetadataFinder/setPassive true))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) logs/logs-action]
@@ -1315,11 +1317,14 @@
       (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
       (BeatFinder/addBeatListener beat-listener)))  ; Allow triggers to respond to beats
   (BeatFinder/start)
-  (when (want-metadata?) (enable-metadata)))
+  (MetadataFinder/setPassive true) ; Start out conservatively
+  (MetadataFinder/start)
+  (when (request-metadata?) (actively-request-metadata)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
   []
+  (MetadataFinder/stop)
   (BeatFinder/stop)
   (VirtualCdj/stop)
   (Thread/sleep 200)  ; Wait for straggling update packets

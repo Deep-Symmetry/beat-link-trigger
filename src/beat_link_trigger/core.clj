@@ -14,7 +14,7 @@
   []
   (let [searching (about/create-searching-frame)]
     (loop []
-      (VirtualCdj/setUseStandardPlayerNumber (triggers/want-metadata?))
+      (VirtualCdj/setUseStandardPlayerNumber (triggers/request-metadata?))
       (if (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
                  (timbre/warn e "Unable to create Virtual CDJ")
