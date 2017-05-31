@@ -5,7 +5,68 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]))
+  (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj MetadataFinder
+            MetadataCreationUpdateListener]
+           [java.awt.event WindowEvent]))
+
+;; TODO: Support optional additional argument to download only a single playlist when implemented.
+(defn create-metadata-cache
+  "Downloads metadata for the specified player and media slot,
+  creating a cache in the specified file. If `playlist-id` is
+  supplied, only the playlist with that ID will be downloaded,
+  otherwise all tracks will be downloaded. Provides a progress bar
+  during the download process, and allows the user to cancel it."
+  ([player slot file]
+   (create-metadata-cache player slot file nil))
+  ([player slot file playlist-id]
+   (let [continue? (atom true)
+         progress  (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
+         latest    (seesaw/label :text "Gathering tracks…")
+         panel     (mig/mig-panel
+                    :items [[(seesaw/label :text (str "<html>Creating " (if playlist-id "playlist" "full")
+                                                      " metadata cache for player " player
+                                                      ", " (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD")
+                                                      " slot, in file <strong>" (.getName file) "</strong>:</html>"))
+                             "span, wrap"]
+                            [latest "span, wrap 20"]
+                            [progress "grow, span, wrap 16"]
+                            [(seesaw/button :text "Cancel"
+                                            :listen [:action-performed (fn [e]
+                                                                         (reset! continue? false)
+                                                                         (seesaw/config! e :enabled? false
+                                                                                         :text "Canceling…"))])
+                             "span, align center"]])
+         root      (seesaw/frame :title "Downloading Metadata" :on-close :dispose :content panel)
+         trim-name (fn [track]
+                     (let [title (.getTitle track)]
+                       (if (< (count title) 40)
+                         title
+                         (str (subs title 0 39) "…"))))
+         listener  (reify MetadataCreationUpdateListener
+                     (cacheUpdateContinuing [this last-track finished-count total-count]
+                       (seesaw/invoke-later
+                        (seesaw/config! progress :max total-count :indeterminate? false)
+                        (seesaw/value! progress finished-count)
+                        (seesaw/config! latest :text (str "Added " finished-count " of " total-count
+                                                          ": " (trim-name last-track)))
+                        (when (or (not @continue?) (>= finished-count total-count))
+                          (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
+                       @continue?))]
+     (seesaw/listen root :window-closed (fn [e] (reset! continue? false)))
+     (.pack root)
+     (.setLocationRelativeTo root nil)
+     (seesaw/show! root)
+     (try
+       (MetadataFinder/createMetadataCache player slot file listener)
+       (catch Exception e
+         (timbre/error e "Problem creating metadata cache.")
+         (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
+                            "<br><br>Check the log file for details.</html>")
+                       :title "Exception creating metadata cache" :type :error)
+         (.dispose root))))))
+
+;; TODO: Update to work with saved metadata caches rather than manual media information.
+;; TODO: Migrate to becoming broader virtual CDJ UI. Probably rename.
 
 (defn show-no-devices
   "Report that media cannot be assigned because no DJ Link devices are
