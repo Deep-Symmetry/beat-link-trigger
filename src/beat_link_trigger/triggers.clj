@@ -1175,6 +1175,18 @@
 
 (declare go-offline)
 
+(defn- try-go-active
+  "Helper method that tries going out of passive mode and gives a nice
+  error message if we can't because a metadata cache is being
+  created."
+  []
+  (try
+    (MetadataFinder/setPassive false)
+    (catch IllegalStateException e
+      (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)
+      (seesaw/alert "Cannot actively request metadata while a metadata cache is being created."
+                    :title "Cache Creation In Progress" :type :error))))
+
 (defn- actively-request-metadata
   "Try to start gathering metadata if we are online. Warn the user if
   our device number will make that unreliable, and give them choices
@@ -1198,10 +1210,10 @@
                      javax.swing.JOptionPane/YES_NO_CANCEL_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
                      options (aget options 2)))]
         (case choice
-          0 (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)  ; Cancel
-          1 (MetadataFinder/setPassive false)  ; Use unreliable metadata requests.
-          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))  ; Go offline
-      (MetadataFinder/setPassive false))))  ; We can reliably request metadata.
+          0 (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)  ; Cancel.
+          1 (try-go-active)  ; Use unreliable metadata requests.
+          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))  ; Go offline.
+      (try-go-active))))  ; We can reliably request metadata.
 
 (declare go-online)
 
