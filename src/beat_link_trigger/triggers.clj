@@ -82,7 +82,7 @@
                                (get-in data [:expressions kind])))
           (when alert?
             (seesaw/alert (str "<html>Problem running trigger " (name kind) " expression.<br><br>" t)
-                    "Exception in Custom Expression" :type :error))
+                          :title "Exception in Custom Expression" :type :error))
           [nil t])))))
 
 (defn- run-custom-enabled
@@ -520,7 +520,7 @@
           (timbre/error t "Problem running global " kind " expression,"
                         (get-in data [:expressions kind]))
           (seesaw/alert (str "<html>Problem running global " (name kind) " expression.<br><br>" t)
-                        "Exception in Custom Expression" :type :error)
+                        :title "Exception in Custom Expression" :type :error)
           [nil t])))))
 
 (defn paint-placeholder
