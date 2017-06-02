@@ -9,6 +9,7 @@
             [beat-link-trigger.media :as media]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
             [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
@@ -869,22 +870,6 @@
              (merge (when-let [exprs (:expressions @(seesaw/user-data trigger))]
                       {:expressions exprs}))))
 
-(defn- confirm-overwrite
-  "If the specified file already exists, asks the user to confirm that
-  they want to overwrite it. Returns `true` if they confirmed, or if
-  the file did not already exist."
-  [file]
-  (or (not (.exists file))
-      (let [confirm (seesaw/dialog
-                     :content (str "Replace existing file?\nThe file " (.getName file)
-                                   " already exists, and will be overwritten if you proceed.")
-                     :type :warning :option-type :yes-no)]
-        (.pack confirm)
-        (.setLocationRelativeTo confirm @trigger-frame)
-        (let [result (= :success (seesaw/show! confirm))]
-          (seesaw/dispose! confirm)
-          result))))
-
 (defn- export-trigger
   "Saves a single trigger to a file for exchange or archival
   purposes."
@@ -892,16 +877,13 @@
   (when-let [file (chooser/choose-file @trigger-frame :type "Export"
                                        :all-files? false
                                        :filters [["Trigger Export files" ["bltx"]]])]
-    (let [file (if (.. file (getAbsolutePath) (endsWith ".bltx"))
-                 file
-                 (clojure.java.io/file (str (.getAbsolutePath file) ".bltx")))]
-      (when (confirm-overwrite file)
-        (try
-          (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (about/get-version)
-                                                 :item                     (format-trigger trigger)})))
-          (catch Exception e
-            (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
-                          :title "Problem Writing File" :type :error)))))))
+    (when-let [file (util/confirm-overwrite-file file "bltx" @trigger-frame)]
+      (try
+        (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (about/get-version)
+                                               :item                     (format-trigger trigger)})))
+        (catch Exception e
+          (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
+                        :title "Problem Writing File" :type :error))))))
 
 (defn- trigger-configuration
   "Returns the current Trigger window configuration, so it can be
@@ -935,15 +917,12 @@
                                                                  :all-files? false
                                                                  :filters [["BeatLinkTrigger configuration files"
                                                                             ["blt"]]])]
-                              (let [file (if (.. file (getAbsolutePath) (endsWith ".blt"))
-                                           file
-                                           (clojure.java.io/file (str (.getAbsolutePath file) ".blt")))]
-                                (when (confirm-overwrite file)
-                                  (try
-                                    (prefs/save-to-file file)
-                                    (catch Exception e
-                                      (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
-                                                    :title "Problem Writing File" :type :error)))))))
+                              (when-let [file (util/confirm-overwrite-file file "blt" @trigger-frame)]
+                                (try
+                                  (prefs/save-to-file file)
+                                  (catch Exception e
+                                    (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
+                                                  :title "Problem Writing File" :type :error))))))
                  :name "Save"
                  :key "menu S"))
 

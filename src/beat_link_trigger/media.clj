@@ -3,11 +3,17 @@
   particular player slots during show setup."
   (:require [clojure.java.browse]
             [seesaw.core :as seesaw]
+            [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [beat-link-trigger.playlist-entry]
+            [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj MetadataFinder
-            MetadataCreationUpdateListener]
-           [java.awt.event WindowEvent]))
+           MetadataCreationUpdateListener]
+           [beat_link_trigger.playlist_entry IPlaylistEntry]
+           [java.awt.event WindowEvent]
+           [javax.swing JFileChooser JTree]
+           [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
 
 ;; TODO: Support optional additional argument to download only a single playlist when implemented.
 (defn create-metadata-cache
@@ -56,14 +62,106 @@
      (.pack root)
      (.setLocationRelativeTo root nil)
      (seesaw/show! root)
-     (try
-       (MetadataFinder/createMetadataCache player slot file listener)
-       (catch Exception e
-         (timbre/error e "Problem creating metadata cache.")
-         (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
-                            "<br><br>Check the log file for details.</html>")
-                       :title "Exception creating metadata cache" :type :error)
-         (.dispose root))))))
+     (future
+       (try
+         ;; To load all tracks we pass a playlist ID of 0
+         (MetadataFinder/createMetadataCache player slot (or playlist-id 0) file listener)
+         (catch Exception e
+           (timbre/error e "Problem creating metadata cache.")
+           (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
+                              "<br><br>Check the log file for details.</html>")
+                         :title "Exception creating metadata cache" :type :error)
+           (seesaw/invoke-later (.dispose root))))))))
+
+(defn- playlist-node
+  "Create a node in the playlist selection tree that can lazily load
+  its children if it is a folder."
+  [player slot title id folder?]
+  (let [unloaded (atom true)]
+    (DefaultMutableTreeNode.
+     (proxy [Object IPlaylistEntry] []
+       (toString [] (str title))
+       (getId [] (int id))
+       (isFolder [] (true? folder?))
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (and folder? @unloaded)
+           (reset! unloaded false)
+           (timbre/info "requesting playlist folder" id)
+           (doseq [entry (MetadataFinder/requestPlaylistItemsFrom player slot 0 id true)]
+             (let [entry-name (.getValue (nth (.arguments entry) 3))
+                   entry-kind (.getValue (nth (.arguments entry) 6))
+                   entry-id (.getValue (nth (.arguments entry) 1))]
+               (.add node (playlist-node player slot entry-name (int entry-id) (true? (= entry-kind 1)))))))))
+     (true? folder?))))
+
+(defn- build-playlist-nodes
+  "Create the top-level playlist nodes, which will lazily load any
+  child playlists from the player when they are expanded."
+  [player slot]
+  (let [root (playlist-node player slot "root", 0, true)
+        playlists (playlist-node  player slot "Playlists", 0, true)]
+    (.add root (playlist-node player slot "All Tracks", 0, false))
+    (.add root playlists)
+    root))
+
+(defn show-cache-creation-dialog
+  "Presents an interface in which the user can choose which playlist
+  to cache and specify the destination file."
+  [player slot]
+  ;; TODO: Automatically (temporarily) enter passive mode for the duration of creating the cache,
+  ;;       possibly confirming with the user.
+  (seesaw/invoke-later
+   (let [selected-id           (atom nil)
+         root                  (seesaw/frame :title "Create Metadata Cache"
+                                             :on-close :dispose)
+         ^JFileChooser chooser (@#'chooser/configure-file-chooser (JFileChooser.)
+                                {:all-files? false
+                                 :filters    [["BeatLink metadata cache" ["bltm"]]]})
+         heading               (seesaw/label :text "Choose what to cache and where to save it:")
+         tree                           (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
+                                                     :root-visible? false)
+         panel                 (mig/mig-panel :items [[heading "wrap, align center"]
+                                                      [(seesaw/scrollable tree) "grow, wrap"]
+                                                      [chooser]])
+         ready-to-save? (fn []
+                          (or (some? @selected-id)
+                              (seesaw/alert "You must choose a playlist to save or All Tracks."
+                                            :title "No Cache Source Chosen" :type :error)))]
+     ;; TODO: Either figure out how to fix resize behavior, or prevent it.
+     (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+     (seesaw/listen tree
+                    :tree-will-expand
+                    (fn [e]
+                      (let [^TreeNode node        (.. e (getPath) (getLastPathComponent))
+                            ^IPlaylistEntry entry (.getUserObject node)]
+                        (.loadChildren entry node)))
+                    :selection
+                    (fn [e]
+                      (reset! selected-id
+                              (when (.isAddedPath e)
+                                (let [entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                  (when-not (.isFolder entry)
+                                    (.getId entry)))))))
+     (.setVisibleRowCount tree 10)
+     (.expandRow tree 1)
+
+     (when-let [[file-filter _] (seq (.getChoosableFileFilters chooser))]
+       (.setFileFilter chooser file-filter))
+     (.setDialogType chooser JFileChooser/SAVE_DIALOG)
+     (seesaw/listen chooser
+                    :action-performed
+                    (fn [action]
+                      (if (= (.getActionCommand action) JFileChooser/APPROVE_SELECTION)
+                        (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
+                          (@#'chooser/remember-chooser-dir chooser)
+                          (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) "bltm" nil)]
+                            (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
+                          (.dispose root))
+                        (.dispose root))))  ; They chose cancel.
+     (seesaw/config! root :content panel)
+     (seesaw/pack! root)
+     (.setLocationRelativeTo root nil)
+     (seesaw/show! root))))
 
 ;; TODO: Update to work with saved metadata caches rather than manual media information.
 ;; TODO: Migrate to becoming broader virtual CDJ UI. Probably rename.
