@@ -9,7 +9,7 @@
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj MetadataFinder
-           MetadataCreationUpdateListener]
+            MetadataCreationUpdateListener SlotReference]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
            [java.awt.event WindowEvent]
            [javax.swing JFileChooser JTree]
@@ -65,7 +65,8 @@
      (future
        (try
          ;; To load all tracks we pass a playlist ID of 0
-         (MetadataFinder/createMetadataCache player slot (or playlist-id 0) file listener)
+         (MetadataFinder/createMetadataCache (SlotReference/getSlotReference player slot) (or playlist-id 0)
+                                             file listener)
          (catch Exception e
            (timbre/error e "Problem creating metadata cache.")
            (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
