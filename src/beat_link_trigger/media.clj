@@ -8,14 +8,13 @@
             [taoensso.timbre :as timbre]
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj MetadataFinder
-            MetadataCreationUpdateListener SlotReference]
+  (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]
+           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCreationUpdateListener SlotReference]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
            [java.awt.event WindowEvent]
            [javax.swing JFileChooser JTree]
            [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
 
-;; TODO: Support optional additional argument to download only a single playlist when implemented.
 (defn create-metadata-cache
   "Downloads metadata for the specified player and media slot,
   creating a cache in the specified file. If `playlist-id` is

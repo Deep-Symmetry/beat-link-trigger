@@ -22,8 +22,9 @@
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt RenderingHints]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
-           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj MetadataFinder Beat CdjStatus MixerStatus
-            Util CdjStatus$TrackSourceSlot]))
+           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus
+            DeviceAnnouncementListener DeviceUpdateListener BeatListener CdjStatus$TrackSourceSlot Util]
+           [org.deepsymmetry.beatlink.data MetadataFinder]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers."}
@@ -999,7 +1000,7 @@
            :doc "Responds to player status packets and updates the
   state of any triggers watching them."}
   status-listener
-  (reify org.deepsymmetry.beatlink.DeviceUpdateListener
+  (reify DeviceUpdateListener
     (received [this status]
       (try
         (doseq [trigger (get-triggers)]
@@ -1022,7 +1023,7 @@
   expressions, and performs beat alignment for any tripped triggers
   that are assigned to Ableton Link."}
   beat-listener
-  (reify org.deepsymmetry.beatlink.BeatListener
+  (reify BeatListener
     (newBeat [this beat]
       (try
         (doseq [trigger (get-triggers)]
@@ -1044,7 +1045,7 @@
            :doc "Responds to the arrival or departure of DJ Link
   devices by updating our user interface appropriately."}
   device-listener
-  (reify org.deepsymmetry.beatlink.DeviceAnnouncementListener
+  (reify DeviceAnnouncementListener
     (deviceFound [this announcement]
       (rebuild-all-device-status)
       (media/update-window expression-globals 2500))  ; TODO: Get rid of this once moved to metadata.
