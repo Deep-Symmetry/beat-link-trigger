@@ -1310,7 +1310,7 @@
       (BeatFinder/addBeatListener beat-listener)))  ; Allow triggers to respond to beats
   (BeatFinder/start)
   (MetadataFinder/setPassive true) ; Start out conservatively
-  (MetadataFinder/start)
+  (when (online?) (MetadataFinder/start))
   (when (request-metadata?) (actively-request-metadata)))
 
 (defn go-offline
