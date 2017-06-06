@@ -9,7 +9,7 @@
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]
-           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCreationUpdateListener SlotReference]
+           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
            [java.awt.event WindowEvent]
            [javax.swing JFileChooser JTree]
@@ -47,8 +47,8 @@
                        (if (< (count title) 40)
                          title
                          (str (subs title 0 39) "…"))))
-         listener  (reify MetadataCreationUpdateListener
-                     (cacheUpdateContinuing [this last-track finished-count total-count]
+         listener  (reify MetadataCacheCreationListener
+                     (cacheCreationContinuing [this last-track finished-count total-count]
                        (seesaw/invoke-later
                         (seesaw/config! progress :max total-count :indeterminate? false)
                         (seesaw/value! progress finished-count)
