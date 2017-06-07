@@ -64,8 +64,8 @@
      (future
        (try
          ;; To load all tracks we pass a playlist ID of 0
-         (MetadataFinder/createMetadataCache (SlotReference/getSlotReference player slot) (or playlist-id 0)
-                                             file listener)
+         (.createMetadataCache (MetadataFinder/getInstance)
+                               (SlotReference/getSlotReference player slot) (or playlist-id 0) file listener)
          (catch Exception e
            (timbre/error e "Problem creating metadata cache.")
            (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
@@ -87,7 +87,7 @@
          (when (and folder? @unloaded)
            (reset! unloaded false)
            (timbre/info "requesting playlist folder" id)
-           (doseq [entry (MetadataFinder/requestPlaylistItemsFrom player slot 0 id true)]
+           (doseq [entry (.requestPlaylistItemsFrom (MetadataFinder/getInstance) player slot 0 id true)]
              (let [entry-name (.getValue (nth (.arguments entry) 3))
                    entry-kind (.getValue (nth (.arguments entry) 6))
                    entry-id (.getValue (nth (.arguments entry) 1))]
@@ -230,7 +230,7 @@
   [globals]
   (map (fn [n color]
          (create-player-row globals n color))
-       (sort (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (VirtualCdj/getLatestStatus))))
+       (sort (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
        (cycle ["#eee" "#ccc"])))
 
 (defn- make-window-visible
@@ -261,7 +261,7 @@
   "Open the Media Locations window if it is not already open."
   [trigger-frame globals editor-fn]
   (cond
-    (or (not (DeviceFinder/isActive)) (empty? (DeviceFinder/currentDevices)))
+    (or (not (.isActive (DeviceFinder/getInstance))) (empty? (.getCurrentDevices (DeviceFinder/getInstance))))
     (show-no-devices trigger-frame)
 
     (empty? (keys (:media @globals)))

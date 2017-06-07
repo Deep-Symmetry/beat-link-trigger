@@ -117,7 +117,8 @@
                        (- this-device))
         [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
         better (or (= existing-device this-device)
-                   (when (some? existing-device) (nil? (DeviceFinder/getLatestAnnouncementFrom existing-device)))
+                   (when (some? existing-device) (nil? (.getLatestAnnouncementFrom (DeviceFinder/getInstance)
+                                                                                   existing-device)))
                    (> match-score (or existing-score -256)))]
     (when better
       (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
@@ -406,7 +407,7 @@
   standard description and summary for the track)."
   [status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
-        metadata (MetadataFinder/getLatestMetadataFor status)
+        metadata (.getLatestMetadataFor (MetadataFinder/getInstance) status)
         using-metadata? (or metadata metadata-summary)]
     (str (when using-metadata? "<html>")
          (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
@@ -425,7 +426,7 @@
   "Check whether we are in online mode, with all the required
   beat-link finder objects running."
   []
-  (and (DeviceFinder/isActive) (VirtualCdj/isActive)))
+  (and (.isRunning (DeviceFinder/getInstance)) (.isRunning (VirtualCdj/getInstance))))
 
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
@@ -445,8 +446,8 @@
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
-        (let [found (when (online?) (DeviceFinder/getLatestAnnouncementFrom (int (.number selection))))
-              status (when (online?) (VirtualCdj/getLatestStatusFor (int (.number selection))))]
+        (let [found (when (online?) (.getLatestAnnouncementFrom (DeviceFinder/getInstance) (int (.number selection))))
+              status (when (online?) (.getLatestStatusFor (VirtualCdj/getInstance) (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
                 (seesaw/value! status-label (if (online?) "Player not found." "Offline."))
@@ -1161,7 +1162,7 @@
   created."
   []
   (try
-    (MetadataFinder/setPassive false)
+    (.setPassive (MetadataFinder/getInstance) false)
     (catch IllegalStateException e
       (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)
       (seesaw/alert "Cannot actively request metadata while a metadata cache is being created."
@@ -1173,9 +1174,9 @@
   about how to proceed."
   []
   (when (online?)
-    (if (> (VirtualCdj/getDeviceNumber) 4)
+    (if (> (.getDeviceNumber (VirtualCdj/getInstance)) 4)
       (let [options (to-array ["Cancel" "Use Unreliable Metadata" "Go Offline"])
-            message (str "Beat Link Trigger is using device number " (VirtualCdj/getDeviceNumber)
+            message (str "Beat Link Trigger is using device number " (.getDeviceNumber (VirtualCdj/getInstance))
                          ".\nTo reliably request metadata, it needs to use number 1, 2, 3, or 4.\n\n"
                          "Please go offline, make sure there are no more than 3 CDJs on the network,\n"
                          "then go back online, which will try to use a suitable device number.\n\n"
@@ -1229,7 +1230,7 @@
                                                                            java.awt.event.ItemEvent/SELECTED))
                      (if (request-metadata?)
                        (actively-request-metadata)
-                       (MetadataFinder/setPassive true))))
+                       (.setPassive (MetadataFinder/getInstance) true))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) logs/logs-action]
@@ -1304,21 +1305,22 @@
       (create-trigger-window)
       (.addShutdownHook (Runtime/getRuntime) (Thread. save-triggers-to-preferences))
 
-      (DeviceFinder/addDeviceAnnouncementListener device-listener)  ; Be able to react to players coming and going
-      (VirtualCdj/addUpdateListener status-listener)
+      ;; Be able to react to players coming and going
+      (.addDeviceAnnouncementListener (DeviceFinder/getInstance) device-listener)
+      (.addUpdateListener (VirtualCdj/getInstance) status-listener)
       (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-      (BeatFinder/addBeatListener beat-listener)))  ; Allow triggers to respond to beats
-  (BeatFinder/start)
-  (MetadataFinder/setPassive true) ; Start out conservatively
-  (when (online?) (MetadataFinder/start))
+      (.addBeatListener (BeatFinder/getInstance) beat-listener))) ; Allow triggers to respond to beats
+  (.start (BeatFinder/getInstance))
+  (.setPassive (MetadataFinder/getInstance) true) ; Start out conservatively
+  (when (online?) (.start (MetadataFinder/getInstance)))
   (when (request-metadata?) (actively-request-metadata)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
   []
-  (MetadataFinder/stop)
-  (BeatFinder/stop)
-  (VirtualCdj/stop)
+  (.stop (MetadataFinder/getInstance))
+  (.stop (BeatFinder/getInstance))
+  (.stop (VirtualCdj/getInstance))
   (Thread/sleep 200)  ; Wait for straggling update packets
   (rebuild-all-device-status))
 

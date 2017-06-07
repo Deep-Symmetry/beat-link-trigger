@@ -12,7 +12,7 @@
                  [fipp "0.6.9"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
-                 [org.deepsymmetry/beat-link "0.2.2-SNAPSHOT"]
+                 [org.deepsymmetry/beat-link "0.3.0-SNAPSHOT"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.4.5"]

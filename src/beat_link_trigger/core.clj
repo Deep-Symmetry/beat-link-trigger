@@ -14,8 +14,8 @@
   []
   (let [searching (about/create-searching-frame)]
     (loop []
-      (VirtualCdj/setUseStandardPlayerNumber (triggers/request-metadata?))
-      (if (try (VirtualCdj/start)  ; Make sure we can see some DJ Link devices and start the VirtualCdj
+      (.setUseStandardPlayerNumber (VirtualCdj/getInstance) (triggers/request-metadata?))
+      (if (try (.start (VirtualCdj/getInstance)) ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
                  (timbre/warn e "Unable to create Virtual CDJ")
                  (seesaw/invoke-now
@@ -51,3 +51,18 @@
   (timbre/info "Beat Link Trigger starting.")
   (menus/install-mac-about-handler)
   (try-going-online))
+
+(defn try-waveform
+  "Temporary function while experimenting with drawing waveforms."
+  [id]
+  (let [track (org.deepsymmetry.beatlink.data.DataReference.
+               3 org.deepsymmetry.beatlink.CdjStatus$TrackSourceSlot/USB_SLOT id)
+        metadata (.requestMetadataFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
+        preview  (.requestWaveformPreviewFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
+        view     (.createViewComponent preview metadata)
+        root (seesaw/frame :title (str "Waveform Preview Experimentation, track " id)
+                           :on-close :dispose
+                           :content view)]
+    (seesaw/pack! root)
+    (seesaw/show! root)
+    view))
