@@ -55,7 +55,7 @@
 (defn try-waveform
   "Temporary function while experimenting with drawing waveforms."
   [id]
-  (seesaw-invoke-now
+  (seesaw/invoke-now
    (let [track (org.deepsymmetry.beatlink.data.DataReference.
                 3 org.deepsymmetry.beatlink.CdjStatus$TrackSourceSlot/USB_SLOT id)
          metadata (.requestMetadataFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
