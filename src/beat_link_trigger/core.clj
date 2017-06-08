@@ -55,30 +55,30 @@
 (defn try-waveform
   "Temporary function while experimenting with drawing waveforms."
   [id]
-  (.start (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
-  (let [track (org.deepsymmetry.beatlink.data.DataReference.
-               3 org.deepsymmetry.beatlink.CdjStatus$TrackSourceSlot/USB_SLOT id)
-        metadata (.requestMetadataFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
-        preview  (.requestWaveformPreviewFrom (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance) track)
-        view     (.createViewComponent preview metadata)
-        root (seesaw/frame :title (str "Waveform Preview Experimentation, track " id)
-                           :on-close :dispose
-                           :content view)]
-    (seesaw/pack! root)
-    (seesaw/show! root)
-    view))
+  (seesaw-invoke-now
+   (let [track (org.deepsymmetry.beatlink.data.DataReference.
+                3 org.deepsymmetry.beatlink.CdjStatus$TrackSourceSlot/USB_SLOT id)
+         metadata (.requestMetadataFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
+         preview  (.requestWaveformPreviewFrom (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance) track)
+         view     (.createViewComponent preview metadata)
+         root (seesaw/frame :title (str "Waveform Preview Experimentation, track " id)
+                            :on-close :dispose
+                            :content view)]
+     (seesaw/pack! root)
+     (seesaw/show! root)
+     view)))
 
 (defn try-waveform-watcher
   "Temporary function while experimenting with drawing player waveform
   views."
   [player]
-  (.start (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
-  (let [view (org.deepsymmetry.beatlink.data.WaveformPreviewComponent. (int player))
-        root (seesaw/frame :title (str "Waveform Watcher Experimentation, player " player)
-                           :on-close :dispose
-                           :content view)]
-    (seesaw/listen root :window-closed
-                   (fn [_] (.setMonitoredPlayer view 0)))
-    (seesaw/pack! root)
-    (seesaw/show! root)
-    view))
+  (seesaw/invoke-now
+   (let [view (org.deepsymmetry.beatlink.data.WaveformPreviewComponent. (int player))
+         root (seesaw/frame :title (str "Waveform Watcher Experimentation, player " player)
+                            :on-close :dispose
+                            :content view)]
+     (seesaw/listen root :window-closed
+                    (fn [_] (.setMonitoredPlayer view 0)))
+     (seesaw/pack! root)
+     (seesaw/show! root)
+     view)))
