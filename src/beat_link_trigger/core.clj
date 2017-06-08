@@ -67,3 +67,18 @@
     (seesaw/pack! root)
     (seesaw/show! root)
     view))
+
+(defn try-waveform-watcher
+  "Temporary function while experimenting with drawing player waveform
+  views."
+  [player]
+  (.start (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
+  (let [view (org.deepsymmetry.beatlink.data.WaveformPreviewComponent. (int player))
+        root (seesaw/frame :title (str "Waveform Watcher Experimentation, player " player)
+                           :on-close :dispose
+                           :content view)]
+    (seesaw/listen root :window-closed
+                   (fn [_] (.setMonitoredPlayer view 0)))
+    (seesaw/pack! root)
+    (seesaw/show! root)
+    view))
