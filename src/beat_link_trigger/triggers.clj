@@ -24,7 +24,7 @@
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
            [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus
             DeviceAnnouncementListener DeviceUpdateListener BeatListener CdjStatus$TrackSourceSlot Util]
-           [org.deepsymmetry.beatlink.data MetadataFinder]))
+           [org.deepsymmetry.beatlink.data MetadataFinder ArtFinder BeatGridFinder WaveformFinder]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers."}
@@ -1287,6 +1287,15 @@
     (catch Exception e
       (timbre/error e "Problem creating Trigger window."))))
 
+(defn- start-other-finders
+  "Starts up the full complement of metadata-related finders that we
+  use."
+  []
+  (.start metadata-finder)
+  (.start (ArtFinder/getInstance))
+  (.start (BeatGridFinder/getInstance))
+  (.start (WaveformFinder/getInstance)))
+
 (defn start
   "Create the Triggers window, and register all the notification
   handlers it needs in order to stay up to date with events on the
@@ -1316,12 +1325,15 @@
       (.addBeatListener (BeatFinder/getInstance) beat-listener))) ; Allow triggers to respond to beats
   (.start (BeatFinder/getInstance))
   (.setPassive metadata-finder true) ; Start out conservatively
-  (when (online?) (.start metadata-finder))
+  (when (online?) (start-other-finders))
   (when (request-metadata?) (actively-request-metadata)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
   []
+  (.stop (WaveformFinder/getInstance))
+  (.stop (BeatGridFinder/getInstance))
+  (.stop (ArtFinder/getInstance))
   (.stop metadata-finder)
   (.stop (BeatFinder/getInstance))
   (.stop (VirtualCdj/getInstance))
@@ -1333,5 +1345,6 @@
   []
   (seesaw/hide! @trigger-frame)
   (future ((resolve 'beat-link-trigger.core/try-going-online))
-          (when-not (online?)
+          (if (online?)
+            (start-other-finders)
             (.setSelected (seesaw/select @trigger-frame [:#online]) false))))
