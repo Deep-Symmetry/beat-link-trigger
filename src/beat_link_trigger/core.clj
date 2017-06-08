@@ -55,10 +55,11 @@
 (defn try-waveform
   "Temporary function while experimenting with drawing waveforms."
   [id]
+  (.start (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
   (let [track (org.deepsymmetry.beatlink.data.DataReference.
                3 org.deepsymmetry.beatlink.CdjStatus$TrackSourceSlot/USB_SLOT id)
         metadata (.requestMetadataFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
-        preview  (.requestWaveformPreviewFrom (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance) track)
+        preview  (.requestWaveformPreviewFrom (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance) track)
         view     (.createViewComponent preview metadata)
         root (seesaw/frame :title (str "Waveform Preview Experimentation, track " id)
                            :on-close :dispose

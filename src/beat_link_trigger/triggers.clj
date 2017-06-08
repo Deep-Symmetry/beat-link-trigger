@@ -36,6 +36,10 @@
   trigger-frame
   (atom nil))
 
+(def metadata-finder
+  "A convenient reference to the MetadataFinder singleton."
+  (MetadataFinder/getInstance))
+
 (defn- initial-global-user-data
   "Create the values to assign the user-data atom for the window
   as a whole"
@@ -407,7 +411,7 @@
   standard description and summary for the track)."
   [status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
-        metadata (.getLatestMetadataFor (MetadataFinder/getInstance) status)
+        metadata (when (.isRunning metadata-finder) (.getLatestMetadataFor metadata-finder status))
         using-metadata? (or metadata metadata-summary)]
     (str (when using-metadata? "<html>")
          (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
@@ -1162,7 +1166,7 @@
   created."
   []
   (try
-    (.setPassive (MetadataFinder/getInstance) false)
+    (.setPassive metadata-finder false)
     (catch IllegalStateException e
       (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)
       (seesaw/alert "Cannot actively request metadata while a metadata cache is being created."
@@ -1230,7 +1234,7 @@
                                                                            java.awt.event.ItemEvent/SELECTED))
                      (if (request-metadata?)
                        (actively-request-metadata)
-                       (.setPassive (MetadataFinder/getInstance) true))))
+                       (.setPassive metadata-finder true))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) logs/logs-action]
@@ -1311,14 +1315,14 @@
       (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
       (.addBeatListener (BeatFinder/getInstance) beat-listener))) ; Allow triggers to respond to beats
   (.start (BeatFinder/getInstance))
-  (.setPassive (MetadataFinder/getInstance) true) ; Start out conservatively
-  (when (online?) (.start (MetadataFinder/getInstance)))
+  (.setPassive metadata-finder true) ; Start out conservatively
+  (when (online?) (.start metadata-finder))
   (when (request-metadata?) (actively-request-metadata)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
   []
-  (.stop (MetadataFinder/getInstance))
+  (.stop metadata-finder)
   (.stop (BeatFinder/getInstance))
   (.stop (VirtualCdj/getInstance))
   (Thread/sleep 200)  ; Wait for straggling update packets
