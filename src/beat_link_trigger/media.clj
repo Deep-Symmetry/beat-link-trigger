@@ -1,6 +1,7 @@
 (ns beat-link-trigger.media
-  "Provides the user interface for assigning media collections to
-  particular player slots during show setup."
+  "Provides the user interface for seeing the media playing on active
+  players, as well as creating metadata caches and assigning them to
+  particular player slots."
   (:require [clojure.java.browse]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
@@ -11,9 +12,35 @@
   (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]
            [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
+           [java.awt GraphicsEnvironment Font]
            [java.awt.event WindowEvent]
            [javax.swing JFileChooser JTree]
            [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
+
+(defonce fonts-loaded
+  (atom false))
+
+(defn load-fonts
+  "Load and register the fonts we will use to draw on the display, if
+  they have not already been."
+  []
+  (or @fonts-loaded
+      (let [ge (GraphicsEnvironment/getLocalGraphicsEnvironment)]
+        (doseq [font-file ["/fonts/DSEG7Classic-Regular.ttf"]]
+            (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
+                                               (.getResourceAsStream IPlaylistEntry font-file))))
+        (reset! fonts-loaded true))))
+
+(defn get-display-font
+  "Find one of the fonts configured for use by keyword, which must be
+  one of `:segment`. The `style` argument is a `java.awt.Font` style
+  constant, and `size` is point size.
+
+  Segment is only available in plain."
+  [k style size]
+  ;; TODO: If we do not end up supporting any other fonts or styles, simplify this! Either way, update the doc.
+  (case k
+    :segment (Font. "DSEG7 Classic" Font/PLAIN size)))
 
 (defn create-metadata-cache
   "Downloads metadata for the specified player and media slot,
