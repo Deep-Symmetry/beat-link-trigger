@@ -10,9 +10,10 @@
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]
-           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference]
+           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference
+            WaveformListener WaveformPreviewComponent WaveformDetailComponent]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
-           [java.awt GraphicsEnvironment Font]
+           [java.awt GraphicsEnvironment Font Color RenderingHints]
            [java.awt.event WindowEvent]
            [javax.swing JFileChooser JTree]
            [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
@@ -26,7 +27,9 @@
   []
   (or @fonts-loaded
       (let [ge (GraphicsEnvironment/getLocalGraphicsEnvironment)]
-        (doseq [font-file ["/fonts/DSEG7Classic-Regular.ttf"]]
+        (doseq [font-file ["/fonts/DSEG/DSEG7Classic-Regular.ttf"
+                           "/fonts/Orbitron/Orbitron-Black.ttf"
+                           "/fonts/Orbitron/Orbitron-Bold.ttf"]]
             (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
                                                (.getResourceAsStream IPlaylistEntry font-file))))
         (reset! fonts-loaded true))))
@@ -36,11 +39,12 @@
   one of `:segment`. The `style` argument is a `java.awt.Font` style
   constant, and `size` is point size.
 
-  Segment is only available in plain."
+  Orbitron is only available in bold, but asking for bold gives you
+  Orbitron Black. Segment is only available in plain."
   [k style size]
-  ;; TODO: If we do not end up supporting any other fonts or styles, simplify this! Either way, update the doc.
   (case k
-    :segment (Font. "DSEG7 Classic" Font/PLAIN size)))
+    :segment (Font. "DSEG7 Classic" Font/PLAIN size)
+    :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)))
 
 (defn create-metadata-cache
   "Downloads metadata for the specified player and media slot,
@@ -193,72 +197,65 @@
 ;; TODO: Update to work with saved metadata caches rather than manual media information.
 ;; TODO: Migrate to becoming broader virtual CDJ UI. Probably rename.
 
-(defn show-no-devices
-  "Report that media cannot be assigned because no DJ Link devices are
-  visible on the network."
-  [trigger-frame]
-  (seesaw/invoke-now (javax.swing.JOptionPane/showMessageDialog
-                      trigger-frame
-                      "No DJ Link devices are visible, so there is nowhere to assign media."
-                      "No Devices Available"
-                      javax.swing.JOptionPane/WARNING_MESSAGE)))
-
-(defn show-no-media
-  "Report that media has not been configured, and offer to open the manual
-  or Global Setup Expresion editor."
-  [trigger-frame editor-fn]
-  (let [options (to-array ["View User Guide" "Edit Global Setup" "Cancel"])
-        choice (seesaw/invoke-now
-                        (javax.swing.JOptionPane/showOptionDialog
-                         trigger-frame
-                         (str "No media libraries have been set up in the Expression Globals.\n"
-                              "This must be done before they can be assigned to player slots.")
-                         "No Media Entries Found"
-                         javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                         options (aget options 0)))]
-            (case choice
-              0 (clojure.java.browse/browse-url (str "https://github.com/brunchboy/beat-link-trigger/"
-                                                     "blob/master/doc/README.adoc#matching-tracks"))
-              1 (seesaw/invoke-soon (editor-fn))  ; Show global setup editor
-              nil)))
-
 (def ^{:private true
-       :doc "Holds the frame allowing the user to assign media to player slots."}
+       :doc "Holds the frame allowing the user to view player state
+  and create and assign metadata caches to player slots."}
   media-window (atom nil))
 
+(def player-row-width
+  "The width of a player row in pixels."
+  500)
+
+(def player-row-height
+  "The height of a player row in pixels, when no waveform detail is
+  showing."
+  300)
+
+(defn- paint-player-number
+  "Draws the player number being monitored by a row, updating the
+  color to reflect its play state. Arguments are the player number,
+  the component being drawn, and the graphics context in which drawing
+  is taking place."
+  [n c g]
+  (let [w       (double (seesaw/width c))
+        center  (/ w 2.0)
+        h       (double (seesaw/height c))
+        outline (java.awt.geom.RoundRectangle2D$Double. 1.0 1.0 (- w 2.0) (- h 2.0) 10.0 10.0)
+        vcdj    (VirtualCdj/getInstance)]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setStroke g (java.awt.BasicStroke. 2.0))
+    (.setPaint g (if (and (.isRunning vcdj)
+                          (when-let [^CdjStatus status (.getLatestStatusFor vcdj (int n))] (.isPlaying status)))
+                   Color/GREEN Color/DARK_GRAY))
+    (.draw g outline)
+    (.setFont g (get-display-font :orbitron Font/PLAIN 12))
+    (let [frc    (.getFontRenderContext g)
+          bounds (.getStringBounds (.getFont g) "Player" frc)]
+      (.drawString g "Player" (float (- center (/ (.getWidth bounds) 2.0))) (float (inc (.getHeight bounds)))))))
+
 (defn- create-player-row
-  "Create a row for assigning media to the slots of a player, given
-  its number."
-  [globals n color]
-  (let [set-media (fn [slot e]
-                    (let [title (seesaw/value (seesaw/to-widget e))
-                          chosen (when-not (clojure.string/blank? title) (clojure.edn/read-string title))]
-                      (swap! globals assoc-in [:media-locations n slot] chosen)))
-        media-model (concat [""] (map str (sort (keys (:media @globals)))))
-        usb-slot (seesaw/combobox :model media-model
-                                  :listen [:item-state-changed (fn [e] (set-media :usb-slot e))])
-        sd-slot (seesaw/combobox :model media-model
-                                 :listen [:item-state-changed (fn [e] (set-media :sd-slot e))])]
-    (seesaw/value! usb-slot (str (get-in @globals [:media-locations n :usb-slot])))
-    (seesaw/value! sd-slot (str (get-in @globals [:media-locations n :sd-slot])))
+  "Create a row a player, given its number."
+  [n]
+  (let [size [player-row-width :by player-row-height]
+        preview (WaveformPreviewComponent. (int n))
+        player (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))]
+    
     (mig/mig-panel
-     :background color
-     :items [[(str "Player " n ".") "align right"]
-
-             ["USB:" "gap unrelated"]
-             [usb-slot]
-
-             ["SD:" "gap unrelated"]
-             [sd-slot]])))
+     :id (keyword (str "player-" n))
+     :background (Color/BLACK)
+     :constraints ["" "" "[200!]"]
+     :items [[player "align left,bottom, gap unrelated"] [preview "align right,bottom"]])
+    ;; TODO: Set :visible? based on:
+    ;; (set (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
+    ;; TODO: Add a custom :paint function
+    ;; TODO: Add update listener to repaint elements when play state, etc. change
+    ))
 
 (defn- create-player-rows
   "Creates the rows for each visible player in the Media Locations
   window."
-  [globals]
-  (map (fn [n color]
-         (create-player-row globals n color))
-       (sort (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
-       (cycle ["#eee" "#ccc"])))
+  []
+  (map create-player-row (range 1 5)))
 
 (defn- make-window-visible
   "Ensures that the Media Locations window is centered on the triggers
@@ -273,12 +270,11 @@
   [trigger-frame globals]
   (try
     (let [root (seesaw/frame :title "Media Locations"
-                             :on-close :dispose)
+                             :on-close :hide)
           players (seesaw/vertical-panel :id :players)]
       (seesaw/config! root :content players)
-      (seesaw/config! players :items (create-player-rows globals))
+      (seesaw/config! players :items (create-player-rows))
       (seesaw/pack! root)
-      (seesaw/listen root :window-closed (fn [_] (reset! media-window nil)))
       (reset! media-window root)
       (make-window-visible trigger-frame))
     (catch Exception e
@@ -287,18 +283,8 @@
 (defn show-window
   "Open the Media Locations window if it is not already open."
   [trigger-frame globals editor-fn]
-  (cond
-    (or (not (.isActive (DeviceFinder/getInstance))) (empty? (.getCurrentDevices (DeviceFinder/getInstance))))
-    (show-no-devices trigger-frame)
-
-    (empty? (keys (:media @globals)))
-    (show-no-media trigger-frame editor-fn)
-
-    (not @media-window)
-    (create-window trigger-frame globals)
-
-    :else
-    (make-window-visible trigger-frame)))
+  (when-not @media-window (create-window trigger-frame globals))
+  (make-window-visible trigger-frame))
 
 (defn update-window
   "If the Media Locations window is showing, update it to reflect any
@@ -308,9 +294,8 @@
   to settle down."
   ([globals]
    (when-let [root @media-window]
-     (let [players (seesaw/config root :content)]
-          (seesaw/config! players :items (create-player-rows globals))
-          (seesaw/pack! root))))
+     ;; TODO: This can be replaced with device update listeners that just make the proper rows visible.
+     ))
   ([globals ms]
    (when @media-window
      (future
