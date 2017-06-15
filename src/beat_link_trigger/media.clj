@@ -231,7 +231,12 @@
     (.setFont g (get-display-font :orbitron Font/PLAIN 12))
     (let [frc    (.getFontRenderContext g)
           bounds (.getStringBounds (.getFont g) "Player" frc)]
-      (.drawString g "Player" (float (- center (/ (.getWidth bounds) 2.0))) (float (inc (.getHeight bounds)))))))
+      (.drawString g "Player" (float (- center (/ (.getWidth bounds) 2.0))) (float (+ (.getHeight bounds) 2.0))))
+    (.setFont g (get-display-font :orbitron Font/BOLD 42))
+    (let [frc    (.getFontRenderContext g)
+          num    (str n)
+          bounds (.getStringBounds (.getFont g) num frc)]
+      (.drawString g num (float (- center (/ (.getWidth bounds) 2.0))) (float (- h 5.0))))))
 
 (defn- create-player-row
   "Create a row a player, given its number."
@@ -244,7 +249,7 @@
      :id (keyword (str "player-" n))
      :background (Color/BLACK)
      :constraints ["" "" "[200!]"]
-     :items [[player "align left,bottom, gap unrelated"] [preview "align right,bottom"]])
+     :items [[player "left, bottom"] [preview "gapx 10px, right, bottom"]])
     ;; TODO: Set :visible? based on:
     ;; (set (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
     ;; TODO: Add a custom :paint function
