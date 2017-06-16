@@ -314,9 +314,9 @@
   (let [preview      (WaveformPreviewComponent. (int n))
         player       (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
         last-playing (atom nil)
-        time         (seesaw/canvas :size [150 :by 42] :opaque? false :paint (partial paint-time n false))
+        time         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
         last-time    (atom nil)
-        remain       (seesaw/canvas :size [150 :by 42] :opaque? false :paint (partial paint-time n true))]
+        remain       (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))]
     (async/go  ; Clean up when the window closes
       (<! shutdown-chan)  ; Parks until the window is closed
       (.setMonitoredPlayer preview 0))
@@ -341,8 +341,8 @@
     (mig/mig-panel
      :id (keyword (str "player-" n))
      :background (Color/BLACK)
-     :items [[time "skip, split 2"] [remain "wrap"]
-             [player "left, bottom"] [preview "gapx 10px, right, bottom, span"]])))
+     :items [[time "skip"] [remain "wrap"]
+             [player "left, bottom"] [preview "right, bottom, span"]])))
 
 (defn- create-player-rows
   "Creates the rows for each visible player in the Media Locations
