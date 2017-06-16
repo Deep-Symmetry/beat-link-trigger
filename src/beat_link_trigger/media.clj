@@ -3,6 +3,7 @@
   players, as well as creating metadata caches and assigning them to
   particular player slots."
   (:require [clojure.java.browse]
+            [clojure.core.async :as async :refer [<! >! <!! >!!]]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
@@ -11,7 +12,7 @@
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]
            [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference
-            WaveformListener WaveformPreviewComponent WaveformDetailComponent]
+            WaveformListener WaveformPreviewComponent WaveformDetailComponent TimeFinder WaveformFinder]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
            [java.awt GraphicsEnvironment Font Color RenderingHints]
            [java.awt.event WindowEvent]
@@ -29,7 +30,9 @@
       (let [ge (GraphicsEnvironment/getLocalGraphicsEnvironment)]
         (doseq [font-file ["/fonts/DSEG/DSEG7Classic-Regular.ttf"
                            "/fonts/Orbitron/Orbitron-Black.ttf"
-                           "/fonts/Orbitron/Orbitron-Bold.ttf"]]
+                           "/fonts/Orbitron/Orbitron-Bold.ttf"
+                           "/fonts/Teko/Teko-Regular.ttf"
+                           "/fonts/Teko/Teko-SemiBold.ttf"]]
             (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
                                                (.getResourceAsStream IPlaylistEntry font-file))))
         (reset! fonts-loaded true))))
@@ -40,11 +43,14 @@
   constant, and `size` is point size.
 
   Orbitron is only available in bold, but asking for bold gives you
-  Orbitron Black. Segment is only available in plain."
+  Orbitron Black. Segment is only available in plain. Teko is
+  available in plain and bold (but we actually deliver the semibold
+  version, since that looks nicer in the UI)."
   [k style size]
   (case k
+    :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
     :segment (Font. "DSEG7 Classic" Font/PLAIN size)
-    :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)))
+    :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
 
 (defn create-metadata-cache
   "Downloads metadata for the specified player and media slot,
@@ -202,14 +208,27 @@
   and create and assign metadata caches to player slots."}
   media-window (atom nil))
 
-(def player-row-width
-  "The width of a player row in pixels."
-  500)
+(def virtual-cdj
+  "The object which can obtained detailed player status information."
+  (VirtualCdj/getInstance))
 
-(def player-row-height
-  "The height of a player row in pixels, when no waveform detail is
-  showing."
-  300)
+(defn- playing?
+  "Returns `true` if the specified player can be determined to be
+  playing right now."
+  [n]
+  (and (.isRunning virtual-cdj)
+       (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
+         (.isPlaying status))))
+
+(def time-finder
+  "The object that can obtain detailed track time information."
+  (TimeFinder/getInstance))
+
+(defn time-played
+  "If possible, returns the number of milliseconds of track the
+  specified player has played."
+  [n]
+  (and (.isRunning time-finder) (.getTimeFor time-finder n)))
 
 (defn- paint-player-number
   "Draws the player number being monitored by a row, updating the
@@ -220,12 +239,10 @@
   (let [w       (double (seesaw/width c))
         center  (/ w 2.0)
         h       (double (seesaw/height c))
-        outline (java.awt.geom.RoundRectangle2D$Double. 1.0 1.0 (- w 2.0) (- h 2.0) 10.0 10.0)
-        vcdj    (VirtualCdj/getInstance)]
+        outline (java.awt.geom.RoundRectangle2D$Double. 1.0 1.0 (- w 2.0) (- h 2.0) 10.0 10.0)]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
     (.setStroke g (java.awt.BasicStroke. 2.0))
-    (.setPaint g (if (and (.isRunning vcdj)
-                          (when-let [^CdjStatus status (.getLatestStatusFor vcdj (int n))] (.isPlaying status)))
+    (.setPaint g (if (playing? n)
                    Color/GREEN Color/DARK_GRAY))
     (.draw g outline)
     (.setFont g (get-display-font :orbitron Font/PLAIN 12))
@@ -238,32 +255,105 @@
           bounds (.getStringBounds (.getFont g) num frc)]
       (.drawString g num (float (- center (/ (.getWidth bounds) 2.0))) (float (- h 5.0))))))
 
+(defn- time-left
+  "Figure out the number of milliseconds left to play for a given
+  player, given the player number and time played so far."
+  [n played]
+  (let [finder (WaveformFinder/getInstance)
+        detail (.getLatestDetailFor finder n)]
+    (when detail (max 0 (- (.getTotalTime detail) played)))))
+
+(defn- format-time
+  "Formats a number for display as a two-digit time value, or -- if it
+  cannot be."
+  [t]
+  (if t
+    (let [t (int t)]
+      (if (< t 100)
+        (format "%02d" t)
+        "--"))
+    "--"))
+
+(defn- paint-time
+  "Draws time information for a player. Arguments are player number, a
+  boolean flag indicating we are drawing remaining time, the component
+  being drawn, and the graphics context in which drawing is taking
+  place."
+  [n remain c g]
+  (let [played      (time-played n)
+        ms          (when (and played (>= played 0)) (if remain (time-left n played) played))
+        min         (format-time (when ms (/ ms 60000)))
+        sec         (format-time (when ms (/ (mod ms 60000) 1000)))
+        half-frame  (when ms (mod (org.deepsymmetry.beatlink.Util/timeToHalfFrame ms) 150))
+        frame       (format-time (when half-frame (/ half-frame 2)))
+        frac-frame  (if half-frame (if (even? half-frame) "0" "5") "-")]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setPaint g (if remain (Color. 255 200 200) (Color/WHITE)))
+    (.setFont g (get-display-font :teko Font/PLAIN 16))
+    (.drawString g (if remain "Remain" "Time") (int 4) (int 16))
+    (.setFont g (get-display-font :segment Font/PLAIN 20))
+    (.drawString g min (int 2) (int 40))
+    (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 34.0 2.0 3.0))
+    (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 24.0 2.0 3.0))
+    (.drawString g sec (int 45) (int 40))
+    (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 34.0 2.0 3.0))
+    (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 24.0 2.0 3.0))
+    (.drawString g frame (int 87) (int 40))
+    (.setFont g (get-display-font :teko Font/BOLD 10))
+    (.drawString g "M" (int 34) (int 40))
+    (.drawString g "S" (int 77) (int 40))
+    (.drawString g "F" (int 135) (int 40))
+    (.fill g (java.awt.geom.Rectangle2D$Double. 120.0 37.0 2.0 3.0))
+    (.setFont g (get-display-font :segment Font/PLAIN 16))
+    (.drawString g frac-frame (int 122) (int 40))))
+
 (defn- create-player-row
-  "Create a row a player, given its number."
-  [n]
-  (let [size [player-row-width :by player-row-height]
-        preview (WaveformPreviewComponent. (int n))
-        player (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))]
-    
-    (mig/mig-panel
-     :id (keyword (str "player-" n))
-     :background (Color/BLACK)
-     :constraints ["" "" "[200!]"]
-     :items [[player "left, bottom"] [preview "gapx 10px, right, bottom"]])
+  "Create a row a player, given the shutdown channel and player
+  number."
+  [shutdown-chan n]
+  (let [preview      (WaveformPreviewComponent. (int n))
+        player       (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
+        last-playing (atom nil)
+        time         (seesaw/canvas :size [150 :by 42] :opaque? false :paint (partial paint-time n false))
+        last-time    (atom nil)
+        remain       (seesaw/canvas :size [150 :by 42] :opaque? false :paint (partial paint-time n true))]
+    (async/go  ; Clean up when the window closes
+      (<! shutdown-chan)  ; Parks until the window is closed
+      (.setMonitoredPlayer preview 0))
+    (async/go  ; Animation loop
+      (while (nil? (async/poll! shutdown-chan))
+        (try
+          (async/alt!
+            shutdown-chan nil
+            (async/timeout 20) (do
+                                 (when (not= @last-playing (playing? n))
+                                   (reset! last-playing (playing? n))
+                                   (seesaw/repaint! player))
+                                 (when (not= @last-time (time-played n))
+                                   (reset! last-time (time-played n))
+                                   (seesaw/repaint! [time remain]))))
+          (catch Exception e
+            (timbre/error e "Problem updating player status row")))))
     ;; TODO: Set :visible? based on:
     ;; (set (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
     ;; TODO: Add a custom :paint function
     ;; TODO: Add update listener to repaint elements when play state, etc. change
-    ))
+    (mig/mig-panel
+     :id (keyword (str "player-" n))
+     :background (Color/BLACK)
+     :items [[time "skip, split 2"] [remain "wrap"]
+             [player "left, bottom"] [preview "gapx 10px, right, bottom, span"]])))
 
 (defn- create-player-rows
   "Creates the rows for each visible player in the Media Locations
-  window."
-  []
-  (map create-player-row (range 1 5)))
+  window. A value will be delivered to `shutdown-chan` when the window
+  is closed, telling the row to unregister any event listeners and
+  exit any animation loops."
+  [shutdown-chan]
+  (map (partial create-player-row shutdown-chan) (range 1 5)))
 
 (defn- make-window-visible
-  "Ensures that the Media Locations window is centered on the triggers
+  "Ensures that the Player Status window is centered on the triggers
   window, in front, and shown."
   [trigger-frame]
   (.setLocationRelativeTo @media-window trigger-frame)
@@ -274,25 +364,29 @@
   "Creates the Media Locations window."
   [trigger-frame globals]
   (try
-    (let [root (seesaw/frame :title "Media Locations"
-                             :on-close :hide)
-          players (seesaw/vertical-panel :id :players)]
+    (load-fonts)
+    (let [shutdown-chan (async/promise-chan)
+          root          (seesaw/frame :title "Player Status"
+                                      :on-close :dispose)
+          players       (seesaw/vertical-panel :id :players)]
       (seesaw/config! root :content players)
-      (seesaw/config! players :items (create-player-rows))
+      (seesaw/config! players :items (create-player-rows shutdown-chan))
+      (seesaw/listen root :window-closed (fn [e] (>!! shutdown-chan :done) (reset! media-window nil)))
       (seesaw/pack! root)
       (reset! media-window root)
       (make-window-visible trigger-frame))
     (catch Exception e
-      (timbre/error e "Problem creating Media Locations window."))))
+      (timbre/error e "Problem creating Player Status window."))))
 
 (defn show-window
-  "Open the Media Locations window if it is not already open."
+  "Open the Player Status window if it is not already open."
   [trigger-frame globals editor-fn]
-  (when-not @media-window (create-window trigger-frame globals))
+  (locking media-window
+    (when-not @media-window (create-window trigger-frame globals)))
   (make-window-visible trigger-frame))
 
 (defn update-window
-  "If the Media Locations window is showing, update it to reflect any
+  "If the Player Status window is showing, update it to reflect any
   changes which might have occurred to available players and
   assignable media. If `ms` is supplied, delay for that many
   milliseconds in the background in order to give the CDJ state time
