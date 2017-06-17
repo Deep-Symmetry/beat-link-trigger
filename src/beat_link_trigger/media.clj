@@ -10,7 +10,8 @@
             [taoensso.timbre :as timbre]
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink DeviceFinder CdjStatus CdjStatus$TrackSourceSlot VirtualCdj]
+  (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener
+            VirtualCdj CdjStatus CdjStatus$TrackSourceSlot]
            [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference
             WaveformListener WaveformPreviewComponent WaveformDetailComponent TimeFinder WaveformFinder]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
@@ -208,17 +209,18 @@
   and create and assign metadata caches to player slots."}
   media-window (atom nil))
 
+(def device-finder
+  "The object that tracks the arrival and departure of devices on the
+  DJ Link network."
+  (DeviceFinder/getInstance))
+
 (def virtual-cdj
   "The object which can obtained detailed player status information."
   (VirtualCdj/getInstance))
 
-(defn- playing?
-  "Returns `true` if the specified player can be determined to be
-  playing right now."
-  [n]
-  (and (.isRunning virtual-cdj)
-       (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
-         (.isPlaying status))))
+(def waveform-finder
+  "The object that can obtain track waveform information."
+  (WaveformFinder/getInstance))
 
 (def time-finder
   "The object that can obtain detailed track time information."
@@ -229,6 +231,14 @@
   specified player has played."
   [n]
   (and (.isRunning time-finder) (.getTimeFor time-finder n)))
+
+(defn- playing?
+  "Returns `true` if the specified player can be determined to be
+  playing right now."
+  [n]
+  (and (.isRunning virtual-cdj)
+       (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
+         (.isPlaying status))))
 
 (defn- paint-player-number
   "Draws the player number being monitored by a row, updating the
@@ -277,10 +287,6 @@
       (.drawImage g image 0 0 nil))
     (catch Exception e
       (timbre/error e "Problem loading beat indicator image"))))
-
-(def waveform-finder
-  "The object that can obtain track waveform information."
-  (WaveformFinder/getInstance))
 
 (defn- time-left
   "Figure out the number of milliseconds left to play for a given
@@ -344,9 +350,29 @@
         last-playing (atom nil)
         time         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
         last-time    (atom nil)
-        remain       (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))]
+        remain       (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))
+        row          (mig/mig-panel
+                      :id (keyword (str "player-" n))
+                      :background (Color/BLACK)
+                      :items [[beat "bottom"] [time ""] [remain "wrap"]
+                              [player "left, bottom"] [preview "right, bottom, span"]])
+        dev-listener (reify DeviceAnnouncementListener
+                       (deviceFound [this announcement]
+                         (when (= n (.getNumber announcement))
+                           (seesaw/invoke-soon
+                            (seesaw/config! row :visible? true)))
+                         nil)
+                       (deviceLost [this announcement]
+                         (when (= n (.getNumber announcement))
+                           (seesaw/invoke-soon
+                            (seesaw/config! row :visible? false)))
+                         nil))]
+    (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going
+    (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device
+      (seesaw/config! row :visible? false))
     (async/go  ; Clean up when the window closes
       (<! shutdown-chan)  ; Parks until the window is closed
+      (.removeDeviceAnnouncementListener device-finder dev-listener)
       (.setMonitoredPlayer preview 0))
     (async/go  ; Animation loop
       (while (nil? (async/poll! shutdown-chan))
@@ -369,11 +395,7 @@
     ;; (set (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
     ;; TODO: Add a custom :paint function
     ;; TODO: Add update listener to repaint elements when play state, etc. change
-    (mig/mig-panel
-     :id (keyword (str "player-" n))
-     :background (Color/BLACK)
-     :items [[beat "bottom"] [time ""] [remain "wrap"]
-             [player "left, bottom"] [preview "right, bottom, span"]])))
+    row))
 
 (defn- create-player-rows
   "Creates the rows for each visible player in the Media Locations
@@ -404,6 +426,7 @@
       (seesaw/config! players :items (create-player-rows shutdown-chan))
       (seesaw/listen root :window-closed (fn [e] (>!! shutdown-chan :done) (reset! media-window nil)))
       (seesaw/pack! root)
+      (.setResizable root false)
       (reset! media-window root)
       (make-window-visible trigger-frame))
     (catch Exception e
