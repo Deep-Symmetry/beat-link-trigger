@@ -387,10 +387,16 @@
       (.setFont g (get-display-font :segment Font/PLAIN 12))
       (.drawString g (subs tempo-string 4) (int 107) (int 22)))))
 
+(defn- no-players-found
+  "Returns true if there are no visible players for us to display."
+  []
+  (empty? (filter #(<= 1 (.getNumber %) 4) (.getCurrentDevices device-finder))))
+
 (defn- create-player-row
-  "Create a row a player, given the shutdown channel and player
-  number."
-  [shutdown-chan n]
+  "Create a row a player, given the shutdown channel, a widget that
+  should be made visible only when there are no actual players on the
+  network, and the player number this row is supposed to display."
+  [shutdown-chan no-players n]
   (let [preview      (WaveformPreviewComponent. (int n))
         beat         (seesaw/canvas :size [55 :by 5] :opaque? false :paint (partial paint-beat n))
         last-beat    (atom nil)
@@ -410,13 +416,16 @@
                        (deviceFound [this announcement]
                          (when (= n (.getNumber announcement))
                            (seesaw/invoke-soon
-                            (seesaw/config! row :visible? true)))
-                         nil)
+                            (seesaw/config! row :visible? true)
+                            (seesaw/config! no-players :visible? false)
+                            (seesaw/pack! (seesaw/to-root row)))))
                        (deviceLost [this announcement]
                          (when (= n (.getNumber announcement))
                            (seesaw/invoke-soon
-                            (seesaw/config! row :visible? false)))
-                         nil))]
+                            (seesaw/config! row :visible? false)
+                            (when (no-players-found)
+                              (seesaw/config! no-players :visible? true))
+                            (seesaw/pack! (seesaw/to-root row))))))]
     (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going
     (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device
       (seesaw/config! row :visible? false))
@@ -444,19 +453,17 @@
                                    (seesaw/repaint! tempo))))
           (catch Exception e
             (timbre/error e "Problem updating player status row")))))
-    ;; TODO: Set :visible? based on:
-    ;; (set (map #(.getDeviceNumber %) (filter #(instance? CdjStatus %) (.getLatestStatus (VirtualCdj/getInstance)))))
-    ;; TODO: Add a custom :paint function
-    ;; TODO: Add update listener to repaint elements when play state, etc. change
     row))
 
 (defn- create-player-rows
   "Creates the rows for each visible player in the Media Locations
   window. A value will be delivered to `shutdown-chan` when the window
   is closed, telling the row to unregister any event listeners and
-  exit any animation loops."
-  [shutdown-chan]
-  (map (partial create-player-row shutdown-chan) (range 1 5)))
+  exit any animation loops. The `no-players` widget should be made
+  visible when the last player disappears, and invisible when the
+  first one appears, to alert the user what is going on."
+  [shutdown-chan no-players]
+  (map (partial create-player-row shutdown-chan no-players) (range 1 5)))
 
 (defn- make-window-visible
   "Ensures that the Player Status window is centered on the triggers
@@ -474,10 +481,13 @@
     (let [shutdown-chan (async/promise-chan)
           root          (seesaw/frame :title "Player Status"
                                       :on-close :dispose)
-          players       (seesaw/vertical-panel :id :players)]
+          players       (seesaw/vertical-panel :id :players)
+          no-players    (seesaw/label :text "No players are currently visible on the network."
+                                      :font (get-display-font :orbitron Font/PLAIN 24))]
       (seesaw/config! root :content players)
-      (seesaw/config! players :items (create-player-rows shutdown-chan))
+      (seesaw/config! players :items (concat [no-players] (create-player-rows shutdown-chan no-players)))
       (seesaw/listen root :window-closed (fn [e] (>!! shutdown-chan :done) (reset! media-window nil)))
+      (seesaw/config! no-players :visible? (no-players-found))
       (seesaw/pack! root)
       (.setResizable root false)
       (reset! media-window root)
