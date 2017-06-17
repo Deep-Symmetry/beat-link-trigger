@@ -11,7 +11,7 @@
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener
-            VirtualCdj CdjStatus CdjStatus$TrackSourceSlot]
+            VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot]
            [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference
             WaveformListener WaveformPreviewComponent WaveformDetailComponent TimeFinder WaveformFinder]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
@@ -339,6 +339,52 @@
     (.setFont g (get-display-font :segment Font/PLAIN 16))
     (.drawString g frac-frame (int 122) (int 40))))
 
+(defn- tempo-values
+  "Look up the current playback pitch percentage and effective tempo
+  for the specified player, returning them when available as a vector
+  followed by a boolean indication of whether the device is the
+  current tempo master."
+  [n]
+  (when-let [^DeviceUpdate u (when (.isRunning time-finder) (.getLatestUpdateFor time-finder n))]
+    [(org.deepsymmetry.beatlink.Util/pitchToPercentage (.getPitch u))
+     (.getEffectiveTempo u)
+     (.isTempoMaster u)]))
+
+(defn- paint-tempo
+  "Draws tempo information for a player. Arguments are player number,
+  the component being drawn, and the graphics context in which drawing
+  is taking place."
+  [n c g]
+  (when-let [[pitch tempo master] (tempo-values n)]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setPaint g (Color/WHITE))
+    (.setFont g (get-display-font :teko Font/PLAIN 16))
+    (.drawString g "Tempo" (int 4) (int 16))
+    (.setFont g (get-display-font :teko Font/BOLD 20))
+    (.drawString g (if (> 0.025 (Math/abs pitch)) " " (if (neg? pitch) "-" "+")) (int 2) (int 38))
+    (.setFont g (get-display-font :segment Font/PLAIN 16))
+    (.drawString g (clojure.string/replace (format "%5.1f" (Math/abs pitch)) " " "!") (int 4) (int 40))
+    (.setFont g (get-display-font :teko Font/PLAIN 14))
+    (.drawString g "%" (int 56) (int 40))
+    (when master (.setPaint g Color/ORANGE))
+    (let [frame        (java.awt.geom.RoundRectangle2D$Double. 68.0 1.0 50.0 38.0 8.0 8.0)
+          clip         (.getClip g)
+          tempo-string (clojure.string/replace (format "%5.1f" tempo) " " "!")]
+      (.draw g frame)
+      (.setFont g (get-display-font :teko Font/PLAIN 14))
+      (if master
+        (do (.setClip g frame)
+            (.fill g (java.awt.geom.Rectangle2D$Double. 68.0 27.0 50.0 13.0))
+            (.setColor g (Color/BLACK))
+            (.drawString g "MASTER" (int 77) (int 38))
+            (.setClip g clip))
+        (.drawString g "BPM" (int 97) (int 36)))
+      (.setFont g (get-display-font :segment Font/PLAIN 16))
+      (.setColor g (if master Color/ORANGE Color/WHITE))
+      (.drawString g (subs tempo-string 0 4) (int 68) (int 22))
+      (.setFont g (get-display-font :segment Font/PLAIN 12))
+      (.drawString g (subs tempo-string 4) (int 107) (int 22)))))
+
 (defn- create-player-row
   "Create a row a player, given the shutdown channel and player
   number."
@@ -351,10 +397,12 @@
         time         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
         last-time    (atom nil)
         remain       (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))
+        tempo        (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
+        last-tempo   (atom nil)
         row          (mig/mig-panel
                       :id (keyword (str "player-" n))
                       :background (Color/BLACK)
-                      :items [[beat "bottom"] [time ""] [remain "wrap"]
+                      :items [[beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
                               [player "left, bottom"] [preview "right, bottom, span"]])
         dev-listener (reify DeviceAnnouncementListener
                        (deviceFound [this announcement]
@@ -388,7 +436,10 @@
                                    (seesaw/repaint! [time remain]))
                                  (when (not= @last-beat (current-beat n))
                                    (reset! last-beat (current-beat n))
-                                   (seesaw/repaint! beat))))
+                                   (seesaw/repaint! beat))
+                                 (when (not= @last-tempo (tempo-values n))
+                                   (reset! last-tempo (tempo-values n))
+                                   (seesaw/repaint! tempo))))
           (catch Exception e
             (timbre/error e "Problem updating player status row")))))
     ;; TODO: Set :visible? based on:
