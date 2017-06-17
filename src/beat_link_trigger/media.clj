@@ -269,9 +269,9 @@
   "Determine, if possible, the current beat within a musical bar which
   the specified player is playing or paused on."
   [n]
-  (let [result (and (.isRunning virtual-cdj)
-                    (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
-                      (.getBeatWithinBar status)))]
+  (let [result (and (.isRunning time-finder)
+                    (when-let [^DeviceUpdate update (.getLatestUpdateFor time-finder (int n))]
+                      (.getBeatWithinBar update)))]
     (when (and result (<= 1 result 4))
       result)))
 
