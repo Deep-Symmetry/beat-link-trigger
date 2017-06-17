@@ -347,7 +347,7 @@
   [n]
   (when-let [^DeviceUpdate u (when (.isRunning time-finder) (.getLatestUpdateFor time-finder n))]
     [(org.deepsymmetry.beatlink.Util/pitchToPercentage (.getPitch u))
-     (.getEffectiveTempo u)
+     (when (not= 65535 (.getBpm u)) (.getEffectiveTempo u))  ; Detect when tempo is not valid
      (.isTempoMaster u)]))
 
 (defn- paint-tempo
@@ -369,7 +369,9 @@
     (when master (.setPaint g Color/ORANGE))
     (let [frame        (java.awt.geom.RoundRectangle2D$Double. 68.0 1.0 50.0 38.0 8.0 8.0)
           clip         (.getClip g)
-          tempo-string (clojure.string/replace (format "%5.1f" tempo) " " "!")]
+          tempo-string (if (nil? tempo)
+                         "!--.-"
+                         (clojure.string/replace (format "%5.1f" tempo) " " "!"))]
       (.draw g frame)
       (.setFont g (get-display-font :teko Font/PLAIN 14))
       (if master
