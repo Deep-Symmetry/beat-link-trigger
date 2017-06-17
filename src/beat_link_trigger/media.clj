@@ -255,12 +255,38 @@
           bounds (.getStringBounds (.getFont g) num frc)]
       (.drawString g num (float (- center (/ (.getWidth bounds) 2.0))) (float (- h 5.0))))))
 
+(defn- current-beat
+  "Determine, if possible, the current beat within a musical bar which
+  the specified player is playing or paused on."
+  [n]
+  (let [result (and (.isRunning virtual-cdj)
+                    (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
+                      (.getBeatWithinBar status)))]
+    (when (and result (<= 1 result 4))
+      result)))
+
+(defn- paint-beat
+  "Draws a graphical representation of the current beat
+  position (within a musical bar) of the specified player, if known.
+  Arguments are the player number, the component being drawn, and the
+  graphics context in which drawing is taking place."
+  [n c g]
+  (try
+    (let [image-data (clojure.java.io/resource (str "images/BeatMini-" (or (current-beat n) "blank") ".png"))
+          image (javax.imageio.ImageIO/read image-data)]
+      (.drawImage g image 0 0 nil))
+    (catch Exception e
+      (timbre/error e "Problem loading beat indicator image"))))
+
+(def waveform-finder
+  "The object that can obtain track waveform information."
+  (WaveformFinder/getInstance))
+
 (defn- time-left
   "Figure out the number of milliseconds left to play for a given
   player, given the player number and time played so far."
   [n played]
-  (let [finder (WaveformFinder/getInstance)
-        detail (.getLatestDetailFor finder n)]
+  (let [detail (.getLatestDetailFor waveform-finder n)]
     (when detail (max 0 (- (.getTotalTime detail) played)))))
 
 (defn- format-time
@@ -312,6 +338,8 @@
   number."
   [shutdown-chan n]
   (let [preview      (WaveformPreviewComponent. (int n))
+        beat         (seesaw/canvas :size [55 :by 5] :opaque? false :paint (partial paint-beat n))
+        last-beat    (atom nil)
         player       (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
         last-playing (atom nil)
         time         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
@@ -331,7 +359,10 @@
                                    (seesaw/repaint! player))
                                  (when (not= @last-time (time-played n))
                                    (reset! last-time (time-played n))
-                                   (seesaw/repaint! [time remain]))))
+                                   (seesaw/repaint! [time remain]))
+                                 (when (not= @last-beat (current-beat n))
+                                   (reset! last-beat (current-beat n))
+                                   (seesaw/repaint! beat))))
           (catch Exception e
             (timbre/error e "Problem updating player status row")))))
     ;; TODO: Set :visible? based on:
@@ -341,7 +372,7 @@
     (mig/mig-panel
      :id (keyword (str "player-" n))
      :background (Color/BLACK)
-     :items [[time "skip"] [remain "wrap"]
+     :items [[beat "bottom"] [time ""] [remain "wrap"]
              [player "left, bottom"] [preview "right, bottom, span"]])))
 
 (defn- create-player-rows
