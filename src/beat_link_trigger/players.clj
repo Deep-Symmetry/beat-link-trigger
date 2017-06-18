@@ -10,7 +10,7 @@
             [taoensso.timbre :as timbre]
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener
+  (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
             VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot]
            [org.deepsymmetry.beatlink.data
             MetadataFinder MetadataCacheCreationListener TrackMetadataListener TrackMetadataUpdate
@@ -415,7 +415,9 @@
   component being drawn, and the graphics context in which drawing is
   taking place."
   [n c g]
-  (when-let [art (.getLatestArtFor art-finder (int n))]
+  (when-let [art (try (when (.isRunning art-finder) (.getLatestArtFor art-finder (int n)))
+                      (catch Exception e
+                        (timbre/error e "Problem requesting album art to draw player row, leaving blank.")))]
     (.drawImage g (.getImage art) 0 0 nil)))
 
 (defn- no-players-found
@@ -581,10 +583,10 @@
 
     (async/go  ; Arrange to clean up when the window closes.
       (<! shutdown-chan)  ; Parks until the window is closed.
-      (.removeDeviceAnnouncementListener device-finder dev-listener)
       (.removeTrackMetadataListener metadata-finder md-listener)
       (.removeMountListener metadata-finder mount-listener)
       (.removeCacheListener metadata-finder cache-listener)
+      (.removeDeviceAnnouncementListener device-finder dev-listener)
       (.setMonitoredPlayer preview 0))
     (async/go  ; Animation loop
       (while (nil? (async/poll! shutdown-chan))
@@ -636,21 +638,33 @@
                                       :on-close :dispose)
           players       (seesaw/vertical-panel :id :players)
           no-players    (seesaw/label :text "No players are currently visible on the network."
-                                      :font (get-display-font :orbitron Font/PLAIN 24))]
+                                      :font (get-display-font :orbitron Font/PLAIN 24))
+          stop-listener  (reify LifecycleListener
+                           (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
+                           (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
+                             (seesaw/invoke-later
+                              (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
       (seesaw/config! root :content players)
       (seesaw/config! players :items (concat [no-players] (create-player-rows shutdown-chan no-players)))
-      (seesaw/listen root :window-closed (fn [e] (>!! shutdown-chan :done) (reset! player-window nil)))
+      (seesaw/listen root :window-closed (fn [e]
+                                           (>!! shutdown-chan :done)
+                                           (reset! player-window nil)
+                                           (.removeLifecycleListener virtual-cdj stop-listener)))
       (seesaw/config! no-players :visible? (no-players-found))
+      (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/pack! root)
       (.setResizable root false)
       (reset! player-window root)
-      (make-window-visible trigger-frame))
+      (make-window-visible trigger-frame)
+      (when-not (.isRunning virtual-cdj) (.stopped stop-listener virtual-cdj)))  ; In case we went offline during setup.
     (catch Exception e
       (timbre/error e "Problem creating Player Status window."))))
 
 (defn show-window
   "Open the Player Status window if it is not already open."
   [trigger-frame globals editor-fn]
-  (locking player-window
-    (when-not @player-window (create-window trigger-frame globals)))
-  (make-window-visible trigger-frame))
+  (if (.isRunning virtual-cdj)
+    (do (locking player-window
+          (when-not @player-window (create-window trigger-frame globals)))
+        (make-window-visible trigger-frame))
+    (seesaw/alert "Must be Online to show Player Status window." :title "Beat Link Trigger is Offline" :type :error)))
