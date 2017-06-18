@@ -471,6 +471,8 @@
                                                 :title "Problem Attaching File" :type :error)))))
                        :name "Attach Metadata Cache File")]))))
 
+;; TODO: Consider maintaining a list of metadata caches to try to auto-attach by probing key tracks when media mounts.
+
 (defn- show-popup-from-button
   "Displays the popup menu when the gear button is clicked as an
   ordinary mouse event."
@@ -505,6 +507,7 @@
                                       :popup (partial slot-popup n :sd))
         sd-label       (seesaw/label :id :sd-label :text "Empty")
         detail         (WaveformDetailComponent. (int n))
+        ;; TODO: Why does the detail sometimes fail to load the first time after the program starts?
         zoom-slider    (seesaw/slider :id :zoom :enabled? false :min 1 :max 32 :value 4
                                       :listen [:state-changed (fn [e]
                                                                 (.setScale detail (seesaw/value e)))])
@@ -512,11 +515,11 @@
         detail-choice  (fn [show]
                          (seesaw/config! [zoom-label zoom-slider] :enabled? show)
                          (if show
-                           (do (swap! detail-set assoc n)
+                           (do (swap! detail-set conj n)
                                (.setFindDetails waveform-finder true)
                                (seesaw/show! detail))
                            (do (seesaw/hide! detail)
-                               (swap! detail-set dissoc n)
+                               (swap! detail-set disj n)
                                (when (empty? @detail-set) (.setFindDetails waveform-finder false))))
                          (seesaw/pack! (seesaw/to-root detail)))
         row            (mig/mig-panel
@@ -620,7 +623,8 @@
       (.removeMountListener metadata-finder mount-listener)
       (.removeCacheListener metadata-finder cache-listener)
       (.removeDeviceAnnouncementListener device-finder dev-listener)
-      (.setMonitoredPlayer preview 0))
+      (.setMonitoredPlayer preview (int 0))
+      (.setMonitoredPlayer detail (int 0)))
     (async/go  ; Animation loop
       (while (nil? (async/poll! shutdown-chan))
         (try
