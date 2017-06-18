@@ -348,6 +348,7 @@
   the Tracked Update Expression, if there is one, and we actually
   received a status update."
   [trigger playing on-air status]
+  ;; TODO: See if any of the state tracking should be updated to take advantage of new TimeFinder consolidations.
   (let [old-data @(seesaw/user-data trigger)
         updated (swap! (seesaw/user-data trigger)
                        (fn [data]

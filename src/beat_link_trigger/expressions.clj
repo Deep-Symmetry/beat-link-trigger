@@ -164,6 +164,7 @@
   expression that will be used to automatically bind that symbol if it
   is used in the expression, and the documentation to show the user
   what the binding is for."
+  ;; TODO: Add pitch, anything else that got pulled up to the superclass!
   {DeviceUpdate {:bindings {'address         {:code
                                               '(.getAddress status)
                                               :doc "The address of the device from which this update was received."}

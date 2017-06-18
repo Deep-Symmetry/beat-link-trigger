@@ -104,7 +104,12 @@
                                                           ": " (trim-name last-track)))
                         (when (or (not @continue?) (>= finished-count total-count))
                           (when @continue?  ; We finished without being canceled, so attach the cache
-                            (.attachMetadataCache (MetadataFinder/getInstance) slot-ref file))
+                            (future
+                              (try
+                                (Thread/sleep 100)  ; Give the file a chance to be closed and flushed
+                                (.attachMetadataCache (MetadataFinder/getInstance) slot-ref file)
+                                (catch Exception e
+                                  (timbre/error e "Problem attaching just-created metadata cache")))))
                           (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
                        @continue?))]
      (seesaw/listen root :window-closed (fn [e] (reset! continue? false)))
