@@ -375,7 +375,6 @@
   the component being drawn, and the graphics context in which drawing
   is taking place."
   [n c g]
-  ;; TODO: Add scrolling waveform detail option.
   (when-let [[pitch tempo master synced] (tempo-values n)]
     (let [abs-pitch       (Math/abs pitch)
           formatted-pitch (format (if (< abs-pitch 20.0) "%5.2f" "%5.1f") abs-pitch)]
@@ -481,8 +480,10 @@
 (defn- create-player-row
   "Create a row a player, given the shutdown channel, a widget that
   should be made visible only when there are no actual players on the
-  network, and the player number this row is supposed to display."
-  [shutdown-chan no-players n]
+  network, an atom that will track the set of player numbers (if any)
+  showing waveform details, and the player number this row is supposed
+  to display."
+  [shutdown-chan no-players detail-set n]
   (let [art            (seesaw/canvas :size [80 :by 80] :opaque? false :paint (partial paint-art n))
         preview        (WaveformPreviewComponent. (int n))
         beat           (seesaw/canvas :size [55 :by 5] :opaque? false :paint (partial paint-beat n))
@@ -510,7 +511,13 @@
         zoom-label     (seesaw/label :id :zoom-label :text "Zoom" :enabled? false)
         detail-choice  (fn [show]
                          (seesaw/config! [zoom-label zoom-slider] :enabled? show)
-                         (if show (seesaw/show! detail) (seesaw/hide! detail))
+                         (if show
+                           (do (swap! detail-set assoc n)
+                               (.setFindDetails waveform-finder true)
+                               (seesaw/show! detail))
+                           (do (seesaw/hide! detail)
+                               (swap! detail-set dissoc n)
+                               (when (empty? @detail-set) (.setFindDetails waveform-finder false))))
                          (seesaw/pack! (seesaw/to-root detail)))
         row            (mig/mig-panel
                         :id (keyword (str "player-" n))
@@ -521,12 +528,12 @@
                                 [usb-label "width 280!, span 2, wrap"]
                                 [sd-gear "split 2, right"] ["SD:" "right"]
                                 [sd-label "width 280!, span 2, wrap"]
-                                [detail "span, grow, wrap, hidemode 3"]
-                                [(seesaw/checkbox :id :detail :text "Show Waveform Detail"
+                                [(seesaw/checkbox :id :detail :text "Show Wave Detail"
                                                   :listen [:action (fn [e]
                                                                      (detail-choice (seesaw/value e)))])
                                  "skip 1"]
-                                [zoom-slider "split 2"] [zoom-label "wrap"]
+                                [zoom-slider "span 2, split 2"] [zoom-label "wrap"]
+                                [detail "span, grow, wrap, hidemode 3"]
                                 [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
                                 [player "left, bottom"] [preview "right, bottom, span"]])
         dev-listener   (reify DeviceAnnouncementListener
@@ -608,6 +615,7 @@
 
     (async/go  ; Arrange to clean up when the window closes.
       (<! shutdown-chan)  ; Parks until the window is closed.
+      (.setFindDetails waveform-finder false)
       (.removeTrackMetadataListener metadata-finder md-listener)
       (.removeMountListener metadata-finder mount-listener)
       (.removeCacheListener metadata-finder cache-listener)
@@ -643,7 +651,7 @@
   visible when the last player disappears, and invisible when the
   first one appears, to alert the user what is going on."
   [shutdown-chan no-players]
-  (map (partial create-player-row shutdown-chan no-players) (range 1 5)))
+  (map (partial create-player-row shutdown-chan no-players (atom #{})) (range 1 5)))
 
 (defn- make-window-visible
   "Ensures that the Player Status window is centered on the triggers
