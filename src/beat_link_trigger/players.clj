@@ -579,7 +579,9 @@
       (seesaw/config! row :visible? false))
     (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) title-label artist-label)
     (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
-      (.mediaMounted mount-listener slot-reference))
+      (.mediaMounted mount-listener slot-reference)
+      (when-let [cache (.getMetadataCache metadata-finder slot-reference)]
+        (.cacheAttached cache-listener slot-reference cache)))
 
     (async/go  ; Arrange to clean up when the window closes.
       (<! shutdown-chan)  ; Parks until the window is closed.
