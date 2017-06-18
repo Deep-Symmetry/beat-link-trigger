@@ -12,8 +12,11 @@
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener
             VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot]
-           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCacheCreationListener SlotReference
-            WaveformListener WaveformPreviewComponent WaveformDetailComponent TimeFinder WaveformFinder]
+           [org.deepsymmetry.beatlink.data
+            MetadataFinder MetadataCacheCreationListener TrackMetadataListener TrackMetadataUpdate
+            MountListener MetadataCacheListener SlotReference
+            WaveformListener WaveformPreviewComponent WaveformDetailComponent
+            TimeFinder WaveformFinder ArtFinder]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
            [java.awt GraphicsEnvironment Font Color RenderingHints]
            [java.awt.event WindowEvent]
@@ -33,7 +36,10 @@
                            "/fonts/Orbitron/Orbitron-Black.ttf"
                            "/fonts/Orbitron/Orbitron-Bold.ttf"
                            "/fonts/Teko/Teko-Regular.ttf"
-                           "/fonts/Teko/Teko-SemiBold.ttf"]]
+                           "/fonts/Teko/Teko-SemiBold.ttf"
+                           "/fonts/Bitter/Bitter-Bold.ttf"
+                           "/fonts/Bitter/Bitter-Italic.ttf"
+                           "/fonts/Bitter/Bitter-Regular.ttf"]]
             (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
                                                (.getResourceAsStream IPlaylistEntry font-file))))
         (reset! fonts-loaded true))))
@@ -43,12 +49,14 @@
   one of `:segment`. The `style` argument is a `java.awt.Font` style
   constant, and `size` is point size.
 
-  Orbitron is only available in bold, but asking for bold gives you
-  Orbitron Black. Segment is only available in plain. Teko is
-  available in plain and bold (but we actually deliver the semibold
-  version, since that looks nicer in the UI)."
+  Bitter is available in plain, bold, or italic. Orbitron is only
+  available in bold, but asking for bold gives you Orbitron Black.
+  Segment is only available in plain. Teko is available in plain and
+  bold (but we actually deliver the semibold version, since that looks
+  nicer in the UI)."
   [k style size]
   (case k
+    :bitter (Font. "Bitter" style size)
     :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
     :segment (Font. "DSEG7 Classic" Font/PLAIN size)
     :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
@@ -58,11 +66,13 @@
   creating a cache in the specified file. If `playlist-id` is
   supplied, only the playlist with that ID will be downloaded,
   otherwise all tracks will be downloaded. Provides a progress bar
-  during the download process, and allows the user to cancel it."
+  during the download process, and allows the user to cancel it.
+  Once the cache file is created, it is automatically attached."
   ([player slot file]
    (create-metadata-cache player slot file nil))
   ([player slot file playlist-id]
    (let [continue? (atom true)
+         slot-ref  (SlotReference/getSlotReference player slot)
          progress  (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
          latest    (seesaw/label :text "Gathering tracks…")
          panel     (mig/mig-panel
@@ -93,6 +103,8 @@
                         (seesaw/config! latest :text (str "Added " finished-count " of " total-count
                                                           ": " (trim-name last-track)))
                         (when (or (not @continue?) (>= finished-count total-count))
+                          (when @continue?  ; We finished without being canceled, so attach the cache
+                            (.attachMetadataCache (MetadataFinder/getInstance) slot-ref file))
                           (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
                        @continue?))]
      (seesaw/listen root :window-closed (fn [e] (reset! continue? false)))
@@ -102,8 +114,7 @@
      (future
        (try
          ;; To load all tracks we pass a playlist ID of 0
-         (.createMetadataCache (MetadataFinder/getInstance)
-                               (SlotReference/getSlotReference player slot) (or playlist-id 0) file listener)
+         (.createMetadataCache (MetadataFinder/getInstance) slot-ref (or playlist-id 0) file listener)
          (catch Exception e
            (timbre/error e "Problem creating metadata cache.")
            (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
@@ -146,12 +157,11 @@
   "Presents an interface in which the user can choose which playlist
   to cache and specify the destination file."
   [player slot]
-  ;; TODO: Automatically (temporarily) enter passive mode for the duration of creating the cache,
-  ;;       possibly confirming with the user.
   (seesaw/invoke-later
    (let [selected-id           (atom nil)
-         root                  (seesaw/frame :title "Create Metadata Cache"
-                                             :on-close :dispose)
+         root                  (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
+                                                         (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD"))
+                                             :on-close :dispose :resizable? false)
          ^JFileChooser chooser (@#'chooser/configure-file-chooser (JFileChooser.)
                                 {:all-files? false
                                  :filters    [["BeatLink metadata cache" ["bltm"]]]})
@@ -165,7 +175,6 @@
                           (or (some? @selected-id)
                               (seesaw/alert "You must choose a playlist to save or All Tracks."
                                             :title "No Cache Source Chosen" :type :error)))]
-     ;; TODO: Either figure out how to fix resize behavior, or prevent it.
      (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
      (seesaw/listen tree
                     :tree-will-expand
@@ -218,6 +227,10 @@
   "The object which can obtained detailed player status information."
   (VirtualCdj/getInstance))
 
+(def metadata-finder
+  "The object that can obtain track metadata."
+  (MetadataFinder/getInstance))
+
 (def waveform-finder
   "The object that can obtain track waveform information."
   (WaveformFinder/getInstance))
@@ -225,6 +238,10 @@
 (def time-finder
   "The object that can obtain detailed track time information."
   (TimeFinder/getInstance))
+
+(def art-finder
+  "The object that can obtain album artwork."
+  (ArtFinder/getInstance))
 
 (defn time-played
   "If possible, returns the number of milliseconds of track the
@@ -355,6 +372,8 @@
   the component being drawn, and the graphics context in which drawing
   is taking place."
   [n c g]
+  ;; TODO: Show 2 decimal places of pitch when < 20%
+  ;; TODO: Draw SYNC in white box next to Tempo when active.
   (when-let [[pitch tempo master] (tempo-values n)]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
     (.setPaint g (Color/WHITE))
@@ -387,51 +406,181 @@
       (.setFont g (get-display-font :segment Font/PLAIN 12))
       (.drawString g (subs tempo-string 4) (int 107) (int 22)))))
 
+(defn- paint-art
+  "Draws the album art for a player. Arguments are player number, the
+  component being drawn, and the graphics context in which drawing is
+  taking place."
+  [n c g]
+  (when-let [art (.getLatestArtFor art-finder (int n))]
+    (.drawImage g (.getImage art) 0 0 nil)))
+
 (defn- no-players-found
   "Returns true if there are no visible players for us to display."
   []
   (empty? (filter #(<= 1 (.getNumber %) 4) (.getCurrentDevices device-finder))))
+
+(defn- update-metadata-labels
+  "Updates the track title and artist name when the metadata has
+  changed."
+  [metadata title-label artist-label]
+  (seesaw/invoke-soon
+   (if metadata
+     (do (seesaw/config! title-label :text (or (.getTitle metadata) "[no title]"))
+         (seesaw/config! artist-label :text (or (.getArtist metadata) "[no artist]")))
+     (do (seesaw/config! title-label :text "[no track metadata available]")
+         (seesaw/config! artist-label :text "")))))
+
+(defn- slot-popup
+  "Returns the actions that should be in a popup menu for a particular
+  player media slot. Arguments are the player number, slot
+  keyword (`:usb` or `:sd`), and the event triggering the popup."
+  [n slot e]
+  (when (seesaw/config e :enabled?)
+    (let [slot           (case slot
+                           :usb CdjStatus$TrackSourceSlot/USB_SLOT
+                           :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
+          slot-reference (SlotReference/getSlotReference (int n) slot)]
+      (concat
+       [(seesaw/action :handler (fn [_] (show-cache-creation-dialog n slot))
+                       :name "Create Metadata Cache File")
+        (seesaw/separator)]
+       (when (.getMetadataCache metadata-finder slot-reference)
+         [(seesaw/action :handler (fn [_] (.detachMetadataCache metadata-finder slot-reference))
+                         :name "Detach Metadata Cache File")])
+       [(seesaw/action :handler (fn [e]
+                                  (when-let [file (chooser/choose-file
+                                                   @media-window
+                                                   :all-files? false
+                                                   :filters [["BeatLink metadata cache" ["bltm"]]])]
+                                    (try
+                                      (.attachMetadataCache metadata-finder slot-reference file)
+                                      (catch Exception e
+                                        (timbre/error e "Problem attaching" file)
+                                  (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>" e)
+                                                :title "Problem Attaching File" :type :error)))))
+                       :name "Attach Metadata Cache File")]))))
+
+(defn- show-popup-from-button
+  "Displays the popup menu when the gear button is clicked as an
+  ordinary mouse event."
+  [target popup event]
+  (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
 (defn- create-player-row
   "Create a row a player, given the shutdown channel, a widget that
   should be made visible only when there are no actual players on the
   network, and the player number this row is supposed to display."
   [shutdown-chan no-players n]
-  (let [preview      (WaveformPreviewComponent. (int n))
-        beat         (seesaw/canvas :size [55 :by 5] :opaque? false :paint (partial paint-beat n))
-        last-beat    (atom nil)
-        player       (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
-        last-playing (atom nil)
-        time         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
-        last-time    (atom nil)
-        remain       (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))
-        tempo        (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
-        last-tempo   (atom nil)
-        row          (mig/mig-panel
-                      :id (keyword (str "player-" n))
-                      :background (Color/BLACK)
-                      :items [[beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
-                              [player "left, bottom"] [preview "right, bottom, span"]])
-        dev-listener (reify DeviceAnnouncementListener
-                       (deviceFound [this announcement]
-                         (when (= n (.getNumber announcement))
-                           (seesaw/invoke-soon
-                            (seesaw/config! row :visible? true)
-                            (seesaw/config! no-players :visible? false)
-                            (seesaw/pack! (seesaw/to-root row)))))
-                       (deviceLost [this announcement]
-                         (when (= n (.getNumber announcement))
-                           (seesaw/invoke-soon
-                            (seesaw/config! row :visible? false)
-                            (when (no-players-found)
-                              (seesaw/config! no-players :visible? true))
-                            (seesaw/pack! (seesaw/to-root row))))))]
-    (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going
-    (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device
+  (let [art            (seesaw/canvas :size [80 :by 80] :opaque? false :paint (partial paint-art n))
+        preview        (WaveformPreviewComponent. (int n))
+        beat           (seesaw/canvas :size [55 :by 5] :opaque? false :paint (partial paint-beat n))
+        last-beat      (atom nil)
+        player         (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
+        last-playing   (atom nil)
+        time           (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
+        last-time      (atom nil)
+        remain         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))
+        tempo          (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
+        last-tempo     (atom nil)
+        title-label    (seesaw/label :text "[track metadata not available]"
+                                     :font (get-display-font :bitter Font/ITALIC 14) :foreground :yellow)
+        artist-label   (seesaw/label :text "" :font (get-display-font :bitter Font/BOLD 12) :foreground :green)
+        usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
+                                      :popup (partial slot-popup n :usb))
+        usb-label      (seesaw/label :id :usb-label :text "Empty")
+        sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
+                                      :popup (partial slot-popup n :sd))
+        sd-label       (seesaw/label :id :sd-label :text "Empty")
+        row            (mig/mig-panel
+                        :id (keyword (str "player-" n))
+                        :background (Color/BLACK)
+                        :items [[title-label "width 340!, push, span 3"] [art "right, spany 4, wrap, hidemode 2"]
+                                [artist-label "width 340!, span 3, wrap unrelated"]
+                                [usb-gear "split 2, right"] ["USB:" "right"]
+                                [usb-label "width 280!, span 2, wrap"]
+                                [sd-gear "split 2, right"] ["SD:" "right"]
+                                [sd-label "width 280!, span 2, wrap"]
+                                [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
+                                [player "left, bottom"] [preview "right, bottom, span"]])
+        dev-listener   (reify DeviceAnnouncementListener
+                         (deviceFound [this announcement]
+                           (when (= n (.getNumber announcement))
+                             (seesaw/invoke-soon
+                              (seesaw/config! row :visible? true)
+                              (seesaw/config! no-players :visible? false)
+                              (seesaw/pack! (seesaw/to-root row)))))
+                         (deviceLost [this announcement]
+                           (when (= n (.getNumber announcement))
+                             (seesaw/invoke-soon
+                              (seesaw/config! row :visible? false)
+                              (when (no-players-found)
+                                (seesaw/config! no-players :visible? true))
+                              (seesaw/pack! (seesaw/to-root row))))))
+        md-listener    (reify TrackMetadataListener
+                         (metadataChanged [this md-update]
+                           (when (= n (.player md-update))
+                             (update-metadata-labels (.metadata md-update) title-label artist-label))))
+        slot-elems     (fn [slot-reference]
+                         (when (= n (.player slot-reference))
+                           (if (= (.slot slot-reference) (CdjStatus$TrackSourceSlot/USB_SLOT))
+                             [usb-gear usb-label]
+                             [sd-gear sd-label])))
+        mount-listener (reify MountListener
+                         (mediaMounted [this slot-reference]
+                           (let [[button label] (slot-elems slot-reference)]
+                             (when button
+                               (seesaw/invoke-soon
+                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
+                                (seesaw/config! label :text "Mounted (no metadata cache)")))))
+                         (mediaUnmounted [this slot-reference]
+                           (let [[button label] (slot-elems slot-reference)]
+                             (when button
+                               (seesaw/invoke-soon
+                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
+                                (seesaw/config! label :text "Empty"))))))
+        cache-listener (reify MetadataCacheListener
+                         (cacheAttached [this slot-reference zip-file]
+                           (let [[button label] (slot-elems slot-reference)]
+                             (when button
+                               (seesaw/invoke-soon
+                                (seesaw/config! button :icon (seesaw/icon "images/Gear-icon.png") :enabled? true)
+                                (seesaw/config! label :text (str "Cached: " (.getName zip-file)))))))
+                         (cacheDetached [this slot-reference]
+                           (let [[button label] (slot-elems slot-reference)]
+                             (when button
+                               (seesaw/invoke-soon
+                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
+                                (seesaw/config! label :text "Mounted (no metadata cache)"))))))]
+
+    ;; Show the slot cache popup menus on ordinary mouse presses on the buttons too.
+    (seesaw/listen usb-gear
+                   :mouse-pressed (fn [e]
+                                    (let [popup (seesaw/popup :items (slot-popup n :usb e))]
+                                      (show-popup-from-button usb-gear popup e))))
+    (seesaw/listen sd-gear
+                   :mouse-pressed (fn [e]
+                                    (let [popup (seesaw/popup :items (slot-popup n :sd e))]
+                                      (show-popup-from-button sd-gear popup e))))
+
+    ;; Set up all our listeners to automatically update the interface when the environment changes.
+    (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
+    (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
+    (.addCacheListener metadata-finder cache-listener)  ; React to metadata cache changes.
+    (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going.
+
+    ;; Set the initial state of the interface.
+    (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device, so vanish.
       (seesaw/config! row :visible? false))
-    (async/go  ; Clean up when the window closes
-      (<! shutdown-chan)  ; Parks until the window is closed
+    (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) title-label artist-label)
+    (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
+      (.mediaMounted mount-listener slot-reference))
+
+    (async/go  ; Arrange to clean up when the window closes.
+      (<! shutdown-chan)  ; Parks until the window is closed.
       (.removeDeviceAnnouncementListener device-finder dev-listener)
+      (.removeTrackMetadataListener metadata-finder md-listener)
+      (.removeMountListener metadata-finder mount-listener)
+      (.removeCacheListener metadata-finder cache-listener)
       (.setMonitoredPlayer preview 0))
     (async/go  ; Animation loop
       (while (nil? (async/poll! shutdown-chan))
