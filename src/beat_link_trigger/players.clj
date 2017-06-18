@@ -503,6 +503,15 @@
         sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
                                       :popup (partial slot-popup n :sd))
         sd-label       (seesaw/label :id :sd-label :text "Empty")
+        detail         (WaveformDetailComponent. (int n))
+        zoom-slider    (seesaw/slider :id :zoom :enabled? false :min 1 :max 32 :value 4
+                                      :listen [:state-changed (fn [e]
+                                                                (.setScale detail (seesaw/value e)))])
+        zoom-label     (seesaw/label :id :zoom-label :text "Zoom" :enabled? false)
+        detail-choice  (fn [show]
+                         (seesaw/config! [zoom-label zoom-slider] :enabled? show)
+                         (if show (seesaw/show! detail) (seesaw/hide! detail))
+                         (seesaw/pack! (seesaw/to-root detail)))
         row            (mig/mig-panel
                         :id (keyword (str "player-" n))
                         :background (Color/BLACK)
@@ -512,6 +521,12 @@
                                 [usb-label "width 280!, span 2, wrap"]
                                 [sd-gear "split 2, right"] ["SD:" "right"]
                                 [sd-label "width 280!, span 2, wrap"]
+                                [detail "span, grow, wrap, hidemode 3"]
+                                [(seesaw/checkbox :id :detail :text "Show Waveform Detail"
+                                                  :listen [:action (fn [e]
+                                                                     (detail-choice (seesaw/value e)))])
+                                 "skip 1"]
+                                [zoom-slider "split 2"] [zoom-label "wrap"]
                                 [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
                                 [player "left, bottom"] [preview "right, bottom, span"]])
         dev-listener   (reify DeviceAnnouncementListener
@@ -581,6 +596,8 @@
     (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going.
 
     ;; Set the initial state of the interface.
+    (seesaw/hide! detail)
+    (.setScale detail (seesaw/value zoom-slider))
     (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device, so vanish.
       (seesaw/config! row :visible? false))
     (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) title-label artist-label)
