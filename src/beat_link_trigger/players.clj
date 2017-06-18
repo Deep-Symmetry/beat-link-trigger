@@ -369,19 +369,21 @@
   the component being drawn, and the graphics context in which drawing
   is taking place."
   [n c g]
-  ;; TODO: Show 2 decimal places of pitch when < 20%
   ;; TODO: Draw SYNC in white box next to Tempo when active.
+  ;; TODO: Add scrolling waveform detail option.
   (when-let [[pitch tempo master] (tempo-values n)]
-    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
-    (.setPaint g (Color/WHITE))
-    (.setFont g (get-display-font :teko Font/PLAIN 16))
-    (.drawString g "Tempo" (int 4) (int 16))
-    (.setFont g (get-display-font :teko Font/BOLD 20))
-    (.drawString g (if (> 0.025 (Math/abs pitch)) " " (if (neg? pitch) "-" "+")) (int 2) (int 38))
-    (.setFont g (get-display-font :segment Font/PLAIN 16))
-    (.drawString g (clojure.string/replace (format "%5.1f" (Math/abs pitch)) " " "!") (int 4) (int 40))
-    (.setFont g (get-display-font :teko Font/PLAIN 14))
-    (.drawString g "%" (int 56) (int 40))
+    (let [abs-pitch       (Math/abs pitch)
+          formatted-pitch (format (if (< abs-pitch 20.0) "%5.2f" "%5.1f") abs-pitch)]
+      (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+      (.setPaint g (Color/WHITE))
+      (.setFont g (get-display-font :teko Font/PLAIN 16))
+      (.drawString g "Tempo" (int 4) (int 16))
+      (.setFont g (get-display-font :teko Font/BOLD 20))
+      (.drawString g (if (< abs-pitch 0.025) " " (if (neg? pitch) "-" "+")) (int 2) (int 38))
+      (.setFont g (get-display-font :segment Font/PLAIN 16))
+      (.drawString g (clojure.string/replace formatted-pitch " " "!") (int 4) (int 40))
+      (.setFont g (get-display-font :teko Font/PLAIN 14))
+      (.drawString g "%" (int 56) (int 40)))
     (when master (.setPaint g Color/ORANGE))
     (let [frame        (java.awt.geom.RoundRectangle2D$Double. 68.0 1.0 50.0 38.0 8.0 8.0)
           clip         (.getClip g)
