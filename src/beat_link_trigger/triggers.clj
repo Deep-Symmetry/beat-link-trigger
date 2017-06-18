@@ -6,8 +6,8 @@
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.logs :as logs]
-            [beat-link-trigger.media :as media]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.players :as players]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [fipp.edn :as fipp]
@@ -19,12 +19,11 @@
             [seesaw.icon :as icon]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [javax.sound.midi Sequencer Synthesizer]
-           [java.awt RenderingHints]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider CoreMidiDestination CoreMidiSource]
-           [org.deepsymmetry.beatlink BeatFinder DeviceFinder VirtualCdj Beat CdjStatus MixerStatus
-            DeviceAnnouncementListener DeviceUpdateListener BeatListener CdjStatus$TrackSourceSlot Util]
-           [org.deepsymmetry.beatlink.data MetadataFinder ArtFinder BeatGridFinder WaveformFinder]))
+  (:import java.awt.RenderingHints
+           [javax.sound.midi Sequencer Synthesizer]
+           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
+           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder]
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers."}
@@ -1052,11 +1051,9 @@
   device-listener
   (reify DeviceAnnouncementListener
     (deviceFound [this announcement]
-      (rebuild-all-device-status)
-      (media/update-window expression-globals 2500))  ; TODO: Get rid of this once moved to metadata.
+      (rebuild-all-device-status))
     (deviceLost [this announcement]
-      (rebuild-all-device-status)
-      (media/update-window expression-globals 2500))))  ;  TODO: And this one too.
+      (rebuild-all-device-status))))
 
 (defn- translate-enabled-values
   "Convert from the old true/false model of enabled stored in early
@@ -1136,8 +1133,7 @@
                                                                  (when (= :setup kind)
                                                                    (run-global-function :shutdown)
                                                                    (reset! expression-globals {})
-                                                                   (run-global-function :setup)
-                                                                   (media/update-window expression-globals))
+                                                                   (run-global-function :setup))
                                                                  (update-global-expression-icons))))
                  :name (str "Edit " (get-in editors/global-editors [kind :title]))
                  :tip (get-in editors/global-editors [kind :tip])
@@ -1145,8 +1141,8 @@
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
 
-(def ^:private media-locations-action
-  "The menu action which opens the Media Locations window."
+(def ^:private player-status-action
+  "The menu action which opens the Player Status window."
   (letfn [(cleanup-fn []
             (run-global-function :shutdown)
             (reset! expression-globals {})
@@ -1154,9 +1150,9 @@
             (update-global-expression-icons))
           (editor-fn []
             (editors/show-trigger-editor :setup (seesaw/config @trigger-frame :content) cleanup-fn))]
-    (seesaw/action :handler (fn [e] (media/show-window @trigger-frame expression-globals editor-fn))
-                   :name "Set Media Locations"
-                   :key "menu M")))
+    (seesaw/action :handler (fn [e] (players/show-window @trigger-frame expression-globals editor-fn))
+                   :name "Show Player Status"
+                   :key "menu P")))
 
 (declare go-offline)
 
@@ -1243,12 +1239,13 @@
                                          :items (concat [new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-editors))
                                                         [(seesaw/separator)
-                                                         track-submenu media-locations-action inspect-action
+                                                         track-submenu inspect-action
                                                          (seesaw/separator) clear-triggers-action])
                                          :id :triggers-menu)
 
                             (seesaw/menu :text "Network"
-                                         :items [online-item metadata-item (seesaw/separator) carabiner-action]
+                                         :items [online-item metadata-item player-status-action
+                                                 (seesaw/separator) carabiner-action]
                                          :id :network-menu)])))
 
 (defn update-global-expression-icons

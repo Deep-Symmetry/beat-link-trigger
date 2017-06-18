@@ -1,5 +1,5 @@
-(ns beat-link-trigger.media
-  "Provides the user interface for seeing the media playing on active
+(ns beat-link-trigger.players
+  "Provides the user interface for seeing the status of active
   players, as well as creating metadata caches and assigning them to
   particular player slots."
   (:require [clojure.java.browse]
@@ -210,13 +210,10 @@
      (.setLocationRelativeTo root nil)
      (seesaw/show! root))))
 
-;; TODO: Update to work with saved metadata caches rather than manual media information.
-;; TODO: Migrate to becoming broader virtual CDJ UI. Probably rename.
-
 (def ^{:private true
        :doc "Holds the frame allowing the user to view player state
   and create and assign metadata caches to player slots."}
-  media-window (atom nil))
+  player-window (atom nil))
 
 (def device-finder
   "The object that tracks the arrival and departure of devices on the
@@ -449,7 +446,7 @@
                          :name "Detach Metadata Cache File")])
        [(seesaw/action :handler (fn [e]
                                   (when-let [file (chooser/choose-file
-                                                   @media-window
+                                                   @player-window
                                                    :all-files? false
                                                    :filters [["BeatLink metadata cache" ["bltm"]]])]
                                     (try
@@ -605,7 +602,7 @@
     row))
 
 (defn- create-player-rows
-  "Creates the rows for each visible player in the Media Locations
+  "Creates the rows for each visible player in the Player Status
   window. A value will be delivered to `shutdown-chan` when the window
   is closed, telling the row to unregister any event listeners and
   exit any animation loops. The `no-players` widget should be made
@@ -618,12 +615,12 @@
   "Ensures that the Player Status window is centered on the triggers
   window, in front, and shown."
   [trigger-frame]
-  (.setLocationRelativeTo @media-window trigger-frame)
-  (seesaw/show! @media-window)
-  (.toFront @media-window))
+  (.setLocationRelativeTo @player-window trigger-frame)
+  (seesaw/show! @player-window)
+  (.toFront @player-window))
 
 (defn- create-window
-  "Creates the Media Locations window."
+  "Creates the Player Status window."
   [trigger-frame globals]
   (try
     (load-fonts)
@@ -635,11 +632,11 @@
                                       :font (get-display-font :orbitron Font/PLAIN 24))]
       (seesaw/config! root :content players)
       (seesaw/config! players :items (concat [no-players] (create-player-rows shutdown-chan no-players)))
-      (seesaw/listen root :window-closed (fn [e] (>!! shutdown-chan :done) (reset! media-window nil)))
+      (seesaw/listen root :window-closed (fn [e] (>!! shutdown-chan :done) (reset! player-window nil)))
       (seesaw/config! no-players :visible? (no-players-found))
       (seesaw/pack! root)
       (.setResizable root false)
-      (reset! media-window root)
+      (reset! player-window root)
       (make-window-visible trigger-frame))
     (catch Exception e
       (timbre/error e "Problem creating Player Status window."))))
@@ -647,22 +644,6 @@
 (defn show-window
   "Open the Player Status window if it is not already open."
   [trigger-frame globals editor-fn]
-  (locking media-window
-    (when-not @media-window (create-window trigger-frame globals)))
+  (locking player-window
+    (when-not @player-window (create-window trigger-frame globals)))
   (make-window-visible trigger-frame))
-
-(defn update-window
-  "If the Player Status window is showing, update it to reflect any
-  changes which might have occurred to available players and
-  assignable media. If `ms` is supplied, delay for that many
-  milliseconds in the background in order to give the CDJ state time
-  to settle down."
-  ([globals]
-   (when-let [root @media-window]
-     ;; TODO: This can be replaced with device update listeners that just make the proper rows visible.
-     ))
-  ([globals ms]
-   (when @media-window
-     (future
-       (Thread/sleep ms)
-       (seesaw/invoke-later (update-window globals))))))
