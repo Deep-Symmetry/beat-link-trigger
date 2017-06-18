@@ -361,22 +361,22 @@
 (defn- tempo-values
   "Look up the current playback pitch percentage and effective tempo
   for the specified player, returning them when available as a vector
-  followed by a boolean indication of whether the device is the
-  current tempo master."
+  followed by boolean indications of whether the device is the
+  current tempo master and whether it is synced."
   [n]
   (when-let [^DeviceUpdate u (when (.isRunning time-finder) (.getLatestUpdateFor time-finder n))]
     [(org.deepsymmetry.beatlink.Util/pitchToPercentage (.getPitch u))
      (when (not= 65535 (.getBpm u)) (.getEffectiveTempo u))  ; Detect when tempo is not valid
-     (.isTempoMaster u)]))
+     (.isTempoMaster u)
+     (true? (when-let [cdj-status (.getLatestStatusFor virtual-cdj n)] (.isSynced cdj-status)))]))
 
 (defn- paint-tempo
   "Draws tempo information for a player. Arguments are player number,
   the component being drawn, and the graphics context in which drawing
   is taking place."
   [n c g]
-  ;; TODO: Draw SYNC in white box next to Tempo when active.
   ;; TODO: Add scrolling waveform detail option.
-  (when-let [[pitch tempo master] (tempo-values n)]
+  (when-let [[pitch tempo master synced] (tempo-values n)]
     (let [abs-pitch       (Math/abs pitch)
           formatted-pitch (format (if (< abs-pitch 20.0) "%5.2f" "%5.1f") abs-pitch)]
       (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
@@ -389,7 +389,13 @@
       (.drawString g (clojure.string/replace formatted-pitch " " "!") (int 4) (int 40))
       (.setFont g (get-display-font :teko Font/PLAIN 14))
       (.drawString g "%" (int 56) (int 40)))
-    (when master (.setPaint g Color/ORANGE))
+    (when synced
+      (let [frame (java.awt.geom.RoundRectangle2D$Double. 40.0 4.0 24.0 15.0 4.0 4.0)]
+        (.fill g frame)
+        (.setPaint g Color/BLACK)
+        (.setFont g (get-display-font :teko Font/PLAIN 14))
+        (.drawString g "SYNC" (int 42) (int 16))))
+    (.setPaint g (if master Color/ORANGE Color/WHITE))
     (let [frame        (java.awt.geom.RoundRectangle2D$Double. 68.0 1.0 50.0 38.0 8.0 8.0)
           clip         (.getClip g)
           tempo-string (if (nil? tempo)
