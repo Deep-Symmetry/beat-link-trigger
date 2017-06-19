@@ -16,7 +16,7 @@
             MetadataFinder MetadataCacheCreationListener TrackMetadataListener TrackMetadataUpdate
             MountListener MetadataCacheListener SlotReference
             WaveformListener WaveformPreviewComponent WaveformDetailComponent
-            TimeFinder WaveformFinder ArtFinder]
+            TimeFinder WaveformFinder ArtFinder AlbumArtListener AlbumArtUpdate]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
            [java.awt GraphicsEnvironment Font Color RenderingHints]
            [java.awt.event WindowEvent]
@@ -556,6 +556,10 @@
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
                              (update-metadata-labels (.metadata md-update) title-label artist-label))))
+        art-listener (reify AlbumArtListener
+                       (albumArtChanged [this art-update]
+                         (when (= n (.player art-update))
+                           (seesaw/repaint! art))))
         slot-elems     (fn [slot-reference]
                          (when (= n (.player slot-reference))
                            (if (= (.slot slot-reference) (CdjStatus$TrackSourceSlot/USB_SLOT))
@@ -600,6 +604,7 @@
 
     ;; Set up all our listeners to automatically update the interface when the environment changes.
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
+    (.addAlbumArtListener art-finder art-listener)  ; React to artwork changes.
     (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
     (.addCacheListener metadata-finder cache-listener)  ; React to metadata cache changes.
     (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going.
@@ -619,6 +624,7 @@
       (<! shutdown-chan)  ; Parks until the window is closed.
       (.setFindDetails waveform-finder false)
       (.removeTrackMetadataListener metadata-finder md-listener)
+      (.removeAlbumArtListener art-finder art-listener)
       (.removeMountListener metadata-finder mount-listener)
       (.removeCacheListener metadata-finder cache-listener)
       (.removeDeviceAnnouncementListener device-finder dev-listener)
