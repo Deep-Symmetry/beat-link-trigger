@@ -507,7 +507,6 @@
                                       :popup (partial slot-popup n :sd))
         sd-label       (seesaw/label :id :sd-label :text "Empty")
         detail         (WaveformDetailComponent. (int n))
-        ;; TODO: Why does the detail sometimes fail to load the first time after the program starts?
         zoom-slider    (seesaw/slider :id :zoom :enabled? false :min 1 :max 32 :value 4
                                       :listen [:state-changed (fn [e]
                                                                 (.setScale detail (seesaw/value e)))])
