@@ -22,7 +22,14 @@ A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
 stop, and when the triggers are enabled:
 
-<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="840">
+<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793">
+
+Starting with version 0.3.0, there is also an interface for monitoring
+the status of each player found on the network, which you can access
+by choosing `Show Player Status` in the `Network` menu:
+
+<image src="doc/assets/PlayerStatus.png" alt="Player Status window"
+width="538">
 
 ### Going Further
 

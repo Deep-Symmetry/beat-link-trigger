@@ -51,7 +51,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking `Online?` in the `Network` menu:
 
-image:assets/GoingOnline.png[Going Online, 338]
+image:assets/GoingOnline.png[Going Online, 380]
 
 You can also go offline at any time by unchecking the menu option.
 
@@ -155,7 +155,7 @@ that is often the most convenient and flexible way of matching tracks.
 To enable this feature, check `Request Track Metadata?` in the
 `Network` menu:
 
-image:assets/RequestMetadata.png[Requesting Metadata, 338]
+image:assets/RequestMetadata.png[Requesting Metadata, 380]
 
 When metadata is available for a track, the Player Status section
 grows to two lines, and displays the track title and artist on the
@@ -898,7 +898,7 @@ have installed Carabiner and have it running, bring up the Carabiner
 Connection window by choosing
 `Ableton Link: Carabiner Connection` in the `Network` menu:
 
-image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 292]
+image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 380]
 
 This will open the Carabiner Connection window:
 
