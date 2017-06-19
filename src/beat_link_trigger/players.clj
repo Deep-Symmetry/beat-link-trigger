@@ -680,7 +680,7 @@
                            (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
                              (seesaw/invoke-later
                               (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
-      (seesaw/config! root :content players)
+      (seesaw/config! root :content (seesaw/scrollable players))
       (seesaw/config! players :items (concat [no-players] (create-player-rows shutdown-chan no-players)))
       (seesaw/listen root :window-closed (fn [e]
                                            (>!! shutdown-chan :done)
@@ -689,7 +689,7 @@
       (seesaw/config! no-players :visible? (no-players-found))
       (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/pack! root)
-      (.setResizable root false)
+      #_(.setResizable root false)
       (reset! player-window root)
       (make-window-visible trigger-frame)
       (when-not (.isRunning virtual-cdj) (.stopped stop-listener virtual-cdj)))  ; In case we went offline during setup.
