@@ -378,6 +378,15 @@
   (let [format-string (if (< pitch 20.0) "%5.2f" "%5.1f")]
     (String/format java.util.Locale/ROOT format-string (to-array [pitch]))))
 
+(defn format-tempo
+  "Formats a tempo for display, showing an unloaded track as \" --.-\",
+  and always using period as the decimal point, since that is the only
+  separator available in the DSEG7 font."
+  [tempo]
+  (if (nil? tempo)
+    " --.-"
+    (String/format java.util.Locale/ROOT "%5.1f" (to-array [tempo]))))
+
 (defn- paint-tempo
   "Draws tempo information for a player. Arguments are player number,
   the component being drawn, and the graphics context in which drawing
@@ -404,9 +413,7 @@
     (.setPaint g (if master Color/ORANGE Color/WHITE))
     (let [frame        (java.awt.geom.RoundRectangle2D$Double. 68.0 1.0 50.0 38.0 8.0 8.0)
           clip         (.getClip g)
-          tempo-string (if (nil? tempo)
-                         "!--.-"
-                         (clojure.string/replace (format "%5.1f" tempo) " " "!"))]
+          tempo-string (clojure.string/replace (format-tempo tempo) " " "!")]
       (.draw g frame)
       (.setFont g (get-display-font :teko Font/PLAIN 14))
       (if master
