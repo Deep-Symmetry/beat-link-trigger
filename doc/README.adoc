@@ -112,7 +112,7 @@ lowest-numbered one.
 Master Player:: If you choose to watch the Master Player, the trigger
 will focus on whichever player is the current Tempo (sync) Master.
 
-=== Player Status
+=== Player Status Summary
 
 Right after the Watch menu, the trigger row displays the player number
 and latest status received from the watched player, if one was found.
@@ -193,6 +193,12 @@ Trigger can reserve a device number from 1 to 4, or as long as the four
 players are only loading tracks from rekordbox instead of each other,
 because rekordbox will happily reply to metadata requests from device
 numbers larger than 5.
+
+In order to be able to work with metadata in a busy performance
+environment where DJs are using four physical players and potentially
+loading tracks from a single player, you can create and attach a
+<<caching-metadata,Metadata Cache>> as described below.
+
 ====
 
 === MIDI Output Menu
@@ -768,9 +774,8 @@ details like its title, artist, and so on. This section describes how
 to work with that metadata in your triggers. If you can't turn on
 metadata requests (for example, you are running a show with a full set
 of four CDJs, all loading tracks from the same media on a single
-player), you can use the lower-level techniques that were used
-<<NoMetadata#recognizing-tracks,before we discovered how to request
-metadata>>.
+player), you can hard-code the rekordbox ID numbers in your triggers,
+or you can set up a <<caching-metadata,Metadata Cache>>.
 
 The simplest approach is to configure your triggers to Watch Any
 Player, and use a custom Enabled Filter expression to activate them
@@ -885,6 +890,61 @@ Timestamp: 2017-03-18T18:22:07.713
    Artist: Faithless
     Title: insomnia 2008 (a1 electro mix)
 ```
+
+== The Player Status Window
+
+Beat Link Trigger can take advantage of track metadata and related
+information from the `dbserver` running on the players to provide you
+a rich view of what is happening right now on all the decks. As shown
+in the example view below, this can be an invaluable resoure on its
+own for running visuals for a show, even if you don't have any
+triggers set up:
+
+image:assets/PlayerStatus.png[Player Status Window, 538]
+
+In order to enable you to work with metadata even during shows with a
+full complement of CDJs when you can't be sure that at some point at
+least one will not be linked to the database you need metadata for,
+you can set up a metadata cache before the show, and attach that to
+the slot where your DJ has inserted his media.
+
+=== Caching Metadata
+
+To create a metadata cache, have your DJ insert his media into a
+player before the show begins, and then click on the gear button next
+to the corresponding player slot, choosing the Create Metadata Cache
+File option:
+
+image:assets/CreateCache.png[Create Metadata Cache option, 331]
+
+This will open a dialog where you can choose to cache either all the
+tracks present on the media, or only those associated with a
+particular playlist. If you have limited time available, and the DJ
+will be using a particular playlist for the tracks that you need
+metadata for, that option can save you a lot of time. Also choose the
+file where you want to save the cache:
+
+image:assets/CreateCache2.png[Create Metadata Cache window, 613]
+
+When you click Save, Beat Link Trigger will download the metadata,
+artwork, cue list, beat grid, and waveform information about all the
+tracks you specified, creating a zip file that can be used to retrieve
+them when needed, instead of querying the player itself. This takes a
+couple of seconds per track, so can be a time consuming operation for
+large amounts of media.
+
+image:assets/CreateCache3.png[Creating Metadata Cache, 526]
+
+Once the cache is created, it will automatically be attached to that
+player slot, so Beat Link Trigger will use the cache instead of asking
+the player for metadata. If the media is ejected from the slot, the
+cache is automatically detached. You can also manually detach or
+attach caches using the gear button next to any player media slot. The
+gear will be filled in when a cache is attached, and the cache file
+information displayed next to it, as shown here:
+
+image:assets/CreateCache4.png[Metadata Cache Attached, 358]
+
 
 == Working with Ableton Link
 
