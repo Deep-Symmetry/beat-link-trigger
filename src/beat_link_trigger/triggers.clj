@@ -1292,6 +1292,7 @@
   (.start metadata-finder)
   (.start (ArtFinder/getInstance))
   (.start (BeatGridFinder/getInstance))
+  (.setFindDetails (WaveformFinder/getInstance) true)
   (.start (WaveformFinder/getInstance)))
 
 (defn start
