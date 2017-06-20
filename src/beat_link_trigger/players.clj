@@ -370,14 +370,21 @@
      (.isTempoMaster u)
      (true? (when-let [cdj-status (.getLatestStatusFor virtual-cdj n)] (.isSynced cdj-status)))]))
 
+(defn- format-pitch
+  "Formats a number for display as a pitch value, with one or two
+  decimal places (and always using period as the decimal point, since
+  that is the only separator available in the DSEG7 font)."
+  [pitch]
+  (let [format-string (if (< pitch 20.0) "%5.2f" "%5.1f")]
+    (String/format java.util.Locale/ROOT format-string (to-array [pitch]))))
+
 (defn- paint-tempo
   "Draws tempo information for a player. Arguments are player number,
   the component being drawn, and the graphics context in which drawing
   is taking place."
   [n c g]
   (when-let [[pitch tempo master synced] (tempo-values n)]
-    (let [abs-pitch       (Math/abs pitch)
-          formatted-pitch (format (if (< abs-pitch 20.0) "%5.2f" "%5.1f") abs-pitch)]
+    (let [abs-pitch       (Math/abs pitch)]
       (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
       (.setPaint g (Color/WHITE))
       (.setFont g (get-display-font :teko Font/PLAIN 16))
@@ -385,7 +392,7 @@
       (.setFont g (get-display-font :teko Font/BOLD 20))
       (.drawString g (if (< abs-pitch 0.025) " " (if (neg? pitch) "-" "+")) (int 2) (int 38))
       (.setFont g (get-display-font :segment Font/PLAIN 16))
-      (.drawString g (clojure.string/replace formatted-pitch " " "!") (int 4) (int 40))
+      (.drawString g (clojure.string/replace (format-pitch abs-pitch) " " "!") (int 4) (int 40))
       (.setFont g (get-display-font :teko Font/PLAIN 14))
       (.drawString g "%" (int 56) (int 40)))
     (when synced
