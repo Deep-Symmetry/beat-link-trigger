@@ -926,12 +926,12 @@ file where you want to save the cache:
 
 image:assets/CreateCache2.png[Create Metadata Cache window, 613]
 
-When you click Save, Beat Link Trigger will download the metadata,
+When you click `Save`, Beat Link Trigger will download the metadata,
 artwork, cue list, beat grid, and waveform information about all the
 tracks you specified, creating a zip file that can be used to retrieve
 them when needed, instead of querying the player itself. This takes a
-couple of seconds per track, so can be a time consuming operation for
-large amounts of media.
+couple of seconds per track, so it can be a time-consuming operation
+for large amounts of media.
 
 image:assets/CreateCache3.png[Creating Metadata Cache, 526]
 
