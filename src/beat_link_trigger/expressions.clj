@@ -246,15 +246,15 @@
                                                :doc  "Is the player currently in Sync mode?"}
                          'tempo-master?       {:code '(.isTempoMaster status)
                                                :doc  "Is this player the current tempo master?"}
-                         'track-artist        {:code '(when (some? track-metadata) (.getArtist track-metadata))
+                         'track-artist        {:code '(when (some? track-metadata) (when-let [artist (.getArtist track-metadata)] (.label artist)))
                                                :doc  "The artist of the loaded track, if metadata is available."}
-                         'track-comment       {:code '(when (some? track-metadata) (.getComment track-metadata))
+                         'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] (.label comment)))
                                                :doc  "The comment assigned to the loaded track, if metadata is available."}
-                         'track-genre         {:code '(when (some? track-metadata) (.getGenre track-metadata))
+                         'track-genre         {:code '(when (some? track-metadata) (when-let [genre (.getGenre track-metadata)] (.label genre)))
                                                :doc  "The genre of the loaded track, if metadata is available."}
-                         'track-key           {:code '(when (some? track-metadata) (.getKey track-metadata))
+                         'track-key           {:code '(when (some? track-metadata) (when-let [key (.getKey track-metadata)] (.label key)))
                                                :doc  "The key of the loaded track, if metadata is available."}
-                         'track-label         {:code '(when (some? track-metadata) (.getLabel track-metadata))
+                         'track-label         {:code '(when (some? track-metadata) (when-let [label (.getLabel track-metadata)] (.label label)))
                                                :doc  "The label of the loaded track, if metadata is available."}
                          'track-length        {:code '(when (some? track-metadata) (.getLength track-metadata))
                                                :doc  "The length in seconds of the loaded track, if metadata is available."}

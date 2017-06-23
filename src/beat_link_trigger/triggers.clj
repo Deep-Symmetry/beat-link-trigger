@@ -21,8 +21,9 @@
             [taoensso.timbre :as timbre])
   (:import java.awt.RenderingHints
            [javax.sound.midi Sequencer Synthesizer]
-           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder]
+           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
+            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
+           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
@@ -395,12 +396,19 @@
     :else
     (str "Track #" (.getTrackNumber status))))
 
+(defn- extract-label
+  "Given a `SearchableItem` from track metadata, extracts the string
+  label. If passed `nil` simply returns `nil`."
+  [^SearchableItem item]
+  (when item
+    (.label item)))
+
 (defn- format-metadata
   "Include the appropriate track metadata items for display. If a
   non-nil `custom-summary` is available, use it. Otherwise show the
   track title, an em dash, and the track artist."
   [status metadata custom-summary]
-  (let [summary (or custom-summary (str (.getTitle metadata) "&mdash;" (.getArtist metadata)))]
+  (let [summary (or custom-summary (str (.getTitle metadata) "&mdash;" (extract-label (.getArtist metadata))))]
     (str "<br>&nbsp;&nbsp; " summary)))
 
 (defn build-status-label

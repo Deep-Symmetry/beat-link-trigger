@@ -14,7 +14,7 @@
             VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot]
            [org.deepsymmetry.beatlink.data
             MetadataFinder MetadataCacheCreationListener TrackMetadataListener TrackMetadataUpdate
-            MountListener MetadataCacheListener SlotReference
+            MountListener MetadataCacheListener SlotReference SearchableItem
             WaveformListener WaveformPreviewComponent WaveformDetailComponent
             TimeFinder WaveformFinder ArtFinder AlbumArtListener AlbumArtUpdate]
            [beat_link_trigger.playlist_entry IPlaylistEntry]
@@ -444,6 +444,13 @@
   []
   (empty? (filter #(<= 1 (.getNumber %) 4) (.getCurrentDevices device-finder))))
 
+(defn- extract-label
+  "Given a `SearchableItem` from track metadata, extracts the string
+  label. If passed `nil` simply returns `nil`."
+  [^SearchableItem item]
+  (when item
+    (.label item)))
+
 (defn- update-metadata-labels
   "Updates the track title and artist name when the metadata has
   changed."
@@ -451,7 +458,7 @@
   (seesaw/invoke-soon
    (if metadata
      (do (seesaw/config! title-label :text (or (.getTitle metadata) "[no title]"))
-         (seesaw/config! artist-label :text (or (.getArtist metadata) "[no artist]")))
+         (seesaw/config! artist-label :text (or (extract-label (.getArtist metadata)) "[no artist]")))
      (do (seesaw/config! title-label :text "[no track metadata available]")
          (seesaw/config! artist-label :text "")))))
 
