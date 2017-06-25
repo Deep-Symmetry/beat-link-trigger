@@ -933,6 +933,15 @@ them when needed, instead of querying the player itself. This takes a
 couple of seconds per track, so it can be a time-consuming operation
 for large amounts of media.
 
+NOTE: If you are creating a cache while a performance is taking place,
+you should check the `Performance Priority` checkbox in the middle of
+the cache creation dialog, to tell Beat Link Trigger to pause a second
+between adding each track to the cache. This greatly slows down the
+process, but it avoids interfering with the players. Failing to do
+this can cause playback to stutter if the DJ jumps directly to the
+middle of a track, for example. Don't do this if the player is idle
+and you want to quickly cache a lot of tracks.
+
 image:assets/CreateCache3.png[Creating Metadata Cache, 526]
 
 Once the cache is created, it will automatically be attached to that
@@ -943,7 +952,7 @@ attach caches using the gear button next to any player media slot. The
 gear will be filled in when a cache is attached, and the cache file
 information displayed next to it, as shown here:
 
-image:assets/CreateCache4.png[Metadata Cache Attached, 358]
+image:assets/CreateCache4.png[Metadata Cache Attached, 381]
 
 
 == Working with Ableton Link
