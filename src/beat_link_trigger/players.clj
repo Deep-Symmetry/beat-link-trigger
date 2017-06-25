@@ -171,15 +171,17 @@
                                 {:all-files? false
                                  :filters    [["BeatLink metadata cache" ["bltm"]]]})
          heading               (seesaw/label :text "Choose what to cache and where to save it:")
-         tree                           (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
-                                                     :root-visible? false)
+         tree                  (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
+                                            :root-visible? false)
+         speed                 (seesaw/checkbox :text "Performance Priority (cache slowly to avoid playback gaps)")
          panel                 (mig/mig-panel :items [[heading "wrap, align center"]
                                                       [(seesaw/scrollable tree) "grow, wrap"]
+                                                      [speed "wrap, align center"]
                                                       [chooser]])
-         ready-to-save? (fn []
-                          (or (some? @selected-id)
-                              (seesaw/alert "You must choose a playlist to save or All Tracks."
-                                            :title "No Cache Source Chosen" :type :error)))]
+         ready-to-save?        (fn []
+                                 (or (some? @selected-id)
+                                     (seesaw/alert "You must choose a playlist to save or All Tracks."
+                                                   :title "No Cache Source Chosen" :type :error)))]
      (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
      (seesaw/listen tree
                     :tree-will-expand
@@ -207,6 +209,7 @@
                         (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
                           (@#'chooser/remember-chooser-dir chooser)
                           (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) "bltm" nil)]
+                            (.setCachePauseInterval metadata-finder (if (seesaw/value speed) 1000 50))
                             (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
                           (.dispose root))
                         (.dispose root))))  ; They chose cancel.
