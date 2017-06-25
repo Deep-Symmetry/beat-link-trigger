@@ -2,8 +2,7 @@
   "Provides the user interface for seeing the status of active
   players, as well as creating metadata caches and assigning them to
   particular player slots."
-  (:require [clojure.java.browse]
-            [clojure.core.async :as async :refer [<! >! <!! >!!]]
+  (:require [clojure.core.async :as async :refer [<! >! <!! >!!]]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]

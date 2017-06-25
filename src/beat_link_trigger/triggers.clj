@@ -8,6 +8,7 @@
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.players :as players]
+            [beat-link-trigger.auto-cache :as auto]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [fipp.edn :as fipp]
@@ -979,6 +980,13 @@
                  :name "Load"
                  :key "menu L"))
 
+(def ^:private auto-action
+  "The menu action which allows configuration of auto-attached
+  metadata cache files."
+  (seesaw/action :handler (fn [e] (auto/show-window @trigger-frame))
+                 :name "Auto-Attach Metadata Caches"
+                 :key "menu M"))
+
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
   available MIDI outputs."
@@ -1242,6 +1250,7 @@
                        (.setPassive metadata-finder true))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
+                                                         (seesaw/separator) auto-action
                                                          (seesaw/separator) logs/logs-action]
                                                         menus/non-mac-actions))
                             (seesaw/menu :text "Triggers"
