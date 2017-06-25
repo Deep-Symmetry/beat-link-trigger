@@ -921,8 +921,16 @@ This will open a dialog where you can choose to cache either all the
 tracks present on the media, or only those associated with a
 particular playlist. If you have limited time available, and the DJ
 will be using a particular playlist for the tracks that you need
-metadata for, that option can save you a lot of time. Also choose the
-file where you want to save the cache:
+metadata for, that option can save you a lot of time.
+
+NOTE: Creating a cache from a playlist means that only tracks in that
+playlist will have metadata available when you attach the cache. Beat
+Link Trigger will not attempt to query the player directly for tracks
+that are not present in an attached cache file. So only use this
+approach when you haver prearranged with your DJ to be certain that
+you only need the metadata for tracks on the chosen playlist.
+
+Also choose the file where you want to save the cache:
 
 image:assets/CreateCache2.png[Create Metadata Cache window, 613]
 
@@ -939,8 +947,8 @@ the cache creation dialog, to tell Beat Link Trigger to pause a second
 between adding each track to the cache. This greatly slows down the
 process, but it avoids interfering with the players. Failing to do
 this can cause playback to stutter if the DJ jumps directly to the
-middle of a track, for example. Don't do this if the player is idle
-and you want to quickly cache a lot of tracks.
+middle of a track, for example. Don't check the box if the player is
+idle and you want to quickly cache a lot of tracks.
 
 image:assets/CreateCache3.png[Creating Metadata Cache, 526]
 
@@ -954,6 +962,36 @@ information displayed next to it, as shown here:
 
 image:assets/CreateCache4.png[Metadata Cache Attached, 381]
 
+=== Auto-Attaching Metadata Caches
+
+If you have created a metadata cache and want it to automatically be
+attached to the appropriate player slot whenever your DJ inserts the
+corresponging media (since it can be hard to predict where it will end
+up in a busy show), you can ask Beat Link Trigger to watch for media
+that matches the cache, and automatically attach it. To do this,
+choose `Auto-Attach Metadata Caches` in the `File` menu.
+
+image:assets/AutoAttach.png[Auto-Attach option, 324]
+
+This will open a window where you can configure the cache files that
+should be watched for. Click `Add File` to add one:
+
+image:assets/AutoAttach2.png[Auto-Attach window, 433]
+
+This will open a file chooser dialog you can use to find the file or
+files that you want to be watched, and they will appear in the window.
+Whenever a new media stick or SD card is inserted into one of the
+players, it will be checked to see if it has the same number of tracks
+as one of the caches (or, if the cache was created from a playlist, if
+the media has a playlist with the same ID and the same number of
+tracks). If so, a random sampling of the tracks will be examined in
+both the cache and the player, and if the metadata of those tracks
+match exactly, the media cache will be attached to that slot.
+
+image:assets/AutoAttach3.png[Auto-Attach window with some files, 433]
+
+If you no longer want one of the files to be watched for, simply click
+the `Remove` button next to it.
 
 == Working with Ableton Link
 
