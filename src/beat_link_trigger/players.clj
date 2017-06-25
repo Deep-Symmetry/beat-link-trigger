@@ -22,6 +22,36 @@
            [javax.swing JFileChooser JTree]
            [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
 
+(def ^{:private true
+       :doc "Holds the frame allowing the user to view player state
+  and create and assign metadata caches to player slots."}
+  player-window (atom nil))
+
+(def device-finder
+  "The object that tracks the arrival and departure of devices on the
+  DJ Link network."
+  (DeviceFinder/getInstance))
+
+(def virtual-cdj
+  "The object which can obtained detailed player status information."
+  (VirtualCdj/getInstance))
+
+(def metadata-finder
+  "The object that can obtain track metadata."
+  (MetadataFinder/getInstance))
+
+(def waveform-finder
+  "The object that can obtain track waveform information."
+  (WaveformFinder/getInstance))
+
+(def time-finder
+  "The object that can obtain detailed track time information."
+  (TimeFinder/getInstance))
+
+(def art-finder
+  "The object that can obtain album artwork."
+  (ArtFinder/getInstance))
+
 (defonce fonts-loaded
   (atom false))
 
@@ -217,36 +247,6 @@
      (seesaw/pack! root)
      (.setLocationRelativeTo root nil)
      (seesaw/show! root))))
-
-(def ^{:private true
-       :doc "Holds the frame allowing the user to view player state
-  and create and assign metadata caches to player slots."}
-  player-window (atom nil))
-
-(def device-finder
-  "The object that tracks the arrival and departure of devices on the
-  DJ Link network."
-  (DeviceFinder/getInstance))
-
-(def virtual-cdj
-  "The object which can obtained detailed player status information."
-  (VirtualCdj/getInstance))
-
-(def metadata-finder
-  "The object that can obtain track metadata."
-  (MetadataFinder/getInstance))
-
-(def waveform-finder
-  "The object that can obtain track waveform information."
-  (WaveformFinder/getInstance))
-
-(def time-finder
-  "The object that can obtain detailed track time information."
-  (TimeFinder/getInstance))
-
-(def art-finder
-  "The object that can obtain album artwork."
-  (ArtFinder/getInstance))
 
 (defn time-played
   "If possible, returns the number of milliseconds of track the
