@@ -494,6 +494,14 @@
 
 ;; TODO: Consider maintaining a list of metadata caches to try to auto-attach by probing key tracks when media mounts.
 
+(defn- describe-cache
+  "Format information about an attached cache file that is short
+  enough to fit in the window."
+  [zip-file]
+  (str "Cached" (when (pos? (.getCacheSourcePlaylist metadata-finder zip-file)) " (playlist)") ": "
+       (.getName (clojure.java.io/file (.getName zip-file))) ", "
+       (.getCacheTrackCount metadata-finder zip-file) " tracks"))
+
 (defn- show-popup-from-button
   "Displays the popup menu when the gear button is clicked as an
   ordinary mouse event."
@@ -599,7 +607,7 @@
                              (when button
                                (seesaw/invoke-soon
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-icon.png") :enabled? true)
-                                (seesaw/config! label :text (str "Cached: " (.getName zip-file)))))))
+                                (seesaw/config! label :text (describe-cache zip-file))))))
                          (cacheDetached [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
