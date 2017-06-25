@@ -63,19 +63,20 @@
 (defn create-metadata-cache
   "Downloads metadata for the specified player and media slot,
   creating a cache in the specified file. If `playlist-id` is
-  supplied, only the playlist with that ID will be downloaded,
-  otherwise all tracks will be downloaded. Provides a progress bar
-  during the download process, and allows the user to cancel it.
-  Once the cache file is created, it is automatically attached."
+  supplied (and not zero), only the playlist with that ID will be
+  downloaded, otherwise all tracks will be downloaded. Provides a
+  progress bar during the download process, and allows the user to
+  cancel it. Once the cache file is created, it is automatically
+  attached."
   ([player slot file]
-   (create-metadata-cache player slot file nil))
+   (create-metadata-cache player slot file 0))
   ([player slot file playlist-id]
    (let [continue? (atom true)
          slot-ref  (SlotReference/getSlotReference player slot)
          progress  (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
          latest    (seesaw/label :text "Gathering tracks…")
          panel     (mig/mig-panel
-                    :items [[(seesaw/label :text (str "<html>Creating " (if playlist-id "playlist" "full")
+                    :items [[(seesaw/label :text (str "<html>Creating " (if (pos? playlist-id) "playlist" "full")
                                                       " metadata cache for player " player
                                                       ", " (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD")
                                                       " slot, in file <strong>" (.getName file) "</strong>:</html>"))
@@ -118,7 +119,7 @@
      (future
        (try
          ;; To load all tracks we pass a playlist ID of 0
-         (.createMetadataCache (MetadataFinder/getInstance) slot-ref (or playlist-id 0) file listener)
+         (.createMetadataCache (MetadataFinder/getInstance) slot-ref playlist-id file listener)
          (catch Exception e
            (timbre/error e "Problem creating metadata cache.")
            (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
