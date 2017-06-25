@@ -988,10 +988,22 @@ tracks). If so, a random sampling of the tracks will be examined in
 both the cache and the player, and if the metadata of those tracks
 match exactly, the media cache will be attached to that slot.
 
+NOTE: The playlist (or all tracks) must match *exactly*, so if the
+media has been modified in rekordbox since the cache was created, an
+all-tracks cache will need to be re-created. A playlist cache will
+continue to match unless that specific playlist has been altered.
+
 image:assets/AutoAttach3.png[Auto-Attach window with some files, 433]
 
 If you no longer want one of the files to be watched for, simply click
 the `Remove` button next to it.
+
+NOTE: It does not make sense to try to auto-attach multiple files
+created from the same media, for example from different playlists.
+Beat Link Trigger will always give priority to files created from all
+tracks over files created from a playlist when considering matches,
+but it is unpredictable which file will be chosen if more than one
+playlist cache from the same media is being matched.
 
 == Working with Ableton Link
 
