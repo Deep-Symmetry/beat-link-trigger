@@ -6,6 +6,33 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+- Nothing so far.
+
+## [0.3.0] - 2017-06-25
+
+### Added
+
+- Some major new features taking advantage of the incredible advances
+  in the Beat Link library over the past month. The most visible are
+  found in the new Player Status window, available in the Network
+  menu, providing a detailed view of what the player on the network
+  are currently doing.
+- This also provides the foundation for upcoming work to generate
+  timecode, now that we can keep track of detailed playback location
+  when a player is playing normally.
+- There is a whole new infrastructure for creating, attaching, and
+  using metadata cache files for performance settings with four
+  players all linked to a single media library, which makes requesting
+  metadata difficult.
+
+### Changed
+
+- Now that metadata has become so fundamental to so many features in
+  Beat Link Trigger, the user guide assumes that you will be working
+  with it turned on. You can also make use of the extensive new
+  metadata cache file mechanism to cope with performance environments
+  in which requesting the metadata from a player is difficult.
+
 ### Fixed
 
 - File management is much improved, adding standard file extensions
@@ -14,8 +41,6 @@ This change log follows the conventions of
   confirmation before overwriting an existing file, and still letting
   you load a file with the wrong extension (such as one you saved
   before this release) by choosing "All files" in the Open dialog.
-
-Nothing so far.
 
 ## [0.2.1] - 2017-03-18
 
@@ -186,7 +211,8 @@ Nothing so far.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.2.1...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.4...v0.2.1
 [0.1.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.2...v0.1.3
