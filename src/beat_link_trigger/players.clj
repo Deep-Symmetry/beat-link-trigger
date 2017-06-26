@@ -495,8 +495,6 @@
                                                 :title "Problem Attaching File" :type :error)))))
                        :name "Attach Metadata Cache File")]))))
 
-;; TODO: Consider maintaining a list of metadata caches to try to auto-attach by probing key tracks when media mounts.
-
 (defn- describe-cache
   "Format information about an attached cache file that is short
   enough to fit in the window."
