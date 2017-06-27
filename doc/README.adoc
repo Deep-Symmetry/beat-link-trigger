@@ -766,16 +766,17 @@ the CDJs.
 
 == Matching Tracks
 
-As described in the <<player-status,Player Status>> discussion, the
-most reliable way to match a track is using the `rekordbox-id` value,
-and the most convenient way to do that is to turn on metadata
-requests, so Beat Link Trigger asks the player hosting the track for
-details like its title, artist, and so on. This section describes how
-to work with that metadata in your triggers. If you can't turn on
-metadata requests (for example, you are running a show with a full set
-of four CDJs, all loading tracks from the same media on a single
-player), you can hard-code the rekordbox ID numbers in your triggers,
-or you can set up a <<caching-metadata,Metadata Cache>>.
+As described in the <<player-status-summary,Player Status Summary>>
+discussion, the most reliable way to match a track is using the
+`rekordbox-id` value, and the most convenient way to do that is to
+turn on metadata requests, so Beat Link Trigger asks the player
+hosting the track for details like its title, artist, and so on. This
+section describes how to work with that metadata in your triggers. If
+you can't turn on metadata requests (for example, you are running a
+show with a full set of four CDJs, all loading tracks from the same
+media on a single player), you can hard-code the rekordbox ID numbers
+in your triggers, or you can set up a <<caching-metadata,Metadata
+Cache>>.
 
 The simplest approach is to configure your triggers to Watch Any
 Player, and use a custom Enabled Filter expression to activate them
@@ -902,11 +903,17 @@ triggers set up:
 
 image:assets/PlayerStatus.png[Player Status Window, 538]
 
+TIP: For the status window to be of any use, you need to either have
+Beat Link Trigger configured to request track metadata (`Request Track
+Metadata?` needs to be selected in the `Network` menu, as described
+<<metadata,above>>), or a metadata cache needs to be attached. What is
+a metadata cache, you ask? Well, read on!
+
 In order to enable you to work with metadata even during shows with a
-full complement of CDJs when you can't be sure that at some point at
-least one will not be linked to the database you need metadata for,
-you can set up a metadata cache before the show, and attach that to
-the slot where your DJ has inserted his media.
+full complement of CDJs (when you can't be sure that all of the
+players will be never be simultaneously linked to the database you
+need metadata for) you can set up a metadata cache before the show,
+and attach that to the slot where your DJ has inserted his media.
 
 === Caching Metadata
 
