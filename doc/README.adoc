@@ -928,13 +928,13 @@ This will open a dialog where you can choose to cache either all the
 tracks present on the media, or only those associated with a
 particular playlist. If you have limited time available, and the DJ
 will be using a particular playlist for the tracks that you need
-metadata for, that option can save you a lot of time.
+metadata for, the playlist option can save you a lot of time.
 
 NOTE: Creating a cache from a playlist means that only tracks in that
 playlist will have metadata available when you attach the cache. Beat
 Link Trigger will not attempt to query the player directly for tracks
 that are not present in an attached cache file. So only use this
-approach when you haver prearranged with your DJ to be certain that
+approach when you have prearranged with your DJ to be certain that
 you only need the metadata for tracks on the chosen playlist.
 
 Also choose the file where you want to save the cache:
