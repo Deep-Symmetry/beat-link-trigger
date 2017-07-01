@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-- Nothing so far.
+### Added
+
+- On-Air indicators for players in the Player Status window. If you
+  have the players configured to track and report this, it will be
+  reflected right above the beat phase display.
 
 ## [0.3.0] - 2017-06-25
 

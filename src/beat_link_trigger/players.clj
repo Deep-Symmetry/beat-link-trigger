@@ -287,6 +287,37 @@
           bounds (.getStringBounds (.getFont g) num frc)]
       (.drawString g num (float (- center (/ (.getWidth bounds) 2.0))) (float (- h 5.0))))))
 
+(defn- on-air?
+  "Returns `true` if the specified player can be determined to be
+  on the air right now."
+  [n]
+  (and (.isRunning virtual-cdj)
+       (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
+         (.isOnAir status))))
+
+(def near-black
+  "A gray that is close to black."
+  (Color. 20 20 20))
+
+(defn- paint-on-air
+  "Draws an indication of whether the player being monitored by a row
+  has reported itself as being on the air. Arguments are the player
+  number, the component being drawn, and the graphics context in which
+  drawing is taking place."
+  [n c g]
+  (let [w       (double (seesaw/width c))
+        center  (/ w 2.0)
+        h       (double (seesaw/height c))
+        outline (java.awt.geom.RoundRectangle2D$Double. 1.0 1.0 (- w 2.0) (- h 2.0) 10.0 10.0)]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setStroke g (java.awt.BasicStroke. 2.0))
+    (.setPaint g (if (on-air? n) Color/RED near-black))
+    (.draw g outline)
+    (.setFont g (get-display-font :teko Font/BOLD 18))
+    (let [frc    (.getFontRenderContext g)
+          bounds (.getStringBounds (.getFont g) "On Air" frc)]
+      (.drawString g "On Air" (float (- center (/ (.getWidth bounds) 2.0))) (float (- h 4.0))))))
+
 (defn- current-beat
   "Determine, if possible, the current beat within a musical bar which
   the specified player is playing or paused on."
@@ -516,6 +547,8 @@
   [shutdown-chan no-players n]
   (let [art            (seesaw/canvas :size [80 :by 80] :opaque? false :paint (partial paint-art n))
         preview        (WaveformPreviewComponent. (int n))
+        on-air         (seesaw/canvas :size [55 :by 20] :opaque? false :paint (partial paint-on-air n))
+        last-on-air    (atom nil)
         beat           (seesaw/canvas :size [55 :by 5] :opaque? false :paint (partial paint-beat n))
         last-beat      (atom nil)
         player         (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
@@ -560,6 +593,7 @@
                                  "skip 1"]
                                 [zoom-slider "span 2, split 2"] [zoom-label "wrap"]
                                 [detail "span, grow, wrap, hidemode 3"]
+                                [on-air "flowy, split 2, bottom"]
                                 [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
                                 [player "left, bottom"] [preview "right, bottom, span"]])
         dev-listener   (reify DeviceAnnouncementListener
@@ -580,10 +614,10 @@
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
                              (update-metadata-labels (.metadata md-update) title-label artist-label))))
-        art-listener (reify AlbumArtListener
-                       (albumArtChanged [this art-update]
-                         (when (= n (.player art-update))
-                           (seesaw/repaint! art))))
+        art-listener   (reify AlbumArtListener
+                         (albumArtChanged [this art-update]
+                           (when (= n (.player art-update))
+                             (seesaw/repaint! art))))
         slot-elems     (fn [slot-reference]
                          (when (= n (.player slot-reference))
                            (if (= (.slot slot-reference) (CdjStatus$TrackSourceSlot/USB_SLOT))
@@ -668,6 +702,9 @@
                                  (when (not= @last-beat (current-beat n))
                                    (reset! last-beat (current-beat n))
                                    (seesaw/repaint! beat))
+                                 (when (not= @last-on-air (on-air? n))
+                                   (reset! last-on-air (on-air? n))
+                                   (seesaw/repaint! on-air))
                                  (when (not= @last-tempo (tempo-values n))
                                    (reset! last-tempo (tempo-values n))
                                    (seesaw/repaint! tempo))))
