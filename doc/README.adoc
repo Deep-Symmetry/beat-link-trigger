@@ -903,6 +903,41 @@ triggers set up:
 
 image:assets/PlayerStatus.png[Player Status Window, 538]
 
+Only players currently visible on the network will appear in this
+window. The player number will be bright green if it is currently
+playing, and gray if it is stopped. (The playback position indicators
+in both the full track preview and, if you have it showing, the
+scrolling wave detail view, will also be white when playing and red
+when stopped.)
+
+In addition to the current track time (position) and remaining time,
+the current playback pitch (speed, shown as a percentage change from
+normal speed, `+` meaning faster and `-` meaning slower), the current
+effective tempo (combining the track tempo with the playback pitch)
+and master/sync status are displayed above the track waveform preview.
+
+The current beat playing is shown above the player number, and
+individual beat (white) and bar (red) marks are drawn in the waveform
+detail view (although if you zoom out to see more of the track, the
+individual beats go away, and only bars are drawn).
+
+The white tick marks below the full-track preview waveform at the
+bottom of a player row are minute markers, so you can see at a glance
+how long the track is and how much is left.
+
+Hot cues are shown above the waveform as green triangles, memory
+points as red triangles, and loops as orange triangles. The loop body
+is shown in the wave detail section, if you have that open. Only loops
+that are stored in the track can be displayed; loops created
+on-the-fly by the DJ are not visible over the network.
+
+If you are using a compatible mixer, and it (and the players) are all
+configured to display their On-Air status, and the player numbers are
+properly configured to match the mixer channels that they are
+connected to, then you can use the "On-Air" indication above the
+player number as an additional hint about when you need to pay
+attention to it.
+
 TIP: For the status window to be of any use, you need to either have
 Beat Link Trigger configured to request track metadata (`Request Track
 Metadata?` needs to be selected in the `Network` menu, as described
