@@ -85,6 +85,17 @@ installed, and try running it from the command line:
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
 
+### Font-Related Bugs
+
+If you see a long exception stack trace similar to the one
+in
+[this discussion](https://github.com/brunchboy/beat-link-trigger/issues/21) and
+you have your computer language set to one that uses an alphabet which
+is substantially different from English, you may be encountering what
+seems to be a bug in the GUI library (or maybe even in Java itself).
+Try setting your system language to US English, and see if that at
+least lets you run the program.
+
 ### Mac Trust Confirmation
 
 If you are on a Mac, the first time you try to launch the downloaded
