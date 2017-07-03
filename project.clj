@@ -8,7 +8,7 @@
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
                  [com.github.insubstantial/substance "7.3"]
                  [com.taoensso/timbre "4.10.0"]
-                 [com.fzakaria/slf4j-timbre "0.3.6"]
+                 [com.fzakaria/slf4j-timbre "0.3.7"]
                  [environ "1.1.0"]
                  [fipp "0.6.9"]
                  [inspector-jay "0.3"]
