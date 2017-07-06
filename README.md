@@ -38,6 +38,23 @@ Please see the
 introduction in how to configure triggers, and hopefully you will soon
 be coming up with interesting integration projects of your own.
 
+### Contributing
+
+First of all, we would *love* to hear from you! We have no way of
+knowing who has discovered, explored, downloaded and tried Beat Link
+Trigger. So if you have, please write a quick note on
+the [Gitter chat room](https://gitter.im/brunchboy/beat-link-trigger)
+to let us know! Even if it is only to explain why it didn't quite work
+for you.
+
+If you run into specific problems or have ideas of ways Beat Link
+Trigger could be better, you can
+also
+[open an Issue](https://github.com/brunchboy/beat-link-trigger/issues).
+
+Please be mindful of our [Code of Conduct](CODE_OF_CONDUCT.md) to make
+sure everyone feels welcome in the community.
+
 ## Compatibility
 
 This is in no way a sanctioned implementation of the protocols. It should be clear, but:
