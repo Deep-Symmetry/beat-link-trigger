@@ -734,12 +734,13 @@ the trigger to watch Any Player, and then within the Beat expression,
 we will react only to beat packets from the mixer, since it will
 always track the master player. (Alternately, you could set the
 trigger to watch the Master Player, but this shows an example of how
-to filter packets by the type of device sending them, and that you get
-beat packets from the mixer itself too.)
+to filter beat packets by the player number of device sending them,
+and that you get beat packets from the mixer itself too.)
+
 +
 
 ```clojure
-(when mixer?
+(when (= device-number 33)
   (.send (:chamsys-socket @locals) (:chamsys-on @locals))
   (future
     (Thread/sleep (long (/ 30000 effective-tempo)))
@@ -747,12 +748,13 @@ beat packets from the mixer itself too.)
 ```
 +
 
-After checking that the packet came from the mixer, we immediately
-send the UDP packet that tells MagicQ that the remote trigger is on.
-We want to later tell it that it is off, but it is critical that Beat
-Link Trigger expressions finish and return promptly, or they will back
-up the whole event distribution system, and cause other events to be
-delayed or lost. So we use Clojure's
+After checking that the packet came from the mixer (both the DJM 900
+nexus and the DJM 2000 nexus identify themselves as player number 33),
+we immediately send the UDP packet that tells MagicQ that the remote
+trigger is on. We want to later tell it that it is off, but it is
+critical that Beat Link Trigger expressions finish and return
+promptly, or they will back up the whole event distribution system,
+and cause other events to be delayed or lost. So we use Clojure's
 http://clojuredocs.org/clojure.core/future[`future`] to send a block
 of code to be executed in the background on another thread. The
 expression will return immediately, but in the background our inner
