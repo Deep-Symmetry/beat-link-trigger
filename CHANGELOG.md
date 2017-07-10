@@ -11,6 +11,9 @@ This change log follows the conventions of
 - On-Air indicators for players in the Player Status window. If you
   have the players configured to track and report this, it will be
   reflected right above the beat phase display.
+- A new version of Beat Link which adds hooks needed to allow triggers
+  to generate SMPTE timecode synced to the track position (with the
+  help of an external daemon).
 
 ## [0.3.0] - 2017-06-25
 
