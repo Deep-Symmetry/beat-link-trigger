@@ -1566,7 +1566,7 @@ https://github.com/PouleR[PouleR] pointed out that
 https://www.chauvetdj.com/showxpress/[this lighting control software],
 which goes by several different names, can be configured to respond to
 commands on a TCP socket, and asked for some help in figuring out how
-to take advantage of that from beat-link-trigger. I was happy to do
+to take advantage of that from Beat Link Trigger. I was happy to do
 so, and it turns out to work quite well.
 
 To enable this integration, make sure that **External control** is
@@ -1576,7 +1576,7 @@ initially opened it.
 
 image:assets/LiveExternalControl.png[ShowXpress Live Preferences, 700]
 
-Then paste this block of code into beat-link-trigger's Global Setup
+Then paste this block of code into Beat Link Trigger's Global Setup
 Expression:
 
 ```clojure
@@ -1677,7 +1677,7 @@ Expression:
 NOTE: You will want to edit the values assigned to `live-address`,
 `live-port`, and `live-password` to match your setup. This code
 assumes that ShowXpress Live already running and configured to listen
-on the specified port before you launch beat-link-trigger. If nothing
+on the specified port before you launch Beat Link Trigger. If nothing
 seems to be working, check the log file for error messages, and see if
 the login process was successful. Unfortunately, there is no friendly
 user interface to tell it to try again if it was not, but you can do
@@ -1695,7 +1695,7 @@ Expression:
   (swap! globals dissoc :live-connection))
 ```
 
-With these in place, beat-link-trigger will maintain a connection to
+With these in place, Beat Link Trigger will maintain a connection to
 the ShowXpress Live external control port while it runs, and make
 a new set of functions available to all your trigger expressions which
 make it easy to send tempo information and cue commands.
@@ -1754,7 +1754,7 @@ TIP: If you jumped to this section to learn about how to integrate the
 lighting controller with CDJs, and you think it looks promising, you
 will want to go back and read this entire user guide to get a better
 understanding of how to make your triggers activate, and the other
-things you can do with beat-link-trigger.
+things you can do with Beat Link Trigger.
 
 Additionally, you can send any other command supported by the external
 control protocol (documented
@@ -1764,6 +1764,163 @@ like this, which would tell it to set fader number 2 to position 0:
 ```clojure
 (send-live-command "FADER_CHANGE|2|0")
 ```
+
+=== grandMA2
+
+http://lxhues.com[Alex Hughes] inquired if it would be possible to use
+a trigger to synchronize a chase on a
+http://www.malighting.com/en/products/control/control/ma-lighting/grandma2-full-size/120111-grandma2-full-size.html[grandMA2]
+lighting control system. With his help and pointers to the relevant
+documentation, we were able to achieve that. The approach is described
+and explained in detail below, or you can start by downloading the
+corresponding link:assets/grandMA2.blt[configuration file] and loading
+that within Beat Link Trigger.
+
+WARNING: If you already have triggers of your own that you want to
+keep, be sure to save your configuration before opening another one!
+In that case you may want to export your triggers, or manually cut and
+paste the relevant pieces of code into your global expressions.
+
+To begin with, paste this block of code into Beat Link Trigger's
+Global Setup Expression:
+
+```clojure
+(defn gm-response-handler
+  "A loop that reads messages from grandMA2 and responds
+  appropriately. (Currently we don't respond in any way, but simply
+  consume responses as they arrive.)"
+  []
+  (try
+    (loop [socket (get-in @globals [:gm-connection :socket])]
+      (when (and socket (not (.isClosed socket)))
+        (let [buffer (byte-array 1024)
+              input  (.getInputStream socket)
+              n      (.read input buffer)]
+          (when (pos? n)  ; We got data, so the socket has not yet been closed.
+            (let [message (String. buffer 0 n "UTF-8")]
+              (timbre/info "Received from grandMA2:" message)
+              ;; TODO: Here is where we would analyze and respond if needed;
+              ;;       see the ShowXPress example.
+              )
+            (recur (get-in @globals [:gm-connection :socket]))))))
+    (catch Throwable t
+      (timbre/error t "Problem reading from grandMA2, loop aborted."))))
+
+(defn send-gm-command
+  "Sends a command message to grandMA2."
+  [message]
+  (let [socket (get-in @globals [:gm-connection :socket])]
+    (if (and socket (not (.isClosed socket)))
+      (.write (.getOutputStream socket) (.getBytes (str message "\r\n") "UTF-8"))
+      (timbre/warn "Cannot write to grandMA2, no open socket, discarding:" message))))
+
+(defn set-gm-tempo
+  "Tells grandMA2 the current tempo if it is different than the
+  value we last reported. Rounds to the nearest beat per minute
+  because the protocol does not accept any fractional values.
+  The expected way to use this is to include the following in a
+  trigger's Tracked Update Expression:
+
+  `(when trigger-active? (set-gm-tempo effective-tempo))`"
+  [bpm]
+  (let [bpm    (Math/round bpm)
+        master (get-in @globals [:gm-connection :bpm-master])]
+    (when-not (= bpm (get-in @globals [:gm-connection :bpm]))
+      (send-gm-command (str "SpecialMaster " master " At " bpm))
+      (swap! globals assoc-in [:gm-connection :bpm] bpm)
+      (timbre/info "grandMA2 tempo set to" bpm))))
+
+;; An alternate approach. You would probably only want to use one of set-gm-tempo
+;; (above) and send-gm-beat (below), depending on which works best in your setup.
+
+(defn send-gm-beat
+  "Sends a learn command to grandMA2. The expected way to use this is
+  to include the following in a trigger's Beat Expresssion:
+
+  `(when trigger-active? (send-gm-beat))`"
+  []
+  (let [master (get-in @globals [:gm-connection :bpm-master])]
+    (send-gm-command (str "Learn SpecialMaster " master))))
+
+;; Attempt to connect to the grandMA2 telnet command port.
+;; Edit the variable definitions below to reflect your setup.
+(try
+  (let [gm-address      "127.0.0.1"
+        gm-port         30000
+        gm-user         "Administrator"
+        gm-password     "admin"
+        gm-bpm-master   "3.1"
+        connect-timeout 5000
+        socket-address  (InetSocketAddress. gm-address gm-port)
+        socket          (java.net.Socket.)]
+    (.connect socket socket-address connect-timeout)
+    (swap! globals assoc :gm-connection {:socket socket
+                                         :bpm-master gm-bpm-master})
+    (future (gm-response-handler))
+    (send-gm-command (str "login \"" gm-user "\" \"" gm-password "\"")))
+  (catch Exception e
+    (timbre/error e "Unable to connect to grandMA2")))
+```
+
+NOTE: You will want to edit the values assigned to `gm-address`,
+`gm-port`, `gm-user`, `gm-password`, and `gm-bpm-master` to match your
+setup. This code assumes that the lighting desk is already running and
+configured to listen on the specified port before you launch
+Beat Link Trigger. If nothing seems to be working, check the log file
+for error messages, and see if the login process was successful.
+Unfortunately, there is no friendly user interface to tell it to try
+again if it was not, but you can do so by editing the Global Setup
+Expression and saving it--even without making any changes, that will
+run both the shutdown and setup code again for you.
+
+Also paste this smaller block of code into the Global Shutdown
+Expression:
+
+```clojure
+;; Disconnect from the grandMA2 telnet command port.
+(when-let [socket (get-in @globals [:gm-connection :socket])]
+  (.close socket)
+  (swap! globals dissoc :gm-connection))
+```
+
+With these in place, Beat Link Trigger will maintain a connection to
+the lighting desk command port while it runs, and make a new set of
+functions available to all your trigger expressions which make it easy
+to send tempo information and other commands.
+
+If you want to control the speed master to match the tempo of the
+Pioneer network, it is probably easiest to set up a single trigger to
+Watch the Master Player, and set its Tracked Update Expression to:
+
+```clojure
+(when trigger-active? (set-gm-tempo effective-tempo))
+```
+
+Whenever you have this trigger enabled, it will slave the value of the
+configured grandMA2 SpecialMaster to the tempo of the Master Player.
+To have the speed set to zero when playback stops, set the trigger's
+Deactivation Expression to:
+
+```clojure
+(set-gm-tempo 0)
+```
+
+If you have other things that you want to happen when particular
+tracks start or stop playing or reach particular sections, you can set
+up other triggers that send whatever commands you like in their
+Activation and Deactivation expressions using the `send-gm-command`
+function that was created by the Global Setup Expression. And you can
+then configure them to be active only when a CDJ is playing a
+particular track, or is within a particular range of beats within that
+track, as shown in <<matching-tracks,Matching Tracks>> above. This
+allows you to have certain looks called up automatically when the
+right parts of the right tracks are played.
+
+TIP: If you jumped to this section to learn about how to integrate the
+lighting desk with CDJs, and you think it looks promising, you
+will want to go back and read this entire user guide to get a better
+understanding of how to make your triggers activate, and the other
+things you can do with Beat Link Trigger.
 
 == What Next?
 
