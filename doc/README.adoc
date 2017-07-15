@@ -1765,7 +1765,7 @@ like this, which would tell it to set fader number 2 to position 0:
 (send-live-command "FADER_CHANGE|2|0")
 ```
 
-=== grandMA2
+=== MA Lighting grandMA2
 
 http://lxhues.com[Alex Hughes] inquired if it would be possible to use
 a trigger to synchronize a chase on a
