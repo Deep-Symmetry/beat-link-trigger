@@ -16,17 +16,16 @@
                             (.open (java.awt.Desktop/getDesktop) @log-path))
                  :name "Open Logs Folder"))
 
-(defn- create-appenders
-  "Create a set of appenders which rotate the file at the specified path."
-  []
-  {:rotor (rotor/rotor-appender {:path (fs/file @log-path "blt.log")
-                                 :max-size 100000
-                                 :backlog 5})})
-
-(defonce ^{:private true
-           :doc "The default log appenders, which rotate between files
-           in a logs subdirectory."}
-  appenders (atom (create-appenders)))
+(defn install-appenders
+  "Create and install a set of appenders which rotate the file at the
+  configured path, with the specified maximum size and number of
+  backlog files."
+  [max-size backlog]
+  (timbre/merge-config!
+   {:appenders {:rotor (rotor/rotor-appender {:path (fs/file @log-path "blt.log")
+                                              :max-size max-size
+                                              :backlog backlog})}})
+  (timbre/info "Log files can grow to" max-size "bytes, with" backlog "backlog files."))
 
 (defn output-fn
   "Log format (fn [data]) -> string output fn.
@@ -72,8 +71,7 @@
     })
 
   ;; Install the desired log appenders
-  (timbre/merge-config!
-   {:appenders @appenders}))
+  (install-appenders 200000 5))
 
 (defonce ^{:private true
            :doc "Used to ensure log initialization takes place exactly once."}
@@ -81,8 +79,5 @@
 
 (defn init-logging
   "Set up the logging environment."
-  ([] ;; Resolve the delay, causing initialization to happen if it has not yet.
-   @initialized)
-  ([appenders-map] ;; Override the default appenders, then initialize as above.
-   (reset! appenders appenders-map)
-   (init-logging)))
+  []
+  @initialized) ; Resolve the delay, causing initialization to happen if it has not yet.

@@ -14,6 +14,18 @@ This change log follows the conventions of
 - A new version of Beat Link which adds hooks needed to allow triggers
   to generate SMPTE timecode synced to the track position (with the
   help of an external daemon).
+- Beat Expressions can now check whether the player sending the beat
+  was on the air by simply looking at the value of `on-air?` as was
+  already possible in Enabled and Tracked Update expressions. (Even
+  though the information is not part of the beat packet itself, Beat
+  Link Trigger will look it up from the last status packet received
+  from the same player.)
+- It is now possible to reconfigure the maximum log file size and the
+  number of backlog files by calling, for example,
+  `(beat-link-trigger.logs/install-appenders 1000000 4)` which would
+  allow them to grow to a million bytes with five backlog files kept.
+  The default maximum size has been doubled to 200,000 bytes, and the
+  default backlog file count remains 5.
 
 ## [0.3.0] - 2017-06-25
 
