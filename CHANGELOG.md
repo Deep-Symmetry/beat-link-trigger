@@ -6,7 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- Improved wording and variable name in grandMA2 example, thanks to
+  suggestions from Alex Hughes.
 
 ## [0.3.1] - 2017-07-22
 
@@ -32,7 +35,7 @@ support.
   Link Trigger will look it up from the last status packet received
   from the same player.)
 - It is now possible to reconfigure the maximum log file size and the
-  number of backlog files by calling, for example.
+  number of backlog files by calling, for example:
 
       (beat-link-trigger.logs/install-appenders 1000000 4)
 

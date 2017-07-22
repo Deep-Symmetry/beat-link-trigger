@@ -1768,7 +1768,7 @@ like this, which would tell it to set fader number 2 to position 0:
 === MA Lighting grandMA2
 
 http://lxhues.com[Alex Hughes] inquired if it would be possible to use
-a trigger to synchronize a chase on a
+a trigger to synchronize a speed master for effects on a
 http://www.malighting.com/en/products/control/control/ma-lighting/grandma2-full-size/120111-grandma2-full-size.html[grandMA2]
 lighting control system. With his help and pointers to the relevant
 documentation, we were able to achieve that. The approach is described
@@ -1850,13 +1850,13 @@ Global Setup Expression:
         gm-port         30000
         gm-user         "Administrator"
         gm-password     "admin"
-        gm-bpm-master   "3.1"
+        gm-speedmaster  "3.1"
         connect-timeout 5000
         socket-address  (InetSocketAddress. gm-address gm-port)
         socket          (java.net.Socket.)]
     (.connect socket socket-address connect-timeout)
     (swap! globals assoc :gm-connection {:socket socket
-                                         :bpm-master gm-bpm-master})
+                                         :bpm-master gm-speedmaster})
     (future (gm-response-handler))
     (send-gm-command (str "login \"" gm-user "\" \"" gm-password "\"")))
   (catch Exception e
@@ -1864,7 +1864,7 @@ Global Setup Expression:
 ```
 
 NOTE: You will want to edit the values assigned to `gm-address`,
-`gm-port`, `gm-user`, `gm-password`, and `gm-bpm-master` to match your
+`gm-port`, `gm-user`, `gm-password`, and `gm-speedmaster` to match your
 setup. This code assumes that the lighting desk is already running and
 configured to listen on the specified port before you launch
 Beat Link Trigger. If nothing seems to be working, check the log file
