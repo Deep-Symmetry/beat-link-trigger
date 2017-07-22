@@ -6,6 +6,17 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.3.1] - 2017-07-22
+
+This is a small release primarily to make it easier for people who
+discover Beat Link Trigger through
+the
+[DJ TechTools article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/) to
+find the correct version, with on-air indicators and SMPTE integration
+support.
+
 ### Added
 
 - On-Air indicators for players in the Player Status window. If you
@@ -21,11 +32,13 @@ This change log follows the conventions of
   Link Trigger will look it up from the last status packet received
   from the same player.)
 - It is now possible to reconfigure the maximum log file size and the
-  number of backlog files by calling, for example,
-  `(beat-link-trigger.logs/install-appenders 1000000 4)` which would
-  allow them to grow to a million bytes with five backlog files kept.
-  The default maximum size has been doubled to 200,000 bytes, and the
-  default backlog file count remains 5.
+  number of backlog files by calling, for example.
+
+      (beat-link-trigger.logs/install-appenders 1000000 4)
+
+  This would allow the log files to grow to a million bytes each, with
+  five backlog files kept. The default maximum size has been doubled
+  to 200,000 bytes, and the default backlog file count remains 5.
 
 ## [0.3.0] - 2017-06-25
 
@@ -230,7 +243,8 @@ This change log follows the conventions of
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.1...HEAD
+[0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.4...v0.2.1
 [0.1.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.3...v0.1.4
