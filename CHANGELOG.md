@@ -8,6 +8,10 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The explanation of the timestamp value inside trigger expressions
+  incorrectly stated they were millisecond values. In order to be
+  compatible with Ableton Link, Beat Link switched to using
+  seconds in its packet timestamps.
 - Improved wording and variable name in grandMA2 example, thanks to
   suggestions from Alex Hughes.
 
