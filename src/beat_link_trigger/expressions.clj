@@ -203,7 +203,7 @@
                                                "Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo.
 <p>See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
                             'timestamp        {:code '(.getTimestamp status)
-                                               :doc  "Records the millisecond at which we received this update."}
+                                               :doc  "Records the nanosecond at which we received this update."}
                             'track-bpm        {:code '(/ (.getBpm status) 100.0)
                                                :doc
                                                "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}}}
