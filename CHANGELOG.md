@@ -12,6 +12,9 @@ This change log follows the conventions of
   incorrectly stated they were millisecond values. In order to be
   compatible with Ableton Link, Beat Link switched to using
   seconds in its packet timestamps.
+- Added information about the `status` value available in the
+  documentation for all triggers where it is present (some were
+  previously missing this important detail).
 - Improved wording and variable name in grandMA2 example, thanks to
   suggestions from Alex Hughes.
 

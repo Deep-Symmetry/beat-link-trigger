@@ -136,7 +136,15 @@
                 "Called when the trigger is enabled and the first device that it is
   watching starts playing. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
-  allows."
+  allows.<p>
+
+  The status update object which caused the trigger to activate, a
+  beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
                 :bindings (trigger-bindings-for-class CdjStatus)}
 
    :beat {:title "Beat Expression"
@@ -144,7 +152,14 @@
           :description
           "Called whenever a beat packet is received from the watched
   player(s). You can use this for beat-driven integrations with other
-  systems."
+  systems.<p>
+
+  The beat object that was received, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html\"><code>Beat</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
           :bindings (trigger-bindings-for-class Beat)}
 
    :tracked {:title "Tracked Update Expression"
@@ -172,11 +187,22 @@
                   "Called when the trigger becomes disabled or when the last device it
   is watching stops playing, if it had been active. You can use this
   to trigger systems that do not respond to MIDI, or to send more
-  detailed information than MIDI allows. Note that sometimes
+  detailed information than MIDI allows.<p>
+
+  The status update object (if any) that caused the trigger to
+  deactivate, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described
+  below.<p>
+
+  Note that sometimes
   <code>status</code> will be <code>nil</code>, such as when a device
   has disappeared or the trigger settings have been changed, so your
   expression must be able to cope with <code>nil</code> values for all
-  the convenience values that it uses."
+  the convenience variables that it uses."
                   :bindings (trigger-bindings-for-class CdjStatus)
                   :nil-status? true}
 
