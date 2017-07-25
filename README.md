@@ -3,8 +3,12 @@
 [![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
 
 An application to trigger MIDI events when CDJs start playing tracks,
-reach particular beats, or whatever else you can think of. Built using
-[beat-link](https://github.com/brunchboy/beat-link#beat-link).
+reach particular beats, or whatever else you can think of. Built
+using [beat-link](https://github.com/brunchboy/beat-link#beat-link).
+There is more description and a video in
+a
+[DJ TechTools article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
+too!
 
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%201.0-blue.svg)](#license)
 
