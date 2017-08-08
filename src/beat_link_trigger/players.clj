@@ -202,8 +202,12 @@
                          "Please use the <strong>Network</strong> menu in the "
                          "<strong>Triggers</strong> window to go offline,<br>"
                          "make sure the <strong>Request Track Metadata?</strong> option is checked,<br>"
-                         "and that there are no more than three CDJs on the network,<br>"
-                         "then go back online and try again.")
+                         "then go back online and try again."
+                         (when (>= (count (util/visible-player-numbers)) 4)
+                           (str
+                            "<br><br>Since there are currently four real players on the network, you<br>"
+                            "will get more reliable results if you are able to turn one of them<br>"
+                            "off before coming back online.")))
                     :title "Unable to Request Metadata" :type :error)
       (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
                          "<br><br>See the log file for more details.")

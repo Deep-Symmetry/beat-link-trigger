@@ -1,6 +1,8 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
-  (:require [seesaw.core :as seesaw]))
+  (:require [seesaw.core :as seesaw])
+  (:import [org.deepsymmetry.beatlink DeviceFinder]))
+
 (defn confirm-overwrite-file
   "If the specified file already exists, asks the user to confirm that
   they want to overwrite it. If `required-extension` is supplied, the
@@ -28,3 +30,9 @@
             (seesaw/dispose! confirm)
             result)))))
 
+(defn visible-player-numbers
+  "Return the set of players currently visible on the
+  network (ignoring our virtual player, and any mixers or rekordbox
+  instances)."
+  []
+  (filter #(< % 16) (map #(.getNumber %) (.getCurrentDevices (DeviceFinder/getInstance)))))

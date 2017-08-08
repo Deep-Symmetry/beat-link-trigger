@@ -13,6 +13,8 @@ This change log follows the conventions of
 - Found one more (albeit extremely unlikely) path where trying to
   create a metadata cache could fail silently, and added an error
   message there.
+- Provided more specific guidance when requesting metadata fails
+  and there are four physical players on the network.
 
 ## [0.3.2] - 2017-08-08
 
