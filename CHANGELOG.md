@@ -8,6 +8,8 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Stop logging stack traces on each beat if we are offline but
+  configured to align the master player with Ableton Link.
 - Found one more (albeit extremely unlikely) path where trying to
   create a metadata cache could fail silently, and added an error
   message there.
