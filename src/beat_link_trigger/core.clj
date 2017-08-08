@@ -12,9 +12,11 @@
 (defn try-going-online
   "Search for a DJ link network, presenting a UI in the process."
   []
-  (let [searching (about/create-searching-frame)]
+  (let [searching     (about/create-searching-frame)
+        want-metadata (triggers/request-metadata?)]
     (loop []
-      (.setUseStandardPlayerNumber (VirtualCdj/getInstance) (triggers/request-metadata?))
+      (timbre/info "Trying to go online, Request Track Metadata?" want-metadata)
+      (.setUseStandardPlayerNumber (VirtualCdj/getInstance) want-metadata)
       (if (try (.start (VirtualCdj/getInstance)) ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
                  (timbre/warn e "Unable to create Virtual CDJ")
@@ -22,19 +24,23 @@
                   (seesaw/hide! searching)
                   (seesaw/alert (str "<html>Unable to create Virtual CDJ<br><br>" e)
                                 :title "DJ Link Connection Failed" :type :error))))
-        (seesaw/invoke-soon (seesaw/dispose! searching)) ; We succeeded in finding a DJ Link network
+        (do  ; We succeeded in finding a DJ Link network
+          (seesaw/invoke-soon (seesaw/dispose! searching))
+          (timbre/info "Went online, using player number") (.getDeviceNumber (VirtualCdj/getInstance)))
+
         (do
-          (seesaw/invoke-now (seesaw/hide! searching)) ; No luck so far, ask what to do
+          (seesaw/invoke-now (seesaw/hide! searching))  ; No luck so far, ask what to do
+          (timbre/info "Failed going online")
           (let [options (to-array ["Try Again" "Quit" "Continue Offline"])
-                choice (seesaw/invoke-now
-                        (javax.swing.JOptionPane/showOptionDialog
-                         nil "No DJ Link devices were seen on any network. Search again?"
-                         "No DJ Link Devices Found"
-                         javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                         options (aget options 0)))]
+                choice  (seesaw/invoke-now
+                         (javax.swing.JOptionPane/showOptionDialog
+                          nil "No DJ Link devices were seen on any network. Search again?"
+                          "No DJ Link Devices Found"
+                          javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
+                          options (aget options 0)))]
             (case choice
               0 (do (seesaw/invoke-now (seesaw/show! searching)) (recur)) ; Try Again
-              2 (seesaw/invoke-soon (seesaw/dispose! searching))  ; Continue Offline
+              2 (seesaw/invoke-soon (seesaw/dispose! searching))          ; Continue Offline
               (System/exit 1)))))))  ; Quit, or just closed the window, which means the same
 
   (seesaw/invoke-now

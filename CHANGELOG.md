@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- Log more details of the process of going online, to better support
+  people who are reporting issues with metadata.
+
 ### Fixed
 
 - Stop logging stack traces on each beat if we are offline but
