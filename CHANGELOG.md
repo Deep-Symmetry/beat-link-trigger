@@ -8,6 +8,13 @@ This change log follows the conventions of
 
 ### Fixed
 
+- If there was a problem retrieving metadata when the user asked to
+  create a cache file (for example, if they did not have Request Track
+  Metadata turned on, and there was only one player on the network),
+  it would silently fail with a somewhat cryptic entry in the log
+  file. It now gives a nice error dialog explaining how to fix the
+  situation. It also gives a general error dialog if something else
+  unexpected blows up the process.
 - The explanation of the timestamp value inside trigger expressions
   incorrectly stated they were millisecond values. In order to be
   compatible with Ableton Link, Beat Link switched to using
