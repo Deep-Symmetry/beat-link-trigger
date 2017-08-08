@@ -188,6 +188,23 @@
     (.add root playlists)
     root))
 
+(defn- explain-creation-failure
+  "Called when the user has asked to create a metadata cache, and
+  metadata cannot be requested. Try to explain the issue to the
+  user."
+  []
+  (let [device (.getDeviceNumber (VirtualCdj/getInstance))]
+    (if (> device 4)
+      (seesaw/alert (str "<html>Beat Link Trigger is using device number " device ". "
+                         "To collect metadata<br>from the current players, "
+                         "it needs to use number 1, 2, 3, or 4.<br>"
+                         "Please use the <strong>Network</strong> menu in the "
+                         "<strong>Triggers</strong> window to go offline,<br>"
+                         "make sure the <strong>Request Track Metadata?</strong> option is checked,<br>"
+                         "and that there are no more than three CDJs on the network,<br>"
+                         "then go back online and try again.")
+                    :title "Unable to Request Metadata" :type :error))))
+
 (defn show-cache-creation-dialog
   "Presents an interface in which the user can choose which playlist
   to cache and specify the destination file."
@@ -208,6 +225,7 @@
                                                       [(seesaw/scrollable tree) "grow, wrap"]
                                                       [speed "wrap, align center"]
                                                       [chooser]])
+         failed                (atom false)
          ready-to-save?        (fn []
                                  (or (some? @selected-id)
                                      (seesaw/alert "You must choose a playlist to save or All Tracks."
@@ -227,7 +245,11 @@
                                   (when-not (.isFolder entry)
                                     (.getId entry)))))))
      (.setVisibleRowCount tree 10)
-     (.expandRow tree 1)
+     (try
+       (.expandRow tree 1)
+       (catch IllegalStateException e
+         (explain-creation-failure)
+         (reset! failed true)))
 
      (when-let [[file-filter _] (seq (.getChoosableFileFilters chooser))]
        (.setFileFilter chooser file-filter))
@@ -246,7 +268,9 @@
      (seesaw/config! root :content panel)
      (seesaw/pack! root)
      (.setLocationRelativeTo root nil)
-     (seesaw/show! root))))
+     (if @failed
+       (.dispose root)
+       (seesaw/show! root)))))
 
 (defn time-played
   "If possible, returns the number of milliseconds of track the
