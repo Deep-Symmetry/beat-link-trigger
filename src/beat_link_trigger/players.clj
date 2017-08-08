@@ -210,67 +210,72 @@
   to cache and specify the destination file."
   [player slot]
   (seesaw/invoke-later
-   (let [selected-id           (atom nil)
-         root                  (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
-                                                         (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD"))
-                                             :on-close :dispose :resizable? false)
-         ^JFileChooser chooser (@#'chooser/configure-file-chooser (JFileChooser.)
-                                {:all-files? false
-                                 :filters    [["BeatLink metadata cache" ["bltm"]]]})
-         heading               (seesaw/label :text "Choose what to cache and where to save it:")
-         tree                  (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
-                                            :root-visible? false)
-         speed                 (seesaw/checkbox :text "Performance Priority (cache slowly to avoid playback gaps)")
-         panel                 (mig/mig-panel :items [[heading "wrap, align center"]
-                                                      [(seesaw/scrollable tree) "grow, wrap"]
-                                                      [speed "wrap, align center"]
-                                                      [chooser]])
-         failed                (atom false)
-         ready-to-save?        (fn []
-                                 (or (some? @selected-id)
-                                     (seesaw/alert "You must choose a playlist to save or All Tracks."
-                                                   :title "No Cache Source Chosen" :type :error)))]
-     (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
-     (seesaw/listen tree
-                    :tree-will-expand
-                    (fn [e]
-                      (let [^TreeNode node        (.. e (getPath) (getLastPathComponent))
-                            ^IPlaylistEntry entry (.getUserObject node)]
-                        (.loadChildren entry node)))
-                    :selection
-                    (fn [e]
-                      (reset! selected-id
-                              (when (.isAddedPath e)
-                                (let [entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
-                                  (when-not (.isFolder entry)
-                                    (.getId entry)))))))
-     (.setVisibleRowCount tree 10)
-     (try
-       (.expandRow tree 1)
-       (catch IllegalStateException e
-         (explain-creation-failure)
-         (reset! failed true)))
+   (try
+     (let [selected-id           (atom nil)
+           root                  (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
+                                                           (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD"))
+                                               :on-close :dispose :resizable? false)
+           ^JFileChooser chooser (@#'chooser/configure-file-chooser (JFileChooser.)
+                                  {:all-files? false
+                                   :filters    [["BeatLink metadata cache" ["bltm"]]]})
+           heading               (seesaw/label :text "Choose what to cache and where to save it:")
+           tree                  (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
+                                              :root-visible? false)
+           speed                 (seesaw/checkbox :text "Performance Priority (cache slowly to avoid playback gaps)")
+           panel                 (mig/mig-panel :items [[heading "wrap, align center"]
+                                                        [(seesaw/scrollable tree) "grow, wrap"]
+                                                        [speed "wrap, align center"]
+                                                        [chooser]])
+           failed                (atom false)
+           ready-to-save?        (fn []
+                                   (or (some? @selected-id)
+                                       (seesaw/alert "You must choose a playlist to save or All Tracks."
+                                                     :title "No Cache Source Chosen" :type :error)))]
+       (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+       (seesaw/listen tree
+                      :tree-will-expand
+                      (fn [e]
+                        (let [^TreeNode node        (.. e (getPath) (getLastPathComponent))
+                              ^IPlaylistEntry entry (.getUserObject node)]
+                          (.loadChildren entry node)))
+                      :selection
+                      (fn [e]
+                        (reset! selected-id
+                                (when (.isAddedPath e)
+                                  (let [entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                    (when-not (.isFolder entry)
+                                      (.getId entry)))))))
+       (.setVisibleRowCount tree 10)
+       (try
+         (.expandRow tree 1)
+         (catch IllegalStateException e
+           (explain-creation-failure)
+           (reset! failed true)))
 
-     (when-let [[file-filter _] (seq (.getChoosableFileFilters chooser))]
-       (.setFileFilter chooser file-filter))
-     (.setDialogType chooser JFileChooser/SAVE_DIALOG)
-     (seesaw/listen chooser
-                    :action-performed
-                    (fn [action]
-                      (if (= (.getActionCommand action) JFileChooser/APPROVE_SELECTION)
-                        (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
-                          (@#'chooser/remember-chooser-dir chooser)
-                          (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) "bltm" nil)]
-                            (.setCachePauseInterval metadata-finder (if (seesaw/value speed) 1000 50))
-                            (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
-                          (.dispose root))
-                        (.dispose root))))  ; They chose cancel.
-     (seesaw/config! root :content panel)
-     (seesaw/pack! root)
-     (.setLocationRelativeTo root nil)
-     (if @failed
-       (.dispose root)
-       (seesaw/show! root)))))
+       (when-let [[file-filter _] (seq (.getChoosableFileFilters chooser))]
+         (.setFileFilter chooser file-filter))
+       (.setDialogType chooser JFileChooser/SAVE_DIALOG)
+       (seesaw/listen chooser
+                      :action-performed
+                      (fn [action]
+                        (if (= (.getActionCommand action) JFileChooser/APPROVE_SELECTION)
+                          (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
+                            (@#'chooser/remember-chooser-dir chooser)
+                            (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) "bltm" nil)]
+                              (.setCachePauseInterval metadata-finder (if (seesaw/value speed) 1000 50))
+                              (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
+                            (.dispose root))
+                          (.dispose root))))  ; They chose cancel.
+       (seesaw/config! root :content panel)
+       (seesaw/pack! root)
+       (.setLocationRelativeTo root nil)
+       (if @failed
+         (.dispose root)
+         (seesaw/show! root)))
+     (catch Exception e
+       (timbre/error e "Problem Creating Metadata Cache")
+       (seesaw/alert (str "<html>Unable to Create Metadata Cache.<br><br>" e)
+                     :title "Problem Creating Cache" :type :error)))))
 
 (defn time-played
   "If possible, returns the number of milliseconds of track the
@@ -546,8 +551,8 @@
                                       (.attachMetadataCache metadata-finder slot-reference file)
                                       (catch Exception e
                                         (timbre/error e "Problem attaching" file)
-                                  (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>" e)
-                                                :title "Problem Attaching File" :type :error)))))
+                                        (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>" e)
+                                                      :title "Problem Attaching File" :type :error)))))
                        :name "Attach Metadata Cache File")]))))
 
 (defn- describe-cache
