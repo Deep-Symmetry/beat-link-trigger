@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- Found one more (albeit extremely unlikely) path where trying to
+  create a metadata cache could fail silently, and added an error
+  message there.
 
 ## [0.3.2] - 2017-08-08
 

@@ -192,7 +192,8 @@
   "Called when the user has asked to create a metadata cache, and
   metadata cannot be requested. Try to explain the issue to the
   user."
-  []
+  [^Exception e]
+  (timbre/error e "Problem Creating Metadata Cache")
   (let [device (.getDeviceNumber (VirtualCdj/getInstance))]
     (if (> device 4)
       (seesaw/alert (str "<html>Beat Link Trigger is using device number " device ". "
@@ -203,7 +204,10 @@
                          "make sure the <strong>Request Track Metadata?</strong> option is checked,<br>"
                          "and that there are no more than three CDJs on the network,<br>"
                          "then go back online and try again.")
-                    :title "Unable to Request Metadata" :type :error))))
+                    :title "Unable to Request Metadata" :type :error)
+      (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
+                         "<br><br>See the log file for more details.")
+                     :title "Problem Creating Cache" :type :error))))
 
 (defn show-cache-creation-dialog
   "Presents an interface in which the user can choose which playlist
@@ -249,7 +253,7 @@
        (try
          (.expandRow tree 1)
          (catch IllegalStateException e
-           (explain-creation-failure)
+           (explain-creation-failure e)
            (reset! failed true)))
 
        (when-let [[file-filter _] (seq (.getChoosableFileFilters chooser))]
@@ -274,7 +278,8 @@
          (seesaw/show! root)))
      (catch Exception e
        (timbre/error e "Problem Creating Metadata Cache")
-       (seesaw/alert (str "<html>Unable to Create Metadata Cache.<br><br>" e)
+       (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
+                          "<br><br>See the log file for more details.")
                      :title "Problem Creating Cache" :type :error)))))
 
 (defn time-played
@@ -551,7 +556,9 @@
                                       (.attachMetadataCache metadata-finder slot-reference file)
                                       (catch Exception e
                                         (timbre/error e "Problem attaching" file)
-                                        (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>" e)
+                                        (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>"
+                                                           (.getMessage e)
+                                                           "<br><br>See the log file for more details.")
                                                       :title "Problem Attaching File" :type :error)))))
                        :name "Attach Metadata Cache File")]))))
 
