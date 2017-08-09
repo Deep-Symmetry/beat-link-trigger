@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.3.3] - 2017-08-08
+
 ### Added
 
 - Log more details of the process of going online, to better support
@@ -284,7 +288,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.2...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.1...v0.3.2
 [0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.2.1...v0.3.0
