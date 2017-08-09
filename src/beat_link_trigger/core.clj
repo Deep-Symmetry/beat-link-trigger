@@ -26,7 +26,7 @@
                                 :title "DJ Link Connection Failed" :type :error))))
         (do  ; We succeeded in finding a DJ Link network
           (seesaw/invoke-soon (seesaw/dispose! searching))
-          (timbre/info "Went online, using player number") (.getDeviceNumber (VirtualCdj/getInstance)))
+          (timbre/info "Went online, using player number" (.getDeviceNumber (VirtualCdj/getInstance))))
 
         (do
           (seesaw/invoke-now (seesaw/hide! searching))  ; No luck so far, ask what to do
