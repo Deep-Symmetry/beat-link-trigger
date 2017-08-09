@@ -1196,8 +1196,12 @@
       (let [options (to-array ["Cancel" "Use Unreliable Metadata" "Go Offline"])
             message (str "Beat Link Trigger is using device number " (.getDeviceNumber (VirtualCdj/getInstance))
                          ".\nTo reliably request metadata, it needs to use number 1, 2, 3, or 4.\n\n"
-                         "Please go offline, make sure there are no more than 3 CDJs on the network,\n"
-                         "then go back online, which will try to use a suitable device number.\n\n"
+                         (if (< (count (util/visible-player-numbers)) 4)
+                           (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
+                                "go offline and then back online, and it will be able to use one of the\n"
+                                "unused device numbers, which will work great.\n\n")
+                           (str "Please go offline, turn off one of the four CDJs currently on the network,\n"
+                                "then go back online, which will let us use that player's device number.\n\n"))
                          "You may also choose to use unreliable metadata, which will work unless all\n"
                          "of the CDJs load tracks from a media slot on the same player, and which\n"
                          "may cause problems for DJs trying to use Link Info.\n\n"
