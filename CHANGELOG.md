@@ -13,13 +13,15 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Provide more specific guidance when turning on metadata requests,
+  based on the actual number of physical players detected on the
+  network, and stop offering the unreliable metadata option if there
+  is only one real player, since it cannot be used in that situation.
 - Stop logging stack traces on each beat if we are offline but
   configured to align the master player with Ableton Link.
 - Found one more (albeit extremely unlikely) path where trying to
   create a metadata cache could fail silently, and added an error
   message there.
-- Provided more specific guidance when requesting metadata fails
-  and there are four physical players on the network.
 
 ## [0.3.2] - 2017-08-08
 

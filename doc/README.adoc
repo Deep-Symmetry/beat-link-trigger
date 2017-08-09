@@ -157,6 +157,43 @@ To enable this feature, check `Request Track Metadata?` in the
 
 image:assets/RequestMetadata.png[Requesting Metadata, 380]
 
+[NOTE]
+====
+If you are already online when you turn on `Request Track Metadata?`,
+Beat Link Trigger will be using a player number that is not good for
+requesting metadata, and will warn you about it, as shown below.
+
+image:assets/Metadata2Players.png[Metadata Player Number with 2 players, 578]
+
+In this situation, the best option is to choose to `Go Offline` (the
+default option), and then use the `Online?` option in the `Network`
+menu to go back online. Going online with `Request Track Metadata?`
+already checked like this will use a good player number for requesting
+metadata, and everything will work great.
+
+If you are on a network which already has four physical players
+connected, though, you will see a slightly different version of the
+warning:
+
+image:assets/Metadata4Players.png[Metadata Player Number with 4 players, 578]
+
+In such cases, as the window suggests, the safest option is to turn
+off one of the players and go offline and back online, to reliably get
+metadata. If you can't do that, though, you can also choose `Use
+Unreliable Metadata`, and it will work as long as not all players are
+linked to the same media.
+
+Finally, if you have a single player connected to the network, the
+unreliable option doesn't work at all, and you will see the following
+choices instead:
+
+image:assets/Metadata1Player.png[Metadata Player Number with 1 player, 562]
+
+In this case, definitely choose `Go Offline`, and when you proceed to
+check the `Online?` option in the `Network` menu after that, you will
+be able to get metadata from the single player you have connected.
+====
+
 When metadata is available for a track, the Player Status section
 grows to two lines, and displays the track title and artist on the
 second line, without any effort on the part of your trigger code:
@@ -939,6 +976,17 @@ properly configured to match the mixer channels that they are
 connected to, then you can use the "On-Air" indication above the
 player number as an additional hint about when you need to pay
 attention to it.
+
+If you do not have metadata requests active when you try opening the
+player window, Beat Link Trigger will show the following warning
+dialog:
+
+image:assets/NoMetadata.png[No Metadata for Player Window, 644]
+
+In that situation, unless you have already created a metadata cache to
+use as described below, you will want to turn on metadata requests.
+See the Metadata section <<metadata,above>> for more details about
+that process.
 
 TIP: For the status window to be of any use, you need to either have
 Beat Link Trigger configured to request track metadata (`Request Track

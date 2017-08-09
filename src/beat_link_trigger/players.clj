@@ -804,9 +804,7 @@
 
 (defn show-window
   "Open the Player Status window if it is not already open."
-  [trigger-frame globals editor-fn]
-  (if (.isRunning virtual-cdj)
-    (do (locking player-window
-          (when-not @player-window (create-window trigger-frame globals)))
-        (make-window-visible trigger-frame))
-    (seesaw/alert "Must be Online to show Player Status window." :title "Beat Link Trigger is Offline" :type :error)))
+  [trigger-frame globals]
+  (locking player-window
+    (when-not @player-window (create-window trigger-frame globals)))
+  (make-window-visible trigger-frame))

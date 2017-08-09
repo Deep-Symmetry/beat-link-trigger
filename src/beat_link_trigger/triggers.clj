@@ -1159,18 +1159,46 @@
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
 
+(defn- acceptable-metadata-state-for-player-status
+  "Check whether we are currently requesting metadata, as the user has
+  asked to show the player status window. If not, warn the user about
+  reduced functionality and how they should fix that. Return a truthy
+  value if we should proceed to show the player status window."
+  []
+  (or (request-metadata?)
+      (let [options (to-array ["Cancel" "Turn On Metadata Requests" "Open Anyway"])
+            message (str "Beat Link Trigger is not currently configured to request track metadata.\n"
+                         "Most of the Player Status Window features require track metadata to work.\n\n"
+                         "Would you like to turn on the Request Track Metadata feature before opening\n"
+                         "the Player Status window?")
+            choice  (seesaw/invoke-now
+                     (javax.swing.JOptionPane/showOptionDialog
+                      nil message "Metadata Requests Recommended for Player Status"
+                      javax.swing.JOptionPane/YES_NO_CANCEL_OPTION javax.swing.JOptionPane/WARNING_MESSAGE nil
+                      options (aget options 2)))]
+        (case choice
+          0 nil  ; Cancel.
+          1 (do  ; Turn on Metadata Requests.
+              (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) true)
+              nil)
+          true))))  ; Open Anyway.
+
+(defn- show-player-status
+  "Try to show the player status window, giving the user appropriate
+  feedback if the current environment is not appropriate, or even not
+  ideal. A Seesaw event handler, but we ignore the event argument."
+  [_]
+  (if (.isRunning (VirtualCdj/getInstance))
+    (when (acceptable-metadata-state-for-player-status)
+      (players/show-window @trigger-frame expression-globals))
+    (seesaw/alert "Must be Online to show Player Status window."
+                  :title "Beat Link Trigger is Offline" :type :error)))
+
 (def ^:private player-status-action
   "The menu action which opens the Player Status window."
-  (letfn [(cleanup-fn []
-            (run-global-function :shutdown)
-            (reset! expression-globals {})
-            (run-global-function :setup)
-            (update-global-expression-icons))
-          (editor-fn []
-            (editors/show-trigger-editor :setup (seesaw/config @trigger-frame :content) cleanup-fn))]
-    (seesaw/action :handler (fn [e] (players/show-window @trigger-frame expression-globals editor-fn))
-                   :name "Show Player Status"
-                   :key "menu P")))
+  (seesaw/action :handler show-player-status
+                 :name "Show Player Status"
+                 :key "menu P"))
 
 (declare go-offline)
 
@@ -1193,29 +1221,50 @@
   []
   (when (online?)
     (if (> (.getDeviceNumber (VirtualCdj/getInstance)) 4)
-      (let [options (to-array ["Cancel" "Use Unreliable Metadata" "Go Offline"])
+      (let [players (count (util/visible-player-numbers))
+            options (to-array (if (> players 1)
+                                ["Cancel" "Use Unreliable Metadata" "Go Offline"]
+                                ["Cancel" "Go Offline"]))
+            mode    (if (> players 1)
+                      javax.swing.JOptionPane/YES_NO_CANCEL_OPTION
+                      javax.swing.JOptionPane/YES_NO_OPTION)
             message (str "Beat Link Trigger is using device number " (.getDeviceNumber (VirtualCdj/getInstance))
                          ".\nTo reliably request metadata, it needs to use number 1, 2, 3, or 4.\n\n"
-                         (if (< (count (util/visible-player-numbers)) 4)
+                         (cond
+                           (= players 1)
+                           (str "Since there is only one player on the network, unreliable metadata cannot\n"
+                                "be used. You will need to go offline and then back online, which will use\n"
+                                "an available player number that allows reliable metadata requests.\n\n")
+
+                           (< players 4)
                            (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
                                 "go offline and then back online, and it will be able to use one of the\n"
                                 "unused device numbers, which will work great.\n\n")
+
+                           :else
                            (str "Please go offline, turn off one of the four CDJs currently on the network,\n"
                                 "then go back online, which will let us use that player's device number.\n\n"))
-                         "You may also choose to use unreliable metadata, which will work unless all\n"
-                         "of the CDJs load tracks from a media slot on the same player, and which\n"
-                         "may cause problems for DJs trying to use Link Info.\n\n"
-                         "Alternatively, you can create a metadata cache from the media in a player,\n"
-                         "and use that without turning on active metadata requests.")
+
+                         (when (> players 1)
+                           (str "You may also choose to use unreliable metadata, which will work unless all\n"
+                                "of the CDJs load tracks from a media slot on the same player, and which\n"
+                                "may cause problems for DJs trying to use Link Info.\n\n"
+                                "Alternatively, you can create a metadata cache from the media in a player,\n"
+                                "and use that without turning on active metadata requests.")))
             choice (seesaw/invoke-now
                     (javax.swing.JOptionPane/showOptionDialog
                      nil message "Incompatible Device Number for Metadata Requests"
-                     javax.swing.JOptionPane/YES_NO_CANCEL_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                     options (aget options 2)))]
-        (case choice
-          0 (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)  ; Cancel.
-          1 (try-go-active)  ; Use unreliable metadata requests.
-          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))  ; Go offline.
+                     mode javax.swing.JOptionPane/ERROR_MESSAGE nil
+                     options (aget options (dec (count options)))))]
+        (cond
+          (zero? choice) ; Cancel.
+          (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)
+
+          (and (> players 1) (= choice 1)) ; Use unreliable metadata requests.
+          (try-go-active)
+
+          :else ; Go offline.
+          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))
       (try-go-active))))  ; We can reliably request metadata.
 
 (declare go-online)
