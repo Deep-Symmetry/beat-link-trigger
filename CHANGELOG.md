@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- A menu item which lets you view the contents of a metadata cache
+  file, so you can work on triggers when you don't have a player or
+  the actual media handy.
 
 ## [0.3.3] - 2017-08-08
 
