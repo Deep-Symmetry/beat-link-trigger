@@ -3,6 +3,7 @@
   (:require [clojure.edn :as edn]
             [fipp.edn :as fipp]
             [beat-link-trigger.about :as about]
+            [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
   (:import java.util.prefs.Preferences))
 
@@ -48,11 +49,24 @@
 
     :else elem))
 
+(defn- concatenate-preference-entries
+  "Iterates over however many preferences entries were needed to store
+  the trigger configuration, concatenating them into a single
+  string."
+  []
+  (when-let [current (.get (prefs-node) "prefs" nil)]
+    (loop [result     current
+           next-index 1
+           next-chunk (.get (prefs-node) (str "prefs-" next-index) nil)]
+      (if (nil? next-chunk)
+        result
+        (recur (str result next-chunk) (inc next-index) (.get (prefs-node) (str "prefs-" (inc next-index)) nil))))))
+
 (defn get-preferences
   "Returns the current values of the user preferences, creating them
   if they did not exist."
   []
-  (if-let [existing (.get (prefs-node) "prefs" nil)]
+  (if-let [existing (concatenate-preference-entries)]
     (try
       (convert-longs-to-integers (edn/read-string {:readers @prefs-readers} existing))
       (catch Exception e
@@ -60,15 +74,33 @@
         (empty-preferences)))
     (empty-preferences)))
 
+(defn- split-preference-entries
+  "Chops up a string representing the current trigger configuration
+  into as many preference entries as required to hold it, and stores
+  them."
+  [node value]
+  (loop [index 0]
+    (let [offset (* index Preferences/MAX_VALUE_LENGTH)
+          remain (- (count value) offset)
+          entry  (subs value offset (+ offset (min remain Preferences/MAX_VALUE_LENGTH)))]
+      (.put node (str "prefs" (when (pos? index) (str "-" index))) entry)
+      (when (> remain (count entry))
+        (recur (inc index))))))
+
 (defn put-preferences
-  "Updates the user preferences to reflect the map supplied."
+  "Updates the user preferences to reflect the map supplied. Returns
+  true if successful."
   [m]
   (try
     (let [prefs (prefs-node)]
-      (.put prefs "prefs" (prn-str (merge m {:beat-link-trigger-version (about/get-version)})))
-      (.flush prefs))
+      (.clear prefs)
+      (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (about/get-version)})))
+      (.flush prefs)
+      true)
     (catch Exception e
-      (timbre/error e "Problem saving preferences."))))
+      (timbre/error e "Problem saving preferences.")
+      (seesaw/alert (str "<html>Problem saving preferences.<br><br>" e)
+                    :title "Unable to Save Preferences" :type :error))))
 
 (defn save-to-file
   "Saves the preferences to a text file."
@@ -103,7 +135,12 @@
 (defn load-from-file
   "Read the preferences from a text file."
   [file]
-  (let [m (read-file file)]
-    (put-preferences m)
-    m))
+  (try
+    (let [m (read-file file)]
+      (put-preferences m)
+      m)
+    (catch Exception e
+      (timbre/error e "Problem reading preferences.")
+      (seesaw/alert (str "<html>Problem reading preferences.<br><br>" e)
+                    :title "Unable to Read Preferences" :type :error))))
 

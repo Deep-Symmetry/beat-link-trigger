@@ -6,6 +6,20 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.3.4] - 2017-09-05
+
+### Fixed
+
+- If you created too many triggers, or your triggers got too large
+  because of complex expressions, they would fail to save because of
+  exceeding the size limit for an entry in the Java Preferences. Even
+  worse, this would happen silently (unless you happened to look in
+  the log file). Now they will be split across multiple entries if
+  needed, and if anything does fail, an error dialog will be
+  displayed.
+
 ### Added
 
 - A menu item which lets you view the contents of a metadata cache
@@ -292,7 +306,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.1...v0.3.2
 [0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.0...v0.3.1

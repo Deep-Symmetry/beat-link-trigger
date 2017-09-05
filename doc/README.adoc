@@ -1063,7 +1063,7 @@ up in a busy show), you can ask Beat Link Trigger to watch for media
 that matches the cache, and automatically attach it. To do this,
 choose `Auto-Attach Metadata Caches` in the `File` menu.
 
-image:assets/AutoAttach.png[Auto-Attach option, 324]
+image:assets/AutoAttach.png[Auto-Attach option, 350]
 
 This will open a window where you can configure the cache files that
 should be watched for. Click `Add File` to add one:
@@ -1096,6 +1096,26 @@ Beat Link Trigger will always give priority to files created from all
 tracks over files created from a playlist when considering matches,
 but it is unpredictable which file will be chosen if more than one
 playlist cache from the same media is being matched.
+
+=== Viewing Metadata Cache Contents
+
+If you want to work on trigger definitions while you don't have access
+to CDJs or the media containing the tracks that you want to base them
+on, you can look at the contents of a metadata cache to find out the
+rekordbox IDs of the tracks you want your triggers to match.
+
+To do this, choose `View Metadata Cache Contents` in the `File` menu.
+
+image:assets/ViewCacheContents.png[View Cache option, 350]
+
+This will open a file chooser dialog you can use to find the file
+containing the cache that you want to examine. Once you choose one, a
+window will open containing a row for each entry in the metadata
+cache, showing its rekordbox ID, title, and artist:
+
+image:assets/SymmetryContents.png[Example cache contents, 850]
+
+
 
 == Working with Ableton Link
 

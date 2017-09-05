@@ -928,17 +928,17 @@
 (def ^:private save-action
   "The menu action which saves the configuration to a user-specified file."
   (seesaw/action :handler (fn [e]
-                            (save-triggers-to-preferences)
-                            (when-let [file (chooser/choose-file @trigger-frame :type :save
-                                                                 :all-files? false
-                                                                 :filters [["BeatLinkTrigger configuration files"
-                                                                            ["blt"]]])]
-                              (when-let [file (util/confirm-overwrite-file file "blt" @trigger-frame)]
-                                (try
-                                  (prefs/save-to-file file)
-                                  (catch Exception e
-                                    (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
-                                                  :title "Problem Writing File" :type :error))))))
+                            (when (save-triggers-to-preferences)
+                              (when-let [file (chooser/choose-file @trigger-frame :type :save
+                                                                   :all-files? false
+                                                                   :filters [["BeatLinkTrigger configuration files"
+                                                                              ["blt"]]])]
+                                (when-let [file (util/confirm-overwrite-file file "blt" @trigger-frame)]
+                                  (try
+                                    (prefs/save-to-file file)
+                                    (catch Exception e
+                                      (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
+                                                    :title "Problem Writing File" :type :error)))))))
                  :name "Save"
                  :key "menu S"))
 
