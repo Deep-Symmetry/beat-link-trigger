@@ -1,4 +1,4 @@
-(defproject beat-link-trigger "0.3.4"
+(defproject beat-link-trigger "0.3.5-SNAPSHOT"
   :description "Trigger events in response to CDJ activity."
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
@@ -10,7 +10,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.7"]
                  [environ "1.1.0"]
-                 [fipp "0.6.9"]
+                 [fipp "0.6.10"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.3.4"]
