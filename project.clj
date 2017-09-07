@@ -17,7 +17,7 @@
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.4.5"]
-                 [uk.co.xfactory-librarians/coremidi4j "1.0"]]
+                 [uk.co.xfactory-librarians/coremidi4j "1.1-SNAPSHOT"]]
 
   :profiles {:dev {:repl-options {:init-ns beat-link-trigger.core
                                   :welcome (println "beat-link-trigger loaded.")}

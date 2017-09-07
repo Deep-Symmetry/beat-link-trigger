@@ -170,7 +170,7 @@
 (defn get-midi-outputs
   "Returns all available MIDI output devices as menu choice model objects"
   []
-  (map #(MidiChoice. (:name %)) (filter usable-midi-device? (midi/midi-sinks))))
+  (map #(MidiChoice. (:name %)) (filter usable-midi-device? (sort-by :name (midi/midi-sinks)))))
 
 (defn get-player-choices
   "Returns a sorted list of the player watching choices, including
