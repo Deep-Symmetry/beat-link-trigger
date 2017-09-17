@@ -8,6 +8,7 @@
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
+           [org.deepsymmetry.beatlink.data TimeFinder]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 (defmacro case-enum
@@ -231,7 +232,7 @@
                                                :doc
                                                "How many beats away is the next cue point in the track? If there is no saved cue point after the current play location, or if it is further than 64 bars ahead, the value 511 is returned (and the CDJ will display &ldquo;--.- bars&rdquo;. As soon as there are just 64 bars (256 beats) to go before the next cue point, this value becomes 256. This is the point at which the CDJ starts to display a countdown, which it displays as  &ldquo;63.4 Bars&rdquo;.<p> As each beat goes by, this value decrements by 1, until the cue point is about to be reached, at which point the value is 1 and the CDJ displays &ldquo;00.1 Bars&rdquo;. On the beat on which the cue point was saved the value is 0  and the CDJ displays &ldquo;00.0 Bars&rdquo;. On the next beat, the value becomes determined by the next cue point (if any) in the track."}
                          'cue-countdown-text  {:code '(.formatCueCountdown status)
-                                               :doc  "Contains the information from <code>cue-countdown</code> formatted the way it would be displayed on the player."}
+                                               :doc  "Contains the information from <code>cue-countdown</code> formatted the way it would be displayed on the player, e.g. &ldquo;07.4&rdquo; or &ldquo;--.-&rdquo;."}
                          'cued?               {:code '(.isCued status)
                                                :doc  "Is the player currently cued (paused at the cue point)?"}
                          'looping?            {:code '(.isLooping status)
@@ -271,6 +272,10 @@
                                                :doc  "Which player was the track loaded from? Returns the device number, or 0 if there is no track loaded."}
                          'track-source-slot   {:code '(track-source-slot status)
                                                :doc  "Which slot was the track loaded from? Values are <code>:no-track</code>, <code>:cd-slot</code>, <code>:sd-slot</code>, <code>:usb-slot</code>, or <code>:unknown</code>."}
+                         'track-time-reached  {:code '(let [time-finder (TimeFinder/getInstance)]
+                                                        (when (.isRunning time-finder)
+                                                          (.getTimeFor time-finder status)))
+                                               :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running; the easiest way to make sure that it is running is to open the Player Status window."}
                          'track-title         {:code '(when (some? track-metadata) (.getTitle track-metadata))
                                                :doc  "The title of the loaded track, if metadata is available."}
                          'track-type          {:code '(track-type status)

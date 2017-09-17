@@ -6,7 +6,39 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- The embedded CoreMidi4J library which is used to communicate with
+  MIDI devices on the Mac has been upgraded to improve stablity and to
+  better handle working with multiple devices of the same type.
+
+  > :warning: Unfortunately, this causes most devices to show up with
+  > different names than they used to, so when you upgrade to this
+  > version you are going to need to go through all of your triggers
+  > that are configured to talk to MIDI devices, and reconnect them to
+  > the new device name if it has changed. See the [CoreMidi4J
+  > project](https://github.com/DerekCook/CoreMidi4J#device-names) for
+  > details.
+  >
+  > If your device name has changed (and, again, this only affects the
+  > Macintosh platform), instead of seeing the Enabled section at the
+  > bottom right end of the trigger, you will see &ldquo;Not
+  > found.&rdquo; in red, just as you would see if the device was
+  > unplugged:
+  >
+  > <image src="doc/assets/MissingDevice.png" alt="Missing Device" width="800">
+
+### Added
+
+- Taking advantage of the new `TimeFinder` class (which supports the
+  **Time** and **Remain** fields in the **Player Status** window),
+  expressions that run in response to player status updates can use a
+  new convenience variable, `track-time-reached`, which will contain
+  how far into the playing track has been reached, in milliseconds.
+  (This value will only be available if the `TimeFinder` is running,
+  otherwise `track-time-reached` will have the value `nil`. The
+  easiest way to make sure the `TimeFinder` is running is to open the
+  Player Status window.)
 
 ## [0.3.4] - 2017-09-05
 
