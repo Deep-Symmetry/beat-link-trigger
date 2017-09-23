@@ -1991,6 +1991,124 @@ will want to go back and read this entire user guide to get a better
 understanding of how to make your triggers activate, and the other
 things you can do with Beat Link Trigger.
 
+=== SMPTE Linear Timecode
+
+Many people want to create SMPTE timecode audio streams that are
+synchronized with the current playback position of a track. Now that
+metadata analysis has proceeded to the point that we can read the
+track beat grids and translate beat numbers to times, this is
+possible. All that is needed is for someone to write a program that
+can generate the SMPTE audio, and which can be controlled by triggers
+in Beat Link Trigger, ideally over a simple protocol like Open Sound
+Control. There is at least one team working on this, using the
+open-source https://github.com/x42/libltc[libltc library].
+
+However, they have gotten busy with other projects, and it is unclear
+when they (or anyone) will have time to finish and release their
+solution. So in the mean time I am sharing some very experimental
+daemons that can be used for this purpose, built using
+https://cycling74.com/products/max/[Max/MSP]. Because these embed
+https://github.com/MattijsKneppers[Mattijs Kneppers]’
+https://cycling74.com/tools/smpte/[smpte~] object to generate the
+timecode audio stream, and this Max external is available only for Mac
+OS X, my daemons only work on the Mac as well. Also, since they embed
+the Max/MSP runtime, they are larger and use more system resources
+than a targeted C implementation based on `libltc` would.
+
+However, if you really want to experiment with SMPTE right now, and
+can live with these limitations, read on to see how.
+
+NOTE: This is wandering outside the core goals of Beat Link Trigger,
+so the amount of help and support I am going to be able to offer are
+very limited. You may not want to dive too deep into this unless you
+are, or have access to, a Max/MSP expert.
+
+==== Generating a single SMPTE Stream
+
+The original request people had was to be able to set up a trigger
+that was enabled when a particular track is playing on a player, and
+generated SMPTE timecode audio corresponding to the playback position
+and speed of that track. The first daemon and trigger I created
+support this approach. You can download the daemon app at
+http://deepsymmetry.org/media/smpted.zip and the corresponding trigger
+at http://deepsymmetry.org/media/SMPTE.bltx (to use an exported
+trigger like that, create a trigger row in Beat Link Trigger, then
+click on its action [gear] menu and choose `Import Trigger`):
+
+image:assets/ImportTrigger.png[Import Trigger option, 360]
+
+As downloaded, that trigger is configured to watch Player 3, but you
+can set it to watch whatever you want, including the Master Player or
+Any Player, using the normal Beat Link Trigger interface.
+
+[TIP]
+====
+
+Working with track times requires solid metadata access, and also
+needs the Beat Link `TimeFinder` object to be running. The easiest way
+to make sure of that is to have no more than three physical CDJs on
+your network, and open the Player Status window, menu:Network[Show
+Player Status]. The trigger uses an Enabled Filter to make sure it
+does not try to generate timecode when the `TimeFinder` isn't running:
+
+```clojure
+(.isRunning (TimeFinder/getInstance))
+```
+
+If you also want your trigger to only be enabled when a particular
+track is loaded, you should combine that logic with this check, for
+example:
+
+```clojure
+(and
+  (.isRunning (TimeFinder/getInstance))
+  (= rekordbox-id 142))
+```
+====
+
+When you run the daemon, it opens a small window which shows its
+configuration and status:
+
+image:assets/SMPTEdaemon.png[ShowXpress Live Preferences, 521]
+
+The main thing you are likely to want to change here is the SMPTE
+frame rate, which you can do in the dropdown menu. You can also pick
+the sound card that will be used to send the audio by clicking the
+btn:[Audio Settings] button, and you can choose which two channels of
+that audio card are used by the daemon in the channel boxes to the
+right. See the
+https://docs.cycling74.com/max7/tutorials/04_mspaudioio[Max/MSP
+documentation] for more information on audio configuration.
+
+If you need to change the port number that the daemon uses, you can do
+so at the top left of the window, but you will also need to edit the
+trigger's Setup Expression to match (the port number appears at the
+end of the first line):
+
+```clojure
+(let [client  (osc/osc-client "localhost" 17001)
+	 handler (reify org.deepsymmetry.beatlink.data.TrackPositionListener
+                (movementChanged [this update]
+                  (overtone.osc/osc-send client "/time" (int (.milliseconds update)))
+                  (overtone.osc/osc-send client "/speed"(float (.pitch update)))))]
+  (swap! locals assoc :smpted client
+                      :handler handler))
+```
+
+You can also, if needed, adjust the gain (volume) of the SMPTE signal
+using the `live.gain~` slider at the top right.
+
+With the daemon running and configured, when your trigger activates,
+SMPTE LTC audio will be generated on the specified outputs,
+synchronized to the current playback position of the track being
+watched by the trigger. You will be able to see the time and frame
+being output by the daemon just below the frame rate.
+
+You can explore more details of how the trigger works by looking at
+its Activation and Deactivation expressions, and the Shutdown
+expression which cleans up the resources used to communicate with the
+daemon.
+
 == What Next?
 
 Hopefully this has been enough to get you started, and thinking about
