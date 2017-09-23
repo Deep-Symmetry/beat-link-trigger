@@ -2069,7 +2069,7 @@ example:
 When you run the daemon, it opens a small window which shows its
 configuration and status:
 
-image:assets/SMPTEdaemon.png[ShowXpress Live Preferences, 521]
+image:assets/SMPTEdaemon.png[SMPTE daemon, 521]
 
 The main thing you are likely to want to change here is the SMPTE
 frame rate, which you can do in the dropdown menu. You can also pick
@@ -2108,6 +2108,15 @@ You can explore more details of how the trigger works by looking at
 its Activation and Deactivation expressions, and the Shutdown
 expression which cleans up the resources used to communicate with the
 daemon.
+
+If you have Max/MSP and want to study and perhaps modify the
+implementation of the daemon itself, you can find the patch that
+builds the application at
+http://deepsymmetry.org/media/SMPTE%20daemon.maxpat.zip (here is what
+it looks like in patcher mode, unlocked):
+
+image:assets/SMPTEpatch.png[SMPTE patcher, 661]
+
 
 == What Next?
 
