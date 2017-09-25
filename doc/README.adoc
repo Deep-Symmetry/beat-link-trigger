@@ -2082,7 +2082,7 @@ Player Status]. The trigger uses an Enabled Filter to make sure it
 does not try to generate timecode when the `TimeFinder` isn't running:
 
 ```clojure
-(.isRunning (TimeFinder/getInstance))
+(.isRunning (org.deepsymmetry.beatlink.data.TimeFinder/getInstance))
 ```
 
 If you also want your trigger to only be enabled when a particular
@@ -2091,7 +2091,7 @@ example:
 
 ```clojure
 (and
-  (.isRunning (TimeFinder/getInstance))
+  (.isRunning (org.deepsymmetry.beatlink.data.TimeFinder/getInstance))
   (= rekordbox-id 142))
 ```
 ====
