@@ -955,6 +955,25 @@ normal speed, `+` meaning faster and `-` meaning slower), the current
 effective tempo (combining the track tempo with the playback pitch)
 and master/sync status are displayed above the track waveform preview.
 
+[WARNING]
+====
+Although Beat Link can do a good job of tracking the playback location
+for tracks that are being played normally, the only information it has
+available are the beat packets which tell it when the player has
+reached a particular beat, and which can be translated to a time using
+the track's beat grid. It can combine these with the playback speed
+information which comes more frequently (in status packets sent
+several times per second), to interpolate the current playback
+position in between beats.
+
+However, if the DJ is playing a track backwards, no beat packets are
+sent. And if the track is looping, the correct position can not be
+detected except if and when the loop happens to cross a beat boundary,
+causing a beat packet to be sent. So you can not assume time
+information is accurate during reverse or loop playback, especially
+for small loops that start or end in the middle of beats.
+====
+
 The current beat playing is shown above the player number, and
 individual beat (white) and bar (red) marks are drawn in the waveform
 detail view (although if you zoom out to see more of the track, the
@@ -2016,7 +2035,10 @@ the Max/MSP runtime, they are larger and use more system resources
 than a targeted C implementation based on `libltc` would.
 
 However, if you really want to experiment with SMPTE right now, and
-can live with these limitations, read on to see how.
+can live with these limitations, read on to see how. And please keep
+in mind the warning in the <<the-player-status-window,Player Status
+Window section>> about how time information can only be reliable when
+tracks are being played forward without loops.
 
 NOTE: This is wandering outside the core goals of Beat Link Trigger,
 so the amount of help and support I am going to be able to offer are
