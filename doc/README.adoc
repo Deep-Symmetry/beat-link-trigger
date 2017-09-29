@@ -2120,7 +2120,7 @@ end of the first line):
 	 handler (reify org.deepsymmetry.beatlink.data.TrackPositionListener
                 (movementChanged [this update]
                   (overtone.osc/osc-send client "/time" (int (.milliseconds update)))
-                  (overtone.osc/osc-send client "/speed"(float (.pitch update)))))]
+                  (overtone.osc/osc-send client "/speed" (float (.pitch update)))))]
   (swap! locals assoc :smpted client
                       :handler handler))
 ```
