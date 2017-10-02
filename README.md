@@ -19,8 +19,11 @@ Download the latest executable `beat-link-trigger.jar` file from the
 page and double-click it to run it. If that doesn&rsquo;t work,
 [see below](#startup-issues).
 
-> beat-link-trigger requires Java 7 or later. It is compiled and
-> tested using the latest release of Java 8, so that is your best bet.
+> beat-link-trigger requires Java 7 or 8. It is compiled and tested
+> using the latest release of Java 8, so that is your best bet.
+>
+> :warning: Java 9 is not yet supported, and can not be until all the
+> libraries we depend on have been ported to Java 9; see issue #31.
 
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
@@ -96,12 +99,17 @@ made programs like Beat Link Trigger possible.
 
 ## Startup Issues
 
-If double-clicking doesn&rsquo;t open up the application, make sure you
-have a recent
-[Java runtime environment](https://java.com/inc/BrowserRedirect1.jsp)
+If double-clicking doesn&rsquo;t open up the application, make sure
+you have a recent [Java 8 SE runtime
+environment](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 installed, and try running it from the command line:
 
     java -jar beat-link-trigger.jar
+
+> :warning: Make sure you download the **Java 8 SE JRE**, _not_ Java
+> 9, as Beat Link Trigger is [not yet
+> compatible](https://github.com/brunchboy/beat-link-trigger/issues/31)
+> with Java 9.
 
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
