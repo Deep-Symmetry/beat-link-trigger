@@ -744,7 +744,7 @@ with velocity 42 on the note and channel chosen in the trigger window:
 
 ```clojure
 (when trigger-output
-  (midi/midi-note-on trigger-output trigger-note 42 (dec trigger-channel))
+  (midi/midi-note-on trigger-output trigger-note 42 (dec trigger-channel)))
 ```
 +
 
