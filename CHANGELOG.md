@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.3.5] - 2017-10-08
+
 ### Fixed
 
 - The embedded CoreMidi4J library which is used to communicate with
@@ -27,6 +31,13 @@ This change log follows the conventions of
   > unplugged:
   >
   > <image src="doc/assets/MissingDevice.png" alt="Missing Device" width="800">
+
+- The embedded Beat Link library which communicates with the Pioneer
+  network has been updated to handle creating metadata caches from
+  playlists that contain more than one copy of the same track. (This
+  would previously fail with an exception when trying to create a
+  duplicate entry in the ZIP file that holds the metadata cache; now
+  extra copies of a track are simply skipped.)
 
 ### Added
 
@@ -338,7 +349,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.4...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.1...v0.3.2
