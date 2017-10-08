@@ -6,7 +6,18 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- When looping a track that has audio data that extends well past the
+  final beat in the beat grid, players sometimes report playing a beat
+  that does not exist in the beat grid. This previously caused an
+  exception in the log, and the reported playback position would keep
+  growing without bound as long as the loop continued. The Beat Link
+  library has been updated to handle this better by interpolating
+  missing beats at the end of the beat grid, so there is no exception
+  and the looping of the player is properly reflected in the **Player
+  Status** window.
+
 
 ## [0.3.5] - 2017-10-08
 
