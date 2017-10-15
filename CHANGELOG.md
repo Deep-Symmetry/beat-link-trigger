@@ -17,6 +17,11 @@ This change log follows the conventions of
   missing beats at the end of the beat grid, so there is no exception
   and the looping of the player is properly reflected in the **Player
   Status** window.
+- In Windows, the MIDI environment sometimes throws exceptions trying
+  to find or open devices which do not get thrown on the Mac. These
+  were interfering with trigger display and event delivery, now they
+  are more gracefully treated as a missing device, although they still
+  will get stack traces in the log.
 
 
 ## [0.3.5] - 2017-10-08

@@ -202,8 +202,10 @@
              (let [new-output (midi/midi-out device-name)]
                (swap! opened-outputs assoc device-name new-output)
                new-output)
-             (catch IllegalArgumentException e ; The chosen output is not currently available
-               (timbre/debug e "Trigger using nonexisting MIDI output" device-name))))))))
+             (catch IllegalArgumentException e  ; The chosen output is not currently available
+               (timbre/debug e "Trigger using nonexisting MIDI output" device-name))
+             (catch Exception e  ; Some other problem opening the device
+               (timbre/error e "Problem opening device" device-name "(treating as unavailable)"))))))))
 
 (def ^:private clock-message
   "A MIDI timing clock message that can be sent by any trigger that is
