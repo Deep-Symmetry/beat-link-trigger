@@ -23,6 +23,13 @@ This change log follows the conventions of
   are more gracefully treated as a missing device, although they still
   will get stack traces in the log.
 
+### Added
+
+- Now displays the build date in the **About** box, to make it easier
+  for people who are kindly testing pre-release versions keep track of
+  which one they are running.
+- Also shows the build date and version number at the start of the
+  log to help remote troubleshooting.
 
 ## [0.3.5] - 2017-10-08
 

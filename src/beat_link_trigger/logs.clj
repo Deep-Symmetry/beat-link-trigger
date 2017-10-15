@@ -1,6 +1,7 @@
 (ns beat-link-trigger.logs
   "Sets up logging and helps the user find the logs folder."
-  (:require [me.raynes.fs :as fs]
+  (:require [beat-link-trigger.util :as util]
+            [me.raynes.fs :as fs]
             [seesaw.core :as seesaw]
             [seesaw.util]
             [taoensso.timbre.appenders.3rd-party.rotor :as rotor]
@@ -25,6 +26,7 @@
    {:appenders {:rotor (rotor/rotor-appender {:path (fs/file @log-path "blt.log")
                                               :max-size max-size
                                               :backlog backlog})}})
+  (timbre/info "Beat Link Trigger version" (util/get-version) "built" (or (util/get-build-date) "not yet"))
   (timbre/info "Log files can grow to" max-size "bytes, with" backlog "backlog files."))
 
 (defn output-fn

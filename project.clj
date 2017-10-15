@@ -32,7 +32,8 @@
                             "/" (:name %) "/")
              "Package" ~#(str (:group %) "." (:name %))
              "Specification-Title" ~#(:name %)
-             "Specification-Version" ~#(:version %)}
+             "Specification-Version" ~#(:version %)
+             "Implementation-Version" ~(str (java.util.Date.))}
 
   :plugins [[lein-environ "1.1.0"]]
 

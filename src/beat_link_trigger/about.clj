@@ -1,22 +1,12 @@
 (ns beat-link-trigger.about
   "An informational About box."
-  (:require [clojure.java.browse]
-            [environ.core :refer [env]]
+  (:require [beat-link-trigger.util :as util]
+            [clojure.java.browse]
             [seesaw.core :as seesaw]
             [seesaw.graphics :as graphics])
   (:import [java.awt RenderingHints]
            [java.awt.image BufferedImage]
            [javax.imageio ImageIO]))
-
-(defn get-version
-  "Returns the version tag from the project.clj file, either from the
-  environment variable set up by Leiningen, if running in development
-  mode, or from the jar manifest if running from a production build."
-  []
-  (or (env :beat-link-trigger-version)
-      (when-let [pkg (.getPackage (class get-version))]
-        (.getSpecificationVersion pkg))
-      "DEV"))  ; Must be running in dev mode embedded in some other project
 
 (defonce ^{:private true
            :doc "Holds the About window when it is open."}
@@ -41,9 +31,10 @@
                :center (seesaw/xyz-panel
                         :id :xyz :background "black"
                         :paint paint-fn :cursor :hand
-                        :items [(seesaw/label :text (str "<html>Version:<br>" (get-version) "</html>")
+                        :items [(seesaw/label :text (str "<html>Version:<br>" (util/get-version)
+                                                         "<br>" (util/get-build-date) "</html>")
                                               :foreground "white"
-                                              :bounds [0 0 120 40])
+                                              :bounds [0 0 200 60])
                                 source-button]))]
     (seesaw/listen panel
                    :component-resized (fn [e]

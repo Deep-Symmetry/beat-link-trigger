@@ -1,7 +1,24 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
-  (:require [seesaw.core :as seesaw])
+  (:require [seesaw.core :as seesaw]
+            [environ.core :refer [env]])
   (:import [org.deepsymmetry.beatlink DeviceFinder]))
+
+(defn get-version
+  "Returns the version tag from the project.clj file, either from the
+  environment variable set up by Leiningen, if running in development
+  mode, or from the jar manifest if running from a production build."
+  []
+  (or (env :beat-link-trigger-version)
+      (when-let [pkg (.getPackage (class get-version))]
+        (.getSpecificationVersion pkg))
+      "DEV"))  ; Must be running in dev mode embedded in some other project
+
+(defn get-build-date
+  "Returns the date this jar was built, if we are running from a jar."
+  []
+  (when-let [pkg (.getPackage (class get-version))]
+    (.getImplementationVersion pkg)))
 
 (defn confirm-overwrite-file
   "If the specified file already exists, asks the user to confirm that

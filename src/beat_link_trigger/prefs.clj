@@ -2,7 +2,7 @@
   "Functions for managing application preferences"
   (:require [clojure.edn :as edn]
             [fipp.edn :as fipp]
-            [beat-link-trigger.about :as about]
+            [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
   (:import java.util.prefs.Preferences))
@@ -26,7 +26,7 @@
 (defn- empty-preferences
   "Returns the basic framework of an empty set of preferences."
   []
-  {:beat-link-trigger-version (about/get-version)})
+  {:beat-link-trigger-version (util/get-version)})
 
 (defn convert-longs-to-integers
   "Walks the map built from the preferences, changing any Long
@@ -94,7 +94,7 @@
   (try
     (let [prefs (prefs-node)]
       (.clear prefs)
-      (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (about/get-version)})))
+      (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (util/get-version)})))
       (.flush prefs)
       true)
     (catch Exception e

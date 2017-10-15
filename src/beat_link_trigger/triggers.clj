@@ -1,7 +1,7 @@
 (ns beat-link-trigger.triggers
   "Implements the list of triggers that send events when a CDJ starts
   playing."
-  (:require [beat-link-trigger.about :as about]
+  (:require [beat-link-trigger.util :as util]
             [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
@@ -897,7 +897,7 @@
                                        :filters [["Trigger Export files" ["bltx"]]])]
     (when-let [file (util/confirm-overwrite-file file "bltx" @trigger-frame)]
       (try
-        (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (about/get-version)
+        (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (util/get-version)
                                                :item                     (format-trigger trigger)})))
         (catch Exception e
           (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
