@@ -15,13 +15,6 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
-NOTE: These instructions are in the process of being updated to
-prepare for the release of a new version of Beat Link Trigger with
-important track metadata support. Any discussion you see of the
-Network menu, or requesting and using track metadata, work only with
-the PREVIEW version available for download at the top of the Releases
-page.
-
 == Startup
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ
