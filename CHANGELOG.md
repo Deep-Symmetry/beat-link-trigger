@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.3.6] - 2017-11-30
+
 ### Fixed
 
 - When looping a track that has audio data that extends well past the
@@ -372,7 +376,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.5...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.2...v0.3.3
