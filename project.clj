@@ -1,16 +1,16 @@
-(defproject beat-link-trigger "0.3.6"
+(defproject beat-link-trigger "0.3.7-SNAPSHOT"
   :description "Trigger events in response to CDJ activity."
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/core.async "0.3.443"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/core.async "0.4.474"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
                  [com.github.insubstantial/substance "7.3"]
                  [com.taoensso/timbre "4.10.0"]
-                 [com.fzakaria/slf4j-timbre "0.3.7"]
+                 [com.fzakaria/slf4j-timbre "0.3.8"]
                  [environ "1.1.0"]
-                 [fipp "0.6.10"]
+                 [fipp "0.6.12"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.3.6"]
