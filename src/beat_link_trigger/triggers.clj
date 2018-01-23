@@ -646,6 +646,14 @@
   []
   {:creating true :playing false :tripped false :locals (atom {})})
 
+(defn- sort-setup-to-front
+  "Given a sequence of expression keys and value tuples, makes sure
+  that if a `:setup` key is present, it and its expression are first
+  in the sequence, so they get evaluated first, in case they define
+  any functions needed to evaluate the other expressions."
+  [exprs]
+  (concat (filter #(= :setup (first %)) exprs) (filter #(not= :setup (first %)) exprs)))
+
 (defn- load-trigger-from-map
   "Repopulate the content of a trigger row from a map as obtained from
   the preferences, a save file, or an export file."
@@ -655,7 +663,7 @@
    (reset! (seesaw/user-data trigger) (initial-trigger-user-data))
    (when-let [exprs (:expressions m)]
      (swap! (seesaw/user-data trigger) assoc :expressions exprs)
-     (doseq [[kind expr] exprs]
+     (doseq [[kind expr] (sort-setup-to-front exprs)]
        (let [editor-info (get editors/trigger-editors kind)]
          (try
            (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
@@ -1132,7 +1140,7 @@
     (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) (true? (:request-metadata? m)))
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
-      (doseq [[kind expr] exprs]
+      (doseq [[kind expr] (sort-setup-to-front exprs)]
         (let [editor-info (get editors/global-editors kind)]
           (try
             (swap! (global-user-data) assoc-in [:expression-fns kind]
