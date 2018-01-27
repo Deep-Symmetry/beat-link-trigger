@@ -8,7 +8,7 @@
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data TimeFinder]
+           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 (defmacro case-enum
