@@ -22,8 +22,8 @@
            [javax.swing JFileChooser JTree]
            [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
 
-(def ^{:private true
-       :doc "Holds the frame allowing the user to view player state
+(defonce ^{:private true
+           :doc "Holds the frame allowing the user to view player state
   and create and assign metadata caches to player slots."}
   player-window (atom nil))
 
@@ -765,10 +765,11 @@
 (defn- make-window-visible
   "Ensures that the Player Status window is centered on the triggers
   window, in front, and shown."
-  [trigger-frame]
+  [trigger-frame globals]
   (.setLocationRelativeTo @player-window trigger-frame)
   (seesaw/show! @player-window)
-  (.toFront @player-window))
+  (.toFront @player-window)
+  (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
 
 (defn- create-window
   "Creates the Player Status window."
@@ -797,7 +798,7 @@
       (seesaw/pack! root)
       #_(.setResizable root false)
       (reset! player-window root)
-      (make-window-visible trigger-frame)
+      (make-window-visible trigger-frame globals)
       (when-not (.isRunning virtual-cdj) (.stopped stop-listener virtual-cdj)))  ; In case we went offline during setup.
     (catch Exception e
       (timbre/error e "Problem creating Player Status window."))))
@@ -807,4 +808,4 @@
   [trigger-frame globals]
   (locking player-window
     (when-not @player-window (create-window trigger-frame globals)))
-  (make-window-visible trigger-frame))
+  (make-window-visible trigger-frame globals))
