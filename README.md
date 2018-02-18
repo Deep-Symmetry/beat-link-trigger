@@ -47,6 +47,11 @@ Please see the
 introduction in how to configure triggers, and hopefully you will soon
 be coming up with interesting integration projects of your own.
 
+You can also find user-contributed examples and resources on the
+[project Wiki](https://github.com/brunchboy/beat-link-trigger/wiki).
+Once you have come up with your own great ways to use Beat Link
+Trigger, please add a page or two the Wiki to share them with others!
+
 ### Contributing
 
 First of all, we would *love* to hear from you! We have no way of
