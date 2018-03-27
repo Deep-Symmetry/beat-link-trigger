@@ -392,9 +392,9 @@ it gets compiled to Java byte-code and loaded, essentially becoming
 part of Beat Link Trigger as if it had been there all along. So you
 have access to the full power of the language and Java environment,
 and can do anything you need to. But you will need to learn a little
-Clojure to do it. http://www.tryclj.com[Try Clojure] is a five-minute
-online introduction that is a great starting point. Please give it a
-try!
+Clojure to do it. The official
+https://clojure.org/guides/getting_started[Getting Started] page has
+some good pointers and links to resources for various learning styles.
 
 The expression you are first likely to want to use is the Enabled
 Filter, which is found in each trigger's context menu. In fact, as
