@@ -250,6 +250,8 @@
                                                :doc  "Is the player currently in Sync mode?"}
                          'tempo-master?       {:code '(.isTempoMaster status)
                                                :doc  "Is this player the current tempo master?"}
+                         'track-album         {:code '(when (some? track-metadata) (when-let [album (.getAlbum track-metadata)] (.label album)))
+                                               :doc  "The album of the loaded track, if metadata is available."}
                          'track-artist        {:code '(when (some? track-metadata) (when-let [artist (.getArtist track-metadata)] (.label artist)))
                                                :doc  "The artist of the loaded track, if metadata is available."}
                          'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] (.label comment)))

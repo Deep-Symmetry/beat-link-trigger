@@ -1136,6 +1136,18 @@ cache, showing its rekordbox ID, title, and artist:
 image:assets/SymmetryContents.png[Example cache contents, 850]
 
 
+=== Keeping Player Status Always Visible
+
+Some users have expressed an interest in making the Player Status
+Window always be visible, no matter what window is active in their
+operating system. This can be arranged by creating a global variable
+entry with the key `:player-status-always-on-top` and the value `true`
+before showing the window. In other words, add the following
+form to your Global Setup Expression:
+
+```clojure
+(swap! globals assoc :player-status-always-on-top true)
+```
 
 == Working with Ableton Link
 

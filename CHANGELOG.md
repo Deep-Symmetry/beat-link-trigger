@@ -8,6 +8,37 @@ This change log follows the conventions of
 
 Nothing so far.
 
+## [0.3.7] - 2018-03-26
+
+### Fixed
+
+- Setup expressions are now always compiled before other expressions,
+  so the context they set up is guaranteed to be available even at
+  compile time when Beat Link Trigger is initially launched.
+- The Beat Expression is now fired only when beats are received from
+  the player being tracked by the trigger (which is controlled by
+  Watch Menu, as well as the Enabled Filter if _Any Player_ is
+  chosen). This makes the Beat Expression far more useful, and an
+  example of synchronizing light shows driven by the Ableton Live
+  timeline locked to actual track positions became practical. I plan
+  to add that example to the Wiki and/or the User Guide shortly after
+  this release.
+
+### Added
+
+- You can now access track album metadata using the `track-album`
+  convenience variable within expressions that work with CDJ status
+  updates (the omission of this was an oversight, prompted by an
+  oversight in the Beat Link library itself).
+- If you would like the Player Status Window to be always on top of
+  other windows, you can arrange for that by creating a global
+  variable entry (using the Global Setup Expression) with the key
+  `:player-status-always-on-top` and the value `true` before showing
+  the window.
+- The Beat Link `MetadataFinder` is now imported into the namespace
+  used by the expression compiler, so it is easier to use from your
+  expressions.
+
 ## [0.3.6] - 2017-11-30
 
 ### Fixed
@@ -376,7 +407,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.6...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...v0.3.4
