@@ -230,13 +230,17 @@
 (defn- clock-interval
   "Calculate how many milliseconds there should be between clock
   pulses to represent the tempo reported by the latest status update
-  seen by the current trigger, as found cached in the user data."
-  [data]
-  (/ 2500.0 (if-let [cached-status(:status data)]
+  seen by the current trigger, as found cached in the user data. If
+  `bpm-override` has a value, pretend the playing track has that BPM
+  and calculate the effective tempo based on the player pitch."
+  [data bpm-override]
+  (/ 2500.0 (if-let [cached-status (:status data)]
               (if (= 65535 (.getBpm cached-status))
-                120.0  ; Default to 120 bpm if the player has not loaded a track
-                (.getEffectiveTempo cached-status))
-              120.0)))  ; Default to 120 bpm if we lost status information momentarily
+                (or bpm-override 120.0) ; Default to 120 bpm if the player has not loaded a track
+                (if bpm-override
+                  (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch cached-status)) bpm-override)
+                  (.getEffectiveTempo cached-status)))
+              (or bpm-override 120.0)))) ; Default to 120 bpm if we lost status information momentarily
 
 (defn- clock-sender
   "The loop which sends MIDI clock messages to synchronize a MIDI
@@ -247,12 +251,13 @@
     (timbre/info "Midi clock thread starting for Trigger"
                  (:index (seesaw/value trigger)))
     (loop [adjustment 0.0]  ; The amount we should subtract from the interval to fix missed timing
-      (let [data @(seesaw/user-data trigger)
-            output (get-chosen-output trigger data)
-            interval (- (clock-interval data) adjustment)  ; The ideal amount we should sleep
-            ms (Math/round (max 0.0 interval))  ; The actual amount we will try to sleep
-            error (- ms interval)  ; The difference between ideal and actual sleep time
-            target (+ (System/currentTimeMillis) ms)]  ; The time we are trying to wake up
+      (let [data         @(seesaw/user-data trigger)
+            output       (get-chosen-output trigger data)
+            bpm-override (:use-fixed-sync-bpm @expression-globals)
+            interval     (- (clock-interval data bpm-override) adjustment) ; The ideal amount we should sleep
+            ms           (Math/round (max 0.0 interval))     ; The actual amount we will try to sleep
+            error        (- ms interval)                     ; The difference between ideal and actual sleep time
+            target       (+ (System/currentTimeMillis) ms)]  ; The time we are trying to wake up
         (when (some? output)  ; Send a clock pulse as long as our MIDI output is present
           (midi/midi-send-msg (:receiver output) clock-message -1))
 
@@ -355,18 +360,20 @@
   [trigger playing on-air status]
   ;; TODO: See if any of the state tracking should be updated to take advantage of new TimeFinder consolidations.
   (let [old-data @(seesaw/user-data trigger)
-        updated (swap! (seesaw/user-data trigger)
-                       (fn [data]
-                         (let [tripped (and playing (enabled? trigger))]
-                           (merge data {:playing playing :on-air on-air :tripped tripped}
-                                  (when (some? status) {:status status})))))]
+        updated  (swap! (seesaw/user-data trigger)
+                        (fn [data]
+                          (let [tripped (and playing (enabled? trigger))]
+                            (merge data {:playing playing :on-air on-air :tripped tripped}
+                                   (when (some? status) {:status status})))))]
     (let [tripped (:tripped updated)]
       (when-not (= tripped (:tripped old-data))
         (if tripped
           (report-activation trigger status updated)
           (report-deactivation trigger status updated)))
       (when (and tripped (= "Link" (:message (:value updated))))
-        (let [tempo (.getEffectiveTempo status)]
+        (let [tempo (if-let [bpm-override (:use-fixed-sync-bpm @expression-globals)]
+                      (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch status)) bpm-override)
+                      (.getEffectiveTempo status))]
           (if (carabiner/valid-tempo? tempo)
             (carabiner/lock-tempo tempo)
             (carabiner/unlock-tempo)))))

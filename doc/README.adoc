@@ -1248,6 +1248,42 @@ is a filled circle inside the enabled circle:
 
 |===
 
+=== Ignoring Track BPM
+
+In very special situations, for example when you want to synchronize
+with a set of Ableton tracks that have not been properly tempo marked
+or warped, but are all pretending to be at 120 BPM, you can tell Beat
+Link Trigger to ignore the actual tempo of the track that is playing
+on a CDJ, and adjust your fixed tempo value based on the current
+playback pitch.
+
+To do this, use the Global Setup Expression to assign a value to the
+`:use-fixed-sync-bpm` global, like so:
+
+```clojure
+(swap! globals assoc :use-fixed-sync-bpm 120.0)
+```
+
+Once you have done that, Beat Link Trigger will pretend that whatever
+track is playing has a native tempo of 120 beats per minute (or
+whatever value you have chosen). If the DJ plays it at a pitch of +5%,
+Beat Link Trigger will sync the Link session (or MIDI clock, which
+also supports this setting) to 126 BPM (which is 5% more than 120),
+regardless of the actual tempo of the track.
+
+Don't forget you have done this, or you will wonder why your sync is
+not working properly when you are trying to sync with tracks and
+systems that are properly beat gridded and tempo analyzed! To get back
+to normal, either remove the above line from your Global Setup
+Expression and quit and restart Beat Link Trigger, or edit the
+expression and replace that line with the following one, which undoes
+the setting immediately:
+
+```clojure
+(swap! globals dissoc :use-fixed-sync-bpm)
+```
+
+
 == Logs
 
 When Beat Link Trigger is running it reports events to a log file. As
