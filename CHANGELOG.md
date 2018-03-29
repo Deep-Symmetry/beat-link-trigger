@@ -6,6 +6,13 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- An infinite loop reporting that Carabiner could not be found if you
+  tried to connect to it when it was not running.
+- The Carabiner Connection window could show a connected state even
+  after Carabiner had terminated.
+
 ### Added
 
 - For very special situations, you can configure MIDI Clock and

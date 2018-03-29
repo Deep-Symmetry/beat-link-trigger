@@ -166,11 +166,12 @@
                   (timbre/error "Unrecognized message from Carabiner:" message)))
               (do  ; We read zero, means the other side closed; force our loop to terminate.
                 (future
-                  (javax.swing.JOptionPane/showMessageDialog
-                   @carabiner-window
-                   "Carabiner unexpectedly closed our connection; is it still running?"
-                   "Carabiner Connection Closed"
-                   javax.swing.JOptionPane/WARNING_MESSAGE))
+                  (seesaw/invoke-later
+                   (javax.swing.JOptionPane/showMessageDialog
+                    @carabiner-window
+                    "Carabiner unexpectedly closed our connection; is it still running?"
+                    "Carabiner Connection Closed"
+                    javax.swing.JOptionPane/WARNING_MESSAGE)))
                 (.close socket))))
           (catch java.net.SocketTimeoutException e
             (timbre/debug "Read from Carabiner timed out, checking if we should exit loop."))
@@ -215,13 +216,15 @@
                                        :socket socket}))
                       (catch Exception e
                         (timbre/warn e "Unable to connect to Carabiner")
-                        (javax.swing.JOptionPane/showMessageDialog
-                         @carabiner-window
-                         "Unable to connect to Carabiner; make sure it is running on the specified port."
-                         "Carabiner Connection failed"
-                         javax.swing.JOptionPane/WARNING_MESSAGE)
+                        (future
+                          (seesaw/invoke-later
+                           (javax.swing.JOptionPane/showMessageDialog
+                            @carabiner-window
+                            "Unable to connect to Carabiner; make sure it is running on the specified port."
+                            "Carabiner Connection failed"
+                            javax.swing.JOptionPane/WARNING_MESSAGE)))
                         oldval)))))
-  (update-connected-status)
+  (future (update-connected-status))
   (when (active?)
     (future
       (Thread/sleep 1000)
