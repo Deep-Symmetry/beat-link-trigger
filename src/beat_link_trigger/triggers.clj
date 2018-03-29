@@ -1208,7 +1208,7 @@
               nil)
           true))))  ; Open Anyway.
 
-(defn- show-player-status
+(defn- show-player-status-handler
   "Try to show the player status window, giving the user appropriate
   feedback if the current environment is not appropriate, or even not
   ideal. A Seesaw event handler, but we ignore the event argument."
@@ -1221,9 +1221,19 @@
 
 (def ^:private player-status-action
   "The menu action which opens the Player Status window."
-  (seesaw/action :handler show-player-status
+  (seesaw/action :handler show-player-status-handler
                  :name "Show Player Status"
                  :key "menu P"))
+
+(defn show-player-status
+  "Try to show the player status window, giving the user appropriate
+  feedback if the current environment is not appropriate, or even not
+  ideal. Ensures the use of the Event Dispatch Thread so that UI
+  elements can be created safely, and does nothing if called before
+  the Triggers window has been created."
+  []
+  (when @trigger-frame
+    (seesaw/invoke-later (show-player-status-handler nil))))
 
 (declare go-offline)
 

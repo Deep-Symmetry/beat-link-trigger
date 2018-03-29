@@ -11,6 +11,8 @@ This change log follows the conventions of
 - For very special situations, you can configure MIDI Clock and
   Carabiner tempo sync to ignore the actual track BPM, and sync a
   fixed tempo value adjusted by the player pitch.
+- Provided a safe entry point for expression code to make sure the
+  Player Status window is showing.
 
 ## [0.3.7] - 2018-03-26
 
