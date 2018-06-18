@@ -4,25 +4,26 @@
   (:require [beat-link-trigger.about :as about]
             [seesaw.core :as seesaw]
             [seesaw.util]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre])
+  (:import [java.awt Desktop]
+           [java.awt.desktop AboutHandler]))
 
 (defn on-mac?
   "Do we seem to be running on a Mac?"
   []
-  (try
-    (Class/forName "com.apple.eawt.Application")
-    true  ; We found the Mac-only Java interaction classes
-    (catch Exception e
-      false)))
+  (-> (System/getProperty "os.name")
+      .toLowerCase
+      (clojure.string/includes? "mac")))
 
 (defn install-mac-about-handler
-  "If we are running on a Mac, load the namespace that only works
-  there (and is only needed there) to install our About handler."
+  "If we are running on a Mac, install our About handler."
   []
   (when (on-mac?)
     (try
-      (require '[beat-link-trigger.mac-about])
-      ((resolve 'beat-link-trigger.mac-about/install-handler))
+      (.setAboutHandler (Desktop/getDesktop)
+                        (proxy [AboutHandler] []
+                          (handleAbout [_]
+                            (about/show))))
       (catch Throwable t
         (timbre/error t "Unable to install Mac \"About\" handler.")))))
 
@@ -41,5 +42,3 @@
      (seesaw/separator)
      (seesaw/action :handler (fn [e] (System/exit 0))
                     :name "Exit")]))
-
-

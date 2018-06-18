@@ -2,7 +2,7 @@
   :description "Trigger events in response to CDJ activity."
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+            :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.474"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
@@ -16,23 +16,24 @@
                  [org.deepsymmetry/beat-link "0.3.7"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
-                 [seesaw "1.4.5"]
+                 [seesaw "1.5.0"]
                  [uk.co.xfactory-librarians/coremidi4j "1.1"]]
 
-  :profiles {:dev {:repl-options {:init-ns beat-link-trigger.core
-                                  :welcome (println "beat-link-trigger loaded.")}
-                   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]}
+  :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
+                                      :welcome (println "beat-link-trigger loaded.")}
+                       :jvm-opts     ["-XX:-OmitStackTraceInFastThrow"]}
              :uberjar {:aot :all}}
 
   :main beat-link-trigger.BeatLinkTrigger
   :uberjar-name "beat-link-trigger.jar"
+  :jvm-opts ["--add-modules" "java.xml.bind"]
 
   ;; Add project name and version information to jar file manifest
-  :manifest {"Name" ~#(str (clojure.string/replace (:group %) "." "/")
-                            "/" (:name %) "/")
-             "Package" ~#(str (:group %) "." (:name %))
-             "Specification-Title" ~#(:name %)
-             "Specification-Version" ~#(:version %)
+  :manifest {"Name"                   ~#(str (clojure.string/replace (:group %) "." "/")
+                                             "/" (:name %) "/")
+             "Package"                ~#(str (:group %) "." (:name %))
+             "Specification-Title"    ~#(:name %)
+             "Specification-Version"  ~#(:version %)
              "Implementation-Version" ~(str (java.util.Date.))}
 
   :plugins [[lein-environ "1.1.0"]]
