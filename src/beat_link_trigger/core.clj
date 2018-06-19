@@ -51,8 +51,9 @@
   present the Triggers interface. Called when jar startup has detected
   a recent-enough Java version to succcessfully load this namespace."
   [& args]
-  (seesaw/native!)  ; Adopt as native a look-and-feel as possible
-  #_(javax.swing.UIManager/setLookAndFeel "org.pushingpixels.substance.api.skin.SubstanceRavenLookAndFeel")
+  (seesaw/invoke-now
+   (seesaw/native!)  ; Adopt as native a look-and-feel as possible
+   (javax.swing.UIManager/setLookAndFeel "org.pushingpixels.substance.api.skin.SubstanceRavenLookAndFeel"))
   (logs/init-logging)
   (timbre/info "Beat Link Trigger starting.")
   (menus/install-mac-about-handler)

@@ -1,4 +1,4 @@
-(defproject beat-link-trigger "0.3.8"
+(defproject beat-link-trigger "0.4.0-SNAPSHOT"
   :description "Trigger events in response to CDJ activity."
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
@@ -6,7 +6,8 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.474"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
-                 [com.github.insubstantial/substance "7.3"]
+                 [local/substance "8.0.2"]
+                 [local/trident "1.5.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.8"]
                  [environ "1.1.0"]
@@ -18,6 +19,7 @@
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
                  [uk.co.xfactory-librarians/coremidi4j "1.1"]]
+  :repositories {"project" "file:repo"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
                                       :welcome (println "beat-link-trigger loaded.")}
