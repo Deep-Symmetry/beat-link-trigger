@@ -22,10 +22,14 @@ page and double-click it to run it. If that doesn&rsquo;t work,
 > beat-link-trigger requires Java 7 or 8. It is compiled and tested
 > using the latest release of Java 8, so that is your best bet.
 >
-> :warning: Java 9 is [not yet
+> :warning: Java 9 and 10 are [not yet
 > supported](https://github.com/brunchboy/beat-link-trigger/issues/31),
 > and can not be until all the libraries we depend on have been ported
-> to Java 9.
+> to Java 9. This is in progress, and Beat Link Trigger 0.4.0 will
+> require Java 9, and work with Java 10 (which will be the new
+> recommended version). The UI will look slightly different, and I am
+> _not_ looking forward to having to re-take so many screen shots!
+> :disappointed_relieved:
 
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
