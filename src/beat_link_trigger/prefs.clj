@@ -108,7 +108,7 @@
   ([required-key file]
    (if (valid-file? required-key file)
      (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
-       (convert-longs-to-integers (edn/read {:readers @prefs-readers} in)))
+       (edn/read {:readers @prefs-readers} in))
      (throw (IllegalArgumentException. (str "Unreadable file: " file))))))
 
 (defn load-from-file
