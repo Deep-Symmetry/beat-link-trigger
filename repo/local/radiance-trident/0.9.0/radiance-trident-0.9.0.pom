@@ -3,6 +3,6 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>local</groupId>
-  <artifactId>substance</artifactId>
-  <version>8.0.2</version>
+  <artifactId>radiance-trident</artifactId>
+  <version>0.9.0</version>
 </project>
