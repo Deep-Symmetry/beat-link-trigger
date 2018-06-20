@@ -53,6 +53,7 @@
   [& args]
   (seesaw/invoke-now
    (seesaw/native!)  ; Adopt as native a look-and-feel as possible
+   (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames
    (javax.swing.UIManager/setLookAndFeel "org.pushingpixels.substance.api.skin.SubstanceRavenLookAndFeel"))
   (logs/init-logging)
   (timbre/info "Beat Link Trigger starting.")
