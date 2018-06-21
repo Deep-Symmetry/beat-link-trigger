@@ -1,4 +1,6 @@
 (ns beat-link-trigger.watermark
+  "A Clojure recreation of the cross-hatch watermark that used to be
+  part of the Raven skin in Substance."
   (:import [java.awt Color Rectangle GraphicsDevice Graphics2D]
            [java.awt.image BufferedImage]
            org.pushingpixels.substance.api.colorscheme.SubstanceColorScheme
