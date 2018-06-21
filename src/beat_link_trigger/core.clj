@@ -7,7 +7,8 @@
             [beat-link-trigger.triggers :as triggers]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj]))
+  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj]
+           [beat_link_trigger TexturedRaven]))
 
 (defn try-going-online
   "Search for a DJ link network, presenting a UI in the process."
@@ -54,7 +55,7 @@
   (seesaw/invoke-now
    (seesaw/native!)  ; Adopt as native a look-and-feel as possible
    (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames
-   (javax.swing.UIManager/setLookAndFeel "org.pushingpixels.substance.api.skin.SubstanceRavenLookAndFeel"))
+   (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin (TexturedRaven.)))
   (logs/init-logging)
   (timbre/info "Beat Link Trigger starting.")
   (menus/install-mac-about-handler)

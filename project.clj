@@ -3,6 +3,7 @@
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
+  :aot [beat-link-trigger.TexturedRaven]
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.474"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
