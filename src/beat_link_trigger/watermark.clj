@@ -52,6 +52,7 @@
 (def crosshatch
   "A watermark that draws an interesting grill-like texture that looks
   great in the background of the UI elements."
+
   (reify SubstanceWatermark
 
     (drawWatermarkImage [_ graphics c x y width height]
