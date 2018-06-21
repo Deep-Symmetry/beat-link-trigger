@@ -36,8 +36,8 @@
         [stamp-color-dark
          stamp-color-all
          stamp-color-light] (stamp-colors scheme preview?)
-        tile (SubstanceCoreUtilities/getBlankImage 4 4)
-        g2d (.create graphics)]
+        tile                (SubstanceCoreUtilities/getBlankImage 4 4)
+        g2d                 (.create graphics)]
     (.setRGB tile 0 0 (.getRGB stamp-color-dark))
     (.setRGB tile 2 2 (.getRGB stamp-color-dark))
     (.setRGB tile 0 1 (.getRGB stamp-color-light))
