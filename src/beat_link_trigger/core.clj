@@ -7,8 +7,7 @@
             [beat-link-trigger.triggers :as triggers]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj]
-           [beat_link_trigger TexturedRaven]))
+  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj]))
 
 (defn try-going-online
   "Search for a DJ link network, presenting a UI in the process."
@@ -52,11 +51,15 @@
   present the Triggers interface. Called when jar startup has detected
   a recent-enough Java version to succcessfully load this namespace."
   [& args]
+  (logs/init-logging)
+  (timbre/info "Beat Link Trigger starting.")
   (seesaw/invoke-now
    (seesaw/native!)  ; Adopt as native a look-and-feel as possible
    (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames
-   (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin (TexturedRaven.)))
-  (logs/init-logging)
-  (timbre/info "Beat Link Trigger starting.")
+   (try
+     (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
+       (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin (.newInstance skin-class)))
+     (catch ClassNotFoundException e
+       (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?"))))
   (menus/install-mac-about-handler)
   (try-going-online))
