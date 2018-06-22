@@ -9,20 +9,24 @@
 (defn on-mac?
   "Do we seem to be running on a Mac?"
   []
-  (try
-    (Class/forName "com.apple.eawt.Application")
-    true  ; We found the Mac-only Java interaction classes
-    (catch Exception e
-      false)))
+  (-> (System/getProperty "os.name")
+      .toLowerCase
+      (clojure.string/includes? "mac")))
 
 (defn install-mac-about-handler
-  "If we are running on a Mac, load the namespace that only works
-  there (and is only needed there) to install our About handler."
+  "If we are running on a Mac, install our About handler."
   []
   (when (on-mac?)
     (try
-      (require '[beat-link-trigger.mac-about])
-      ((resolve 'beat-link-trigger.mac-about/install-handler))
+      (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
+        (eval '(.setAboutHandler (com.apple.eawt.Application/getApplication) ; Use old, Mac-specific approach.
+                                 (proxy [com.apple.eawt.AboutHandler] []
+                                   (handleAbout [_]
+                                     (beat-link-trigger.about/show)))))
+        (eval '(.setAboutHandler (java.awt.Desktop/getDesktop) ; Java 9 or later has a cross-platform way to do it.
+                           (proxy [java.awt.desktop.AboutHandler] []
+                             (handleAbout [_]
+                               (beat-link-trigger.about/show))))))
       (catch Throwable t
         (timbre/error t "Unable to install Mac \"About\" handler.")))))
 
@@ -41,5 +45,3 @@
      (seesaw/separator)
      (seesaw/action :handler (fn [e] (System/exit 0))
                     :name "Exit")]))
-
-
