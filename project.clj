@@ -30,7 +30,7 @@
 
   :main beat-link-trigger.BeatLinkTrigger
   :uberjar-name "beat-link-trigger.jar"
-  :jvm-opts ["--add-modules" "java.xml.bind"]
+  ;; :jvm-opts ["--add-modules" "java.xml.bind"]
 
   ;; Add project name and version information to jar file manifest
   :manifest {"Name"                   ~#(str (clojure.string/replace (:group %) "." "/")

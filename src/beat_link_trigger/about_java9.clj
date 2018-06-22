@@ -3,12 +3,10 @@
   depends on classes only available there. It tells the Java
   environment to use our own About box rather than the spectacularly
   lame default one."
-  (:require [beat-link-trigger.about :as about])
-  (:import [java.awt Desktop]
-           [java.awt.desktop AboutHandler]))
+  (:require [beat-link-trigger.about]))
 
 (defn install-handler []
-  (.setAboutHandler (Desktop/getDesktop)
-                    (proxy [AboutHandler] []
-                      (handleAbout [_]
-                        (about/show)))))
+  (eval '(.setAboutHandler (java.awt.Desktop/getDesktop)
+                           (proxy [java.awt.desktop.AboutHandler] []
+                             (handleAbout [_]
+                               (beat-link-trigger.about/show))))))

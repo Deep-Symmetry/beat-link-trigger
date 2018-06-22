@@ -19,10 +19,14 @@
   (when (on-mac?)
     (try
       (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
-        (do (require '[beat-link-trigger.about-mac])   ; Use old, Mac-specific class to install the handler.
-            ((resolve 'beat-link-trigger.about-mac/install-handler)))
-        (do (require '[beat-link-trigger.about-java9]) ; Java 9 or later has a cross-platform way to do it instead.
-            ((resolve 'beat-link-trigger.about-java9/install-handler))))
+        (eval '(.setAboutHandler (com.apple.eawt.Application/getApplication) ; Use old, Mac-specific approach.
+                                 (proxy [com.apple.eawt.AboutHandler] []
+                                   (handleAbout [_]
+                                     (beat-link-trigger.about/show)))))
+        (eval '(.setAboutHandler (java.awt.Desktop/getDesktop) ; Java 9 or later has a cross-platform way to do it.
+                           (proxy [java.awt.desktop.AboutHandler] []
+                             (handleAbout [_]
+                               (beat-link-trigger.about/show))))))
       (catch Throwable t
         (timbre/error t "Unable to install Mac \"About\" handler.")))))
 
