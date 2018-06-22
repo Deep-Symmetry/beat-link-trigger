@@ -43,9 +43,9 @@
     (.setRGB tile 0 1 (.getRGB stamp-color-light))
     (.setRGB tile 2 3 (.getRGB stamp-color-light))
     (.setComposite g2d (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER 0.4))
-    (doseq [row (range y (+ y height) 4)]
-      (doseq [col (range x (+ x width) 4)]
-        (.drawImage g2d tile col row nil)))
+    (doseq [row (range y (+ y height) 4)
+            col (range x (+ x width) 4)]
+      (.drawImage g2d tile col row nil))
     (.dispose g2d)
     true))
 
