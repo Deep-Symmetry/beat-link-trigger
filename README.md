@@ -29,7 +29,9 @@ page and double-click it to run it. If that doesn&rsquo;t work,
 > require Java 9, and work with Java 10 (which will be the new
 > recommended version). The UI will look slightly different, and I am
 > _not_ looking forward to having to re-take so many screen shots!
-> :disappointed_relieved:
+> :disappointed_relieved: :construction: But if you would like to help
+> testing this, download and try out the 0.4.0 preview jar, which is
+> now available on the releases page.
 
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and

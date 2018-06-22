@@ -6,7 +6,9 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- Support for running under Java 9 and 10.
 
 ## [0.3.8] - 2018-06-17
 
