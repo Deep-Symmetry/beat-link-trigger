@@ -3,10 +3,9 @@
   (:gen-class :extends org.pushingpixels.substance.api.skin.RavenSkin
               :constructors {[] []}
               :exposes {watermark {:set setWatermark}}
-              :post-init post-init)
-  (:require [beat-link-trigger.watermark :as watermark-utils]))
+              :post-init post-init))
 
 (defn -post-init
   "Called after superclass constructor to install our watermark."
   [this]
-  (.setWatermark this watermark-utils/crosshatch))
+  (.setWatermark this (org.pushingpixels.substance.extras.api.watermarkpack.SubstanceCrosshatchWatermark.)))
