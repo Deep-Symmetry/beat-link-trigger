@@ -4,9 +4,7 @@
   (:require [beat-link-trigger.about :as about]
             [seesaw.core :as seesaw]
             [seesaw.util]
-            [taoensso.timbre :as timbre])
-  (:import [java.awt Desktop]
-           [java.awt.desktop AboutHandler]))
+            [taoensso.timbre :as timbre]))
 
 (defn on-mac?
   "Do we seem to be running on a Mac?"
@@ -20,10 +18,11 @@
   []
   (when (on-mac?)
     (try
-      (.setAboutHandler (Desktop/getDesktop)
-                        (proxy [AboutHandler] []
-                          (handleAbout [_]
-                            (about/show))))
+      (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
+        (do (require '[beat-link-trigger.about-mac])   ; Use old, Mac-specific class to install the handler.
+            ((resolve 'beat-link-trigger.about-mac/install-handler)))
+        (do (require '[beat-link-trigger.about-java9]) ; Java 9 or later has a cross-platform way to do it instead.
+            ((resolve 'beat-link-trigger.about-java9/install-handler))))
       (catch Throwable t
         (timbre/error t "Unable to install Mac \"About\" handler.")))))
 
