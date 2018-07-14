@@ -1184,21 +1184,21 @@
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
 
-(defn- acceptable-metadata-state-for-player-status
+(defn- acceptable-metadata-state-for-window
   "Check whether we are currently requesting metadata, as the user has
-  asked to show the player status window. If not, warn the user about
-  reduced functionality and how they should fix that. Return a truthy
-  value if we should proceed to show the player status window."
-  []
+  asked to show the a window that relies on it. If not, warn the user
+  about reduced functionality and how they should fix that. Return a
+  truthy value if we should proceed to show the window."
+  [window-name]
   (or (request-metadata?)
       (let [options (to-array ["Cancel" "Turn On Metadata Requests" "Open Anyway"])
             message (str "Beat Link Trigger is not currently configured to request track metadata.\n"
-                         "Most of the Player Status Window features require track metadata to work.\n\n"
+                         "Most of the " window-name " Window features require track metadata to work.\n\n"
                          "Would you like to turn on the Request Track Metadata feature before opening\n"
-                         "the Player Status window?")
+                         "the " window-name " window?")
             choice  (seesaw/invoke-now
                      (javax.swing.JOptionPane/showOptionDialog
-                      nil message "Metadata Requests Recommended for Player Status"
+                      nil message (str "Metadata Requests Recommended for " window-name)
                       javax.swing.JOptionPane/YES_NO_CANCEL_OPTION javax.swing.JOptionPane/WARNING_MESSAGE nil
                       options (aget options 2)))]
         (case choice
@@ -1214,7 +1214,7 @@
   ideal. A Seesaw event handler, but we ignore the event argument."
   [_]
   (if (.isRunning (VirtualCdj/getInstance))
-    (when (acceptable-metadata-state-for-player-status)
+    (when (acceptable-metadata-state-for-window "Player Status")
       (players/show-window @trigger-frame expression-globals))
     (seesaw/alert "Must be Online to show Player Status window."
                   :title "Beat Link Trigger is Offline" :type :error)))
@@ -1234,6 +1234,17 @@
   []
   (when @trigger-frame
     (seesaw/invoke-later (show-player-status-handler nil))))
+
+(def ^:private playlist-writer-action
+  "The menu action which opens the Playlist Writer window."
+  (seesaw/action :handler (fn [_]
+                            (if (.isRunning (VirtualCdj/getInstance))
+                              (when (acceptable-metadata-state-for-window "Playlist Writer")
+                                ;; TODO: Actually open the window!
+                                )
+                              (seesaw/alert "Must be Online to show Playlist Writer window."
+                  :title "Beat Link Trigger is Offline" :type :error)))
+                 :name "Show Playlist Writer"))
 
 (declare go-offline)
 
@@ -1352,6 +1363,7 @@
 
                             (seesaw/menu :text "Network"
                                          :items [online-item metadata-item player-status-action
+                                                 playlist-writer-action
                                                  (seesaw/separator) carabiner-action]
                                          :id :network-menu)])))
 
