@@ -8,6 +8,7 @@
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.players :as players]
+            [beat-link-trigger.playlist-writer :as writer]
             [beat-link-trigger.auto-cache :as auto]
             [beat-link-trigger.view-cache :as view-cache]
             [beat-link-trigger.prefs :as prefs]
@@ -1240,8 +1241,7 @@
   (seesaw/action :handler (fn [_]
                             (if (.isRunning (VirtualCdj/getInstance))
                               (when (acceptable-metadata-state-for-window "Playlist Writer")
-                                ;; TODO: Actually open the window!
-                                )
+                                (writer/show-window @trigger-frame))
                               (seesaw/alert "Must be Online to show Playlist Writer window."
                   :title "Beat Link Trigger is Offline" :type :error)))
                  :name "Show Playlist Writer"))

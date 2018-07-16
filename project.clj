@@ -6,6 +6,7 @@
   :aot [beat-link-trigger.TexturedRaven]
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.474"]
+                 [org.clojure/data.csv "0.1.4"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
                  [local/radiance-neon "0.9.0"]
                  [local/radiance-substance "0.9.0"]

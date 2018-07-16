@@ -30,22 +30,23 @@
   non-`nil` window is passed in `parent`, the confirmation dialog will
   be centered over it."
   [file required-extension parent]
-  (let [required-extension (if (.startsWith required-extension ".")
-                             required-extension
-                             (str "." required-extension))
-        file (if (or (nil? required-extension) (.. file (getAbsolutePath) (endsWith required-extension)))
-               file
-               (clojure.java.io/file (str (.getAbsolutePath file) required-extension)))]
-    (or (when (not (.exists file)) file)
-        (let [confirm (seesaw/dialog
-                       :content (str "Replace existing file?\nThe file " (.getName file)
-                                     " already exists, and will be overwritten if you proceed.")
-                       :type :warning :option-type :yes-no)]
-          (.pack confirm)
-          (.setLocationRelativeTo confirm parent)
-          (let [result (when (= :success (seesaw/show! confirm)) file)]
-            (seesaw/dispose! confirm)
-            result)))))
+  (when file
+    (let [required-extension (if (.startsWith required-extension ".")
+                               required-extension
+                               (str "." required-extension))
+          file (if (or (nil? required-extension) (.. file (getAbsolutePath) (endsWith required-extension)))
+                 file
+                 (clojure.java.io/file (str (.getAbsolutePath file) required-extension)))]
+      (or (when (not (.exists file)) file)
+          (let [confirm (seesaw/dialog
+                         :content (str "Replace existing file?\nThe file " (.getName file)
+                                       " already exists, and will be overwritten if you proceed.")
+                         :type :warning :option-type :yes-no)]
+            (.pack confirm)
+            (.setLocationRelativeTo confirm parent)
+            (let [result (when (= :success (seesaw/show! confirm)) file)]
+              (seesaw/dispose! confirm)
+              result))))))
 
 (defn visible-player-numbers
   "Return the set of players currently visible on the
