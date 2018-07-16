@@ -19,8 +19,8 @@
                 :latency 20
                 :last 0}))
 
-(def ^{:private true
-       :doc "Holds the frame allowing the user to configure and
+(defonce ^{:private true
+           :doc "Holds the frame allowing the user to configure and
   control the connection to the Carabiner daemon."}
   carabiner-window (atom nil))
 
