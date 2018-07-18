@@ -9,6 +9,7 @@ This change log follows the conventions of
 ### Added
 
 - Support for running under Java 9 and 10.
+- Playlist Writer window for eas of use by radio stations.
 
 ## [0.3.8] - 2018-06-17
 
