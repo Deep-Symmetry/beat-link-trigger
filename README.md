@@ -46,10 +46,18 @@ width="538">
 
 ### Going Further
 
-Please see the
-[user guide](doc/README.adoc#beat-link-trigger-user-guide) for an
-introduction in how to configure triggers, and hopefully you will soon
-be coming up with interesting integration projects of your own.
+**This page is just a quick introduction!** Please see the the full
+[:notebook: user guide](doc/README.adoc#beat-link-trigger-user-guide)
+for many more details, including:
+
+* How to configure Triggers
+* How to use Expressions
+* Working with title/artist metadata
+* Working with Ableton Link
+* Integration examples
+
+And much more... and hopefully you will soon be coming up with
+interesting integration projects of your own.
 
 You can also find user-contributed examples and resources on the
 [project Wiki](https://github.com/brunchboy/beat-link-trigger/wiki).
