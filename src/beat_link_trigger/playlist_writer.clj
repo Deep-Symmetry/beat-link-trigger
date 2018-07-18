@@ -145,8 +145,8 @@
                              {:started now
                               :cdj-status cdj-status})
                            (if old-entry
-                             (if (:metadata old-entry)
-                               old-entry  ; We are still playing a track we already have metadata for.
+                             (if (or (:metadata old-entry) (not (.isRunning metadata-finder)))
+                               old-entry  ; We are still playing a track we already have metadata for (or unavailable).
                                (assoc old-entry :metadata (.getLatestMetadataFor metadata-finder player-number)))
                              {:started now  ; We have a new entry, there was nothing there before.
                               :cdj-status cdj-status}))
