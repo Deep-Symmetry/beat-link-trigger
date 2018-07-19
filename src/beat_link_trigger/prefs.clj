@@ -33,13 +33,14 @@
   the trigger configuration, concatenating them into a single
   string."
   []
-  (when-let [current (.get (prefs-node) "prefs" nil)]
-    (loop [result     current
-           next-index 1
-           next-chunk (.get (prefs-node) (str "prefs-" next-index) nil)]
-      (if (nil? next-chunk)
-        result
-        (recur (str result next-chunk) (inc next-index) (.get (prefs-node) (str "prefs-" (inc next-index)) nil))))))
+  (locking (prefs-node)
+    (when-let [current (.get (prefs-node) "prefs" nil)]
+      (loop [result     current
+             next-index 1
+             next-chunk (.get (prefs-node) (str "prefs-" next-index) nil)]
+        (if (nil? next-chunk)
+          result
+          (recur (str result next-chunk) (inc next-index) (.get (prefs-node) (str "prefs-" (inc next-index)) nil)))))))
 
 (defn get-preferences
   "Returns the current values of the user preferences, creating them
@@ -72,9 +73,10 @@
   [m]
   (try
     (let [prefs (prefs-node)]
-      (.clear prefs)
-      (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (util/get-version)})))
-      (.flush prefs)
+      (locking prefs
+        (.clear prefs)
+        (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (util/get-version)})))
+        (.flush prefs))
       true)
     (catch Exception e
       (timbre/error e "Problem saving preferences.")
