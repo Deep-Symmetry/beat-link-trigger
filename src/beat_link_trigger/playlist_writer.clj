@@ -1,18 +1,17 @@
 (ns beat-link-trigger.playlist-writer
   "A window that facilitates the creation of comma-separated-value lists
   reporting tracks played over a particular period of time."
-  (:require [clojure.data.csv :as csv]
+  (:require [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
+            [clojure.data.csv :as csv]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre]
-            [beat-link-trigger.expressions :as expressions]
-            [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink LifecycleListener VirtualCdj DeviceUpdate DeviceUpdateListener CdjStatus
-            CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data MetadataFinder TrackMetadata]
-           [java.awt.event WindowEvent]
-           [java.util.concurrent TimeUnit]
-           [javax.swing JFileChooser]))
+            [taoensso.timbre :as timbre])
+  (:import java.awt.event.WindowEvent
+           java.util.concurrent.TimeUnit
+           [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType DeviceUpdateListener LifecycleListener VirtualCdj]
+           [org.deepsymmetry.beatlink.data MetadataFinder TrackMetadata]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to write playlist files."}
@@ -25,6 +24,11 @@
 (def metadata-finder
   "The object that can obtain track metadata."
   (MetadataFinder/getInstance))
+
+(def min-time-pref-key
+  "The key used to store the minimum time a track must be playing in
+  order to get written to the playlist in the global preferences."
+  :playlist-min-play-seconds)
 
 (defn- make-window-visible
   "Ensures that the playlist writer window is in front, and shown."
@@ -161,12 +165,23 @@
            (doseq [[player-number entry] @playing-tracks]
              (write-entry-if-played-enough min-play-seconds playlist-file player-number entry)))))]))
 
+(defn- min-time-pref
+  "Retrieve the preferred minimum time a track must be playing in order
+  to get written to the playlist."
+  []
+  (or (when-let [pref (min-time-pref-key (prefs/get-preferences))]
+        (try
+          (Long/valueOf pref)
+          (catch Exception e
+            (timbre/error e "Problem parsing playlist minimum play time preference value:" pref))))
+      10))
+
 (defn- create-window
   "Creates the playlist writer window."
   [trigger-frame]
   (try
     (let [playlist-file (atom nil)
-          time-spinner  (seesaw/spinner :id :time :model (seesaw/spinner-model 10 :from 0 :to 60))
+          time-spinner  (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
           toggle-button (seesaw/button :id :start :text "Start")
           status-label  (seesaw/label :id :status :text idle-status)
           panel         (mig/mig-panel
@@ -197,7 +212,10 @@
                                            (.removeUpdateListener virtual-cdj update-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)
                                            (close-handler)
-                                           (reset! writer-window nil)))
+                                           (reset! writer-window nil)
+                                           (prefs/put-preferences
+                                            (assoc (prefs/get-preferences)
+                                                   min-time-pref-key (seesaw/value time-spinner)))))
       (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-file
                                                                  close-handler root))
       (seesaw/pack! root)
