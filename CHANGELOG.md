@@ -11,6 +11,11 @@ This change log follows the conventions of
 - Support for running under Java 9 and 10.
 - Playlist Writer window for ease of use by radio stations.
 
+### Fixed
+
+- Protect against race conditions reading and writing preferences from
+  different threads, now that they are split across multiple nodes.
+
 ## [0.3.8] - 2018-06-17
 
 ### Fixed

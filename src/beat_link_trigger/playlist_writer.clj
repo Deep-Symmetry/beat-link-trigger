@@ -96,7 +96,15 @@
           (catch Throwable t
             (timbre/error t "Problem creating playlist file" file)))))))
 
+(defn- format-play-time
+  "Formats the number of seconds a track has been playing as minutes:seconds"
+  [seconds]
+  (format "%02d:%02d" (long (/ seconds 60)) (mod seconds 60)))
+
 (defn- write-entry-if-played-enough
+  "If the supplied entry exists, represents a track that thas been
+  playing for long enough to count, write out an line in the playlist
+  describing it."
   [min-play-seconds playlist-file player-number entry]
   (when entry
     (let [now (System/currentTimeMillis)
@@ -107,7 +115,8 @@
           (try
             (with-open [writer (clojure.java.io/writer playlist-file :append true)]
               (csv/write-csv writer [[title artist album player-number
-                                      (str (java.util.Date. (:started entry))) (str (java.util.Date. now)) played]]))
+                                      (str (java.util.Date. (:started entry))) (str (java.util.Date. now))
+                                      (format-play-time played)]]))
             (catch Throwable t
               (timbre/error t "Problem adding entry to playlist file" playlist-file))))))))
 
