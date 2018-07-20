@@ -10,7 +10,8 @@
             [taoensso.timbre :as timbre])
   (:import java.awt.event.WindowEvent
            java.util.concurrent.TimeUnit
-           [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType DeviceUpdateListener LifecycleListener VirtualCdj]
+           [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
+            DeviceUpdateListener LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MetadataFinder TrackMetadata]))
 
 (defonce ^{:private true
@@ -57,7 +58,7 @@
     (expressions/case-enum (.getTrackType status)
 
       CdjStatus$TrackType/CD_DIGITAL_AUDIO
-      ["Unknown (Audio CD)" "" ""]
+      [(str "Unknown (Audio CD track " (.getTrackNumber status) ")") "" ""]
 
       CdjStatus$TrackType/UNANALYZED
       ["Unknown (non-Rekordbox)" "" ""]
@@ -70,6 +71,31 @@
         ["Unknown (no metadata found" "" ""])
 
       ["Unknown (unknown track type)" "" ""])))
+
+(defn- format-source
+  "Given a track list entry structure, provides any available
+  information about the player from which the track was loaded."
+  [entry]
+  (let [^CdjStatus status (:cdj-status entry)]
+    (if (#{CdjStatus$TrackType/REKORDBOX CdjStatus$TrackType/UNANALYZED CdjStatus$TrackType/CD_DIGITAL_AUDIO}
+         (.getTrackType status))
+      (str "Player " (.getTrackSourcePlayer status)
+           (expressions/case-enum (.getTrackSourceSlot status)
+
+             CdjStatus$TrackSourceSlot/SD_SLOT
+             " SD"
+
+             CdjStatus$TrackSourceSlot/USB_SLOT
+             " USB"
+
+             CdjStatus$TrackSourceSlot/CD_SLOT
+             " CD"
+
+             CdjStatus$TrackSourceSlot/COLLECTION
+             " rekordbox"
+
+             " ?"))
+      "")))
 
 (defn- build-toggle-handler
   "Creates an event handler for the Start/Stop button."
@@ -89,7 +115,7 @@
                        frame)]
         (try
           (with-open [writer (clojure.java.io/writer file)]
-            (csv/write-csv writer [["Title" "Artist" "Album" "Player" "Started" "Stopped" "Play Time"]]))
+            (csv/write-csv writer [["Title" "Artist" "Album" "Player" "Source" "Started" "Stopped" "Play Time"]]))
           (reset! file-atom file)
           (seesaw/config! button :text "Stop")
           (seesaw/config! status :text (str "Writing to " (.getName file)))
@@ -114,7 +140,7 @@
         (let [[title artist album] (format-metadata entry)]
           (try
             (with-open [writer (clojure.java.io/writer playlist-file :append true)]
-              (csv/write-csv writer [[title artist album player-number
+              (csv/write-csv writer [[title artist album player-number (format-source entry)
                                       (str (java.util.Date. (:started entry))) (str (java.util.Date. now))
                                       (format-play-time played)]]))
             (catch Throwable t
