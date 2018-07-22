@@ -55,22 +55,24 @@
   [entry]
   (let [^CdjStatus status       (:cdj-status entry)
         ^TrackMetadata metadata (:metadata entry)]
-    (expressions/case-enum (.getTrackType status)
+    (if metadata
+      [(.getTitle metadata)
+       (format-searchable-item (.getArtist metadata))
+       (format-searchable-item (.getAlbum metadata))]
 
-      CdjStatus$TrackType/CD_DIGITAL_AUDIO
-      [(str "Unknown (Audio CD track " (.getTrackNumber status) ")") "" ""]
+      ;; We have no metadata, so describe the track as best we can.
+      (expressions/case-enum (.getTrackType status)
 
-      CdjStatus$TrackType/UNANALYZED
-      ["Unknown (non-Rekordbox)" "" ""]
+        CdjStatus$TrackType/CD_DIGITAL_AUDIO
+        [(str "Unknown (Audio CD track " (.getTrackNumber status) ")") "" ""]
 
-      CdjStatus$TrackType/REKORDBOX
-      (if metadata
-        [(.getTitle metadata)
-         (format-searchable-item (.getArtist metadata))
-         (format-searchable-item (.getAlbum metadata))]
-        ["Unknown (no metadata found" "" ""])
+        CdjStatus$TrackType/UNANALYZED
+        ["Unknown (non-rekordbox)" "" ""]
 
-      ["Unknown (unknown track type)" "" ""])))
+        CdjStatus$TrackType/REKORDBOX
+        ["Unknown (no metadata found)" "" ""]
+
+        ["Unknown (unknown track type)" "" ""]))))
 
 (defn- format-source
   "Given a track list entry structure, provides any available
