@@ -9,10 +9,12 @@ This change log follows the conventions of
 ### Added
 
 - Support for running under Java 9 and 10.
-- Playlist Writer window for ease of use by radio stations.
+- Playlist Writer window for ease of use by radio stations and others
+  wanting to be careful about royalties.
 - Can now display metadata for non-rekordbox tracks, including audio
   and data CDs, thanks to dysentery and Beat Link updates.
-
+- Player Status window shows a distinction between players with no
+  track loaded, and with no metadata at all (which is now rare).
 ### Fixed
 
 - Protect against race conditions reading and writing preferences from
