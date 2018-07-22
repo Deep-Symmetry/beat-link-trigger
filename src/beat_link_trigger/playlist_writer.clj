@@ -31,6 +31,11 @@
   order to get written to the playlist in the global preferences."
   :playlist-min-play-seconds)
 
+(def on-air-pref-key
+  "The key used to store the global preference that controls whether a
+  player must be On-Air for it to contribute to a playlist."
+  :playlist-on-air-only)
+
 (defn- make-window-visible
   "Ensures that the playlist writer window is in front, and shown."
   []
@@ -167,7 +172,7 @@
   consisting of that listener and a function that can be called to
   write out playlist entries for any tracks that have currently been
   playing long enough because the playlist file is being closed."
-  [time-spinner file-atom]
+  [time-spinner on-air-checkbox file-atom]
   (let [playing-tracks (atom {})]
     [(reify DeviceUpdateListener
         (received [this device-update]
@@ -176,10 +181,13 @@
                   cdj-status       ^CdjStatus device-update
                   player-number    (.getDeviceNumber cdj-status)
                   min-play-seconds (seesaw/value time-spinner)
+                  on-air-required? (seesaw/value on-air-checkbox)
                   playlist-file    @file-atom]
               (swap! playing-tracks update player-number
                      (fn [old-entry]
-                       (if (.isPlaying cdj-status)
+                       (if (and
+                            (.isPlaying cdj-status)
+                            (or (.isOnAir cdj-status) (not on-air-required?)))
                          (if (track-changed? cdj-status old-entry)
                            (do  ; Write out old entry if it had played enough, and swap in our new one.
                              (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry)
@@ -213,12 +221,24 @@
             (timbre/error e "Problem parsing playlist minimum play time preference value:" pref))))
       10))
 
+(defn- on-air-pref
+  "Retrieve the preference setting for filtering out players that are
+  not On-Air."
+  []
+  (or (when-let [pref (on-air-pref-key (prefs/get-preferences))]
+        (try
+          (Boolean/valueOf pref)
+          (catch Exception e
+            (timbre/error e "Problem parsing playlist on-air preference value:" pref))))
+      false))
+
 (defn- create-window
   "Creates the playlist writer window."
   [trigger-frame]
   (try
     (let [playlist-file (atom nil)
           time-spinner  (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
+          on-air-checkbox (seesaw/checkbox :id :on-air :selected? (on-air-pref))
           toggle-button (seesaw/button :id :start :text "Start")
           status-label  (seesaw/label :id :status :text idle-status)
           panel         (mig/mig-panel
@@ -227,17 +247,20 @@
                                  [time-spinner]
                                  [(seesaw/label :text "seconds") "align left, wrap"]
 
+                                 [(seesaw/label :text "On-Air Players Only?") "align right"]
+                                 [on-air-checkbox]
+                                 [(seesaw/label :text "") "wrap"]
+
                                  [(seesaw/label :text "Status:") "align right"]
                                  [status-label "span, grow, wrap 15"]
 
                                  [(seesaw/label :text "")]
-                                 [toggle-button "span 2"]
-                                 ])
+                                 [toggle-button "span 2"]])
           root            (seesaw/frame :title "Playlist Writer"
                                         :content panel
                                         :on-close :dispose)
           [update-listener
-           close-handler] (build-update-listener time-spinner playlist-file)
+           close-handler] (build-update-listener time-spinner on-air-checkbox playlist-file)
           stop-listener   (reify LifecycleListener
                             (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
                             (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
@@ -252,7 +275,8 @@
                                            (reset! writer-window nil)
                                            (prefs/put-preferences
                                             (assoc (prefs/get-preferences)
-                                                   min-time-pref-key (seesaw/value time-spinner)))))
+                                                   min-time-pref-key (seesaw/value time-spinner)
+                                                   on-air-pref-key (seesaw/value on-air-checkbox)))))
       (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-file
                                                                  close-handler root))
       (seesaw/pack! root)
