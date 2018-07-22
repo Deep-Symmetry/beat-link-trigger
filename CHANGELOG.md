@@ -10,6 +10,8 @@ This change log follows the conventions of
 
 - Support for running under Java 9 and 10.
 - Playlist Writer window for ease of use by radio stations.
+- Can now display metadata for non-rekordbox tracks, including audio
+  and data CDs, thanks to dysentery and Beat Link updates.
 
 ### Fixed
 
