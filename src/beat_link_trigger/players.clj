@@ -10,7 +10,7 @@
             [beat-link-trigger.playlist-entry]
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
-            VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot]
+            VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [org.deepsymmetry.beatlink.data
             MetadataFinder MetadataCacheCreationListener TrackMetadataListener TrackMetadataUpdate
             MountListener MetadataCacheListener SlotReference SearchableItem
@@ -526,13 +526,17 @@
 (defn- update-metadata-labels
   "Updates the track title and artist name when the metadata has
   changed."
-  [metadata title-label artist-label]
+  [metadata player title-label artist-label]
   (seesaw/invoke-soon
    (if metadata
      (do (seesaw/config! title-label :text (or (.getTitle metadata) "[no title]"))
          (seesaw/config! artist-label :text (or (extract-label (.getArtist metadata)) "[no artist]")))
-     (do (seesaw/config! title-label :text "[no track metadata available]")
-         (seesaw/config! artist-label :text "")))))
+     (let [status (.getLatestStatusFor virtual-cdj (int player))
+           title (if (= CdjStatus$TrackType/NO_TRACK (when status (.getTrackType status)))
+                   "[no track loaded]"
+                   "[no track metadata available]")]
+       (seesaw/config! title-label :text title)
+       (seesaw/config! artist-label :text "")))))
 
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
@@ -653,7 +657,7 @@
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
-                             (update-metadata-labels (.metadata md-update) title-label artist-label))))
+                             (update-metadata-labels (.metadata md-update) n title-label artist-label))))
         art-listener   (reify AlbumArtListener
                          (albumArtChanged [this art-update]
                            (when (= n (.player art-update))
@@ -712,7 +716,7 @@
     (.setScale detail (seesaw/value zoom-slider))
     (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device, so vanish.
       (seesaw/config! row :visible? false))
-    (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) title-label artist-label)
+    (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) n title-label artist-label)
     (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
       (.mediaMounted mount-listener slot-reference)
       (when-let [cache (.getMetadataCache metadata-finder slot-reference)]
