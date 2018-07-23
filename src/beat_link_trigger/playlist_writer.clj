@@ -161,10 +161,9 @@
     (let [^CdjStatus old-status (:cdj-status entry)]
       (or (not= (.getTrackType old-status) (.getTrackType new-status))
           (not= (.getTrackNumber old-status) (.getTrackNumber new-status))
-          (and (= (.getTrackType old-status) CdjStatus$TrackType/REKORDBOX)
-               (or (not= (.getTrackSourcePlayer old-status) (.getTrackSourcePlayer new-status))
-                   (not= (.getTrackSourceSlot old-status) (.getTrackSourceSlot new-status))
-                    (not= (.getRekordboxId old-status) (.getRekordboxId new-status))))))))
+          (not= (.getTrackSourcePlayer old-status) (.getTrackSourcePlayer new-status))
+          (not= (.getTrackSourceSlot old-status) (.getTrackSourceSlot new-status))
+          (not= (.getRekordboxId old-status) (.getRekordboxId new-status))))))
 
 (defn- build-update-listener
   "Creates the update listener which keeps track of all playing tracks
