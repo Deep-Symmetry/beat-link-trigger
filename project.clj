@@ -8,10 +8,10 @@
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/data.csv "0.1.4"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
-                 [local/radiance-neon "0.9.0"]
-                 [local/radiance-substance "0.9.0"]
-                 [local/radiance-substance-extras "0.9.0"]
-                 [local/radiance-trident "0.9.0"]
+                 [org.pushing-pixels/radiance-neon "0.9-SNAPSHOT"]
+                 [org.pushing-pixels/radiance-substance "0.9-SNAPSHOT"]
+                 [org.pushing-pixels/radiance-substance-extras "0.9-SNAPSHOT"]
+                 [org.pushing-pixels/radiance-trident "0.9-SNAPSHOT"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.8"]
                  [environ "1.1.0"]
@@ -23,7 +23,7 @@
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
                  [uk.co.xfactory-librarians/coremidi4j "1.1"]]
-  :repositories {"project" "file:repo"}
+  :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
                                       :welcome (println "beat-link-trigger loaded.")}
