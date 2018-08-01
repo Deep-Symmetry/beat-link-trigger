@@ -15,8 +15,11 @@ This change log follows the conventions of
   and data CDs, thanks to dysentery and Beat Link updates.
 - Player Status window shows a distinction between players with no
   track loaded, and with no metadata at all (which is now rare).
+
 ### Fixed
 
+- Make the Player Status window show up in the right size to not
+  require scroll bars.
 - Protect against race conditions reading and writing preferences from
   different threads, now that they are split across multiple nodes.
 

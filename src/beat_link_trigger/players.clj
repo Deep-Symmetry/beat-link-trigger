@@ -536,7 +536,7 @@
                    "[no track loaded]"
                    "[no track metadata available]")]
        (seesaw/config! title-label :text title)
-       (seesaw/config! artist-label :text "")))))
+       (seesaw/config! artist-label :text "n/a")))))
 
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
