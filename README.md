@@ -19,6 +19,9 @@ Download the latest executable `beat-link-trigger.jar` file from the
 page and double-click it to run it. If that doesn&rsquo;t work,
 [see below](#startup-issues).
 
+[![jar](https://img.shields.io/github/downloads/brunchboy/beat-link-trigger/total.svg)](https://github.com/brunchboy/beat-link-trigger/releases)
+
+
 > beat-link-trigger requires Java 7 or 8. It is compiled and tested
 > using the latest release of Java 8, so that is your best bet.
 >
