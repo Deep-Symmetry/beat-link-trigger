@@ -230,12 +230,13 @@
       (Thread/sleep 1000)
       (when-not (:link-bpm @client)
         (timbre/warn "Did not receive inital status packet from Carabiner daemon; disconnecting.")
-        (javax.swing.JOptionPane/showMessageDialog
-         @carabiner-window
-         "Did not receive expected response from Carabiner; is something else running on the specified port?"
-         "Carabiner Connection Rejected"
-         javax.swing.JOptionPane/WARNING_MESSAGE)
-        (disconnect))))
+        (seesaw/invoke-later
+         (javax.swing.JOptionPane/showMessageDialog
+          @carabiner-window
+          "Did not receive expected response from Carabiner; is something else running on the specified port?"
+          "Carabiner Connection Rejected"
+          javax.swing.JOptionPane/WARNING_MESSAGE)
+         (disconnect)))))
   (active?))
 
 (defn valid-tempo?

@@ -22,6 +22,9 @@ This change log follows the conventions of
   require scroll bars.
 - Protect against race conditions reading and writing preferences from
   different threads, now that they are split across multiple nodes.
+- The error dialog that was displayed when we did not hear the right
+  response from a Carabiner daemon after connecting was not being
+  displayed on the correct thread, and so was completely unreadable.
 
 ## [0.3.8] - 2018-06-17
 
