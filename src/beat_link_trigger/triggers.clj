@@ -1315,6 +1315,14 @@
 
 (declare go-online)
 
+(defn- online-menu-name
+  "Expands the content of the Online? menu option to show the current
+  player number if we are online."
+  []
+  (str "Online?"
+       (when (online?)
+         (str "  [We are Player " (.getDeviceNumber (VirtualCdj/getInstance)) "]"))))
+
 (defn- build-trigger-menubar
   "Creates the menu bar for the trigger window."
   []
@@ -1323,7 +1331,7 @@
                                       :name "Inspect Expression Globals"
                                       :tip "Examine any values set as globals by any Trigger Expressions.")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
-        online-item (seesaw/checkbox-menu-item :text "Online?" :id :online :selected? (online?))
+        online-item (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
         metadata-item (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
                                                  :selected? (request-metadata?))
         bg (seesaw/button-group)
@@ -1405,13 +1413,14 @@
 
 (defn- start-other-finders
   "Starts up the full complement of metadata-related finders that we
-  use."
+  use. Also updates the Online menu item to show our player number."
   []
   (.start metadata-finder)
   (.start (ArtFinder/getInstance))
   (.start (BeatGridFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)
-  (.start (WaveformFinder/getInstance)))
+  (.start (WaveformFinder/getInstance))
+  (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name)))
 
 (defn start
   "Create the Triggers window, and register all the notification
@@ -1454,6 +1463,7 @@
   (.stop metadata-finder)
   (.stop (BeatFinder/getInstance))
   (.stop (VirtualCdj/getInstance))
+  (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
   (Thread/sleep 200)  ; Wait for straggling update packets
   (rebuild-all-device-status))
 

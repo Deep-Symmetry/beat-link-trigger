@@ -15,6 +15,9 @@ This change log follows the conventions of
   and data CDs, thanks to dysentery and Beat Link updates.
 - Player Status window shows a distinction between players with no
   track loaded, and with no metadata at all (which is now rare).
+- The `Online?` option in the `Triggers` menu now shows the player
+  number that Beat Link Trigger is using once it is online, to help
+  people understand how it is operating.
 
 ### Fixed
 
