@@ -35,13 +35,13 @@
   []
   (:running @client))
 
-(defn master?
-  "Checks whether we have an active connection for which we are
-  controlling the tempo."
+(defn sync-triggers?
+  "Checks whether we have an active connection for which Link triggers
+  are controlling the tempo."
   []
   (let [state @client]
     (and (:running state)
-         (:master state))))
+         (= :triggers (:sync-mode state)))))
 
 (defn- ensure-active
   "Throws an exception if there is no active connection."
@@ -60,7 +60,7 @@
   tempo is close enough to our target value, and adjust it if needed."
   []
   (let [state @client]
-    (when (and (:master state)
+    (when (and (= :triggers (:sync-mode state))
                (some? (:target-bpm state))
                (> (Math/abs (- (:link-bpm state 0.0) (:target-bpm state))) bpm-tolerance))
       (send-message (str "bpm " (:target-bpm state))))))
@@ -83,7 +83,7 @@
   (when-let [frame @carabiner-window]
     (seesaw/invoke-later
      (let [connected (boolean (active?))]
-       (seesaw/config! (seesaw/select frame [:#master]) :enabled? connected)
+       (seesaw/config! (seesaw/select frame [:#sync-mode]) :enabled? connected)
        (seesaw/config! (seesaw/select frame [:#port]) :enabled? (not connected))
        (seesaw/value! (seesaw/select frame [:#connect]) connected)
        (seesaw/repaint! (seesaw/select frame [:#state]))))))
@@ -310,7 +310,7 @@
   (let [w (double (seesaw/width c))
         h (double (seesaw/height c))
         outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
-        enabled? (master?)
+        enabled? (sync-triggers?)
         tripped? (some? (:target-bpm @client))]
     (.setRenderingHint g java.awt.RenderingHints/KEY_ANTIALIASING java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
 
@@ -355,18 +355,21 @@
                                                                 (swap! client assoc :latency (seesaw/selection e)))])
                           "wrap"]
 
-                         [(seesaw/label :text "Target BPM:") "align right"]
-                         [(seesaw/label :id :target :text "---")]
-                         [(seesaw/checkbox :id :master :text "Master" :enabled? false
-                                           :listen [:item-state-changed (fn [e]
-                                                                          (swap! client assoc :master
-                                                                                 (seesaw/value e))
-                                                                          (seesaw/repaint!
-                                                                           (seesaw/select @carabiner-window [:#state]))
-                                                                          (when (master?) (check-tempo)))])]
+                         [(seesaw/label :text "Sync Mode:") "align right"]
+                         [(seesaw/combobox :id :sync-mode :model ["Off" "Triggers" "Full"] :enabled? false
+                                           :listen [:item-state-changed
+                                                    (fn [e]
+                                                      (swap! client assoc :sync-mode
+                                                             (keyword (clojure.string/lower-case (seesaw/value e))))
+                                                      (seesaw/repaint!
+                                                       (seesaw/select @carabiner-window [:#state]))
+                                                      (when (sync-triggers?) (check-tempo)))])]
                          [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
                                         :tip "Sync state: Outer ring shows enabled, inner light when active.")
                           "wrap"]
+
+                         [(seesaw/label :text "Target BPM:") "align right"]
+                         [(seesaw/label :id :target :text "---") "wrap"]
 
                          [(seesaw/label :text "Link BPM:") "align right"]
                          [(seesaw/label :id :bpm :text "---") "wrap"]

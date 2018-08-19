@@ -1083,7 +1083,7 @@
                            (and (neg? (:number selection))  ; For Any Player, make sure beat's from the tracked player.
                                 (= (get-in data [:last-match 1]) (.getDeviceNumber beat)))))
               (run-trigger-function trigger :beat beat false)
-              (when (and (:tripped data) (= "Link" (:message value)) (carabiner/master?))
+              (when (and (:tripped data) (= "Link" (:message value)) (carabiner/sync-triggers?))
                 (carabiner/beat-at-time (long (/ (.getTimestamp beat) 1000))
                                         (when (:bar value) (.getBeatWithinBar beat)))))))
         (catch Exception e
