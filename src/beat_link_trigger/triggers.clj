@@ -43,11 +43,15 @@
   "A convenient reference to the MetadataFinder singleton."
   (MetadataFinder/getInstance))
 
+(def virtual-cdj
+  "A convenient reference to the VirtualCdj singleton."
+  (VirtualCdj/getInstance))
+
 (defn- initial-global-user-data
   "Create the values to assign the user-data atom for the window
   as a whole"
   []
-  (merge {:global true} (select-keys (prefs/get-preferences) [:request-metadata?])))
+  (merge {:global true} (select-keys (prefs/get-preferences) [:request-metadata? :send-status?])))
 
 (defn- global-user-data
   "Locates the user data attached to the whole triggers frame, for
@@ -61,6 +65,11 @@
   "Checks whether the user wants us to actively request metadata."
   []
   (boolean (:request-metadata? @(global-user-data))))
+
+(defn send-status?
+  "Checks whether the user wants to send status update packets."
+  []
+  (boolean (:send-status? @(global-user-data))))
 
 (defn- enabled?
   "Check whether a trigger is enabled."
@@ -450,7 +459,7 @@
   "Check whether we are in online mode, with all the required
   beat-link finder objects running."
   []
-  (and (.isRunning (DeviceFinder/getInstance)) (.isRunning (VirtualCdj/getInstance))))
+  (and (.isRunning (DeviceFinder/getInstance)) (.isRunning virtual-cdj)))
 
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
@@ -471,7 +480,7 @@
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
         (let [found (when (online?) (.getLatestAnnouncementFrom (DeviceFinder/getInstance) (int (.number selection))))
-              status (when (online?) (.getLatestStatusFor (VirtualCdj/getInstance) (int (.number selection))))]
+              status (when (online?) (.getLatestStatusFor virtual-cdj (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
                 (seesaw/value! status-label (if (online?) "Player not found." "Offline."))
@@ -934,7 +943,8 @@
                                 {:triggers (trigger-configuration)}
                                 (when-let [exprs (:expressions @(global-user-data))]
                                   {:expressions exprs})
-                                (select-keys @(global-user-data) [:tracks-using-playlists? :request-metadata?]))))
+                                (select-keys @(global-user-data) [:tracks-using-playlists? :request-metadata?
+                                                                  :send-status?]))))
 
 ;; Register the custom readers needed to read back in the defrecords that we use,
 ;; including under the old package name before they were moved to the triggers namespace.
@@ -1079,7 +1089,7 @@
             (when (and (some? selection)
                        (or (= (:number selection) (.getDeviceNumber beat))
                            (and (zero? (:number selection))
-                                (.isRunning (VirtualCdj/getInstance)) (.isTempoMaster beat))
+                                (.isRunning virtual-cdj) (.isTempoMaster beat))
                            (and (neg? (:number selection))  ; For Any Player, make sure beat's from the tracked player.
                                 (= (get-in data [:last-match 1]) (.getDeviceNumber beat)))))
               (run-trigger-function trigger :beat beat false)
@@ -1147,6 +1157,7 @@
   (let [m (prefs/get-preferences)]
     (.doClick (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m) :#track-position :#track-id)]))
     (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) (true? (:request-metadata? m)))
+    (.setSelected (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
       (doseq [[kind expr] (sort-setup-to-front exprs)]
@@ -1214,7 +1225,7 @@
   feedback if the current environment is not appropriate, or even not
   ideal. A Seesaw event handler, but we ignore the event argument."
   [_]
-  (if (.isRunning (VirtualCdj/getInstance))
+  (if (.isRunning virtual-cdj)
     (when (acceptable-metadata-state-for-window "Player Status")
       (players/show-window @trigger-frame expression-globals))
     (seesaw/alert "Must be Online to show Player Status window."
@@ -1239,7 +1250,7 @@
 (def ^:private playlist-writer-action
   "The menu action which opens the Playlist Writer window."
   (seesaw/action :handler (fn [_]
-                            (if (.isRunning (VirtualCdj/getInstance))
+                            (if (.isRunning virtual-cdj)
                               (when (acceptable-metadata-state-for-window "Playlist Writer")
                                 (writer/show-window @trigger-frame))
                               (seesaw/alert "Must be Online to show Playlist Writer window."
@@ -1266,7 +1277,7 @@
   about how to proceed."
   []
   (when (online?)
-    (if (> (.getDeviceNumber (VirtualCdj/getInstance)) 4)
+    (if (> (.getDeviceNumber virtual-cdj) 4)
       (let [players (count (util/visible-player-numbers))
             options (to-array (if (> players 1)
                                 ["Cancel" "Use Unreliable Metadata" "Go Offline"]
@@ -1274,7 +1285,7 @@
             mode    (if (> players 1)
                       javax.swing.JOptionPane/YES_NO_CANCEL_OPTION
                       javax.swing.JOptionPane/YES_NO_OPTION)
-            message (str "Beat Link Trigger is using device number " (.getDeviceNumber (VirtualCdj/getInstance))
+            message (str "Beat Link Trigger is using device number " (.getDeviceNumber virtual-cdj)
                          ".\nTo reliably request metadata, it needs to use number 1, 2, 3, or 4.\n\n"
                          (cond
                            (= players 1)
@@ -1313,6 +1324,34 @@
           (.setSelected (seesaw/select @trigger-frame [:#online]) false)))
       (try-go-active))))  ; We can reliably request metadata.
 
+(defn- actively-send-status
+  "Try to start sending status update packets if we are online and are
+  using a valid player number. If we are not using a valid player
+  number, tell the user why this can't be done."
+  []
+  (when (online?)
+    (if (> (.getDeviceNumber virtual-cdj) 4)
+      (let [players (count (util/visible-player-numbers))
+            options (to-array ["Cancel" "Go Offline"])
+            message (str "Beat Link Trigger is using device number " (.getDeviceNumber virtual-cdj)
+                         ".\nTo send status updates, it needs to use number 1, 2, 3, or 4.\n\n"
+                         (if (< players 4)
+                           (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
+                                "go offline and then back online, and it will be able to use one of the\n"
+                                "unused device numbers, which will work great.\n\n")
+
+                           (str "Please go offline, turn off one of the four CDJs currently on the network,\n"
+                                "then go back online, which will let us use that player's device number.\n\n")))
+            choice (seesaw/invoke-now
+                    (javax.swing.JOptionPane/showOptionDialog
+                     nil message "Incompatible Device Number for Sending Status Packets"
+                     javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
+                     options (aget options (dec (count options)))))]
+        (if (zero? choice)
+          (.setSelected (seesaw/select @trigger-frame [:#send-status]) false)  ; Cancel.
+          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))     ; Go offline.
+      (.setSendingStatus virtual-cdj true))))  ; We can do it.
+
 (declare go-online)
 
 (defn- online-menu-name
@@ -1321,25 +1360,27 @@
   []
   (str "Online?"
        (when (online?)
-         (str "  [We are Player " (.getDeviceNumber (VirtualCdj/getInstance)) "]"))))
+         (str "  [We are Player " (.getDeviceNumber virtual-cdj) "]"))))
 
 (defn- build-trigger-menubar
   "Creates the menu bar for the trigger window."
   []
-  (let [inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
-                                                                          :window-name "Expression Globals"))
-                                      :name "Inspect Expression Globals"
-                                      :tip "Examine any values set as globals by any Trigger Expressions.")
+  (let [inspect-action   (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
+                                                                            :window-name "Expression Globals"))
+                                        :name "Inspect Expression Globals"
+                                        :tip "Examine any values set as globals by any Trigger Expressions.")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
-        online-item (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
-        metadata-item (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
-                                                 :selected? (request-metadata?))
-        bg (seesaw/button-group)
-        track-submenu (seesaw/menu :text "Default Track Description"
-                                   :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
-                                                                   :selected? (not using-playlists?) :group bg)
-                                           (seesaw/radio-menu-item :text "playlist position" :id :track-position
-                                                                   :selected? using-playlists? :group bg)])]
+        online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
+        metadata-item    (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
+                                                    :selected? (request-metadata?))
+        status-item      (seesaw/checkbox-menu-item :text "Send Status Packets?" :id :send-status
+                                                    :selected? (send-status?))
+        bg               (seesaw/button-group)
+        track-submenu    (seesaw/menu :text "Default Track Description"
+                                      :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
+                                                                      :selected? (not using-playlists?) :group bg)
+                                              (seesaw/radio-menu-item :text "playlist position" :id :track-position
+                                                                      :selected? using-playlists? :group bg)])]
     (seesaw/listen bg :selection
                    (fn [e]
                      (when-let [s (seesaw/selection bg)]
@@ -1356,6 +1397,13 @@
                      (if (request-metadata?)
                        (actively-request-metadata)
                        (.setPassive metadata-finder true))))
+    (seesaw/listen status-item :item-state-changed
+                   (fn [e]
+                     (swap! (global-user-data) assoc :send-status? (= (.getStateChange e)
+                                                                      java.awt.event.ItemEvent/SELECTED))
+                     (if (send-status?)
+                       (actively-send-status)
+                       (.setSendingStatus virtual-cdj false))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) auto-action view-cache-action
@@ -1370,9 +1418,9 @@
                                          :id :triggers-menu)
 
                             (seesaw/menu :text "Network"
-                                         :items [online-item metadata-item player-status-action
-                                                 playlist-writer-action
-                                                 (seesaw/separator) carabiner-action]
+                                         :items [online-item metadata-item status-item (seesaw/separator)
+                                                 player-status-action playlist-writer-action (seesaw/separator)
+                                                 carabiner-action]
                                          :id :network-menu)])))
 
 (defn update-global-expression-icons
@@ -1446,13 +1494,14 @@
 
       ;; Be able to react to players coming and going
       (.addDeviceAnnouncementListener (DeviceFinder/getInstance) device-listener)
-      (.addUpdateListener (VirtualCdj/getInstance) status-listener)
+      (.addUpdateListener virtual-cdj status-listener)
       (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
       (.addBeatListener (BeatFinder/getInstance) beat-listener))) ; Allow triggers to respond to beats
   (.start (BeatFinder/getInstance))
   (.setPassive metadata-finder true) ; Start out conservatively
   (when (online?) (start-other-finders))
-  (when (request-metadata?) (actively-request-metadata)))
+  (when (request-metadata?) (actively-request-metadata))
+  (when (send-status?) (actively-send-status)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."
@@ -1462,7 +1511,7 @@
   (.stop (ArtFinder/getInstance))
   (.stop metadata-finder)
   (.stop (BeatFinder/getInstance))
-  (.stop (VirtualCdj/getInstance))
+  (.stop virtual-cdj)
   (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
   (Thread/sleep 200)  ; Wait for straggling update packets
   (rebuild-all-device-status))
