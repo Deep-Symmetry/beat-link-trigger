@@ -1403,7 +1403,9 @@
                                                                       java.awt.event.ItemEvent/SELECTED))
                      (if (send-status?)
                        (actively-send-status)
-                       (.setSendingStatus virtual-cdj false))))
+                       (do
+                         (carabiner/cancel-full-sync)
+                         (.setSendingStatus virtual-cdj false)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) auto-action view-cache-action

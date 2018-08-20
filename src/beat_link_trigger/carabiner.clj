@@ -43,6 +43,27 @@
     (and (:running state)
          (= :triggers (:sync-mode state)))))
 
+(defn sync-full?
+  "Checks whether we have an active connection and are configured for
+  bidirectional synchronization between Ableton Link and Pioneer Pro
+  DJ Link."
+  []
+  (let [state @client]
+    (and (:running state)
+         (= :full (:sync-mode state)))))
+
+(defn cancel-full-sync
+  "If we are configured to be fully synced (whether or not we have an
+  active Carabiner connection), disable sync entirely. This is called
+  when the user turns off status packets, since they are required for
+  full sync to work."
+  []
+  (when-let [frame @carabiner-window]
+    (seesaw/invoke-later
+     (let [sync-mode (seesaw/select frame [:#sync-mode])]
+       (when (= (seesaw/value sync-mode) "Full")
+         (seesaw/value! sync-mode "Off"))))))
+
 (defn- ensure-active
   "Throws an exception if there is no active connection."
   []
@@ -331,6 +352,20 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
+(defn- sending-status?
+  "Checks whether we are currently sending status packets, which is
+  required to set the sync mode to full."
+  []
+  ((resolve 'beat-link-trigger.triggers/send-status?)))
+
+(defn- report-status-requirement
+  "Displays an error explaining that status updates must be sent in
+  order to enable full sync."
+  [parent]
+  (seesaw/alert parent (str "Must be Sending Status Packets to set Sync Mode to Full.\n"
+                            "Please enable them using the Network menu.")
+                :title "Beat Link Trigger isn't sending Status Packets" :type :error))
+
 (defn- create-window
   "Creates the Carabiner window."
   [trigger-frame]
@@ -359,11 +394,17 @@
                          [(seesaw/combobox :id :sync-mode :model ["Off" "Triggers" "Full"] :enabled? false
                                            :listen [:item-state-changed
                                                     (fn [e]
-                                                      (swap! client assoc :sync-mode
-                                                             (keyword (clojure.string/lower-case (seesaw/value e))))
-                                                      (seesaw/repaint!
-                                                       (seesaw/select @carabiner-window [:#state]))
-                                                      (when (sync-triggers?) (check-tempo)))])]
+                                                      (when (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
+                                                        (let [new-mode (keyword
+                                                                        (clojure.string/lower-case (seesaw/value e)))]
+                                                          (if (and (= new-mode :full) (not (sending-status?)))
+                                                            (do
+                                                              (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
+                                                              (report-status-requirement root))
+                                                            (swap! client assoc :sync-mode new-mode)))
+                                                        (seesaw/repaint!
+                                                         (seesaw/select @carabiner-window [:#state]))
+                                                        (when (sync-triggers?) (check-tempo))))])]
                          [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
                                         :tip "Sync state: Outer ring shows enabled, inner light when active.")
                           "wrap"]
