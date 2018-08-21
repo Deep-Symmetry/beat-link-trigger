@@ -393,6 +393,27 @@
     (started [this sender] (enable-pioneer-sync-controls true))
     (stopped [this sender] (enable-pioneer-sync-controls false))))
 
+(defn- update-device-visibility
+  "Shows or hides the sync control row corresponding to a device, given its number."
+  [device visible?]
+  (when (#{1 2 3 4 33} device)
+    (letfn [(update-elem [prefix]
+              (let [target [(keyword (str "#" prefix "-" device))]]
+                (seesaw/visible! (seesaw/select @carabiner-window target) visible?)))]
+      (seesaw/invoke-soon
+       (doseq [elem ["player" "sync" "master"]]
+         (update-elem elem))
+       (seesaw/pack! @carabiner-window)))))
+
+(def ^:private device-announcement-listener
+  "Responds to the coming and going of devices, updating visibility of
+  the corresponding sync control elements."
+  (reify DeviceAnnouncementListener
+    (deviceFound [this announcement]
+      (update-device-visibility (.getNumber announcement) true))
+    (deviceLost [this announcement]
+      (update-device-visibility (.getNumber announcement) false))))
+
 (defn- create-window
   "Creates the Carabiner window."
   [trigger-frame]
@@ -459,23 +480,23 @@
 
                          [(seesaw/separator) "growx, span, wrap"]
 
-                         [(seesaw/label :text "Player 1:") "align right"]
+                         [(seesaw/label :id :player-1 :text "Player 1:") "align right"]
                          [(seesaw/checkbox :id :sync-1 :text "Sync")]
                          [(seesaw/radio :id :master-1 :text "Master" :group group) "wrap"]
 
-                         [(seesaw/label :text "Player 2:") "align right"]
+                         [(seesaw/label :id :player-2 :text "Player 2:") "align right"]
                          [(seesaw/checkbox :id :sync-2 :text "Sync")]
                          [(seesaw/radio :id :master-2 :text "Master" :group group) "wrap"]
 
-                         [(seesaw/label :text "Player 3:") "align right"]
+                         [(seesaw/label :id :player-3 :text "Player 3:") "align right"]
                          [(seesaw/checkbox :id :sync-3 :text "Sync")]
                          [(seesaw/radio :id :master-3 :text "Master" :group group) "wrap"]
 
-                         [(seesaw/label :text "Player 4:") "align right"]
+                         [(seesaw/label :id :player-4 :text "Player 4:") "align right"]
                          [(seesaw/checkbox :id :sync-4 :text "Sync")]
                          [(seesaw/radio :id :master-4 :text "Master" :group group) "wrap"]
 
-                         [(seesaw/label :text "Mixer:") "align right"]
+                         [(seesaw/label :id :player-33 :text "Mixer:") "align right"]
                          [(seesaw/checkbox :id :sync-33 :text "Sync")]
                          [(seesaw/radio :id :master-33 :text "Master" :group group) "wrap"]])]
 
@@ -490,8 +511,13 @@
       (update-connected-status)
       (update-link-status)
       (update-target-tempo)
+
       (.addLifecycleListener virtual-cdj virtual-cdj-lifecycle-listener)
       (enable-pioneer-sync-controls (.isRunning virtual-cdj))  ; Set proper initial state.
+      (.addDeviceAnnouncementListener device-finder device-announcement-listener)
+      (doseq [device [1 2 3 4 33]]  ; Set proper initial state
+        (update-device-visibility device (and (.isRunning device-finder)
+                                              (some? (.getLatestAnnouncementFrom device-finder device)))))
       (.setLocationRelativeTo root trigger-frame)
       (make-window-visible))
     (catch Exception e
