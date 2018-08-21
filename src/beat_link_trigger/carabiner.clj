@@ -369,6 +369,14 @@
   []
   ((resolve 'beat-link-trigger.triggers/send-status?)))
 
+(defn- report-online-requirement
+  "Displays an error explaining that we must be online in order to
+  enable any sync."
+  [parent]
+  (seesaw/alert parent (str "Must be Online to enable any Sync Mode.\n"
+                            "Please go Online using the Network menu.")
+                :title "Beat Link Trigger isn't Online" :type :error))
+
 (defn- report-status-requirement
   "Displays an error explaining that status updates must be sent in
   order to enable full sync."
@@ -390,8 +398,11 @@
   "Responds to the Virtual CDJ starting or stopping so we can enable or
   disable the sync and master buttons appropriately."
   (reify LifecycleListener
-    (started [this sender] (enable-pioneer-sync-controls true))
-    (stopped [this sender] (enable-pioneer-sync-controls false))))
+    (started [this sender]
+      (enable-pioneer-sync-controls true))
+    (stopped [this sender]
+      (enable-pioneer-sync-controls false)
+      (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off"))))
 
 (defn- update-device-visibility
   "Shows or hides the sync control row corresponding to a device, given its number."
@@ -447,11 +458,19 @@
                                                       (when (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
                                                         (let [new-mode (keyword
                                                                         (clojure.string/lower-case (seesaw/value e)))]
-                                                          (if (and (= new-mode :full) (not (sending-status?)))
+                                                          (cond
+                                                            (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
+                                                            (do
+                                                              (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
+                                                              (report-online-requirement root))
+
+                                                            (and (= new-mode :full) (not (sending-status?)))
                                                             (do
                                                               (seesaw/value! (seesaw/select root [:#sync-mode])
                                                                              "Passive")
                                                               (report-status-requirement root))
+
+                                                            :else
                                                             (swap! client assoc :sync-mode new-mode)))
                                                         (seesaw/repaint!
                                                          (seesaw/select @carabiner-window [:#state]))
