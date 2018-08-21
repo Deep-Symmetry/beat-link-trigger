@@ -4,7 +4,9 @@
   (:require [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [java.net Socket]))
+  (:import [java.net Socket]
+           (org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
+                                      VirtualCdj DeviceUpdate CdjStatus MixerStatus)))
 
 (defonce ^{:private true
            :doc "When connected, holds the socket used to communicate
@@ -23,6 +25,15 @@
            :doc "Holds the frame allowing the user to configure and
   control the connection to the Carabiner daemon."}
   carabiner-window (atom nil))
+
+(def device-finder
+  "The object that tracks the arrival and departure of devices on the
+  DJ Link network."
+  (DeviceFinder/getInstance))
+
+(def virtual-cdj
+  "The object which can obtained detailed player status information."
+  (VirtualCdj/getInstance))
 
 (def bpm-tolerance
   "The amount by which the Link tempo can differ from our target tempo
@@ -366,6 +377,22 @@
                             "Please enable them using the Network menu.")
                 :title "Beat Link Trigger isn't sending Status Packets" :type :error))
 
+(defn- enable-pioneer-sync-controls
+  "Updates the Pioneer device sync/master control buttons to reflect
+  whether we are currently online, which controls whether they are
+  functional."
+  [enabled]
+  (doseq [i [1 2 3 4 33]]
+    (seesaw/config! (seesaw/select @carabiner-window [(keyword (str "#sync-" i))]) :enabled? enabled)
+    (seesaw/config! (seesaw/select @carabiner-window [(keyword (str "#master-" i))]) :enabled? enabled)))
+
+(def ^:private virtual-cdj-lifecycle-listener
+  "Responds to the Virtual CDJ starting or stopping so we can enable or
+  disable the sync and master buttons appropriately."
+  (reify LifecycleListener
+    (started [this sender] (enable-pioneer-sync-controls true))
+    (stopped [this sender] (enable-pioneer-sync-controls false))))
+
 (defn- create-window
   "Creates the Carabiner window."
   [trigger-frame]
@@ -450,9 +477,7 @@
 
                          [(seesaw/label :text "Mixer:") "align right"]
                          [(seesaw/checkbox :id :sync-33 :text "Sync")]
-                         [(seesaw/radio :id :master-33 :text "Master" :group group) "wrap"]
-
-                         ])]
+                         [(seesaw/radio :id :master-33 :text "Master" :group group) "wrap"]])]
 
       ;; Attach the custom paint function to render the graphical trigger state
       (seesaw/config! (seesaw/select panel [:#state]) :paint paint-state)
@@ -465,6 +490,8 @@
       (update-connected-status)
       (update-link-status)
       (update-target-tempo)
+      (.addLifecycleListener virtual-cdj virtual-cdj-lifecycle-listener)
+      (enable-pioneer-sync-controls (.isRunning virtual-cdj))  ; Set proper initial state.
       (.setLocationRelativeTo root trigger-frame)
       (make-window-visible))
     (catch Exception e
