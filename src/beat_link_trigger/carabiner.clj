@@ -449,7 +449,8 @@
                                                                         (clojure.string/lower-case (seesaw/value e)))]
                                                           (if (and (= new-mode :full) (not (sending-status?)))
                                                             (do
-                                                              (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
+                                                              (seesaw/value! (seesaw/select root [:#sync-mode])
+                                                                             "Passive")
                                                               (report-status-requirement root))
                                                             (swap! client assoc :sync-mode new-mode)))
                                                         (seesaw/repaint!
@@ -473,9 +474,15 @@
                          [(seesaw/separator) "growx, span, wrap"]
 
                          [(seesaw/label :text "Ableton Link:") "align right"]
-                         [(seesaw/checkbox :id :sync-link :text "Sync")]
-                         [(seesaw/radio :id :master-link :text "Master" :group group) "wrap"]
+                         [(seesaw/checkbox :id :sync-link :text "Sync")]  ; TODO: Enable only in Passive/Full
+                         [(seesaw/radio :id :master-link :text "Master" :group group) "wrap"]  ; TODO: only in Full
 
+                         ;; TODO: Enable only in Passive/Full, and add change handlers for all these,
+                         ;;       so they make the device catch up to the user-desired state, unless the
+                         ;;       state change was programmatic, to make the UI catch up to the actual current
+                         ;;       device state. In Triggers mode the Align checkbox will be disabled but
+                         ;;       should get updated whenever a Link trigger is controlling the state (and
+                         ;;       so should the Sync checkbox above).
                          [(seesaw/checkbox :id :bar :text "Align at bar level") "skip 1, span 2, wrap"]
 
                          [(seesaw/separator) "growx, span, wrap"]
