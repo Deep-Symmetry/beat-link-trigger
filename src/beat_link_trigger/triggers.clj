@@ -356,7 +356,8 @@
           "CC" (midi/midi-control output note 0 (dec channel))
           "Clock" (when stop (midi/midi-send-msg (:receiver output) stop-message -1))
           nil))
-      (when (= message "Link") (carabiner/unlock-tempo))
+      (when (and (= message "Link") (carabiner/sync-triggers?))
+        (carabiner/unlock-tempo))
       (run-trigger-function trigger :deactivation status false))
     (catch Exception e
       (timbre/error e "Problem reporting player deactivation."))))
@@ -384,9 +385,10 @@
         (let [tempo (if-let [bpm-override (:use-fixed-sync-bpm @expression-globals)]
                       (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch status)) bpm-override)
                       (.getEffectiveTempo status))]
-          (if (carabiner/valid-tempo? tempo)
-            (carabiner/lock-tempo tempo)
-            (carabiner/unlock-tempo)))))
+          (when (carabiner/sync-triggers?)
+            (if (carabiner/valid-tempo? tempo)
+              (carabiner/lock-tempo tempo)
+              (carabiner/unlock-tempo))))))
     (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
       (start-clock trigger updated)
       (stop-clock trigger updated)))
