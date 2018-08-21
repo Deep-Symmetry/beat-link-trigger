@@ -370,9 +370,11 @@
   "Creates the Carabiner window."
   [trigger-frame]
   (try
-    (let [root (seesaw/frame :title "Carabiner Connection"
-                             :on-close :hide)
+    (let [root  (seesaw/frame :title "Carabiner Connection"
+                              :on-close :hide)
+          group (seesaw/button-group)
           panel (mig/mig-panel
+                 :constraints ["hidemode 3"]
                  :background "#ccc"
                  :items [[(seesaw/label :text "Carabiner Port:") "align right"]
                          [(seesaw/spinner :id :port
@@ -406,8 +408,10 @@
                                                          (seesaw/select @carabiner-window [:#state]))
                                                         (when (sync-triggers?) (check-tempo))))])]
                          [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
-                                        :tip "Sync state: Outer ring shows enabled, inner light when active.")
+                                         :tip "Sync state: Outer ring shows enabled, inner light when active.")
                           "wrap"]
+
+                         [(seesaw/separator) "growx, span, wrap"]
 
                          [(seesaw/label :text "Target BPM:") "align right"]
                          [(seesaw/label :id :target :text "---") "wrap"]
@@ -416,7 +420,39 @@
                          [(seesaw/label :id :bpm :text "---") "wrap"]
 
                          [(seesaw/label :text "Link Peers:") "align right"]
-                         [(seesaw/label :id :peers :text "---")]])]
+                         [(seesaw/label :id :peers :text "---") "wrap"]
+
+                         [(seesaw/separator) "growx, span, wrap"]
+
+                         [(seesaw/label :text "Ableton Link:") "align right"]
+                         [(seesaw/checkbox :id :sync-link :text "Sync")]
+                         [(seesaw/radio :id :master-link :text "Master" :group group) "wrap"]
+
+                         [(seesaw/checkbox :id :bar :text "Align at bar level") "skip 1, span 2, wrap"]
+
+                         [(seesaw/separator) "growx, span, wrap"]
+
+                         [(seesaw/label :text "Player 1:") "align right"]
+                         [(seesaw/checkbox :id :sync-1 :text "Sync")]
+                         [(seesaw/radio :id :master-1 :text "Master" :group group) "wrap"]
+
+                         [(seesaw/label :text "Player 2:") "align right"]
+                         [(seesaw/checkbox :id :sync-2 :text "Sync")]
+                         [(seesaw/radio :id :master-2 :text "Master" :group group) "wrap"]
+
+                         [(seesaw/label :text "Player 3:") "align right"]
+                         [(seesaw/checkbox :id :sync-3 :text "Sync")]
+                         [(seesaw/radio :id :master-3 :text "Master" :group group) "wrap"]
+
+                         [(seesaw/label :text "Player 4:") "align right"]
+                         [(seesaw/checkbox :id :sync-4 :text "Sync")]
+                         [(seesaw/radio :id :master-4 :text "Master" :group group) "wrap"]
+
+                         [(seesaw/label :text "Mixer:") "align right"]
+                         [(seesaw/checkbox :id :sync-33 :text "Sync")]
+                         [(seesaw/radio :id :master-33 :text "Master" :group group) "wrap"]
+
+                         ])]
 
       ;; Attach the custom paint function to render the graphical trigger state
       (seesaw/config! (seesaw/select panel [:#state]) :paint paint-state)
@@ -424,6 +460,7 @@
       ;; Assemble the window
       (seesaw/config! root :content panel)
       (seesaw/pack! root)
+      (.setResizable root false)
       (reset! carabiner-window root)
       (update-connected-status)
       (update-link-status)
