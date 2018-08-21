@@ -775,6 +775,15 @@
   (.toFront @player-window)
   (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
 
+(defn build-no-player-indicator
+  "Creates a label with a large border that reports the absence of any
+  players on the network."
+  []
+  (let [no-players (seesaw/label :text "No players are currently visible on the network."
+                                 :font (get-display-font :orbitron Font/PLAIN 16))]
+    (.setBorder no-players (javax.swing.border.EmptyBorder. 10 10 10 10))
+    no-players))
+
 (defn- create-window
   "Creates the Player Status window."
   [trigger-frame globals]
@@ -784,14 +793,14 @@
           root          (seesaw/frame :title "Player Status"
                                       :on-close :dispose)
           players       (seesaw/vertical-panel :id :players)
-          no-players    (seesaw/label :text "No players are currently visible on the network."
-                                      :font (get-display-font :orbitron Font/PLAIN 24))
+          no-players    (build-no-player-indicator)
           stop-listener  (reify LifecycleListener
                            (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
                            (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
                              (seesaw/invoke-later
                               (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
       (seesaw/config! root :content (seesaw/scrollable players))
+
       (seesaw/config! players :items (concat [no-players] (create-player-rows shutdown-chan no-players)))
       (seesaw/listen root :window-closed (fn [e]
                                            (>!! shutdown-chan :done)
