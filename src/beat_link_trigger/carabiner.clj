@@ -65,15 +65,15 @@
 
 (defn cancel-full-sync
   "If we are configured to be fully synced (whether or not we have an
-  active Carabiner connection), disable sync entirely. This is called
-  when the user turns off status packets, since they are required for
-  full sync to work."
+  active Carabiner connection), fall back to passive sync. This is
+  called when the user turns off status packets, since they are
+  required for full sync to work."
   []
   (when-let [frame @carabiner-window]
     (seesaw/invoke-later
      (let [sync-mode (seesaw/select frame [:#sync-mode])]
        (when (= (seesaw/value sync-mode) "Full")
-         (seesaw/value! sync-mode "Off"))))))
+         (seesaw/value! sync-mode "Passive"))))))
 
 (defn- ensure-active
   "Throws an exception if there is no active connection."
@@ -420,7 +420,7 @@
                           "wrap"]
 
                          [(seesaw/label :text "Sync Mode:") "align right"]
-                         [(seesaw/combobox :id :sync-mode :model ["Off" "Triggers" "Full"] :enabled? false
+                         [(seesaw/combobox :id :sync-mode :model ["Off" "Triggers" "Passive" "Full"] :enabled? false
                                            :listen [:item-state-changed
                                                     (fn [e]
                                                       (when (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
