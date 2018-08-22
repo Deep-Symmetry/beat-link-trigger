@@ -417,6 +417,31 @@
          (update-elem elem))
        (seesaw/pack! @carabiner-window)))))
 
+(defn- start-sync-state-updates
+  "Creates and starts the thread which updates the Sync and Master UI to
+  reflect changes initiated on the devices themselves."
+  [frame]
+  (future
+    (loop []
+      (try
+        (seesaw/invoke-later
+         (doseq [status (.getLatestStatus virtual-cdj)]
+           (let [device        (.getDeviceNumber status)
+                 master-button (seesaw/select frame [(keyword (str "#master-" device))])
+                 sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
+             (when (not= (seesaw/value sync-box) (.isSynced status))
+               (let [changed (get-in @client [:sync-command-sent (long device)])]
+                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                   (seesaw/value! sync-box (.isSynced status)))))
+             (when (not= (seesaw/value master-button) (.isTempoMaster status))
+               (let [changed (:master-command-sent @client)]
+                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                   (seesaw/value! master-button (.isTempoMaster status))))))))
+        (Thread/sleep 100)
+        (catch Exception e
+          (timbre/warn e "Problem updating Carabiner device Sync/Master button states.")))
+      (recur))))
+
 (defn- sync-box-changed
   "Called when one of the device Sync checkboxes has been toggled. Makes
   sure the corresponding device's sync state is in agreement (we may
@@ -437,7 +462,7 @@
   [^ItemEvent event device]
   (when (= (.getStateChange event) ItemEvent/SELECTED)  ; This is the new master
     (when-not (.isTempoMaster (.getLatestStatusFor virtual-cdj device))  ; But it doesn't know it yet
-      (swap! client assoc-in [:master-command-sent device] (System/currentTimeMillis))
+      (swap! client assoc :master-command-sent (System/currentTimeMillis))
       (.appointTempoMaster virtual-cdj device))))
 
 (defn- build-device-sync-rows
@@ -568,6 +593,7 @@
       (doseq [device [1 2 3 4 33]]  ; Set proper initial state
         (update-device-visibility device (and (.isRunning device-finder)
                                               (some? (.getLatestAnnouncementFrom device-finder device)))))
+      (start-sync-state-updates root)
       (.setLocationRelativeTo root trigger-frame)
       (make-window-visible))
     (catch Exception e
