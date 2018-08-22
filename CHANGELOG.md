@@ -18,6 +18,8 @@ This change log follows the conventions of
 - The `Online?` option in the `Triggers` menu now shows the player
   number that Beat Link Trigger is using once it is online, to help
   people understand how it is operating.
+- The Carabiner window now lets you control which device is the Tempo
+  Master and which devices are synced to it.
 
 ### Fixed
 
@@ -28,6 +30,8 @@ This change log follows the conventions of
 - The error dialog that was displayed when we did not hear the right
   response from a Carabiner daemon after connecting was not being
   displayed on the correct thread, and so was completely unreadable.
+- The Player Status window display when no players were found was huge
+  and lacked suitable borders. It looks much better now.
 
 ## [0.3.8] - 2018-06-17
 
