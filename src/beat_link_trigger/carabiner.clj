@@ -5,8 +5,9 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [java.net Socket]
-           (org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
-                                      VirtualCdj DeviceUpdate CdjStatus MixerStatus)))
+           [java.awt.event ItemEvent]
+           [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
+            VirtualCdj DeviceUpdate CdjStatus MixerStatus]))
 
 (defonce ^{:private true
            :doc "When connected, holds the socket used to communicate
@@ -416,6 +417,46 @@
          (update-elem elem))
        (seesaw/pack! @carabiner-window)))))
 
+(defn- sync-box-changed
+  "Called when one of the device Sync checkboxes has been toggled. Makes
+  sure the corresponding device's sync state is in agreement (we may
+  not need to do anything, because our state change may be in response
+  to a report from the device itself.)"
+  [^ItemEvent event device]
+  (let [selected (= (.getStateChange event) ItemEvent/SELECTED)
+        enabled  (.isSynced (.getLatestStatusFor virtual-cdj device))]
+    (when (not= selected enabled)
+      (swap! client assoc-in [:sync-command-sent device] (System/currentTimeMillis))
+      (.sendSyncModeCommand virtual-cdj device selected))))
+
+(defn- master-button-changed
+  "Called when one of the device Master radio buttons has been toggled. Makes
+  sure the corresponding device's Master state is in agreement (we may
+  not need to do anything, because our state change may be in response
+  to a report from the device itself.)"
+  [^ItemEvent event device]
+  (when (= (.getStateChange event) ItemEvent/SELECTED)  ; This is the new master
+    (when-not (.isTempoMaster (.getLatestStatusFor virtual-cdj device))  ; But it doesn't know it yet
+      (swap! client assoc-in [:master-command-sent device] (System/currentTimeMillis))
+      (.appointTempoMaster virtual-cdj device))))
+
+(defn- build-device-sync-rows
+  "Creates the GUI elements which allow you to view and manipulate the
+  sync and tempo master states of the Pioneer devies found on the
+  network. Takes the button group to which the Master radio buttons
+  should belong."
+  [group]
+  (apply concat
+         (for [device [1 2 3 4 33]]
+           (let [label (if (= device 33) "Mixer:" (str "Player " device " :"))]
+             [[(seesaw/label :id (keyword (str "player-" device)) :text label) "align right"]
+              [(seesaw/checkbox :id (keyword (str "sync-" device)) :text "Sync"
+                                :listen [:item-state-changed (fn [^ItemEvent e]
+                                                               (sync-box-changed e device))])]
+              [(seesaw/radio :id (keyword (str "master-" device)) :text "Master" :group group
+                             :listen [:item-state-changed (fn [^ItemEvent e]
+                                                            (master-button-changed e device))]) "wrap"]]))))
+
 (def ^:private device-announcement-listener
   "Responds to the coming and going of devices, updating visibility of
   the corresponding sync control elements."
@@ -435,96 +476,79 @@
           panel (mig/mig-panel
                  :constraints ["hidemode 3"]
                  :background "#ccc"
-                 :items [[(seesaw/label :text "Carabiner Port:") "align right"]
-                         [(seesaw/spinner :id :port
-                                          :model (seesaw/spinner-model (:port @client) :from 1 :to 32767)
-                                          :listen [:selection (fn [e]
-                                                                (swap! client assoc :port (seesaw/selection e)))])]
-                         [(seesaw/checkbox :id :connect :text "Connect"
-                                           :listen [:action (fn [e]
-                                                              (connect-choice (seesaw/value e)))]) "span 2, wrap"]
+                 :items (concat
+                         [[(seesaw/label :text "Carabiner Port:") "align right"]
+                          [(seesaw/spinner :id :port
+                                           :model (seesaw/spinner-model (:port @client) :from 1 :to 32767)
+                                           :listen [:selection (fn [e]
+                                                                 (swap! client assoc :port (seesaw/selection e)))])]
+                          [(seesaw/checkbox :id :connect :text "Connect"
+                                            :listen [:action (fn [e]
+                                                               (connect-choice (seesaw/value e)))]) "span 2, wrap"]
 
-                         [(seesaw/label :text "Latency (ms):") "align right"]
-                         [(seesaw/spinner :id :latency
-                                          :model (seesaw/spinner-model (:latency @client) :from 0 :to 1000)
-                                          :listen [:selection (fn [e]
-                                                                (swap! client assoc :latency (seesaw/selection e)))])
-                          "wrap"]
+                          [(seesaw/label :text "Latency (ms):") "align right"]
+                          [(seesaw/spinner :id :latency
+                                           :model (seesaw/spinner-model (:latency @client) :from 0 :to 1000)
+                                           :listen [:selection (fn [e]
+                                                                 (swap! client assoc :latency (seesaw/selection e)))])
+                           "wrap"]
 
-                         [(seesaw/label :text "Sync Mode:") "align right"]
-                         [(seesaw/combobox :id :sync-mode :model ["Off" "Triggers" "Passive" "Full"] :enabled? false
-                                           :listen [:item-state-changed
-                                                    (fn [e]
-                                                      (when (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
-                                                        (let [new-mode (keyword
-                                                                        (clojure.string/lower-case (seesaw/value e)))]
-                                                          (cond
-                                                            (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
-                                                            (do
-                                                              (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
-                                                              (report-online-requirement root))
+                          [(seesaw/label :text "Sync Mode:") "align right"]
+                          [(seesaw/combobox :id :sync-mode :model ["Off" "Triggers" "Passive" "Full"] :enabled? false
+                                            :listen [:item-state-changed
+                                                     (fn [^ItemEvent e]
+                                                       (when (= (.getStateChange e) ItemEvent/SELECTED)
+                                                         (let [new-mode (keyword
+                                                                         (clojure.string/lower-case (seesaw/value e)))]
+                                                           (cond
+                                                             (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
+                                                             (do
+                                                               (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
+                                                               (report-online-requirement root))
 
-                                                            (and (= new-mode :full) (not (sending-status?)))
-                                                            (do
-                                                              (seesaw/value! (seesaw/select root [:#sync-mode])
-                                                                             "Passive")
-                                                              (report-status-requirement root))
+                                                             (and (= new-mode :full) (not (sending-status?)))
+                                                             (do
+                                                               (seesaw/value! (seesaw/select root [:#sync-mode])
+                                                                              "Passive")
+                                                               (report-status-requirement root))
 
-                                                            :else
-                                                            (swap! client assoc :sync-mode new-mode)))
-                                                        (seesaw/repaint!
-                                                         (seesaw/select @carabiner-window [:#state]))
-                                                        (when (sync-triggers?) (check-tempo))))])]
-                         [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
-                                         :tip "Sync state: Outer ring shows enabled, inner light when active.")
-                          "wrap"]
+                                                             :else
+                                                             (swap! client assoc :sync-mode new-mode)))
+                                                         (seesaw/repaint!
+                                                          (seesaw/select @carabiner-window [:#state]))
+                                                         (when (sync-triggers?) (check-tempo))))])]
+                          [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
+                                          :tip "Sync state: Outer ring shows enabled, inner light when active.")
+                           "wrap"]
 
-                         [(seesaw/separator) "growx, span, wrap"]
+                          [(seesaw/separator) "growx, span, wrap"]
 
-                         [(seesaw/label :text "Target BPM:") "align right"]
-                         [(seesaw/label :id :target :text "---") "wrap"]
+                          [(seesaw/label :text "Target BPM:") "align right"]
+                          [(seesaw/label :id :target :text "---") "wrap"]
 
-                         [(seesaw/label :text "Link BPM:") "align right"]
-                         [(seesaw/label :id :bpm :text "---") "wrap"]
+                          [(seesaw/label :text "Link BPM:") "align right"]
+                          [(seesaw/label :id :bpm :text "---") "wrap"]
 
-                         [(seesaw/label :text "Link Peers:") "align right"]
-                         [(seesaw/label :id :peers :text "---") "wrap"]
+                          [(seesaw/label :text "Link Peers:") "align right"]
+                          [(seesaw/label :id :peers :text "---") "wrap"]
 
-                         [(seesaw/separator) "growx, span, wrap"]
+                          [(seesaw/separator) "growx, span, wrap"]
 
-                         [(seesaw/label :text "Ableton Link:") "align right"]
-                         [(seesaw/checkbox :id :sync-link :text "Sync")]  ; TODO: Enable only in Passive/Full
-                         [(seesaw/radio :id :master-link :text "Master" :group group) "wrap"]  ; TODO: only in Full
+                          [(seesaw/label :text "Ableton Link:") "align right"]
+                          [(seesaw/checkbox :id :sync-link :text "Sync")]  ; TODO: Enable only in Passive/Full
+                          [(seesaw/radio :id :master-link :text "Master" :group group) "wrap"]  ; TODO: only in Full
 
-                         ;; TODO: Enable only in Passive/Full, and add change handlers for all these,
-                         ;;       so they make the device catch up to the user-desired state, unless the
-                         ;;       state change was programmatic, to make the UI catch up to the actual current
-                         ;;       device state. In Triggers mode the Align checkbox will be disabled but
-                         ;;       should get updated whenever a Link trigger is controlling the state (and
-                         ;;       so should the Sync checkbox above).
-                         [(seesaw/checkbox :id :bar :text "Align at bar level") "skip 1, span 2, wrap"]
+                          ;; TODO: Enable only in Passive/Full, and add change handlers for all these,
+                          ;;       so they make the device catch up to the user-desired state, unless the
+                          ;;       state change was programmatic, to make the UI catch up to the actual current
+                          ;;       device state. In Triggers mode the Align checkbox will be disabled but
+                          ;;       should get updated whenever a Link trigger is controlling the state (and
+                          ;;       so should the Sync checkbox above).
+                          [(seesaw/checkbox :id :bar :text "Align at bar level") "skip 1, span 2, wrap"]
 
-                         [(seesaw/separator) "growx, span, wrap"]
+                          [(seesaw/separator) "growx, span, wrap"]]
 
-                         [(seesaw/label :id :player-1 :text "Player 1:") "align right"]
-                         [(seesaw/checkbox :id :sync-1 :text "Sync")]
-                         [(seesaw/radio :id :master-1 :text "Master" :group group) "wrap"]
-
-                         [(seesaw/label :id :player-2 :text "Player 2:") "align right"]
-                         [(seesaw/checkbox :id :sync-2 :text "Sync")]
-                         [(seesaw/radio :id :master-2 :text "Master" :group group) "wrap"]
-
-                         [(seesaw/label :id :player-3 :text "Player 3:") "align right"]
-                         [(seesaw/checkbox :id :sync-3 :text "Sync")]
-                         [(seesaw/radio :id :master-3 :text "Master" :group group) "wrap"]
-
-                         [(seesaw/label :id :player-4 :text "Player 4:") "align right"]
-                         [(seesaw/checkbox :id :sync-4 :text "Sync")]
-                         [(seesaw/radio :id :master-4 :text "Master" :group group) "wrap"]
-
-                         [(seesaw/label :id :player-33 :text "Mixer:") "align right"]
-                         [(seesaw/checkbox :id :sync-33 :text "Sync")]
-                         [(seesaw/radio :id :master-33 :text "Master" :group group) "wrap"]])]
+                         (build-device-sync-rows group)))]
 
       ;; Attach the custom paint function to render the graphical trigger state
       (seesaw/config! (seesaw/select panel [:#state]) :paint paint-state)
