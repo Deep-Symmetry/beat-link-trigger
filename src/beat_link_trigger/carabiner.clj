@@ -47,6 +47,14 @@
   []
   (:running @client))
 
+(defn sync-enabled?
+  "Checks whether we have an active connection and are in any Sync Mode
+  other than Off."
+  []
+  (let [state @client]
+    (and (:running state)
+         (not= :off (:sync-mode state)))))
+
 (defn sync-triggers?
   "Checks whether we have an active connection for which Link triggers
   are controlling the tempo."
@@ -296,14 +304,20 @@
   [bpm]
   (swap! client assoc :target-bpm (validate-tempo bpm))
   (update-target-tempo)
-  (check-tempo))
+  (check-tempo)
+  (when (= :triggers (:sync-mode @client))
+    (seesaw/invoke-later
+     (seesaw/value! (seesaw/select @carabiner-window [:#sync-link]) true))))
 
 (defn unlock-tempo
   "Allow the tempo of the Link session to be controlled by other
   participants."
   []
   (swap! client dissoc :target-bpm)
-  (update-target-tempo))
+  (update-target-tempo)
+  (when (= :triggers (:sync-mode @client))
+    (seesaw/invoke-later
+     (seesaw/value! (seesaw/select @carabiner-window [:#sync-link]) false))))
 
 (defn beat-at-time
   "Find out what beat falls at the specified time in the Link
@@ -320,7 +334,11 @@
    (ensure-active)
    (let [adjusted-time (- time (* (:latency @client) 1000))]
      (swap! client assoc :beat [adjusted-time beat-number])
-     (send-message (str "beat-at-time " adjusted-time " 4.0")))))
+     (send-message (str "beat-at-time " adjusted-time " 4.0"))
+     (when (= :triggers (:sync-mode @client))  ; Update Align at bar level checkbox when driven by trigger
+       (seesaw/invoke-later
+        (seesaw/value! (seesaw/select @carabiner-window [:#bar]) (some? beat-number))))
+     (seesaw/invoke-later))))
 
 (defn- make-window-visible
   "Ensures that the Carabiner window is in front, and shown."
@@ -338,14 +356,17 @@
 
 (defn paint-state
   "Draws a representation of the sync state, including both whether it
-  is enabled (connected to Carabiner and set to Master) and whether
-  any Link-mode trigger has tripped."
+  is enabled (connected to Carabiner and set to a Sync Mode other than
+  Off) and whether any Link-mode trigger has tripped (in Triggers
+  mode), or the Ableton Link Sync or Master buttons are chosen in
+  Passive and Full modes."
   [c g]
   (let [w (double (seesaw/width c))
         h (double (seesaw/height c))
         outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
-        enabled? (sync-triggers?)
-        tripped? (some? (:target-bpm @client))]
+        enabled? (sync-enabled?)
+        tripped? (let [state @client]
+                   (or (some? (:target-bpm state)) #_(:master state)))]  ;; TODO: Check VCDJ master state if full sync
     (.setRenderingHint g java.awt.RenderingHints/KEY_ANTIALIASING java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
 
     (when tripped?
@@ -353,7 +374,7 @@
         (do  ; Draw the inner filled circle showing sync is actively taking place.
           (.setPaint g java.awt.Color/green)
           (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
-        (do  ; Draw the inner gray circle showing sync would be active if we were connected and master.
+        (do  ; Draw the inner gray circle showing sync would be active if we were connected and in Triggers mode.
           (.setPaint g java.awt.Color/lightGray)
           (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))))
 
@@ -575,10 +596,14 @@
 
                           [(seesaw/separator) "growx, span, wrap"]
 
-                          ;; TODO: Add change handlers for these.
-                          ;;       In Triggers mode the Align checkbox will be disabled but should
-                          ;;       get updated whenever a Link trigger is controlling the state (and
-                          ;;       so should the Sync checkbox).
+                          ;; TODO: Add change handlers for these. Turning on Sync in Passive mode
+                          ;;       and locks tempo with the help of a Master Listener... We can track
+                          ;;       that mode with the synced state of the Virtual CDJ even though it does
+                          ;;       not really do anything unless sending status.
+                          ;;       Turning on Master in Full mode puts the Virtual CDJ
+                          ;;       in Master mode and starts driving CDJ tempo from Ableton. We should track
+                          ;;       the Sync/Master state of the Virtual CDJ with these controls,
+                          ;;       so that commands from the mixer cause us to react appropriately.
                           [(seesaw/label :text "Ableton Link:") "align right"]
                           [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false)]
                           [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false) "wrap"]
@@ -591,7 +616,7 @@
                          (build-device-sync-rows group)))]
 
       ;; Attach the custom paint function to render the graphical trigger state
-      (seesaw/config! (seesaw/select panel [:#state]) :paint paint-state)
+      (seesaw/config! state :paint paint-state)
 
       ;; Assemble the window
       (seesaw/config! root :content panel)
