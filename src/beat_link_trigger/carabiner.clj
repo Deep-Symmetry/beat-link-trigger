@@ -492,6 +492,37 @@
     (deviceLost [this announcement]
       (update-device-visibility (.getNumber announcement) false))))
 
+(defn- sync-mode-changed
+  "Event handler for the Sync Mode selector. Valdiates that the desired
+  mode is consistent with the current state, and if so, updates the
+  relevant interface elements and sets up the new state."
+  [new-mode root]
+  (cond
+    (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
+    (do
+      (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
+      (report-online-requirement root))
+
+    (and (= new-mode :full) (not (sending-status?)))
+    (do
+      (seesaw/value! (seesaw/select root [:#sync-mode])
+                     "Passive")
+      (report-status-requirement root))
+
+    :else
+    (do
+      (seesaw/config! (seesaw/select root [:#sync-link]) :enabled? (#{:passive :full} new-mode))
+      (seesaw/config! (seesaw/select root [:#bar]) :enabled? (#{:passive :full} new-mode))
+      (seesaw/config! (seesaw/select root [:#master-link]) :enabled? (= :full new-mode))
+      (when (#{:passive :triggers} new-mode)
+        (seesaw/value! (seesaw/select root [:#master-link]) false))
+      (when (= :triggers new-mode)
+        (seesaw/value! (seesaw/select root [:#sync-link]) false))  ; Will get set on next update if trigger active
+
+      (swap! client assoc :sync-mode new-mode)
+      (seesaw/repaint! (seesaw/select root [:#state]))
+      (when (sync-triggers?) (check-tempo)))))
+
 (defn- create-window
   "Creates the Carabiner window."
   [trigger-frame]
@@ -499,6 +530,8 @@
     (let [root  (seesaw/frame :title "Carabiner Connection"
                               :on-close :hide)
           group (seesaw/button-group)
+          state (seesaw/canvas :id :state :size [18 :by 18] :opaque? false
+                               :tip "Sync state: Outer ring shows enabled, inner light when active.")
           panel (mig/mig-panel
                  :constraints ["hidemode 3"]
                  :background "#ccc"
@@ -524,28 +557,10 @@
                                             :listen [:item-state-changed
                                                      (fn [^ItemEvent e]
                                                        (when (= (.getStateChange e) ItemEvent/SELECTED)
-                                                         (let [new-mode (keyword
-                                                                         (clojure.string/lower-case (seesaw/value e)))]
-                                                           (cond
-                                                             (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
-                                                             (do
-                                                               (seesaw/value! (seesaw/select root [:#sync-mode]) "Off")
-                                                               (report-online-requirement root))
-
-                                                             (and (= new-mode :full) (not (sending-status?)))
-                                                             (do
-                                                               (seesaw/value! (seesaw/select root [:#sync-mode])
-                                                                              "Passive")
-                                                               (report-status-requirement root))
-
-                                                             :else
-                                                             (swap! client assoc :sync-mode new-mode)))
-                                                         (seesaw/repaint!
-                                                          (seesaw/select @carabiner-window [:#state]))
-                                                         (when (sync-triggers?) (check-tempo))))])]
-                          [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
-                                          :tip "Sync state: Outer ring shows enabled, inner light when active.")
-                           "wrap"]
+                                                         (sync-mode-changed
+                                                          (keyword (clojure.string/lower-case (seesaw/value e)))
+                                                          root)))])]
+                          [state "wrap"]
 
                           [(seesaw/separator) "growx, span, wrap"]
 
@@ -560,17 +575,16 @@
 
                           [(seesaw/separator) "growx, span, wrap"]
 
+                          ;; TODO: Add change handlers for these.
+                          ;;       In Triggers mode the Align checkbox will be disabled but should
+                          ;;       get updated whenever a Link trigger is controlling the state (and
+                          ;;       so should the Sync checkbox).
                           [(seesaw/label :text "Ableton Link:") "align right"]
-                          [(seesaw/checkbox :id :sync-link :text "Sync")]  ; TODO: Enable only in Passive/Full
-                          [(seesaw/radio :id :master-link :text "Master" :group group) "wrap"]  ; TODO: only in Full
+                          [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false)]
+                          [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false) "wrap"]
 
-                          ;; TODO: Enable only in Passive/Full, and add change handlers for all these,
-                          ;;       so they make the device catch up to the user-desired state, unless the
-                          ;;       state change was programmatic, to make the UI catch up to the actual current
-                          ;;       device state. In Triggers mode the Align checkbox will be disabled but
-                          ;;       should get updated whenever a Link trigger is controlling the state (and
-                          ;;       so should the Sync checkbox above).
-                          [(seesaw/checkbox :id :bar :text "Align at bar level") "skip 1, span 2, wrap"]
+                          [(seesaw/checkbox :id :bar :text "Align at bar level" :enabled? false)
+                           "skip 1, span 2, wrap"]
 
                           [(seesaw/separator) "growx, span, wrap"]]
 
