@@ -226,6 +226,7 @@
   closing its socket without processing any more responses."
   []
   (swap! client dissoc :running :socket :link-bpm :link-peers)
+  (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off")
   (update-connected-status)
   (update-link-status))
 
