@@ -447,18 +447,31 @@
     (loop []
       (try
         (seesaw/invoke-later
+         ;; First update the states of the actual device rows
          (doseq [status (.getLatestStatus virtual-cdj)]
            (let [device        (.getDeviceNumber status)
                  master-button (seesaw/select frame [(keyword (str "#master-" device))])
                  sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
+             (when  (and (.isTempoMaster status) (not (seesaw/value master-button)))
+               (let [changed (:master-command-sent @client)]
+                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                   (seesaw/value! master-button true))))
              (when (not= (seesaw/value sync-box) (.isSynced status))
                (let [changed (get-in @client [:sync-command-sent (long device)])]
                  (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
-                   (seesaw/value! sync-box (.isSynced status)))))
-             (when (not= (seesaw/value master-button) (.isTempoMaster status))
+                   (seesaw/value! sync-box (.isSynced status))))))))
+        ;; Then update the state of the Ableton Link (Virtual CDJ) row
+        (let [master-button (seesaw/select frame [:#master-link])
+              sync-box   (seesaw/select frame [:#sync-link])]
+          (when  (and (.isTempoMaster virtual-cdj) (not (seesaw/value master-button)))
                (let [changed (:master-command-sent @client)]
                  (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
-                   (seesaw/value! master-button (.isTempoMaster status))))))))
+                   (seesaw/value! master-button true))))
+             (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
+               (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
+                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                   (seesaw/value! sync-box (.isSynced virtual-cdj))))))
+
         (Thread/sleep 100)
         (catch Exception e
           (timbre/warn e "Problem updating Carabiner device Sync/Master button states.")))
@@ -513,6 +526,33 @@
     (deviceLost [this announcement]
       (update-device-visibility (.getNumber announcement) false))))
 
+(defn- tie-ableton-to-pioneer
+  "Start forcing the Ableton Link to follow the tempo and beats (and
+  maybe bars) of the Pioneer master player."
+  []
+  ;; TODO: Implement! Use MasterListener and BeatListener.
+  )
+
+(defn- free-ableton-from-pioneer
+  "Stop forcing Ableton Link to follow the Pioneer master player."
+  []
+  ;; TODO: Implement! Remove our MasterListener and BeatListener, and unlock the tempo.
+  )
+
+(defn- link-sync-state-changed
+  "Event handler for when the Link Sync checkbox has changed state.
+  Update the Virtual CDJ sync state accordingly if necessary (this may
+  be happening in response to a change that started there), and if our
+  Sync mode is Passive or Full, unless we are the tempo master, start
+  tying the Ableton Link tempo to the Pioneer DJ Link tempo master."
+  [synced]
+  (.setSynced virtual-cdj synced)
+  (when (and ({:passive :full} (:sync-mode @client))
+             (not (.isTempoMaster virtual-cdj)))
+    (if synced
+      (tie-ableton-to-pioneer)
+      (free-ableton-from-pioneer))))
+
 (defn- sync-mode-changed
   "Event handler for the Sync Mode selector. Valdiates that the desired
   mode is consistent with the current state, and if so, updates the
@@ -526,8 +566,7 @@
 
     (and (= new-mode :full) (not (sending-status?)))
     (do
-      (seesaw/value! (seesaw/select root [:#sync-mode])
-                     "Passive")
+      (seesaw/value! (seesaw/select root [:#sync-mode]) "Passive")
       (report-status-requirement root))
 
     :else
@@ -535,8 +574,16 @@
       (seesaw/config! (seesaw/select root [:#sync-link]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#bar]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#master-link]) :enabled? (= :full new-mode))
-      (when (#{:passive :triggers} new-mode)
-        (seesaw/value! (seesaw/select root [:#master-link]) false))
+      (if ({:passive :full} new-mode)
+        (do
+          (link-sync-state-changed (.isSynced virtual-cdj))  ; This is now relevant, even if it wasn't before.
+          (if (and (= :full new-mode) (.isTempoMaster virtual-cdj))
+            nil ;; TODO: Start driving Pioneer tempo from Ableton Link.
+            ))
+        (do
+          (free-ableton-from-pioneer)
+          ;; TODO: Stop driving Pioneer tempo from Ableton Link.
+          ))
       (when (= :triggers new-mode)
         (seesaw/value! (seesaw/select root [:#sync-link]) false))  ; Will get set on next update if trigger active
 
@@ -605,7 +652,11 @@
                           ;;       the Sync/Master state of the Virtual CDJ with these controls,
                           ;;       so that commands from the mixer cause us to react appropriately.
                           [(seesaw/label :text "Ableton Link:") "align right"]
-                          [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false)]
+                          [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false
+                                            :listen [:item-state-changed (fn [^ItemEvent e]
+                                                                           (link-sync-state-changed
+                                                                            (= (.getStateChange e)
+                                                                               ItemEvent/SELECTED)))])]
                           [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false) "wrap"]
 
                           [(seesaw/checkbox :id :bar :text "Align at bar level" :enabled? false)
