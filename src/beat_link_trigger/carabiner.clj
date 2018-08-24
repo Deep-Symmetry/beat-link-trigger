@@ -366,7 +366,8 @@
         outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
         enabled? (sync-enabled?)
         tripped? (let [state @client]
-                   (or (some? (:target-bpm state)) #_(:master state)))]  ;; TODO: Check VCDJ master state if full sync
+                   (or (some? (:target-bpm state))
+                       (and (= :full (:sync-mode state)) (.isTempoMaster virtual-cdj))))]
     (.setRenderingHint g java.awt.RenderingHints/KEY_ANTIALIASING java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
 
     (when tripped?
@@ -546,12 +547,43 @@
   Sync mode is Passive or Full, unless we are the tempo master, start
   tying the Ableton Link tempo to the Pioneer DJ Link tempo master."
   [synced]
-  (.setSynced virtual-cdj synced)
+  (when (not= (.isSynced virtual-cdj) synced)
+    (swap! client assoc-in [:sync-command-sent (.getDeviceNumber virtual-cdj)] (System/currentTimeMillis))
+    (.setSynced virtual-cdj synced))
   (when (and ({:passive :full} (:sync-mode @client))
              (not (.isTempoMaster virtual-cdj)))
     (if synced
       (tie-ableton-to-pioneer)
       (free-ableton-from-pioneer))))
+
+(defn- tie-pioneer-to-ableton
+  "Start forcing the Pioneer tempo and beat grif to follow Ableton
+  Link."
+  []
+  (.becomeTempoMaster virtual-cdj)
+  ;; TODO: Implement, using the virtual CDJ as master.
+  )
+
+(defn- free-pioneer-from-ableton
+  "Stop forcing the Pioneer tempo and beat grid to follow Ableton Link."
+  []
+  ;; TODO: Implement!
+  )
+
+(defn- link-master-state-changed
+  "Event handler for when the Link Master radio button has changed
+  state. Update the Virtual CDJ master state accordingly if
+  necessary (this may be happening in response to a change that
+  started there), and if our Sync Mode is Full, start or stop tying
+  the Pioneer tempo and beat grid to Ableton Link."
+  [master]
+  (if master
+    (do
+      (when (= :full (:sync-mode @client))
+        (when (not (.isTempoMaster virtual-cdj))
+          (swap! client assoc :master-command-sent (System/currentTimeMillis)))
+        (tie-pioneer-to-ableton)))
+    (free-pioneer-from-ableton)))
 
 (defn- sync-mode-changed
   "Event handler for the Sync Mode selector. Valdiates that the desired
@@ -578,12 +610,11 @@
         (do
           (link-sync-state-changed (.isSynced virtual-cdj))  ; This is now relevant, even if it wasn't before.
           (if (and (= :full new-mode) (.isTempoMaster virtual-cdj))
-            nil ;; TODO: Start driving Pioneer tempo from Ableton Link.
-            ))
+            (tie-pioneer-to-ableton)))
         (do
           (free-ableton-from-pioneer)
-          ;; TODO: Stop driving Pioneer tempo from Ableton Link.
-          ))
+          (free-pioneer-from-ableton)))
+
       (when (= :triggers new-mode)
         (seesaw/value! (seesaw/select root [:#sync-link]) false))  ; Will get set on next update if trigger active
 
@@ -643,21 +674,22 @@
 
                           [(seesaw/separator) "growx, span, wrap"]
 
-                          ;; TODO: Add change handlers for these. Turning on Sync in Passive mode
-                          ;;       and locks tempo with the help of a Master Listener... We can track
-                          ;;       that mode with the synced state of the Virtual CDJ even though it does
-                          ;;       not really do anything unless sending status.
-                          ;;       Turning on Master in Full mode puts the Virtual CDJ
-                          ;;       in Master mode and starts driving CDJ tempo from Ableton. We should track
-                          ;;       the Sync/Master state of the Virtual CDJ with these controls,
-                          ;;       so that commands from the mixer cause us to react appropriately.
                           [(seesaw/label :text "Ableton Link:") "align right"]
                           [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false
                                             :listen [:item-state-changed (fn [^ItemEvent e]
                                                                            (link-sync-state-changed
                                                                             (= (.getStateChange e)
                                                                                ItemEvent/SELECTED)))])]
-                          [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false) "wrap"]
+                          [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false
+                                         :listen [:item-state-changed (fn [^ItemEvent e]
+                                                                        (condp = (.getStateChange e)
+                                                                          ItemEvent/SELECTED
+                                                                          (link-master-state-changed true)
+
+                                                                          ItemEvent/DESELECTED
+                                                                          (link-master-state-changed false)
+
+                                                                          nil))]) "wrap"]
 
                           [(seesaw/checkbox :id :bar :text "Align at bar level" :enabled? false)
                            "skip 1, span 2, wrap"]
