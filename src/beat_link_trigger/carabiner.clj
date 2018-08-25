@@ -222,7 +222,9 @@
                       (dissoc oldval :running :socket :link-bpm :link-peers)  ; We are causing the ending.
                       oldval)))  ; Someone else caused the ending, so leave client alone; may be new connection.
     (.close socket)  ; Either way, close the socket we had been using to communicate, and update the window state.
+    (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off")
     (update-connected-status)
+    (update-link-status)
     (catch Exception e
       (timbre/error e "Problem managing Carabiner read loop."))))
 
