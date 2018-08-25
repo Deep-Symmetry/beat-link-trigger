@@ -7,7 +7,7 @@
   (:import [java.net Socket]
            [java.awt.event ItemEvent]
            [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
-            VirtualCdj DeviceUpdate CdjStatus MixerStatus]))
+            VirtualCdj DeviceUpdate CdjStatus MixerStatus MasterListener]))
 
 (defonce ^{:private true
            :doc "When connected, holds the socket used to communicate
@@ -73,10 +73,9 @@
          (= :full (:sync-mode state)))))
 
 (defn cancel-full-sync
-  "If we are configured to be fully synced (whether or not we have an
-  active Carabiner connection), fall back to passive sync. This is
-  called when the user turns off status packets, since they are
-  required for full sync to work."
+  "If we are configured to be fully synced, fall back to passive sync.
+  This is called when the user turns off status packets, since they
+  are required for full sync to work."
   []
   (when-let [frame @carabiner-window]
     (seesaw/invoke-later
@@ -96,13 +95,12 @@
   (ensure-active)
   (.write (.getOutputStream (:socket @client)) (.getBytes (str message) "UTF-8")))
 
-(defn- check-tempo
+(defn- check-link-tempo
   "If we are supposed to master the Link tempo, make sure the Link
   tempo is close enough to our target value, and adjust it if needed."
   []
   (let [state @client]
-    (when (and (= :triggers (:sync-mode state))
-               (some? (:target-bpm state))
+    (when (and (some? (:target-bpm state))
                (> (Math/abs (- (:link-bpm state 0.0) (:target-bpm state))) bpm-tolerance))
       (send-message (str "bpm " (:target-bpm state))))))
 
@@ -150,7 +148,7 @@
         peers (int (:peers status))]
     (swap! client assoc :link-bpm bpm :link-peers peers)
     (update-link-status))
-  (check-tempo))
+  (check-link-tempo))
 
 (def skew-tolerance
   "The amount by which the start of a beat can be off without
@@ -304,7 +302,7 @@
   [bpm]
   (swap! client assoc :target-bpm (validate-tempo bpm))
   (update-target-tempo)
-  (check-tempo)
+  (check-link-tempo)
   (when (= :triggers (:sync-mode @client))
     (seesaw/invoke-later
      (seesaw/value! (seesaw/select @carabiner-window [:#sync-link]) true))))
@@ -518,27 +516,50 @@
                              :listen [:item-state-changed (fn [^ItemEvent e]
                                                             (master-button-changed e device))]) "wrap"]]))))
 
-(def ^:private device-announcement-listener
-  "Responds to the coming and going of devices, updating visibility of
-  the corresponding sync control elements."
+(defonce ^{:private true
+           :doc "Responds to the coming and going of devices, updating visibility of
+  the corresponding sync control elements."}
+  device-announcement-listener
   (reify DeviceAnnouncementListener
     (deviceFound [this announcement]
       (update-device-visibility (.getNumber announcement) true))
     (deviceLost [this announcement]
       (update-device-visibility (.getNumber announcement) false))))
 
+(defonce ^{:private true
+           :doc "Responds to tempo changes and beat packets from the
+  master player when we are controlling the Ableton Link tempo (in
+  Passive or Full mode)."}
+  master-listener
+  (reify MasterListener
+
+    (masterChanged [this update])  ; Nothing we need to do here, we don't care which device is the master.
+
+    (tempoChanged [this tempo]
+      (if (valid-tempo? tempo)
+        (lock-tempo tempo)
+        (unlock-tempo)))
+
+    (newBeat [this beat]
+      (try
+        (when (and (.isRunning virtual-cdj) (.isTempoMaster beat))
+          (beat-at-time (long (/ (.getTimestamp beat) 1000))
+                        (when (:bar @client) (.getBeatWithinBar beat))))
+        (catch Exception e
+          (timbre/error e "Problem responding to beat packet in Carabiner."))))))
+
 (defn- tie-ableton-to-pioneer
   "Start forcing the Ableton Link to follow the tempo and beats (and
   maybe bars) of the Pioneer master player."
   []
-  ;; TODO: Implement! Use MasterListener and BeatListener.
-  )
+  (.addMasterListener virtual-cdj master-listener)
+  (.tempoChanged master-listener (.getMasterTempo virtual-cdj)))
 
 (defn- free-ableton-from-pioneer
   "Stop forcing Ableton Link to follow the Pioneer master player."
   []
-  ;; TODO: Implement! Remove our MasterListener and BeatListener, and unlock the tempo.
-  )
+  (.removeMasterListener virtual-cdj master-listener)
+  (unlock-tempo))
 
 (defn- link-sync-state-changed
   "Event handler for when the Link Sync checkbox has changed state.
@@ -557,18 +578,24 @@
       (free-ableton-from-pioneer))))
 
 (defn- tie-pioneer-to-ableton
-  "Start forcing the Pioneer tempo and beat grif to follow Ableton
+  "Start forcing the Pioneer tempo and beat grid to follow Ableton
   Link."
   []
+  (free-ableton-from-pioneer)  ; When we are master, we don't follow anyone else
+  (.setTempo virtual-cdj (:link-bpm @client))
+  ;; TODO: We need to align the virtual-cdj metronome to the Link timeline.
   (.becomeTempoMaster virtual-cdj)
-  ;; TODO: Implement, using the virtual CDJ as master.
-  )
+  ;; TODO: We need to update the tempo and metronome when we get Link updates.
+  (.setPlaying virtual-cdj true))
 
 (defn- free-pioneer-from-ableton
   "Stop forcing the Pioneer tempo and beat grid to follow Ableton Link."
   []
-  ;; TODO: Implement!
-  )
+  (.setPlaying virtual-cdj false)
+  ;; TODO: Is there anything we need to do to stop updating the tempo and metronome when we get Link updates?
+  (when (and ({:passive :full} (:sync-mode @client))  ; If we had been synced too, that now matters again.
+             (.isSynced virtual-cdj))
+    (tie-ableton-to-pioneer)))
 
 (defn- link-master-state-changed
   "Event handler for when the Link Master radio button has changed
@@ -620,7 +647,7 @@
 
       (swap! client assoc :sync-mode new-mode)
       (seesaw/repaint! (seesaw/select root [:#state]))
-      (when (sync-triggers?) (check-tempo)))))
+      (when (sync-triggers?) (check-link-tempo)))))
 
 (defn- create-window
   "Creates the Carabiner window."
@@ -691,7 +718,11 @@
 
                                                                           nil))]) "wrap"]
 
-                          [(seesaw/checkbox :id :bar :text "Align at bar level" :enabled? false)
+                          [(seesaw/checkbox :id :bar :text "Align at bar level" :enabled? false
+                                            :listen [:item-state-changed (fn [^ItemEvent e]
+                                                                           (swap! client assoc :bar
+                                                                                  (= (.getStateChange e)
+                                                                                     ItemEvent/SELECTED)))])
                            "skip 1, span 2, wrap"]
 
                           [(seesaw/separator) "growx, span, wrap"]]
