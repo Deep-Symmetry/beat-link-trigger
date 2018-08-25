@@ -93,7 +93,9 @@
   "Sends a message to the active Carabiner daemon."
   [message]
   (ensure-active)
-  (.write (.getOutputStream (:socket @client)) (.getBytes (str message) "UTF-8")))
+  (let [output-stream (.getOutputStream (:socket @client))]
+    (.write output-stream (.getBytes (str message "\n") "UTF-8"))
+    (.flush output-stream)))
 
 (defn- check-link-tempo
   "If we are supposed to master the Link tempo, make sure the Link
