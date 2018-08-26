@@ -212,8 +212,15 @@
                              (.getBeatInterval snapshot))
             ms-delta       (long (* phase-delta phase-interval))]
         (when (> (Math/abs ms-delta) 0)
-          (timbre/info "Adjusting Pioneer timeline, delta-ms:" ms-delta)
-          (.adjustPlaybackPosition virtual-cdj ms-delta)))
+          ;; We should shift the Pioneer timeline. But if this would cause us to skip or repeat a beat, and we
+          ;; are shifting less 1/5 of a beat or less, hold off until a safer moment.
+          (let [beat-phase (.getBeatPhase virtual-cdj)
+                beat-delta (if align-to-bar (* phase-delta 4.0) phase-delta)
+                beat-delta (if (pos? beat-delta) (+ beat-delta 0.1) beat-delta)]  ; Account for sending lag.
+            (when (or (zero? (Math/floor (+ beat-phase beat-delta)))  ; Staying in same beat, we are fine.
+                      (> beat-delta 0.2))  ; We are moving more than 1/5 of a beat, so do it anyway.
+              (timbre/info "Adjusting Pioneer timeline, delta-ms:" ms-delta)
+              (.adjustPlaybackPosition virtual-cdj ms-delta)))))
       (timbre/warn "Ignoring phase-at-time response for time" (:when info) "since was expecting" ableton-now))))
 
 (defn- response-handler
