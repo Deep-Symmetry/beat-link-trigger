@@ -99,11 +99,10 @@
     (.flush output-stream)))
 
 (defn- check-link-tempo
-  "If we are supposed to master the Link tempo, make sure the Link tempo
-  is close enough to our target value, and adjust it if needed.
-  Otherwise, if the Virtual CDJ is playing, which means we are in full
-  sync mode, set its tempo to match Link's in case we are (or will
-  soon be) tempo master for the Pioneer gear."
+  "If we are supposed to master the Ableton Link tempo, make sure the
+  Link tempo is close enough to our target value, and adjust it if
+  needed. Otherwise, if the Virtual CDJ is the tempo master, set its
+  tempo to match Link's."
   []
   (let [state      @client
         link-bpm   (:link-bpm state 0.0)
@@ -111,7 +110,7 @@
     (if (some? target-bpm)
       (when (> (Math/abs (- link-bpm target-bpm)) bpm-tolerance)
         (send-message (str "bpm " target-bpm)))
-      (when (and (.isPlaying virtual-cdj) (pos? link-bpm))
+      (when (and (.isTempoMaster virtual-cdj) (pos? link-bpm))
         (.setTempo virtual-cdj link-bpm)))))
 
 (defn- update-target-tempo
@@ -477,6 +476,15 @@
          (update-elem elem))
        (seesaw/pack! @carabiner-window)))))
 
+(defn- align-pioneer-phase-to-ableton
+  "Send a probe that will allow us to align the Virtual CDJ timeline to
+  Ableton Link's."
+  []
+  (let [ableton-now (+ (long (/ (System/nanoTime) 1000)) (* (:latency @client) 1000))
+                snapshot    (.getPlaybackPosition virtual-cdj)]
+            (swap! client assoc :phase-probe [ableton-now snapshot])
+            (send-message (str "phase-at-time " ableton-now " 4.0"))))
+
 (defn- start-sync-state-updates
   "Creates and starts the thread which updates the Sync and Master UI to
   reflect changes initiated on the devices themselves, and keeps the
@@ -513,11 +521,8 @@
                  (seesaw/value! sync-box (.isSynced virtual-cdj)))))))
 
         ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
-        (when (and (zero? i) (.isPlaying virtual-cdj))
-          (let [ableton-now (+ (long (/ (System/nanoTime) 1000)) (* (:latency @client) 1000))
-                snapshot    (.getPlaybackPosition virtual-cdj)]
-            (swap! client assoc :phase-probe [ableton-now snapshot])
-            (send-message (str "phase-at-time " ableton-now " 4.0"))))
+        (when (and (zero? i) (.isTempoMaster virtual-cdj))
+          (align-pioneer-phase-to-ableton))
 
         (Thread/sleep 100)
         (catch Exception e
@@ -630,8 +635,12 @@
   Link."
   []
   (free-ableton-from-pioneer)  ; When we are master, we don't follow anyone else
+  (align-pioneer-phase-to-ableton)
   (.setTempo virtual-cdj (:link-bpm @client))
-  (.becomeTempoMaster virtual-cdj))
+  (.becomeTempoMaster virtual-cdj)
+  (future  ; Realign the BPM in a millisecond or so, in case it gets changed by the outgoing master during handoff.
+    (Thread/sleep 1)
+    (send-message "status")))
 
 (defn- free-pioneer-from-ableton
   "Stop forcing the Pioneer tempo and beat grid to follow Ableton Link."
