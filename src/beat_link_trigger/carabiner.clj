@@ -7,7 +7,8 @@
   (:import [java.net Socket]
            [java.awt.event ItemEvent]
            [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
-            VirtualCdj DeviceUpdate CdjStatus MixerStatus MasterListener]))
+            VirtualCdj DeviceUpdate CdjStatus MixerStatus MasterListener]
+           [org.deepsymmetry.electro Snapshot]))
 
 (defonce ^{:private true
            :doc "When connected, holds the socket used to communicate
@@ -98,13 +99,20 @@
     (.flush output-stream)))
 
 (defn- check-link-tempo
-  "If we are supposed to master the Link tempo, make sure the Link
-  tempo is close enough to our target value, and adjust it if needed."
+  "If we are supposed to master the Link tempo, make sure the Link tempo
+  is close enough to our target value, and adjust it if needed.
+  Otherwise, if the Virtual CDJ is playing, which means we are in full
+  sync mode, set its tempo to match Link's in case we are (or will
+  soon be) tempo master for the Pioneer gear."
   []
-  (let [state @client]
-    (when (and (some? (:target-bpm state))
-               (> (Math/abs (- (:link-bpm state 0.0) (:target-bpm state))) bpm-tolerance))
-      (send-message (str "bpm " (:target-bpm state))))))
+  (let [state      @client
+        link-bpm   (:link-bpm state 0.0)
+        target-bpm (:target-bpm state)]
+    (if (some? target-bpm)
+      (when (> (Math/abs (- link-bpm target-bpm)) bpm-tolerance)
+        (send-message (str "bpm " target-bpm)))
+      (when (and (.isPlaying virtual-cdj) (pos? link-bpm))
+        (.setTempo virtual-cdj link-bpm)))))
 
 (defn- update-target-tempo
   "Displays the current target BPM value, if any."
@@ -186,6 +194,26 @@
       (timbre/info "Realigning to beat" target-beat "by" beat-skew)
       (send-message (str "force-beat-at-time " target-beat " " (:when info) " 4.0")))))
 
+(defn- handle-phase-at-time
+  "Processes a phase probe response from Carabiner."
+  [info]
+  (let [state                            @client
+        [ableton-now ^Snapshot snapshot] (:phase-probe state)
+        align-to-bar                     (:bar state)]
+    (if (= ableton-now (:when info))
+      (let [desired-phase  (if align-to-bar
+                             (/ (:phase info) 4.0)
+                             (- (:phase info) (long (:phase info))))
+            actual-phase   (if (align-to-bar)
+                             (.getBarPhase snapshot)
+                             (.getBeatPhase snapshot))
+            phase-interval (if align-to-bar
+                             (.getBarInterval snapshot)
+                             (.getBeatInterval snapshot))
+            delta-ms       (long (* (- desired-phase actual-phase) phase-interval))]
+        (.adjustPlaybackPosition virtual-cdj delta-ms))
+      (timbre/warn "Ignoring phase-at-time response for time" (:when info) "since was expecting" ableton-now))))
+
 (defn- response-handler
   "A loop that reads messages from Carabiner as long as it is supposed
   to be running, and takes appropriate action."
@@ -204,6 +232,7 @@
                   (case cmd
                     status (handle-status (clojure.edn/read reader))
                     beat-at-time (handle-beat-at-time (clojure.edn/read reader))
+                    phase-at-time (handle-phase-at-time (clojure.edn/read reader))
                     (timbre/error "Unrecognized message from Carabiner:" message))
                   (let [next-cmd (clojure.edn/read {:eof ::eof} reader)]
                     (when (not= ::eof next-cmd)
@@ -447,10 +476,12 @@
 
 (defn- start-sync-state-updates
   "Creates and starts the thread which updates the Sync and Master UI to
-  reflect changes initiated on the devices themselves."
+  reflect changes initiated on the devices themselves, and keeps the
+  Virtual CDJ's timeline aligned with Ableton Link's when it is
+  playing."
   [frame]
   (future
-    (loop []
+    (loop [i 0]
       (try
         (seesaw/invoke-later
          ;; First update the states of the actual device rows
@@ -465,23 +496,30 @@
              (when (not= (seesaw/value sync-box) (.isSynced status))
                (let [changed (get-in @client [:sync-command-sent (long device)])]
                  (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
-                   (seesaw/value! sync-box (.isSynced status))))))))
-        ;; Then update the state of the Ableton Link (Virtual CDJ) row
-        (let [master-button (seesaw/select frame [:#master-link])
-              sync-box   (seesaw/select frame [:#sync-link])]
-          (when  (and (.isTempoMaster virtual-cdj) (not (seesaw/value master-button)))
-               (let [changed (:master-command-sent @client)]
-                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
-                   (seesaw/value! master-button true))))
-             (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
-               (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
-                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
-                   (seesaw/value! sync-box (.isSynced virtual-cdj))))))
+                   (seesaw/value! sync-box (.isSynced status)))))))
+         ;; Then update the state of the Ableton Link (Virtual CDJ) row
+         (let [master-button (seesaw/select frame [:#master-link])
+               sync-box      (seesaw/select frame [:#sync-link])]
+           (when  (and (.isTempoMaster virtual-cdj) (not (seesaw/value master-button)))
+             (let [changed (:master-command-sent @client)]
+               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                 (seesaw/value! master-button true))))
+           (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
+             (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
+               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                 (seesaw/value! sync-box (.isSynced virtual-cdj)))))))
+
+        ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
+        (when (and (zero? i) (.isPlaying virtual-cdj))
+          (let [ableton-now (+ (long (/ (System/nanoTime) 1000)) (* (:latency @client) 1000))
+                snapshot    (.getPlaybackPosition virtual-cdj)]
+            (swap! client assoc :phase-probe [ableton-now snapshot])
+            (send-message (str "phase-at-time " ableton-now " 4.0"))))
 
         (Thread/sleep 100)
         (catch Exception e
           (timbre/warn e "Problem updating Carabiner device Sync/Master button states.")))
-      (recur))))
+      (recur (mod (inc i) 2)))))  ; Send phase probes every other loop, i.e. 5 per second.
 
 (defn- sync-box-changed
   "Called when one of the device Sync checkboxes has been toggled. Makes
@@ -590,17 +628,15 @@
   []
   (free-ableton-from-pioneer)  ; When we are master, we don't follow anyone else
   (.setTempo virtual-cdj (:link-bpm @client))
-  ;; TODO: We need to align the virtual-cdj metronome to the Link timeline.
-  (.becomeTempoMaster virtual-cdj)
-  ;; TODO: We need to update the tempo and metronome when we get Link updates.
-  (.setPlaying virtual-cdj true))
+  (.becomeTempoMaster virtual-cdj))
 
 (defn- free-pioneer-from-ableton
   "Stop forcing the Pioneer tempo and beat grid to follow Ableton Link."
   []
-  (.setPlaying virtual-cdj false)
-  ;; TODO: Is there anything we need to do to stop updating the tempo and metronome when we get Link updates?
-  (when (and ({:passive :full} (:sync-mode @client))  ; If we had been synced too, that now matters again.
+  ;; Not much to do here because this will be called once we are no longer tempo master, and the timeline
+  ;; alignment of the Virtual CDJ happens whenever we are in Full sync mode regardless. However, if we are
+  ;; also supposed to be synced the other direction, it is time to turn that back on.
+  (when (and ({:passive :full} (:sync-mode @client))
              (.isSynced virtual-cdj))
     (tie-ableton-to-pioneer)))
 
@@ -640,6 +676,8 @@
       (seesaw/config! (seesaw/select root [:#sync-link]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#bar]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#master-link]) :enabled? (= :full new-mode))
+
+      (.setPlaying virtual-cdj (= :full new-mode))
       (if ({:passive :full} new-mode)
         (do
           (link-sync-state-changed (.isSynced virtual-cdj))  ; This is now relevant, even if it wasn't before.
