@@ -8,7 +8,7 @@
            [java.awt.event ItemEvent]
            [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
             VirtualCdj DeviceUpdate CdjStatus MixerStatus MasterListener]
-           [org.deepsymmetry.electro Snapshot]))
+           [org.deepsymmetry.electro Metronome Snapshot]))
 
 (defonce ^{:private true
            :doc "When connected, holds the socket used to communicate
@@ -204,14 +204,17 @@
       (let [desired-phase  (if align-to-bar
                              (/ (:phase info) 4.0)
                              (- (:phase info) (long (:phase info))))
-            actual-phase   (if (align-to-bar)
+            actual-phase   (if align-to-bar
                              (.getBarPhase snapshot)
                              (.getBeatPhase snapshot))
+            phase-delta    (Metronome/findClosestDelta (- desired-phase actual-phase))
             phase-interval (if align-to-bar
                              (.getBarInterval snapshot)
                              (.getBeatInterval snapshot))
-            delta-ms       (long (* (- desired-phase actual-phase) phase-interval))]
-        (.adjustPlaybackPosition virtual-cdj delta-ms))
+            ms-delta       (long (* phase-delta phase-interval))]
+        (when (> (Math/abs ms-delta) 0)
+          (timbre/info "Adjusting Pioneer timeline, delta-ms:" ms-delta)
+          (.adjustPlaybackPosition virtual-cdj ms-delta)))
       (timbre/warn "Ignoring phase-at-time response for time" (:when info) "since was expecting" ableton-now))))
 
 (defn- response-handler
