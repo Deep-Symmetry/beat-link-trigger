@@ -198,13 +198,16 @@
           (let [n (.read input buffer)]
             (if (and (pos? n) (= running (:running @client)))  ; We got data, and were not shut down while reading
               (let [message (String. buffer 0 n "UTF-8")
-                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message "UTF-8")))
-                    cmd (clojure.edn/read reader)]
+                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message "UTF-8")))]
                 (timbre/debug "Received:" message)
-                (case cmd
-                  status (handle-status (clojure.edn/read reader))
-                  beat-at-time (handle-beat-at-time (clojure.edn/read reader))
-                  (timbre/error "Unrecognized message from Carabiner:" message)))
+                (loop [cmd (clojure.edn/read reader)]
+                  (case cmd
+                    status (handle-status (clojure.edn/read reader))
+                    beat-at-time (handle-beat-at-time (clojure.edn/read reader))
+                    (timbre/error "Unrecognized message from Carabiner:" message))
+                  (let [next-cmd (clojure.edn/read {:eof ::eof} reader)]
+                    (when (not= ::eof next-cmd)
+                      (recur next-cmd)))))
               (do  ; We read zero, means the other side closed; force our loop to terminate.
                 (future
                   (seesaw/invoke-later
