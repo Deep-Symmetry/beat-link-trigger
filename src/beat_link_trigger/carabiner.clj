@@ -227,6 +227,24 @@
               (.adjustPlaybackPosition virtual-cdj ms-delta)))))
       (timbre/warn "Ignoring phase-at-time response for time" (:when info) "since was expecting" ableton-now))))
 
+(defn handle-unsupported
+  "Processes an unsupported command reponse from Carabiner. If it is to
+  our version query, warn the user that they should upgrade Carabiner."
+  [command]
+  (if (= command 'version)
+    (future
+      (seesaw/invoke-later
+       (javax.swing.JOptionPane/showMessageDialog
+        @carabiner-window
+        "You are running an old version of Carabiner, which might lose messages.
+You should upgrade to at least version 1.1.0, which can cope with
+multiple commands being grouped in the same network packet (this
+happens when they are sent near the same time). Otherwise you might
+experience synchronization glitches."
+        "Carabiner Upgrade Recommended"
+        javax.swing.JOptionPane/WARNING_MESSAGE)))
+    (timbre/error "Carabiner complained about not recognizing our command:" command)))
+
 (defn- response-handler
   "A loop that reads messages from Carabiner as long as it is supposed
   to be running, and takes appropriate action."
@@ -246,6 +264,7 @@
                     status (handle-status (clojure.edn/read reader))
                     beat-at-time (handle-beat-at-time (clojure.edn/read reader))
                     phase-at-time (handle-phase-at-time (clojure.edn/read reader))
+                    unsupported (handle-unsupported (clojure.edn/read reader))
                     (timbre/error "Unrecognized message from Carabiner:" message))
                   (let [next-cmd (clojure.edn/read {:eof ::eof} reader)]
                     (when (not= ::eof next-cmd)
@@ -317,15 +336,17 @@
   (when (active?)
     (future
       (Thread/sleep 1000)
-      (when-not (:link-bpm @client)
-        (timbre/warn "Did not receive inital status packet from Carabiner daemon; disconnecting.")
-        (seesaw/invoke-later
-         (javax.swing.JOptionPane/showMessageDialog
-          @carabiner-window
-          "Did not receive expected response from Carabiner; is something else running on the specified port?"
-          "Carabiner Connection Rejected"
-          javax.swing.JOptionPane/WARNING_MESSAGE)
-         (disconnect)))))
+      (if (:link-bpm @client)
+        (send-message "version")  ; Probe that a recent enough version is running.
+        (do  ; We failed to get a reasponse, maybe we are talking to the wrong process.
+          (timbre/warn "Did not receive inital status packet from Carabiner daemon; disconnecting.")
+          (seesaw/invoke-later
+           (javax.swing.JOptionPane/showMessageDialog
+            @carabiner-window
+            "Did not receive expected response from Carabiner; is something else running on the specified port?"
+            "Carabiner Connection Rejected"
+            javax.swing.JOptionPane/WARNING_MESSAGE)
+           (disconnect))))))
   (active?))
 
 (defn valid-tempo?

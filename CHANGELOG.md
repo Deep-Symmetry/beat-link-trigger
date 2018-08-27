@@ -32,6 +32,11 @@ This change log follows the conventions of
   displayed on the correct thread, and so was completely unreadable.
 - The Player Status window display when no players were found was huge
   and lacked suitable borders. It looks much better now.
+- If multiple messages were sent rapidly to or from Carabiner they
+  might get grouped into a single network packet, and the later ones
+  would be ignored. This release, along with a newer Carabiner
+  release, process even later messages grouped in the same packet.
+  This version will warn you if you need to upgrade Carabiner.
 
 ## [0.3.8] - 2018-06-17
 
