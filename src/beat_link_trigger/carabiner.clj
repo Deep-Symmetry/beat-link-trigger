@@ -214,7 +214,7 @@
         (when (> (Math/abs ms-delta) 0)
           ;; We should shift the Pioneer timeline. But if this would cause us to skip or repeat a beat, and we
           ;; are shifting less 1/5 of a beat or less, hold off until a safer moment.
-          (let [beat-phase (.getBeatPhase virtual-cdj)
+          (let [beat-phase (.getBeatPhase (.getPlaybackPosition virtual-cdj))
                 beat-delta (if align-to-bar (* phase-delta 4.0) phase-delta)
                 beat-delta (if (pos? beat-delta) (+ beat-delta 0.1) beat-delta)]  ; Account for sending lag.
             (when (or (zero? (Math/floor (+ beat-phase beat-delta)))  ; Staying in same beat, we are fine.
@@ -492,6 +492,18 @@
             (swap! client assoc :phase-probe [ableton-now snapshot])
             (send-message (str "phase-at-time " ableton-now " 4.0"))))
 
+(def sync-hysteresis
+  "The number of milliseconds to wait for sync state to settle after
+  sendign a sync command, so our UI does not get into a terrible
+  feedback loop."
+  250)
+
+(def master-hysteresis
+  "The number of milliseconds to wait for sync state to settle after
+  sendign a tempo master assignment command, so our UI does not get
+  into a terrible feedback loop."
+  300)
+
 (defn- start-sync-state-updates
   "Creates and starts the thread which updates the Sync and Master UI to
   reflect changes initiated on the devices themselves, and keeps the
@@ -509,26 +521,26 @@
                  sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
              (when  (and (.isTempoMaster status) (not (seesaw/value master-button)))
                (let [changed (:master-command-sent @client)]
-                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
                    (seesaw/value! master-button true))))
              (when (not= (seesaw/value sync-box) (.isSynced status))
                (let [changed (get-in @client [:sync-command-sent (long device)])]
-                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+                 (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
                    (seesaw/value! sync-box (.isSynced status)))))))
          ;; Then update the state of the Ableton Link (Virtual CDJ) row
          (let [master-button (seesaw/select frame [:#master-link])
                sync-box      (seesaw/select frame [:#sync-link])]
            (when  (and (.isTempoMaster virtual-cdj) (not (seesaw/value master-button)))
              (let [changed (:master-command-sent @client)]
-               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
                  (seesaw/value! master-button true))))
            (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
              (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
-               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) 250))
+               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
                  (seesaw/value! sync-box (.isSynced virtual-cdj)))))))
 
         ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
-        (when (and (zero? i) (.isTempoMaster virtual-cdj))
+        (when (and (zero? i) (= :full (:sync-mode @client)) (.isTempoMaster virtual-cdj))
           (align-pioneer-phase-to-ableton))
 
         (Thread/sleep 100)
@@ -628,6 +640,7 @@
   Sync mode is Passive or Full, unless we are the tempo master, start
   tying the Ableton Link tempo to the Pioneer DJ Link tempo master."
   [synced]
+  #_(timbre/debug "link-sync-state-changed" synced (:sync-mode @client) "master?" (.isTempoMaster virtual-cdj))
   (when (not= (.isSynced virtual-cdj) synced)
     (swap! client assoc-in [:sync-command-sent (.getDeviceNumber virtual-cdj)] (System/currentTimeMillis))
     (.setSynced virtual-cdj synced))
@@ -641,10 +654,12 @@
   "Start forcing the Pioneer tempo and beat grid to follow Ableton
   Link."
   []
-  (free-ableton-from-pioneer)  ; When we are master, we don't follow anyone else
+  #_(timbre/info (Exception.) "tie-pioneer-to-ableton called!")
+  (free-ableton-from-pioneer)  ; When we are master, we don't follow anyone else.
   (align-pioneer-phase-to-ableton)
   (.setTempo virtual-cdj (:link-bpm @client))
   (.becomeTempoMaster virtual-cdj)
+  (.setPlaying virtual-cdj true)
   (future  ; Realign the BPM in a millisecond or so, in case it gets changed by the outgoing master during handoff.
     (Thread/sleep 1)
     (send-message "status")))
@@ -652,9 +667,8 @@
 (defn- free-pioneer-from-ableton
   "Stop forcing the Pioneer tempo and beat grid to follow Ableton Link."
   []
-  ;; Not much to do here because this will be called once we are no longer tempo master, and the timeline
-  ;; alignment of the Virtual CDJ happens whenever we are in Full sync mode regardless. However, if we are
-  ;; also supposed to be synced the other direction, it is time to turn that back on.
+  (.setPlaying virtual-cdj false)
+  ;; If we are also supposed to be synced the other direction, it is time to turn that back on.
   (when (and ({:passive :full} (:sync-mode @client))
              (.isSynced virtual-cdj))
     (tie-ableton-to-pioneer)))
@@ -696,7 +710,6 @@
       (seesaw/config! (seesaw/select root [:#bar]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#master-link]) :enabled? (= :full new-mode))
 
-      (.setPlaying virtual-cdj (= :full new-mode))
       (if ({:passive :full} new-mode)
         (do
           (link-sync-state-changed (.isSynced virtual-cdj))  ; This is now relevant, even if it wasn't before.
