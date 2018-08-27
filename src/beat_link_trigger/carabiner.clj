@@ -644,7 +644,7 @@
   (when (not= (.isSynced virtual-cdj) synced)
     (swap! client assoc-in [:sync-command-sent (.getDeviceNumber virtual-cdj)] (System/currentTimeMillis))
     (.setSynced virtual-cdj synced))
-  (when (and ({:passive :full} (:sync-mode @client))
+  (when (and (#{:passive :full} (:sync-mode @client))
              (not (.isTempoMaster virtual-cdj)))
     (if synced
       (tie-ableton-to-pioneer)
