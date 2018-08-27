@@ -514,34 +514,35 @@
     (loop [i 0]
       (try
         (seesaw/invoke-later
-         ;; First update the states of the actual device rows
-         (doseq [status (.getLatestStatus virtual-cdj)]
-           (let [device        (.getDeviceNumber status)
-                 master-button (seesaw/select frame [(keyword (str "#master-" device))])
-                 sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
-             (when  (and (.isTempoMaster status) (not (seesaw/value master-button)))
+         (when (.isRunning virtual-cdj)  ; Skip this if we are currently offline.
+           ;; First update the states of the actual device rows
+           (doseq [status (.getLatestStatus virtual-cdj)]
+             (let [device        (.getDeviceNumber status)
+                   master-button (seesaw/select frame [(keyword (str "#master-" device))])
+                   sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
+               (when  (and (.isTempoMaster status) (not (seesaw/value master-button)))
+                 (let [changed (:master-command-sent @client)]
+                   (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
+                     (seesaw/value! master-button true))))
+               (when (not= (seesaw/value sync-box) (.isSynced status))
+                 (let [changed (get-in @client [:sync-command-sent (long device)])]
+                   (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
+                     (seesaw/value! sync-box (.isSynced status)))))))
+           ;; Then update the state of the Ableton Link (Virtual CDJ) row
+           (let [master-button (seesaw/select frame [:#master-link])
+                 sync-box      (seesaw/select frame [:#sync-link])]
+             (when  (and (.isTempoMaster virtual-cdj) (not (seesaw/value master-button)))
                (let [changed (:master-command-sent @client)]
                  (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
                    (seesaw/value! master-button true))))
-             (when (not= (seesaw/value sync-box) (.isSynced status))
-               (let [changed (get-in @client [:sync-command-sent (long device)])]
+             (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
+               (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
                  (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
-                   (seesaw/value! sync-box (.isSynced status)))))))
-         ;; Then update the state of the Ableton Link (Virtual CDJ) row
-         (let [master-button (seesaw/select frame [:#master-link])
-               sync-box      (seesaw/select frame [:#sync-link])]
-           (when  (and (.isTempoMaster virtual-cdj) (not (seesaw/value master-button)))
-             (let [changed (:master-command-sent @client)]
-               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
-                 (seesaw/value! master-button true))))
-           (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
-             (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
-               (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
-                 (seesaw/value! sync-box (.isSynced virtual-cdj)))))))
+                   (seesaw/value! sync-box (.isSynced virtual-cdj)))))))
 
-        ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
-        (when (and (zero? i) (= :full (:sync-mode @client)) (.isTempoMaster virtual-cdj))
-          (align-pioneer-phase-to-ableton))
+         ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
+         (when (and (zero? i) (= :full (:sync-mode @client)) (.isTempoMaster virtual-cdj))
+           (align-pioneer-phase-to-ableton)))
 
         (Thread/sleep 100)
         (catch Exception e
