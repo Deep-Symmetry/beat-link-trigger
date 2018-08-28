@@ -695,7 +695,7 @@ experience synchronization glitches."
   []
   (.setPlaying virtual-cdj false)
   ;; If we are also supposed to be synced the other direction, it is time to turn that back on.
-  (when (and ({:passive :full} (:sync-mode @client))
+  (when (and (#{:passive :full} (:sync-mode @client))
              (.isSynced virtual-cdj))
     (tie-ableton-to-pioneer)))
 
