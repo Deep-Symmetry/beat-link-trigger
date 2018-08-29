@@ -23,20 +23,25 @@ This change log follows the conventions of
 
 ### Fixed
 
+- If we had trouble communicating with a player's database server when
+  first trying to get metadata from it, we would not ever try again,
+  even if taken offline and back online. Now when we go offline, we
+  shut down the `ConnectionManager`, clearing out that state so the
+  next time we go online we can try again.
 - Make the Player Status window show up in the right size to not
   require scroll bars.
-- Protect against race conditions reading and writing preferences from
-  different threads, now that they are split across multiple nodes.
+- The Player Status window display when no players were found was huge
+  and lacked suitable borders. It looks much better now.
 - The error dialog that was displayed when we did not hear the right
   response from a Carabiner daemon after connecting was not being
   displayed on the correct thread, and so was completely unreadable.
-- The Player Status window display when no players were found was huge
-  and lacked suitable borders. It looks much better now.
 - If multiple messages were sent rapidly to or from Carabiner they
   might get grouped into a single network packet, and the later ones
   would be ignored. This release, along with a newer Carabiner
   release, process even later messages grouped in the same packet.
   This version will warn you if you need to upgrade Carabiner.
+- Protect against race conditions reading and writing preferences from
+  different threads, now that they are split across multiple nodes.
 
 ## [0.3.8] - 2018-06-17
 
