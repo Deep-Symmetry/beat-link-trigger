@@ -400,7 +400,6 @@ experience synchronization glitches."
   ([time]
    (beat-at-time time nil))
   ([time beat-number]
-   (ensure-active)
    (let [adjusted-time (- time (* (:latency @client) 1000))]
      (swap! client assoc :beat [adjusted-time beat-number])
      (send-message (str "beat-at-time " adjusted-time " 4.0"))
