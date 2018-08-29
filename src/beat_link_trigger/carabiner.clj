@@ -513,7 +513,7 @@ experience synchronization glitches."
   Ableton Link's."
   []
   (let [ableton-now (+ (long (/ (System/nanoTime) 1000)) (* (:latency @client) 1000))
-                snapshot    (.getPlaybackPosition virtual-cdj)]
+        snapshot    (.getPlaybackPosition virtual-cdj)]
             (swap! client assoc :phase-probe [ableton-now snapshot])
             (send-message (str "phase-at-time " ableton-now " 4.0"))))
 
@@ -563,11 +563,11 @@ experience synchronization glitches."
              (when (not= (seesaw/value sync-box) (.isSynced virtual-cdj))
                (let [changed (get-in @client [:sync-command-sent (long (.getDeviceNumber virtual-cdj))])]
                  (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
-                   (seesaw/value! sync-box (.isSynced virtual-cdj)))))))
+                   (seesaw/value! sync-box (.isSynced virtual-cdj))))))
 
-         ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
-         (when (and (zero? i) (= :full (:sync-mode @client)) (.isTempoMaster virtual-cdj))
-           (align-pioneer-phase-to-ableton)))
+           ;; If we are due to send a probe to align the Virtual CDJ timeline to Link's, do so.
+           (when (and (zero? i) (= :full (:sync-mode @client)) (.isTempoMaster virtual-cdj))
+             (align-pioneer-phase-to-ableton))))
 
         (Thread/sleep 100)
         (catch Exception e
