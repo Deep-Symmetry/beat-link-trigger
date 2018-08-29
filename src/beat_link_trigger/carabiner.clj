@@ -251,20 +251,21 @@ experience synchronization glitches."
   [socket running]
   (try
     (let [buffer (byte-array 1024)
-          input (.getInputStream socket)]
+          input  (.getInputStream socket)]
       (while (and (= running (:running @client)) (not (.isClosed socket)))
         (try
           (let [n (.read input buffer)]
             (if (and (pos? n) (= running (:running @client)))  ; We got data, and were not shut down while reading
               (let [message (String. buffer 0 n "UTF-8")
-                    reader (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message "UTF-8")))]
+                    reader  (java.io.PushbackReader. (clojure.java.io/reader (.getBytes message "UTF-8")))]
                 (timbre/debug "Received:" message)
                 (loop [cmd (clojure.edn/read reader)]
                   (case cmd
-                    status (handle-status (clojure.edn/read reader))
-                    beat-at-time (handle-beat-at-time (clojure.edn/read reader))
+                    status        (handle-status (clojure.edn/read reader))
+                    beat-at-time  (handle-beat-at-time (clojure.edn/read reader))
                     phase-at-time (handle-phase-at-time (clojure.edn/read reader))
-                    unsupported (handle-unsupported (clojure.edn/read reader))
+                    version       (timbre/info "Connected to Carabiner daemon, version:" (clojure.edn/read reader))
+                    unsupported   (handle-unsupported (clojure.edn/read reader))
                     (timbre/error "Unrecognized message from Carabiner:" message))
                   (let [next-cmd (clojure.edn/read {:eof ::eof} reader)]
                     (when (not= ::eof next-cmd)
