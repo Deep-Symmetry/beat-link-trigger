@@ -1515,6 +1515,7 @@
   (.stop (ArtFinder/getInstance))
   (.stop metadata-finder)
   (.stop (BeatFinder/getInstance))
+  (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
   (.stop virtual-cdj)
   (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
   (Thread/sleep 200)  ; Wait for straggling update packets
