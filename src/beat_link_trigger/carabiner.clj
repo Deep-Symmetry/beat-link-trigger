@@ -20,7 +20,7 @@
   and stopped, so a leftover background thread from a previous run can
   know when it is stale and should exit.)"}
   client (atom {:port 17000
-                :latency 20
+                :latency 5
                 :last 0}))
 
 (defonce ^{:private true
