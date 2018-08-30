@@ -12,13 +12,15 @@
 
 (defonce ^{:private true
            :doc "When connected, holds the socket used to communicate
-  with Carabiner, values which track the peer count and tempo reported
-  by the Ableton Link session and the target tempo we are trying to
-  maintain (when applicable), and the `:running` flag which can be
-  used to gracefully terminate that thread. (The `:last` entry is used
-  to assign unique integers to each `:running` value as we are started
-  and stopped, so a leftover background thread from a previous run can
-  know when it is stale and should exit.)"}
+  with Carabiner, the estimated latency in millisaconds between an
+  actual beat played by a CDJ and when we receive the packet, values
+  which track the peer count and tempo reported by the Ableton Link
+  session and the target tempo we are trying to maintain (when
+  applicable), and the `:running` flag which can be used to gracefully
+  terminate that thread. (The `:last` entry is used to assign unique
+  integers to each `:running` value as we are started and stopped, so
+  a leftover background thread from a previous run can know when it is
+  stale and should exit.)"}
   client (atom {:port 17000
                 :latency 5
                 :last 0}))
