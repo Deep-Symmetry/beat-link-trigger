@@ -541,8 +541,8 @@ experience synchronization glitches."
         (seesaw/invoke-later
          (when (.isRunning virtual-cdj)  ; Skip this if we are currently offline.
            ;; First update the states of the actual device rows
-           (doseq [status (.getLatestStatus virtual-cdj)]
-             (let [device        (.getDeviceNumber status)
+           (doseq [status (filter #(#{1 2 3 4 33} (long (.getDeviceNumber %))) (.getLatestStatus virtual-cdj))]
+             (let [device        (long (.getDeviceNumber status))
                    master-button (seesaw/select frame [(keyword (str "#master-" device))])
                    sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
                (when  (and (.isTempoMaster status) (not (seesaw/value master-button)))
@@ -550,7 +550,7 @@ experience synchronization glitches."
                    (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
                      (seesaw/value! master-button true))))
                (when (not= (seesaw/value sync-box) (.isSynced status))
-                 (let [changed (get-in @client [:sync-command-sent (long device)])]
+                 (let [changed (get-in @client [:sync-command-sent device])]
                    (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) sync-hysteresis))
                      (seesaw/value! sync-box (.isSynced status)))))))
            ;; Then update the state of the Ableton Link (Virtual CDJ) row
