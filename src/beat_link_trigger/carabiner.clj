@@ -213,10 +213,6 @@
                              (.getBarInterval snapshot)
                              (.getBeatInterval snapshot))
             ms-delta       (long (* phase-delta phase-interval))]
-        #_(let [real-now (long (/ (System/nanoTime) 1000))]
-          (timbre/info "phase-at-time" ableton-now "actually" real-now "difference" (- ableton-now real-now)
-                       "Desired" desired-phase
-                       "actual" actual-phase))
         (when (> (Math/abs ms-delta) 0)
           ;; We should shift the Pioneer timeline. But if this would cause us to skip or repeat a beat, and we
           ;; are shifting less 1/5 of a beat or less, hold off until a safer moment.
