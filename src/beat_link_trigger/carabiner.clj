@@ -279,8 +279,8 @@ experience synchronization glitches."
                 (.close socket))))
           (catch java.net.SocketTimeoutException e
             (timbre/debug "Read from Carabiner timed out, checking if we should exit loop."))
-          (catch Exception e
-            (timbre/error e "Problem reading from Carabiner.")))))
+          (catch Throwable t
+            (timbre/error t "Problem reading from Carabiner.")))))
     (timbre/info "Ending read loop from Carabiner.")
     (swap! client (fn [oldval]
                     (if (= running (:running oldval))
@@ -290,8 +290,8 @@ experience synchronization glitches."
     (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off")
     (update-connected-status)
     (update-link-status)
-    (catch Exception e
-      (timbre/error e "Problem managing Carabiner read loop."))))
+    (catch Throwable t
+      (timbre/error t "Problem managing Carabiner read loop."))))
 
 (defn disconnect
   "Shut down any active Carabiner connection. The run loop will notice
