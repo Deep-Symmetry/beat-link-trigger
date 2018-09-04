@@ -717,6 +717,7 @@ experience synchronization glitches."
   mode is consistent with the current state, and if so, updates the
   relevant interface elements and sets up the new state."
   [new-mode root]
+  (swap! client assoc :sync-mode new-mode)
   (cond
     (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
     (do
@@ -746,7 +747,6 @@ experience synchronization glitches."
       (when (= :triggers new-mode)
         (seesaw/value! (seesaw/select root [:#sync-link]) false))  ; Will get set on next update if trigger active
 
-      (swap! client assoc :sync-mode new-mode)
       (seesaw/repaint! (seesaw/select root [:#state]))
       (when (sync-triggers?) (check-link-tempo)))))
 
