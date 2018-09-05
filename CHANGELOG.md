@@ -9,6 +9,11 @@ This change log follows the conventions of
 ### Added
 
 - Support for running under Java 9 and 10.
+- Beat Link Trigger can now become Tempo Master on the Pioneer DJ Link
+  network, and can synchronize the tempo and beat grid of CDJs to
+  Ableton Link in both directions.
+- The Carabiner window now lets you control which device is the Tempo
+  Master and which devices are synced to it.
 - Playlist Writer window for ease of use by radio stations and others
   wanting to be careful about royalties.
 - Can now display metadata for non-rekordbox tracks, including audio
@@ -18,8 +23,6 @@ This change log follows the conventions of
 - The `Online?` option in the `Triggers` menu now shows the player
   number that Beat Link Trigger is using once it is online, to help
   people understand how it is operating.
-- The Carabiner window now lets you control which device is the Tempo
-  Master and which devices are synced to it.
 
 ### Fixed
 

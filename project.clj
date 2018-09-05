@@ -17,7 +17,7 @@
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.4.0-SNAPSHOT"]
-                 [org.deepsymmetry/electro "0.1.2"]
+                 [org.deepsymmetry/electro "0.1.3-SNAPSHOT"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
