@@ -2,25 +2,23 @@
   "Provides the user interface for seeing the status of active
   players, as well as creating metadata caches and assigning them to
   particular player slots."
-  (:require [clojure.core.async :as async :refer [<! >! <!! >!!]]
-            [seesaw.core :as seesaw]
+  (:require [beat-link-trigger.util :as util]
+            [clojure.core.async :as async :refer [<! >!!]]
             [seesaw.chooser :as chooser]
+            [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre]
-            [beat-link-trigger.playlist-entry]
-            [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
-            VirtualCdj DeviceUpdate CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data
-            MetadataFinder MetadataCacheCreationListener TrackMetadataListener TrackMetadataUpdate
-            MountListener MetadataCacheListener SlotReference SearchableItem
-            WaveformListener WaveformPreviewComponent WaveformDetailComponent
-            TimeFinder WaveformFinder ArtFinder AlbumArtListener AlbumArtUpdate]
-           [beat_link_trigger.playlist_entry IPlaylistEntry]
-           [java.awt GraphicsEnvironment Font Color RenderingHints]
-           [java.awt.event WindowEvent]
-           [javax.swing JFileChooser JTree]
-           [javax.swing.tree TreeNode DefaultMutableTreeNode DefaultTreeModel]))
+            [taoensso.timbre :as timbre])
+  (:import beat_link_trigger.playlist_entry.IPlaylistEntry
+           [java.awt Color Font GraphicsEnvironment RenderingHints]
+           java.awt.event.WindowEvent
+           javax.swing.JFileChooser
+           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
+           [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
+            DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
+           [org.deepsymmetry.beatlink.data AlbumArtListener ArtFinder
+            MetadataCacheCreationListener MetadataCacheListener MetadataFinder
+            MountListener SearchableItem SlotReference TimeFinder TrackMetadataListener
+            WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to view player state
