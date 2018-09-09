@@ -9,6 +9,7 @@
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as writer]
+            [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.auto-cache :as auto]
             [beat-link-trigger.view-cache :as view-cache]
             [beat-link-trigger.prefs :as prefs]
@@ -880,6 +881,11 @@
   (seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
                  :name "Ableton Link: Carabiner Connection"))
 
+(def ^:private load-track-action
+  "The menu action which opens the Load Track window."
+  (seesaw/action :handler (fn [e] (track-loader/show-dialog))
+                 :name "Load Track on Player"))
+
 (defn- close-all-editors
   "Close any custom expression editors windows that are open, in
   preparation for deleting all triggers."
@@ -1422,8 +1428,11 @@
                                          :id :triggers-menu)
 
                             (seesaw/menu :text "Network"
-                                         :items [online-item metadata-item status-item (seesaw/separator)
-                                                 player-status-action playlist-writer-action (seesaw/separator)
+                                         :items [online-item metadata-item status-item
+                                                 (seesaw/separator)
+                                                 player-status-action playlist-writer-action load-track-action
+                                                 ;; TODO: Need to disable load-track when offline/no metdata
+                                                 (seesaw/separator)
                                                  carabiner-action]
                                          :id :network-menu)])))
 

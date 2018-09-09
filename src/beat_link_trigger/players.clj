@@ -2,13 +2,14 @@
   "Provides the user interface for seeing the status of active
   players, as well as creating metadata caches and assigning them to
   particular player slots."
-  (:require [beat-link-trigger.util :as util]
+  (:require [beat-link-trigger.tree-node]
+            [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import beat_link_trigger.playlist_entry.IPlaylistEntry
+  (:import beat_link_trigger.tree_node.IPlaylistEntry
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            java.awt.event.WindowEvent
            javax.swing.JFileChooser
