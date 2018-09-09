@@ -141,7 +141,7 @@
   [^SlotReference slot-reference]
   (let [label (str "Player " (.player slot-reference) " "
                    (expressions/case-enum (.slot slot-reference)
-                     CdjStatus$TrackSourceSlot/CD_SLOT "CD"
+                     CdjStatus$TrackSourceSlot/SD_SLOT "SD"
                      CdjStatus$TrackSourceSlot/USB_SLOT "USB"))]
     (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
