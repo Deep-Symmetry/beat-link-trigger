@@ -26,6 +26,10 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Can now get metadata from Windows rekordbox; previously we were
+  running into a rekordbox bug when sending dbserver messages split
+  across more than one network packet. The Beat Link library  now
+  takes pains to prevent them from being split.
 - The SD slots were showing up as mounted in the Player Status window
   even when they were emtpy.
 - If we had trouble communicating with a player's database server when
