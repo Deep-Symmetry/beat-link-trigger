@@ -26,6 +26,8 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The SD slots were showing up as mounted in the Player Status window
+  even when they were emtpy.
 - If we had trouble communicating with a player's database server when
   first trying to get metadata from it, we would not ever try again,
   even if taken offline and back online. Now when we go offline, we

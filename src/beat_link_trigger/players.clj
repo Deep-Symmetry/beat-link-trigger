@@ -663,9 +663,10 @@
                              (seesaw/repaint! art))))
         slot-elems     (fn [slot-reference]
                          (when (= n (.player slot-reference))
-                           (if (= (.slot slot-reference) (CdjStatus$TrackSourceSlot/USB_SLOT))
-                             [usb-gear usb-label]
-                             [sd-gear sd-label])))
+                           (util/case-enum (.slot slot-reference)
+                             CdjStatus$TrackSourceSlot/USB_SLOT [usb-gear usb-label]
+                             CdjStatus$TrackSourceSlot/SD_SLOT [sd-gear sd-label]
+                             nil)))
         mount-listener (reify MountListener
                          (mediaMounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]

@@ -1,8 +1,7 @@
 (ns beat-link-trigger.playlist-writer
   "A window that facilitates the creation of comma-separated-value lists
   reporting tracks played over a particular period of time."
-  (:require [beat-link-trigger.expressions :as expressions]
-            [beat-link-trigger.prefs :as prefs]
+  (:require [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [clojure.data.csv :as csv]
             [seesaw.core :as seesaw]
@@ -66,7 +65,7 @@
        (format-searchable-item (.getAlbum metadata))]
 
       ;; We have no metadata, so describe the track as best we can.
-      (expressions/case-enum (.getTrackType status)
+      (util/case-enum (.getTrackType status)
 
         CdjStatus$TrackType/CD_DIGITAL_AUDIO
         [(str "Unknown (Audio CD track " (.getTrackNumber status) ")") "" ""]
@@ -87,7 +86,7 @@
     (if (#{CdjStatus$TrackType/REKORDBOX CdjStatus$TrackType/UNANALYZED CdjStatus$TrackType/CD_DIGITAL_AUDIO}
          (.getTrackType status))
       (str "Player " (.getTrackSourcePlayer status)
-           (expressions/case-enum (.getTrackSourceSlot status)
+           (util/case-enum (.getTrackSourceSlot status)
 
              CdjStatus$TrackSourceSlot/SD_SLOT
              " SD"

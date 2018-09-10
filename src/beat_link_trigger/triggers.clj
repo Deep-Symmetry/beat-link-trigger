@@ -410,7 +410,7 @@
 
     (and (pos? (.getRekordboxId status)) (not (:tracks-using-playlists? @(global-user-data))))
     (str "Track id " (.getRekordboxId status) " [" (.getTrackSourcePlayer status) ":"
-         (expressions/case-enum (.getTrackSourceSlot status)
+         (util/case-enum (.getTrackSourceSlot status)
            CdjStatus$TrackSourceSlot/USB_SLOT "usb"
            CdjStatus$TrackSourceSlot/SD_SLOT "sd"
            CdjStatus$TrackSourceSlot/COLLECTION "rb"

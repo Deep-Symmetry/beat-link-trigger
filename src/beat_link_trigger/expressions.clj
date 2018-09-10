@@ -3,6 +3,7 @@
   evaluated, which provides support for making them easier to write."
   (:require [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
+            [beat-link-trigger.util :as util]
             [overtone.midi :as midi]
             [overtone.osc :as osc]
             [taoensso.timbre :as timbre])
@@ -11,24 +12,11 @@
            [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
-(defmacro case-enum
-  "Like `case`, but explicitly dispatch on Java enum ordinals."
-  {:style/indent 1}
-  [e & clauses]
-  (letfn [(enum-ordinal [e] `(let [^Enum e# ~e] (.ordinal e#)))]
-    `(case ~(enum-ordinal e)
-       ~@(concat
-          (mapcat (fn [[test result]]
-                    [(eval (enum-ordinal test)) result])
-                  (partition 2 clauses))
-          (when (odd? (count clauses))
-            (list (last clauses)))))))
-
 (defn track-source-slot
   "Converts the Java enum value representing the slot from which a track
   was loaded to a more convenient Clojure keyword."
   [status]
-  (case-enum (.getTrackSourceSlot status)
+  (util/case-enum (.getTrackSourceSlot status)
     CdjStatus$TrackSourceSlot/NO_TRACK   :no-track
     CdjStatus$TrackSourceSlot/CD_SLOT    :cd-slot
     CdjStatus$TrackSourceSlot/SD_SLOT    :sd-slot
@@ -40,7 +28,7 @@
   "Converts the Java enum value representing the type of track that
   was loaded to a more convenient Clojure keyword."
   [status]
-  (case-enum (.getTrackType status)
+  (util/case-enum (.getTrackType status)
     CdjStatus$TrackType/NO_TRACK         :no-track
     CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
     CdjStatus$TrackType/REKORDBOX        :rekordbox
