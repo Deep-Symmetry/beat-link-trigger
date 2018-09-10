@@ -1,8 +1,7 @@
 (ns beat-link-trigger.track-loader
   "Provides the user interface for exploring the menu trees of the
   available media databases, and loading tracks into players."
-  (:require [beat-link-trigger.expressions :as expressions]
-            [beat-link-trigger.tree-node]
+  (:require [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
@@ -189,7 +188,7 @@
   a particular player slot."
   [^SlotReference slot-reference]
   (let [label (str "Player " (.player slot-reference) " "
-                   (expressions/case-enum (.slot slot-reference)
+                   (util/case-enum (.slot slot-reference)
                      CdjStatus$TrackSourceSlot/SD_SLOT "SD"
                      CdjStatus$TrackSourceSlot/USB_SLOT "USB"))]
     (DefaultMutableTreeNode.
