@@ -139,8 +139,101 @@
          (.add node (menu-item-node entry slot-reference)))))
    true))
 
+;; Creates a menu item node for the Playlist menu.
+(defmethod menu-item-node Message$MenuItemType/PLAYLIST_MENU playlist-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestPlaylistItemsFrom metadata-finder (.player slot-reference) (.slot slot-reference)
+                                                0 0 true)]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
+;; Creates a menu item node for a Folder.
+(defmethod menu-item-node Message$MenuItemType/FOLDER folder-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestPlaylistItemsFrom metadata-finder (.player slot-reference) (.slot slot-reference)
+                                                0 (menu-item-id item) true)]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
+;; Creates a menu item node for a Playlist.
+(defmethod menu-item-node Message$MenuItemType/PLAYLIST playlist-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestPlaylistItemsFrom metadata-finder (.player slot-reference) (.slot slot-reference)
+                                                0 (menu-item-id item) false)]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
+;; Creates a menu item node for the Artist menu.
+(defmethod menu-item-node Message$MenuItemType/ARTIST_MENU artist-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestArtistMenuFrom menu-loader slot-reference 0)]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
+;; Creates a menu item node for an artist.
+(defmethod menu-item-node Message$MenuItemType/ARTIST artist-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
+;; Creates a menu item node for an album.
+(defmethod menu-item-node Message$MenuItemType/ALBUM_TITLE album-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
 ;; Creates a menu item node for a track.
-(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE track-title
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE track-title-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -274,20 +367,20 @@
                              (.getMountedMediaSlots metadata-finder))]
      (if (seq valid-slots)
        (try
-         (let [selected-id   (atom nil)
-               root          (seesaw/frame :title "Load Track on Player"
-                                           :on-close :dispose :resizable? true)
-               model         (DefaultTreeModel. (root-node) true)
-               tree          (seesaw/tree :model model :id :tree)
-               load-button   (seesaw/button :text "Load" :enabled? false)
-               panel         (mig/mig-panel :constraints ["" "[grow,fill]" "[grow,fill]"]
-                                            :items [[(seesaw/scrollable tree) "span, grow, wrap"]
-                                                    [load-button "wrap, push 0"]])
-               stop-listener (reify LifecycleListener
-                               (started [this sender]) ; Nothing for us to do, we exited as soon a stop happened anyway.
-                               (stopped [this sender]  ; Close our window if MetadataFinder stops (we need it).
-                                 (seesaw/invoke-later
-                                  (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
+         (let [selected-track (atom nil)
+               root           (seesaw/frame :title "Load Track on Player"
+                                            :on-close :dispose :resizable? true)
+               model          (DefaultTreeModel. (root-node) true)
+               tree           (seesaw/tree :model model :id :tree)
+               load-button    (seesaw/button :text "Load" :enabled? false)
+               panel          (mig/mig-panel :constraints ["" "[grow,fill]" "[grow,fill]"]
+                                             :items [[(seesaw/scrollable tree) "span, grow, wrap"]
+                                                     [load-button "wrap, push 0"]])
+               stop-listener  (reify LifecycleListener
+                                (started [this sender]) ; Nothing to do, we exited as soon a stop happened anyway.
+                                (stopped [this sender]  ; Close our window if MetadataFinder stops (we need it).
+                                  (seesaw/invoke-later
+                                   (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
                mount-listener (reify MountListener
                                 (mediaMounted [this slot]
                                   (seesaw/invoke-later (add-slot-node tree slot)))
