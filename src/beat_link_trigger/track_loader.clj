@@ -403,12 +403,12 @@
                               (.loadChildren entry node)))
                           :selection
                           (fn [e]
-                            (reset! selected-id
+                            (reset! selected-track
                                     (when (.isAddedPath e)
                                       (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
                                         (when (.isTrack entry)
-                                          (.getId entry)))))
-                            (seesaw/config! load-button :enabled? (some? @selected-id))))
+                                          [(.getSlot entry) (.getId entry)]))))
+                            (seesaw/config! load-button :enabled? (some? @selected-track))))
            (try
              (.expandRow tree 1)  ; TODO: This should be the child specified by slot if not `nil`
              (catch IllegalStateException e
@@ -417,8 +417,11 @@
            (seesaw/listen load-button
                           :action-performed
                           (fn [action]
-                            ;; TODO: Send the command to load the track.
-                            (.dispose root)))
+                            ;; TODO: Menu to choose destination player; currently hardcoded to player 2.
+                            (let [[slot-reference track] @selected-track]
+                              (.sendLoadTrackCommand virtual-cdj 2 track (.player slot-reference) (.slot slot-reference)
+                                                     CdjStatus$TrackType/REKORDBOX))
+                            (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
            (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
              (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
            (when @loader-window  ; We made it!
