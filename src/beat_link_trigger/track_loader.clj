@@ -8,6 +8,8 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import beat_link_trigger.tree_node.IMenuEntry
+           [java.awt.event WindowEvent]
+           [javax.swing JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
@@ -15,15 +17,34 @@
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]))
 
 (defonce ^{:private true
-           :doc     "Holds the singleton instance of the menu loader for our convenient use."}
-  menu-loader (MenuLoader/getInstance))
+           :doc "Holds the frame allowing the user to pick a track and
+  tell a player to load it."} loader-window
+  (atom nil))
+
+(def menu-loader
+  "The object that provides methods for loading menus from a rekordbox
+  database server."
+  (MenuLoader/getInstance))
+
+(def device-finder
+  "The object that tracks the arrival and departure of devices on the
+  DJ Link network."
+  (DeviceFinder/getInstance))
+
+(def virtual-cdj
+  "The object which can obtained detailed player status information."
+  (VirtualCdj/getInstance))
+
+(def metadata-finder
+  "The object that can obtain track metadata."
+  (MetadataFinder/getInstance))
 
 (defn- explain-navigation-failure
   "Called when the user has asked to explore a player's media menus, and
   metadata cannot be requested. Try to explain the issue to the user."
   [^Exception e]
   (timbre/error e "Problem Accessing Player Media Menus")
-  (let [device (.getDeviceNumber (VirtualCdj/getInstance))]
+  (let [device (.getDeviceNumber virtual-cdj)]
     (if (> device 4)
       (seesaw/alert (str "<html>Beat Link Trigger is using device number " device ". "
                          "To access menus<br>from the current players, "
@@ -104,6 +125,34 @@
          (.add node (menu-item-node entry slot-reference)))))
    true))
 
+;; Creates a menu item node for the Track menu.
+(defmethod menu-item-node Message$MenuItemType/TRACK_MENU track-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (doseq [entry (.requestTrackMenuFrom menu-loader slot-reference 0)]
+         (.add node (menu-item-node entry slot-reference)))))
+   true))
+
+;; Creates a menu item node for a track.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE track-title
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (isMenu [] false)
+     (isTrack [] true)
+     (loadChildren [^javax.swing.tree.TreeNode node]))
+   false))
+
 ;; Creates a menu item node for a track with the artist name.
 (defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_ARTIST track-title-and-artist-node
   [^Message item ^SlotReference slot-reference]
@@ -115,10 +164,10 @@
      (getSlot [] slot-reference)
      (isMenu [] false)
      (isTrack [] true)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))]
-         (.add node (menu-item-node entry slot-reference)))))
+     (loadChildren [^javax.swing.tree.TreeNode node]))
    false))
+
+
 
 ;; Creates a menu item node for unrecognized entries.
 (defmethod menu-item-node :default unrecognized-item-node
@@ -169,77 +218,140 @@
      (loadChildren [^javax.swing.tree.TreeNode node]))
    true))
 
+(defn- find-slot-node
+  "Searches the tree for the node responsible for talking to the
+  specified player slot, returning it if it exists. Must be invoked on
+  the Swing event dispatch thread."
+  [^JTree tree ^SlotReference slot]
+  (let [root (.. tree getModel getRoot)]
+    (loop [index 0]
+      (when (< index (.getChildCount root))
+        (let [child (.. tree getModel (getChild root index))]
+          (if (= (.. child getUserObject getSlot) slot)
+            child
+            (recur (inc index))))))))
+
+(defn- remove-slot-node
+  "Searches the tree for the node responsible for talking to the
+  specified player slot, removing it if it exists. Must be invoked on
+  the Swing event dispatch thread."
+  [^JTree tree ^SlotReference slot]
+  (when-let [node (find-slot-node tree slot)]
+    (.removeNodeFromParent (.getModel tree) node)))
+
+(defn- add-slot-node
+  "Adds a node responsible for talking to the specified player slot to
+  the tree. Must be invoked on the Swing event dispatch thread."
+  [^JTree tree ^SlotReference slot]
+  (let [node (slot-node slot)
+        root (.. tree getModel getRoot)]
+    ;; Find the node we should be inserting the new one in front of, if any.
+    (loop [index 0]
+      (if (< index (.getChildCount root))
+        (let [sibling (.. tree getModel (getChild root index))]
+          (if (neg? (.compareTo (.toString node) (.toString sibling)))
+            (.. tree getModel (insertNodeInto node root index))  ; Found node we should be in front of.
+            (recur (inc index))))
+        (.. tree getModel (insertNodeInto node root index))))))  ; We go at the end of the root.
+
 (defn- build-media-nodes
   "Create the top-level media database nodes, which will lazily load any
   child menus from the corresponding database server when they are
   expanded."
-  [mounted-slots]
-  (let [root (root-node)
-        children (map slot-node mounted-slots)]
-    (doseq [child (sort-by str children)]
-      (.add root child))
-    root))
+  [tree mounted-slots]
+  (doseq [slot mounted-slots]
+    (add-slot-node tree slot)))
+
+(defn- create-window
+  "Builds an interface in which the user can choose a track and load it
+  into a player. If `slot` is not `nil`, the corresponding slot will
+  be initially chosen as the track source. Returns the frame if
+  creation succeeded."
+   [^SlotReference slot]
+  ;; TODO: Set up an event listener to add/remove slots as media comes and goes.
+  ;; TODO: Need to add rekordbox collection slots for any rekordbox computers found on the network.
+  (seesaw/invoke-later
+   (let [valid-slots (filter #(#{CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT} (.slot %))
+                             (.getMountedMediaSlots metadata-finder))]
+     (if (seq valid-slots)
+       (try
+         (let [selected-id   (atom nil)
+               root          (seesaw/frame :title "Load Track on Player"
+                                           :on-close :dispose :resizable? true)
+               model         (DefaultTreeModel. (root-node) true)
+               tree          (seesaw/tree :model model :id :tree)
+               load-button   (seesaw/button :text "Load" :enabled? false)
+               panel         (mig/mig-panel :constraints ["" "[grow,fill]" "[grow,fill]"]
+                                            :items [[(seesaw/scrollable tree) "span, grow, wrap"]
+                                                    [load-button "wrap, push 0"]])
+               stop-listener (reify LifecycleListener
+                               (started [this sender]) ; Nothing for us to do, we exited as soon a stop happened anyway.
+                               (stopped [this sender]  ; Close our window if MetadataFinder stops (we need it).
+                                 (seesaw/invoke-later
+                                  (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
+               mount-listener (reify MountListener
+                                (mediaMounted [this slot]
+                                  (seesaw/invoke-later (add-slot-node tree slot)))
+                                (mediaUnmounted [this slot]
+                                  (seesaw/invoke-later (remove-slot-node tree slot))))]
+           (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+           (.addMountListener metadata-finder mount-listener)
+           (build-media-nodes tree valid-slots)
+           (reset! loader-window root)
+           (.addLifecycleListener metadata-finder stop-listener)
+           (seesaw/listen root :window-closed (fn [e]
+                                                (reset! loader-window nil)
+                                                (.removeMountListener metadata-finder mount-listener)
+                                                (.removeLifecycleListener metadata-finder stop-listener)))
+           (seesaw/listen tree
+                          :tree-will-expand
+                          (fn [e]
+                            (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
+                                  ^IMenuEntry entry (.getUserObject node)]
+                              (.loadChildren entry node)))
+                          :selection
+                          (fn [e]
+                            (reset! selected-id
+                                    (when (.isAddedPath e)
+                                      (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                        (when (.isTrack entry)
+                                          (.getId entry)))))
+                            (seesaw/config! load-button :enabled? (some? @selected-id))))
+           (try
+             (.expandRow tree 1)  ; TODO: This should be the child specified by slot if not `nil`
+             (catch IllegalStateException e
+               (explain-navigation-failure e)
+               (.stopped stop-listener metadata-finder)))
+           (seesaw/listen load-button
+                          :action-performed
+                          (fn [action]
+                            ;; TODO: Send the command to load the track.
+                            (.dispose root)))
+           (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
+             (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
+           (when @loader-window  ; We made it!
+             (seesaw/config! root :content panel)
+             (seesaw/pack! root)
+             (.setLocationRelativeTo root nil)
+             root))
+         (catch Exception e
+           (timbre/error e "Problem Loading Track")
+           (seesaw/alert (str "<html>Unable to Load Track on Player:<br><br>" (.getMessage e)
+                              "<br><br>See the log file for more details.")
+                         :title "Problem Loading Track" :type :error)))
+       (seesaw/alert "There is no media mounted in any player media slot."
+                     :title "Nowhere to Load Tracks From" :type :error)))))
 
 (defn show-dialog
-  "Presents an interface in which the user can choose a track and load
+  "Displays an interface in which the user can choose a track and load
   it into a player. If `slot` is provided, the corresponding slot will
   be initially chosen as the track source."
   ([]
    (show-dialog nil))
   ([^SlotReference slot]
-   ;; TODO: Set up an event listener to add/remove slots as media comes and goes.
-   ;; TODO: Need to add rekordbox collection slots for any rekordbox computers found on the network.
-   ;; TODO: Make window go away if we go offline or stop requesting metadata.
-   (seesaw/invoke-later
-    (let [valid-slots (filter #(#{CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT} (.slot %))
-                              (.getMountedMediaSlots (MetadataFinder/getInstance)))]
-      (if (seq valid-slots)
-        (try
-          (let [selected-id (atom nil)
-                root        (seesaw/frame :title "Load Track on Player"
-                                          :on-close :dispose :resizable? true)
-                model       (DefaultTreeModel. (build-media-nodes valid-slots) true)
-                tree        (seesaw/tree :model model)
-                load-button (seesaw/button :text "Load" :enabled? false)
-                panel       (mig/mig-panel :items [[(seesaw/scrollable tree) "span, grow, wrap"]
-                                                   [load-button "wrap"]])
-                failed      (atom false)]
-            (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
-            (seesaw/listen tree
-                           :tree-will-expand
-                           (fn [e]
-                             (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
-                                   ^IMenuEntry entry (.getUserObject node)]
-                               (.loadChildren entry node)))
-                           :selection
-                           (fn [e]
-                             (reset! selected-id
-                                     (when (.isAddedPath e)
-                                       (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
-                                         (when (.isTrack entry)
-                                           (.getId entry)))))
-                             (seesaw/config! load-button :enabled? (some? @selected-id))))
-            (.setVisibleRowCount tree 20)
-            (try
-              (.expandRow tree 1)
-              (catch IllegalStateException e
-                (explain-navigation-failure e)
-                (reset! failed true)))
-            (seesaw/listen load-button
-                           :action-performed
-                           (fn [action]
-                             ;; TODO: Send the command to load the track.
-                             (.dispose root)))
-            (seesaw/config! root :content panel)
-            (seesaw/pack! root)
-            (.setLocationRelativeTo root nil)
-            (if @failed
-              (.dispose root)
-              (seesaw/show! root)))
-          (catch Exception e
-            (timbre/error e "Problem Loading Track")
-            (seesaw/alert (str "<html>Unable to Load Track on Player:<br><br>" (.getMessage e)
-                               "<br><br>See the log file for more details.")
-                          :title "Problem Loading Track" :type :error)))
-        (seesaw/alert "There is no media mounted in any player media slot."
-                      :title "Nowhere to Load Tracks From" :type :error))))))
+   (locking loader-window
+     (when-not @loader-window (create-window slot))
+     (seesaw/invoke-later
+      (when-let [window @loader-window]
+        (seesaw/show! window)
+        (.toFront window))))))
