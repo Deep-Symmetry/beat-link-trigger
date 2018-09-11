@@ -430,8 +430,7 @@
                             ;; TODO: Menu to choose destination player; currently hardcoded to player 2.
                             (let [[slot-reference track] @selected-track]
                               (.sendLoadTrackCommand virtual-cdj 2 track (.player slot-reference) (.slot slot-reference)
-                                                     CdjStatus$TrackType/REKORDBOX))
-                            (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
+                                                     CdjStatus$TrackType/REKORDBOX))))
            (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
              (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
            (when @loader-window  ; We made it!
