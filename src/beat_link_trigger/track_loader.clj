@@ -9,7 +9,7 @@
   (:import beat_link_trigger.tree_node.IMenuEntry
            [java.awt.event WindowEvent]
            [javax.swing JTree]
-           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
+           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
@@ -150,12 +150,11 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestPlaylistItemsFrom metadata-finder (.player slot-reference) (.slot slot-reference)
-                                                0 0 true)]
+       (doseq [entry (.requestPlaylistMenuFrom menu-loader slot-reference 0)]
          (.add node (menu-item-node entry slot-reference)))))
    true))
 
-;; Creates a menu item node for a Folder.
+;; Creates a menu item node for a playlist folder.
 (defmethod menu-item-node Message$MenuItemType/FOLDER folder-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -354,13 +353,22 @@
   (doseq [slot mounted-slots]
     (add-slot-node tree slot)))
 
+(defn- expand-and-select-node
+  "Expands and selects the specified tree node, used for positioning the
+  user at the right place when they have chosen to load a track from a
+  particular media slot."
+  [tree node]
+  (let [model (.getModel tree)
+        nodePath (TreePath. (to-array [(.getRoot model) node]))]
+    (.setSelectionPath tree nodePath)
+    (.expandPath tree nodePath)))
+
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
   into a player. If `slot` is not `nil`, the corresponding slot will
   be initially chosen as the track source. Returns the frame if
   creation succeeded."
    [^SlotReference slot]
-  ;; TODO: Set up an event listener to add/remove slots as media comes and goes.
   ;; TODO: Need to add rekordbox collection slots for any rekordbox computers found on the network.
   (seesaw/invoke-later
    (let [valid-slots (filter #(#{CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT} (.slot %))
@@ -368,7 +376,7 @@
      (if (seq valid-slots)
        (try
          (let [selected-track (atom nil)
-               root           (seesaw/frame :title "Load Track on Player"
+               root           (seesaw/frame :title "Load Track on a Player"
                                             :on-close :dispose :resizable? true)
                model          (DefaultTreeModel. (root-node) true)
                tree           (seesaw/tree :model model :id :tree)
@@ -409,8 +417,10 @@
                                         (when (.isTrack entry)
                                           [(.getSlot entry) (.getId entry)]))))
                             (seesaw/config! load-button :enabled? (some? @selected-track))))
-           (try
-             (.expandRow tree 1)  ; TODO: This should be the child specified by slot if not `nil`
+           (try  ; Expand the node for the slot we are supposed to be loading from, or the first slot if none given.
+             (if-let [node (find-slot-node tree slot)]
+               (expand-and-select-node tree node)
+               (.expandRow tree 1))
              (catch IllegalStateException e
                (explain-navigation-failure e)
                (.stopped stop-listener metadata-finder)))
@@ -444,9 +454,14 @@
   ([]
    (show-dialog nil))
   ([^SlotReference slot]
-   (locking loader-window
-     (when-not @loader-window (create-window slot))
-     (seesaw/invoke-later
-      (when-let [window @loader-window]
-        (seesaw/show! window)
-        (.toFront window))))))
+   (seesaw/invoke-later
+    (locking loader-window
+      (if-not @loader-window
+        (create-window slot)
+        (let [tree (seesaw/select @loader-window [:#tree])]
+          (when-let [node (find-slot-node tree slot)]
+            (expand-and-select-node tree node))))
+      (seesaw/invoke-later
+       (when-let [window @loader-window]
+         (seesaw/show! window)
+         (.toFront window)))))))

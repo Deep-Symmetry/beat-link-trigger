@@ -2,7 +2,8 @@
   "Provides the user interface for seeing the status of active
   players, as well as creating metadata caches and assigning them to
   particular player slots."
-  (:require [beat-link-trigger.tree-node]
+  (:require [beat-link-trigger.track-loader :as track-loader]
+            [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
             [seesaw.chooser :as chooser]
@@ -548,7 +549,9 @@
                            :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
           slot-reference (SlotReference/getSlotReference (int n) slot)]
       (concat
-       [(seesaw/action :handler (fn [_] (show-cache-creation-dialog n slot))
+       [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
+                       :name "Load Track from Here on a Player")
+        (seesaw/action :handler (fn [_] (show-cache-creation-dialog n slot))
                        :name "Create Metadata Cache File")
         (seesaw/separator)]
        (when (.getMetadataCache metadata-finder slot-reference)
