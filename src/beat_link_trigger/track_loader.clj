@@ -94,6 +94,32 @@
   dbserver database to load itself or its children."
   (fn [^Message item ^SlotReference slot-reference] (menu-item-kind item)))
 
+(defn- empty-node
+  "Creates an inert child to explain that its parent is empty. Unless a
+  custom label is given, uses [Empty]."
+  ([]
+   (empty-node "[Empty]"))
+  ([label]
+   (DefaultMutableTreeNode.
+    (proxy [Object IMenuEntry] []
+      (toString [] label)
+      (getId [] (int 0))
+      (getSlot [] nil)
+      (isMenu [] false)
+      (isTrack [] false)
+      (loadChildren [_]))
+    false)))
+
+(defn- attach-node-children
+  "Given a list of menu items which have been loaded as a node's
+  children, adds them to the node. If none were found, adds an inert
+  child to explain that the node was empty."
+  [^DefaultMutableTreeNode node items ^SlotReference slot-reference]
+  (if (seq items)
+    (doseq [^Message item items]
+      (.add node (menu-item-node item slot-reference)))
+    (.add node (empty-node))))
+
 ;; Creates a menu item node for the History menu.
 (defmethod menu-item-node Message$MenuItemType/HISTORY_MENU history-menu-node
   [^Message item ^SlotReference slot-reference]
@@ -105,8 +131,7 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestHistoryMenuFrom menu-loader slot-reference 0)]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestHistoryMenuFrom menu-loader slot-reference 0) slot-reference)))
    true))
 
 ;; Creates a menu item node for a history playlist
@@ -120,8 +145,8 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))
+                             slot-reference)))
    true))
 
 ;; Creates a menu item node for the Track menu.
@@ -135,8 +160,7 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestTrackMenuFrom menu-loader slot-reference 0)]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestTrackMenuFrom menu-loader slot-reference 0) slot-reference)))
    true))
 
 ;; Creates a menu item node for the Playlist menu.
@@ -150,8 +174,7 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestPlaylistMenuFrom menu-loader slot-reference 0)]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestPlaylistMenuFrom menu-loader slot-reference 0) slot-reference)))
    true))
 
 ;; Creates a menu item node for a playlist folder.
@@ -165,9 +188,10 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestPlaylistItemsFrom metadata-finder (.player slot-reference) (.slot slot-reference)
-                                                0 (menu-item-id item) true)]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestPlaylistItemsFrom metadata-finder
+                                                             (.player slot-reference) (.slot slot-reference)
+                                                             0 (menu-item-id item) true)
+                             slot-reference)))
    true))
 
 ;; Creates a menu item node for a Playlist.
@@ -181,9 +205,10 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestPlaylistItemsFrom metadata-finder (.player slot-reference) (.slot slot-reference)
-                                                0 (menu-item-id item) false)]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestPlaylistItemsFrom metadata-finder
+                                                             (.player slot-reference) (.slot slot-reference)
+                                                             0 (menu-item-id item) false)
+                             slot-reference)))
    true))
 
 ;; Creates a menu item node for the Artist menu.
@@ -197,8 +222,7 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestArtistMenuFrom menu-loader slot-reference 0)]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestArtistMenuFrom menu-loader slot-reference 0) slot-reference)))
    true))
 
 ;; Creates a menu item node for an artist.
@@ -212,8 +236,8 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+                             slot-reference)))
    true))
 
 ;; Creates a menu item node for an album.
@@ -227,8 +251,8 @@
      (isMenu [] true)
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
-       (doseq [entry (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))]
-         (.add node (menu-item-node entry slot-reference)))))
+       (attach-node-children node (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+                             slot-reference)))
    true))
 
 ;; Creates a menu item node for a track.
@@ -241,7 +265,7 @@
      (getSlot [] slot-reference)
      (isMenu [] false)
      (isTrack [] true)
-     (loadChildren [^javax.swing.tree.TreeNode node]))
+     (loadChildren [_]))
    false))
 
 ;; Creates a menu item node for a track with the artist name.
@@ -255,7 +279,7 @@
      (getSlot [] slot-reference)
      (isMenu [] false)
      (isTrack [] true)
-     (loadChildren [^javax.swing.tree.TreeNode node]))
+     (loadChildren [_]))
    false))
 
 
@@ -272,7 +296,7 @@
        (getSlot [] slot-reference)
        (isMenu [] false)
        (isTrack [] false)
-       (loadChildren [^javax.swing.tree.TreeNode node]))
+       (loadChildren [_]))
      false)))
 
 (defn- slot-node
@@ -291,8 +315,7 @@
        (isMenu [] true)
        (isTrack [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
-         (doseq [entry (.requestRootMenuFrom menu-loader slot-reference 0)]
-           (.add node (menu-item-node entry slot-reference)))))
+         (attach-node-children node (.requestRootMenuFrom menu-loader slot-reference 0) slot-reference)))
      true)))
 
 (defn- root-node
@@ -306,7 +329,7 @@
      (getSlot [] nil)
      (isMenu [] true)
      (isTrack [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]))
+     (loadChildren [_]))
    true))
 
 (defn- find-slot-node
