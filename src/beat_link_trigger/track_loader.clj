@@ -113,12 +113,19 @@
 (defn- attach-node-children
   "Given a list of menu items which have been loaded as a node's
   children, adds them to the node. If none were found, adds an inert
-  child to explain that the node was empty."
-  [^DefaultMutableTreeNode node items ^SlotReference slot-reference]
-  (if (seq items)
-    (doseq [^Message item items]
-      (.add node (menu-item-node item slot-reference)))
-    (.add node (empty-node))))
+  child to explain that the node was empty. If `all-handler` is
+  supplied, it is called to create the ALL menu item when one is
+  present."
+  ([^DefaultMutableTreeNode node items ^SlotReference slot-reference]
+   (attach-node-children node items slot-reference nil))
+  ([^DefaultMutableTreeNode node items ^SlotReference slot-reference all-handler]
+   (if (seq items)
+     (doseq [^Message item items]
+
+       (.add node (if (and (= (menu-item-kind item) Message$MenuItemType/ALL) all-handler)
+                    (all-handler item)
+                    (menu-item-node item slot-reference))))
+     (.add node (empty-node)))))
 
 ;; Creates a menu item node for the History menu.
 (defmethod menu-item-node Message$MenuItemType/HISTORY_MENU history-menu-node
@@ -223,6 +230,86 @@
      (isTrack [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (attach-node-children node (.requestArtistMenuFrom menu-loader slot-reference 0) slot-reference)))
+   true))
+
+;; Creates a menu item node for the Album menu.
+(defmethod menu-item-node Message$MenuItemType/ALBUM_MENU album-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (attach-node-children node (.requestAlbumMenuFrom menu-loader slot-reference 0) slot-reference)))
+   true))
+
+;; Creates a menu item node for the Genre menu.
+(defmethod menu-item-node Message$MenuItemType/GENRE_MENU genre-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (attach-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference)))
+   true))
+
+(defn- create-all-genre-artist-albums-node
+  "Handles the ALL menu item when listing genre artist albums. Creates
+  an appropriate node to implement it."
+  [^Message item ^SlotReference slot-reference genre-id]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "[ALL ALBUMS]")
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (attach-node-children node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id -1 -1)
+                             slot-reference)))
+   true))
+
+(defn- create-all-genre-artists-node
+  "Handles the ALL menu item when listing genre artists. Creates an
+  appropriate node to implement it."
+  [^Message item ^SlotReference slot-reference genre-id]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "[ALL ARTISTS]")
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (attach-node-children node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1)
+                             slot-reference
+                             (fn [item]  ; Special handler for the All Albums item.
+                               (create-all-genre-artist-albums-node item slot-reference genre-id)))))
+   true))
+
+;; Creates a menu item node for a genre.
+(defmethod menu-item-node Message$MenuItemType/GENRE genre-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (let [genre-id (menu-item-id item)]
+         (attach-node-children node (.requestGenreArtistMenuFrom menu-loader slot-reference 0 genre-id)
+                               slot-reference
+                               (fn [item]  ; Special handler the All Artists item.
+                                 (create-all-genre-artists-node item slot-reference genre-id))))))
    true))
 
 ;; Creates a menu item node for an artist.
