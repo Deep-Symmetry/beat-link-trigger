@@ -12,7 +12,8 @@
            [javax.swing JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
-            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate DeviceUpdateListener
+            LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]))
 
@@ -529,6 +530,16 @@
     (add-device players (.getNumber announcement)))
   (.setSelectedIndex players 0))
 
+(defn- update-selected-player
+  "Event handler for the player choice menu to update the atom tracking
+  the selected player state."
+  [selected-player e]
+  (let [number (when-let [selection (seesaw/selection e)]
+                 (.number selection))]
+    (reset! selected-player {:number number
+                             :playing (and number
+                                           (.. virtual-cdj (getLatestStatusFor number) isPlaying))})))
+
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
   into a player. If `slot` is not `nil`, the corresponding slot will
@@ -542,17 +553,31 @@
      (if (seq valid-slots)
        (try
          (let [selected-track   (atom nil)
+               selected-player  (atom {:number nil :playing false})
                root             (seesaw/frame :title "Load Track on a Player"
                                               :on-close :dispose :resizable? true)
                slots-model      (DefaultTreeModel. (root-node) true)
                slots-tree       (seesaw/tree :model slots-model :id :tree)
                slots-scroll     (seesaw/scrollable slots-tree)
                load-button      (seesaw/button :text "Load" :enabled? false)
-               player-changed   (fn [e])
+               play-button      (seesaw/button :text "Play")
+               problem-label    (seesaw/label :text "" :foreground "red")
+               update-load-ui   (fn []
+                                  (let [playing (:playing @selected-player)
+                                        problem (cond (nil? @selected-track) "No track chosen."
+                                                      playing                "Can't load while playing."
+                                                      :else                  "")]
+                                    (seesaw/value! problem-label problem)
+                                    (seesaw/config! load-button :enabled? (empty? problem))
+                                    (seesaw/config! play-button :text (if playing "Stop" "Play"))))
+               player-changed   (fn [e]
+                                  (update-selected-player selected-player e)
+                                  (update-load-ui))
                players          (seesaw/combobox :id :players
                                                  :listen [:item-state-changed player-changed])
                player-panel     (mig/mig-panel :items [[(seesaw/label :text "Load on:")]
-                                                       [players] [load-button]])
+                                                       [players] [load-button] [problem-label "push"]
+                                                       [play-button]])
                layout           (seesaw/border-panel
                                  :center slots-scroll
                                  :south player-panel)
@@ -573,13 +598,22 @@
                                     (seesaw/invoke-later (add-slot-node slots-tree slot)))
                                   (mediaUnmounted [this slot]
                                     (seesaw/invoke-later (remove-slot-node slots-tree slot))))
+               status-listener  (reify DeviceUpdateListener
+                                  (received [this status]
+                                    (let [player @selected-player]
+                                      (when (and (= (.getDeviceNumber status) (:number player))
+                                                 (not= (.isPlaying status) (:playing player)))
+                                        (swap! selected-player assoc :playing (.isPlaying status))
+                                        (update-load-ui)))))
                remove-listeners (fn []
                                   (.removeMountListener metadata-finder mount-listener)
                                   (.removeLifecycleListener metadata-finder stop-listener)
-                                  (.removeDeviceAnnouncementListener device-finder dev-listener))]
+                                  (.removeDeviceAnnouncementListener device-finder dev-listener)
+                                  (.removeUpdateListener virtual-cdj status-listener))]
            (.setSelectionMode (.getSelectionModel slots-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
            (.addMountListener metadata-finder mount-listener)
            (.addDeviceAnnouncementListener device-finder dev-listener)
+           (.addUpdateListener virtual-cdj status-listener)
            (build-media-nodes slots-tree valid-slots)
            (build-device-choices players)
            (reset! loader-window root)
@@ -600,7 +634,7 @@
                                       (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
                                         (when (.isTrack entry)
                                           [(.getSlot entry) (.getId entry)]))))
-                            (seesaw/config! load-button :enabled? (some? @selected-track))))
+                            (update-load-ui)))
            (try  ; Expand the node for the slot we are supposed to be loading from, or the first slot if none given.
              (if-let [node (find-slot-node slots-tree slot)]
                (expand-and-select-node slots-tree node)
@@ -610,18 +644,26 @@
                (.stopped stop-listener metadata-finder)))
            (seesaw/listen load-button
                           :action-performed
-                          (fn [action]
+                          (fn [_]
                             (let [[slot-reference track] @selected-track
                                   selected-player        (.number (.getSelectedItem players))]
                               (.sendLoadTrackCommand virtual-cdj selected-player track
                                                      (.player slot-reference) (.slot slot-reference)
                                                      CdjStatus$TrackType/REKORDBOX))))
+           (seesaw/listen play-button
+                          :action-performed
+                          (fn [_]
+                            (let [player     @selected-player
+                                  player-set #{(int (:number player))}
+                                  start-set  (if (:playing @selected-player) #{} player-set)
+                                  stop-set   (if (:playing @selected-player) player-set #{})]
+                              (.sendFaderStartCommand virtual-cdj start-set stop-set))))
            (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
              (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
            (if @loader-window
              (do  ; We made it! Show the window.
                (seesaw/config! root :content layout)
-               (seesaw/pack! root)
+               (.setSize root 800 600)
                (.setLocationRelativeTo root nil)
                root)
              (do  ; Something failed, clean up.
