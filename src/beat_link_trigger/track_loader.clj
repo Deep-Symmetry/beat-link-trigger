@@ -7,11 +7,12 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import beat_link_trigger.tree_node.IMenuEntry
+           beat_link_trigger.triggers.PlayerChoice
            [java.awt.event WindowEvent]
            [javax.swing JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
-            DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]))
 
@@ -473,6 +474,39 @@
     (.setSelectionPath tree nodePath)
     (.expandPath tree nodePath)))
 
+(defn- add-device
+  "Adds a newly-found player to the destination player combo box,
+  keeping entries sorted."
+  [players number]
+  (when (<= 1 number 4)
+    (let [model  (.getModel players)
+          player (PlayerChoice. number)]
+      (loop [index 0]
+        (if (< index (.getSize model))
+          (let [current (.getElementAt model index)]
+            (if (< number (.number current))
+              (.insertElementAt model player index)  ; Found player we belong in front of.
+              (recur (inc index))))
+          (.insertElementAt model player index))))))  ; We go at the end of the list.
+
+(defn- remove-device
+  "Removes a newly-departed player from the destination player combo
+  box."
+  [players number]
+  (let [model (.getModel players)]
+    (loop [index 0]
+      (when (< index (.getSize model))
+        (if (= number (.number (.getElementAt model index)))
+          (.removeElementAt model index)
+          (recur (inc index)))))))
+
+(defn- build-device-choices
+  "Sets up the initial content of the destination player combo box."
+  [players]
+  (doseq [^DeviceAnnouncement announcement (.getCurrentDevices device-finder)]
+    (add-device players (.getNumber announcement)))
+  (.setSelectedIndex players 0))
+
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
   into a player. If `slot` is not `nil`, the corresponding slot will
@@ -485,35 +519,53 @@
                              (.getMountedMediaSlots metadata-finder))]
      (if (seq valid-slots)
        (try
-         (let [selected-track (atom nil)
-               root           (seesaw/frame :title "Load Track on a Player"
-                                            :on-close :dispose :resizable? true)
-               model          (DefaultTreeModel. (root-node) true)
-               tree           (seesaw/tree :model model :id :tree)
-               load-button    (seesaw/button :text "Load" :enabled? false)
-               panel          (mig/mig-panel :constraints ["" "[grow,fill]" "[grow,fill]"]
-                                             :items [[(seesaw/scrollable tree) "span, grow, wrap"]
-                                                     [load-button "wrap, push 0"]])
-               stop-listener  (reify LifecycleListener
-                                (started [this sender]) ; Nothing to do, we exited as soon a stop happened anyway.
-                                (stopped [this sender]  ; Close our window if MetadataFinder stops (we need it).
-                                  (seesaw/invoke-later
-                                   (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
-               mount-listener (reify MountListener
-                                (mediaMounted [this slot]
-                                  (seesaw/invoke-later (add-slot-node tree slot)))
-                                (mediaUnmounted [this slot]
-                                  (seesaw/invoke-later (remove-slot-node tree slot))))]
-           (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+         (let [selected-track   (atom nil)
+               root             (seesaw/frame :title "Load Track on a Player"
+                                              :on-close :dispose :resizable? true)
+               slots-model      (DefaultTreeModel. (root-node) true)
+               slots-tree       (seesaw/tree :model slots-model :id :tree)
+               slots-scroll     (seesaw/scrollable slots-tree)
+               load-button      (seesaw/button :text "Load" :enabled? false)
+               player-changed   (fn [e])
+               players          (seesaw/combobox :id :players
+                                                 :listen [:item-state-changed player-changed])
+               player-panel     (mig/mig-panel :items [[(seesaw/label :text "Load on:")]
+                                                       [players] [load-button]])
+               layout           (seesaw/border-panel
+                                 :center slots-scroll
+                                 :south player-panel)
+               stop-listener    (reify LifecycleListener
+                                  (started [this sender]) ; Nothing to do, we exited as soon a stop happened anyway.
+                                  (stopped [this sender]  ; Close our window if MetadataFinder stops (we need it).
+                                    (seesaw/invoke-later
+                                     (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
+               dev-listener     (reify DeviceAnnouncementListener
+                                  (deviceFound [this announcement]
+                                    (seesaw/invoke-later (add-device players (.getNumber announcement))))
+                                  (deviceLost [this announcement]
+                                    (if (empty? (.getCurrentDevices device-finder))
+                                      (.stopped stop-listener))  ; If we lose all devices, close the window.
+                                    (seesaw/invoke-later (remove-device players (.getNumber announcement)))))
+               mount-listener   (reify MountListener
+                                  (mediaMounted [this slot]
+                                    (seesaw/invoke-later (add-slot-node slots-tree slot)))
+                                  (mediaUnmounted [this slot]
+                                    (seesaw/invoke-later (remove-slot-node slots-tree slot))))
+               remove-listeners (fn []
+                                  (.removeMountListener metadata-finder mount-listener)
+                                  (.removeLifecycleListener metadata-finder stop-listener)
+                                  (.removeDeviceAnnouncementListener device-finder dev-listener))]
+           (.setSelectionMode (.getSelectionModel slots-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
            (.addMountListener metadata-finder mount-listener)
-           (build-media-nodes tree valid-slots)
+           (.addDeviceAnnouncementListener device-finder dev-listener)
+           (build-media-nodes slots-tree valid-slots)
+           (build-device-choices players)
            (reset! loader-window root)
            (.addLifecycleListener metadata-finder stop-listener)
            (seesaw/listen root :window-closed (fn [e]
                                                 (reset! loader-window nil)
-                                                (.removeMountListener metadata-finder mount-listener)
-                                                (.removeLifecycleListener metadata-finder stop-listener)))
-           (seesaw/listen tree
+                                                (remove-listeners)))
+           (seesaw/listen slots-tree
                           :tree-will-expand
                           (fn [e]
                             (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
@@ -528,26 +580,31 @@
                                           [(.getSlot entry) (.getId entry)]))))
                             (seesaw/config! load-button :enabled? (some? @selected-track))))
            (try  ; Expand the node for the slot we are supposed to be loading from, or the first slot if none given.
-             (if-let [node (find-slot-node tree slot)]
-               (expand-and-select-node tree node)
-               (.expandRow tree 1))
+             (if-let [node (find-slot-node slots-tree slot)]
+               (expand-and-select-node slots-tree node)
+               (.expandRow slots-tree 1))
              (catch IllegalStateException e
                (explain-navigation-failure e)
                (.stopped stop-listener metadata-finder)))
            (seesaw/listen load-button
                           :action-performed
                           (fn [action]
-                            ;; TODO: Menu to choose destination player; currently hardcoded to player 2.
-                            (let [[slot-reference track] @selected-track]
-                              (.sendLoadTrackCommand virtual-cdj 2 track (.player slot-reference) (.slot slot-reference)
+                            (let [[slot-reference track] @selected-track
+                                  selected-player        (.number (.getSelectedItem players))]
+                              (.sendLoadTrackCommand virtual-cdj selected-player track
+                                                     (.player slot-reference) (.slot slot-reference)
                                                      CdjStatus$TrackType/REKORDBOX))))
            (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
              (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
-           (when @loader-window  ; We made it!
-             (seesaw/config! root :content panel)
-             (seesaw/pack! root)
-             (.setLocationRelativeTo root nil)
-             root))
+           (if @loader-window
+             (do  ; We made it! Show the window.
+               (seesaw/config! root :content layout)
+               (seesaw/pack! root)
+               (.setLocationRelativeTo root nil)
+               root)
+             (do  ; Something failed, clean up.
+               (remove-listeners)
+               (.dispose root))))
          (catch Exception e
            (timbre/error e "Problem Loading Track")
            (seesaw/alert (str "<html>Unable to Load Track on Player:<br><br>" (.getMessage e)
