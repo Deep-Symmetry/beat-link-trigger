@@ -23,7 +23,8 @@
             [seesaw.icon :as icon]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import java.awt.RenderingHints
+  (:import beat_link_trigger.util.PlayerChoice
+           java.awt.RenderingHints
            [javax.sound.midi Sequencer Synthesizer]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
@@ -153,15 +154,6 @@
          (or (= (:number player-selection) (.getDeviceNumber status))
              (and (zero? (:number player-selection)) (.isTempoMaster status))
              (and (neg? (:number player-selection)) (is-better-match? status trigger))))))
-
-;; Used to represent the available players in the Watch menu. The `toString` method tells
-;; Swing how to display it, and the number is what we need for comparisons.
-(defrecord PlayerChoice [number]
-  Object
-  (toString [_] (cond
-                  (neg? number) "Any Player"
-                  (zero? number) "Master Player"
-                  :else (str "Player " number))))
 
 ;; Used to represent the available MIDI outputs in the output menu. The `toString` method
 ;; tells Swing how to display it, so we can suppress the CoreMidi4J prefix.
@@ -954,11 +946,13 @@
                                 (select-keys @(global-user-data) [:tracks-using-playlists? :request-metadata?
                                                                   :send-status?]))))
 
-;; Register the custom readers needed to read back in the defrecords that we use,
-;; including under the old package name before they were moved to the triggers namespace.
-(prefs/add-reader 'beat_link_trigger.triggers.PlayerChoice map->PlayerChoice)
+;; Register the custom readers needed to read back in the defrecords that we use.
+(prefs/add-reader 'beat_link_trigger.util.PlayerChoice util/map->PlayerChoice)
 (prefs/add-reader 'beat_link_trigger.triggers.MidiChoice map->MidiChoice)
-(prefs/add-reader 'beat_link_trigger.core.PlayerChoice map->PlayerChoice)
+;; For backwards compatibility:
+;; Also register under the old package names before they were moved to the triggers and util namespaces.
+(prefs/add-reader 'beat_link_trigger.triggers.PlayerChoice util/map->PlayerChoice)
+(prefs/add-reader 'beat_link_trigger.core.PlayerChoice util/map->PlayerChoice)
 (prefs/add-reader 'beat_link_trigger.core.MidiChoice map->MidiChoice)
 
 (def ^:private save-action

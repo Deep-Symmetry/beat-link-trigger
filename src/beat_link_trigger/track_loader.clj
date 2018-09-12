@@ -7,7 +7,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import beat_link_trigger.tree_node.IMenuEntry
-           beat_link_trigger.triggers.PlayerChoice
+           beat_link_trigger.util.PlayerChoice
            [java.awt.event WindowEvent]
            [javax.swing JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]

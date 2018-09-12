@@ -67,3 +67,14 @@
                   (partition 2 clauses))
           (when (odd? (count clauses))
             (list (last clauses)))))))
+
+;; Used to represent the available players in the Triggers window
+;; Watch menu, and the Load Track on a Player window. The `toString`
+;; method tells Swing how to display it, and the number is what we
+;; need for comparisons.
+(defrecord PlayerChoice [number]
+  Object
+  (toString [_] (cond
+                  (neg? number) "Any Player"
+                  (zero? number) "Master Player"
+                  :else (str "Player " number))))
