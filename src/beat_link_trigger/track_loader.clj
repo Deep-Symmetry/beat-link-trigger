@@ -463,18 +463,20 @@
 
 (defn- add-slot-node
   "Adds a node responsible for talking to the specified player slot to
-  the tree. Must be invoked on the Swing event dispatch thread."
+  the tree. Must be invoked on the Swing event dispatch thread.
+  Ignores slots we don't support."
   [^JTree tree ^SlotReference slot]
-  (let [node (slot-node slot)
-        root (.. tree getModel getRoot)]
-    ;; Find the node we should be inserting the new one in front of, if any.
-    (loop [index 0]
-      (if (< index (.getChildCount root))
-        (let [sibling (.. tree getModel (getChild root index))]
-          (if (neg? (.compareTo (.toString node) (.toString sibling)))
-            (.. tree getModel (insertNodeInto node root index))  ; Found node we should be in front of.
-            (recur (inc index))))
-        (.. tree getModel (insertNodeInto node root index))))))  ; We go at the end of the root.
+  (when (#{CdjStatus$TrackSourceSlot/SD_SLOT CdjStatus$TrackSourceSlot/USB_SLOT} (.slot slot))
+    (let [node (slot-node slot)
+          root (.. tree getModel getRoot)]
+      ;; Find the node we should be inserting the new one in front of, if any.
+      (loop [index 0]
+        (if (< index (.getChildCount root))
+          (let [sibling (.. tree getModel (getChild root index))]
+            (if (neg? (.compareTo (.toString node) (.toString sibling)))
+              (.. tree getModel (insertNodeInto node root index))  ; Found node we should be in front of.
+              (recur (inc index))))
+          (.. tree getModel (insertNodeInto node root index)))))))  ; We go at the end of the root.
 
 (defn- build-media-nodes
   "Create the top-level media database nodes, which will lazily load any
