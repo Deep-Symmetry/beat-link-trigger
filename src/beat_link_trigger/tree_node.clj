@@ -14,4 +14,5 @@
   (^org.deepsymmetry.beatlink.data.SlotReference getSlot [])
   (^boolean isMenu [])
   (^boolean isTrack [])
+  (^boolean isSearch [])
   (^void loadChildren [^javax.swing.tree.TreeNode node]))

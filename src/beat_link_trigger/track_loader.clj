@@ -9,6 +9,7 @@
   (:import beat_link_trigger.tree_node.IMenuEntry
            beat_link_trigger.util.PlayerChoice
            [java.awt.event WindowEvent]
+           [java.util.concurrent.atomic AtomicInteger]
            [javax.swing JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
@@ -109,6 +110,7 @@
       (getSlot [] nil)
       (isMenu [] false)
       (isTrack [] false)
+      (isSearch [] false)
       (loadChildren [_]))
     false)))
 
@@ -144,6 +146,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestHistoryMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -159,6 +162,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))
@@ -175,6 +179,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestTrackMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -190,6 +195,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestPlaylistMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -205,6 +211,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestPlaylistItemsFrom metadata-finder
@@ -223,6 +230,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestPlaylistItemsFrom metadata-finder
@@ -241,6 +249,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestArtistMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -256,6 +265,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestAlbumMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -271,6 +281,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -287,6 +298,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id -1 -1)
@@ -304,6 +316,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1)
@@ -322,6 +335,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (let [genre-id (menu-item-id item)]
@@ -341,6 +355,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))
@@ -357,6 +372,7 @@
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (attach-node-children node (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))
@@ -373,6 +389,7 @@
      (getSlot [] slot-reference)
      (isMenu [] false)
      (isTrack [] true)
+     (isSearch [] false)
      (loadChildren [_]))
    false))
 
@@ -387,9 +404,30 @@
      (getSlot [] slot-reference)
      (isMenu [] false)
      (isTrack [] true)
+     (isSearch [] false)
      (loadChildren [_]))
    false))
 
+(defn- empty-search-node
+  "Creates the node that explains what to do when a search has not been started."
+  []
+  (empty-node "[Type text in the search field above to see matches.]"))
+
+;; Creates a menu item node for the search interface.
+(defmethod menu-item-node Message$MenuItemType/SEARCH_MENU search-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] 0)
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] true)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (.add node (empty-search-node)))))
+   true))
 
 
 ;; Creates a menu item node for unrecognized entries.
@@ -404,17 +442,24 @@
        (getSlot [] slot-reference)
        (isMenu [] false)
        (isTrack [] false)
+       (isSearch [] false)
        (loadChildren [_]))
      false)))
+
+(defn- slot-label
+  "Assembles the name used to describe a particular player slot, given
+  the slot reference."
+  [^SlotReference slot-reference]
+  (str "Player " (.player slot-reference) " "
+                   (util/case-enum (.slot slot-reference)
+                     CdjStatus$TrackSourceSlot/SD_SLOT "SD"
+                     CdjStatus$TrackSourceSlot/USB_SLOT "USB")))
 
 (defn- slot-node
   "Creates the tree node that will allow access to the media database in
   a particular player slot."
   [^SlotReference slot-reference]
-  (let [label (str "Player " (.player slot-reference) " "
-                   (util/case-enum (.slot slot-reference)
-                     CdjStatus$TrackSourceSlot/SD_SLOT "SD"
-                     CdjStatus$TrackSourceSlot/USB_SLOT "USB"))]
+  (let [label (slot-label slot-reference)]
     (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
        (toString [] label)
@@ -422,6 +467,7 @@
        (getSlot [] slot-reference)
        (isMenu [] true)
        (isTrack [] false)
+       (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
            (attach-node-children node (.requestRootMenuFrom menu-loader slot-reference 0) slot-reference))))
@@ -438,6 +484,7 @@
      (getSlot [] nil)
      (isMenu [] true)
      (isTrack [] false)
+     (isSearch [] false)
      (loadChildren [_]))
    true))
 
@@ -487,15 +534,26 @@
   (doseq [slot mounted-slots]
     (add-slot-node tree slot)))
 
-(defn- expand-and-select-node
+(defn- expand-and-select-slot-node
   "Expands and selects the specified tree node, used for positioning the
   user at the right place when they have chosen to load a track from a
   particular media slot."
   [tree node]
   (let [model (.getModel tree)
-        nodePath (TreePath. (to-array [(.getRoot model) node]))]
-    (.setSelectionPath tree nodePath)
-    (.expandPath tree nodePath)))
+        node-path (TreePath. (to-array [(.getRoot model) node]))]
+    (.setSelectionPath tree node-path)
+    (.expandPath tree node-path)))
+
+(defn- trim-to-search-node-path
+  "If the supplied tree path belongs to a Search menu entry, returns the
+  start of the path which leads to the Search node itself. Otherwise
+  returns `nil`."
+  [^TreePath path]
+  (loop [result path]
+    (if (.. result getLastPathComponent getUserObject isSearch)
+      result
+      (when (> (.getPathCount path) 3)
+        (recur (.getParentPath result))))))
 
 (defn- add-device
   "Adds a newly-found player to the destination player combo box,
@@ -540,6 +598,55 @@
                              :playing (and number
                                            (.. virtual-cdj (getLatestStatusFor number) isPlaying))})))
 
+(defn- configure-partial-search-ui
+  "Show (with appropriate content) or hide the label and buttons
+  allowing a partial search to be continued, depending on the search
+  state."
+  [search-partial search-button total loaded]
+  (let [unfinished (boolean (and total (< loaded total)))
+        next-size (when unfinished (+ loaded (Math/min 1000 loaded)))]
+    (seesaw/config! [search-partial search-button] :visible? unfinished)
+    (when unfinished
+      (seesaw/text! search-partial (str "Showing " loaded " of " total "."))
+      (seesaw/text! search-button (str "Load " (if (< next-size total) next-size "All"))))))
+
+(defn- configure-search-ui
+  "Loads the search interface elements from any values that were saved
+  for the search the last time it was active."
+  [search-label search-field search-partial search-button searches selected-search]
+  (let [{:keys [text total path] :or {text ""}} (get @searches selected-search)  ; Check saved search config.
+        node                                    (.getLastPathComponent path)]
+    (seesaw/text! search-label (str "Search " (slot-label selected-search) ":"))
+    (seesaw/text! search-field text)
+    (configure-partial-search-ui search-partial search-button total (.getChildCount node))
+    (swap! searches assoc :current selected-search)))  ; Record and enable the UI for the new search.
+
+(defn- search-text-changed
+  "Start a new search because the user has changed the search text,
+  unless there is no active search so this must be reloading the text
+  area when switching to a different existing search."
+  [text search-partial search-button searches tree]
+  (when-let [^SlotReference slot-reference (:current @searches)]
+    (swap! searches assoc-in [slot-reference :text] text)
+    (let [{:keys [path]} (get @searches slot-reference)
+          node           (.getLastPathComponent path)
+          total          (AtomicInteger. 25)
+          results        (when-not (clojure.string/blank? text)
+                           (.requestSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
+                                                      0 text total))]
+      (.removeAllChildren node)
+      (if (empty? results)
+        (do
+          (.add node (if (clojure.string/blank? text) (empty-search-node) (empty-node "[No matches.]")))
+          (swap! searches update slot-reference dissoc :total)
+          (configure-partial-search-ui search-partial search-button nil 0))
+        (do
+          (attach-node-children node results slot-reference)
+          (swap! searches assoc-in [slot-reference :total] (.get total))
+          (configure-partial-search-ui search-partial search-button (.get total) (.getChildCount node))))
+      (.setSelectionPath tree path)  ; Keep the search active in case the previous selection is gone.
+      (.nodeStructureChanged (.getModel tree) node))))
+
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
   into a player. If `slot` is not `nil`, the corresponding slot will
@@ -554,6 +661,7 @@
        (try
          (let [selected-track   (atom nil)
                selected-player  (atom {:number nil :playing false})
+               searches         (atom {})
                root             (seesaw/frame :title "Load Track on a Player"
                                               :on-close :dispose :resizable? true)
                slots-model      (DefaultTreeModel. (root-node) true)
@@ -575,9 +683,18 @@
                                   (update-load-ui))
                players          (seesaw/combobox :id :players
                                                  :listen [:item-state-changed player-changed])
-               player-panel     (mig/mig-panel :items [[(seesaw/label :text "Load on:")]
+               player-panel     (mig/mig-panel :background "#ddd"
+                                               :items [[(seesaw/label :text "Load on:")]
                                                        [players] [load-button] [problem-label "push"]
                                                        [play-button]])
+               search-label     (seesaw/label :text "")
+               search-field     (seesaw/text "")
+               search-partial   (seesaw/label "Showing 0 of 0.")
+               search-button    (seesaw/button :text "Load All")
+               search-panel     (mig/mig-panel :background "#eee"
+                                               :items [[search-label] [search-field "pushx, growx"]
+                                                       [search-partial "hidemode 3, gap unrelated"]
+                                                       [search-button "hidemode 3"]])
                layout           (seesaw/border-panel
                                  :center slots-scroll
                                  :south player-panel)
@@ -597,6 +714,7 @@
                                   (mediaMounted [this slot]
                                     (seesaw/invoke-later (add-slot-node slots-tree slot)))
                                   (mediaUnmounted [this slot]
+                                    (swap! searches dissoc slot)
                                     (seesaw/invoke-later (remove-slot-node slots-tree slot))))
                status-listener  (reify DeviceUpdateListener
                                   (received [this status]
@@ -634,10 +752,25 @@
                                       (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
                                         (when (.isTrack entry)
                                           [(.getSlot entry) (.getId entry)]))))
-                            (update-load-ui)))
+                            (update-load-ui)
+                            (let [search-path     (when (.isAddedPath e)
+                                                    (trim-to-search-node-path (.getPath e)))
+                                  search-node     (when search-path
+                                                     (.expandPath slots-tree search-path)
+                                                     (.. search-path getLastPathComponent))
+                                  selected-search (when search-node (.. search-node getUserObject getSlot))]
+                              (when (not= selected-search (:current @searches))
+                                (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
+                                (if selected-search
+                                  (do
+                                    (swap! searches assoc-in [selected-search :path] search-path)
+                                    (configure-search-ui search-label search-field search-partial search-button
+                                                         searches selected-search)
+                                    (seesaw/add! layout [search-panel :north]))
+                                  (seesaw/remove! layout search-panel))))))
            (try  ; Expand the node for the slot we are supposed to be loading from, or the first slot if none given.
              (if-let [node (find-slot-node slots-tree slot)]
-               (expand-and-select-node slots-tree node)
+               (expand-and-select-slot-node slots-tree node)
                (.expandRow slots-tree 1))
              (catch IllegalStateException e
                (explain-navigation-failure e)
@@ -658,6 +791,11 @@
                                   start-set  (if (:playing @selected-player) #{} player-set)
                                   stop-set   (if (:playing @selected-player) player-set #{})]
                               (.sendFaderStartCommand virtual-cdj start-set stop-set))))
+           (seesaw/listen search-field #{:remove-update :insert-update :changed-update}
+                          (fn [e]
+                            (when (:current @searches)
+                              (search-text-changed (seesaw/text e) search-partial search-button searches slots-tree))))
+
            (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
              (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
            (if @loader-window
@@ -690,7 +828,7 @@
         (create-window slot)
         (let [tree (seesaw/select @loader-window [:#tree])]
           (when-let [node (find-slot-node tree slot)]
-            (expand-and-select-node tree node))))
+            (expand-and-select-slot-node tree node))))
       (seesaw/invoke-later
        (when-let [window @loader-window]
          (seesaw/show! window)
