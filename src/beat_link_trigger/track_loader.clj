@@ -604,7 +604,7 @@
   state."
   [search-partial search-button total loaded]
   (let [unfinished (boolean (and total (< loaded total)))
-        next-size (when unfinished (+ loaded (Math/min 1000 loaded)))]
+        next-size (when unfinished (+ loaded (min 1000 loaded)))]
     (seesaw/config! [search-partial search-button] :visible? unfinished)
     (when unfinished
       (seesaw/text! search-partial (str "Showing " loaded " of " total "."))
@@ -646,6 +646,20 @@
           (configure-partial-search-ui search-partial search-button (.get total) (.getChildCount node))))
       (.setSelectionPath tree path)  ; Keep the search active in case the previous selection is gone.
       (.nodeStructureChanged (.getModel tree) node))))
+
+(defn- search-load-more
+  "The user has asked to load more from the active search."
+  [search-partial search-button searches tree]
+  (when-let [^SlotReference slot-reference (:current @searches)]
+    (let [{:keys [text total path]} (get @searches slot-reference)
+          node                      (.getLastPathComponent path)
+          loaded                    (.getChildCount node)
+          batch-size                (min 1000 loaded (- total loaded))
+          results (.requestMoreSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
+                                                 0 text loaded batch-size)]
+      (attach-node-children node results slot-reference)
+      (configure-partial-search-ui search-partial search-button total (.getChildCount node))
+      (.nodesWereInserted (.getModel tree) node (int-array (range loaded (+ loaded batch-size)))))))
 
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
@@ -795,6 +809,10 @@
                           (fn [e]
                             (when (:current @searches)
                               (search-text-changed (seesaw/text e) search-partial search-button searches slots-tree))))
+           (seesaw/listen search-button
+                          :action-performed
+                          (fn [_]
+                            (search-load-more search-partial search-button searches slots-tree)))
 
            (when-not (.isRunning metadata-finder)  ; In case it shut down during our setup.
              (when @loader-window (.stopped stop-listener metadata-finder)))  ; Give up unless we already did.
