@@ -345,6 +345,46 @@
                                    (create-all-genre-artists-node item slot-reference genre-id)))))))
    true))
 
+;; Creates a menu item node for all album tracks by an artist.
+(defn- create-all-artist-album-tracks-node
+  "Handles the ALL menu item when listing artist albums. Creates an
+  appropriate node to implement it."
+  [^Message item ^SlotReference slot-reference artist-id]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "[ALL TRACKS]")
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestArtistAlbumTrackMenuFrom menu-loader slot-reference 0 artist-id -1)
+                               slot-reference))))
+   true))
+
+;; Creates a menu item node for all albums by an artist.
+(defn- create-all-artist-albums-node
+  "Handles the ALL menu item when listing artists. Creates an
+  appropriate node to implement it."
+  [^Message item ^SlotReference slot-reference artist-id]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "[ALL ALBUMS]")
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
+                               slot-reference
+                               (fn [item]  ; Special handler for the All Tracks item.
+                                 (create-all-artist-album-tracks-node item slot-reference artist-id))))))
+   true))
+
 ;; Creates a menu item node for an artist.
 (defmethod menu-item-node Message$MenuItemType/ARTIST artist-node
   [^Message item ^SlotReference slot-reference]
@@ -358,8 +398,11 @@
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))
-                               slot-reference))))
+         (let [artist-id (menu-item-id item)]
+           (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+                                 slot-reference
+                                 (fn [item]  ; Special handler the All Albums item.
+                                   (create-all-artist-albums-node item slot-reference artist-id)))))))
    true))
 
 ;; Creates a menu item node for an album.
