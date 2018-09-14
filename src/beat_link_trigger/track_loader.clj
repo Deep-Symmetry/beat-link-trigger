@@ -130,7 +130,6 @@
   ([^DefaultMutableTreeNode node items ^SlotReference slot-reference all-handler]
    (if (seq items)
      (doseq [^Message item items]
-
        (.add node (if (and (= (menu-item-kind item) Message$MenuItemType/ALL) all-handler)
                     (all-handler item)
                     (menu-item-node item slot-reference))))
@@ -385,6 +384,66 @@
                                  (create-all-artist-album-tracks-node item slot-reference artist-id))))))
    true))
 
+;; Creates a menu item node for the Key menu.
+(defmethod menu-item-node Message$MenuItemType/KEY_MENU key-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestKeyMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
+(defonce ^{:private true
+           :doc "Indicates if we are loading key neighbors, because
+           sadly the responses don't get a separate item type, they
+           are labeled as ordinary key items."}
+  loading-key-neighbors (atom false))
+
+;; Creates a menu item node for a key, which may actually be a key neighbor if the above flag is
+;; set when it is being loaded.
+(defmethod menu-item-node Message$MenuItemType/KEY key-node
+  [^Message item ^SlotReference slot-reference]
+  (if @loading-key-neighbors
+    (DefaultMutableTreeNode.  ; We got something that looks like a key, but is really a key neighbor.
+     (proxy [Object IMenuEntry] []
+       (toString [] (menu-item-label item))
+       (getId [] (int 0))
+       (getSlot [] slot-reference)
+       (isMenu [] true)
+       (isTrack [] false)
+       (isSearch [] false)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (let [distance (.getValue (first (.arguments item)))
+                 key-id   (menu-item-id item)]
+             (attach-node-children node (.requestTracksByKeyAndDistanceFrom menu-loader slot-reference 0
+                                                                            key-id distance)
+                                   slot-reference)))))
+     true)
+    (DefaultMutableTreeNode.  ; This is an ordinary key, but its children will be key neighbors when they load.
+     (proxy [Object IMenuEntry] []
+       (toString [] (menu-item-label item))
+       (getId [] (int 0))
+       (getSlot [] slot-reference)
+       (isMenu [] true)
+       (isTrack [] false)
+       (isSearch [] false)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (let [key-id (menu-item-id item)]
+             (reset! loading-key-neighbors true)
+             (attach-node-children node (.requestKeyNeighborMenuFrom menu-loader slot-reference 0 key-id)
+                                   slot-reference)
+             (reset! loading-key-neighbors false)))))
+     true)))
+
 ;; Creates a menu item node for an artist.
 (defmethod menu-item-node Message$MenuItemType/ARTIST artist-node
   [^Message item ^SlotReference slot-reference]
@@ -399,7 +458,7 @@
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
-           (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+           (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
                                  slot-reference
                                  (fn [item]  ; Special handler the All Albums item.
                                    (create-all-artist-albums-node item slot-reference artist-id)))))))
