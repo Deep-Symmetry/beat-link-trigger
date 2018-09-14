@@ -78,6 +78,7 @@
     ;; Add the inital log lines that identify build and Java information.
     (timbre/info "Beat Link Trigger version" (util/get-version) "built" (or (util/get-build-date) "not yet"))
     (timbre/info "Java version" (util/get-java-version))
+    (timbre/info "Operating system version" (util/get-os-version))
     (timbre/info "Log files can grow to" max-size "bytes, with" backlog "backlog files.")))
 
 (defonce ^{:private true

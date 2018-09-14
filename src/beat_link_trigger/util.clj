@@ -23,6 +23,11 @@
        (when-let [vendor (System/getProperty "java.vm.vendor")]
          (str ", " vendor))))
 
+(defn get-os-version
+  "Returns the operating system and version in which we are running."
+  []
+  (str (System/getProperty "os.name") " " (System/getProperty "os.version")))
+
 (defn get-build-date
   "Returns the date this jar was built, if we are running from a jar."
   []
