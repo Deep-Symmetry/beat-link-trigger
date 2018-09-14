@@ -517,7 +517,7 @@
 (defn- empty-search-node
   "Creates the node that explains what to do when a search has not been started."
   []
-  (empty-node "[Type text in the search field above to see matches.]"))
+  (empty-node "[Select this section, then type text in the search field above to see matches.]"))
 
 ;; Creates a menu item node for the search interface.
 (defmethod menu-item-node Message$MenuItemType/SEARCH_MENU search-menu-node
