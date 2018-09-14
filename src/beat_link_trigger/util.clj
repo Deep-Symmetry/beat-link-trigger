@@ -14,6 +14,15 @@
         (.getSpecificationVersion pkg))
       "DEV"))  ; Must be running in dev mode embedded in some other project
 
+(defn get-java-version
+  "Returns the version of Java in which we are running."
+  []
+  (str (System/getProperty "java.version")
+       (when-let [vm-name (System/getProperty "java.vm.name")]
+         (str ", " vm-name))
+       (when-let [vendor (System/getProperty "java.vm.vendor")]
+         (str ", " vendor))))
+
 (defn get-build-date
   "Returns the date this jar was built, if we are running from a jar."
   []

@@ -25,9 +25,7 @@
   (timbre/merge-config!
    {:appenders {:rotor (rotor/rotor-appender {:path (fs/file @log-path "blt.log")
                                               :max-size max-size
-                                              :backlog backlog})}})
-  (timbre/info "Beat Link Trigger version" (util/get-version) "built" (or (util/get-build-date) "not yet"))
-  (timbre/info "Log files can grow to" max-size "bytes, with" backlog "backlog files."))
+                                              :backlog backlog})}}))
 
 (defn output-fn
   "Log format (fn [data]) -> string output fn.
@@ -55,25 +53,32 @@
      (uncaughtException [_ thread e]
        (timbre/error e "Uncaught exception on" (.getName thread)))))
   (timbre/set-config!
-   {:level :info  ; #{:trace :debug :info :warn :error :fatal :report}
+   {:level    :info ; #{:trace :debug :info :warn :error :fatal :report}
     :enabled? true
 
     ;; Control log filtering by namespaces/patterns. Useful for turning off
     ;; logging in noisy libraries, etc.:
-    :ns-whitelist  [] #_["my-app.foo-ns"]
-    :ns-blacklist  [] #_["taoensso.*"]
+    :ns-whitelist [] #_ ["my-app.foo-ns"]
+    :ns-blacklist [] #_ ["taoensso.*"]
 
     :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-    :timestamp-opts {:pattern "yyyy-MMM-dd HH:mm:ss"
-                     :locale :jvm-default
+    :timestamp-opts {:pattern  "yyyy-MMM-dd HH:mm:ss"
+                     :locale   :jvm-default
                      :timezone (java.util.TimeZone/getDefault)}
 
     :output-fn output-fn ; (fn [data]) -> string
     })
 
   ;; Install the desired log appenders
-  (install-appenders 200000 5))
+  (let [max-size 200000
+        backlog  5]
+    (install-appenders max-size backlog)
+
+    ;; Add the inital log lines that identify build and Java information.
+    (timbre/info "Beat Link Trigger version" (util/get-version) "built" (or (util/get-build-date) "not yet"))
+    (timbre/info "Java version" (util/get-java-version))
+    (timbre/info "Log files can grow to" max-size "bytes, with" backlog "backlog files.")))
 
 (defonce ^{:private true
            :doc "Used to ensure log initialization takes place exactly once."}

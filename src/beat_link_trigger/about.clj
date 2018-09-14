@@ -27,6 +27,9 @@
   which paints the animated backdrop."
   [paint-fn]
   (let [source-button (seesaw/button :text "Source" :bounds [300 300 70 30] :cursor :default)
+        java-label (seesaw/label :text (str "<html>Java Version:<br>" (util/get-java-version))
+                                 :foreground "white"
+                                 :bounds [5 300 250 100])
         panel (seesaw/border-panel
                :center (seesaw/xyz-panel
                         :id :xyz :background "black"
@@ -34,13 +37,15 @@
                         :items [(seesaw/label :text (str "<html>Version:<br>" (util/get-version)
                                                          "<br>" (util/get-build-date) "</html>")
                                               :foreground "white"
-                                              :bounds [0 0 200 60])
+                                              :bounds [5 -10 200 60])
+                                java-label
                                 source-button]))]
     (seesaw/listen panel
                    :component-resized (fn [e]
                                         (let [w (seesaw/width panel)
                                               h (seesaw/height panel)]
-                                          (seesaw/config! source-button :bounds [(- w 70) (- h 30) :* :*])))
+                                          (seesaw/config! source-button :bounds [(- w 72) (- h 32) :* :*])
+                                          (seesaw/config! java-label :bounds [:* (- h 80) :* :*])))
                    :mouse-clicked (fn [e]
                                     (clojure.java.browse/browse-url "http://deepsymmetry.org")))
     (seesaw/listen source-button
