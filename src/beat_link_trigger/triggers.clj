@@ -1412,7 +1412,7 @@
                                          :items (concat [load-action save-action
                                                          (seesaw/separator) auto-action view-cache-action
                                                          (seesaw/separator) logs/logs-action]
-                                                        menus/non-mac-actions))
+                                                        menus/non-mac-file-actions))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-editors))
@@ -1428,7 +1428,8 @@
                                                  ;; TODO: Need to disable load-track when offline/no metdata
                                                  (seesaw/separator)
                                                  carabiner-action]
-                                         :id :network-menu)])))
+                                         :id :network-menu)
+                            (menus/build-help-menu)])))
 
 (defn update-global-expression-icons
   "Updates the icons next to expressions in the Trigger menu to

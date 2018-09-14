@@ -6,7 +6,8 @@
             [seesaw.graphics :as graphics])
   (:import [java.awt RenderingHints]
            [java.awt.image BufferedImage]
-           [javax.imageio ImageIO]))
+           [javax.imageio ImageIO]
+           [javax.swing JTextArea]))
 
 (defonce ^{:private true
            :doc "Holds the About window when it is open."}
@@ -22,30 +23,42 @@
     (.rotate g (/ (- start (System/currentTimeMillis)) 4000.0))
     (.drawImage g backdrop (- (/ w 2.0)) (- (/ h 2.0)) w h nil)))
 
+(defn- simulate-label
+  "Adjusts a JTextField so that it looks and acts like an ordinary
+  JLabel. We use these so that the user can select and copy the
+  version information in case they need it for submitting issues."
+  [^JTextArea area]
+  (.setEditable area false)
+  (.setBackground area nil)
+  (.setOpaque area false)
+  (.setBorder area nil))
+
 (defn- create-about-panel
   "Create the panel containing about information, given the function
   which paints the animated backdrop."
   [paint-fn]
   (let [source-button (seesaw/button :text "Source" :bounds [300 300 70 30] :cursor :default)
-        java-label (seesaw/label :text (str "<html>Java Version:<br>" (util/get-java-version))
-                                 :foreground "white"
-                                 :bounds [5 300 250 100])
+        version-label (seesaw/text :text (str "Version:" (util/get-version) "\n" (util/get-build-date))
+                                   :multi-line? true :wrap-lines? true
+                                   :foreground "white" :cursor :text
+                                   :bounds [5 5 200 60])
+        java-label (seesaw/text :text (str "Java Version:\n" (util/get-java-version))
+                                :multi-line? true :wrap-lines? true
+                                :foreground "white" :cursor :text
+                                :bounds [5 300 250 100])
         panel (seesaw/border-panel
                :center (seesaw/xyz-panel
                         :id :xyz :background "black"
                         :paint paint-fn :cursor :hand
-                        :items [(seesaw/label :text (str "<html>Version:<br>" (util/get-version)
-                                                         "<br>" (util/get-build-date) "</html>")
-                                              :foreground "white"
-                                              :bounds [5 -10 200 60])
-                                java-label
-                                source-button]))]
+                        :items [version-label java-label source-button]))]
+    (simulate-label version-label)
+    (simulate-label java-label)
     (seesaw/listen panel
                    :component-resized (fn [e]
                                         (let [w (seesaw/width panel)
                                               h (seesaw/height panel)]
                                           (seesaw/config! source-button :bounds [(- w 72) (- h 32) :* :*])
-                                          (seesaw/config! java-label :bounds [:* (- h 80) :* :*])))
+                                          (seesaw/config! java-label :bounds [:* (- h 55) :* :*])))
                    :mouse-clicked (fn [e]
                                     (clojure.java.browse/browse-url "http://deepsymmetry.org")))
     (seesaw/listen source-button

@@ -21,7 +21,8 @@
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
-                 [uk.co.xfactory-librarians/coremidi4j "1.1"]]
+                 [uk.co.xfactory-librarians/coremidi4j "1.1"]
+                 [com.cemerick/url "0.1.1"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
