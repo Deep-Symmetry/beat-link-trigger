@@ -651,11 +651,13 @@
   start of the path which leads to the Search node itself. Otherwise
   returns `nil`."
   [^TreePath path]
-  (loop [result path]
-    (if (.. result getLastPathComponent getUserObject isSearch)
-      result
-      (when (> (.getPathCount path) 3)
-        (recur (.getParentPath result))))))
+  (when path
+    (loop [result path]
+      (when-let [item (.. result getLastPathComponent getUserObject)]
+        (if (.isSearch item)
+          result
+          (when (> (.getPathCount path) 3)
+            (recur (.getParentPath result))))))))
 
 (defn- add-device
   "Adds a newly-found player to the destination player combo box,
