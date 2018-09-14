@@ -795,7 +795,7 @@
                                                       :else                  "")]
                                     (seesaw/value! problem-label problem)
                                     (seesaw/config! load-button :enabled? (empty? problem))
-                                    (seesaw/config! play-button :text (if playing "Stop" "Play"))))
+                                    (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))))
                player-changed   (fn [e]
                                   (update-selected-player selected-player e)
                                   (update-load-ui))
