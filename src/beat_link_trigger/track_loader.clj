@@ -122,17 +122,18 @@
 (defn- attach-node-children
   "Given a list of menu items which have been loaded as a node's
   children, adds them to the node. If none were found, adds an inert
-  child to explain that the node was empty. If `all-handler` is
-  supplied, it is called to create the ALL menu item when one is
-  present."
+  child to explain that the node was empty. If `builders` is supplied,
+  it a map from menu item type to the function that should be called
+  to create that kind of item in the current context (the ALL item is
+  always contextual, and Key items mean different things when
+  nested)."
   ([^DefaultMutableTreeNode node items ^SlotReference slot-reference]
-   (attach-node-children node items slot-reference nil))
-  ([^DefaultMutableTreeNode node items ^SlotReference slot-reference all-handler]
+   (attach-node-children node items slot-reference {}))
+  ([^DefaultMutableTreeNode node items ^SlotReference slot-reference builders]
    (if (seq items)
      (doseq [^Message item items]
-       (.add node (if (and (= (menu-item-kind item) Message$MenuItemType/ALL) all-handler)
-                    (all-handler item)
-                    (menu-item-node item slot-reference))))
+       (let [builder (builders (menu-item-kind item) menu-item-node)]
+         (.add node (builder item slot-reference))))
      (.add node (empty-node)))))
 
 ;; Creates a menu item node for the History menu.
@@ -286,10 +287,12 @@
          (attach-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
+;; Creates a menu item node for all albums by a given artist in a
+;; given genre. Invoked as a contextual handler for the ALL item.
 (defn- create-all-genre-artist-albums-node
   "Handles the ALL menu item when listing genre artist albums. Creates
   an appropriate node to implement it."
-  [^Message item ^SlotReference slot-reference genre-id]
+  [genre-id ^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
@@ -304,10 +307,12 @@
                                slot-reference))))
    true))
 
+;; Creates a menu item node for all artists in a given genre. Invoked
+;; as a contextual handler for the ALL item.
 (defn- create-all-genre-artists-node
   "Handles the ALL menu item when listing genre artists. Creates an
   appropriate node to implement it."
-  [^Message item ^SlotReference slot-reference genre-id]
+  [genre-id ^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ARTISTS]")
@@ -320,8 +325,7 @@
        (when (unloaded? node)
          (attach-node-children node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1)
                                slot-reference
-                               (fn [item]  ; Special handler for the All Albums item.
-                                 (create-all-genre-artist-albums-node item slot-reference genre-id))))))
+                               {Message$MenuItemType/ALL (partial create-all-genre-artist-albums-node genre-id)}))))
    true))
 
 ;; Creates a menu item node for a genre.
@@ -340,15 +344,15 @@
          (let [genre-id (menu-item-id item)]
            (attach-node-children node (.requestGenreArtistMenuFrom menu-loader slot-reference 0 genre-id)
                                  slot-reference
-                                 (fn [item]  ; Special handler the All Artists item.
-                                   (create-all-genre-artists-node item slot-reference genre-id)))))))
+                                 {Message$MenuItemType/ALL (partial create-all-genre-artists-node genre-id)})))))
    true))
 
-;; Creates a menu item node for all album tracks by an artist.
+;; Creates a menu item node for all album tracks by an artist. Invoked
+;; as a contextual handler for the ALL item.
 (defn- create-all-artist-album-tracks-node
   "Handles the ALL menu item when listing artist albums. Creates an
   appropriate node to implement it."
-  [^Message item ^SlotReference slot-reference artist-id]
+  [artist-id ^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL TRACKS]")
@@ -363,11 +367,12 @@
                                slot-reference))))
    true))
 
-;; Creates a menu item node for all albums by an artist.
+;; Creates a menu item node for all albums by an artist. Invoked as a
+;; contextual handler for the ALL item.
 (defn- create-all-artist-albums-node
   "Handles the ALL menu item when listing artists. Creates an
   appropriate node to implement it."
-  [^Message item ^SlotReference slot-reference artist-id]
+  [artist-id ^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
@@ -380,8 +385,26 @@
        (when (unloaded? node)
          (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
                                slot-reference
-                               (fn [item]  ; Special handler for the All Tracks item.
-                                 (create-all-artist-album-tracks-node item slot-reference artist-id))))))
+                               {Message$MenuItemType/ALL (partial create-all-artist-album-tracks-node artist-id)}))))
+   true))
+
+;; Creates a menu item node for an artist.
+(defmethod menu-item-node Message$MenuItemType/ARTIST artist-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (let [artist-id (menu-item-id item)]
+           (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
+                                 slot-reference
+                                 {Message$MenuItemType/ALL (partial create-all-artist-albums-node artist-id)})))))
    true))
 
 ;; Creates a menu item node for the Key menu.
@@ -400,18 +423,15 @@
          (attach-node-children node (.requestKeyMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
-(defonce ^{:private true
-           :doc "Indicates if we are loading key neighbors, because
-           sadly the responses don't get a separate item type, they
-           are labeled as ordinary key items."}
-  loading-key-neighbors (atom false))
-
-;; Creates a menu item node for a key, which may actually be a key neighbor if the above flag is
-;; set when it is being loaded.
-(defmethod menu-item-node Message$MenuItemType/KEY key-node
+;; Creates a menu item node for a key neighbor menu; invoked as a
+;; contextual handler for the Key item when it is found inside another
+;; Key item.
+(defn- create-key-neighbor-node
+  "Handles the Key menu item when already listing a Key. Creates an
+  appropriate node for the list of key neighbors up to a specific
+  distance around the circle of fifths."
   [^Message item ^SlotReference slot-reference]
-  (if @loading-key-neighbors
-    (DefaultMutableTreeNode.  ; We got something that looks like a key, but is really a key neighbor.
+  (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
        (toString [] (menu-item-label item))
        (getId [] (int 0))
@@ -426,26 +446,11 @@
              (attach-node-children node (.requestTracksByKeyAndDistanceFrom menu-loader slot-reference 0
                                                                             key-id distance)
                                    slot-reference)))))
-     true)
-    (DefaultMutableTreeNode.  ; This is an ordinary key, but its children will be key neighbors when they load.
-     (proxy [Object IMenuEntry] []
-       (toString [] (menu-item-label item))
-       (getId [] (int 0))
-       (getSlot [] slot-reference)
-       (isMenu [] true)
-       (isTrack [] false)
-       (isSearch [] false)
-       (loadChildren [^javax.swing.tree.TreeNode node]
-         (when (unloaded? node)
-           (let [key-id (menu-item-id item)]
-             (reset! loading-key-neighbors true)
-             (attach-node-children node (.requestKeyNeighborMenuFrom menu-loader slot-reference 0 key-id)
-                                   slot-reference)
-             (reset! loading-key-neighbors false)))))
-     true)))
+     true))
 
-;; Creates a menu item node for an artist.
-(defmethod menu-item-node Message$MenuItemType/ARTIST artist-node
+;; Creates a menu item node for a Key. Will build child Key items as
+;; key neighbor nodes.
+(defmethod menu-item-node Message$MenuItemType/KEY key-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -457,11 +462,10 @@
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (let [artist-id (menu-item-id item)]
-           (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
+         (let [key-id (menu-item-id item)]
+           (attach-node-children node (.requestKeyNeighborMenuFrom menu-loader slot-reference 0 key-id)
                                  slot-reference
-                                 (fn [item]  ; Special handler the All Albums item.
-                                   (create-all-artist-albums-node item slot-reference artist-id)))))))
+                                 {Message$MenuItemType/KEY create-key-neighbor-node})))))
    true))
 
 ;; Creates a menu item node for an album.
