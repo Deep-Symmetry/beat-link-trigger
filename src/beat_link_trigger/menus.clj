@@ -85,7 +85,7 @@
   []
   (str "Beat Link Trigger version: " (util/get-version)
        (when-let [built (util/get-build-date)]
-         ", " built)
+         (str ", built " built))
        "\r\n"
        "Java version: " (util/get-java-version) "\r\n"
        "Operating system: " (util/get-os-version) "\r\n\r\n"))
