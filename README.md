@@ -81,8 +81,24 @@ Trigger could be better, you can
 also
 [open an Issue](https://github.com/brunchboy/beat-link-trigger/issues).
 
-Please be mindful of our [Code of Conduct](CODE_OF_CONDUCT.md) to make
-sure everyone feels welcome in the community.
+> Please be mindful of our [Code of Conduct](CODE_OF_CONDUCT.md) to make
+> sure everyone feels welcome in the community.
+
+#### Funding
+
+Beat Link Trigger is, and will remain, completely free and
+open-source. If it has helped you, taught you something, or pleased
+you, and you would like to help support its ongoing development, you
+are welcome (but by no means obligated) to donate to help offset the
+hundreds of hours of research, development, and writing that have
+already been invested, and facilitate future efforts.
+
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img
+    alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> via PayPal
+
+> If enough people jump onboard, we may even be able to get a newer
+> CDJ to experiment with, although that's an unlikely stretch goal.
+> :grinning:
 
 ## Compatibility
 
