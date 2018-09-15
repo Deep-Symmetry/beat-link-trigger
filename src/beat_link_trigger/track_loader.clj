@@ -1,7 +1,8 @@
 (ns beat-link-trigger.track-loader
   "Provides the user interface for exploring the menu trees of the
   available media databases, and loading tracks into players."
-  (:require [beat-link-trigger.tree-node]
+  (:require [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
@@ -119,6 +120,85 @@
   [^DefaultMutableTreeNode node]
   (zero? (.getChildCount node)))
 
+;; Creates a menu item node for unrecognized entries.
+(defmethod menu-item-node :default unrecognized-item-node
+  [^Message item ^SlotReference slot-reference]
+  (let [kind (or (menu-item-kind item)
+                 (format "0x%x" (.getValue (nth (.arguments item) 6))))]  ; Show number if we can't name it.
+    (DefaultMutableTreeNode.
+     (proxy [Object IMenuEntry] []
+       (toString [] (str (menu-item-label item) " [unrecognized (" kind ")" "]"))
+       (getId [] (int -1))
+       (getSlot [] slot-reference)
+       (isMenu [] false)
+       (isTrack [] false)
+       (isSearch [] false)
+       (loadChildren [_]))
+     false)))
+
+(defn- get-parent-list
+  "Traverses the parent chain of a node collecting them in a list, to
+  reverse the order."
+  [^TreeNode node]
+  (loop [current (.getParent node)
+         result  '()]
+    (if (nil? (.getParent current))
+      result
+      (recur (.getParent current)
+             (conj result current)))))
+
+(defn report-unrecognized-nodes
+  "Tells the user that we don't know what to do with some nodes in the
+  menu tree and offer to compose a report about them to help fix that."
+  [unrecognized]
+  ;; Format a report about each kind of node we did not recognize.
+  (let [reports (map (fn [{:keys [node item]}]
+                       (let [player (.. node getUserObject getSlot player)
+                             device (.. device-finder (getLatestAnnouncementFrom player) getName)
+                             menu   (clojure.string/join "->" (get-parent-list node))]
+                         (str "When loading menu " menu " from device named " device ", don't understand: " item)))
+                     unrecognized)]
+    (doseq [report reports] (timbre/warn report))  ; First log them.
+    (seesaw/invoke-later  ; Then alert the user and ask them to take action.
+     (if (menus/mail-supported?)
+       ;; Compose an email with all the details.
+       (let [body    (clojure.string/replace (clojure.string/join "\n\n" reports) "\n" "\r\n")
+             message (str "While trying to load the menu from the player, a value was received\n"
+                          "that we don't know how to handle. Would you like to send the details\n"
+                          "to Deep Symmetry to help fix this?\n\n"
+                          "If you agree, an email message will be created that you can review\n"
+                          "and edit before sending.\n\n"
+                          "If you can't send anything right now, please still consider saying \"Yes\"\n"
+                          "and saving the email until you can send it, or until you can copy\n"
+                          "its content into an Issue that you open on the project's GitHub page.\n\n")
+             options (to-array ["Yes" "No"])
+             choice (javax.swing.JOptionPane/showOptionDialog
+                     nil message "Submit Issue about Unrecognized Menu Items?"
+                     javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/WARNING_MESSAGE nil
+                     options (aget options 0))]
+         (when (zero? choice)
+           (menus/report-issue body)))
+       ;; Can't compose email, so encourage user to open an issue.
+       (seesaw/alert (str "<html>While trying to load the menu from the player, a value was received<br>"
+                          "that we don't know how to handle. If you can, please look in the log files<br>"
+                          "(using the Help menu) to find the details that were just reported, and copy<br>"
+                          "them into an email to james@deepsymmetry.org, or paste them into an issue<br>"
+                          "that you open against the project on GitHub (you can access that page from<br>"
+                          "the Help menu as well).<br><br>"
+                          "If you can do that, it will help us figure out how to fix this.")
+                     :title "Unrecognized Menu Items" :type :warning)))))
+
+(defn unrecognized-node?
+  "Checks whether the supplied tree node holds an unrecognized menu
+  item, so we can gather them and offer to report on them. Returns
+  `nil` if the node is recognized, or the menu item type code that was
+  not recognized."
+  [^TreeNode node ^Message item]
+  (let [^IMenuEntry entry (.getUserObject node)]
+    (when (and (= -1 (.getId entry))
+               (.contains (str node) " [unrecognized ("))
+      (.getValue (nth (.arguments item) 6)))))
+
 (defn- attach-node-children
   "Given a list of menu items which have been loaded as a node's
   children, adds them to the node. If none were found, adds an inert
@@ -131,9 +211,14 @@
    (attach-node-children node items slot-reference {}))
   ([^DefaultMutableTreeNode node items ^SlotReference slot-reference builders]
    (if (seq items)
-     (doseq [^Message item items]
-       (let [builder (builders (menu-item-kind item) menu-item-node)]
-         (.add node (builder item slot-reference))))
+     (let [unrecognized (atom {})]
+       (doseq [^Message item items]
+         (let [builder (builders (menu-item-kind item) menu-item-node)
+               child (builder item slot-reference)]
+           (.add node child)
+           (when-let [kind (unrecognized-node? child item)]  ; We found an unrecognized item to report on.
+             (swap! unrecognized assoc kind {:node child :item item}))))  ; Keep track of only one of each kind.
+       (when (seq @unrecognized) (report-unrecognized-nodes (vals @unrecognized))))
      (.add node (empty-node)))))
 
 ;; Creates a menu item node for the History menu.
@@ -535,22 +620,6 @@
          (.add node (empty-search-node)))))
    true))
 
-
-;; Creates a menu item node for unrecognized entries.
-(defmethod menu-item-node :default unrecognized-item-node
-  [^Message item ^SlotReference slot-reference]
-  (let [kind (or (menu-item-kind item)
-                 (format "0x%x" (.getValue (nth (.arguments item) 6))))]  ; Show number if we can't name it.
-    (DefaultMutableTreeNode.
-     (proxy [Object IMenuEntry] []
-       (toString [] (str (menu-item-label item) " [unrecognized (" kind ")" "]"))
-       (getId [] (int 0))
-       (getSlot [] slot-reference)
-       (isMenu [] false)
-       (isTrack [] false)
-       (isSearch [] false)
-       (loadChildren [_]))
-     false)))
 
 (defn- slot-label
   "Assembles the name used to describe a particular player slot, given
