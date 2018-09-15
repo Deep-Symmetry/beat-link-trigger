@@ -14,8 +14,13 @@ This change log follows the conventions of
   Ableton Link in both directions.
 - The Carabiner window now lets you control which device is the Tempo
   Master and which devices are synced to it.
-- Playlist Writer window for ease of use by radio stations and others
-  wanting to be careful about royalties.
+- There is a new interface for picking a track from a player's media
+  slot, and telling it (or another player) to load it. Players can
+  also be stopped using this interface, and (as long as they are
+  stopped at the cue point) started. This is useful for playing tracks
+  during a pre-show from Front of House before there is a DJ on stage.
+- There is a new Playlist Writer window for ease of use by radio
+  stations and others wanting to be careful about royalties.
 - Can now display metadata for non-rekordbox tracks, including audio
   and data CDs, thanks to dysentery and Beat Link updates.
 - Player Status window shows a distinction between players with no
@@ -23,6 +28,14 @@ This change log follows the conventions of
 - The `Online?` option in the `Triggers` menu now shows the player
   number that Beat Link Trigger is using once it is online, to help
   people understand how it is operating.
+- A new `Help` menu with options to open the user guide, project page,
+  Gitter chat, and to compose emails to report issues with
+  pre-populated version details, or simply say "hello" as a new user.
+- The `About` window now shows Java version information, and all
+  version information can be selected and copied, if useful in
+  discussing issues.
+- The log files now include Java and operating system version
+  information at the top.
 
 ### Fixed
 
@@ -51,6 +64,12 @@ This change log follows the conventions of
   This version will warn you if you need to upgrade Carabiner.
 - Protect against race conditions reading and writing preferences from
   different threads, now that they are split across multiple nodes.
+
+### Changed
+
+- On Windows, the `About` window is now accessed through the new
+  `Help` menu (which is more consistent with Windows applicaton
+  standards), instead of the `File` menu.
 
 ## [0.3.8] - 2018-06-17
 
