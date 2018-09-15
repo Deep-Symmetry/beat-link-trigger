@@ -965,7 +965,10 @@
                (.expandRow slots-tree 1))
              (catch IllegalStateException e
                (explain-navigation-failure e)
-               (.stopped stop-listener metadata-finder)))
+               (.stopped stop-listener metadata-finder))
+             (catch Throwable t
+               (.stopped stop-listener metadata-finder)  ; Clean up the window if we are blowing up...
+               (throw t)))  ; ...but do rethrow the exception so the user sees the issue.
            (seesaw/listen load-button
                           :action-performed
                           (fn [_]
