@@ -137,8 +137,8 @@ installed, and try running it from the command line:
 > :warning: Make sure you download the **Java 8 SE JRE**, _not_ Java 9
 > or later, as Beat Link Trigger is [not yet
 > compatible](https://github.com/brunchboy/beat-link-trigger/issues/31)
-> with Java 9, 10, or 11 unless you download the 0.4.0 preview
-> release.
+> with Java 9, 10, or 11 unless you are using the 0.4.0 preview
+> release of Beat Link Trigger.
 
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
