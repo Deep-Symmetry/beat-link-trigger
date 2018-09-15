@@ -70,6 +70,9 @@ This change log follows the conventions of
 - On Windows, the `About` window is now accessed through the new
   `Help` menu (which is more consistent with Windows applicaton
   standards), instead of the `File` menu.
+- The `Open Logs Folder` option has moved from the `File` menu to the
+  new `Help` menu so it is right next to the options where you might
+  need it.
 
 ## [0.3.8] - 2018-06-17
 

@@ -5,7 +5,6 @@
             [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
-            [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as writer]
@@ -1410,8 +1409,7 @@
                          (.setSendingStatus virtual-cdj false)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
-                                                         (seesaw/separator) auto-action view-cache-action
-                                                         (seesaw/separator) logs/logs-action]
+                                                         (seesaw/separator) auto-action view-cache-action]
                                                         menus/non-mac-file-actions))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]

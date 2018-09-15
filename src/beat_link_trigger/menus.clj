@@ -2,6 +2,7 @@
   "Provides support for menu options used in various other
   namespaces."
   (:require [beat-link-trigger.about :as about]
+            [beat-link-trigger.logs :as logs]
             [beat-link-trigger.util :as util]
             [cemerick.url :as url]
             [seesaw.core :as seesaw]
@@ -68,6 +69,10 @@
   "Where people discuss Beat Link Trigger."
   "https://gitter.im/brunchboy/beat-link-trigger")
 
+(def issues-url
+  "The project Issues page on GitHub."
+  "https://github.com/brunchboy/beat-link-trigger/issues")
+
 (def default-issue-description
   "The placeholder text to insert when we do not have an issue of our
   own to report."
@@ -75,7 +80,7 @@
        "  * What did you expect and what actually happened?\r\n"
        "  * Can you include screen shots if they will help explain it?\r\n"
        "  * Can you copy and paste relevant sections of the logs (found "
-       "under File->Open Logs Folder) showing stack traces when things "
+       "under Help->Open Logs Folder) showing stack traces when things "
        "were going wrong?\r\n"
        " The more you can share, the more likely we will be able to help.)"))
 
@@ -91,18 +96,24 @@
        "Operating system: " (util/get-os-version) "\r\n\r\n"))
 
 (defn report-issue
-  "Composes an email with information useful for reporting an issue. If
-  `text` is supplied it is used as the initial issue
-  description (lines must be separated using \\r\\n). The user can
-  still edit the email and decide whether or not they want to send
-  it."
+  "If the system email client can be launched, composes an email with
+  information useful for reporting an issue. If `text` is supplied it
+  is used as the initial issue description (lines must be separated
+  using \\r\\n). The user can still edit the email and decide whether
+  or not they want to send it.
+
+  If we can't launch an email client, we simply try to open the
+  project Issues page in a web browser and let the user take it from
+  there."
   ([]
    (report-issue nil))
   ([text]
-   (let [body (str (version-block)
-                   "Issue description:\r\n"
-                   (or text default-issue-description))]
-     (compose-mail "Beat Link Trigger issue report" body))))
+   (if (mail-supported?)
+     (let [body (str (version-block)
+                     "Issue description:\r\n"
+                     (or text default-issue-description))]
+       (compose-mail "Beat Link Trigger issue report" body))
+     (clojure.java.browse/browse-url issues-url))))
 
 (defn send-greeting
   []
@@ -133,9 +144,10 @@
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
                                               :name "Project Home")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url gitter-chat-url))
-                                              :name "Discuss on Gitter")]
+                                              :name "Discuss on Gitter")
+                               (seesaw/separator) logs/logs-action
+                               (seesaw/action :handler (fn [_] (report-issue)) :name "Report Issue")]
                               (when (mail-supported?)
                                 [(seesaw/separator)
-                                 (seesaw/action :handler (fn [_] (report-issue)) :name "Report Issue")
                                  (seesaw/action :handler (fn [_] (send-greeting)) :name "Send User Greeting")]))
                :id :help-menu))
