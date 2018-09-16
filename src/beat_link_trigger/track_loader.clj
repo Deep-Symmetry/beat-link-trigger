@@ -717,11 +717,15 @@
 
 (defn- remove-slot-node
   "Searches the tree for the node responsible for talking to the
-  specified player slot, removing it if it exists. Must be invoked on
-  the Swing event dispatch thread."
-  [^JTree tree ^SlotReference slot]
+  specified player slot, removing it if it exists. If there are no
+  slots left to load from, closes the window. Must be invoked on the
+  Swing event dispatch thread."
+  [^JTree tree ^SlotReference slot stop-listener]
   (when-let [node (find-slot-node tree slot)]
-    (.removeNodeFromParent (.getModel tree) node)))
+    (.removeNodeFromParent (.getModel tree) node)
+    (let [model (.getModel tree)]
+      (when (zero? (.getChildCount model (.getRoot model)))
+        (.stopped stop-listener metadata-finder)))))
 
 (defn- add-slot-node
   "Adds a node responsible for talking to the specified player slot to
@@ -788,14 +792,16 @@
 
 (defn- remove-device
   "Removes a newly-departed player from the destination player combo
-  box."
-  [players number]
+  box. If that leaves us with no players, close the window."
+  [players number stop-listener]
   (let [model (.getModel players)]
-    (loop [index 0]
-      (when (< index (.getSize model))
-        (if (= number (.number (.getElementAt model index)))
-          (.removeElementAt model index)
-          (recur (inc index)))))))
+      (loop [index 0]
+        (when (< index (.getSize model))
+          (if (= number (.number (.getElementAt model index)))
+            (.removeElementAt model index)
+            (recur (inc index))))))
+  (when (zero? (.getItemCount players))  ; No players left, close the window.
+    (.stopped stop-listener metadata-finder)))
 
 (defn- build-device-choices
   "Sets up the initial content of the destination player combo box."
@@ -929,23 +935,22 @@
                                  :center slots-scroll
                                  :south player-panel)
                stop-listener    (reify LifecycleListener
-                                  (started [this sender]) ; Nothing to do, we exited as soon a stop happened anyway.
-                                  (stopped [this sender]  ; Close our window if MetadataFinder stops (we need it).
+                                  (started [this _]) ; Nothing to do, we exited as soon a stop happened anyway.
+                                  (stopped [this _]  ; Close our window if MetadataFinder stops (we need it).
                                     (seesaw/invoke-later
                                      (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
                dev-listener     (reify DeviceAnnouncementListener
                                   (deviceFound [this announcement]
                                     (seesaw/invoke-later (add-device players (.getNumber announcement))))
                                   (deviceLost [this announcement]
-                                    (if (empty? (.getCurrentDevices device-finder))
-                                      (.stopped stop-listener))  ; If we lose all devices, close the window.
-                                    (seesaw/invoke-later (remove-device players (.getNumber announcement)))))
+                                    (seesaw/invoke-later
+                                     (remove-device players (.getNumber announcement) stop-listener))))
                mount-listener   (reify MountListener
                                   (mediaMounted [this slot]
                                     (seesaw/invoke-later (add-slot-node slots-tree slot)))
                                   (mediaUnmounted [this slot]
                                     (swap! searches dissoc slot)
-                                    (seesaw/invoke-later (remove-slot-node slots-tree slot))))
+                                    (seesaw/invoke-later (remove-slot-node slots-tree slot stop-listener))))
                status-listener  (reify DeviceUpdateListener
                                   (received [this status]
                                     (let [player @selected-player]
