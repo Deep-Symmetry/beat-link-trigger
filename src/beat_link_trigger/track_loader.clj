@@ -553,6 +553,45 @@
                                  {Message$MenuItemType/KEY create-key-neighbor-node})))))
    true))
 
+;; Creates a menu item node for the Rating menu.
+(defmethod menu-item-node Message$MenuItemType/RATING_MENU rating-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestRatingMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
+(defn format-rating
+  "Formats a numeric rating as a string of zero through five stars in a
+  field of periods."
+  [rating]
+  (apply str (take 5 (concat (take rating (repeat "*")) (repeat ".")))))
+
+;; Creates a menu item node for a rating node.
+(defmethod menu-item-node Message$MenuItemType/RATING rating-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (format-rating (menu-item-id item)))
+     (getId [] (int (menu-item-id item)))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestTracksByRatingFrom menu-loader slot-reference 0 (menu-item-id item))
+                               slot-reference))))
+   true))
+
 ;; Creates a menu item node for an album.
 (defmethod menu-item-node Message$MenuItemType/ALBUM_TITLE album-node
   [^Message item ^SlotReference slot-reference]
