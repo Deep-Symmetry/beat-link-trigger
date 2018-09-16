@@ -896,7 +896,7 @@
   start of the path which leads to the Search node itself. Otherwise
   returns `nil`."
   [^TreePath path]
-  (when path
+  (when (and path (> (.getPathCount path) 2))
     (loop [result path]
       (when-let [item (.. result getLastPathComponent getUserObject)]
         (if (.isSearch item)
