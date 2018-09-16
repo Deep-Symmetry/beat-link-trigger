@@ -243,7 +243,7 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] (menu-item-label item))
-     (getId [] (int 0))
+     (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
@@ -292,7 +292,7 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] (menu-item-label item))
-     (getId [] (int 0))
+     (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
@@ -311,7 +311,7 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] (menu-item-label item))
-     (getId [] (int 0))
+     (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
@@ -419,7 +419,7 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] (menu-item-label item))
-     (getId [] (int 0))
+     (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
@@ -479,7 +479,7 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] (menu-item-label item))
-     (getId [] (int 0))
+     (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
@@ -540,7 +540,7 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] (menu-item-label item))
-     (getId [] (int 0))
+     (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
      (isTrack [] false)
