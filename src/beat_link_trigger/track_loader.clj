@@ -110,7 +110,7 @@
       (getId [] (int 0))
       (getSlot [] nil)
       (isMenu [] false)
-      (isTrack [] false)
+      (getTrackType [] nil)
       (isSearch [] false)
       (loadChildren [_]))
     false)))
@@ -131,7 +131,7 @@
        (getId [] (int -1))
        (getSlot [] slot-reference)
        (isMenu [] false)
-       (isTrack [] false)
+       (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [_]))
      false)))
@@ -230,7 +230,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -246,7 +246,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -263,7 +263,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -279,7 +279,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -295,7 +295,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -314,7 +314,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -333,7 +333,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -349,7 +349,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -365,7 +365,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -384,7 +384,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -404,7 +404,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -422,7 +422,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -444,7 +444,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -464,7 +464,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -482,7 +482,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -501,7 +501,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -522,7 +522,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (isMenu [] true)
-       (isTrack [] false)
+       (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
@@ -543,7 +543,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -562,7 +562,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -584,7 +584,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -601,7 +601,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -623,14 +623,13 @@
   percentage away from the base BPM."
   [tempo ^Message item ^SlotReference slot-reference]
   (let [distance (menu-item-id item)]
-    (timbre/info "tempo range item:" item)
     (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
        (toString [] (str (format-tempo tempo) (when-not (zero? distance) (str " +/- " distance "%"))))
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (isMenu [] true)
-       (isTrack [] false)
+       (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
@@ -649,7 +648,7 @@
        (getId [] (int tempo))
        (getSlot [] slot-reference)
        (isMenu [] true)
-       (isTrack [] false)
+       (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
@@ -657,6 +656,70 @@
                                  slot-reference
                                  {Message$MenuItemType/TEMPO (partial create-tempo-range-node tempo)}))))
      true)))
+
+;; Creates a menu item node for a filesystem track; invoked as a
+;; contextual handler for the Track Title item when it is found inside
+;; the Folder menu or a filesystem Folder item.
+(defn- create-filesystem-track-node
+  "Handles the Track Title menu item when listing the Folder menu or a
+  filesystem Folder item. Creates a Track node whose track type is
+  \"unanalyzed\" rather than \"rekordbox\"."
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (isMenu [] false)
+     (getTrackType [] CdjStatus$TrackType/UNANALYZED)
+     (isSearch [] false)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a filesystem folder; invoked as a
+;; contextual handler for the Folder item when it is found inside
+;; the Folder menu or another Folder item.
+(defn- create-filesystem-folder-node
+  "Handles the Folder menu item when listing the Folder menu or another
+  filesystem Folder item. Creates an appropriate node for the contents
+  of that filesystem folder."
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+                               slot-reference
+                               {Message$MenuItemType/FOLDER create-filesystem-folder-node
+                                Message$MenuItemType/TRACK_TITLE create-filesystem-track-node}))))
+   true))
+
+;; Creates a menu item node for the Folder menu. Will build child
+;; folder items as filesystem folders, rather than the default
+;; playlist folders we otherwise see, and child track items with
+;; track types of "unanalyzed" rather than the default rekordbox.
+(defmethod menu-item-node Message$MenuItemType/FOLDER_MENU folder-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 -1) slot-reference
+                               {Message$MenuItemType/FOLDER create-filesystem-folder-node
+                                Message$MenuItemType/TRACK_TITLE create-filesystem-track-node}))))
+   true))
 
 ;; Creates a menu item node for an album.
 (defmethod menu-item-node Message$MenuItemType/ALBUM_TITLE album-node
@@ -667,7 +730,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -675,7 +738,7 @@
                                slot-reference))))
    true))
 
-;; Creates a menu item node for a track.
+;; Creates a menu item node for a rekordbox track.
 (defmethod menu-item-node Message$MenuItemType/TRACK_TITLE track-title-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -684,12 +747,12 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (isMenu [] false)
-     (isTrack [] true)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
      (isSearch [] false)
      (loadChildren [_]))
    false))
 
-;; Creates a menu item node for a track with the artist name.
+;; Creates a menu item node for a rekordbox track with the artist name.
 (defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_ARTIST track-title-and-artist-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -699,7 +762,7 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (isMenu [] false)
-     (isTrack [] true)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
      (isSearch [] false)
      (loadChildren [_]))
    false))
@@ -718,7 +781,7 @@
      (getId [] 0)
      (getSlot [] slot-reference)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] true)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -746,7 +809,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (isMenu [] true)
-       (isTrack [] false)
+       (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
@@ -763,7 +826,7 @@
      (getId [] (int 0))
      (getSlot [] nil)
      (isMenu [] true)
-     (isTrack [] false)
+     (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [_]))
    true))
@@ -1051,14 +1114,14 @@
                             (reset! selected-track
                                     (when (.isAddedPath e)
                                       (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
-                                        (when (.isTrack entry)
-                                          [(.getSlot entry) (.getId entry)]))))
+                                        (when (.getTrackType entry)
+                                          [(.getSlot entry) (.getId entry) (.getTrackType entry)]))))
                             (update-load-ui)
                             (let [search-path     (when (.isAddedPath e)
                                                     (trim-to-search-node-path (.getPath e)))
                                   search-node     (when search-path
-                                                     (.expandPath slots-tree search-path)
-                                                     (.. search-path getLastPathComponent))
+                                                    (.expandPath slots-tree search-path)
+                                                    (.. search-path getLastPathComponent))
                                   selected-search (when search-node (.. search-node getUserObject getSlot))]
                               (when (not= selected-search (:current @searches))
                                 (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
@@ -1082,11 +1145,10 @@
            (seesaw/listen load-button
                           :action-performed
                           (fn [_]
-                            (let [[slot-reference track] @selected-track
-                                  selected-player        (.number (.getSelectedItem players))]
+                            (let [[slot-reference track track-type] @selected-track
+                                  selected-player                   (.number (.getSelectedItem players))]
                               (.sendLoadTrackCommand virtual-cdj selected-player track
-                                                     (.player slot-reference) (.slot slot-reference)
-                                                     CdjStatus$TrackType/REKORDBOX))))
+                                                     (.player slot-reference) (.slot slot-reference) track-type))))
            (seesaw/listen play-button
                           :action-performed
                           (fn [_]

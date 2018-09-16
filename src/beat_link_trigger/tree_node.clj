@@ -13,6 +13,6 @@
   (^int getId [])
   (^org.deepsymmetry.beatlink.data.SlotReference getSlot [])
   (^boolean isMenu [])
-  (^boolean isTrack [])
+  (^org.deepsymmetry.beatlink.CdjStatus$TrackType getTrackType [])  ; nil if this is not a track
   (^boolean isSearch [])
   (^void loadChildren [^javax.swing.tree.TreeNode node]))
