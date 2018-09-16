@@ -592,6 +592,72 @@
                                slot-reference))))
    true))
 
+;; Creates a menu item node for the BPM menu.
+(defmethod menu-item-node Message$MenuItemType/BPM_MENU bpm-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] true)
+     (isTrack [] false)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-node-children node (.requestBpmMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
+(defn- format-tempo
+  "Formats a tempo value, dividing it by 100 and rounding (although they
+  always seem to be multiples of 100 in the menus I have seen)."
+  [bpm]
+  (str (Math/round (/ bpm 100.0))))
+
+;; Creates a menu item node for a tempo range menu; invoked as a
+;; contextual handler for the Tempo item when it is found inside
+;; another Tempo item.
+(defn- create-tempo-range-node
+  "Handles the Tempo menu item when already listing a Tempo. Creates an
+  appropriate node for the list of tempo ranges up to a specific
+  percentage away from the base BPM."
+  [tempo ^Message item ^SlotReference slot-reference]
+  (let [distance (menu-item-id item)]
+    (timbre/info "tempo range item:" item)
+    (DefaultMutableTreeNode.
+     (proxy [Object IMenuEntry] []
+       (toString [] (str (format-tempo tempo) (when-not (zero? distance) (str " +/- " distance "%"))))
+       (getId [] (int 0))
+       (getSlot [] slot-reference)
+       (isMenu [] true)
+       (isTrack [] false)
+       (isSearch [] false)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (attach-node-children node (.requestTracksByBpmRangeFrom menu-loader slot-reference 0 tempo distance)
+                                 slot-reference))))
+     true)))
+
+;; Creates a menu item node for a tempo. Will build child tempo items
+;; as tempo ranges.
+(defmethod menu-item-node Message$MenuItemType/TEMPO tempo-node
+  [^Message item ^SlotReference slot-reference]
+  (let [tempo (menu-item-id item)]
+    (DefaultMutableTreeNode.
+     (proxy [Object IMenuEntry] []
+       (toString [] (format-tempo tempo))
+       (getId [] (int tempo))
+       (getSlot [] slot-reference)
+       (isMenu [] true)
+       (isTrack [] false)
+       (isSearch [] false)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (attach-node-children node (.requestBpmRangeMenuFrom menu-loader slot-reference 0 tempo)
+                                 slot-reference
+                                 {Message$MenuItemType/TEMPO (partial create-tempo-range-node tempo)}))))
+     true)))
+
 ;; Creates a menu item node for an album.
 (defmethod menu-item-node Message$MenuItemType/ALBUM_TITLE album-node
   [^Message item ^SlotReference slot-reference]
