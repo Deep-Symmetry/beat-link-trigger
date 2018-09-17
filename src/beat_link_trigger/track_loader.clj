@@ -793,10 +793,15 @@
   "Assembles the name used to describe a particular player slot, given
   the slot reference."
   [^SlotReference slot-reference]
-  (str "Player " (.player slot-reference) " "
-                   (util/case-enum (.slot slot-reference)
-                     CdjStatus$TrackSourceSlot/SD_SLOT "SD"
-                     CdjStatus$TrackSourceSlot/USB_SLOT "USB")))
+  (let [base (str "Player " (.player slot-reference) " "
+                  (util/case-enum (.slot slot-reference)
+                    CdjStatus$TrackSourceSlot/SD_SLOT "SD"
+                    CdjStatus$TrackSourceSlot/USB_SLOT "USB"))
+        extra (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
+                (str (when-let [name (.name details)] (str ": " name))
+                     (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
+                     (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists"))))]
+    (str base extra)))
 
 (defn- slot-node
   "Creates the tree node that will allow access to the media database in
