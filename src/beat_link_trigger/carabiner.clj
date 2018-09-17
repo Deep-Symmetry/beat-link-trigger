@@ -1,7 +1,8 @@
 (ns beat-link-trigger.carabiner
   "Communicates with a local Carabiner daemon to participate in an
   Ableton Link session."
-  (:require [seesaw.core :as seesaw]
+  (:require [beat-link-trigger.prefs :as prefs]
+            [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [java.net Socket]
@@ -21,9 +22,9 @@
   integers to each `:running` value as we are started and stopped, so
   a leftover background thread from a previous run can know when it is
   stale and should exit.)"}
-  client (atom {:port 17000
-                :latency 5
-                :last 0}))
+  client (atom {:port    17000
+                :latency 1
+                :last    0}))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to configure and
@@ -754,6 +755,7 @@ experience synchronization glitches."
   "Creates the Carabiner window."
   [trigger-frame]
   (try
+    (swap! client merge (:carabiner (prefs/get-preferences)))  ; Restore any changed connection settings.
     (let [root  (seesaw/frame :title "Carabiner Connection"
                               :on-close :hide)
           group (seesaw/button-group)
@@ -767,7 +769,11 @@ experience synchronization glitches."
                           [(seesaw/spinner :id :port
                                            :model (seesaw/spinner-model (:port @client) :from 1 :to 32767)
                                            :listen [:selection (fn [e]
-                                                                 (swap! client assoc :port (seesaw/selection e)))])]
+                                                                 (let [port (seesaw/selection e)]
+                                                                   (swap! client assoc :port port)
+                                                                   (prefs/put-preferences
+                                                                    (assoc-in (prefs/get-preferences)
+                                                                              [:carabiner :port] port))))])]
                           [(seesaw/checkbox :id :connect :text "Connect"
                                             :listen [:action (fn [e]
                                                                (connect-choice (seesaw/value e)))]) "span 2, wrap"]
@@ -776,7 +782,11 @@ experience synchronization glitches."
                           [(seesaw/spinner :id :latency
                                            :model (seesaw/spinner-model (:latency @client) :from 0 :to 1000)
                                            :listen [:selection (fn [e]
-                                                                 (swap! client assoc :latency (seesaw/selection e)))])
+                                                                 (let [latency (seesaw/selection e)]
+                                                                   (swap! client assoc :latency latency)
+                                                                   (prefs/put-preferences
+                                                                    (assoc-in (prefs/get-preferences)
+                                                                              [:carabiner :latency] latency))))])
                            "wrap"]
 
                           [(seesaw/label :text "Sync Mode:") "align right"]
