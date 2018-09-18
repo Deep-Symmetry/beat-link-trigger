@@ -974,6 +974,8 @@
         node                                    (.getLastPathComponent path)]
     (seesaw/text! search-label (str "Search " (slot-label selected-search) ":"))
     (seesaw/text! search-field text)
+    (seesaw/invoke-later
+     (seesaw/request-focus! search-field))
     (configure-partial-search-ui search-partial search-button total (.getChildCount node))
     (swap! searches assoc :current selected-search)))  ; Record and enable the UI for the new search.
 
