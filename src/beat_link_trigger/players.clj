@@ -547,30 +547,34 @@
     (let [slot           (case slot
                            :usb CdjStatus$TrackSourceSlot/USB_SLOT
                            :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
-          slot-reference (SlotReference/getSlotReference (int n) slot)]
-      (concat
-       [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
-                       :name "Load Track from Here on a Player")
-        (seesaw/action :handler (fn [_] (show-cache-creation-dialog n slot))
-                       :name "Create Metadata Cache File")
-        (seesaw/separator)]
-       (when (.getMetadataCache metadata-finder slot-reference)
-         [(seesaw/action :handler (fn [_] (.detachMetadataCache metadata-finder slot-reference))
-                         :name "Detach Metadata Cache File")])
-       [(seesaw/action :handler (fn [e]
-                                  (when-let [file (chooser/choose-file
-                                                   @player-window
-                                                   :all-files? false
-                                                   :filters [["BeatLink metadata cache" ["bltm"]]])]
-                                    (try
-                                      (.attachMetadataCache metadata-finder slot-reference file)
-                                      (catch Exception e
-                                        (timbre/error e "Problem attaching" file)
-                                        (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>"
-                                                           (.getMessage e)
-                                                           "<br><br>See the log file for more details.")
-                                                      :title "Problem Attaching File" :type :error)))))
-                       :name "Attach Metadata Cache File")]))))
+          slot-reference (SlotReference/getSlotReference (int n) slot)
+          rekordbox?     (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
+                           (= CdjStatus$TrackType/REKORDBOX (.mediaType details)))]
+      (filter identity
+              [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
+                              :name "Load Track from Here on a Player")
+               (when rekordbox?
+                 (seesaw/action :handler (fn [_] (show-cache-creation-dialog n slot))
+                                :name "Create Metadata Cache File"))
+               (seesaw/separator)
+               (when (.getMetadataCache metadata-finder slot-reference)
+                 (seesaw/action :handler (fn [_] (.detachMetadataCache metadata-finder slot-reference))
+                                :name "Detach Metadata Cache File"))
+               (when rekordbox?
+                 (seesaw/action :handler (fn [e]
+                                           (when-let [file (chooser/choose-file
+                                                            @player-window
+                                                            :all-files? false
+                                                            :filters [["BeatLink metadata cache" ["bltm"]]])]
+                                             (try
+                                               (.attachMetadataCache metadata-finder slot-reference file)
+                                               (catch Exception e
+                                                 (timbre/error e "Problem attaching" file)
+                                                 (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>"
+                                                                    (.getMessage e)
+                                                                    "<br><br>See the log file for more details.")
+                                                               :title "Problem Attaching File" :type :error)))))
+                                :name "Attach Metadata Cache File"))]))))
 
 (defn- describe-cache
   "Format information about an attached cache file that is short
