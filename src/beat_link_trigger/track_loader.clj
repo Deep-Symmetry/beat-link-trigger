@@ -907,7 +907,7 @@
       (when-let [item (.. result getLastPathComponent getUserObject)]
         (if (.isSearch item)
           result
-          (when (> (.getPathCount path) 3)
+          (when (> (.getPathCount result) 3)
             (recur (.getParentPath result))))))))
 
 (defn- add-device
