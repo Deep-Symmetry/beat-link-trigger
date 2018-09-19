@@ -1323,7 +1323,12 @@
 
           :else ; Go offline.
           (.setSelected (seesaw/select @trigger-frame [:#online]) false)))
-      (try-go-active))))  ; We can reliably request metadata.
+      (do  ; We can reliably request metadata.
+        (try-go-active)
+        (when-not (.isPassive metadata-finder)
+          ;; We are successfully requesting metadata, see if we are supposed to also send status packets.
+          (when (send-status?)
+            (.setSelected (seesaw/select @trigger-frame [:#send-status]) true)))))))
 
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
