@@ -894,7 +894,8 @@
   (let [model (.getModel tree)
         node-path (TreePath. (to-array [(.getRoot model) node]))]
     (.setSelectionPath tree node-path)
-    (.expandPath tree node-path)))
+    (.expandPath tree node-path)
+    (.scrollPathToVisible tree node-path)))
 
 (defn- trim-to-search-node-path
   "If the supplied tree path belongs to a Search menu entry, returns the
