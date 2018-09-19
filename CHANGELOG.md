@@ -14,6 +14,9 @@ This change log follows the conventions of
   Ableton Link in both directions.
 - The Carabiner window now lets you control which device is the Tempo
   Master and which devices are synced to it.
+- When Ableton Link is the tempo master, the Carabiner window also
+  lets you nudge the Link tempo up or down, or type in an exact tempo
+  value you want to set it to.
 - There is a new interface for picking a track from a player's media
   slot, and telling it (or another player) to load it. Players can
   also be stopped using this interface, and (as long as they are
