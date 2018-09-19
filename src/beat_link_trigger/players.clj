@@ -678,9 +678,13 @@
                          (mediaMounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
-                               (seesaw/invoke-soon
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
-                                (seesaw/config! label :text "Mounted (no metadata cache)")))))
+                               (seesaw/invoke-later
+                                (let [details     (.getMediaDetailsFor metadata-finder slot-reference)
+                                      detail-name (when details (.name details))
+                                      media-name  (or (and (not (clojure.string/blank? detail-name)) detail-name)
+                                                      "Mounted")]
+                                  (seesaw/config! label :text (str media-name " (no metadata cache)")))
+                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
                          (mediaUnmounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
