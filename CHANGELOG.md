@@ -17,6 +17,14 @@ This change log follows the conventions of
 - When Ableton Link is the tempo master, the Carabiner window also
   lets you nudge the Link tempo up or down, or type in an exact tempo
   value you want to set it to.
+- Triggers configured to control Ableton Link can now use Link v3
+  Start/Stop Sync (transport control) to start Link playback when the
+  trigger activates, and stop it when the trigger deactivates. (Of
+  course this works only when Carabiner's Sync Mode is set to
+  `Triggers`. In other modes, your expressions can call the
+  `start-transport` and `stop-transport` functions directly, as long
+  as they first check that Carabiner is active using either `active?`
+  or `sync-enabled?` if they care about being synced.)
 - There is a new interface for picking a track from a player's media
   slot, and telling it (or another player) to load it. Players can
   also be stopped using this interface, and (as long as they are

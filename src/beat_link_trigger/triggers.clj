@@ -319,7 +319,7 @@
   it up again."
   [trigger status data]
   (try
-    (let [{:keys [note channel message send start]} (:value data)]
+    (let [{:keys [note channel message send start start-stop]} (:value data)]
       (timbre/info "Reporting activation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
         (case message
@@ -328,6 +328,8 @@
           "Clock" (when send
                     (midi/midi-send-msg (:receiver output) (if (= "Start" start) start-message continue-message) -1))
           nil))
+      (when (and (= message "Link") (carabiner/sync-triggers?) start-stop)
+        (carabiner/start-transport))
       (run-trigger-function trigger :activation status false))
     (catch Exception e
       (timbre/error e "Problem reporting player activation."))))
@@ -340,7 +342,7 @@
   it up again."
   [trigger status data]
   (try
-    (let [{:keys [note channel message stop]} (:value data)]
+    (let [{:keys [note channel message stop start-stop]} (:value data)]
       (timbre/info "Reporting deactivation:" message note "on channel" channel)
       (when-let [output (get-chosen-output trigger data)]
         (case message
@@ -349,7 +351,8 @@
           "Clock" (when stop (midi/midi-send-msg (:receiver output) stop-message -1))
           nil))
       (when (and (= message "Link") (carabiner/sync-triggers?))
-        (carabiner/unlock-tempo))
+        (carabiner/unlock-tempo)
+        (when start-stop (carabiner/stop-transport)))
       (run-trigger-function trigger :deactivation status false))
     (catch Exception e
       (timbre/error e "Problem reporting player deactivation."))))
@@ -711,60 +714,62 @@
    (create-trigger-row nil))
   ([m]
    (let [outputs (get-midi-outputs)
-         gear (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
-         panel (mig/mig-panel
-                :id :panel
-                :items [[(seesaw/label :id :index :text "1.") "align right"]
-                        [(seesaw/text :id :comment :paint (partial paint-placeholder "Comment")) "span, grow, wrap"]
+         gear    (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+         panel   (mig/mig-panel
+                  :id :panel
+                  :items [[(seesaw/label :id :index :text "1.") "align right"]
+                          [(seesaw/text :id :comment :paint (partial paint-placeholder "Comment")) "span, grow, wrap"]
 
-                        [gear]
-                        ["Watch:" "alignx trailing"]
-                        [(seesaw/combobox :id :players :model (get-player-choices)
-                                          :listen [:item-state-changed cache-value])]
+                          [gear]
+                          ["Watch:" "alignx trailing"]
+                          [(seesaw/combobox :id :players :model (get-player-choices)
+                                            :listen [:item-state-changed cache-value])]
 
-                        [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
+                          [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
 
-                        ["MIDI Output:" "span 2, alignx trailing"]
-                        [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
-                                                                      (when (and (some? m)
-                                                                                 (not ((set outputs) (:outputs m))))
-                                                                        [(:outputs m)]))
-                                          :listen [:item-state-changed cache-value])]
+                          ["MIDI Output:" "span 2, alignx trailing"]
+                          [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
+                                                                        (when (and (some? m)
+                                                                                   (not ((set outputs) (:outputs m))))
+                                                                          [(:outputs m)]))
+                                            :listen [:item-state-changed cache-value])]
 
-                        ["Message:" "gap unrelated"]
-                        [(seesaw/combobox :id :message :model ["Note" "CC" "Clock" "Link" "Custom"]
-                                          :listen [:item-state-changed cache-value])]
+                          ["Message:" "gap unrelated"]
+                          [(seesaw/combobox :id :message :model ["Note" "CC" "Clock" "Link" "Custom"]
+                                            :listen [:item-state-changed cache-value])]
 
-                        [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
-                                         :listen [:state-changed cache-value]) "hidemode 3"]
-                        [(seesaw/checkbox :id :send :selected? true :visible? false
-                                          :listen [:state-changed cache-value]) "hidemode 3"]
-                        [(seesaw/checkbox :id :bar :text "Align at bar level        " :selected? true :visible? false
-                                          :listen [:state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/spinner :id :note :model (seesaw/spinner-model 127 :from 1 :to 127)
+                                           :listen [:state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/checkbox :id :send :selected? true :visible? false
+                                            :listen [:state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/checkbox :id :bar :text "Align bars" :selected? true :visible? false
+                                            :listen [:state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/checkbox :id :start-stop :text "Start/Stop" :selected? false :visible? false
+                                            :listen [:state-changed cache-value]) "hidemode 3"]
 
-                        [(seesaw/label :id :channel-label :text "Channel:") "gap unrelated, hidemode 3"]
-                        [(seesaw/combobox :id :start :model ["Start" "Continue"] :visible? false
-                                          :listen [:item-state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/label :id :channel-label :text "Channel:") "gap unrelated, hidemode 3"]
+                          [(seesaw/combobox :id :start :model ["Start" "Continue"] :visible? false
+                                            :listen [:item-state-changed cache-value]) "hidemode 3"]
 
-                        [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16)
-                                         :listen [:state-changed cache-value]) "hidemode 3"]
-                        [(seesaw/checkbox :id :stop :text "Stop" :selected? true :visible? false
-                                          :listen [:item-state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/spinner :id :channel :model (seesaw/spinner-model 1 :from 1 :to 16)
+                                           :listen [:state-changed cache-value]) "hidemode 3"]
+                          [(seesaw/checkbox :id :stop :text "Stop" :selected? true :visible? false
+                                            :listen [:item-state-changed cache-value]) "hidemode 3"]
 
-                        [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                        [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]
-                                          :listen [:item-state-changed cache-value]) "hidemode 1"]
-                        [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
-                                        :tip "Trigger state: Outer ring shows enabled, inner light when tripped.")
-                         "wrap, hidemode 1"]]
+                          [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
+                          [(seesaw/combobox :id :enabled :model ["Never" "On-Air" "Custom" "Always"]
+                                            :listen [:item-state-changed cache-value]) "hidemode 1"]
+                          [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
+                                          :tip "Trigger state: Outer ring shows enabled, inner light when tripped.")
+                           "wrap, hidemode 1"]]
 
-                :user-data (atom (initial-trigger-user-data)))
-         export-action (seesaw/action :handler (fn [_] (export-trigger panel))
-                                      :name "Export Trigger")
-         import-action (seesaw/action :handler (fn [_] (import-trigger panel))
-                                      :name "Import Trigger")
-         delete-action (seesaw/action :handler (fn [_] (delete-trigger panel))
-                                      :name "Delete Trigger")
+                  :user-data (atom (initial-trigger-user-data)))
+         export-action  (seesaw/action :handler (fn [_] (export-trigger panel))
+                                       :name "Export Trigger")
+         import-action  (seesaw/action :handler (fn [_] (import-trigger panel))
+                                       :name "Import Trigger")
+         delete-action  (seesaw/action :handler (fn [_] (delete-trigger panel))
+                                       :name "Delete Trigger")
          inspect-action (seesaw/action :handler (fn [_] (inspector/inspect @(:locals @(seesaw/user-data panel))
                                                                            :window-name "Trigger Expression Locals"))
                                        :name "Inspect Expression Locals"
@@ -783,9 +788,10 @@
                                              :icon (if (empty? (get-in @(seesaw/user-data panel) [:expressions kind]))
                                                      (seesaw/icon "images/Gear-outline.png")
                                                      (seesaw/icon "images/Gear-icon.png"))))))
-         popup-fn (fn [e] (concat (editor-actions)
-                                  [(seesaw/separator) inspect-action (seesaw/separator) import-action export-action]
-                                  (when (> (count (get-triggers)) 1) [delete-action])))]
+         popup-fn       (fn [e] (concat (editor-actions)
+                                        [(seesaw/separator) inspect-action (seesaw/separator)
+                                         import-action export-action]
+                                        (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
      ;; or right click on the gear button.
@@ -829,13 +835,13 @@
      ;; Open an editor window if Custom is chosen for a message type and the activation expression is empty,
      ;; and open the Carabiner Connection window if Link is chosen and there is no current connection.
      ;; Also swap channel and note values for start/stop options when Clock is chosen, and for bar alignment
-     ;; when Link is chosen.
+     ;; and Link start/stop checkboxes when Link is chosen.
      (let [message-menu (seesaw/select panel [:#message])]
        (seesaw/listen message-menu
         :action-performed (fn [_]
-                            (let [choice (seesaw/selection message-menu)
-                                  {:keys [note send channel-label start channel stop bar outputs]} (seesaw/group-by-id
-                                                                                                    panel)]
+                            (let [choice                                        (seesaw/selection message-menu)
+                                  {:keys [note send channel-label start
+                                          channel stop bar start-stop outputs]} (seesaw/group-by-id panel)]
                               (when (and (= "Custom" choice)
                                          (not (:creating @(seesaw/user-data panel)))
                                          (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
@@ -844,12 +850,12 @@
                                          (not (carabiner/active?)))
                                 (carabiner/show-window @trigger-frame))
                               (cond
-                                (= "Clock" choice) (do (seesaw/hide! [note channel-label channel bar])
+                                (= "Clock" choice) (do (seesaw/hide! [note channel-label channel bar start-stop])
                                                        (seesaw/show! [send start stop]))
-                                (= "Link" choice) (do (seesaw/hide! [note channel-label channel send start stop])
-                                                      (seesaw/show! [bar]))
-                                :else (do (seesaw/show! [note channel-label channel])
-                                          (seesaw/hide! [send start stop bar])))))))
+                                (= "Link" choice)  (do (seesaw/hide! [note channel-label channel send start stop])
+                                                       (seesaw/show! [bar start-stop]))
+                                :else              (do (seesaw/show! [note channel-label channel])
+                                                       (seesaw/hide! [send start stop bar start-stop])))))))
 
      (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))

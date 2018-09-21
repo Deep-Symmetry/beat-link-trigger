@@ -224,7 +224,7 @@
               (.adjustPlaybackPosition virtual-cdj ms-delta)))))
       (timbre/warn "Ignoring phase-at-time response for time" (:when info) "since was expecting" ableton-now))))
 
-(defn handle-unsupported
+(defn- handle-unsupported
   "Processes an unsupported command reponse from Carabiner. If it is to
   our version query, warn the user that they should upgrade Carabiner."
   [command]
@@ -335,8 +335,10 @@ experience synchronization glitches."
     (future
       (Thread/sleep 1000)
       (if (:link-bpm @client)
-        (send-message "version")  ; Probe that a recent enough version is running.
-        (do  ; We failed to get a reasponse, maybe we are talking to the wrong process.
+        (do  ; We are connected! Check version and configure for start/stop sync.
+          (send-message "version")  ; Probe that a recent enough version is running.
+          (send-message "enable-start-stop-sync"))  ; Set up support for start/stop triggers.
+        (do  ; We failed to get a response, maybe we are talking to the wrong process.
           (timbre/warn "Did not receive inital status packet from Carabiner daemon; disconnecting.")
           (seesaw/invoke-later
            (javax.swing.JOptionPane/showMessageDialog
@@ -404,6 +406,26 @@ experience synchronization glitches."
        (seesaw/invoke-later
         (seesaw/value! (seesaw/select @carabiner-window [:#bar]) (some? beat-number))))
      (seesaw/invoke-later))))
+
+(defn start-transport
+  "Tells Carabiner to start the Link session playing, for any
+  participants using Start/Stop Sync. If `time` is supplied, it
+  specifies when, on the Link microsecond timeline, playback should
+  begin; the default is right now."
+  ([]
+   (start-transport (long (/ (System/nanoTime) 1000))))
+  ([time]
+   (send-message (str "start-playing " time))))
+
+(defn stop-transport
+  "Tells Carabiner to stop the Link session playing, for any
+  participants using Start/Stop Sync. If `time` is supplied, it
+  specifies when, on the Link microsecond timeline, playback should
+  end; the default is right now."
+  ([]
+   (stop-transport (long (/ (System/nanoTime) 1000))))
+  ([time]
+   (send-message (str "stop-playing " time))))
 
 (defn- make-window-visible
   "Ensures that the Carabiner window is in front, and shown."
