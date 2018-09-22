@@ -354,7 +354,7 @@ trigger, unless it is the only remaining trigger in the window.
 
 ****
 
-* Continue to <<expressons#expressions,Expressions>>
+* Continue to <<Expressions#expressions,Expressions>>
 * Return to <<README#beat-link-trigger-user-guide,Top>>
 
 ****

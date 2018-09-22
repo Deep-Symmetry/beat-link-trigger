@@ -5,9 +5,17 @@ James Elliott <james@deepsymmetry.org>
 :experimental:
 :toc-placement: preamble
 
-// Set up support for relative links on GitHub; add more conditions
+// Set up support for relative links on GitHub, and give it
+// usable icons for admonitions, w00t! Add more conditions
 // if you need to support other environments and extensions.
-ifdef::env-github[:outfilesuffix: .adoc]
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
 
 This is an introduction to the Beat Link Trigger interface and
 expression programming environment. It shows some ways you can use it,

@@ -3,9 +3,17 @@ James Elliott <james@deepsymmetry.org>
 :icons: font
 :experimental:
 
-// Set up support for relative links on GitHub; add more conditions
+// Set up support for relative links on GitHub, and give it
+// usable icons for admonitions, w00t! Add more conditions
 // if you need to support other environments and extensions.
-ifdef::env-github[:outfilesuffix: .adoc]
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
 
 This is an introduction to the Beat Link Trigger interface and
 expression programming environment. It shows some ways you can use it,
@@ -30,13 +38,13 @@ jumping to the page you want:
 ****
 
 [horizontal]
- <<triggers#triggers,Triggers>>::
+ <<Triggers#triggers,Triggers>>::
 Triggers allow you to watch for a specific kind of activity on one or
 more CDJs, and generate events like MIDI notes or OSC messages in
 response, or synchronize external systems using MIDI clock or Ableton
 Link.
 
-<<expressons#expressions,Expressions>>::
+<<Expressons#expressions,Expressions>>::
 Allow you to customize and extend Beat Link Trigger by writing code in
 Clojure, the language used to implement the program itself.
 
@@ -79,7 +87,7 @@ You can also go offline at any time by unchecking the menu option.
 
 ****
 
-* Continue to <<triggers#triggers,Triggers>>
+* Continue to <<Triggers#triggers,Triggers>>
 
 ****
 
