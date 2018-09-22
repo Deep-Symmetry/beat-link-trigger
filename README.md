@@ -22,17 +22,24 @@ page and double-click it to run it. If that doesn&rsquo;t work,
 [![jar](https://img.shields.io/github/downloads/brunchboy/beat-link-trigger/total.svg)](https://github.com/brunchboy/beat-link-trigger/releases)
 
 
-> beat-link-trigger requires Java 7 or 8. It is compiled and tested
-> using the latest release of Java 8, so that is your best bet.
+> :warning: Released versions of beat-link-trigger worked only with
+> Java 7 or 8, which are off support. You should probably try out the
+> preview release of Beat Link Trigger 0.4.0 which not only works with
+> Java 7, 8, 9, or 10, but also includes a [significant number of
+> major new features](CHANGELOG.md).
 >
-> :warning: Java 9 and 10 are [not yet
-> supported](https://github.com/brunchboy/beat-link-trigger/issues/31),
-> but this support is in development, and Beat Link Trigger 0.4.0 is
-> now available as a preview release. :construction: If you would like
-> to help testing this, download and try out the 0.4.0 preview jar,
-> which can be found on the
+> :construction: If you would like to help testing this, download and
+> try out the 0.4.0 preview jar, which can be found on the
 > [releases](https://github.com/brunchboy/beat-link-trigger/releases)
 > page.
+>
+> The main reason it is still only a preview release is that the
+> sleek, dark user interface theme it depends on is not scheduled to
+> release its finalized Java 9 compatible version until the [week of
+> October
+> 8](https://github.com/kirill-grouchnikov/radiance/issues/6#issuecomment-423548892).
+> People have been using the preview successfully for months now,
+> though.
 
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
