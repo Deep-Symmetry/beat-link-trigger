@@ -5,9 +5,18 @@ James Elliott <james@deepsymmetry.org>
 :experimental:
 :toc-placement: preamble
 
-// Set up support for relative links on GitHub; add more conditions
+// Set up support for relative links on GitHub, and give it
+// usable icons for admonitions, w00t! Add more conditions
 // if you need to support other environments and extensions.
-ifdef::env-github[:outfilesuffix: .adoc]
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
 
 Triggers allow you to watch for a specific kind of activity on one or
 more CDJs, and generate events like MIDI notes or OSC messages in
@@ -350,5 +359,17 @@ trigger, unless it is the only remaining trigger in the window.
 
 ****
 
+// Once Git finally supports it, change this to: include::Footer.adoc[]
+== License
 
-include::Footer.adoc[]
++++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo"></a>+++
+Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+
+Distributed under the
+http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
+1.0], the same as Clojure. By using this software in any fashion, you
+are agreeing to be bound by the terms of this license. You must not
+remove this notice, or any other, from this software. A copy of the
+license can be found in
+https://github.com/brunchboy/beat-link-trigger/blob/master/LICENSE[LICENSE]
+within this project.
