@@ -15,6 +15,12 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
+[NOTE]
+====
+This covers version 0.3.8. If you are using the preview of 0.4.0, please
+refer to the <<v4#beat-link-trigger-user-guide,new User Guide>>.
+====
+
 == Startup
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ
@@ -2257,10 +2263,10 @@ least check whether someone else already has.
 Thanks for reading this, and have fun with Beat Link Trigger! I hope
 to hear from you.
 
-## License
+== License
 
 +++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo"></a>+++
-Copyright © 2016&ndash;2017 http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
 http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
