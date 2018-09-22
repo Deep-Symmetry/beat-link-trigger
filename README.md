@@ -107,7 +107,7 @@ efforts, tools, toys, and time to explore.
 <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img align="center"
     alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 
-> If enough people jump onboard, we may even be able to get a newer
+> If enough people jump on board, we may even be able to get a newer
 > CDJ to experiment with, although that's an unlikely stretch goal.
 > :grinning:
 
