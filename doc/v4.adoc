@@ -83,7 +83,7 @@ image:assets/GoingOnline04.png[Going Online, 398]
 
 You can also go offline at any time by un-checking the menu option.
 
-[Tip]
+[TIP]
 ====
 If there has been a disruption to the network, and you seem to have
 lost contact with the players, taking Beat Link Trigger offline and
