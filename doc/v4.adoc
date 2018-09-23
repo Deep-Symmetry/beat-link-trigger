@@ -25,7 +25,7 @@ the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 ====
 This covers version 0.4.0, currently in preview release.
 If you are using version 0.3.8, please refer to the
-<<READKE#beat-link-trigger-user-guide,original User Guide>>.
+<<README#beat-link-trigger-user-guide,original User Guide>>.
 ====
 
 To keep page sizes manageable, this information is split into several
@@ -79,11 +79,18 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking `Online?` in the `Network` menu:
 
-image:assets/GoingOnline.png[Going Online, 380]
+image:assets/GoingOnline04.png[Going Online, 398]
 
-You can also go offline at any time by unchecking the menu option.
+You can also go offline at any time by un-checking the menu option.
 
-== Reading More
+[Tip]
+====
+If there has been a disruption to the network, and you seem to have
+lost contact with the players, taking Beat Link Trigger offline and
+then going back online can often solve the problem.
+====
+
+== Learning More
 
 ****
 
