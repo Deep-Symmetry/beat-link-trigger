@@ -29,8 +29,8 @@ If you are using version 0.3.8, please refer to the
 ====
 
 To keep page sizes manageable, this information is split into several
-pages. This page discusses <<startup,startup>> and describes and
-links to the other sections of the user guide. It is worth
+pages. This page discusses <<startup,startup>>, and describes and
+links to the other sections of the User Guide. It is worth
 reading through this whole page once if you are new to Beat Link Trigger.
 Once you know what you are looking for, you can also dive right into it by
 jumping to the page you want:

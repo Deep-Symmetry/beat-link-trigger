@@ -23,11 +23,11 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
-[NOTE]
-====
-This covers version 0.3.8. If you are using the preview of 0.4.0, please
-refer to the <<v4#beat-link-trigger-user-guide,new User Guide>>.
-====
+//[NOTE]
+//====
+//This covers version 0.3.8. If you are using the preview of 0.4.0, please
+//refer to the <<v4#beat-link-trigger-user-guide,new User Guide>>.
+//====
 
 == Startup
 
