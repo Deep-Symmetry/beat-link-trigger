@@ -22,7 +22,10 @@
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
                  [uk.co.xfactory-librarians/coremidi4j "1.1"]
-                 [com.cemerick/url "0.1.1"]]
+                 [com.cemerick/url "0.1.1"]
+                 [http-kit "2.2.0"]
+                 [compojure "1.5.1"]
+                 [javax.xml.bind/jaxb-api "2.2.8"]]  ; https://stackoverflow.com/questions/43574426/
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
@@ -42,6 +45,28 @@
              "Specification-Version"  ~#(:version %)
              "Implementation-Version" ~(str (java.util.Date.))}
 
-  :plugins [[lein-environ "1.1.0"]]
+  :plugins [[lein-environ "1.1.0"]
+            [lein-resource "16.9.1"]
+            [lein-asciidoctor "0.1.16"]]
 
+  ;; Enable the creation of an embedded, offline copy of the User Guide.
+  :asciidoctor [{:sources          ["doc/*.adoc"]
+                 :to-dir           "target/classes/user_guide"
+                 :compact          true
+                 :format           :html5
+                 :extract-css      true
+                 :title            "Beat Link Trigger User Guide"
+                 :source-highlight true}]
+
+  ;; Enable the copying of images and other resources linked to by the embedded User Guide.
+  :resource {:resource-paths ["doc/assets"]
+             :target-path    "target/classes/user_guide/assets"
+             :skip-stencil   [#".*"]}
+
+  ;; Perform the tasks which embed the user guide before compilation, so it will be available
+  ;; both in development, and in the distributed archive.
+  :prep-tasks ["asciidoctor" "resource" "javac" "compile"]
+
+  ;; Miseclaneous sanitary settings
+  :pedantic :warn
   :min-lein-version "2.0.0")

@@ -2,6 +2,7 @@
   "Provides support for menu options used in various other
   namespaces."
   (:require [beat-link-trigger.about :as about]
+            [beat-link-trigger.help :as help]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.util :as util]
             [cemerick.url :as url]
@@ -56,10 +57,6 @@
   (let [uri (java.net.URI. (str "mailto:james@deepsymmetry.org?subject=" (url/url-encode subject)
                                 "&body=" (url/url-encode body)))]
     (.. Desktop getDesktop (mail uri))))
-
-(def user-guide-url
-  "Where the User Guide can be found online."
-  "https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#beat-link-trigger-user-guide")
 
 (def project-home-url
   "The GitHub front page for the project."
@@ -139,7 +136,7 @@
                                                                (timbre/error e "Problem showing About window."))))
                                                 :name "About BeatLinkTrigger")
                                  (seesaw/separator)])
-                              [(seesaw/action :handler (fn [_] (clojure.java.browse/browse-url user-guide-url))
+                              [(seesaw/action :handler (fn [_] (help/show-user-guide))
                                               :name "User Guide")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
                                               :name "Project Home")

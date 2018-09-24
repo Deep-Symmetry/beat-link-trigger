@@ -39,9 +39,12 @@ This change log follows the conventions of
 - The `Online?` option in the `Triggers` menu now shows the player
   number that Beat Link Trigger is using once it is online, to help
   people understand how it is operating.
-- A new `Help` menu with options to open the user guide, project page,
+- A new `Help` menu with options to open the User Guide, project page,
   Gitter chat, and to compose emails to report issues with
   pre-populated version details, or simply say "hello" as a new user.
+- An embedded copy of the User Guide will be served by an embedded web
+  server when you access it from the `Help` menu, so you can read it
+  even if you do not have an Internet connection.
 - The `About` window now shows Java version information, and all
   version information can be selected and copied, if useful in
   discussing issues.
