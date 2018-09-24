@@ -255,13 +255,14 @@ messages at all. Instead, when activated, it tries to synchronize an
 Ableton Link session to the tempo and beat grid being established by
 the player that it is watching. For this to work, you need to have
 Carabiner installed, running, and connected, as described in
-<<working-with-ableton-link,Working with Ableton Link>>. You can also
-use expressions, as described <<expressions,below>>, to send additional
-messages over MIDI or other communication protocols.
+<<Link#working-with-ableton-link,Working with Ableton Link>>. You can
+also use expressions, as described <<Expressions#expressions,below>>,
+to send additional messages over MIDI or other communication
+protocols.
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
-write in the trigger expressions, as described <<expressions,below>>.
+write in the trigger expressions, as described <<Expressions#expressions,below>>.
 This gives you the most flexibility because in addition to MIDI
 messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
