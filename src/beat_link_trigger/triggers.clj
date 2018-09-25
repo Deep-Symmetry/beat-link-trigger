@@ -407,6 +407,7 @@
          (util/case-enum (.getTrackSourceSlot status)
            CdjStatus$TrackSourceSlot/USB_SLOT "usb"
            CdjStatus$TrackSourceSlot/SD_SLOT "sd"
+           CdjStatus$TrackSourceSlot/CD_SLOT "cd"
            CdjStatus$TrackSourceSlot/COLLECTION "rb"
            "?")
          "]")
