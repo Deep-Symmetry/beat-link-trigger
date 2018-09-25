@@ -33,14 +33,14 @@ different messages in response to what the player is doing.
 If this is the first time you have opened Beat Link Trigger, you will
 see just one trigger containing default options.
 
-image:assets/FirstTrigger.png[First Trigger, 848]
+image:assets/FirstTrigger04.png[First Trigger, 900]
 
 To create additional triggers you can choose `New Trigger` in the
 `Triggers` menu, or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu.png[Triggers Menu, 396]
+image:assets/TriggersMenu04.png[Triggers Menu, 392]
 
 == Trigger Elements
 
@@ -52,7 +52,7 @@ The Comment field is a free-form text area you can use to describe the
 purpose of the trigger, to remind you when you later come back to it.
 Apart from the trigger index, a number by which Beat Link Trigger
 identifies the trigger when it is reporting errors or naming related
-windows (like expression editors, described <<expressions,below>>),
+windows (like expression editors, described <<Expressions#expressions,below>>),
 the comment takes up the entire width of the first line of the trigger
 row.
 
@@ -62,7 +62,7 @@ The Watch menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player&nbsp;1 through Player&nbsp;4,
 as well as two dynamic choices.
 
-image:assets/WatchMenu.png[Watch Menu, 816]
+image:assets/WatchMenu04.png[Watch Menu, 840]
 
 NOTE: If a player is chosen which is not currently present on the
 network, the player will be reported “not found”, and the trigger will
@@ -73,7 +73,8 @@ will be missing and the trigger will simply say “Offline”.
 Any Player:: If you choose to watch Any Player, then just as you would
 expect, the trigger will respond to activity on any player in the
 network. It will track whatever player seems “best” at the moment: If
-there is an Enabled condition which causes the trigger to be enabled
+there is an <<enabled-menu,Enabled condition>>
+which causes the trigger to be enabled
 for some players and not for others, it will watch the players that
 enable it. Within that group, if some players are playing and others
 are not, it will watch the ones that are playing. Finally, if there
@@ -262,22 +263,23 @@ protocols.
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
-write in the trigger expressions, as described <<Expressions#expressions,below>>.
+write in the trigger expressions, as described
+<<Expressions#expressions,below>>.
 This gives you the most flexibility because in addition to MIDI
 messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
 
 === Note/Controller Spinner
 
-Found immediately to the right of the Message Menu (unless MIDI Beat
-Clock is chosen as the Message type), this field lets you set the MIDI
+Found immediately to the right of the Message Menu (unless Clock or
+Link is chosen as the Message type), this field lets you set the MIDI
 note number used for Note messages, or the controller number used for
 Control Change messages. The value is also available to your trigger
 expressions if they want to use it.
 
 === Channel Spinner
 
-For triggers sending anything but MIDI Beat Clock, this lets you
+For triggers sending MIDI (other than Beat Clock), this lets you
 specify the MIDI channel on which messages are sent.
 
 === Enabled Menu
@@ -299,13 +301,15 @@ player must be connected to a Nexus mixer, and must have the feature
 turned on.)
 
 Custom:: With this setting, the trigger is controlled by an Enabled
-Filter expression that you write yourself. Whenever a status update is
-received from any watched player, your expression is called. If it
+Filter, Clojure code that you write yourself. Whenever a status update is
+received from any watched player, your expressions are evaluated. If the
+last expression in your filter
 returns a `true` value, the trigger will be enabled. This lets you
 apply sophisticated logic, like enabling the trigger when a particular
-track number is loaded into the player, and it has reached a
+track is loaded into the player, and it has reached a
 particular beat during playback. Expressions are further explained
-<<expressions,below>>. If you choose Custom and have not yet written
+<<Expressions#expressions,below>>.
+If you choose `Custom` and have not yet written
 an Enabled Filter expression, the expression editor will be opened to
 let you do that.
 
@@ -342,7 +346,8 @@ accessed by right-clicking (or control-clicking) anywhere on the row's
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the trigger, as
-described <<expressions,below>>. The gear icon next to an expression
+described <<Expressions#expressions,below>>.
+The gear icon next to an expression
 will be filled in if that expression has a value, and the gear in the
 button will be filled in if any expression associated with the trigger
 has a value.
