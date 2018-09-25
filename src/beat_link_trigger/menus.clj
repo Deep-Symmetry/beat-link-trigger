@@ -137,14 +137,16 @@
                                                 :name "About BeatLinkTrigger")
                                  (seesaw/separator)])
                               [(seesaw/action :handler (fn [_] (help/show-user-guide))
-                                              :name "User Guide")
+                                              :name "User Guide (local)")
+                               logs/logs-action (seesaw/separator)
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
-                                              :name "Project Home")
+                                              :name "Project Home (web)")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url gitter-chat-url))
-                                              :name "Discuss on Gitter")
-                               (seesaw/separator) logs/logs-action
-                               (seesaw/action :handler (fn [_] (report-issue)) :name "Report Issue")]
+                                              :name "Discuss on Gitter (web)")
+                               (seesaw/separator)
+                               (seesaw/action :handler (fn [_] (report-issue))
+                                              :name (str "Report Issue (" (if (mail-supported?) "email" "web") ")"))]
                               (when (mail-supported?)
                                 [(seesaw/separator)
-                                 (seesaw/action :handler (fn [_] (send-greeting)) :name "Send User Greeting")]))
+                                 (seesaw/action :handler (fn [_] (send-greeting)) :name "Send User Greeting (email)")]))
                :id :help-menu))
