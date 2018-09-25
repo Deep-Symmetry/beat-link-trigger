@@ -16,8 +16,14 @@ ifdef::env-github[]
 :important-caption: :heavy_exclamation_mark:
 :caution-caption: :fire:
 :warning-caption: :warning:
-endif::[]
+endif::env-github[]
 
+// Render section header anchors in a GitHub-compatible way when
+// building the embedded user guide.
+ifndef::env-github[]
+:idprefix:
+:idseparator: -
+endif::env-github[]
 
 Triggers allow you to watch for a specific kind of activity on one or
 more CDJs, and generate events like MIDI notes or OSC messages in
