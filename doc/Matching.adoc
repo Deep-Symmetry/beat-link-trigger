@@ -49,7 +49,7 @@ when any player has loaded the track that the trigger cares about. For
 example, in the following screen shot we have two triggers watching
 for two specific tracks:
 
-image:assets/MatchTracksMeta.png[Matching Tracks, 850]
+image:assets/MatchTracksMeta.png[Matching Tracks,850,365]
 
 The Enabled Filter expression for the first trigger is as follows:
 
