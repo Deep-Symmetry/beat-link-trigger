@@ -54,6 +54,9 @@ systems using MIDI clock or Ableton Link.
 extend Beat Link Trigger by writing code in Clojure, the language used
 to implement the program itself.
 
+<<Matching#matching-tracks,Matching Tracks>>:: Configure your triggers
+to respond only when particular tracks are being played.
+
 <<Players#the-player-status-window,The Player Status Window>>::
 Get a detailed view of what is happening on each player, what is
 coming up next, and even load and play tracks during pre-show.
@@ -64,9 +67,6 @@ https://github.com/brunchboy/carabiner#carabiner[Carabiner], Triggers
 can synchronize an Ableton Link session’s tempo, beats, and bars to
 the track playing on their watched player, or you can add Link as its
 own “player” that can become Tempo Master to the CDJs.
-
-<<Matching#matching-tracks,Matching Tracks>>:: Configure your triggers
-to respond only when particular tracks are being played.
 
 <<Debugging#debugging,Debugging>>::
 Tools to help you figure out what is going on in your triggers.
