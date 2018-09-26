@@ -45,14 +45,13 @@ A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
 stop, and when the triggers are enabled:
 
-<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793">
+<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
 Starting with version 0.3.0, there is also an interface for monitoring
 the status of each player found on the network, which you can access
 by choosing `Show Player Status` in the `Network` menu:
 
-<image src="doc/assets/PlayerStatus.png" alt="Player Status window"
-width="538">
+<image src="doc/assets/PlayerStatus.png" alt="Player Status window" width="538" height="768">
 
 ### Going Further
 
@@ -187,7 +186,7 @@ If you are on a Mac, the first time you try to launch the downloaded
 jar file by double-clicking it you will see an error like this because
 it is not a Mac-specific application:
 
-<image src="doc/assets/Unsigned.png" alt="Unsigned jar">
+<image src="doc/assets/Unsigned.png" alt="Unsigned jar" width="492" height="299">
 
 You can fix that by control-clicking on the Jar and choosing
 &ldquo;Open&rdquo; at the top of the contextual menu that pops up. You
@@ -195,7 +194,7 @@ will be asked to confirm that you really want to run it. Click the
 &ldquo;Open&rdquo; button in that confirmation dialog, and from then
 on, you will be able to run that copy by just double-clicking it.
 
-<image src="doc/assets/ReallyOpen.png" alt="Confirmation dialog">
+<image src="doc/assets/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
 > Someday we may release a Mac-specific bundle of the application,
 > perhaps even through the Mac App Store, which will avoid the need to
@@ -206,7 +205,8 @@ on, you will be able to run that copy by just double-clicking it.
 
 ## License
 
-<a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry" src="doc/assets/DS-logo-bw-200-padded-left.png"></a>
+<a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
+ src="doc/assets/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
 Copyright © 2016&ndash;2018 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
 Distributed under the

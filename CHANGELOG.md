@@ -78,6 +78,10 @@ This change log follows the conventions of
   This version will warn you if you need to upgrade Carabiner.
 - Protect against race conditions reading and writing preferences from
   different threads, now that they are split across multiple nodes.
+- Deep-linking to headings in the new User Guide will scroll the
+  browser to the correct place (the problem was the browser not
+  knowing the image sizes during layout, so its guess about where to
+  scroll would get knocked off as they filled in).
 
 ### Changed
 
