@@ -93,6 +93,7 @@ Clojure http://clojuredocs.org[documentation], but you can also ask
 for help in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
+[[global-expressions]]
 == Global Expressions
 
 The Triggers menu at the top of the window lets you define two

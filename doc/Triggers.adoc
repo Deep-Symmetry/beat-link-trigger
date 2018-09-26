@@ -337,6 +337,7 @@ playing, there is a filled circle inside the enabled circle:
 
 |===
 
+[[context-menu]]
 === Context Menu
 
 Each trigger row has a context menu attached to it, which can be

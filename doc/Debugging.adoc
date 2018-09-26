@@ -87,12 +87,12 @@ the Expression Globals or a particular trigger's Expression Locals.
 The first is done by choosing Inspect Expression Globals in the
 Triggers menu. It opens a window showing you all the keys and values
 that have been created in the `globals` atom shared by all triggers.
-Here is what that looks like after the example code shown
-<<global-expressions,above>> has run:
+Here is what that looks like after the example code shown in the
+<<Expressions#global-expressions,Global Expressions section>> has run:
 
-image:assets/ExpressionGlobals.png[Enabled Example, 872]
+image:assets/ExpressionGlobals.png[Expression Globals,872,462]
 
-The inspector is a little busy, but right away you can see the three
+The inspector is a little messy, but right away you can see the three
 keys we created, and the corresponding Java objects stored under them.
 by clicking next to the blue diamond in the lower pane, you can expand
 each entry and dive down into the fields and values that make it up,
@@ -103,7 +103,7 @@ Inspect Expression Locals from that trigger's context menu. Here's the
 result of drilling down a little into the `:resolume` OSC client
 object created in that example's trigger:
 
-image:assets/ExpressionLocals.png[Enabled Example, 789]
+image:assets/ExpressionLocals.png[Expression Locals,789,626]
 
 == Saving and Loading
 
@@ -116,9 +116,9 @@ from a save file.
 
 === Exporting and Importing Triggers
 
-As mentioned in the <<context-menu,Context Menu>> section, individual
-triggers can be exported on their own, and imported into other trigger
-configurations.
+As mentioned in the <<Triggers#context-menu,Context Menu>> section,
+individual triggers can be exported on their own, and imported into
+other trigger configurations.
 
 == Learning More
 
