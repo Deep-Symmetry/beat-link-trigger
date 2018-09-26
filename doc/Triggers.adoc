@@ -118,7 +118,7 @@ example of what that could look like, when a track named Apex has been
 recognized, and the string `Apex` has been stored under
 `:track-description` in the trigger's `locals`:
 
-image:assets/ApexRecognized.png[Track Apex Recognized, 804]
+image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
 
 ==== Metadata
 
@@ -127,7 +127,7 @@ that is often the most convenient and flexible way of matching tracks.
 To enable this feature, check `Request Track Metadata?` in the
 `Network` menu:
 
-image:assets/RequestMetadata04.png[Requesting Metadata, 353]
+image:assets/RequestMetadata04.png[Requesting Metadata,353,172]
 
 [NOTE]
 ====
@@ -135,7 +135,7 @@ If you are already online when you turn on `Request Track Metadata?`,
 Beat Link Trigger will be using a player number that is not good for
 requesting metadata, and will warn you about it, as shown below.
 
-image:assets/Metadata2Players.png[Metadata Player Number with 2 players, 578]
+image:assets/Metadata2Players.png[Metadata Player Number with 2 players,578,347]
 
 In this situation, the best option is to choose to `Go Offline` (the
 default option), and then use the `Online?` option in the `Network`
@@ -147,7 +147,7 @@ If you are on a network which already has four physical players
 connected, though, you will see a slightly different version of the
 warning:
 
-image:assets/Metadata4Players.png[Metadata Player Number with 4 players, 578]
+image:assets/Metadata4Players.png[Metadata Player Number with 4 players,578,329]
 
 In such cases, as the window suggests, the safest option is to turn
 off one of the players and go offline and back online, to reliably get
@@ -159,7 +159,7 @@ Finally, if you have a single player connected to the network, the
 unreliable option doesn't work at all, and you will see the following
 choices instead:
 
-image:assets/Metadata1Player.png[Metadata Player Number with 1 player, 562]
+image:assets/Metadata1Player.png[Metadata Player Number with 1 player,562,234]
 
 In this case, definitely choose `Go Offline`, and when you proceed to
 check the `Online?` option in the `Network` menu after that, you will
@@ -170,7 +170,7 @@ When metadata is available for a track, the Player Status section
 grows to two lines, and displays the track title and artist on the
 second line, without any effort on the part of your trigger code:
 
-image:assets/MetadataStatus.png[Player Status with Metadata, 794]
+image:assets/MetadataStatus.png[Player Status with Metadata,794,166]
 
 Your trigger can also change the content of the metadata line by
 setting whatever value it wants under the key `:metadata-summary` in
@@ -216,7 +216,7 @@ The MIDI Output Menu lets you choose the MIDI device to which the
 trigger will send messages. It will show all MIDI outputs currently
 available on your system.
 
-image:assets/MidiMenu.png[MIDI Output Menu, 810]
+image:assets/MidiMenu.png[MIDI Output Menu,810,281]
 
 NOTE: If a MIDI Output is chosen which is no longer available on the
 system (as shown in trigger 3 above), it will remain in that row's
@@ -229,7 +229,7 @@ is chosen, the trigger will become operational again.
 The Message Menu determines what kind of MIDI message is sent by the
 trigger.
 
-image:assets/MessageMenu.png[Message Menu, 790]
+image:assets/MessageMenu.png[Message Menu,790,270]
 
 Note:: With this setting, the trigger sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -287,7 +287,7 @@ specify the MIDI channel on which messages are sent.
 The Enabled menu controls when the trigger will respond to the watched
 player starting or stopping playback.
 
-image:assets/EnabledMenu.png[Enabled Menu, 814]
+image:assets/EnabledMenu.png[Enabled Menu,814,287]
 
 Always:: With this setting, the trigger is enabled until you disable
 it.
@@ -324,16 +324,16 @@ playing, there is a filled circle inside the enabled circle:
 |Indicator
 
 |Disabled, Not Playing
-|image:assets/Disabled.png[Disabled]
+|image:assets/Disabled.png[Disabled,52,52]
 
 |Enabled, Not Playing
-|image:assets/Enabled.png[Enabled]
+|image:assets/Enabled.png[Enabled,52,52]
 
 |Disabled, Playing
-|image:assets/DisabledPlaying.png[Disabled, Playing]
+|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Playing
-|image:assets/EnabledPlaying.png[Enabled, Playing]
+|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -349,7 +349,7 @@ expression will be filled in if that expression has a value, and the
 gear in the button will be filled in if any expression associated with
 the trigger has a value.
 
-image:assets/ContextMenu.png[Context Menu, 314]
+image:assets/ContextMenu.png[Context Menu,314,297]
 
 Below the expression-related options, you can export the current
 trigger configuration to a text file which can be imported into a
