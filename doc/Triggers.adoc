@@ -90,6 +90,7 @@ lowest-numbered one.
 Master Player:: If you choose to watch the Master Player, the trigger
 will focus on whichever player is the current Tempo (sync) Master.
 
+[[player-status-summary]]
 === Player Status Summary
 
 Right after the Watch menu, the trigger row displays the player number
@@ -98,29 +99,20 @@ The status includes the current state of the player, information about
 the loaded track, the current effective BPM and relative pitch, and
 the number of the current beat.
 
-[NOTE]
-====
-If a rekordbox-analyzed track was loaded, the database ID of the
-track will be displayed, as shown in the figure above, followed by an
-indication in square brackets of the player and slot (USB or SD) from
-which the track was loaded. That combination (ID number, source player
-and slot) will be unique to that track until that media is unloaded
-and replaced. IDs are not unique across players and slots.
+The track ID is followed by an indication in square brackets of the
+player and slot (`usb`, `sd`, `cd`, or `rb` for rekordbox) from which the
+track was loaded. That combination (ID number, source player and slot)
+will be unique to that track until that media is unloaded and
+replaced. IDs are not unique across players and slots.
 
-If another kind of track is loaded (such as an audio CD), instead of
-an ID number, its position within its playlist will be shown,
-indicated by "#", as shown in the Midi Output Menu figure below.
-====
-
-The track ID (along with its source player and slot, if you want to be
-safe when you are working with multiple media) can be used to identify
-the track and set up fairly sophisticated custom filter expressions,
-as described <<matching-tracks,below>>. If one of your expressions
-recognizes a track, it can tell Beat Link Trigger to display its name
-(or any other text you like) instead of the normal track description
-by storing your desired description string under the key
-`:track-description` in the trigger `locals` map. Here is an example
-of what that could look like, when a track named Apex has been
+These three pieces of information can be used to identify the track
+and set up fairly sophisticated custom filter expressions, as
+described <<Matching#matching-tracks,below>>. If one of your
+expressions recognizes a track, it can tell Beat Link Trigger to
+display its name (or any other text you like) instead of the normal
+track description by storing your desired description string under the
+key `:track-description` in the trigger `locals` map. Here is an
+example of what that could look like, when a track named Apex has been
 recognized, and the string `Apex` has been stored under
 `:track-description` in the trigger's `locals`:
 
@@ -133,7 +125,7 @@ that is often the most convenient and flexible way of matching tracks.
 To enable this feature, check `Request Track Metadata?` in the
 `Network` menu:
 
-image:assets/RequestMetadata.png[Requesting Metadata, 380]
+image:assets/RequestMetadata04.png[Requesting Metadata, 353]
 
 [NOTE]
 ====
@@ -212,7 +204,7 @@ numbers larger than 5.
 In order to be able to work with metadata in a busy performance
 environment where DJs are using four physical players and potentially
 loading tracks from a single player, you can create and attach a
-<<caching-metadata,Metadata Cache>> as described below.
+<<Players#caching-metadata,Metadata Cache>> as described below.
 
 ====
 
@@ -307,17 +299,15 @@ player must be connected to a Nexus mixer, and must have the feature
 turned on.)
 
 Custom:: With this setting, the trigger is controlled by an Enabled
-Filter, Clojure code that you write yourself. Whenever a status update is
-received from any watched player, your expressions are evaluated. If the
-last expression in your filter
-returns a `true` value, the trigger will be enabled. This lets you
-apply sophisticated logic, like enabling the trigger when a particular
-track is loaded into the player, and it has reached a
-particular beat during playback. Expressions are further explained
-<<Expressions#expressions,below>>.
-If you choose `Custom` and have not yet written
-an Enabled Filter expression, the expression editor will be opened to
-let you do that.
+Filter, Clojure code that you write yourself. Whenever a status update
+is received from any watched player, your expressions are evaluated.
+If the last expression in your filter returns a `true` value, the
+trigger will be enabled. This lets you apply sophisticated logic, like
+enabling the trigger when a particular track is loaded into the
+player, and it has reached a particular beat during playback.
+Expressions are further explained <<Expressions#expressions,below>>.
+If you choose `Custom` and have not yet written an Enabled Filter
+expression, the expression editor will be opened to let you do that.
 
 === Trigger Status
 
@@ -352,11 +342,10 @@ accessed by right-clicking (or control-clicking) anywhere on the row's
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the trigger, as
-described <<Expressions#expressions,below>>.
-The gear icon next to an expression
-will be filled in if that expression has a value, and the gear in the
-button will be filled in if any expression associated with the trigger
-has a value.
+described <<Expressions#expressions,below>>. The gear icon next to an
+expression will be filled in if that expression has a value, and the
+gear in the button will be filled in if any expression associated with
+the trigger has a value.
 
 image:assets/ContextMenu.png[Context Menu, 314]
 
