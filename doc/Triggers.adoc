@@ -120,6 +120,7 @@ recognized, and the string `Apex` has been stored under
 
 image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
 
+[[metadata]]
 ==== Metadata
 
 Now that Beat Link Trigger can request track metadata from the CDJs,

@@ -54,6 +54,10 @@ systems using MIDI clock or Ableton Link.
 extend Beat Link Trigger by writing code in Clojure, the language used
 to implement the program itself.
 
+<<Players#the-player-status-window,The Player Status Window>>::
+Get a detailed view of what is happening on each player, what is
+coming up next, and even load and play tracks during pre-show.
+
 <<Link#working-with-ableton-link,Working with Ableton Link>>:: With
 the help of
 https://github.com/brunchboy/carabiner#carabiner[Carabiner], Triggers

@@ -124,7 +124,7 @@ other trigger configurations.
 
 ****
 
-* Continue to <<Logs#logs,Logs>>
+* Continue to <<Integration#integration-examples,Integration Examples>>
 * Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
 
 ****
