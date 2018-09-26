@@ -76,7 +76,7 @@ When you first open Beat Link Trigger, it tries to find the Pro DJ
 Link devices that you want it to monitor. If it can't find any, after
 ten seconds you will see this window:
 
-image:assets/NoDevices.png[No devices found]
+image:assets/NoDevices.png[No devices found,516,196]
 
 If you were expecting to find devices, double-check that they are
 powered on, and properly networked with your computer (and that any
@@ -99,7 +99,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking `Online?` in the `Network` menu:
 
-image:assets/GoingOnline04.png[Going Online, 398]
+image:assets/GoingOnline04.png[Going Online,398,226]
 
 You can also go offline at any time by un-checking the menu option.
 
@@ -121,7 +121,7 @@ then going back online can often solve the problem.
 // Once Git finally supports it, change this to: include::Footer.adoc[]
 == License
 
-+++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo"></a>+++
++++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
 Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the

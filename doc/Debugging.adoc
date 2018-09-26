@@ -132,7 +132,7 @@ configurations.
 // Once Git finally supports it, change this to: include::Footer.adoc[]
 == License
 
-+++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo"></a>+++
++++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
 Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
