@@ -1,0 +1,145 @@
+= Debugging
+James Elliott <james@deepsymmetry.org>
+:icons: font
+:toc:
+:experimental:
+:toc-placement: preamble
+:guide-top: v4
+
+// Set up support for relative links on GitHub, and give it
+// usable icons for admonitions, w00t! Add more conditions
+// if you need to support other environments and extensions.
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::env-github[]
+
+// Render section header anchors in a GitHub-compatible way when
+// building the embedded user guide.
+ifndef::env-github[]
+:idprefix:
+:idseparator: -
+endif::env-github[]
+
+Tools to help you figure out what is going on in your triggers.
+
+== Overview
+
+Beat Link Trigger offers a few mechanisms to help you understand how
+your triggers are (or are not) working, and to save and restore
+versions of them, or share them with friends and colleagues (or
+on the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]
+or https://github.com/brunchboy/beat-link-trigger/wiki[project Wiki]
+to either get help from others, or share and show them off).
+
+[[logs]]
+== Logs
+
+When Beat Link Trigger is running it reports events to a log file. As
+noted above, this includes full stack traces for compilation problems
+when you try to save an expression that isn't quite right. If a
+problem occurs while trying to run your expression later, that will
+end up in the log too. So it can be a useful place to look when things
+are not working the way you expect. You can find the log file by using
+the Open Logs Folder option in the File menu.
+
+Each time you launch Beat Link Trigger it creates a new log folder in
+a temporary directory, so that they can be cleaned up automatically
+sometime after it exits. It cycles through log files and limits their
+maximum length, which can be important if an error is being logged
+each time a packet comes in because of a problematic Enabled Filter
+expression.
+
+Even if things are not crashing, you might want to log your own
+information to get a better understanding of what is happening inside
+one of your expressions. Beat Link Trigger uses
+https://github.com/ptaoussanis/timbre[timbre] to perform its logging,
+and so can you.
+
+For example, if you are trying to figure out exactly what you are
+receiving in your Beat expression, you could add this as its first
+line:
+
+```clojure
+(timbre/info "Received beat" status "master?" tempo-master?)
+```
+
+Suddenly your logs will be growing steadily, filling with lines like these:
+
+```
+2016-Jun-05 00:12:10 Alacrity.local INFO [beat-link-trigger.expressions:?] -
+  Received beat Beat: Device 2, name: CDJ-2000nexus, pitch: +0.00%,
+  track BPM: 126.0, effective BPM: 126.0, beat within bar: 4 master? true
+2016-Jun-05 00:12:11 Alacrity.local INFO [beat-link-trigger.expressions:?] -
+  Received beat Beat: Device 33, name: DJM-2000nexus, pitch: +0.00%,
+  track BPM: 126.0, effective BPM: 126.0, beat within bar: 1 master? false
+```
+
+== Inspecting Locals and Globals
+
+In addition to logging values to the log file, you can get a glimpse
+at what your expressions are up to by opening an inspector window on
+the Expression Globals or a particular trigger's Expression Locals.
+The first is done by choosing Inspect Expression Globals in the
+Triggers menu. It opens a window showing you all the keys and values
+that have been created in the `globals` atom shared by all triggers.
+Here is what that looks like after the example code shown
+<<global-expressions,above>> has run:
+
+image:assets/ExpressionGlobals.png[Enabled Example, 872]
+
+The inspector is a little busy, but right away you can see the three
+keys we created, and the corresponding Java objects stored under them.
+by clicking next to the blue diamond in the lower pane, you can expand
+each entry and dive down into the fields and values that make it up,
+which can be quite a powerful way to explore the objects.
+
+Similarly, the locals for a trigger can be inspected by choosing
+Inspect Expression Locals from that trigger's context menu. Here's the
+result of drilling down a little into the `:resolume` OSC client
+object created in that example's trigger:
+
+image:assets/ExpressionLocals.png[Enabled Example, 789]
+
+== Saving and Loading
+
+The entire trigger configuration can be saved to a text file by
+choosing Save in the File menu. That file can be sent to another
+machine, shared with a colleague, or just kept around for future use
+after you are done with a different project. As you would expect, the
+Load option replaces the current trigger configuration with one loaded
+from a save file.
+
+=== Exporting and Importing Triggers
+
+As mentioned in the <<context-menu,Context Menu>> section, individual
+triggers can be exported on their own, and imported into other trigger
+configurations.
+
+== Learning More
+
+****
+
+* Continue to <<Logs#logs,Logs>>
+* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
+
+****
+
+// Once Git finally supports it, change this to: include::Footer.adoc[]
+== License
+
++++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo"></a>+++
+Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+
+Distributed under the
+http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
+1.0], the same as Clojure. By using this software in any fashion, you
+are agreeing to be bound by the terms of this license. You must not
+remove this notice, or any other, from this software. A copy of the
+license can be found in
+https://github.com/brunchboy/beat-link-trigger/blob/master/LICENSE[LICENSE]
+within this project.

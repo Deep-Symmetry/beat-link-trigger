@@ -64,6 +64,9 @@ own “player” that can become Tempo Master to the CDJs.
 <<Matching#matching-tracks,Matching Tracks>>:: Configure your triggers
 to respond only when particular tracks are being played.
 
+<<Debugging#debugging,Debugging>>::
+Tools to help you figure out what is going on in your triggers.
+
 ****
 
 [[startup]]

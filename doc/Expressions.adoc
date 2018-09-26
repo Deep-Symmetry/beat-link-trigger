@@ -53,10 +53,6 @@ https://clojure.org/community/resources[Resources] and
 https://clojure.org/community/books[Books] if you decide you want to
 go deep.
 
-
-https://clojure.org/guides/getting_started[Getting Started] page has
-some good pointers and links to resources for various learning styles.
-
 The expression you are first likely to want to use is the Enabled
 Filter, which is found in each trigger's context menu. In fact, as
 soon as you set a trigger's Enabled menu to Custom, Beat Link Trigger
@@ -75,9 +71,9 @@ Reading through the documentation, we see that the Enabled filter
 should return a `true` value to enable the filter, and has access to a
 lot of information about the watched player that it can use to decide.
 Suppose we want the trigger to be enabled when the player has track
-number 5 loaded, and has reached the fourth bar of music (which starts
-on beat 17, since there are four beats per bar, and the track starts
-with beat 1). With the help of
+number 5 of a playlist loaded, and has reached the fourth bar of music
+(which starts on beat 17, since there are four beats per bar, and the
+track starts with beat 1). With the help of
 https://clojure.org/guides/learn/syntax[Learn Clojure] and the help
 text in the editor window, we come up with the following expression:
 
@@ -91,10 +87,10 @@ TIP: As you use the editor, you will notice that it provides syntax
 coloring and parenthesis-matching help. But if you end up making a
 mistake in your expression, Beat Link Trigger will likely report an
 compilation error when you click kbd:[Update], and you can check the
-<<logs,log>> for a more detailed stack trace. You can try googling for
-information about the error, or looking in the Clojure
-http://clojuredocs.org[documentation], but you can also ask for help
-in the Beat Link Trigger
+<<Debugging#logs,log>> for a more detailed stack trace. You can try
+searching the web for information about the error, or looking in the
+Clojure http://clojuredocs.org[documentation], but you can also ask
+for help in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
 == Global Expressions
@@ -239,16 +235,16 @@ we created to talk to Resolume:
 
 === Enabled Filter Expression
 
-As described in the
-<<overview,introduction>> to this section, this is used when you
-set a trigger's Enabled menu to Custom. It is called whenever a status
-update packet is received from a watched player, and tells Beat Link
-Trigger if the trigger should be enabled or not. Often you will want a
-trigger to be enabled when a DJ has loaded a particular track, and a
-variety of strategies for achieving that are described in their own
-<<matching-tracks,section below>>, see that for lots of great ideas.
-Following some of its suggestions, our Resolume example could enable
-its trigger with a custom Enabled Filter along the lines of:
+As described in the <<overview,introduction>> to this section, this is
+used when you set a trigger's Enabled menu to Custom. It is called
+whenever a status update packet is received from a watched player, and
+tells Beat Link Trigger if the trigger should be enabled or not. Often
+you will want a trigger to be enabled when a DJ has loaded a
+particular track, and a variety of strategies for achieving that are
+described in their own <<Matching#matching-tracks,section below>>, see
+that for lots of great ideas. Following some of its suggestions, our
+Resolume example could enable its trigger with a custom Enabled Filter
+along the lines of:
 
 ```clojure
 (= track-title "Language")
@@ -264,14 +260,14 @@ so there is a better expression to use for that kind of integration:
 
 === Tracked Update Expression
 
-This is similar to the Enabled Filter
-Expression, but even when a trigger is configured to potentially watch
-multiple players, it is called only for the player that is currently
-being tracked, which will be the one that is considered “best” as
-described in the <<watch-menu,Watch Menu>> section above. Players which
-enable the trigger are better than ones that don't; within that group,
-it is better to be playing, and as a tie-breaker the lowest numbered
-player is chosen.
+This is similar to the Enabled Filter Expression, but even when a
+trigger is configured to potentially watch multiple players, it is
+called only for the player that is currently being tracked, which will
+be the one that is considered “best” as described in the
+<<Triggers#watch-menu,Watch Menu>> section above. Players which enable
+the trigger are better than ones that don't; within that group, it is
+better to be playing, and as a tie-breaker the lowest numbered player
+is chosen.
 
 TIP: The Tracked Update expression is the ideal place to adjust the
 track description displayed in the Player Status section of the
@@ -350,7 +346,7 @@ will report the new pitch value each time it is sent, like this:
 
 With this expression in place, when the trigger is active and you
 fiddle with the Pitch fader on the CDJ that is playing the track, you
-will see entries like this in the <<logs,log file>>:
+will see entries like this in the <<Debugging#logs,log file>>:
 
 ```
 2016-Jul-24 23:21:31 INFO [beat-link-trigger.expressions:?] - New pitch: 0.475
@@ -360,13 +356,13 @@ will see entries like this in the <<logs,log file>>:
 
 === Activation Expression
 
-This is called when the trigger trips (in
-other words, when it would send a MIDI message reporting that its
-watched player has started to play). You can send additional MIDI
-messages here, or use the Clojure and Java networking infrastructure
-to send a different kind of message entirely. If this is all you want
-the trigger to do, you can set its Message menu to Custom, to suppress
-the default MIDI messages that it would otherwise send.
+This is called when the trigger trips (in other words, when it would
+send a MIDI message reporting that its watched player has started to
+play). You can send additional MIDI messages here, or use the Clojure
+and Java networking infrastructure to send a different kind of message
+entirely. If this is all you want the trigger to do, you can set its
+Message menu to Custom, to suppress the default MIDI messages that it
+would otherwise send.
 
 Continuing our Resolume example, here is an Activation expression that
 would use OSC to trigger the clip that our Tracked Update expression
@@ -416,10 +412,12 @@ Global Setup Expression, here is how you could synchronize the BPM of
 your ChamSys MagicQ console to the beats coming from your CDJs. Set
 the trigger to watch Any Player, and then within the Beat expression,
 we will react only to beat packets from the mixer, since it will
-always track the master player. (Alternately, you could set the
-trigger to watch the Master Player, but this shows an example of how
-to filter beat packets by the player number of device sending them,
-and that you get beat packets from the mixer itself too.)
+always track the master player.
+
+TIP: You may have realized we could also just set the trigger to watch
+the Master Player, but this shows an example of how to filter beat
+packets by the player number of the device sending them, and that you
+get beat packets from the mixer itself too, if it is a DJM.
 
 ```clojure
 (when (= device-number 33)
