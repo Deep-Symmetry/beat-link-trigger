@@ -40,14 +40,14 @@ different messages in response to what the player is doing.
 If this is the first time you have opened Beat Link Trigger, you will
 see just one trigger containing default options.
 
-image:assets/FirstTrigger04.png[First Trigger, 900]
+image:assets/FirstTrigger04.png[First Trigger,900,294]
 
 To create additional triggers you can choose `New Trigger` in the
 `Triggers` menu, or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu04.png[Triggers Menu, 392]
+image:assets/TriggersMenu04.png[Triggers Menu,392,206]
 
 == Trigger Elements
 
@@ -70,7 +70,7 @@ The Watch menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player&nbsp;1 through Player&nbsp;4,
 as well as two dynamic choices.
 
-image:assets/WatchMenu04.png[Watch Menu, 840]
+image:assets/WatchMenu04.png[Watch Menu,840,294]
 
 NOTE: If a player is chosen which is not currently present on the
 network, the player will be reported “not found”, and the trigger will
