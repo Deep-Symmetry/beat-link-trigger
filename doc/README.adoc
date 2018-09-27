@@ -1662,7 +1662,7 @@ menu:Settings[MIDI>"(device)" settings...], picking the name of the
 device that you connected in order to receive MIDI messages from Beat
 Link Trigger:
 
-image:assets/BeyondPortSettings.png[Beyond MIDI Device Settings,574]
+image:assets/BeyondPortSettings.png[Beyond MIDI Device Settings,574,449]
 
 That will open a window that gives you access to a great many MIDI
 mapping options, allowing you to cause BEYOND to react to incoming
