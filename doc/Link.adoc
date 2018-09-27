@@ -45,6 +45,7 @@ Once you have installed Carabiner and have it running, bring up the
 Carabiner Connection window by choosing
 `Ableton Link: Carabiner Connection` in the `Network` menu:
 
+// TODO: This, and all, images need their heights set when reshooting, or if left alone.
 image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 380]
 
 This will open the Carabiner Connection window:

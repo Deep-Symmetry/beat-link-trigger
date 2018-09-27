@@ -71,6 +71,9 @@ own “player” that can become Tempo Master to the CDJs.
 <<Debugging#debugging,Debugging>>::
 Tools to help you figure out what is going on in your triggers.
 
+<<Integration#integration-examples,Integration Examples>>::
+Using Beat Link Trigger to run shows with other systems.
+
 ****
 
 [[startup]]
@@ -121,6 +124,46 @@ then going back online can often solve the problem.
 * Continue to <<Triggers#triggers,Triggers>>
 
 ****
+
+[[what-next]]
+== What Next?
+
+Hopefully this has been enough to get you started, and thinking about
+interesting ways you can synchronize your CDJs with other elements of
+your show.
+
+If you have any thoughts, questions, your own integration examples, or
+even crazy ideas, please share them in the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]!
+
+If you find what seems to be an actual problem with the software,
+please open an
+https://github.com/brunchboy/beat-link-trigger/issues[Issue], or at
+least check whether someone else already has.
+
+Thanks for reading this, and have fun with Beat Link Trigger! I hope
+to hear from you.
+
+== Funding
+
+Beat Link Trigger is, and will remain, completely free and
+open-source. If it has helped you, taught you something, or pleased
+you, let us know and share some of your discoveries and code as
+described above. If you'd like to financially support its ongoing
+development, you are welcome (but by no means obligated) to donate
+towards the hundreds of hours of research, development, and writing
+that have already been invested. Or perhaps to facilitate future
+efforts, tools, toys, and time to explore.
+
++++
+<a href="https://liberapay.com/deep-symmetry/donate"><img align="center" alt="Donate using Liberapay"
+    src="https://liberapay.com/assets/widgets/donate.svg"></a> using Liberapay, or
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img align="center"
+    alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
++++
+
+> If enough people jump on board, we may even be able to get a newer
+> CDJ to experiment with, although that's an unlikely stretch goal.
 
 // Once Git finally supports it, change this to: include::Footer.adoc[]
 == License
