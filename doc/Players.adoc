@@ -193,7 +193,7 @@ image:assets/AutoAttach04.png[Auto-Attach option,344,162]
 This will open a window where you can configure the cache files that
 should be watched for. Click `Add File` to add one:
 
-image:assets/AutoAttach2.png[Auto-Attach window, 433]
+image:assets/AutoAttach2.png[Auto-Attach window,433,232]
 
 This will open a file chooser dialog you can use to find the file or
 files that you want to be watched, and they will appear in the window.
@@ -210,7 +210,7 @@ media has been modified in rekordbox since the cache was created, an
 all-tracks cache will need to be re-created. A playlist cache will
 continue to match unless that specific playlist has been altered.
 
-image:assets/AutoAttach3.png[Auto-Attach window with some files, 433]
+image:assets/AutoAttach3.png[Auto-Attach window with some files,433,232]
 
 If you no longer want one of the files to be watched for, simply click
 the `Remove` button next to it.

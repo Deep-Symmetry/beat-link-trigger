@@ -71,7 +71,7 @@ broadcast address of the subnet the server is attached to.
 Then, make sure the BEYOND UDP Talk server is enabled
 (menu:Settings[Network > Network Settings...]):
 
-image:assets/BeyondNetworkSettings.png[Network Monitor,424,446]
+image:assets/BeyondNetworkSettings.png[Network Settings,424,446]
 
 Choose a port that is not in use by anything else on your system (the
 default of `16062` is likely fine), check the Enable Talk Server check
@@ -847,7 +847,7 @@ builds the application at
 http://deepsymmetry.org/media/SMPTE%20daemon.maxpat.zip (here is what
 it looks like in patcher mode, unlocked):
 
-image:assets/SMPTEpatch.png[SMPTE patcher, 661]
+image:assets/SMPTEpatch.png[SMPTE patcher,661,784]
 
 As noted above, you need https://github.com/MattijsKneppers[Mattijs
 Kneppers]’ https://cycling74.com/tools/smpte/[smpte~] object to work

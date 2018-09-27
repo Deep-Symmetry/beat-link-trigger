@@ -35,7 +35,7 @@ When you first open Beat Link Trigger, it tries to find the Pro DJ
 Link devices that you want it to monitor. If it can't find any, after
 ten seconds you will see this window:
 
-image:assets/NoDevices.png[No devices found]
+image:assets/NoDevices.png[No devices found,516,196]
 
 If you were expecting to find devices, double-check that they are
 powered on, and properly networked with your computer (and that any
@@ -58,7 +58,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking `Online?` in the `Network` menu:
 
-image:assets/GoingOnline.png[Going Online, 380]
+image:assets/GoingOnline.png[Going Online,380,137]
 
 You can also go offline at any time by unchecking the menu option.
 
@@ -71,14 +71,14 @@ different messages in response to what the player is doing.
 If this is the first time you have opened Beat Link Trigger, you will
 see just one trigger containing default options.
 
-image:assets/FirstTrigger.png[First Trigger, 848]
+image:assets/FirstTrigger.png[First Trigger,848,254]
 
 To create additional triggers you can choose `New Trigger` in the
 `Triggers` menu, or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on
 other platforms). You can get back to this default state at any time
 by choosing `Clear Triggers` in the `Triggers` menu.
 
-image:assets/TriggersMenu.png[Triggers Menu, 396]
+image:assets/TriggersMenu.png[Triggers Menu,396,238]
 
 Here are the sections of a trigger, and how they work:
 
@@ -98,7 +98,7 @@ The Watch menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player&nbsp;1 through Player&nbsp;4,
 as well as two dynamic choices.
 
-image:assets/WatchMenu.png[Watch Menu, 816]
+image:assets/WatchMenu.png[Watch Menu,816,322]
 
 NOTE: If a player is chosen which is not currently present on the
 network, the player will be reported “not found”, and the trigger will
@@ -153,7 +153,7 @@ of what that could look like, when a track named Apex has been
 recognized, and the string `Apex` has been stored under
 `:track-description` in the trigger's `locals`:
 
-image:assets/ApexRecognized.png[Track Apex Recognized, 804]
+image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
 
 ==== Metadata
 
@@ -162,7 +162,7 @@ that is often the most convenient and flexible way of matching tracks.
 To enable this feature, check `Request Track Metadata?` in the
 `Network` menu:
 
-image:assets/RequestMetadata.png[Requesting Metadata, 380]
+image:assets/RequestMetadata.png[Requesting Metadata,380,137]
 
 [NOTE]
 ====
@@ -170,7 +170,7 @@ If you are already online when you turn on `Request Track Metadata?`,
 Beat Link Trigger will be using a player number that is not good for
 requesting metadata, and will warn you about it, as shown below.
 
-image:assets/Metadata2Players.png[Metadata Player Number with 2 players, 578]
+image:assets/Metadata2Players.png[Metadata Player Number with 2 players,578,347]
 
 In this situation, the best option is to choose to `Go Offline` (the
 default option), and then use the `Online?` option in the `Network`
@@ -182,7 +182,7 @@ If you are on a network which already has four physical players
 connected, though, you will see a slightly different version of the
 warning:
 
-image:assets/Metadata4Players.png[Metadata Player Number with 4 players, 578]
+image:assets/Metadata4Players.png[Metadata Player Number with 4 players,578,329]
 
 In such cases, as the window suggests, the safest option is to turn
 off one of the players and go offline and back online, to reliably get
@@ -194,7 +194,7 @@ Finally, if you have a single player connected to the network, the
 unreliable option doesn't work at all, and you will see the following
 choices instead:
 
-image:assets/Metadata1Player.png[Metadata Player Number with 1 player, 562]
+image:assets/Metadata1Player.png[Metadata Player Number with 1 player,562,234]
 
 In this case, definitely choose `Go Offline`, and when you proceed to
 check the `Online?` option in the `Network` menu after that, you will
@@ -205,7 +205,7 @@ When metadata is available for a track, the Player Status section
 grows to two lines, and displays the track title and artist on the
 second line, without any effort on the part of your trigger code:
 
-image:assets/MetadataStatus.png[Player Status with Metadata, 794]
+image:assets/MetadataStatus.png[Player Status with Metadata,794,166]
 
 Your trigger can also change the content of the metadata line by
 setting whatever value it wants under the key `:metadata-summary` in
@@ -251,7 +251,7 @@ The MIDI Output Menu lets you choose the MIDI device to which the
 trigger will send messages. It will show all MIDI outputs currently
 available on your system.
 
-image:assets/MidiMenu.png[MIDI Output Menu, 810]
+image:assets/MidiMenu.png[MIDI Output Menu,810,281]
 
 NOTE: If a MIDI Output is chosen which is no longer available on the
 system (as shown in trigger 3 above), it will remain in that row's
@@ -264,7 +264,7 @@ is chosen, the trigger will become operational again.
 The Message Menu determines what kind of MIDI message is sent by the
 trigger.
 
-image:assets/MessageMenu.png[Message Menu, 790]
+image:assets/MessageMenu.png[Message Menu,790,270]
 
 Note:: With this setting, the trigger sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -320,7 +320,7 @@ specify the MIDI channel on which messages are sent.
 The Enabled menu controls when the trigger will respond to the watched
 player starting or stopping playback.
 
-image:assets/EnabledMenu.png[Enabled Menu, 814]
+image:assets/EnabledMenu.png[Enabled Menu,814,287]
 
 Always:: With this setting, the trigger is enabled until you disable
 it.
@@ -357,16 +357,16 @@ playing, there is a filled circle inside the enabled circle:
 |Indicator
 
 |Disabled, Not Playing
-|image:assets/Disabled.png[Disabled]
+|image:assets/Disabled.png[Disabled,52,52]
 
 |Enabled, Not Playing
-|image:assets/Enabled.png[Enabled]
+|image:assets/Enabled.png[Enabled,52,52]
 
 |Disabled, Playing
-|image:assets/DisabledPlaying.png[Disabled, Playing]
+|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Playing
-|image:assets/EnabledPlaying.png[Enabled, Playing]
+|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -382,7 +382,7 @@ will be filled in if that expression has a value, and the gear in the
 button will be filled in if any expression associated with the trigger
 has a value.
 
-image:assets/ContextMenu.png[Context Menu, 314]
+image:assets/ContextMenu.png[Context Menu,314,297]
 
 Below the expression-related options, you can export the current
 trigger configuration to a text file which can be imported into a
@@ -416,7 +416,7 @@ soon as you set a trigger's Enabled menu to Custom, Beat Link Trigger
 will pop open the editor for that expression for you, if you have not
 yet created it:
 
-image:assets/Editor.png[Enabled Filter Editor, 880]
+image:assets/Editor.png[Enabled Filter Editor,880,756]
 
 The editor window for each type of expression provides documentation
 about the purpose of the expression and guidance on how to write it.
@@ -434,7 +434,7 @@ with beat 1). Armed with the Clojure knowledge gained from our
 http://www.tryclj.com[Try Clojure] detour, and the help text in the
 editor window, we come up with the following expression:
 
-image:assets/EnabledExample.png[Enabled Example, 609]
+image:assets/EnabledExample.png[Enabled Example,609,358]
 
 Try entering that as the Enabled Filter expression for your filter,
 set the Enabled menu to Custom, and watch the Trigger Status indicator
@@ -830,7 +830,7 @@ when any player has loaded the track that the trigger cares about. For
 example, in the following screen shot we have two triggers watching
 for two specific tracks:
 
-image:assets/MatchTracksMeta.png[Matching Tracks, 850]
+image:assets/MatchTracksMeta.png[Matching Tracks,850,365]
 
 The Enabled Filter expression for the first trigger is as follows:
 
@@ -947,7 +947,7 @@ in the example view below, this can be an invaluable resoure on its
 own for running visuals for a show, even if you don't have any
 triggers set up:
 
-image:assets/PlayerStatus.png[Player Status Window, 538]
+image:assets/PlayerStatus.png[Player Status Window,538,678]
 
 Only players currently visible on the network will appear in this
 window. The player number will be bright green if it is currently
@@ -1015,7 +1015,7 @@ If you do not have metadata requests active when you try opening the
 player window, Beat Link Trigger will show the following warning
 dialog:
 
-image:assets/NoMetadata.png[No Metadata for Player Window, 644]
+image:assets/NoMetadata.png[No Metadata for Player Window,644,199]
 
 In that situation, unless you have already created a metadata cache to
 use as described below, you will want to turn on metadata requests.
@@ -1041,7 +1041,7 @@ player before the show begins, and then click on the gear button next
 to the corresponding player slot, choosing the Create Metadata Cache
 File option:
 
-image:assets/CreateCache.png[Create Metadata Cache option, 331]
+image:assets/CreateCache.png[Create Metadata Cache option,331,197]
 
 This will open a dialog where you can choose to cache either all the
 tracks present on the media, or only those associated with a
@@ -1058,7 +1058,7 @@ you only need the metadata for tracks on the chosen playlist.
 
 Also choose the file where you want to save the cache:
 
-image:assets/CreateCache2.png[Create Metadata Cache window, 613]
+image:assets/CreateCache2.png[Create Metadata Cache window,613,635]
 
 When you click `Save`, Beat Link Trigger will download the metadata,
 artwork, cue list, beat grid, and waveform information about all the
@@ -1076,7 +1076,7 @@ this can cause playback to stutter if the DJ jumps directly to the
 middle of a track, for example. Don't check the box if the player is
 idle and you want to quickly cache a lot of tracks.
 
-image:assets/CreateCache3.png[Creating Metadata Cache, 526]
+image:assets/CreateCache3.png[Creating Metadata Cache,526,198]
 
 Once the cache is created, it will automatically be attached to that
 player slot, so Beat Link Trigger will use the cache instead of asking
@@ -1086,7 +1086,7 @@ attach caches using the gear button next to any player media slot. The
 gear will be filled in when a cache is attached, and the cache file
 information displayed next to it, as shown here:
 
-image:assets/CreateCache4.png[Metadata Cache Attached, 381]
+image:assets/CreateCache4.png[Metadata Cache Attached,381,200]
 
 === Auto-Attaching Metadata Caches
 
@@ -1097,12 +1097,12 @@ up in a busy show), you can ask Beat Link Trigger to watch for media
 that matches the cache, and automatically attach it. To do this,
 choose `Auto-Attach Metadata Caches` in the `File` menu.
 
-image:assets/AutoAttach.png[Auto-Attach option, 350]
+image:assets/AutoAttach.png[Auto-Attach option,350,190]
 
 This will open a window where you can configure the cache files that
 should be watched for. Click `Add File` to add one:
 
-image:assets/AutoAttach2.png[Auto-Attach window, 433]
+image:assets/AutoAttach2.png[Auto-Attach window,433,232]
 
 This will open a file chooser dialog you can use to find the file or
 files that you want to be watched, and they will appear in the window.
@@ -1119,7 +1119,7 @@ media has been modified in rekordbox since the cache was created, an
 all-tracks cache will need to be re-created. A playlist cache will
 continue to match unless that specific playlist has been altered.
 
-image:assets/AutoAttach3.png[Auto-Attach window with some files, 433]
+image:assets/AutoAttach3.png[Auto-Attach window with some files,433,232]
 
 If you no longer want one of the files to be watched for, simply click
 the `Remove` button next to it.
@@ -1140,14 +1140,14 @@ rekordbox IDs of the tracks you want your triggers to match.
 
 To do this, choose `View Metadata Cache Contents` in the `File` menu.
 
-image:assets/ViewCacheContents.png[View Cache option, 350]
+image:assets/ViewCacheContents.png[View Cache option,350,190]
 
 This will open a file chooser dialog you can use to find the file
 containing the cache that you want to examine. Once you choose one, a
 window will open containing a row for each entry in the metadata
 cache, showing its rekordbox ID, title, and artist:
 
-image:assets/SymmetryContents.png[Example cache contents, 850]
+image:assets/SymmetryContents.png[Example cache contents,850,480]
 
 
 === Keeping Player Status Always Visible
@@ -1175,11 +1175,11 @@ have installed Carabiner and have it running, bring up the Carabiner
 Connection window by choosing
 `Ableton Link: Carabiner Connection` in the `Network` menu:
 
-image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 380]
+image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu,380,137]
 
 This will open the Carabiner Connection window:
 
-image:assets/CarabinerWindow.png[Carabiner Connection window, 338]
+image:assets/CarabinerWindow.png[Carabiner Connection window,338,271]
 
 NOTE: This window will also open whenever you choose `Link` in a
 trigger's <<message-menu,Message Menu>>, or load a trigger that is
@@ -1200,7 +1200,7 @@ Pioneer gear, you can increase this value until things sound right.
 Once your port value is correct, you can click the Connect check box
 to establish a connection with Carabiner:
 
-image:assets/CarabinerConnected.png[Carabiner connection established, 412]
+image:assets/CarabinerConnected.png[Carabiner connection established,412,271]
 
 Once connected, you can no longer adjust the port value, but you can
 tweak the latency at any time while listening to sound from your
@@ -1212,7 +1212,7 @@ of other Link-enabled programs (Link Peers) visible on the network.
 In order to influence the Link session, configure a trigger to send to Link by choosing
 `Link` in its `Message` menu:
 
-image:assets/LinkTrigger.png[Link trigger, 772]
+image:assets/LinkTrigger.png[Link trigger,772,163]
 
 Triggers that work with Link can align the beat grid with either
 individual beats, or entire bars of four beats (the default). If you
@@ -1223,7 +1223,7 @@ Once a trigger like this activates, the tempo of its watched player
 will show up as the `Target BPM` within the Carabiner Connection
 window:
 
-image:assets/CarabinerTargeting.png[Carabiner targeting a tempo, 412]
+image:assets/CarabinerTargeting.png[Carabiner targeting a tempo,412,271]
 
 As you can see, the Link session's tempo is not yet tracking the
 trigger's tempo. In order to allow that to happen, check the `Master`
@@ -1232,7 +1232,7 @@ connected and set to Master, whenever a Link trigger is active, Beat
 Link Trigger will control the Link session tempo, and will align it to
 the beat (or bar) of the trigger's watched player:
 
-image:assets/CarabinerMastering.png[Carabiner controlling the tempo, 412]
+image:assets/CarabinerMastering.png[Carabiner controlling the tempo,412,271]
 
 === Carabiner Status
 
@@ -1249,16 +1249,16 @@ is a filled circle inside the enabled circle:
 |Indicator
 
 |Disabled, No Link Trigger Active
-|image:assets/Disabled.png[Disabled]
+|image:assets/Disabled.png[Disabled,52,52]
 
 |Enabled, No Link Trigger Active
-|image:assets/Enabled.png[Enabled]
+|image:assets/Enabled.png[Enabled,52,52]
 
 |Disabled, Link Trigger Active
-|image:assets/DisabledPlaying.png[Disabled, Trigger Active]
+|image:assets/DisabledPlaying.png[alt=Disabled, Trigger Active,width=52,height=52]
 
 |Enabled, Link Trigger Active
-|image:assets/EnabledPlaying.png[Enabled, Trigger Active]
+|image:assets/EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
 
 |===
 
@@ -1351,7 +1351,7 @@ that have been created in the `globals` atom shared by all triggers.
 Here is what that looks like after the example code shown
 <<global-expressions,above>> has run:
 
-image:assets/ExpressionGlobals.png[Enabled Example, 872]
+image:assets/ExpressionGlobals.png[Expression Globals,872,462]
 
 The inspector is a little busy, but right away you can see the three
 keys we created, and the corresponding Java objects stored under them.
@@ -1364,7 +1364,7 @@ Inspect Expression Locals from that trigger's context menu. Here's the
 result of drilling down a little into the `:resolume` OSC client
 object created in that example's trigger:
 
-image:assets/ExpressionLocals.png[Enabled Example, 789]
+image:assets/ExpressionLocals.png[Expression Locals,789,626]
 
 == Saving and Loading
 
@@ -1411,7 +1411,7 @@ which the BEYOND Talk UDP server is listening. To determine these
 things, you can choose menu:Tools[Network Monitor...] within BEYOND to
 bring up a window like this:
 
-image:assets/BeyondNetworkMonitor.png[Network Monitor, 584]
+image:assets/BeyondNetworkMonitor.png[Network Monitor,584,461]
 
 By looking at the Adapter IP and Mask lines, we can determine that the
 broadcast address we want to use to reach the BEYOND Talk server is
@@ -1425,7 +1425,7 @@ broadcast address of the subnet the server is attached to.
 Then, make sure the BEYOND UDP Talk server is enabled
 (menu:Settings[Network > Network Settings...]):
 
-image:assets/BeyondNetworkSettings.png[Network Monitor, 424]
+image:assets/BeyondNetworkSettings.png[Network Settings,424,446]
 
 Choose a port that is not in use by anything else on your system (the
 default of `16062` is likely fine), check the Enable Talk Server check
@@ -1433,7 +1433,7 @@ box, and click btn:[OK]. Make a note of the broadcast address and UDP
 port it is listening on, and then make sure the talk server is fully
 enabled by choosing menu:Settings[Network > BEYOND Talk server]:
 
-image:assets/BeyondTalkServer.png[Talk Server, 720]
+image:assets/BeyondTalkServer.png[Talk Server,720,479]
 
 TIP: In older versions of BEYOND, we sometimes had to quit and restart
 the program after making these configuration changes in order for them
@@ -1476,7 +1476,7 @@ and label it something like &ldquo;Beyond BPM Sync&rdquo; in the
 Comment field. Configure it to Watch the Master Player, and give it a
 Custom Enabled Filter:
 
-image:assets/BeyondBPMSync.png[Beyond BPM Sync, 810]
+image:assets/BeyondBPMSync.png[Beyond BPM Sync,810,160]
 
 The Enabled Filter editor will pop open, so you can paste in the
 following code:
@@ -1540,13 +1540,13 @@ user interface. Choose menu:Settings[Configuration...] and click the
 Laser Preview tab. Check the Display Internal BEYOND Command check
 box, and click btn:[OK]:
 
-image:assets/BeyondPreviewConfig.png[Beyond Laser Preview configuration, 486]
+image:assets/BeyondPreviewConfig.png[Beyond Laser Preview configuration,486,586]
 
 One that is done, as you interact with the interface, you will see
 small messages at the bottom left of the laser preview section showing
 you the equivalent PangoScript command for what you just did:
 
-image:assets/BeyondPreview.png[Beyond Laser Preview, 336]
+image:assets/BeyondPreview.png[Beyond Laser Preview,336,282]
 
 In this case, I just activated cue 16, 20 (cue 20 on page 16). So in
 the trigger's Activation Expression editor, I would use the following:
@@ -1608,7 +1608,7 @@ virtual port has been chosen for input and output as Device 1 within
 Beyond:
 
 image:assets/LoopBeDevice1.png[LoopBe Internal MIDI chosen for Device
-1, 498].
+1, 498, 612]
 
 Click btn:[OK] and the device will be available as a source of MIDI
 messages.
@@ -1620,16 +1620,16 @@ messages, right-click on the metronome at the top of the BEYOND
 window, and click the btn:[Enable MIDI input to set BPM] button in the
 contextual menu that appears:
 
-image:assets/BeyondEnableBPM.png[Enabling MIDI to set BPM,404]
+image:assets/BeyondEnableBPM.png[Enabling MIDI to set BPM,404,579]
 
 Once that is done, you can configure a Trigger in Beat Link Trigger to
 send MIDI output to the device that BEYOND is listening to, and set
 the Message menu to Clock, so it will send MIDI Clock messages to
 communicate the current BPM:
 
-image:assets/BeyondClockTrigger.png[Clock Trigger for BEYOND,806]
+image:assets/BeyondClockTrigger.png[Clock Trigger for BEYOND,806,202]
 
-+++<img src="assets/BeyondMIDIsynced.png" width="162"
++++<img src="assets/BeyondMIDIsynced.png" width="162" height="104"
 align="right" alt="BEYOND synced to MIDI Clock">+++
 Once that trigger activates, the BPM display in BEYOND will turn
 yellow and will track the tempo of the track that activated the
@@ -1655,7 +1655,7 @@ trigger will send a MIDI Note On message for note 125 on channel 1
 when the trigger activates, and the corresponding Note Off message
 when it deactivates:
 
-image:assets/BeyondMIDITrigger.png[Beyond MIDI Trigger,814]
+image:assets/BeyondMIDITrigger.png[Beyond MIDI Trigger,814,298]
 
 To tie that to a cue cell in BEYOND, choose
 menu:Settings[MIDI>"(device)" settings...], picking the name of the
@@ -1673,7 +1673,7 @@ just take a quick look at mapping the first cue cell to respond to the
 Beat Link Trigger we have just created. To do that, click the
 btn:[Configure...] button for the Main Grid MIDI surface:
 
-image:assets/BeyondMIDIMapping.png[Beyond MIDI Mapping,502]
+image:assets/BeyondMIDIMapping.png[Beyond MIDI Mapping,502,671]
 
 This section allows you to set the MIDI messages which BEYOND will
 interpret as a mouse down or mouse up event in each of the cue cells.
@@ -1687,7 +1687,7 @@ BEYOND is in Learn mode, activate and deactivate the trigger in Beat
 Link Trigger. The Learn 1+2 command tells BEYOND to watch for the next
 two MIDI events and enter them into the grid cells for you:
 
-image:assets/BeyondMIDILearn.png[Beyond MIDI Main Grid,770]
+image:assets/BeyondMIDILearn.png[Beyond MIDI Main Grid,770,271]
 
 Once you have that mapping set up, whenever Beat Link Trigger reports
 that the trigger is activated, BEYOND will act as though you have
@@ -1696,7 +1696,7 @@ deactivated, BEYOND will act as though you have released the mouse. In
 order to have cues end when triggers deactivate, you will want to put
 BEYOND into Flash mode:
 
-image:assets/BeyondFlashMode.png[Beyond Flash Cue Mode,706]
+image:assets/BeyondFlashMode.png[Beyond Flash Cue Mode,706,206]
 
 Alternately, if you want to leave it in the default Toggle mode, you
 could use a custom Deactivation Expression in Beat Link Trigger to
@@ -1724,7 +1724,7 @@ turned on in the ShowXpress Live Preferences, and choose a password.
 Quit and relaunch the application if this was not turned on when you
 initially opened it.
 
-image:assets/LiveExternalControl.png[ShowXpress Live Preferences, 700]
+image:assets/LiveExternalControl.png[ShowXpress Live Preferences,700,540]
 
 Then paste this block of code into Beat Link Trigger's Global Setup
 Expression:
@@ -2120,7 +2120,7 @@ at http://deepsymmetry.org/media/SMPTE.bltx (to use an exported
 trigger like that, create a trigger row in Beat Link Trigger, then
 click on its action [gear] menu and choose `Import Trigger`):
 
-image:assets/ImportTrigger.png[Import Trigger option, 360]
+image:assets/ImportTrigger.png[Import Trigger option,360,388]
 
 As downloaded, that trigger is configured to watch Player 3, but you
 can set it to watch whatever you want, including the Master Player or
@@ -2154,7 +2154,7 @@ example:
 When you run the daemon, it opens a small window which shows its
 configuration and status:
 
-image:assets/SMPTEdaemon.png[SMPTE daemon, 521]
+image:assets/SMPTEdaemon.png[SMPTE daemon,521,346]
 
 The main thing you are likely to want to change here is the SMPTE
 frame rate, which you can do in the dropdown menu. You can also pick
@@ -2200,7 +2200,7 @@ builds the application at
 http://deepsymmetry.org/media/SMPTE%20daemon.maxpat.zip (here is what
 it looks like in patcher mode, unlocked):
 
-image:assets/SMPTEpatch.png[SMPTE patcher, 661]
+image:assets/SMPTEpatch.png[SMPTE patcher,661,784]
 
 As noted above, you need https://github.com/MattijsKneppers[Mattijs
 Kneppers]’ https://cycling74.com/tools/smpte/[smpte~] object to work
@@ -2229,7 +2229,7 @@ When you run the dual daemon, it opens a slightly larger window for
 its configuration and status, but the content should be familiar
 compared to what you saw above:
 
-image:assets/SMPTEdualDaemon.png[SMPTE dual daemon, 408]
+image:assets/SMPTEdualDaemon.png[SMPTE dual daemon,408,508]
 
 The top section allows you to configure global settings like the port
 number, audio configuration, and gain. Then there are two separate
@@ -2244,7 +2244,7 @@ daemon itself, the patch source for it is at
 http://deepsymmetry.org/media/SMPTE%20dual%20daemon.maxpat.zip (here
 is what it looks like in patcher mode, unlocked):
 
-image:assets/SMPTEdualPatch.png[Dual SMPTE patcher, 1290]
+image:assets/SMPTEdualPatch.png[Dual SMPTE patcher,1290,840]
 
 Again, I hope this is useful to intrepid explorers who want to try
 working with SMPTE, but please don't expect me to be able to offer
@@ -2273,7 +2273,7 @@ to hear from you.
 
 == License
 
-+++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo"></a>+++
++++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
 Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the

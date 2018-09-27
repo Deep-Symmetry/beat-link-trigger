@@ -45,12 +45,12 @@ Once you have installed Carabiner and have it running, bring up the
 Carabiner Connection window by choosing
 `Ableton Link: Carabiner Connection` in the `Network` menu:
 
-// TODO: This, and all, images need their heights set when reshooting, or if left alone.
-image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu, 380]
+// TODO: Reshoot images and update content.
+image:assets/ConnectionMenu.png[Ableton Link: Carabiner Connection menu,380,137]
 
 This will open the Carabiner Connection window:
 
-image:assets/CarabinerWindow.png[Carabiner Connection window, 338]
+image:assets/CarabinerWindow.png[Carabiner Connection window,338,271]
 
 NOTE: This window will also open whenever you choose `Link` in a
 trigger's <<message-menu,Message Menu>>, or load a trigger that is
@@ -71,7 +71,7 @@ Pioneer gear, you can increase this value until things sound right.
 Once your port value is correct, you can click the Connect check box
 to establish a connection with Carabiner:
 
-image:assets/CarabinerConnected.png[Carabiner connection established, 412]
+image:assets/CarabinerConnected.png[Carabiner connection established,412,271]
 
 Once connected, you can no longer adjust the port value, but you can
 tweak the latency at any time while listening to sound from your
@@ -83,7 +83,7 @@ of other Link-enabled programs (Link Peers) visible on the network.
 In order to influence the Link session, configure a trigger to send to Link by choosing
 `Link` in its `Message` menu:
 
-image:assets/LinkTrigger.png[Link trigger, 772]
+image:assets/LinkTrigger.png[Link trigger,772,163]
 
 Triggers that work with Link can align the beat grid with either
 individual beats, or entire bars of four beats (the default). If you
@@ -94,7 +94,7 @@ Once a trigger like this activates, the tempo of its watched player
 will show up as the `Target BPM` within the Carabiner Connection
 window:
 
-image:assets/CarabinerTargeting.png[Carabiner targeting a tempo, 412]
+image:assets/CarabinerTargeting.png[Carabiner targeting a tempo,412,271]
 
 As you can see, the Link session's tempo is not yet tracking the
 trigger's tempo. In order to allow that to happen, check the `Master`
@@ -103,7 +103,7 @@ connected and set to Master, whenever a Link trigger is active, Beat
 Link Trigger will control the Link session tempo, and will align it to
 the beat (or bar) of the trigger's watched player:
 
-image:assets/CarabinerMastering.png[Carabiner controlling the tempo, 412]
+image:assets/CarabinerMastering.png[Carabiner controlling the tempo,412,271]
 
 === Carabiner Status
 
@@ -120,16 +120,16 @@ is a filled circle inside the enabled circle:
 |Indicator
 
 |Disabled, No Link Trigger Active
-|image:assets/Disabled.png[Disabled]
+|image:assets/Disabled.png[Disabled,52,52]
 
 |Enabled, No Link Trigger Active
-|image:assets/Enabled.png[Enabled]
+|image:assets/Enabled.png[Enabled,52,52]
 
 |Disabled, Link Trigger Active
-|image:assets/DisabledPlaying.png[Disabled, Trigger Active]
+|image:assets/DisabledPlaying.png[alt=Disabled, Trigger Active,width=52,height=52]
 
 |Enabled, Link Trigger Active
-|image:assets/EnabledPlaying.png[Enabled, Trigger Active]
+|image:assets/EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
 
 |===
 
