@@ -35,6 +35,13 @@ versions of them, or share them with friends and colleagues (or
 on the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]
 or https://github.com/brunchboy/beat-link-trigger/wiki[project Wiki]
 to either get help from others, or share and show them off).
++++<img src="assets/HelpMenu.png" width="200" height="205" alt="Help Menu" align="right"/>+++
+
+Help resources can be found in the menu:Help[] menu, along with an
+embedded copy of this User Guide, which can be used even if you are
+not connected to the Internet (although links to other sites will not
+work in that case).
+
 
 [[logs]]
 == Logs
@@ -44,8 +51,8 @@ noted above, this includes full stack traces for compilation problems
 when you try to save an expression that isn't quite right. If a
 problem occurs while trying to run your expression later, that will
 end up in the log too. So it can be a useful place to look when things
-are not working the way you expect. You can find the log file by using
-the Open Logs Folder option in the File menu.
+are not working the way you expect. You can find the log file by choosing
+menu:Help[Open Logs Folder].
 
 Each time you launch Beat Link Trigger it creates a new log folder in
 a temporary directory, so that they can be cleaned up automatically
@@ -84,10 +91,10 @@ Suddenly your logs will be growing steadily, filling with lines like these:
 In addition to logging values to the log file, you can get a glimpse
 at what your expressions are up to by opening an inspector window on
 the Expression Globals or a particular trigger's Expression Locals.
-The first is done by choosing Inspect Expression Globals in the
-Triggers menu. It opens a window showing you all the keys and values
-that have been created in the `globals` atom shared by all triggers.
-Here is what that looks like after the example code shown in the
+The first is done by choosing menu:Triggers[Inspect Expression
+Globals]. This opens a window showing you all the keys and values that
+have been created in the `globals` atom shared by all triggers. Here
+is what that looks like after the example code shown in the
 <<Expressions#global-expressions,Global Expressions section>> has run:
 
 image:assets/ExpressionGlobals.png[Expression Globals,872,462]
@@ -99,26 +106,65 @@ each entry and dive down into the fields and values that make it up,
 which can be quite a powerful way to explore the objects.
 
 Similarly, the locals for a trigger can be inspected by choosing
-Inspect Expression Locals from that trigger's context menu. Here's the
-result of drilling down a little into the `:resolume` OSC client
-object created in that example's trigger:
+menu:Inspect Expression Locals[] from that trigger's context menu.
+Here's the result of drilling down a little into the `:resolume` OSC
+client object created in that example's trigger:
 
 image:assets/ExpressionLocals.png[Expression Locals,789,626]
 
 == Saving and Loading
 
 The entire trigger configuration can be saved to a text file by
-choosing Save in the File menu. That file can be sent to another
-machine, shared with a colleague, or just kept around for future use
-after you are done with a different project. As you would expect, the
-Load option replaces the current trigger configuration with one loaded
-from a save file.
+choosing menu:File[Save]. That file can be sent to another machine,
+shared with a colleague, or just kept around for future use after you
+are done with a different project. As you would expect, the Load
+option replaces the current trigger configuration with one loaded from
+a save file.
 
 === Exporting and Importing Triggers
 
 As mentioned in the <<Triggers#context-menu,Context Menu>> section,
 individual triggers can be exported on their own, and imported into
 other trigger configurations.
+
+[[writing-playlists]]
+== Writing Playlists
+
+If you are in a situation where it is important to keep detailed
+records of the music being played (for example, a radio station that
+needs to pay royalties), the built in Playlist Writer can help. It
+builds on the ideas described in the
+<<Matching#writing-a-playlist,Matching Tracks>> section to give you a
+robust, convenient solution.
+
+Start by choosing menu:File[Write Playlist]. This will bring up the
+Playlist Writer window.
+
+image:assets/PlaylistWriter.png[Playlist Writer,412,256]
+
+You can configure how long a track needs to be played for before it
+gets included in the playlist and whether you want to ignore players
+that are not reporting themselves as being on the air (very convenient
+to ignore DJs pre-screening tracks, as long as you are using a DJM
+mixer that supports this feature, and the players are configured and
+connected properly).
+
+Once everything is set the way you want it, click kbd:[Start] and you
+will be prompted to choose where to save the file. Once you have done
+that, the window updates to show you that the playlist is being written:
+
+image:assets/PlaylistWriterActive.png[Playlist Writer active,412,256]
+
+From this point on, all tracks that play longer than your configured
+minimum time will be written to the playlist, in Comma-Separated Value
+format (for convenient use in spreadsheet programs). The playlist will
+include track titles, artists, albums (when this information is
+available), as well as the player they were played on, the source
+player and media type, when they started and stopped playing, and the
+total time they played.
+
+When you are done recording the playlist you can either click kbd:[Stop]
+or close the window, and the file will be closed out.
 
 == Learning More
 

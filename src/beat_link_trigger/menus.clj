@@ -58,13 +58,17 @@
                                 "&body=" (url/url-encode body)))]
     (.. Desktop getDesktop (mail uri))))
 
+(def gitter-chat-url
+  "Where people discuss Beat Link Trigger."
+  "https://gitter.im/brunchboy/beat-link-trigger")
+
 (def project-home-url
   "The GitHub front page for the project."
   "https://github.com/brunchboy/beat-link-trigger")
 
-(def gitter-chat-url
-  "Where people discuss Beat Link Trigger."
-  "https://gitter.im/brunchboy/beat-link-trigger")
+(def project-wiki-url
+  "The community wiki for the project."
+  "https://github.com/brunchboy/beat-link-trigger/wiki")
 
 (def issues-url
   "The project Issues page on GitHub."
@@ -139,10 +143,12 @@
                               [(seesaw/action :handler (fn [_] (help/show-user-guide))
                                               :name "User Guide (local)")
                                logs/logs-action (seesaw/separator)
-                               (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
-                                              :name "Project Home (web)")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url gitter-chat-url))
                                               :name "Discuss on Gitter (web)")
+                               (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
+                                              :name "Project Home (web)")
+                               (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-wiki-url))
+                                              :name "Project Wiki (web)")
                                (seesaw/separator)
                                (seesaw/action :handler (fn [_] (report-issue))
                                               :name (str "Report Issue (" (if (mail-supported?) "email" "web") ")"))]

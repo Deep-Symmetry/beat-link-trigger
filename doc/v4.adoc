@@ -69,8 +69,9 @@ can synchronize an Ableton Link session’s tempo, beats, and bars to
 the track playing on their watched player, or you can add Link as its
 own “player” that can become Tempo Master to the CDJs.
 
-<<Debugging#debugging,Debugging>>::
-Tools to help you figure out what is going on in your triggers.
+<<Debugging#debugging,Debugging and Sharing>>:: Tools to help you
+figure out what is going on in your triggers, share them between
+projects or with others, and log playlists.
 
 <<Integration#integration-examples,Integration Examples>>::
 Using Beat Link Trigger to run shows with other systems.
