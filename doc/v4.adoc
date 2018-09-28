@@ -35,16 +35,17 @@ If you are using version 0.3.8, please refer to the
 <<README#beat-link-trigger-user-guide,original User Guide>>.
 ====
 
-To keep page sizes manageable, this information is split into several
-pages. This page discusses <<startup,startup>>, and describes (and
-links to) the other sections of the User Guide. It is worth
-reading through this whole page once if you are new to Beat Link Trigger.
-Once you know what you are looking for, you can also dive right into it by
-jumping to the page you want:
+To keep page sizes manageable, this guide is split into several pages.
+It is worth reading through this whole guide once if you are new to
+Beat Link Trigger. Once you know what you are looking for, you can
+also dive right into it by jumping to the page you want:
 
 ****
 
 [horizontal]
+<<startup,Startup>>::
+Connecting to a network of players or working offline.
+
 <<Triggers#triggers,Triggers>>:: Triggers allow you to watch for a
 specific kind of activity on one or more CDJs, and generate events
 like MIDI notes or OSC messages in response, or synchronize external
@@ -73,6 +74,9 @@ Tools to help you figure out what is going on in your triggers.
 
 <<Integration#integration-examples,Integration Examples>>::
 Using Beat Link Trigger to run shows with other systems.
+
+<<what-next,What Next?>>::
+How to learn more, get help from the community, and support this effort.
 
 ****
 
@@ -144,7 +148,7 @@ least check whether someone else already has.
 Thanks for reading this, and have fun with Beat Link Trigger! I hope
 to hear from you.
 
-== Funding
+=== Funding
 
 Beat Link Trigger is, and will remain, completely free and
 open-source. If it has helped you, taught you something, or pleased
