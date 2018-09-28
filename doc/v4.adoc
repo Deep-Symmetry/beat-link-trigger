@@ -110,7 +110,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking `Online?` in the `Network` menu:
 
-image:assets/GoingOnline04.png[Going Online,398,226]
+image:assets/GoingOnline04.png[Going Online,400,205]
 
 You can also go offline at any time by un-checking the menu option.
 
