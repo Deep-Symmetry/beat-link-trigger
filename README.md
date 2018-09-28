@@ -25,8 +25,8 @@ page and double-click it to run it. If that doesn&rsquo;t work,
 > :warning: Released versions of beat-link-trigger worked only with
 > Java 7 or 8, which are off support. You should probably try out the
 > preview release of Beat Link Trigger 0.4.0 which not only works with
-> Java 7, 8, 9, or 10, but also includes a [significant number of
-> major new features](CHANGELOG.md).
+> Java 7 through 11 (the latest), but also includes a [significant
+> number of major new features](CHANGELOG.md).
 >
 > :construction: If you would like to help testing this, download and
 > try out the 0.4.0 preview jar, which can be found on the

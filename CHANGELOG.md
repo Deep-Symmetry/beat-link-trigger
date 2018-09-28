@@ -8,7 +8,7 @@ This change log follows the conventions of
 
 ### Added
 
-- Support for running under Java 9 and 10.
+- Support for running under Java 9, 10 and 11.
 - Beat Link Trigger can now become Tempo Master on the Pioneer DJ Link
   network, and can synchronize the tempo and beat grid of CDJs to
   Ableton Link in both directions.
