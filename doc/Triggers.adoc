@@ -128,7 +128,7 @@ that is often the most convenient and flexible way of matching tracks.
 To enable this feature, check menu:Network[Request Track Metadata?]
 (ideally before going online):
 
-image:assets/RequestMetadata04.png[Requesting Metadata,353,172]
+image:assets/RequestMetadata04.png[Requesting Metadata,400,205]
 
 [NOTE]
 ====
