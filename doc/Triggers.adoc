@@ -42,10 +42,10 @@ see just one trigger containing default options.
 
 image:assets/FirstTrigger04.png[First Trigger,900,294]
 
-To create additional triggers you can choose `New Trigger` in the
-`Triggers` menu, or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on
-other platforms). You can get back to this default state at any time
-by choosing `Clear Triggers` in the `Triggers` menu.
+To create additional triggers you can choose menu:Triggers[New
+Trigger], or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on other
+platforms). You can get back to this default state at any time by
+choosing menu:Triggers[Clear Triggers].
 
 image:assets/TriggersMenu04.png[Triggers Menu,392,206]
 
@@ -66,7 +66,7 @@ row.
 [[watch-menu]]
 === Watch Menu
 
-The Watch menu tells the trigger what player(s) it should pay
+The menu:Watch[] menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player&nbsp;1 through Player&nbsp;4,
 as well as two dynamic choices.
 
@@ -95,11 +95,11 @@ will focus on whichever player is the current Tempo (sync) Master.
 [[player-status-summary]]
 === Player Status Summary
 
-Right after the Watch menu, the trigger row displays the player number
-and latest status received from the watched player, if one was found.
-The status includes the current state of the player, information about
-the loaded track, the current effective BPM and relative pitch, and
-the number of the current beat.
+Right after the menu:Watch[] menu, the trigger row displays the player
+number and latest status received from the watched player, if one was
+found. The status includes the current state of the player,
+information about the loaded track, the current effective BPM and
+relative pitch, and the number of the current beat.
 
 The track ID is followed by an indication in square brackets of the
 player and slot (`usb`, `sd`, `cd`, or `rb` for rekordbox) from which the
@@ -125,8 +125,8 @@ image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
 
 Now that Beat Link Trigger can request track metadata from the CDJs,
 that is often the most convenient and flexible way of matching tracks.
-To enable this feature, check `Request Track Metadata?` in the
-`Network` menu:
+To enable this feature, check menu:Network[Request Track Metadata?]
+(ideally before going online):
 
 image:assets/RequestMetadata04.png[Requesting Metadata,353,172]
 
@@ -138,9 +138,9 @@ requesting metadata, and will warn you about it, as shown below.
 
 image:assets/Metadata2Players.png[Metadata Player Number with 2 players,578,347]
 
-In this situation, the best option is to choose to `Go Offline` (the
-default option), and then use the `Online?` option in the `Network`
-menu to go back online. Going online with `Request Track Metadata?`
+In this situation, the best option is to choose to kbd:[Go Offline]
+(the default option), and then check menu:Network[Online?] again to go
+back online. Going online with menu:Network[Request Track Metadata?]
 already checked like this will use a good player number for requesting
 metadata, and everything will work great.
 
@@ -152,8 +152,8 @@ image:assets/Metadata4Players.png[Metadata Player Number with 4 players,578,329]
 
 In such cases, as the window suggests, the safest option is to turn
 off one of the players and go offline and back online, to reliably get
-metadata. If you can't do that, though, you can also choose `Use
-Unreliable Metadata`, and it will work as long as not all players are
+metadata. If you can't do that, though, you can also choose kbd:[Use
+Unreliable Metadata], and it will work as long as not all players are
 linked to the same media.
 
 Finally, if you have a single player connected to the network, the
@@ -162,9 +162,9 @@ choices instead:
 
 image:assets/Metadata1Player.png[Metadata Player Number with 1 player,562,234]
 
-In this case, definitely choose `Go Offline`, and when you proceed to
-check the `Online?` option in the `Network` menu after that, you will
-be able to get metadata from the single player you have connected.
+In this case, definitely choose kbd:[Go Offline], and when you proceed
+to check menu:Network[Online?] after that, you will be able to get
+metadata from the single player you have connected.
 ====
 
 When metadata is available for a track, the Player Status section
@@ -213,9 +213,9 @@ loading tracks from a single player, you can create and attach a
 
 === MIDI Output Menu
 
-The MIDI Output Menu lets you choose the MIDI device to which the
-trigger will send messages. It will show all MIDI outputs currently
-available on your system.
+The menu:MIDI Output[] Menu lets you choose the MIDI device to which
+the trigger will send messages. It will show all MIDI outputs
+currently available on your system.
 
 image:assets/MidiMenu.png[MIDI Output Menu,810,281]
 
@@ -227,7 +227,7 @@ is chosen, the trigger will become operational again.
 
 === Message Menu
 
-The Message Menu determines what kind of MIDI message is sent by the
+The menu:Message[] Menu determines what kind of MIDI message is sent by the
 trigger.
 
 image:assets/MessageMenu.png[Message Menu,790,270]
@@ -272,8 +272,8 @@ whatever you might need.
 
 === Note/Controller Spinner
 
-Found immediately to the right of the Message Menu (unless Clock or
-Link is chosen as the Message type), this field lets you set the MIDI
+Found immediately to the right of the menu:Message[] Menu (unless Clock
+or Link is chosen as the Message type), this field lets you set the MIDI
 note number used for Note messages, or the controller number used for
 Control Change messages. The value is also available to your trigger
 expressions if they want to use it.
@@ -285,8 +285,8 @@ specify the MIDI channel on which messages are sent.
 
 === Enabled Menu
 
-The Enabled menu controls when the trigger will respond to the watched
-player starting or stopping playback.
+The menu:Enabled[] menu controls when the trigger will respond to the
+watched player starting or stopping playback.
 
 image:assets/EnabledMenu.png[Enabled Menu,814,287]
 
@@ -314,10 +314,11 @@ expression, the expression editor will be opened to let you do that.
 
 === Trigger Status
 
-To the right of the Enabled menu there is a Trigger Status indicator
-which shows whether the trigger is currently enabled (a green circle)
-or disabled (a red circle with a slash). If the player is currently
-playing, there is a filled circle inside the enabled circle:
+To the right of the menu:Enabled[] menu there is a Trigger Status
+indicator which shows whether the trigger is currently enabled (a
+green circle) or disabled (a red circle with a slash). If the player
+is currently playing, there is a filled circle inside the enabled
+circle:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
