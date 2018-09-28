@@ -865,8 +865,10 @@
      (cache-value gear)  ; Cache the initial values of the choice sections
      panel)))
 
-(def ^:private new-trigger-action
-  "The menu action which adds a new Trigger to the end of the list."
+(defonce ^{:private true
+           :doc     "The menu action which adds a new Trigger to the end of the list."}
+  new-trigger-action
+
   (seesaw/action :handler (fn [e]
                             (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                             :items (concat (get-triggers) [(create-trigger-row)]))
@@ -874,15 +876,17 @@
                  :name "New Trigger"
                  :key "menu T"))
 
-(def ^:private carabiner-action
-  "The menu action which opens the Carabiner configuration window."
+(defonce ^{:private true
+           :doc "The menu action which opens the Carabiner configuration window."}
+  carabiner-action
   (seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
                  :name "Ableton Link: Carabiner Connection"))
 
-(def ^:private load-track-action
-  "The menu action which opens the Load Track window."
+(defonce ^{:private true
+           :doc "The menu action which opens the Load Track window."}
+  load-track-action
   (seesaw/action :handler (fn [e] (track-loader/show-dialog))
-                 :name "Load Track on Player"))
+                 :name "Load Track on Player" :enabled? false))
 
 (defn- close-all-editors
   "Close any custom expression editors windows that are open, in
@@ -892,8 +896,9 @@
     (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
       (editors/dispose editor))))
 
-(def ^:private clear-triggers-action
-  "The menu action which empties the Trigger list."
+(defonce ^{:private true
+           :doc "The menu action which empties the Trigger list."}
+  clear-triggers-action
   (seesaw/action :handler (fn [e]
                             (try
                               (let [confirm (seesaw/dialog
@@ -961,8 +966,9 @@
 (prefs/add-reader 'beat_link_trigger.core.PlayerChoice util/map->PlayerChoice)
 (prefs/add-reader 'beat_link_trigger.core.MidiChoice map->MidiChoice)
 
-(def ^:private save-action
-  "The menu action which saves the configuration to a user-specified file."
+(defonce ^{:private true
+           :doc "The menu action which saves the configuration to a user-specified file."}
+  save-action
   (seesaw/action :handler (fn [e]
                             (when (save-triggers-to-preferences)
                               (when-let [file (chooser/choose-file @trigger-frame :type :save
@@ -995,8 +1001,9 @@
                          "Check the log file for details.")
                     :title "Exception during Clojure evaluation" :type :error))))
 
-(def ^:private load-action
-  "The menu action which loads the configuration from a user-specified file."
+(defonce ^{:private true
+           :doc "The menu action which loads the configuration from a user-specified file."}
+  load-action
   (seesaw/action :handler (fn [e]
                             (when-let [file (chooser/choose-file
                                              @trigger-frame
@@ -1017,16 +1024,16 @@
                  :name "Load"
                  :key "menu L"))
 
-(def ^:private auto-action
-  "The menu action which allows configuration of auto-attached
-  metadata cache files."
+(defonce ^{:private true
+           :doc "The menu action which allows configuration of auto-attached metadata cache files."}
+  auto-action
   (seesaw/action :handler (fn [e] (auto/show-window @trigger-frame))
                  :name "Auto-Attach Metadata Caches"
                  :key "menu M"))
 
-(def ^:private view-cache-action
-  "The menu action which allows the user to view the contents of a
-  metadata cache file."
+(defonce ^{:private true
+           :doc "The menu action which allows the user to view the contents of a metadata cache file."}
+  view-cache-action
   (seesaw/action :handler (fn [e] (view-cache/choose-file @trigger-frame))
                  :name "View Metadata Cache Contents"))
 
@@ -1239,11 +1246,13 @@
     (seesaw/alert "Must be Online to show Player Status window."
                   :title "Beat Link Trigger is Offline" :type :error)))
 
-(def ^:private player-status-action
-  "The menu action which opens the Player Status window."
+(defonce ^{:private true
+           :doc "The menu action which opens the Player Status window."}
+  player-status-action
   (seesaw/action :handler show-player-status-handler
                  :name "Show Player Status"
-                 :key "menu P"))
+                 :key "menu P"
+                 :enabled? false))
 
 (defn show-player-status
   "Try to show the player status window, giving the user appropriate
@@ -1255,15 +1264,16 @@
   (when @trigger-frame
     (seesaw/invoke-later (show-player-status-handler nil))))
 
-(def ^:private playlist-writer-action
-  "The menu action which opens the Playlist Writer window."
+(defonce ^{:private true
+           :doc "The menu action which opens the Playlist Writer window."}
+  playlist-writer-action
   (seesaw/action :handler (fn [_]
                             (if (.isRunning virtual-cdj)
                               (when (acceptable-metadata-state-for-window "Playlist Writer")
                                 (writer/show-window @trigger-frame))
                               (seesaw/alert "Must be Online to show Playlist Writer window."
-                  :title "Beat Link Trigger is Offline" :type :error)))
-                 :name "Show Playlist Writer"))
+                                            :title "Beat Link Trigger is Offline" :type :error)))
+                 :name "Write Playlist" :enabled? false))
 
 (declare go-offline)
 
@@ -1421,7 +1431,8 @@
                          (.setSendingStatus virtual-cdj false)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
-                                                         (seesaw/separator) auto-action view-cache-action]
+                                                         (seesaw/separator) auto-action view-cache-action
+                                                         (seesaw/separator) playlist-writer-action]
                                                         menus/non-mac-file-actions))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]
@@ -1434,8 +1445,7 @@
                             (seesaw/menu :text "Network"
                                          :items [online-item metadata-item status-item
                                                  (seesaw/separator)
-                                                 player-status-action playlist-writer-action load-track-action
-                                                 ;; TODO: Need to disable load-track when offline/no metdata
+                                                 player-status-action load-track-action
                                                  (seesaw/separator)
                                                  carabiner-action]
                                          :id :network-menu)
@@ -1477,6 +1487,19 @@
     (catch Exception e
       (timbre/error e "Problem creating Trigger window."))))
 
+(defn- reflect-online-state
+  "Updates the File and Network menus so they are appropriate for
+  whether we are currently online or not. If online, we show the
+  player number in the `Online?` option, and enable the options which
+  require that state. Otherwise we disable them."
+  []
+  (seesaw/invoke-soon
+   (try
+     (seesaw/config! [playlist-writer-action load-track-action player-status-action] :enabled? (online?))
+     (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
+     (catch Throwable t
+       (timbre/error t "Problem updating interface to reflect online state")))))
+
 (defn- start-other-finders
   "Starts up the full complement of metadata-related finders that we
   use. Also updates the Online menu item to show our player number."
@@ -1486,7 +1509,7 @@
   (.start (BeatGridFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)
   (.start (WaveformFinder/getInstance))
-  (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name)))
+  (reflect-online-state))
 
 (defn start
   "Create the Triggers window, and register all the notification
@@ -1531,15 +1554,17 @@
   (.stop (BeatFinder/getInstance))
   (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
   (.stop virtual-cdj)
-  (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
+  (reflect-online-state)
   (Thread/sleep 200)  ; Wait for straggling update packets
   (rebuild-all-device-status))
 
 (defn go-online
   "Try to transition to an online state, updating the UI appropriately."
   []
-  (seesaw/hide! @trigger-frame)
-  (future ((resolve 'beat-link-trigger.core/try-going-online))
-          (if (online?)
-            (start-other-finders)
-            (.setSelected (seesaw/select @trigger-frame [:#online]) false))))
+  (future
+    (seesaw/invoke-now (seesaw/hide! @trigger-frame))
+    ((resolve 'beat-link-trigger.core/try-going-online))
+    (if (online?)
+      (start-other-finders)
+      (seesaw/invoke-now
+       (.setSelected (seesaw/select @trigger-frame [:#online]) false)))))
