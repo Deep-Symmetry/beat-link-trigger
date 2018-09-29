@@ -2,7 +2,6 @@
 James Elliott <james@deepsymmetry.org>
 :icons: font
 :toc:
-:stem:
 :experimental:
 :toc-placement: preamble
 :toclevels: 3
@@ -38,30 +37,8 @@ Each row in the Trigger window defines a single trigger, which watches
 a player or category of players, and can be configured to send
 different messages in response to what the player is doing.
 
-icon:tags[] If this is the first time you have opened Beat Link Trigger, you will
+If this is the first time you have opened Beat Link Trigger, you will
 see just one trigger containing default options.
-
-stem:[C = \alpha + \beta Y^{\gamma} + \epsilon]
-
-[ditaa]
-....
-                   +-------------+
-                   | Asciidoctor |-------+
-                   |   diagram   |       |
-                   +-------------+       | PNG out
-                       ^                 |
-                       | ditaa in        |
-                       |                 v
- +--------+   +--------+----+    /---------------\
- |        +-->+ Asciidoctor +--> |               |
- |  Text  |   +-------------+    |   Beautiful   |
- |Document|   |   !magic!   |    |    Output     |
- |     {d}|   |             |    |               |
- +---+----+   +-------------+    \---------------/
-     :                                   ^
-     |          Lots of work             |
-     +-----------------------------------+
-....
 
 image:assets/FirstTrigger04.png[First Trigger,900,294]
 
