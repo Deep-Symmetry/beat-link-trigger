@@ -281,12 +281,12 @@ enables the kbd:[Load] button:
 image:assets/LoadTrackButton.png[Load Track Button,633,484]
 
 Clicking that button tells the player chosen in the menu:Load on[]
-menu to load the chosen track. (The button will also be disabled,
+menu to load the selected track. (The button will also be disabled,
 with an explanation next to it, if that player is currently playing
 a track.)
 
 If the chosen player is currently stopped at the Cue point, the
-kbd:[Play if Cued] button will be enabled; pressing it, tells that
+kbd:[Play if Cued] button will be enabled; pressing it tells that
 player to start playing. If the player is currently playing, the
 button will be labeled kbd:[Stop and Cue], and clicking it will do
 that.
