@@ -951,9 +951,11 @@
   [selected-player e]
   (let [number (when-let [selection (seesaw/selection e)]
                  (.number selection))]
-    (reset! selected-player {:number number
+    (reset! selected-player {:number  number
                              :playing (and number
-                                           (.. virtual-cdj (getLatestStatusFor number) isPlaying))})))
+                                           (.. virtual-cdj (getLatestStatusFor number) isPlaying))
+                             :cued    (and number
+                                           (.. virtual-cdj (getLatestStatusFor number) isCued))})))
 
 (defn- configure-partial-search-ui
   "Show (with appropriate content) or hide the label and buttons
@@ -1033,7 +1035,7 @@
      (if (seq valid-slots)
        (try
          (let [selected-track   (atom nil)
-               selected-player  (atom {:number nil :playing false})
+               selected-player  (atom {:number nil :playing false :cued false})
                searches         (atom {})
                root             (seesaw/frame :title "Load Track on a Player"
                                               :on-close :dispose :resizable? true)
@@ -1045,12 +1047,14 @@
                problem-label    (seesaw/label :text "" :foreground "red")
                update-load-ui   (fn []
                                   (let [playing (:playing @selected-player)
+                                        cued    (:cued @selected-player)
                                         problem (cond (nil? @selected-track) "No track chosen."
                                                       playing                "Can't load while playing."
                                                       :else                  "")]
                                     (seesaw/value! problem-label problem)
                                     (seesaw/config! load-button :enabled? (empty? problem))
-                                    (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))))
+                                    (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))
+                                    (seesaw/config! play-button :enabled? (or playing cued))))
                player-changed   (fn [e]
                                   (update-selected-player selected-player e)
                                   (update-load-ui))
@@ -1093,7 +1097,9 @@
                                     (let [player @selected-player]
                                       (when (and (= (.getDeviceNumber status) (:number player))
                                                  (not= (.isPlaying status) (:playing player)))
-                                        (swap! selected-player assoc :playing (.isPlaying status))
+                                        (swap! selected-player assoc
+                                               :playing (.isPlaying status)
+                                               :cued (.isCued status))
                                         (update-load-ui)))))
                remove-listeners (fn []
                                   (.removeMountListener metadata-finder mount-listener)
