@@ -25,6 +25,10 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
+// Work around the issue with rendering callouts on GitHub.
+:conum-guard-clojure: ;;
+ifndef::icons[:conum-guard-clojure: ;; ;;]
+
 Customize and extend Beat Link Trigger by writing code in Clojure,
 the language used to implement the program itself.
 
@@ -120,18 +124,19 @@ control software using its
 https://secure.chamsys.co.uk/help/documentation/magicq/ch31.html[remote
 protocol]:
 
-```clojure
-(let [chamsys-address (InetSocketAddress.  ;; <1>
+[source,clojure,subs=attributes+]
+----
+(let [chamsys-address (InetSocketAddress.  {conum-guard-clojure} <1>
                        (InetAddress/getByName "172.16.42.255") 6553)
-      trigger-on (byte-array (map int "71,1H"))  ;; <2>
+      trigger-on (byte-array (map int "71,1H"))  {conum-guard-clojure} <2>
       trigger-off (byte-array (map int "71,0H"))]
-  (swap! globals assoc  ;; <3>
-         :chamsys-socket (DatagramSocket.)  ;; <4>
-         :chamsys-on (DatagramPacket. trigger-on (count trigger-on)  ;; <5>
+  (swap! globals assoc  {conum-guard-clojure} <3>
+         :chamsys-socket (DatagramSocket.)  {conum-guard-clojure} <4>
+         :chamsys-on (DatagramPacket. trigger-on (count trigger-on)  {conum-guard-clojure} <5>
                                       chamsys-address)
          :chamsys-off (DatagramPacket. trigger-off (count trigger-off)
                                       chamsys-address)))
-```
+----
 
 This begins with a `let` binding which sets up some values that will
 be used later in the expression.
@@ -297,11 +302,12 @@ when the trigger is active--which means it is enabled and the player
 it is watching is currently playing--so we wrap our expression in a
 `when` clause like this:
 
-```clojure
-(when trigger-active?  ;; <1>
-  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
-    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  ;; <3>
-```
+[source,clojure,subs=attributes+]
+----
+(when trigger-active?  {conum-guard-clojure} <1>
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  {conum-guard-clojure} <2>
+    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  {conum-guard-clojure} <3>
+----
 
 <1> Skip this whole expression if the trigger isn't active.
 
@@ -328,15 +334,16 @@ we can keep track of the last value we sent to Resolume, and only send
 a new one when it is different. We will use a local named
 `:resolume-pitch` to keep track of the last value we sent:
 
-```clojure
-(when trigger-active?  ;; <1>
-  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
+[source,clojure,subs=attributes+]
+----
+(when trigger-active?  {conum-guard-clojure} <1>
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  {conum-guard-clojure} <2>
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
-             (when (not= pitch old-pitch)  ;; <3>
-               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))  ;; <4>
-             pitch))))  ;; <5>
-```
+             (when (not= pitch old-pitch)  {conum-guard-clojure} <3>
+               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))  {conum-guard-clojure} <4>
+             pitch))))  {conum-guard-clojure} <5>
+----
 
 <1> Once again we are only doing anything when the trigger is active;
 the rest of the expression will be ignored otherwise.
@@ -360,16 +367,17 @@ when the right track loads for the first time.
 If you want to watch this happening, you can add a log statement that
 will report the new pitch value each time it is sent, like this:
 
-```clojure
+[source,clojure,subs=attributes+]
+----
 (when trigger-active?
   (let [pitch (/ (- pitch-multiplier 0.05) 2)]
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
              (when (not= pitch old-pitch)
-               (timbre/info "New pitch:" pitch)  ;; <1>
+               (timbre/info "New pitch:" pitch)  {conum-guard-clojure} <1>
                (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))
              pitch))))
-```
+----
 
 <1> Here is the log statement we are adding.
 
@@ -448,13 +456,14 @@ watch the Master Player, but this shows an example of how to filter
 beat packets by the player number of the device sending them, and that
 you get beat packets from the mixer itself too, if it is a DJM.
 
-```clojure
-(when (= device-number 33)  ;; <1>
-  (.send (:chamsys-socket @locals) (:chamsys-on @locals))  ;; <2>
-  (future  ;; <3>
-    (Thread/sleep (long (/ 30000 effective-tempo)))  ;; <4>
-    (.send (:chamsys-socket @locals) (:chamsys-off @locals))))  ;; <5>
-```
+[source,clojure,subs=attributes+]
+----
+(when (= device-number 33)  {conum-guard-clojure} <1>
+  (.send (:chamsys-socket @locals) (:chamsys-on @locals))  {conum-guard-clojure} <2>
+  (future  {conum-guard-clojure} <3>
+    (Thread/sleep (long (/ 30000 effective-tempo)))  {conum-guard-clojure} <4>
+    (.send (:chamsys-socket @locals) (:chamsys-off @locals))))  {conum-guard-clojure} <5>
+----
 
 <1> After checking that the packet came from the mixer (both the DJM 900
 nexus and the DJM 2000 nexus identify themselves as player number 33),
