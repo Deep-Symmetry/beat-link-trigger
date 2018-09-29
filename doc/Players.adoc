@@ -298,10 +298,10 @@ anywhere other than the current Cue point.
 
 The easiest way to find a track, if you know its title, artist, or
 album name, is to use the Search interface. As soon as you click on
-the Search section of a media entry, the search interface opens at the
-top of the window, and you can start typing. As you add to your search
-string, the results are narrowed down. Once you can see what you are
-looking for, you can expand and load it.
+the `SEARCH` section of a media entry, the search interface opens at
+the top of the window, and you can start typing. As you add to your
+search string, the results are narrowed down. Once you can see what
+you are looking for, you can expand and load it.
 
 image:assets/LoadTrackSearch.png[Load Track: Searching,672,648]
 
