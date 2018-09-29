@@ -25,6 +25,10 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
+// Work around the issue with rendering callouts on GitHub.
+:conum-guard-clojure: ;;
+ifndef::icons[:conum-guard-clojure: ;; ;;]
+
 Configure your triggers to respond only when particular tracks are
 being played.
 
@@ -39,7 +43,7 @@ title, artist, and so on. This section describes how to work with that
 metadata in your triggers. If you can't turn on metadata requests (for
 example, you are running a show with a full set of four CDJs, all
 loading tracks from the same media on a single player), you can
-prepare ahead of gime by hard-coding the rekordbox ID numbers in your
+prepare ahead of time by hard-coding the rekordbox ID numbers in your
 triggers, or you can set up a <<Players#caching-metadata,Metadata
 Cache>>.
 
@@ -49,8 +53,7 @@ when any player has loaded the track that the trigger cares about. For
 example, in the following screen shot we have two triggers watching
 for two specific tracks:
 
-// TODO: Needs to be reshot.
-image:assets/MatchTracksMeta.png[Matching Tracks,850,365]
+image:assets/MatchTracksMeta.png[Matching Tracks,884,411]
 
 The Enabled Filter expression for the first trigger is as follows:
 
@@ -128,18 +131,38 @@ of the kinds of things you can do with your expression code.
 Set up a Trigger that is configured to watch the Master Player, and
 install the following Tracked Update Expression:
 
-```clojure
-(when trigger-active?
-  (when (not= track-metadata (:last-track @locals))
-    (swap! locals assoc :last-track track-metadata)
-    (when (some? track-metadata)
-      (let [log-entry (with-out-str
+[source,clojure,subs=attributes+]
+----
+(when trigger-active?  {conum-guard-clojure} <1>
+  (when (not= track-metadata (:last-track @locals))  {conum-guard-clojure} <2>
+    (swap! locals assoc :last-track track-metadata)  {conum-guard-clojure} <3>
+    (when (some? track-metadata)  {conum-guard-clojure} <4>
+      (let [log-entry (with-out-str  {conum-guard-clojure} <5>
                         (println "Timestamp:" (str (java.time.LocalDateTime/now)))
                         (println "   Artist:" track-artist)
                         (println "    Title:" track-title)
                         (println))]
-       (spit "/Users/james/Desktop/playlist.txt" log-entry :append true)))))
-```
+       (spit "/Users/james/Desktop/playlist.txt" log-entry :append true)))))  {conum-guard-clojure} <6>
+----
+
+<1> Only proceed into the expression when there is a Master Player,
+and it is currently playing a track (because we configured the Trigger
+to Watch the Master Player).
+
+<2> Only proceed deeper into the expression if we have not yet written
+a playlist entry for this track metadata value (see step 3 for how
+this works).
+
+<3> Make a note of the metadata for the current track, because we are
+about to write a playlist entry for it, and only want to do it once.
+
+<4> Only proceed deeper into the expression if we actually have
+metadata, because otherwise we can't create a meaningful playlist
+entry.
+
+<5> Format the lines of the playlist entry.
+
+<6> Append the formatted lines to the specified file.
 
 TIP: This version creates a file called `playlist.txt` on my desktop;
 change the file path in the `spit` call to match where you want the
