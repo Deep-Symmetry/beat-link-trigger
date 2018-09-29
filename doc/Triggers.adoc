@@ -26,10 +26,10 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
-Triggers allow you to watch for a specific kind of activity on one or
-more CDJs, and generate events like MIDI notes or OSC messages in
-response, or synchronize external systems using MIDI clock or Ableton
-Link.
+Watch for specific activity on one or more CDJs, and send things
+like MIDI or OSC messages in response. Recognize tracks and synchronize
+external systems to them using MIDI clock or Ableton Link.
+
 
 == Overview
 
@@ -210,6 +210,9 @@ loading tracks from a single player, you can create and attach a
 <<Players#caching-metadata,Metadata Cache>> as described below.
 
 ====
+
+Powerful ways to take advantage of this metadata capability are explored
+in the <<Matching#matching-tracks,Matching Tracks>> section.
 
 === MIDI Output Menu
 

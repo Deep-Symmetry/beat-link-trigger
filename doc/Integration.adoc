@@ -25,7 +25,7 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
-Using Beat Link Trigger to run shows with other systems.
+Ways Beat Link Trigger has been used to run shows with other systems.
 
 == Overview
 

@@ -44,37 +44,38 @@ also dive right into it by jumping to the page you want:
 
 [horizontal]
 <<startup,Startup>>::
-Connecting to a network of players or working offline.
+Connect to a network of players or work offline.
 
-<<Triggers#triggers,Triggers>>:: Triggers allow you to watch for a
-specific kind of activity on one or more CDJs, and generate events
-like MIDI notes or OSC messages in response, or synchronize external
-systems using MIDI clock or Ableton Link.
+<<Triggers#triggers,Triggers>>::
+Watch for specific activity on one or more CDJs, and send things
+like MIDI or OSC messages in response. Recognize tracks and synchronize
+external systems to them using MIDI clock or Ableton Link.
 
-<<Expressions#expressions,Expressions>>:: Allow you to customize and
-extend Beat Link Trigger by writing code in Clojure, the language used
-to implement the program itself.
+<<Expressions#expressions,Expressions>>::
+Customize and extend Beat Link Trigger by writing code in Clojure,
+the language used to implement the program itself.
 
-<<Matching#matching-tracks,Matching Tracks>>:: Configure your triggers
-to respond only when particular tracks are being played.
+<<Matching#matching-tracks,Matching Tracks>>::
+Configure your triggers to respond only when particular tracks are
+being played.
 
 <<Players#the-player-status-window,The Player Status Window>>::
 Get a detailed view of what is happening on each player, what is
 coming up next, and even load and play tracks during pre-show.
 
-<<Link#working-with-ableton-link,Working with Ableton Link>>:: With
-the help of
+<<Link#working-with-ableton-link,Working with Ableton Link>>::
+With the help of
 https://github.com/brunchboy/carabiner#carabiner[Carabiner], Triggers
 can synchronize an Ableton Link session’s tempo, beats, and bars to
 the track playing on their watched player, or you can add Link as its
 own “player” that can become Tempo Master to the CDJs.
 
-<<Debugging#debugging,Debugging and Sharing>>:: Tools to help you
-figure out what is going on in your triggers, share them between
-projects or with others, and log playlists.
+<<Debugging#debugging,Debugging and Sharing>>::
+Tools to help figure out what is going on in your triggers, share
+them between projects or with others, and log playlists.
 
 <<Integration#integration-examples,Integration Examples>>::
-Using Beat Link Trigger to run shows with other systems.
+Ways Beat Link Trigger has been used to run shows with other systems.
 
 <<what-next,What Next?>>::
 How to learn more, get help from the community, and support this effort.

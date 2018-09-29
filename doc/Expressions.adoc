@@ -25,9 +25,8 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
-Expressions allow you to customize and extend Beat Link Trigger by
-writing code in Clojure, the language used to implement the program
-itself.
+Customize and extend Beat Link Trigger by writing code in Clojure,
+the language used to implement the program itself.
 
 == Overview
 

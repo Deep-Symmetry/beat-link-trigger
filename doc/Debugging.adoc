@@ -25,7 +25,8 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
-Tools to help you figure out what is going on in your triggers.
+Tools to help figure out what is going on in your triggers, share
+them between projects or with others, and log playlists.
 
 == Overview
 
