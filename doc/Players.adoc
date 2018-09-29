@@ -288,8 +288,9 @@ a track.)
 If the chosen player is currently stopped at the Cue point, the
 kbd:[Play if Cued] button will be enabled; pressing it tells that
 player to start playing. If the player is currently playing, the
-button will be labeled kbd:[Stop and Cue], and clicking it will do
-that.
+button will be labeled kbd:[Stop and Cue], and clicking it will tell
+the player to stop and return to the Cue point, so it will be ready
+to start playing again.
 
 NOTE: Limitations in the Fader Start protocol, which is used to start
 and stop players, make it impossible to start a player that is stopped
