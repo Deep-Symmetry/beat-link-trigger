@@ -294,7 +294,7 @@ to start playing again.
 
 NOTE: Limitations in the Fader Start protocol, which is used to start
 and stop players, make it impossible to start a player that is stopped
-anywhere other than the current cue point.
+anywhere other than the current Cue point.
 
 The easiest way to find a track, if you know its title, artist, or
 album name, is to use the Search interface. As soon as you click on
