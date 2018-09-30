@@ -108,8 +108,8 @@ expressions will be able to use to send PangoScript commands to it:
        (.send send-socket packet))))
 ```
 
-> Of course, replace the address and port in the first line with the
-> correct values to use for your BEYOND UDP Talk server.
+TIP: Of course, replace the address and port in the first line with
+the correct values to use for your BEYOND UDP Talk server.
 
 With that in place, we are ready to integrate laser shows. First,
 let's see how to have the tempo within BEYOND always precisely match
