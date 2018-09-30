@@ -124,13 +124,32 @@ players will be never be simultaneously linked to the database you
 need metadata for) you can set up a metadata cache before the show,
 and attach that to the slot where your DJ has inserted his media.
 
+=== Non-rekordbox Metadata
+
+The Player Status window is a lot less useful if non-rekordbox tracks
+are being played, because no waveform information or beat grids will
+be available, so it will not even be possible to calculate Time Played
+or Remain information. So most sections of the window will be blank
+when such tracks are loaded.
+
+We can still usually get (and display) title and artist information
+for tracks loaded from digital audio files, and even from audio CDs if
+they were burned with the CD-TEXT extension. For other audio CDs, the
+only information we receive from the player is the track number, which
+shows up as a title like `TRACK 01`.
+
+NOTE: It is also not yet possible to create metadata caches for
+non-rekordbox media. Since that metadata is so much less useful, this
+is not likely to be implemented unless you have a really compelling
+use case, and let us know about it.
+
 [[caching-metadata]]
 == Caching Metadata
 
-To create a metadata cache, have your DJ insert his media into a
-player before the show begins, and then click on the gear button next
-to the corresponding player slot, choosing the Create Metadata Cache
-File option:
+To create a metadata cache, have your DJ insert his (rekordbox only)
+media into a player before the show begins, and then click on the gear
+button next to the corresponding player slot, choosing the Create
+Metadata Cache File option:
 
 image:assets/CreateCache04.png[Create Metadata Cache option,350,234]
 
