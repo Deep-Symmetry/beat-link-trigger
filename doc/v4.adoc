@@ -112,7 +112,7 @@ you used the program.
 
 If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
-checking `Online?` in the `Network` menu:
+checking menu:Network[Online?]:
 
 image:assets/GoingOnline04.png[Going Online,400,205]
 
@@ -124,6 +124,15 @@ If there has been a disruption to the network, and you seem to have
 lost contact with the players, taking Beat Link Trigger offline and
 then going back online can often solve the problem.
 ====
+
+=== Checking your Player Number
+
+Once you have successfully taken Beat Link Trigger online, you can
+see what Player Number it is using by looking at the menu:Network[Online?]
+menu option without toggling it again. Whenever it is checked, the
+Player Number being used by Beat Link is shown there.
+
+image:assets/CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,205]
 
 == Learning More
 
