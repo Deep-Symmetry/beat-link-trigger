@@ -142,7 +142,8 @@ your show.
 
 If you have any thoughts, questions, your own integration examples, or
 even crazy ideas, please share them in the
-https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]!
+https://gitter.im/brunchboy/beat-link-trigger[Gitter chat] or
+https://github.com/brunchboy/beat-link-trigger/wiki[project Wiki]!
 
 If you find what seems to be an actual problem with the software,
 please open an

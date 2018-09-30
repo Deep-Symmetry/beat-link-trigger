@@ -156,17 +156,38 @@ the window becomes enabled:
 
 image:assets/CarabinerPassive.png[Carabiner in Passive Sync Mode,396,447]
 
-This gives you a place to control the things that a trigger woud normally
-set for you (whether the Link session is currently being synced, and if
-it should be aligned at the level of beats or entire four-beat bars).
-Since it starts out with `Sync` unchecked, when you are ready to tie the
-Link session to the Pioneer beat grid, simply check the `Sync` checkbox
-in the Ableton Link section:
+This gives you a place to control the things that a trigger would
+normally set for you (whether the Link session is currently being
+synced, and if it should be aligned at the level of beats or entire
+four-beat bars). Since it starts out with `Sync` unchecked, when you
+are ready to tie the Link session to the Pioneer beat grid, simply
+check the `Sync` checkbox in the Ableton Link section:
 
-image:assets/CarabinerPassive.png[Carabiner Synced Passively,396,447]
+image:assets/CarabinerPassiveSynced.png[Carabiner Synced Passively,396,447]
 
 At this point the Link session will follow the master Pioneer player,
 until you change the Carabiner settings.
+
+[TIP]
+====
+If you are using Passive or <<full-sync-mode,Full>> Sync Mode, and
+would still like a trigger to control the Ableton Link transport
+(playing/stopped) state, you can do it by calling functions in your
+trigger expressions. Use
+`(beat-link-trigger.carabiner/start-transport)` to start it playing,
+and `(beat-link-trigger.carabiner/stop-transport)` to stop it.
+
+You do need to make sure Carabiner is connected before calling
+either of these functions, though. This will do the trick:
+
+    (when (beat-link-trigger.carabiner/active?)
+      ;; Your code here
+    )
+
+If you want to only start or stop the transport when the `Sync`
+checkbox in the Ableton Link section is checked, substitute
+`sync-enabled?` for `active?` in the `when` clause above.
+====
 
 === Carabiner Status (Passive Mode)
 
