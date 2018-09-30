@@ -5,7 +5,7 @@ James Elliott <james@deepsymmetry.org>
 :experimental:
 :toc-placement: preamble
 :toclevels: 3
-:guide-top: v4
+:guide-top: README
 
 // Set up support for relative links on GitHub, and give it
 // usable icons for admonitions, w00t! Add more conditions

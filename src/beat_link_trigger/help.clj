@@ -51,4 +51,4 @@
   starting the embedded web server if needed."
   []
   (if-let [port (help-server)]
-    (clojure.java.browse/browse-url (str "http://127.0.0.1:" port "/guide/v4.html"))))  ;; TODO: Update when releasing!
+    (clojure.java.browse/browse-url (str "http://127.0.0.1:" port "/guide/README.html"))))
