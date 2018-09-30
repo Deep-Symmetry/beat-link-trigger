@@ -443,7 +443,6 @@ experience synchronization glitches."
     (connect)
     (disconnect)))
 
-;; TODO: This doesn't work right when we are tempo master in Full sync mode.
 (defn paint-state
   "Draws a representation of the sync state, including both whether it
   is enabled (connected to Carabiner and set to a Sync Mode other than

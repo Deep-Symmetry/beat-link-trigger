@@ -189,7 +189,7 @@ checkbox in the Ableton Link section is checked, substitute
 `sync-enabled?` for `active?` in the `when` clause above.
 ====
 
-=== Carabiner Status (Passive Mode)
+=== Carabiner Status (Passive Sync Mode)
 
 The Sync Mode status indicator works very similarly in this mode to
 how it worked in Triggers mode, except that it doesn't depend on the
@@ -249,14 +249,32 @@ hardware can control the Link session tempo, and any Pioneer players
 that are in Sync mode will follow along, aligning to the beats (or
 bars, if you have that option checked) of the Link timeline.
 
-// TODO Describe status indicators once the code is fixed, if relevant?
-
 In this Sync Mode, the `Link BPM` becomes editable in this window as
 well. You can click on the arrows to nudge it up or down by 0.01 BPM
 at a time, or you can type a new tempo in the field and press
 kbd:[Return] to jump immediately to that tempo. This will affect both
 the Link session itself, and any Pioneer players that are in Sync
 mode.
+
+=== Carabiner Status (Full Sync Mode)
+
+The Sync Mode status indicator again works similarly in this mode to
+how it worked in Passive Sync mode, except that it shows an active
+Sync state when either the Ableton Link `Sync` checkbox is checked or
+its `Master` radio button is chosen.
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Enabled, Neither Synced nor Master
+|image:assets/Enabled.png[Enabled,52,52]
+
+|Enabled, Synced or Master
+|image:assets/EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
+
+|===
 
 You can also put any player in Sync mode, or assign it as the Tempo
 Master, which is the topic of the next section.
