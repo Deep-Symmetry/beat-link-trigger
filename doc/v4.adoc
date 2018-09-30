@@ -68,7 +68,9 @@ With the help of
 https://github.com/brunchboy/carabiner#carabiner[Carabiner], Triggers
 can synchronize an Ableton Link session’s tempo, beats, and bars to
 the track playing on their watched player, or you can add Link as its
-own “player” that can become Tempo Master to the CDJs.
+own “player” that can become Tempo Master to the CDJs. Even without
+Carabiner, you can <<Link#sync-control,control>> which players are
+Synced, and which is the Tempo Master.
 
 <<Debugging#debugging,Debugging and Sharing>>::
 Tools to help figure out what is going on in your triggers, share
