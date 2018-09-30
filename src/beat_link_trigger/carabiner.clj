@@ -12,7 +12,7 @@
            [org.deepsymmetry.electro Metronome Snapshot]))
 
 (defonce ^{:private true
-           :doc "When connected, holds the socket used to communicate
+           :doc     "When connected, holds the socket used to communicate
   with Carabiner, the estimated latency in millisaconds between an
   actual beat played by a CDJ and when we receive the packet, values
   which track the peer count and tempo reported by the Ableton Link
@@ -21,10 +21,12 @@
   terminate that thread. (The `:last` entry is used to assign unique
   integers to each `:running` value as we are started and stopped, so
   a leftover background thread from a previous run can know when it is
-  stale and should exit.)"}
-  client (atom {:port    17000
-                :latency 1
-                :last    0}))
+  stale and should exit.) `:sync-mode` tracks the value chosen in the
+  window menu."}
+  client (atom {:port      17000
+                :latency   1
+                :last      0
+                :sync-mode :off}))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to configure and
