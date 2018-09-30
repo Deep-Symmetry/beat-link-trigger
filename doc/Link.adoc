@@ -274,6 +274,14 @@ Simply check or uncheck the `Sync` checkbox to adjust each player's
 Sync state, or click the Master radio button of the player that you
 want to become the Tempo Master.
 
+Beat Link's implementation of the sync control protocol works in both
+directions. If the DJ causes another player to become Tempo Master,
+the Link session will gracefully give up that role. The checkboxes
+and radio buttons will update to reflect any changes made on the
+players themselves. And if there is a DJM mixer on the network, it
+can tell Beat Link to turn its own Sync on or off, or become Tempo
+Master, and Beat Link will obey.
+
 == Ignoring Track BPM
 
 In very special situations, for example when you want to synchronize
