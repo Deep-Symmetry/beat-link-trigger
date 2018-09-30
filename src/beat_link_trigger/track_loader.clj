@@ -1096,7 +1096,8 @@
                                   (received [this status]
                                     (let [player @selected-player]
                                       (when (and (= (.getDeviceNumber status) (:number player))
-                                                 (not= (.isPlaying status) (:playing player)))
+                                                 (or (not= (.isPlaying status) (:playing player))
+                                                     (not= (.isCued status) (:cued player))))
                                         (swap! selected-player assoc
                                                :playing (.isPlaying status)
                                                :cued (.isCued status))
