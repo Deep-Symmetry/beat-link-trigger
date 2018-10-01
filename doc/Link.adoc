@@ -55,8 +55,8 @@ see at the bottom will depend on what is actually on your network):
 image:assets/CarabinerWindow04.png[Carabiner Connection window,396,447]
 
 NOTE: This window will also open whenever you choose `Link` in a
-trigger's <<message-menu,Message Menu>>, or load a trigger that is
-configured that way, if Carabiner is not already connected.
+trigger's <<Triggers#message-menu,Message Menu>>, or load a trigger
+that is configured that way, if Carabiner is not already connected.
 
 Set the `Carabiner Port` value to match the port on which your
 Carabiner daemon is listening. The default value of 17000 will work
