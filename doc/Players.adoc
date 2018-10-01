@@ -276,6 +276,9 @@ image:assets/LoadTrackContext.png[Load Track from Player Status Window,532,296]
 Either method opens the interface shown below; the advantage of
 starting from a media slot's popup menu is that the corresponding
 section of the loader interface will be automatically opened for you.
+If there are any computers running rekordbox on the network, they
+will also show up as places that you can tell players to load
+tracks from.
 
 image:assets/LoadTrackWindow.png[Load Track Window,565,484]
 

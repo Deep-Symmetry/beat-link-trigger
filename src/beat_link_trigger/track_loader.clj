@@ -237,6 +237,20 @@
          (attach-node-children node (.requestHistoryMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
+;; Creates a menu item node for the Hot Cue Bank menu.
+(defmethod menu-item-node Message$MenuItemType/HOT_CUE_BANK_MENU hot-cue-bank-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (isMenu [] false)  ; We don't let you load from this yet.
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]))
+   false))
+
 ;; Creates a menu item node for a history playlist
 (defmethod menu-item-node Message$MenuItemType/HISTORY_PLAYLIST history-playlist-node
   [^Message item ^SlotReference slot-reference]
@@ -793,14 +807,21 @@
   "Assembles the name used to describe a particular player slot, given
   the slot reference."
   [^SlotReference slot-reference]
-  (let [base (str "Player " (.player slot-reference) " "
-                  (util/case-enum (.slot slot-reference)
-                    CdjStatus$TrackSourceSlot/SD_SLOT "SD"
-                    CdjStatus$TrackSourceSlot/USB_SLOT "USB"))
-        extra (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
-                (str (when-let [name (.name details)] (str ": " name))
-                     (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
-                     (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists"))))]
+  (let [raw    (.player slot-reference)
+        number (bit-and raw 0x0f)
+        kind   (cond
+                 (< raw 0x10) "Player"
+                 (< raw 0x20) "Computer"
+                 :else        "Mixer")
+        base   (str kind " " number " "
+                    (util/case-enum (.slot slot-reference)
+                      CdjStatus$TrackSourceSlot/SD_SLOT "SD"
+                      CdjStatus$TrackSourceSlot/USB_SLOT "USB"
+                      CdjStatus$TrackSourceSlot/COLLECTION "Collection"))
+        extra  (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
+                 (str (when-let [name (.name details)] (str ": " name))
+                      (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
+                      (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists"))))]
     (str base extra)))
 
 (defn- slot-node
@@ -866,7 +887,9 @@
   the tree. Must be invoked on the Swing event dispatch thread.
   Ignores slots we don't support."
   [^JTree tree ^SlotReference slot]
-  (when (#{CdjStatus$TrackSourceSlot/SD_SLOT CdjStatus$TrackSourceSlot/USB_SLOT} (.slot slot))
+  (when (#{CdjStatus$TrackSourceSlot/SD_SLOT
+           CdjStatus$TrackSourceSlot/USB_SLOT
+           CdjStatus$TrackSourceSlot/COLLECTION} (.slot slot))
     (let [node (slot-node slot)
           root (.. tree getModel getRoot)]
       ;; Find the node we should be inserting the new one in front of, if any.
@@ -1028,9 +1051,10 @@
   be initially chosen as the track source. Returns the frame if
   creation succeeded."
    [^SlotReference slot]
-  ;; TODO: Need to add rekordbox collection slots for any rekordbox computers found on the network.
   (seesaw/invoke-later
-   (let [valid-slots (filter #(#{CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT} (.slot %))
+   (let [valid-slots (filter #(#{CdjStatus$TrackSourceSlot/USB_SLOT
+                                 CdjStatus$TrackSourceSlot/SD_SLOT
+                                 CdjStatus$TrackSourceSlot/COLLECTION} (.slot %))
                              (.getMountedMediaSlots metadata-finder))]
      (if (seq valid-slots)
        (try
