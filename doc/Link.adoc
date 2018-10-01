@@ -300,6 +300,7 @@ players themselves. And if there is a DJM mixer on the network, it
 can tell Beat Link to turn its own Sync on or off, or become Tempo
 Master, and Beat Link will obey.
 
+[[ignoring-track-bpm]]
 == Ignoring Track BPM
 
 In very special situations, for example when you want to synchronize
@@ -323,6 +324,12 @@ Beat Link Trigger will sync the Link session (or MIDI clock, which
 also supports this setting) to 126 BPM (which is 5% more than 120),
 regardless of the actual tempo of the track.
 
+NOTE: This fixed Sync BPM override works only for Trigger-driven sync,
+and works for triggers configured to use either Link or MIDI Clock. It
+has no effect when you are using the Carabiner window in Passive or
+Full Sync mode to bridge the Ableton Link session to the Pioneer
+network.
+
 Don't forget you have done this, or you will wonder why your sync is
 not working properly when you are trying to sync with tracks and
 systems that are properly beat gridded and tempo analyzed! To get back
@@ -334,8 +341,6 @@ the setting immediately:
 ```clojure
 (swap! globals dissoc :use-fixed-sync-bpm)
 ```
-
-// TODO: Does this also work when sync is not driven by triggers? Should it?
 
 == Learning More
 

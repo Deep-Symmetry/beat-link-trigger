@@ -253,7 +253,9 @@ target device with the tempo reported by the watched player. If the
 check box to the right of the menu is checked, it will either send a
 Start or Continue message (as chosen in the following menu) when the
 watched player starts playing, and if the Stop box is checked, it will
-send a Stop message when the watched player stops.
+send a Stop message when the watched player stops. In special cases,
+you can also <<Link#ignoring-track-bpm,ignore the track tempo>> and
+respond only to pitch changes.
 
 Link:: When this option is chosen, the trigger does not send MIDI
 messages at all. Instead, when activated, it tries to synchronize an
