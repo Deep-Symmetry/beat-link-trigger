@@ -39,6 +39,9 @@ This change log follows the conventions of
 - The `Online?` option in the `Triggers` menu now shows the player
   number that Beat Link Trigger is using once it is online, to help
   people understand how it is operating.
+- Icons are now displayed when no album art is available for a track,
+  providing information about where the track was loaded from, or an
+  indication that there is no track loaded.
 - A new `Help` menu with options to open the User Guide, project page,
   Gitter chat, and to compose emails to report issues with
   pre-populated version details, or simply say "hello" as a new user.
