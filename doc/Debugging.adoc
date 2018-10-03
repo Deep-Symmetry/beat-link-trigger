@@ -122,6 +122,16 @@ are done with a different project. As you would expect, the Load
 option replaces the current trigger configuration with one loaded from
 a save file.
 
+[CAUTION]
+====
+Beat Link Trigger automatically saves your triggers when you exit the
+program normally. If you shut down your computer, or otherwise
+force-quit the Beat Link Trigger process, it may not have the chance
+to do this, and you might lose work. If you are concerned about that
+happening, periodically save your triggers to another file. This will
+also save them as the default triggers.
+====
+
 === Exporting and Importing Triggers
 
 As mentioned in the <<Triggers#context-menu,Context Menu>> section,
