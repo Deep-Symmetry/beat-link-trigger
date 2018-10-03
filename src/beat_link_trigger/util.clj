@@ -69,6 +69,14 @@
   []
   (filter #(< % 16) (map #(.getNumber %) (.getCurrentDevices (DeviceFinder/getInstance)))))
 
+
+(defn remove-blanks
+  "Converts an empty string to a `nil` value so `or` will reject it."
+  [s]
+  (if (clojure.string/blank? s)
+    nil
+    s))
+
 (defmacro case-enum
   "Like `case`, but explicitly dispatch on Java enum ordinals."
   {:style/indent 1}
