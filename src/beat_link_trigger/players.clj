@@ -14,6 +14,7 @@
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            java.awt.event.WindowEvent
            javax.swing.JFileChooser
+           [javax.imageio ImageIO]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
@@ -501,15 +502,46 @@
       (.setFont g (get-display-font :segment Font/PLAIN 12))
       (.drawString g (subs tempo-string 4) (int 107) (int 22)))))
 
+(defn generic-media-image
+  "Return an image that can be used as generic album artwork for the
+  type of media being played in the specified player number."
+  [n]
+  (let [^CdjStatus status (.getLatestStatusFor virtual-cdj n)]
+    (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
+        (ImageIO/read (clojure.java.io/resource "images/CDDAlogo.png"))
+        (util/case-enum (.getTrackSourceSlot status)
+
+          CdjStatus$TrackSourceSlot/CD_SLOT
+          (ImageIO/read (clojure.java.io/resource "images/CD_data_logo.png"))
+
+          CdjStatus$TrackSourceSlot/COLLECTION
+          (ImageIO/read (clojure.java.io/resource "images/Collection_logo.png"))
+
+          CdjStatus$TrackSourceSlot/NO_TRACK
+          (ImageIO/read (clojure.java.io/resource "images/NoTrack.png"))
+
+          CdjStatus$TrackSourceSlot/SD_SLOT
+          (ImageIO/read (clojure.java.io/resource "images/SD.png"))
+
+          CdjStatus$TrackSourceSlot/USB_SLOT
+          (ImageIO/read (clojure.java.io/resource "images/USB.png"))
+
+          (ImageIO/read (clojure.java.io/resource "images/UnknownMedia.png"))))))
+
 (defn- paint-art
   "Draws the album art for a player. Arguments are player number, the
   component being drawn, and the graphics context in which drawing is
   taking place."
   [n c g]
-  (when-let [art (try (when (.isRunning art-finder) (.getLatestArtFor art-finder (int n)))
+  (if-let [art (try (when (.isRunning art-finder) (.getLatestArtFor art-finder (int n)))
                       (catch Exception e
                         (timbre/error e "Problem requesting album art to draw player row, leaving blank.")))]
-    (.drawImage g (.getImage art) 0 0 nil)))
+    (if-let [image (.getImage art)]
+      (.drawImage g image 0 0 nil)
+      (when-let [image (generic-media-image n)]  ; No image found, try drawing a generic substitute.
+      (.drawImage g image 0 0 80 80 nil)))
+    (when-let [image (generic-media-image n)]  ; No actual art found, try drawing a generic substitute.
+      (.drawImage g image 0 0 80 80 nil))))
 
 (defn- no-players-found
   "Returns true if there are no visible players for us to display."
