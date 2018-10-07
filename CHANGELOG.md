@@ -67,6 +67,8 @@ This change log follows the conventions of
   even if taken offline and back online. Now when we go offline, we
   shut down the `ConnectionManager`, clearing out that state so the
   next time we go online we can try again.
+- The Player Status window would sometimes not show the correct (or
+  any) remaining time information, when it should have been available.
 - Make the Player Status window show up in the right size to not
   require scroll bars.
 - The Player Status window display when no players were found was huge

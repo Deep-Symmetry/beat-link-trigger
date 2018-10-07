@@ -653,6 +653,7 @@
         time           (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
         last-time      (atom nil)
         remain         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))
+        last-remain    (atom nil)
         tempo          (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
         last-tempo     (atom nil)
         title-label    (seesaw/label :text "[track metadata not available]"
@@ -800,7 +801,11 @@
                                    (seesaw/repaint! player))
                                  (when (not= @last-time (time-played n))
                                    (reset! last-time (time-played n))
-                                   (seesaw/repaint! [time remain]))
+                                   (seesaw/repaint! [time]))
+                                 (let [now-remaining (when-let [played (time-played n)] (time-left n played))]
+                                   (when (not= @last-remain now-remaining)
+                                     (reset! last-remain now-remaining)
+                                     (seesaw/repaint! [remain])))
                                  (when (not= @last-beat (current-beat n))
                                    (reset! last-beat (current-beat n))
                                    (seesaw/repaint! beat))
