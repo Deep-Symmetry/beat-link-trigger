@@ -138,6 +138,12 @@ they were burned with the CD-TEXT extension. For other audio CDs, the
 only information we receive from the player is the track number, which
 shows up as a title like `TRACK 01`.
 
+TIP: In order to reliably obtain title and artist information for
+non-rekordbox tracks, you need to make sure that
+menu:Network[Send Status Packets?] is checked, which also means you
+need to be using a standard player number as described in the Metadata
+section <<Triggers#metadata,above>>.
+
 NOTE: It is also not yet possible to create metadata caches for
 non-rekordbox media. Since that metadata is so much less useful, this
 is not likely to be implemented unless you have a really compelling

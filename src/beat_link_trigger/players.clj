@@ -74,6 +74,20 @@
                                                (.getResourceAsStream IPlaylistEntry font-file))))
         (reset! fonts-loaded true))))
 
+(defn- sending-status?
+  "Checks whether we are currently sending status packets, which is
+  required to reliably obtain metadata for non-rekordbox tracks."
+  []
+  ((resolve 'beat-link-trigger.triggers/send-status?)))
+
+(defn- report-status-requirement
+  "Displays a warning explaining that status updates must be sent in
+  order to reliably obtain non-rekordbox metadata."
+  [parent]
+  (seesaw/alert parent (str "You may see missing Title and Aritst information for non-rekordbox\n"
+                            "tracks unless you enable Send Status Packets in the Network menu.")
+                :title "Beat Link Trigger isn't sending Status Packets" :type :warning))
+
 (defn get-display-font
   "Find one of the fonts configured for use by keyword, which must be
   one of `:segment`. The `style` argument is a `java.awt.Font` style
@@ -817,7 +831,8 @@
   (.setLocationRelativeTo @player-window trigger-frame)
   (seesaw/show! @player-window)
   (.toFront @player-window)
-  (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
+  (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals)))
+  (when-not (sending-status?) (report-status-requirement @player-window)))
 
 (defn build-no-player-indicator
   "Creates a label with a large border that reports the absence of any
