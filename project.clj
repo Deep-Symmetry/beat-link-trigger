@@ -13,7 +13,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.12"]
                  [environ "1.1.0"]
-                 [fipp "0.6.12"]
+                 [fipp "0.6.13"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.4.0-SNAPSHOT"]
@@ -23,8 +23,8 @@
                  [seesaw "1.5.0"]
                  [uk.co.xfactory-librarians/coremidi4j "1.1"]
                  [com.cemerick/url "0.1.1"]
-                 [http-kit "2.2.0"]
-                 [compojure "1.5.1"]
+                 [http-kit "2.3.0"]
+                 [compojure "1.6.1"]
                  [javax.xml.bind/jaxb-api "2.2.8"]]  ; https://stackoverflow.com/questions/43574426/
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
