@@ -71,12 +71,12 @@
    (when (and (when-let [font-name (.getName (UIManager/get "MenuBar.font"))]
                 (.startsWith font-name "."))
               (some #(= "Lucida Grande" %)
-                    (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment)))))
-   (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
-                                    (when (and (instance? javax.swing.plaf.FontUIResource v)
-                                               (.startsWith (.getName v) "."))
-                                      [k v])))]
-     (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle v) (.getSize v)))))
+                    (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
+     (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
+                                      (when (and (instance? javax.swing.plaf.FontUIResource v)
+                                                 (.startsWith (.getName v) "."))
+                                        [k v])))]
+       (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle v) (.getSize v))))))
 
   ;; If we are on a Mac, hook up our About handler where users expect to find it.
   (menus/install-mac-about-handler)
