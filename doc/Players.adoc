@@ -157,7 +157,7 @@ media into a player before the show begins, and then click on the gear
 button next to the corresponding player slot, choosing the Create
 Metadata Cache File option:
 
-image:assets/CreateCache04.png[Create Metadata Cache option,350,234]
+image:assets/CreateCache.png[Create Metadata Cache option,350,234]
 
 This will open a dialog where you can choose to cache either all the
 tracks present on the media, or only those associated with a
@@ -202,7 +202,7 @@ attach caches using the gear button next to any player media slot. The
 gear will be filled in when a cache is attached, and the cache file
 information displayed next to it, as shown here:
 
-image:assets/CreateCache4-04.png[Metadata Cache Attached,350,234]
+image:assets/CreateCache4.png[Metadata Cache Attached,350,234]
 
 == Auto-Attaching Metadata Caches
 
@@ -213,7 +213,7 @@ up in a busy show), you can ask Beat Link Trigger to watch for media
 that matches the cache, and automatically attach it. To do this,
 choose `Auto-Attach Metadata Caches` in the `File` menu.
 
-image:assets/AutoAttach04.png[Auto-Attach option,344,162]
+image:assets/AutoAttach.png[Auto-Attach option,344,162]
 
 This will open a window where you can configure the cache files that
 should be watched for. Click `Add File` to add one:
@@ -256,7 +256,7 @@ rekordbox IDs of the tracks you want your triggers to match.
 
 To do this, choose `View Metadata Cache Contents` in the `File` menu.
 
-image:assets/ViewCacheContents04.png[View Cache option,344,162]
+image:assets/ViewCacheContents.png[View Cache option,344,162]
 
 This will open a file chooser dialog you can use to find the file
 containing the cache that you want to examine. Once you choose one, a

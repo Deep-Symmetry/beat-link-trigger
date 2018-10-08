@@ -21,33 +21,13 @@ page and double-click it to run it. If that doesn&rsquo;t work,
 
 [![jar](https://img.shields.io/github/downloads/brunchboy/beat-link-trigger/total.svg)](https://github.com/brunchboy/beat-link-trigger/releases)
 
-
-> :warning: Released versions of beat-link-trigger worked only with
-> Java 7 or 8, which are off support. You should probably try out the
-> preview release of Beat Link Trigger 0.4.0 which not only works with
-> Java 7 through 11 (the latest), but also includes a [significant
-> number of major new features](CHANGELOG.md).
->
-> :construction: If you would like to help testing this, download and
-> try out the 0.4.0 preview jar, which can be found on the
-> [releases](https://github.com/brunchboy/beat-link-trigger/releases)
-> page.
->
-> The main reason it is still only a preview release is that the
-> sleek, dark user interface theme it depends on is not scheduled to
-> release its finalized Java 9 compatible version until the [week of
-> October
-> 8](https://github.com/kirill-grouchnikov/radiance/issues/6#issuecomment-423548892).
-> People have been using the preview successfully for months now,
-> though.
-
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
 stop, and when the triggers are enabled:
 
 <image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
-Starting with version 0.3.0, there is also an interface for monitoring
+There is also an interface for monitoring
 the status of each player found on the network, which you can access
 by choosing `Show Player Status` in the `Network` menu:
 
@@ -154,17 +134,11 @@ made programs like Beat Link Trigger possible.
 ## Startup Issues
 
 If double-clicking doesn&rsquo;t open up the application, make sure
-you have a recent [Java 8 SE runtime
+you have a recent [Java SE runtime
 environment](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 installed, and try running it from the command line:
 
     java -jar beat-link-trigger.jar
-
-> :warning: Make sure you download the **Java 8 SE JRE**, _not_ Java 9
-> or later, as Beat Link Trigger is [not yet
-> compatible](https://github.com/brunchboy/beat-link-trigger/issues/31)
-> with Java 9, 10, or 11 unless you are using the 0.4.0 preview
-> release of Beat Link Trigger.
 
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
@@ -196,12 +170,11 @@ on, you will be able to run that copy by just double-clicking it.
 
 <image src="doc/assets/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
-> Someday we may release a Mac-specific bundle of the application,
-> perhaps even through the Mac App Store, which will avoid the need to
-> take this step. But that will be a much larger download because it
-> will have to bundle its own copy of the entire Java environment. In
-> the mean time, at least you only need to do this once for each new
-> release you download.
+> We expect to soon release a Mac-specific bundle of the application,
+> which will avoid the need to take this step. But that will be a much
+> larger download because it will have to bundle its own copy of the
+> entire Java environment. In the mean time, at least you only need to
+> do this once for each new release you download.
 
 ## License
 

@@ -1,4 +1,4 @@
-= Debugging
+= Debugging and Sharing
 James Elliott <james@deepsymmetry.org>
 :icons: font
 :toc:

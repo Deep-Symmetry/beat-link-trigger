@@ -52,7 +52,7 @@ image:assets/CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu
 This will open the Carabiner Connection window (the set of devices you
 see at the bottom will depend on what is actually on your network):
 
-image:assets/CarabinerWindow04.png[Carabiner Connection window,396,447]
+image:assets/CarabinerWindow.png[Carabiner Connection window,396,447]
 
 NOTE: This window will also open whenever you choose `Link` in a
 trigger's <<Triggers#message-menu,Message Menu>>, or load a trigger
@@ -73,7 +73,7 @@ Pioneer gear, you can increase this value until things sound right.
 Once your port value is correct, you can click the Connect check box
 to establish a connection with Carabiner:
 
-image:assets/CarabinerConnected04.png[Carabiner connection established,396,447]
+image:assets/CarabinerConnected.png[Carabiner connection established,396,447]
 
 Once connected, you can no longer adjust the port value, but you can
 tweak the latency at any time while listening to sound from your
@@ -88,7 +88,7 @@ In order to allow triggers to influence the Link session, configure a
 trigger to send to Link by choosing menu:Message[Link] in the trigger
 itself:
 
-image:assets/LinkTrigger04.png[Link trigger,844,165]
+image:assets/LinkTrigger.png[Link trigger,844,165]
 
 Triggers that work with Link can align the beat grid with either
 individual beats, or entire bars of four beats (the default). If you
@@ -116,7 +116,7 @@ Mode, whenever a Link trigger is active, Beat Link Trigger will
 control the Link session tempo, and will align it to the beat (or bar)
 of the trigger's watched player:
 
-image:assets/CarabinerMastering04.png[Carabiner controlling the tempo,396,447]
+image:assets/CarabinerMastering.png[Carabiner controlling the tempo,396,447]
 
 === Carabiner Status (Triggers Mode)
 
@@ -346,7 +346,7 @@ the setting immediately:
 
 ****
 
-* Continue to <<Logs#logs,Logs>>
+* Continue to <<Debugging#debugging-and-sharing,Debugging and Sharing>>
 * Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
 
 ****

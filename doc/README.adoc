@@ -28,13 +28,6 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
-[NOTE]
-====
-This covers version 0.4.0, currently in preview release.
-If you are using version 0.3.8, please refer to the
-<<v3#beat-link-trigger-user-guide,original User Guide>>.
-====
-
 To keep page sizes manageable, this guide is split into several pages.
 It is worth reading through this whole guide once if you are new to
 Beat Link Trigger. Once you know what you are looking for, you can
@@ -72,7 +65,7 @@ own “player” that can become Tempo Master to the CDJs. Even without
 Carabiner, you can <<Link#sync-control,control>> which players are
 Synced, and which is the Tempo Master.
 
-<<Debugging#debugging,Debugging and Sharing>>::
+<<Debugging#debugging-and-sharing,Debugging and Sharing>>::
 Tools to help figure out what is going on in your triggers, share
 them between projects or with others, and log playlists.
 
@@ -114,7 +107,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking menu:Network[Online?]:
 
-image:assets/GoingOnline04.png[Going Online,400,205]
+image:assets/GoingOnline.png[Going Online,400,205]
 
 You can also go offline at any time by un-checking the menu option.
 

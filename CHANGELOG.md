@@ -6,6 +6,16 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.4.0] - 2018-10-07
+
+The most feature-packed release yet, with quite a few fixes as well!
+Next step is building a Mac (and possibly Windows) application bundle
+for people who don't want or need a separate Java runtime environment,
+and then work can begin on separating the UI from the engine, which
+will enable a ton of very compelling new use cases!
+
 ### Added
 
 - Support for running under Java 9, 10 and 11.
@@ -513,7 +523,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.8...HEAD
+[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.8...v0.4.0
 [0.3.8]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.5...v0.3.6
