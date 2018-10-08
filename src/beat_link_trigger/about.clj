@@ -91,6 +91,9 @@
                                           (when (not= w h)
                                             (let [side (Math/min w h)]
                                               (seesaw/config! root :size [side :by side]))))))
+    ;; Don't allow resizing on Windows because for some reason, that causes all kinds of ugly issues.
+    (when (.startsWith (.toLowerCase (System/getProperty "os.name")) "windows")
+      (seesaw/config! root :resizable? false))
     (.setLocationRelativeTo root nil)
     (seesaw/show! root)
     root))
