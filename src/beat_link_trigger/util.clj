@@ -1,18 +1,13 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
   (:require [seesaw.core :as seesaw]
-            [environ.core :refer [env]])
+            [version])
   (:import [org.deepsymmetry.beatlink DeviceFinder]))
 
 (defn get-version
-  "Returns the version tag from the project.clj file, either from the
-  environment variable set up by Leiningen, if running in development
-  mode, or from the jar manifest if running from a production build."
+  "Returns the version information set up by lein-v."
   []
-  (or (env :beat-link-trigger-version)
-      (when-let [pkg (.getPackage (class get-version))]
-        (.getSpecificationVersion pkg))
-      "DEV"))  ; Must be running in dev mode embedded in some other project
+  version/version)
 
 (defn get-java-version
   "Returns the version of Java in which we are running."

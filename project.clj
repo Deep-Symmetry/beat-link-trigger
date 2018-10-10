@@ -1,4 +1,4 @@
-(defproject beat-link-trigger "0.4.1-SNAPSHOT"
+(defproject beat-link-trigger :lein-v
   :description "Trigger events in response to CDJ activity."
   :url "https://github.com/brunchboy/beat-link-trigger"
   :license {:name "Eclipse Public License"
@@ -12,7 +12,6 @@
                  [org.pushing-pixels/radiance-substance-extras "1.0.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.12"]
-                 [environ "1.1.0"]
                  [fipp "0.6.13"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
@@ -45,9 +44,9 @@
              "Specification-Version"  ~#(:version %)
              "Implementation-Version" ~(str (java.util.Date.))}
 
-  :plugins [[lein-environ "1.1.0"]
+  :plugins [[lein-asciidoctor "0.1.16"]
             [lein-resource "16.9.1"]
-            [lein-asciidoctor "0.1.16"]]
+            [com.roomkey/lein-v "6.4.0"]]
 
   ;; Enable the creation of an embedded, offline copy of the User Guide.
   :asciidoctor [{:sources          ["doc/*.adoc"]
@@ -65,7 +64,11 @@
 
   ;; Perform the tasks which embed the user guide before compilation, so it will be available
   ;; both in development, and in the distributed archive.
-  :prep-tasks ["asciidoctor" "resource" "javac" "compile"]
+  :prep-tasks ["asciidoctor"
+               "resource"
+               "javac"
+               "compile"
+               ["v" "cache" "src"]]
 
   ;; Miseclaneous sanitary settings
   :pedantic :warn
