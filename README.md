@@ -1,6 +1,8 @@
 # beat-link-trigger
 
 [![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
+ <img align="right" width="275" height="250" alt="Beat Link"
+      src="doc/assets/BeatLink-logo-padded-left.png">
 
 An application to trigger MIDI events when CDJs start playing tracks,
 reach particular beats, or whatever else you can think of. Built
@@ -25,13 +27,13 @@ A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
 stop, and when the triggers are enabled:
 
-<image src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
+<img src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
 There is also an interface for monitoring
 the status of each player found on the network, which you can access
 by choosing `Show Player Status` in the `Network` menu:
 
-<image src="doc/assets/PlayerStatus.png" alt="Player Status window" width="538" height="768">
+<img src="doc/assets/PlayerStatus.png" alt="Player Status window" width="538" height="768">
 
 ### Going Further
 
@@ -57,10 +59,9 @@ Trigger, please add a page or two the Wiki to share them with others!
 
 First of all, we would *love* to hear from you! We have no way of
 knowing who has discovered, explored, downloaded and tried Beat Link
-Trigger. So if you have, please write a quick note on
-the [Gitter chat room](https://gitter.im/brunchboy/beat-link-trigger)
-to let us know! Even if it is only to explain why it didn't quite work
-for you.
+Trigger. So if you have, please write a quick note on the [Gitter chat
+room](https://gitter.im/brunchboy/beat-link-trigger) to let us know!
+Even if it is only to explain why it didn&rsquo;t quite work for you.
 
 If you run into specific problems or have ideas of ways Beat Link
 Trigger could be better, you can
@@ -75,7 +76,7 @@ also
 Beat Link Trigger is, and will remain, completely free and
 open-source. If it has helped you, taught you something, or pleased
 you, let us know and share some of your discoveries and code as
-described above. If you'd like to financially support its ongoing
+described above. If you&rsquo;d like to financially support its ongoing
 development, you are welcome (but by no means obligated) to donate to
 offset the hundreds of hours of research, development, and writing
 that have already been invested. Or perhaps to facilitate future
@@ -87,7 +88,7 @@ efforts, tools, toys, and time to explore.
     alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 
 > If enough people jump on board, we may even be able to get a newer
-> CDJ to experiment with, although that's an unlikely stretch goal.
+> CDJ to experiment with, although that&rsquo;s an unlikely stretch goal.
 > :grinning:
 
 ## Compatibility
@@ -95,7 +96,7 @@ efforts, tools, toys, and time to explore.
 This is in no way a sanctioned implementation of the protocols. It should be clear, but:
 
 > :warning: Use at your own risk! For example, there are reports that
-> the XDJ-RX crashes when BLT starts, so don't use it with one on your
+> the XDJ-RX crashes when BLT starts, so don&rsquo;t use it with one on your
 > network. As Pioneer themselves
 > [explain](https://forums.pioneerdj.com/hc/en-us/community/posts/203113059-xdj-rx-as-single-deck-on-pro-dj-link-),
 > the XDJ-RX does not actually implement the protocol:
@@ -124,7 +125,7 @@ be improved,
 or submit a pull request so we can all improve our understanding
 together.
 
-If something isn't working with your hardware and you don't yet know
+If something isn&rsquo;t working with your hardware and you don&rsquo;t yet know
 the details why, but are willing to learn a little and help figure it
 out, look at the
 [dysentery project](https://github.com/brunchboy/dysentery#dysentery),
@@ -133,7 +134,8 @@ made programs like Beat Link Trigger possible.
 
 ## Startup Issues
 
-If double-clicking doesn&rsquo;t open up the application, make sure
+If you downloaded the `.jar` version and
+double-clicking doesn&rsquo;t open up the application, make sure
 you have a recent [Java SE runtime
 environment](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 installed, and try running it from the command line:
@@ -156,11 +158,23 @@ least lets you run the program.
 
 ### Mac Trust Confirmation
 
-If you are on a Mac, the first time you try to launch the downloaded
+If you are on a Mac, your best option nowadays is to download the
+disk image installer. It contains Beat Link Trigger packaged
+as a native Mac application, with an embedded Java 11 runtime,
+so you don&rsquo;t need to worry about installing or managing Java if you
+don&rsquo;t use it for other purposes. It is code-signed by Deep Symmetry,
+so your Mac should be happy to install and run it without complaint.
+
+<img src="doc/assets/DMG-Installer.png" width="640" height="435"
+     alt="Installer window">
+
+If you already have your own Java runtime installed and want to use
+it, you can instead download the smaller executable `.jar` file, but
+then the first time you try to launch the downloaded
 jar file by double-clicking it you will see an error like this because
 it is not a Mac-specific application:
 
-<image src="doc/assets/Unsigned.png" alt="Unsigned jar" width="492" height="299">
+<img src="doc/assets/Unsigned.png" alt="Unsigned jar" width="492" height="299">
 
 You can fix that by control-clicking on the Jar and choosing
 &ldquo;Open&rdquo; at the top of the contextual menu that pops up. You
@@ -168,13 +182,10 @@ will be asked to confirm that you really want to run it. Click the
 &ldquo;Open&rdquo; button in that confirmation dialog, and from then
 on, you will be able to run that copy by just double-clicking it.
 
-<image src="doc/assets/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
+<img src="doc/assets/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
-> We expect to soon release a Mac-specific bundle of the application,
-> which will avoid the need to take this step. But that will be a much
-> larger download because it will have to bundle its own copy of the
-> entire Java environment. In the mean time, at least you only need to
-> do this once for each new release you download.
+> We are looking into also offering a native Windows bundle if that can
+> be accomplished with a similar level of effort.
 
 ## License
 
