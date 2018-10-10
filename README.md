@@ -16,8 +16,8 @@ too!
 
 ## Usage
 
-Download the latest disk image (`.dmg`) installer (for the Mac) or
-executable `beat-link-trigger.jar` file (for other platforms) from the
+Download the latest disk image (`.dmg`) installer for the Mac, or
+executable `beat-link-trigger.jar` file for other platforms, from the
 [releases](https://github.com/brunchboy/beat-link-trigger/releases)
 page and double-click it to run it. If that doesn&rsquo;t work, [see
 below](#startup-issues).
@@ -185,8 +185,8 @@ on, you will be able to run that copy by just double-clicking it.
 
 <img src="doc/assets/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
-> We are looking into also offering a native Windows bundle if that can
-> be accomplished with a similar level of effort.
+> You will need to repeat this process for each version that you
+> download.
 
 ## License
 
