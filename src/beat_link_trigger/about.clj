@@ -41,7 +41,7 @@
         version-label (seesaw/text :text (str "Version:" (util/get-version) "\n" (util/get-build-date))
                                    :multi-line? true :wrap-lines? true
                                    :foreground "white" :cursor :text
-                                   :bounds [5 5 200 60])
+                                   :bounds [5 5 300 60])
         java-label (seesaw/text :text (str "Java Version:\n" (util/get-java-version))
                                 :multi-line? true :wrap-lines? true
                                 :foreground "white" :cursor :text

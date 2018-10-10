@@ -26,8 +26,16 @@
 (defn get-build-date
   "Returns the date this jar was built, if we are running from a jar."
   []
-  (when-let [pkg (.getPackage (class get-version))]
-    (.getImplementationVersion pkg)))
+  (let [a-class    (class get-version)
+        class-name (str (.getSimpleName a-class) ".class")
+        class-path (str (.getResource a-class class-name))]
+    (when (clojure.string/starts-with? class-path "jar")
+      (let [manifest-path (str (subs class-path 0 (inc (clojure.string/last-index-of class-path "!")))
+                               "/META-INF/MANIFEST.MF")]
+        (with-open [stream (.openStream (java.net.URL. manifest-path))]
+          (let [manifest   (java.util.jar.Manifest. stream)
+                attributes (.getMainAttributes manifest)]
+            (.getValue attributes "Build-Timestamp")))))))
 
 (defn confirm-overwrite-file
   "If the specified file already exists, asks the user to confirm that

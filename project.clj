@@ -37,12 +37,12 @@
   ;; :jvm-opts ["--add-modules" "java.xml.bind"]
 
   ;; Add project name and version information to jar file manifest
-  :manifest {"Name"                   ~#(str (clojure.string/replace (:group %) "." "/")
-                                             "/" (:name %) "/")
-             "Package"                ~#(str (:group %) "." (:name %))
-             "Specification-Title"    ~#(:name %)
-             "Specification-Version"  ~#(:version %)
-             "Implementation-Version" ~(str (java.util.Date.))}
+  :manifest {"Name"                  ~#(str (clojure.string/replace (:group %) "." "/")
+                                            "/" (:name %) "/")
+             "Package"               ~#(str (:group %) "." (:name %))
+             "Specification-Title"   ~#(:name %)
+             "Specification-Version" ~#(:version %)
+             "Build-Timestamp"       ~(str (java.util.Date.))}
 
   :plugins [[lein-asciidoctor "0.1.16"]
             [lein-resource "16.9.1"]
