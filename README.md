@@ -16,10 +16,11 @@ too!
 
 ## Usage
 
-Download the latest executable `beat-link-trigger.jar` file from the
+Download the latest disk image (`.dmg`) installer (for the Mac) or
+executable `beat-link-trigger.jar` file (for other platforms) from the
 [releases](https://github.com/brunchboy/beat-link-trigger/releases)
-page and double-click it to run it. If that doesn&rsquo;t work,
-[see below](#startup-issues).
+page and double-click it to run it. If that doesn&rsquo;t work, [see
+below](#startup-issues).
 
 [![jar](https://img.shields.io/github/downloads/brunchboy/beat-link-trigger/total.svg)](https://github.com/brunchboy/beat-link-trigger/releases)
 
