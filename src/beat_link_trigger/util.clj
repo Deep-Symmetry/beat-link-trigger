@@ -3,10 +3,13 @@
   (:require [seesaw.core :as seesaw])
   (:import [org.deepsymmetry.beatlink DeviceFinder]))
 
+(def ^:private project-version
+  (delay (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
+
 (defn get-version
   "Returns the version information set up by lein-v."
   []
-  (:version (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
+  (:version @project-version))
 
 (defn get-java-version
   "Returns the version of Java in which we are running."
