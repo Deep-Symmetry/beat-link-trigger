@@ -68,7 +68,7 @@
                "resource"
                "javac"
                "compile"
-               ["v" "cache" "src"]]
+               ["v" "cache" "resources/beat_link_trigger" "edn"]]
 
   ;; Miseclaneous sanitary settings
   :pedantic :warn

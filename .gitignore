@@ -1,7 +1,7 @@
 /target
 /classes
 /checkouts
-src/version.clj
+/resources/beat_link_trigger/version.edn
 pom.xml
 pom.xml.asc
 *.jar

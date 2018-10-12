@@ -1,13 +1,12 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
-  (:require [seesaw.core :as seesaw]
-            [version])
+  (:require [seesaw.core :as seesaw])
   (:import [org.deepsymmetry.beatlink DeviceFinder]))
 
 (defn get-version
   "Returns the version information set up by lein-v."
   []
-  version/version)
+  (:version (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
 
 (defn get-java-version
   "Returns the version of Java in which we are running."
