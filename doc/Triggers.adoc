@@ -265,7 +265,7 @@ tempo, especially when sent by a general-purpose operating system like
 the one running Beat Link Trigger. If at all possible, you should use
 Ableton Link instead, as described below. You will get _much_ better
 results. If you have to talk to older hardware that can't accept
-Ableton Link, consider still sending Link from beat Link Trigger, and
+Ableton Link, consider still sending Link from Beat Link Trigger, and
 using a dedicated Ableton Link to MIDI bridge to talk to your older
 hardware. If you have any iOS devices available,
 https://alexandernaut.com/linktomidi/[Link to MIDI] seems to get good
