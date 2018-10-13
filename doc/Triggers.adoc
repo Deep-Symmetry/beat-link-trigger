@@ -290,6 +290,19 @@ also use expressions, as described <<Expressions#expressions,below>>,
 to send additional messages over MIDI or other communication
 protocols. As with MIDI clock, you can <<Link#ignoring-track-bpm,ignore
 the track tempo>> for special-case integrations.
++
+[TIP]
+====
+
+If you are interested in synchronizing an Ableton Link session with
+the tempo and beat grid of your CDJs, you no longer need to use
+triggers to do so. With Carabiner running, you can use
+<<Link#passive-sync-mode,Passive Sync Mode>> to have Ableton Link
+follow the CDJs, and you can even let Ableton Link be the Tempo Master
+and control the tempo and beat sync of the CDJs using
+<<Link#full-sync-mode,Full Sync Mode>>.
+
+====
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
