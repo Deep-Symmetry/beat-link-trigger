@@ -229,87 +229,119 @@
   is sending clock pulses."
   (javax.sound.midi.ShortMessage. javax.sound.midi.ShortMessage/CONTINUE))
 
-(defn- clock-interval
-  "Calculate how many milliseconds there should be between clock
-  pulses to represent the tempo reported by the latest status update
-  seen by the current trigger, as found cached in the user data. If
-  `bpm-override` has a value, pretend the playing track has that BPM
-  and calculate the effective tempo based on the player pitch."
-  [data bpm-override]
-  (/ 2500.0 (if-let [cached-status (:status data)]
-              (if (= 65535 (.getBpm cached-status))
-                (or bpm-override 120.0) ; Default to 120 bpm if the player has not loaded a track
-                (if bpm-override
-                  (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch cached-status)) bpm-override)
-                  (.getEffectiveTempo cached-status)))
-              (or bpm-override 120.0)))) ; Default to 120 bpm if we lost status information momentarily
-
 (defn- clock-sender
-  "The loop which sends MIDI clock messages to synchronize a MIDI
-  device with the tempo received from beat-link, as long as the
-  trigger is enabled."
-  [trigger]
+  "The loop which sends MIDI clock messages to synchronize a MIDI device
+  with the tempo received from beat-link, as long as the trigger is
+  enabled and our `running` atom holds a `true` value."
+  [trigger metro running]
   (try
     (timbre/info "Midi clock thread starting for Trigger"
                  (:index (seesaw/value trigger)))
-    (loop [adjustment 0.0]  ; The amount we should subtract from the interval to fix missed timing
-      (let [data         @(seesaw/user-data trigger)
-            output       (get-chosen-output trigger data)
-            bpm-override (:use-fixed-sync-bpm @expression-globals)
-            interval     (- (clock-interval data bpm-override) adjustment) ; The ideal amount we should sleep
-            ms           (Math/round (max 0.0 interval))     ; The actual amount we will try to sleep
-            error        (- ms interval)                     ; The difference between ideal and actual sleep time
-            target       (+ (System/currentTimeMillis) ms)]  ; The time we are trying to wake up
-        (when (some? output)  ; Send a clock pulse as long as our MIDI output is present
-          (midi/midi-send-msg (:receiver output) clock-message -1))
+    (let [last-beat-sent (atom nil)]
+      (loop []
+        (let [trigger-data  @(seesaw/user-data trigger)
+              output        (get-chosen-output trigger trigger-data)
+              snapshot      (.getSnapshot metro)
+              beat          (.getBeat snapshot)
+              next-beat-due (.getTimeOfBeat snapshot (inc beat))
+              sleep-ms      (- next-beat-due (System/currentTimeMillis))]
+          (when (and (some? output) (not= beat @last-beat-sent))
+            ;; Send a clock pulse if we are on a new beat as long as our MIDI output is present.
+            (midi/midi-send-msg (:receiver output) clock-message -1)
+            (reset! last-beat-sent beat))
 
-        #_(timbre/info "adjustment" adjustment "interval" interval "ms" ms "error" error)
-        (when (pos? ms) (Thread/sleep ms)) ; Sleep the appropriate amount based on the tempo
+          (if (> sleep-ms 5)  ; Long enough to actually try sleeping until we are closer to due.
+            (try
+              (Thread/sleep (- sleep-ms 5))
+              (catch InterruptedException e))
+            (loop [target-time (+ (System/nanoTime)
+                                  (.toNanos java.util.concurrent.TimeUnit/MILLISECONDS sleep-ms))]
+              (when (and (not (Thread/interrupted))
+                         (< (System/nanoTime) target-time))
+                (recur target-time))))  ; Busy-waiting, woo hoo, hope you didn't need this core!
 
-        (let [data @(seesaw/user-data trigger)]  ; Get updated data
-          (when (and (= "Clock" (:message (:value data))) (enabled? trigger data))
-            ;; We are still enabled, and still set to send clock messages, so continue the loop
-            (let [miss (- target (System/currentTimeMillis))]
-              #_(timbre/info "miss" miss "new adjustment" (- error miss))
-              (recur (- error miss)))))))  ; Accumulate both kinds of error for next interval calculation
-    (catch InterruptedException e)               ; No error to log, just asked to end ourselves
+          (when (and @running (= "Clock" (:message (:value trigger-data))) (enabled? trigger trigger-data))
+            (recur)))))  ;; We are still running, enabled, and set to send clock messages, so continue the loop.
     (catch Throwable t
       (timbre/error t "Problem running MIDI clock loop, exiting, for Trigger"
                     (:index (seesaw/value trigger)))))
   (timbre/info "Midi Clock thread ending for Trigger"
                (:index (seesaw/value trigger))))
 
+(defn- clock-tempo
+  "Calculate how many MIDI clock messages per minute there should be
+  based on the latest status update seen by the trigger, as found
+  cached in the user data (MIDI sends 24 clock pulses per quarter
+  note, so we multiply the trigger tempo by 24.) If the Expression
+  Global `:use-fixed-sync-bpm` has a value, we pretend the playing
+  track has that BPM and calculate the effective tempo based on the
+  player pitch."
+  [trigger-data]
+  (let [bpm-override (:use-fixed-sync-bpm @expression-globals)
+        base-tempo (if-let [cached-status (:status trigger-data)]
+                     (if (= 65535 (.getBpm cached-status))
+                       (or bpm-override 120.0) ; Default to 120 bpm if the player has not loaded a track.
+                       (if bpm-override
+                         (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch cached-status)) bpm-override)
+                         (.getEffectiveTempo cached-status)))
+                     (or bpm-override 120.0))]  ; Default to 120 bpm if we lost status information momentarily.
+    (* base-tempo 24.0)))
+
+(defn- clock-running?
+  "Checks whether the supplied trigger data contains an active MIDI
+  clock sender thread. If so, returns a truthy value after alerting
+  the thread if a tempo change has occurred so that it can react
+  immediately. The actual value returned when the clock thread is
+  running will be a tuple of the thread, its metronome, and its
+  running flag, to make it easy to shut down when necessary."
+  [trigger-data]
+  (let [[clock-thread metro :as all] (:clock trigger-data)]
+    (when (and clock-thread (.isAlive clock-thread))
+      (let [tempo (clock-tempo trigger-data)]
+        (when (> (Math/abs (- tempo (.getTempo metro))) 0.0001)
+          (.setTempo metro tempo)      ; Tempo has changed, update metronome, and...
+          (.interrupt clock-thread)))  ; wake up the thread so it can adjust immediately.
+      all)))
+
 (defn- start-clock
-  "Checks for, and creates if necessary, a thread that sends MIDI
-  clock pulses based on the effective BPM of the watched player.
-  `trigger-data` contains the map retrieved from the trigger
-  `user-data` atom which is in the process of being updated, to save
-  us having to look it up again."
-  [trigger trigger-data]
-  (when (or (nil? (:clock trigger-data)) (not (.isAlive (:clock trigger-data))))
+  "Checks for, and creates if necessary, a thread that sends MIDI clock
+  pulses based on the effective BPM of the watched player. If the
+  thread is already running, but the tempo has changed from what it is
+  sending, interrupts the thread so it can immediately react to the
+  new tempo."
+  [trigger]
+  (try
     (swap! (seesaw/user-data trigger)
-           (fn [data]
-             (if (and (:clock data) (.isAlive (:clock data)))
-               data  ; Someone already started it, so we can leave it as-is
-               (assoc data :clock
-                      (let [thread (Thread. #(clock-sender trigger))]
-                        (.setPriority thread (dec Thread/MAX_PRIORITY))
-                        (.start thread)
-                        thread)))))))
+           (fn [trigger-data]
+             (if (clock-running? trigger-data)
+               trigger-data  ; Clock is already running, and we have alerted it to tempo changes, so leave it as-is.
+               (let [running      (atom true)  ; We need to create a new thread and its metronome and shutdown flag.
+                     metro        (org.deepsymmetry.electro.Metronome.)
+                     clock-thread (Thread. #(clock-sender trigger metro running))]
+                 (.setTempo metro (clock-tempo trigger-data))
+                 (.setPriority clock-thread (dec Thread/MAX_PRIORITY))
+                 (.start clock-thread)
+                 (assoc trigger-data :clock [clock-thread metro running])))))
+    (catch Throwable t
+      (timbre/error t "Problem trying to start or update MIDI clock thread."))))
+
 
 (defn- stop-clock
   "Checks for, and stops and cleans up if necessary, any clock
-  synchronization thread that might be running on the trigger.
-  `trigger-data` contains the map retrieved from the trigger
-  `user-data` atom which is in the process of being updated, to save
-  us having to look it up again."
+  synchronization thread that might be running on the trigger. To
+  optimize the common case when we don't need to do anything,
+  `trigger-data` contains the already-loaded trigger user data."
   [trigger trigger-data]
-  (when (:clock trigger-data)
-    (swap! (seesaw/user-data trigger)
-           (fn [data]
-             (when-let [thread (:clock data)]
-               (when (.isAlive thread) (.interrupt thread)))
-             (dissoc data :clock)))))
+  (when (clock-running? trigger-data)  ; Skip entirely if we have nothing to do.
+    (try
+      (swap! (seesaw/user-data trigger)
+             (fn [trigger-data]
+               (when-let [[clock-thread metro running] (clock-running? trigger-data)]
+                 (reset! running false)
+                 (.interrupt clock-thread))
+               (dissoc trigger-data :clock)))
+      (catch Throwable t
+        (timbre/error t "Problem trying to stop MIDI clock thread.")))))
 
 (defn- report-activation
   "Send a message indicating the player a trigger is watching has
@@ -359,17 +391,17 @@
 
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
-  changed, send appropriate messages, start or stop its associated
-  clock synchronization thread, and record the new state. Finally, run
-  the Tracked Update Expression, if there is one, and we actually
-  received a status update."
+  changed, send appropriate messages, start/update or stop its
+  associated clock synchronization thread, and record the new state.
+  Finally, run the Tracked Update Expression, if there is one, and we
+  actually received a status update."
   [trigger playing on-air status]
-  ;; TODO: See if any of the state tracking should be updated to take advantage of new TimeFinder consolidations.
   (let [old-data @(seesaw/user-data trigger)
         updated  (swap! (seesaw/user-data trigger)
                         (fn [data]
                           (let [tripped (and playing (enabled? trigger))]
-                            (merge data {:playing playing :on-air on-air :tripped tripped}
+                            (merge data
+                                   {:playing playing :on-air on-air :tripped tripped}
                                    (when (some? status) {:status status})))))]
     (let [tripped (:tripped updated)]
       (when-not (= tripped (:tripped old-data))
@@ -385,7 +417,7 @@
               (carabiner/lock-tempo tempo)
               (carabiner/unlock-tempo))))))
     (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
-      (start-clock trigger updated)
+      (start-clock trigger)
       (stop-clock trigger updated)))
   (when (some? status)
     (run-trigger-function trigger :tracked status false))
