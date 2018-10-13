@@ -13,6 +13,16 @@ This change log follows the conventions of
   around the hot cues in the Player Window as it does this, but Beat
   Link no longer reports it as Playing in this state.)
 
+### Changed
+
+- Triggers that generate MIDI clock now use the Electro metronome to
+  time the clock messages. This leads to a cleaner, simpler
+  implementation with easier jitter avoidance. It also uses
+  busy-waiting to work around limitations in `Thread/sleep` as a
+  timing mechanism. It is still much better, however, to use Ableton
+  Link instead if at all possible.
+
+
 ## [0.4.0] - 2018-10-07
 
 The most feature-packed release yet, with quite a few fixes as well!

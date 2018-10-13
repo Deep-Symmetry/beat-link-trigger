@@ -256,6 +256,29 @@ watched player starts playing, and if the Stop box is checked, it will
 send a Stop message when the watched player stops. In special cases,
 you can also <<Link#ignoring-track-bpm,ignore the track tempo>> and
 respond only to pitch changes.
++
+[WARNING]
+====
+
+MIDI Clock is an old, slow, and imprecise mechanism for synchronizing
+tempo, especially when sent by a general-purpose operating system like
+the one running Beat Link Trigger. If at all possible, you should use
+Ableton Link instead, as described below. You will get _much_ better
+results. If you have to talk to older hardware that can't accept
+Ableton Link, consider still sending Link from beat Link Trigger, and
+using a dedicated Ableton Link to MIDI bridge to talk to your older
+hardware. If you have any iOS devices available,
+https://alexandernaut.com/linktomidi/[Link to MIDI] seems to get good
+reviews.
+
+In any case, if you are generating MIDI clock directly, make sure you
+have _only one trigger_ configured to send Clock on a given MIDI port,
+or you will get crazy results. Since MIDI clock generation uses a
+great deal of CPU to try to work around the above-mentioned issues,
+you are probably better off only ever using it with a single trigger
+anyway.
+
+====
 
 Link:: When this option is chosen, the trigger does not send MIDI
 messages at all. Instead, when activated, it tries to synchronize an
@@ -265,7 +288,8 @@ Carabiner installed, running, and connected, as described in
 <<Link#working-with-ableton-link,Working with Ableton Link>>. You can
 also use expressions, as described <<Expressions#expressions,below>>,
 to send additional messages over MIDI or other communication
-protocols.
+protocols. As with MIDI clock, you can <<Link#ignoring-track-bpm,ignore
+the track tempo>> for special-case integrations.
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
