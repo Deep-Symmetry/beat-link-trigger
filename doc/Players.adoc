@@ -357,6 +357,20 @@ form to your Global Setup Expression:
 If the window was already open when you set up this entry, you can make
 it take effect by choosing menu:Network[Show Player Status] again.
 
+== Automatically Opening Player Status
+
+If you always want the Player Status window to open when you launch Beat
+Link Trigger, add the following form to your Global Setup Expression,
+and when the Triggers window loads, it will also try to open the Player
+Status Window. It does this the same way as when you choose
+menu:Network[Show Player Status], so you will get all the necessary
+error dialogs and coaching if the environment isn’t correct to support
+the window:
+
+```clojure
+(beat-link-trigger.triggers/show-player-status)
+```
+
 == Learning More
 
 ****
