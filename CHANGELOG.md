@@ -12,6 +12,9 @@ This change log follows the conventions of
   cues but not actually playing a track. (You can still see it moving
   around the hot cues in the Player Window as it does this, but Beat
   Link no longer reports it as Playing in this state.)
+- The warning dialog about non-rekordbox tracks potentially missing
+  their Title and Artist information when Send Status Packets is not
+  active was being displayed twice.
 
 ### Changed
 

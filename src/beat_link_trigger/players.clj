@@ -875,7 +875,6 @@
       (seesaw/pack! root)
       #_(.setResizable root false)
       (reset! player-window root)
-      (make-window-visible trigger-frame globals)
       (when-not (.isRunning virtual-cdj) (.stopped stop-listener virtual-cdj)))  ; In case we went offline during setup.
     (catch Exception e
       (timbre/error e "Problem creating Player Status window."))))
