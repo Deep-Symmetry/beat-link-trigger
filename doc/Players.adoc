@@ -238,14 +238,40 @@ continue to match unless that specific playlist has been altered.
 image:assets/AutoAttach3.png[Auto-Attach window with some files,433,232]
 
 If you no longer want one of the files to be watched for, simply click
-the `Remove` button next to it.
+the kbd:[Remove] button next to it.
+
+The icon next to the kbd:[Remove] button lets you see information
+about the metadata cache file. If the file was created by Beat Link
+Trigger 0.4.1 or later, the icon will be an “i” in a blue circle, and
+clicking it will give you information about the media from which the
+cache was created as well as the contents of the cache itself:
+
+image:assets/AutoAttach4.png[Metadata Cache Details,604,227]
+
+
+TIP: If you have any older metadata cache files, it would be a good
+idea to re-create them using a current release of Beat Link Trigger so
+you can benefit from the new media-detection abilities.
+
+If the file was created by an older version of Beat Link Trigger, you
+will be warned when adding it to the auto-attach list that it is
+missing the media details information, which will make it harder to
+match with mounted media, and the icon will be an exclamation point
+inside a yellow triangle. Clicking that brings up the warning again,
+which also shows information about the contents of the cache itself.
 
 NOTE: It does not make sense to try to auto-attach multiple files
 created from the same media, for example from different playlists.
 Beat Link Trigger will always give priority to files created from all
 tracks over files created from a playlist when considering matches,
 but it is unpredictable which file will be chosen if more than one
-playlist cache from the same media is being matched.
+playlist cache from the same media is being matched. Starting with
+version 0.4.1, Beat Link keeps track of the media that was used to
+create a cache, and uses that for more reliable matching; it will
+only allow you to have one file from a given piece of media on the
+auto-attach list at a given time. When you try to add a second, it
+will replace the first. If you are using older caches, though, you
+might run into this kind of unpredictability.
 
 == Viewing Metadata Cache Contents
 
