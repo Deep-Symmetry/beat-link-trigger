@@ -7,6 +7,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/data.csv "0.1.4"]
+                 [clojure-humanize "0.2.2"]
                  [com.fifesoft/rsyntaxtextarea "2.6.1"]
                  [org.pushing-pixels/radiance-substance "1.0.0"]
                  [org.pushing-pixels/radiance-substance-extras "1.0.0"]

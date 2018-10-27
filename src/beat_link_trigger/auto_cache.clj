@@ -5,8 +5,11 @@
   (:require [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
+            [clojure.contrib.humanize :as humanize]
+            [clojure.contrib.inflect :as inflect]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink.data MetadataFinder]
+           [org.deepsymmetry.beatlink MediaDetails]
            [javax.swing JFileChooser]))
 
 (def ^{:private true
@@ -26,6 +29,37 @@
   (seesaw/show! @auto-window)
   (.toFront @auto-window))
 
+(defn- row-icon
+  "Returns the appropriate icon to be used for a row, depending on
+  whether the metadata cache contains media details."
+  [details]
+  (seesaw/icon (if details "images/info.png" "images/warn.png")))
+
+(defn- row-alert
+  "Displays the appropriate alert when a row's info or warning button
+  has been pressed, depending on whether the metadata cache contains
+  media details."
+  [panel details playlist tracks]
+  (let [content (str "<br><br>Cache contains: "
+                     (if (pos? playlist) "A single playlist of " "All ")
+                     tracks " " (inflect/pluralize-noun tracks "track") ".")]
+    (if details
+      (seesaw/alert panel (str "<html>Media “" (.name details) "”, created " (.creationDate details)
+                               ", size " (humanize/filesize (.totalSize details))
+                               " (" (humanize/filesize (.freeSpace details)) " free).<br>"
+                               "Media contains: " (.trackCount details) " "
+                               (inflect/pluralize-noun (.trackCount details) "track")
+                               " and " (.playlistCount details) " "
+                               (inflect/pluralize-noun (.playlistCount details) "playlist") "."
+                               content)
+                    :title (str "Metadata Cache Details") :type :info)
+      (seesaw/alert panel (str "<html>This metadata cache file was created by an older version of<br>"
+                               "Beat Link Trigger, and has no media details recorded in it.<br><br>"
+                               "If you can re-create it using the current version, that will<br>"
+                               "be more easily and reliably matched with mounted media."
+                               content)
+                    :title "Cache is Missing Media Details" :type :warning))))
+
 (defn- create-file-rows
   "Creates a set of mig-panel rows that represent the currently
   configured auto-attach files."
@@ -34,12 +68,22 @@
         items (or (when (empty? files)
                     [[["No Auto-Attach Cache Files Configured" "pushx, align center, wrap"]]])
                   (for [file files]
-                    [[(seesaw/label :text (.getAbsolutePath file)) "pushx"]
-                     [(seesaw/button :text "Remove"
-                                     :listen [:action-performed (fn [e]
-                                                                  (.removeAutoAttacheCacheFile metadata-finder file)
-                                                                  (create-file-rows panel))])
-                      "wrap"]]))]
+                    (let [cache (.openMetadataCache metadata-finder file)]
+                      (try
+                        (let [details  (.getCacheMediaDetails metadata-finder cache)
+                              playlist (.getCacheSourcePlaylist metadata-finder cache)
+                              tracks   (.getCacheTrackCount metadata-finder cache)]
+                          [[(seesaw/label :text (.getAbsolutePath file)) "pushx"]
+                           [(seesaw/button :id :info :icon (row-icon details)
+                                           :listen [:action-performed
+                                                    (fn [e] (row-alert panel details playlist tracks))])]
+                           [(seesaw/button :text "Remove"
+                                           :listen [:action-performed
+                                                    (fn [e]
+                                                      (.removeAutoAttacheCacheFile metadata-finder file)
+                                                      (create-file-rows panel))])
+                            "wrap"]])
+                        (finally (.close cache))))))]
     (seesaw/config! panel :items (vec (apply concat items)))))
 
 (defn- choose-file
@@ -53,7 +97,7 @@
       (.addAutoAttachCacheFile metadata-finder file)
       (catch Exception e
         (timbre/error e "Problem auto-attaching" file)
-        (seesaw/alert (str "<html>Unable to Auto-Attach Metadata Cache.<br><br>" e)
+        (seesaw/alert panel (str "<html>Unable to Auto-Attach Metadata Cache.<br><br>" e)
                       :title "Problem Auto-Attaching File" :type :error))))
   (create-file-rows panel))
 
@@ -61,15 +105,15 @@
   "Creates the Auto Attach window."
   [trigger-frame]
   (try
-    (let [root            (seesaw/frame :title "Auto Attach Cache Files"
-                                        :size [400 :by 200]
-                                        :on-close :dispose)
-          files (mig/mig-panel)
+    (let [root       (seesaw/frame :title "Auto Attach Cache Files"
+                                   :size [600 :by 200]
+                                   :on-close :dispose)
+          files      (mig/mig-panel)
           add-button (seesaw/button :text "Add File"
                                     :listen [:action-performed (fn [e] (choose-file files))])
-          panel           (seesaw/border-panel
-                           :center (seesaw/scrollable files)
-                           :south (mig/mig-panel :items [[add-button "pushx, align center"]]))]
+          panel      (seesaw/border-panel
+                      :center (seesaw/scrollable files)
+                      :south (mig/mig-panel :items [[add-button "pushx, align center"]]))]
       (seesaw/config! root :content panel)
       (create-file-rows files)
       (seesaw/listen root :window-closed (fn [e] (reset! auto-window nil)))
