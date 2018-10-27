@@ -12,7 +12,7 @@
            [org.deepsymmetry.beatlink MediaDetails]
            [javax.swing JFileChooser]))
 
-(def ^{:private true
+(defonce ^{:private true
        :doc "Holds the frame allowing the user to manage automatic
   cache file attachment."}
   auto-window (atom nil))
@@ -60,6 +60,17 @@
                                content)
                     :title "Cache is Missing Media Details" :type :warning))))
 
+(defn- get-cache-details
+  "Returns the media details object (if any), source playlist number,
+  and track count for a metadata cache file."
+  [file]
+  (let [cache (.openMetadataCache metadata-finder file)]
+    (try
+      [(.getCacheMediaDetails metadata-finder cache)
+       (.getCacheSourcePlaylist metadata-finder cache)
+       (.getCacheTrackCount metadata-finder cache)]
+      (finally (.close cache)))))
+
 (defn- create-file-rows
   "Creates a set of mig-panel rows that represent the currently
   configured auto-attach files."
@@ -68,22 +79,15 @@
         items (or (when (empty? files)
                     [[["No Auto-Attach Cache Files Configured" "pushx, align center, wrap"]]])
                   (for [file files]
-                    (let [cache (.openMetadataCache metadata-finder file)]
-                      (try
-                        (let [details  (.getCacheMediaDetails metadata-finder cache)
-                              playlist (.getCacheSourcePlaylist metadata-finder cache)
-                              tracks   (.getCacheTrackCount metadata-finder cache)]
-                          [[(seesaw/label :text (.getAbsolutePath file)) "pushx"]
-                           [(seesaw/button :id :info :icon (row-icon details)
-                                           :listen [:action-performed
-                                                    (fn [e] (row-alert panel details playlist tracks))])]
-                           [(seesaw/button :text "Remove"
-                                           :listen [:action-performed
-                                                    (fn [e]
-                                                      (.removeAutoAttacheCacheFile metadata-finder file)
-                                                      (create-file-rows panel))])
-                            "wrap"]])
-                        (finally (.close cache))))))]
+                    (let [[details playlist tracks] (get-cache-details file)]
+                      [[(seesaw/label :text (.getAbsolutePath file)) "pushx"]
+                       [(seesaw/button :id :info :icon (row-icon details)
+                                       :listen [:action-performed (fn [e] (row-alert panel details playlist tracks))])]
+                       [(seesaw/button :text "Remove"
+                                       :listen [:action-performed (fn [e]
+                                                                    (.removeAutoAttacheCacheFile metadata-finder file)
+                                                                    (create-file-rows panel))])
+                        "wrap"]])))]
     (seesaw/config! panel :items (vec (apply concat items)))))
 
 (defn- choose-file
@@ -95,6 +99,8 @@
                    :filters [["BeatLink metadata cache" ["bltm"]]])]
     (try
       (.addAutoAttachCacheFile metadata-finder file)
+      (let [[details playlist tracks] (get-cache-details file)]
+        (when-not details (row-alert panel details playlist tracks)))  ; Warn upon adding if outdated.
       (catch Exception e
         (timbre/error e "Problem auto-attaching" file)
         (seesaw/alert panel (str "<html>Unable to Auto-Attach Metadata Cache.<br><br>" e)
