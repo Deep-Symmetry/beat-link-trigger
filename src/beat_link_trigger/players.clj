@@ -651,6 +651,18 @@
   [target popup event]
   (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
+(defn- warn-about-stale-cache
+  "Warn the user that a cache that has just attached seems outdated."
+  [zip-file media-details]
+  (let [raw-file (clojure.java.io/file (.getName zip-file))]
+    (seesaw/alert @player-window
+                  (str "<html>The metadata cache file “" (.getName raw-file) "” that was just attached<br>"
+                       "for “" (.name media-details) "” is outdated; the media seems to have changed<br>"
+                       "since it was created.<br><br>"
+                       "It was attached successfully, but there are likely to be missing tracks.<br><br>"
+                       "You should re-create it from the current media as soon as you can.")
+                  :title "Metadata Cache is Stale" :type :warning)))
+
 (defn- create-player-row
   "Create a row a player, given the shutdown channel, a widget that
   should be made visible only when there are no actual players on the
@@ -759,7 +771,11 @@
                              (when button
                                (seesaw/invoke-soon
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-icon.png") :enabled? true)
-                                (seesaw/config! label :text (describe-cache zip-file))))))
+                                (seesaw/config! label :text (describe-cache zip-file))
+                                (let [cache-details (.getCacheMediaDetails metadata-finder zip-file)
+                                      current-details (.getMediaDetailsFor metadata-finder slot-reference)]
+                                  (when (and cache-details current-details (.hasChanged current-details cache-details))
+                                    (warn-about-stale-cache zip-file current-details)))))))
                          (cacheDetached [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button

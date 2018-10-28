@@ -10,7 +10,7 @@ This change log follows the conventions of
 
 - Metadata caches now store information about the media from which
   they were created. This allows easier and more reliable attachment
-  (both manual and automatic) to mounted media during performances.
+  (both manual and automatic) to media used during performances.
 
 ### Fixed
 
