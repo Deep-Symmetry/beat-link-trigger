@@ -60,7 +60,7 @@
   window. Checks that the keyword specified as `source-key` is found under the
   player and slot entries in the map, as desribed in the
   [Adapting to
-  Changes](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#adapting-to-changes)
+  Changes](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/doc/README.adoc#adapting-to-changes)
   section of the user guide). If `source-key` matches, `rekordbox-id`
   is compared with the track ID present in the status update, and the
   result is returned."
@@ -76,7 +76,7 @@
   up in the Beat Link Trigger globals atom using the specified
   key (the map must be structured like the example shown in the
   [Adapting to
-  Changes](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#adapting-to-changes)
+  Changes](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/doc/README.adoc#adapting-to-changes)
   section of the user guide, with `:player` and `:slot` entries). If
   the source matches, the id is compared with the specified value, and
   returns the result."
@@ -87,7 +87,7 @@
   "A convenience function for looking for the track described by the
   current status update within a nested map structured as described in
   the [One Trigger per
-  Player](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#one-trigger-per-player)
+  Player](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/doc/README.adoc#one-trigger-per-player)
   example in the user guide. The specified key is looked up in the
   Beat Link Trigger globals atom, followed by the player number from
   which the current track was loaded, its slot identifier, and the
@@ -116,7 +116,7 @@
   "Convenience macro for use in an Enabled Filter Expression. Looks
   for the track described by the current status update within a nested
   map structured as described in the [One Trigger per
-  Player](https://github.com/brunchboy/beat-link-trigger/blob/master/doc/README.adoc#one-trigger-per-player)
+  Player](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/doc/README.adoc#one-trigger-per-player)
   example in the user guide. The specified key is looked up in the
   Beat Link Trigger globals atom, followed by the player number from
   which the current track was loaded, its slot identifier, and the

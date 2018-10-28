@@ -58,7 +58,7 @@ coming up next, and even load and play tracks during pre-show.
 
 <<Link#working-with-ableton-link,Working with Ableton Link>>::
 With the help of
-https://github.com/brunchboy/carabiner#carabiner[Carabiner], Triggers
+https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Triggers
 can synchronize an Ableton Link session’s tempo, beats, and bars to
 the track playing on their watched player, or you can add Link as its
 own “player” that can become Tempo Master to the CDJs. Even without
@@ -145,11 +145,11 @@ your show.
 If you have any thoughts, questions, your own integration examples, or
 even crazy ideas, please share them in the
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat] or
-https://github.com/brunchboy/beat-link-trigger/wiki[project Wiki]!
+https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]!
 
 If you find what seems to be an actual problem with the software,
 please open an
-https://github.com/brunchboy/beat-link-trigger/issues[Issue], or at
+https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue], or at
 least check whether someone else already has.
 
 Thanks for reading this, and have fun with Beat Link Trigger! I hope
@@ -188,5 +188,5 @@ http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
 are agreeing to be bound by the terms of this license. You must not
 remove this notice, or any other, from this software. A copy of the
 license can be found in
-https://github.com/brunchboy/beat-link-trigger/blob/master/LICENSE[LICENSE]
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.

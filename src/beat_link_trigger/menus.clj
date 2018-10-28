@@ -64,15 +64,15 @@
 
 (def project-home-url
   "The GitHub front page for the project."
-  "https://github.com/brunchboy/beat-link-trigger")
+  "https://github.com/Deep-Symmetry/beat-link-trigger")
 
 (def project-wiki-url
   "The community wiki for the project."
-  "https://github.com/brunchboy/beat-link-trigger/wiki")
+  "https://github.com/Deep-Symmetry/beat-link-trigger/wiki")
 
 (def issues-url
   "The project Issues page on GitHub."
-  "https://github.com/brunchboy/beat-link-trigger/issues")
+  "https://github.com/Deep-Symmetry/beat-link-trigger/issues")
 
 (def default-issue-description
   "The placeholder text to insert when we do not have an issue of our

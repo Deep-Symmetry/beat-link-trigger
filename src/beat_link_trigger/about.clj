@@ -63,7 +63,7 @@
                                     (clojure.java.browse/browse-url "http://deepsymmetry.org")))
     (seesaw/listen source-button
                    :mouse-clicked (fn [e]
-                                    (clojure.java.browse/browse-url "https://github.com/brunchboy/beat-link-trigger")))
+                                    (clojure.java.browse/browse-url "https://github.com/Deep-Symmetry/beat-link-trigger")))
     panel))
 
 (defn- create-frame

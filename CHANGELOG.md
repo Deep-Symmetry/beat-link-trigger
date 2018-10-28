@@ -420,7 +420,7 @@ support.
   session's timeline to the beat grid being received on a trigger
   (setting its BPM and aligning either at the level of individual
   beats full bars), with the help of
-  [carabiner](https://github.com/brunchboy/carabiner).
+  [carabiner](https://github.com/Deep-Symmetry/carabiner).
 
 ## [0.1.3] - 2016-10-02
 
@@ -547,19 +547,19 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/brunchboy/beat-link-trigger/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.8...v0.4.0
-[0.3.8]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.7...v0.3.8
-[0.3.7]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.6...v0.3.7
-[0.3.6]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.5...v0.3.6
-[0.3.5]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.4...v0.3.5
-[0.3.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.3...v0.3.4
-[0.3.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.2...v0.3.3
-[0.3.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.1...v0.3.2
-[0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/brunchboy/beat-link-trigger/compare/v0.2.1...v0.3.0
-[0.2.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.4...v0.2.1
-[0.1.4]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.3...v0.1.4
-[0.1.3]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/brunchboy/beat-link-trigger/compare/v0.1.0...v0.1.1
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.8...v0.4.0
+[0.3.8]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.7...v0.3.8
+[0.3.7]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.6...v0.3.7
+[0.3.6]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.5...v0.3.6
+[0.3.5]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.4...v0.3.5
+[0.3.4]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.3...v0.3.4
+[0.3.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.1...v0.3.2
+[0.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.1.4...v0.2.1
+[0.1.4]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.1.0...v0.1.1

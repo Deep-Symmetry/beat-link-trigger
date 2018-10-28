@@ -571,7 +571,7 @@ lighting control system. With his help and pointers to the relevant
 documentation, we were able to achieve that. The approach is described
 and explained in detail below, or you can start by downloading the
 corresponding
-http://rawgit.com/brunchboy/beat-link-trigger/master/doc/assets/grandMA2.blt[configuration
+http://rawgit.com/Deep-Symmetry/beat-link-trigger/master/doc/assets/grandMA2.blt[configuration
 file] and loading that within Beat Link Trigger.
 
 WARNING: If you already have triggers of your own that you want to
@@ -922,5 +922,5 @@ http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
 are agreeing to be bound by the terms of this license. You must not
 remove this notice, or any other, from this software. A copy of the
 license can be found in
-https://github.com/brunchboy/beat-link-trigger/blob/master/LICENSE[LICENSE]
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.

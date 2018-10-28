@@ -26,7 +26,7 @@ ifndef::env-github[]
 endif::env-github[]
 
 With the help of
-https://github.com/brunchboy/carabiner#carabiner[Carabiner], Triggers
+https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Triggers
 can synchronize an Ableton Link session’s tempo, beats, and bars to
 the track playing on their watched player, or you can add Link as its
 own “player” that can become Tempo Master to the CDJs. Even without
@@ -36,7 +36,7 @@ and which is the Tempo Master.
 == Overview
 
 If you install and run
-https://github.com/brunchboy/carabiner#carabiner[Carabiner], Beat Link
+https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Beat Link
 Trigger can tie into an https://www.ableton.com/en/link/[Ableton Link]
 session, so you can synchronize programs like Ableton Live, Traktor,
 and an increasing collection of others (as well as more and more
@@ -363,5 +363,5 @@ http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
 are agreeing to be bound by the terms of this license. You must not
 remove this notice, or any other, from this software. A copy of the
 license can be found in
-https://github.com/brunchboy/beat-link-trigger/blob/master/LICENSE[LICENSE]
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.

@@ -6,7 +6,7 @@
 
 An application to trigger MIDI events when CDJs start playing tracks,
 reach particular beats, or whatever else you can think of. Built
-using [beat-link](https://github.com/brunchboy/beat-link#beat-link).
+using [beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
 There is more description and a video in
 a
 [DJ TechTools article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
@@ -18,11 +18,11 @@ too!
 
 Download the latest disk image (`.dmg`) installer for the Mac, or
 executable `beat-link-trigger.jar` file for other platforms, from the
-[releases](https://github.com/brunchboy/beat-link-trigger/releases)
+[releases](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
 page and double-click it to run it. If that doesn&rsquo;t work, [see
 below](#startup-issues).
 
-[![jar](https://img.shields.io/github/downloads/brunchboy/beat-link-trigger/total.svg)](https://github.com/brunchboy/beat-link-trigger/releases)
+[![jar](https://img.shields.io/github/downloads/Deep-Symmetry/beat-link-trigger/total.svg)](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
 
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
@@ -52,7 +52,7 @@ And much more... and hopefully you will soon be coming up with
 interesting integration projects of your own.
 
 You can also find user-contributed examples and resources on the
-[project Wiki](https://github.com/brunchboy/beat-link-trigger/wiki).
+[project Wiki](https://github.com/Deep-Symmetry/beat-link-trigger/wiki).
 Once you have come up with your own great ways to use Beat Link
 Trigger, please add a page or two the Wiki to share them with others!
 
@@ -67,7 +67,7 @@ Even if it is only to explain why it didn&rsquo;t quite work for you.
 If you run into specific problems or have ideas of ways Beat Link
 Trigger could be better, you can
 also
-[open an Issue](https://github.com/brunchboy/beat-link-trigger/issues).
+[open an Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues).
 
 > Please be mindful of our [Code of Conduct](CODE_OF_CONDUCT.md) to make
 > sure everyone feels welcome in the community.
@@ -122,14 +122,14 @@ in the
 [Gitter chat room](https://gitter.im/brunchboy/beat-link-trigger), or
 if you have worked out actionable details about something that could
 be improved,
-[open an Issue](https://github.com/brunchboy/beat-link-trigger/issues)
+[open an Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues)
 or submit a pull request so we can all improve our understanding
 together.
 
 If something isn&rsquo;t working with your hardware and you don&rsquo;t yet know
 the details why, but are willing to learn a little and help figure it
 out, look at the
-[dysentery project](https://github.com/brunchboy/dysentery#dysentery),
+[dysentery project](https://github.com/Deep-Symmetry/dysentery#dysentery),
 which is where we are organizing the research tools and results which
 made programs like Beat Link Trigger possible.
 
@@ -150,7 +150,7 @@ report of what went wrong, which can help you troubleshoot the issue.
 
 If you see a long exception stack trace similar to the one
 in
-[this discussion](https://github.com/brunchboy/beat-link-trigger/issues/21) and
+[this discussion](https://github.com/Deep-Symmetry/beat-link-trigger/issues/21) and
 you have your computer language set to one that uses an alphabet which
 is substantially different from English, you may be encountering what
 seems to be a bug in the GUI library (or maybe even in Java itself).

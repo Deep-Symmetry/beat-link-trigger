@@ -34,7 +34,7 @@ Beat Link Trigger offers a few mechanisms to help you understand how
 your triggers are (or are not) working, and to save and restore
 versions of them, or share them with friends and colleagues (or
 on the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]
-or https://github.com/brunchboy/beat-link-trigger/wiki[project Wiki]
+or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]
 to either get help from others, or share and show them off).
 +++<img src="assets/HelpMenu.png" width="250" height="205" alt="Help Menu" align="right"/>+++
 
@@ -198,5 +198,5 @@ http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
 are agreeing to be bound by the terms of this license. You must not
 remove this notice, or any other, from this software. A copy of the
 license can be found in
-https://github.com/brunchboy/beat-link-trigger/blob/master/LICENSE[LICENSE]
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.
