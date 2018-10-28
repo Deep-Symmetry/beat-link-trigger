@@ -585,6 +585,17 @@
        (seesaw/config! title-label :text title)
        (seesaw/config! artist-label :text "n/a")))))
 
+(defn- suggest-updating-cache
+  "Warn the user that the cache they have just attached lacks media details."
+  []
+  (seesaw/alert @player-window (str "<html>This metadata cache file was created by an older version of<br>"
+                                    "Beat Link Trigger, and has no media details recorded in it.<br>"
+                                    "It was attached successfully, but there is no way to be sure<br>"
+                                    "it came from the same media, or that it is not outdated.<br><br>"
+                                    "The sooner you can re-create it using the current version,<br>"
+                                    "the more reliably you can use cached metadata.")
+                :title "Cache is Missing Media Details" :type :warning))
+
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
   player media slot. Arguments are the player number, slot
@@ -615,6 +626,9 @@
                                                             :filters [["BeatLink metadata cache" ["bltm"]]])]
                                              (try
                                                (.attachMetadataCache metadata-finder slot-reference file)
+                                               (let [cache (.getMetadataCache metadata-finder slot-reference)]
+                                                 (when (nil? (.getCacheMediaDetails metadata-finder cache))
+                                                   (suggest-updating-cache)))
                                                (catch Exception e
                                                  (timbre/error e "Problem attaching" file)
                                                  (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>"
