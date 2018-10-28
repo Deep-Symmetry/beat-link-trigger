@@ -176,7 +176,7 @@ Also choose the file where you want to save the cache:
 
 image:assets/CreateCache2.png[Create Metadata Cache window,613,635]
 
-When you click `Save`, Beat Link Trigger will download the metadata,
+When you click kbd:[Save], Beat Link Trigger will download the metadata,
 artwork, cue list, beat grid, and waveform information about all the
 tracks you specified, creating a zip file that can be used to retrieve
 them when needed, instead of querying the player itself. This takes a
@@ -216,7 +216,7 @@ choose `Auto-Attach Metadata Caches` in the `File` menu.
 image:assets/AutoAttach.png[Auto-Attach option,344,162]
 
 This will open a window where you can configure the cache files that
-should be watched for. Click `Add File` to add one:
+should be watched for. Click kbd:[Add File] to add one:
 
 image:assets/AutoAttach2.png[Auto-Attach window,433,232]
 
