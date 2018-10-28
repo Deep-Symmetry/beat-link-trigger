@@ -204,11 +204,19 @@ information displayed next to it, as shown here:
 
 image:assets/CreateCache4.png[Metadata Cache Attached,350,234]
 
+NOTE: If the media seems to have changed since the cache was created,
+you will see a warning about that when the cache is attached. If the
+cache was created by a version of Beat Link Trigger older than 0.4.1,
+this check cannot be performed, nor will you be prevented from
+attaching a cache to the wrong media, but you will be given a warning
+that suggests you re-create the cache using a current version of Beat
+Link Trigger to avoid these risks.
+
 == Auto-Attaching Metadata Caches
 
 If you have created a metadata cache and want it to automatically be
 attached to the appropriate player slot whenever your DJ inserts the
-corresponging media (since it can be hard to predict where it will end
+corresponding media (since it can be hard to predict where it will end
 up in a busy show), you can ask Beat Link Trigger to watch for media
 that matches the cache, and automatically attach it. To do this,
 choose `Auto-Attach Metadata Caches` in the `File` menu.
