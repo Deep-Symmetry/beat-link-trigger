@@ -6,6 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- Metadata caches now store information about the media from which
+  they were created. This allows easier and more reliable attachment
+  (both manual and automatic) to mounted media during performances.
+
 ### Fixed
 
 - Triggers will no longer be tripped by a CDJ that is pre-loading hot
