@@ -6,6 +6,18 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.4.1] - 2018-10-28
+
+This is a small release to get a few fixes and improvements out there
+before I embark on some major changes to the foundations in Beat Link
+in order to support a major new way of organizing cues for tracks that
+will be a lot easier to manage than low-level triggers, and use much
+less CPU if you have cues defined for a large number of tracks. They
+will also embed all the metadata information they need to work even
+when four CDJs are active on the network.
+
 ### Added
 
 - Metadata caches now store information about the media from which
@@ -547,7 +559,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.8...v0.4.0
 [0.3.8]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.6...v0.3.7
