@@ -33,7 +33,7 @@
   "Returns the appropriate icon to be used for a row, depending on
   whether the metadata cache contains media details."
   [details]
-  (seesaw/icon (if details "images/info.png" "images/warn.png")))
+  (seesaw/icon (if details "images/Info.png" "images/Warn.png")))
 
 (defn- row-alert
   "Displays the appropriate alert when a row's info or warning button
