@@ -38,7 +38,7 @@
   which paints the animated backdrop."
   [paint-fn]
   (let [source-button (seesaw/button :text "Source" :bounds [300 300 70 30] :cursor :default)
-        version-label (seesaw/text :text (str "Version:" (util/get-version) "\n" (util/get-build-date))
+        version-label (seesaw/text :text (str "Version: " (util/get-version) "\n" (util/get-build-date))
                                    :multi-line? true :wrap-lines? true
                                    :foreground "white" :cursor :text
                                    :bounds [5 5 300 60])
