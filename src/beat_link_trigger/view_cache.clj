@@ -6,7 +6,7 @@
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data MetadataFinder DataReference]
+  (:import [org.deepsymmetry.beatlink.data MetadataFinder DataReference MetadataCache]
            [javax.swing JFileChooser]))
 
 (def ^:private metadata-finder
@@ -29,9 +29,9 @@
 (defn- create-model
   "Creates the Swing table model to show the metadata cache
   contents."
-  [cache]
+  [^MetadataCache cache]
   (let [column-names ["rekordbox id" "Title" "Artist"]
-        ids (.getCacheTrackIds metadata-finder cache)]
+        ids (.getTrackIds cache)]
     (proxy [javax.swing.table.AbstractTableModel] []
       (getColumnCount [] (count column-names))
       (getRowCount [] (count ids))
@@ -42,7 +42,7 @@
           (if (zero? col)
             id
             (let [reference (DataReference. 1 slot id)
-                  data (.getCachedMetadata metadata-finder cache reference)]
+                  data (.getTrackMetadata cache nil reference)]
               (case col
                 1 (.getTitle data)
                 2 (.label (.getArtist data)))))))
@@ -55,6 +55,7 @@
                            :size [800 :by 400]
                            :on-close :dispose
                            :content (seesaw/scrollable (seesaw/table :model (create-model cache))))]
+    (seesaw/listen root :window-closed (fn [e] (.close cache)))
     (make-window-visible parent-frame root)))
 
 (defn choose-file
@@ -67,7 +68,7 @@
                    :all-files? false
                    :filters [["BeatLink metadata cache" ["bltm"]]])]
     (try
-      (let [cache (.openMetadataCache metadata-finder file)]
+      (let [cache (MetadataCache. file)]
         (create-view parent cache))
       (catch Exception e
         (timbre/error e "Problem opening metadata cache" file)

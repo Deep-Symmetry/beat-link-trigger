@@ -8,7 +8,7 @@
             [clojure.contrib.humanize :as humanize]
             [clojure.contrib.inflect :as inflect]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data MetadataFinder]
+  (:import [org.deepsymmetry.beatlink.data MetadataFinder MetadataCache]
            [org.deepsymmetry.beatlink MediaDetails]
            [javax.swing JFileChooser]))
 
@@ -64,11 +64,9 @@
   "Returns the media details object (if any), source playlist number,
   and track count for a metadata cache file."
   [file]
-  (let [cache (.openMetadataCache metadata-finder file)]
+  (let [cache (MetadataCache. file)]
     (try
-      [(.getCacheMediaDetails metadata-finder cache)
-       (.getCacheSourcePlaylist metadata-finder cache)
-       (.getCacheTrackCount metadata-finder cache)]
+      [(.-sourceMedia cache) (.-sourcePlaylist cache) (.-trackCount cache)]
       (finally (.close cache)))))
 
 (defn- create-file-rows

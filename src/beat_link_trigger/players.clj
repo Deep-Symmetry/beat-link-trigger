@@ -19,7 +19,7 @@
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArtListener ArtFinder
-            MetadataCacheCreationListener MetadataCacheListener MetadataFinder
+            MetadataCacheCreationListener MetadataCache MetadataCacheListener MetadataFinder
             MountListener SearchableItem SlotReference TimeFinder TrackMetadataListener
             WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
 
@@ -164,7 +164,7 @@
      (future
        (try
          ;; To load all tracks we pass a playlist ID of 0
-         (.createMetadataCache (MetadataFinder/getInstance) slot-ref playlist-id file listener)
+         (MetadataCache/createMetadataCache slot-ref playlist-id file listener)
          (catch Exception e
            (timbre/error e "Problem creating metadata cache.")
            (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
@@ -285,7 +285,7 @@
                           (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
                             (@#'chooser/remember-chooser-dir chooser)
                             (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) "bltm" nil)]
-                              (.setCachePauseInterval metadata-finder (if (seesaw/value speed) 1000 50))
+                              (MetadataCache/setCachePauseInterval (if (seesaw/value speed) 1000 50))
                               (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
                             (.dispose root))
                           (.dispose root))))  ; They chose cancel.
@@ -627,7 +627,7 @@
                                              (try
                                                (.attachMetadataCache metadata-finder slot-reference file)
                                                (let [cache (.getMetadataCache metadata-finder slot-reference)]
-                                                 (when (nil? (.getCacheMediaDetails metadata-finder cache))
+                                                 (when (nil? (.-sourceMedia cache))
                                                    (suggest-updating-cache)))
                                                (catch Exception e
                                                  (timbre/error e "Problem attaching" file)
@@ -640,10 +640,10 @@
 (defn- describe-cache
   "Format information about an attached cache file that is short
   enough to fit in the window."
-  [zip-file]
-  (str "Cached" (when (pos? (.getCacheSourcePlaylist metadata-finder zip-file)) " (playlist)") ": "
-       (.getName (clojure.java.io/file (.getName zip-file))) ", "
-       (.getCacheTrackCount metadata-finder zip-file) " tracks"))
+  [^MetadataCache cache]
+  (str "Cached" (when (pos? (.-sourcePlaylist cache)) " (playlist)") ": "
+       (.getName (clojure.java.io/file (.getName cache))) ", "
+       (.-trackCount cache) " tracks"))
 
 (defn- show-popup-from-button
   "Displays the popup menu when the gear button is clicked as an
@@ -766,16 +766,16 @@
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
                                 (seesaw/config! label :text "Empty"))))))
         cache-listener (reify MetadataCacheListener
-                         (cacheAttached [this slot-reference zip-file]
+                         (cacheAttached [this slot-reference cache]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-soon
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-icon.png") :enabled? true)
-                                (seesaw/config! label :text (describe-cache zip-file))
-                                (let [cache-details (.getCacheMediaDetails metadata-finder zip-file)
+                                (seesaw/config! label :text (describe-cache cache))
+                                (let [cache-details   (.-sourceMedia cache)
                                       current-details (.getMediaDetailsFor metadata-finder slot-reference)]
                                   (when (and cache-details current-details (.hasChanged current-details cache-details))
-                                    (warn-about-stale-cache zip-file current-details)))))))
+                                    (warn-about-stale-cache cache current-details)))))))
                          (cacheDetached [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
