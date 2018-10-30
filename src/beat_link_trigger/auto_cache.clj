@@ -47,7 +47,7 @@
       (seesaw/alert panel (str "<html>Media “" (.name details) "”, created " (.creationDate details)
                                ", size " (humanize/filesize (.totalSize details))
                                " (" (humanize/filesize (.freeSpace details)) " free).<br>"
-                               "Media contains: " (.trackCount details) " "
+                               "Media contained: " (.trackCount details) " "
                                (inflect/pluralize-noun (.trackCount details) "track")
                                " and " (.playlistCount details) " "
                                (inflect/pluralize-noun (.playlistCount details) "playlist") "."
