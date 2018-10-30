@@ -6,7 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- When a track is loaded, even if it has no artwork and we are
+  transitioning from no track or another track with no artwork, update
+  the generic image to better reflect that there is a track and where
+  it came from.
 
 ## [0.4.1] - 2018-10-28
 

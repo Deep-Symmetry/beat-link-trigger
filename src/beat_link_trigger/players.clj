@@ -737,7 +737,8 @@
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
-                             (update-metadata-labels (.metadata md-update) n title-label artist-label))))
+                             (update-metadata-labels (.metadata md-update) n title-label artist-label)
+                             (seesaw/repaint! art))))  ; In case we still have no art but need a new generic image.
         art-listener   (reify AlbumArtListener
                          (albumArtChanged [this art-update]
                            (when (= n (.player art-update))
