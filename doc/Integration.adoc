@@ -543,8 +543,8 @@ Expression to something like:
 
 And, as with all triggers, you can configure it to be active only when
 a CDJ is playing a particular track, or is within a particular range
-of beats within that track, as shown in <<matching-tracks,Matching
-Tracks>> above. This allows you to have certain looks called up
+of beats within that track, as shown in <<Matching#matching-tracks,Matching
+Tracks>> earlier. This allows you to have certain looks called up
 automatically when the right parts of the right tracks are played.
 
 TIP: If you jumped to this section to learn about how to integrate the
