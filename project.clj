@@ -25,10 +25,8 @@
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
                  [compojure "1.6.1"]
-                 [com.sun/yanfs "1.3"]
                  [javax.xml.bind/jaxb-api "2.2.8"]]  ; https://stackoverflow.com/questions/43574426/
-  :repositories {"bintray"            "https://jcenter.bintray.com"
-                 "sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
+  :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
                                       :welcome (println "beat-link-trigger loaded.")}
