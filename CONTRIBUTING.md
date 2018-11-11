@@ -48,7 +48,8 @@ Beat Link is primarily maintained by [@brunchboy][brunchboy].
 
 ## License
 
-<img align="right" alt="Deep Symmetry" src="assets/DS-logo-bw-200-padded-left.png">
+<a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
+ src="doc/assets/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
 
 Copyright © 2016&ndash;2018 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
