@@ -23,7 +23,7 @@ and builds).
 We find [GNU Emacs][emacs] with [CIDER][cider] to be an incredibly
 productive environment for Clojure work, but some of our colleagues
 swear by [IntelliJ IDEA][idea] (even the free Community Edition) with
-[Cursive](cursive), so use whatever IDE or editor works best for you.
+[Cursive][cursive], so use whatever IDE or editor works best for you.
 
 For testing you are going to want some Pro DJ Link hardware on your
 network, and a wired network is necessary for realistic performance.
