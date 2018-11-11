@@ -65,9 +65,12 @@ room](https://gitter.im/brunchboy/beat-link-trigger) to let us know!
 Even if it is only to explain why it didn&rsquo;t quite work for you.
 
 If you run into specific problems or have ideas of ways Beat Link
-Trigger could be better, you can
-also
-[open an Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues).
+Trigger could be better, you can also [open an
+Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues).
+
+And if you think you've come up with new or better way to do
+something, terrific! Please take a look at our [guidelines for
+contributing](CONTRIBUTING.md) and we can't wait to hear from you!
 
 > Please be mindful of our [Code of Conduct](CODE_OF_CONDUCT.md) to make
 > sure everyone feels welcome in the community.
