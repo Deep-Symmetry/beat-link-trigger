@@ -63,6 +63,7 @@ other, from this software.
 [covenant]: http://contributor-covenant.org/
 [clojure]: https://clojure.org
 [leiningen]: https://leiningen.org
+[emacs]: https://www.gnu.org/software/emacs/
 [cider]: http://www.cider.mx/en/latest/
 [idea]: https://www.jetbrains.com/idea/
 [cursive]: https://cursive-ide.com
