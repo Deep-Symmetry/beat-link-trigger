@@ -20,7 +20,7 @@ your environment first. Fork and clone the repo and install
 [Leiningen](https://leiningen.org) (to manage the project dependencies
 and builds).
 
-We find [GNU Emacs][emacs] with [CIDER](cider) to be an incredibly
+We find [GNU Emacs][emacs] with [CIDER][cider] to be an incredibly
 productive environment for Clojure work, but some of our colleagues
 swear by [IntelliJ IDEA][idea] (even the free Community Edition) with
 [Cursive](cursive), so use whatever IDE or editor works best for you.
