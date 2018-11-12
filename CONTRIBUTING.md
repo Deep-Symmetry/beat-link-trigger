@@ -44,7 +44,7 @@ nobody already has.
 
 ## Maintainers
 
-Beat Link is primarily maintained by [@brunchboy][brunchboy].
+Beat Link Trigger is primarily maintained by [@brunchboy][brunchboy].
 
 ## License
 
