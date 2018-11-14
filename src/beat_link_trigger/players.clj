@@ -521,7 +521,9 @@
   type of media being played in the specified player number."
   [n]
   (let [^CdjStatus status (.getLatestStatusFor virtual-cdj n)]
-    (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
+    (if (nil? status)
+      (ImageIO/read (clojure.java.io/resource "images/NoTrack.png"))
+      (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
         (ImageIO/read (clojure.java.io/resource "images/CDDAlogo.png"))
         (util/case-enum (.getTrackSourceSlot status)
 
@@ -540,7 +542,7 @@
           CdjStatus$TrackSourceSlot/USB_SLOT
           (ImageIO/read (clojure.java.io/resource "images/USB.png"))
 
-          (ImageIO/read (clojure.java.io/resource "images/UnknownMedia.png"))))))
+          (ImageIO/read (clojure.java.io/resource "images/UnknownMedia.png")))))))
 
 (defn- paint-art
   "Draws the album art for a player. Arguments are player number, the
