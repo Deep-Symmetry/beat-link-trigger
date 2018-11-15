@@ -12,6 +12,9 @@ This change log follows the conventions of
   transitioning from no track or another track with no artwork, update
   the generic image to better reflect that there is a track and where
   it came from.
+- Don't crash the initial drawing of the Player Status window if it
+  opens before a status packet has been received from one of the
+  players.
 
 ## [0.4.1] - 2018-10-28
 
