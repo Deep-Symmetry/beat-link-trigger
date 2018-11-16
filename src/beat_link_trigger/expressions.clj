@@ -242,7 +242,7 @@
                                                :doc  "The album of the loaded track, if metadata is available."}
                          'track-artist        {:code '(when (some? track-metadata) (when-let [artist (.getArtist track-metadata)] (.label artist)))
                                                :doc  "The artist of the loaded track, if metadata is available."}
-                         'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] (.label comment)))
+                         'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] comment))
                                                :doc  "The comment assigned to the loaded track, if metadata is available."}
                          'track-genre         {:code '(when (some? track-metadata) (when-let [genre (.getGenre track-metadata)] (.label genre)))
                                                :doc  "The genre of the loaded track, if metadata is available."}
