@@ -52,7 +52,7 @@
   "Create the values to assign the user-data atom for the window
   as a whole"
   []
-  (merge {:global true} (select-keys (prefs/get-preferences) [:request-metadata? :send-status?])))
+  (merge {:global true} (select-keys (prefs/get-preferences) [:send-status?])))
 
 (defn- global-user-data
   "Locates the user data attached to the whole triggers frame, for
@@ -62,13 +62,11 @@
     (atom (initial-global-user-data)) ; Don't crash during initial window setup
     (seesaw/user-data (seesaw/config @trigger-frame :content))))
 
-(defn request-metadata?
-  "Checks whether the user wants us to actively request metadata."
-  []
-  (boolean (:request-metadata? @(global-user-data))))
-
-(defn send-status?
-  "Checks whether the user wants to send status update packets."
+(defn real-player?
+  "Checks whether the user wants to pose as a real player, numbered 1
+  through 4, and send status update packets. This is the only way we
+  can take charge of other players' tempo, and get metadata for CD and
+  unanalyzed media."
   []
   (boolean (:send-status? @(global-user-data))))
 
@@ -986,8 +984,7 @@
                                 {:triggers (trigger-configuration)}
                                 (when-let [exprs (:expressions @(global-user-data))]
                                   {:expressions exprs})
-                                (select-keys @(global-user-data) [:tracks-using-playlists? :request-metadata?
-                                                                  :send-status?]))))
+                                (select-keys @(global-user-data) [:tracks-using-playlists? :send-status?]))))
 
 ;; Register the custom readers needed to read back in the defrecords that we use.
 (prefs/add-reader 'beat_link_trigger.util.PlayerChoice util/map->PlayerChoice)
@@ -1203,7 +1200,6 @@
   []
   (let [m (prefs/get-preferences)]
     (.doClick (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m) :#track-position :#track-id)]))
-    (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) (true? (:request-metadata? m)))
     (.setSelected (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
@@ -1243,38 +1239,13 @@
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
 
-(defn- acceptable-metadata-state-for-window
-  "Check whether we are currently requesting metadata, as the user has
-  asked to show the a window that relies on it. If not, warn the user
-  about reduced functionality and how they should fix that. Return a
-  truthy value if we should proceed to show the window."
-  [window-name]
-  (or (request-metadata?)
-      (let [options (to-array ["Cancel" "Turn On Metadata Requests" "Open Anyway"])
-            message (str "Beat Link Trigger is not currently configured to request track metadata.\n"
-                         "Most of the " window-name " Window features require track metadata to work.\n\n"
-                         "Would you like to turn on the Request Track Metadata feature before opening\n"
-                         "the " window-name " window?")
-            choice  (seesaw/invoke-now
-                     (javax.swing.JOptionPane/showOptionDialog
-                      nil message (str "Metadata Requests Recommended for " window-name)
-                      javax.swing.JOptionPane/YES_NO_CANCEL_OPTION javax.swing.JOptionPane/WARNING_MESSAGE nil
-                      options (aget options 2)))]
-        (case choice
-          0 nil  ; Cancel.
-          1 (do  ; Turn on Metadata Requests.
-              (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) true)
-              nil)
-          true))))  ; Open Anyway.
-
 (defn- show-player-status-handler
   "Try to show the player status window, giving the user appropriate
   feedback if the current environment is not appropriate, or even not
   ideal. A Seesaw event handler, but we ignore the event argument."
   [_]
   (if (.isRunning virtual-cdj)
-    (when (acceptable-metadata-state-for-window "Player Status")
-      (players/show-window @trigger-frame expression-globals))
+    (players/show-window @trigger-frame expression-globals)
     (seesaw/alert "Must be Online to show Player Status window."
                   :title "Beat Link Trigger is Offline" :type :error)))
 
@@ -1301,95 +1272,29 @@
   playlist-writer-action
   (seesaw/action :handler (fn [_]
                             (if (.isRunning virtual-cdj)
-                              (when (acceptable-metadata-state-for-window "Playlist Writer")
-                                (writer/show-window @trigger-frame))
+                              (writer/show-window @trigger-frame)
                               (seesaw/alert "Must be Online to show Playlist Writer window."
                                             :title "Beat Link Trigger is Offline" :type :error)))
                  :name "Write Playlist" :enabled? false))
 
 (declare go-offline)
 
-(defn- try-go-active
-  "Helper method that tries going out of passive mode and gives a nice
-  error message if we can't because a metadata cache is being
-  created."
-  []
-  (try
-    (.setPassive metadata-finder false)
-    (catch IllegalStateException e
-      (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)
-      (seesaw/alert "Cannot actively request metadata while a metadata cache is being created."
-                    :title "Cache Creation In Progress" :type :error))))
-
-(defn- actively-request-metadata
-  "Try to start gathering metadata if we are online. Warn the user if
-  our device number will make that unreliable, and give them choices
-  about how to proceed."
-  []
-  (when (online?)
-    (if (> (.getDeviceNumber virtual-cdj) 4)
-      (let [players (count (util/visible-player-numbers))
-            options (to-array (if (> players 1)
-                                ["Cancel" "Use Unreliable Metadata" "Go Offline"]
-                                ["Cancel" "Go Offline"]))
-            mode    (if (> players 1)
-                      javax.swing.JOptionPane/YES_NO_CANCEL_OPTION
-                      javax.swing.JOptionPane/YES_NO_OPTION)
-            message (str "Beat Link Trigger is using device number " (.getDeviceNumber virtual-cdj)
-                         ".\nTo reliably request metadata, it needs to use number 1, 2, 3, or 4.\n\n"
-                         (cond
-                           (= players 1)
-                           (str "Since there is only one player on the network, unreliable metadata cannot\n"
-                                "be used. You will need to go offline and then back online, which will use\n"
-                                "an available player number that allows reliable metadata requests.\n\n")
-
-                           (< players 4)
-                           (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
-                                "go offline and then back online, and it will be able to use one of the\n"
-                                "unused device numbers, which will work great.\n\n")
-
-                           :else
-                           (str "Please go offline, turn off one of the four CDJs currently on the network,\n"
-                                "then go back online, which will let us use that player's device number.\n\n"))
-
-                         (when (> players 1)
-                           (str "You may also choose to use unreliable metadata, which will work unless all\n"
-                                "of the CDJs load tracks from a media slot on the same player, and which\n"
-                                "may cause problems for DJs trying to use Link Info.\n\n"
-                                "Alternatively, you can create a metadata cache from the media in a player,\n"
-                                "and use that without turning on active metadata requests.")))
-            choice (seesaw/invoke-now
-                    (javax.swing.JOptionPane/showOptionDialog
-                     nil message "Incompatible Device Number for Metadata Requests"
-                     mode javax.swing.JOptionPane/ERROR_MESSAGE nil
-                     options (aget options (dec (count options)))))]
-        (cond
-          (zero? choice) ; Cancel.
-          (.setSelected (seesaw/select @trigger-frame [:#request-metadata]) false)
-
-          (and (> players 1) (= choice 1)) ; Use unreliable metadata requests.
-          (try-go-active)
-
-          :else ; Go offline.
-          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))
-      (do  ; We can reliably request metadata.
-        (try-go-active)
-        (when-not (.isPassive metadata-finder)
-          ;; We are successfully requesting metadata, see if we are supposed to also send status packets.
-          (when (send-status?)
-            (.setSelected (seesaw/select @trigger-frame [:#send-status]) true)))))))
-
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
   using a valid player number. If we are not using a valid player
-  number, tell the user why this can't be done."
+  number, tell the user why this can't be done.
+
+  When we are sending status update packets, we are also able to
+  actively request metadata of all types from the dbserver instances
+  running on the other players, so we can request things like CD-Text
+  based information that Crate Digger can't obtain."
   []
   (when (online?)
     (if (> (.getDeviceNumber virtual-cdj) 4)
       (let [players (count (util/visible-player-numbers))
             options (to-array ["Cancel" "Go Offline"])
             message (str "Beat Link Trigger is using device number " (.getDeviceNumber virtual-cdj)
-                         ".\nTo send status updates, it needs to use number 1, 2, 3, or 4.\n\n"
+                         ".\nTo act like a real player, it needs to use number 1, 2, 3, or 4.\n\n"
                          (if (< players 4)
                            (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
                                 "go offline and then back online, and it will be able to use one of the\n"
@@ -1399,13 +1304,14 @@
                                 "then go back online, which will let us use that player's device number.\n\n")))
             choice (seesaw/invoke-now
                     (javax.swing.JOptionPane/showOptionDialog
-                     nil message "Incompatible Device Number for Sending Status Packets"
+                     nil message "Need to Change Device Number"
                      javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
                      options (aget options (dec (count options)))))]
         (if (zero? choice)
           (.setSelected (seesaw/select @trigger-frame [:#send-status]) false)  ; Cancel.
           (.setSelected (seesaw/select @trigger-frame [:#online]) false)))     ; Go offline.
-      (.setSendingStatus virtual-cdj true))))  ; We can do it.
+      (do (.setSendingStatus virtual-cdj true)  ; We can do it.
+          (.setPassive metadata-finder false)))))
 
 (declare go-online)
 
@@ -1426,10 +1332,8 @@
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
         online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
-        metadata-item    (seesaw/checkbox-menu-item :text "Request Track Metadata?" :id :request-metadata
-                                                    :selected? (request-metadata?))
-        status-item      (seesaw/checkbox-menu-item :text "Send Status Packets?" :id :send-status
-                                                    :selected? (send-status?))
+        real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status
+                                                    :selected? (real-player?))
         bg               (seesaw/button-group)
         track-submenu    (seesaw/menu :text "Default Track Description"
                                       :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
@@ -1445,18 +1349,11 @@
                      (if (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
                        (go-online)
                        (go-offline))))
-    (seesaw/listen metadata-item :item-state-changed
-                   (fn [e]
-                     (swap! (global-user-data) assoc :request-metadata? (= (.getStateChange e)
-                                                                           java.awt.event.ItemEvent/SELECTED))
-                     (if (request-metadata?)
-                       (actively-request-metadata)
-                       (.setPassive metadata-finder true))))
-    (seesaw/listen status-item :item-state-changed
+    (seesaw/listen real-item :item-state-changed
                    (fn [e]
                      (swap! (global-user-data) assoc :send-status? (= (.getStateChange e)
                                                                       java.awt.event.ItemEvent/SELECTED))
-                     (if (send-status?)
+                     (if (real-player?)
                        (actively-send-status)
                        (do
                          (carabiner/cancel-full-sync)
@@ -1475,7 +1372,7 @@
                                          :id :triggers-menu)
 
                             (seesaw/menu :text "Network"
-                                         :items [online-item metadata-item status-item
+                                         :items [online-item real-item
                                                  (seesaw/separator)
                                                  player-status-action load-track-action
                                                  (seesaw/separator)
@@ -1537,6 +1434,7 @@
   use. Also updates the Online menu item to show our player number."
   []
   (.start metadata-finder)
+  (.start (org.deepsymmetry.beatlink.data.CrateDigger/getInstance))
   (.start (ArtFinder/getInstance))
   (.start (BeatGridFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)
@@ -1573,8 +1471,7 @@
   (.start (BeatFinder/getInstance))
   (.setPassive metadata-finder true) ; Start out conservatively
   (when (online?) (start-other-finders))
-  (when (request-metadata?) (actively-request-metadata))
-  (when (send-status?) (actively-send-status)))
+  (when (real-player?) (actively-send-status)))
 
 (defn go-offline
   "Transition to an offline state, updating the UI appropriately."

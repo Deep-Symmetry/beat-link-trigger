@@ -15,11 +15,10 @@
   "Search for a DJ link network, presenting a UI in the process."
   []
   (let [searching     (about/create-searching-frame)
-        want-metadata (triggers/request-metadata?)
-        want-status   (triggers/send-status?)]
+        real-player   (triggers/real-player?)]
     (loop []
-      (timbre/info "Trying to go online, Request Track Metadata?" want-metadata ", Send Status Packets?" want-status)
-      (.setUseStandardPlayerNumber (VirtualCdj/getInstance) (or want-metadata want-status))
+      (timbre/info "Trying to go online, Use Real Player Number?" real-player)
+      (.setUseStandardPlayerNumber (VirtualCdj/getInstance) real-player)
       (if (try (.start (VirtualCdj/getInstance)) ; Make sure we can see some DJ Link devices and start the VirtualCdj
                (catch Exception e
                  (timbre/warn e "Unable to create Virtual CDJ")

@@ -480,7 +480,7 @@ experience synchronization glitches."
   "Checks whether we are currently sending status packets, which is
   required to set the sync mode to full."
   []
-  ((resolve 'beat-link-trigger.triggers/send-status?)))
+  ((resolve 'beat-link-trigger.triggers/real-player?)))
 
 (defn- report-online-requirement
   "Displays an error explaining that we must be online in order to

@@ -6,6 +6,15 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- Take advantage of Beat Link's new Crate Digger library, which allows
+  us to get rekordbox metadata even when there are four CDJs in use.
+  Because this is now so much more flexible, and metadata is so
+  important, we no longer even ask the user if they want metadata. We
+  always try to get it with Crate Digger and, optionally, if you are
+  using a standard player number, with the older dbserver protocol.
+
 ### Fixed
 
 - When a track is loaded, even if it has no artwork and we are

@@ -78,15 +78,27 @@
   "Checks whether we are currently sending status packets, which is
   required to reliably obtain metadata for non-rekordbox tracks."
   []
-  ((resolve 'beat-link-trigger.triggers/send-status?)))
+  ((resolve 'beat-link-trigger.triggers/real-player?)))
 
-(defn- report-status-requirement
-  "Displays a warning explaining that status updates must be sent in
-  order to reliably obtain non-rekordbox metadata."
-  [parent]
-  (seesaw/alert parent (str "You may see missing Title and Aritst information for non-rekordbox\n"
-                            "tracks unless you enable Send Status Packets in the Network menu.")
-                :title "Beat Link Trigger isn't sending Status Packets" :type :warning))
+
+(defonce ^{:private true
+           :doc "Keeps track of whether we have already warned about
+  media we can't get without using a standard player number."}
+  report-given (atom false))
+
+(defn- report-limited-metadata
+  "Displays a warning explaining that you must use a standard player
+  number to get metadata for the kind of track loaded on a player. We
+  only do this once per session per type of media to avoid annoying
+  people."
+  [parent player]
+  (when (compare-and-set! report-given false true)
+    (seesaw/invoke-later
+     (seesaw/alert parent
+                   (str "<html>We can't get Title and Aritst information for the non-rekordbox<br>"
+                        "track in Player " player " unless you enable <strong>Use Real Player Number?</strong><br>"
+                        "in the <strong>Network</strong> menu.</html>")
+                   :title "Beat Link Trigger isn't using a real Player Number" :type :warning))))
 
 (defn get-display-font
   "Find one of the fonts configured for use by keyword, which must be
@@ -573,7 +585,9 @@
 
 (defn- update-metadata-labels
   "Updates the track title and artist name when the metadata has
-  changed."
+  changed. Let the user know if they are not going to be able to get
+  metadata without using a standard player number if this is the first
+  time we have seen the kind of track for which that is an issue."
   [metadata player title-label artist-label]
   (seesaw/invoke-soon
    (if metadata
@@ -585,7 +599,11 @@
                    "[no track loaded]"
                    "[no track metadata available]")]
        (seesaw/config! title-label :text title)
-       (seesaw/config! artist-label :text "n/a")))))
+       (seesaw/config! artist-label :text "n/a")
+       (when (and status
+                  (not (#{CdjStatus$TrackType/NO_TRACK CdjStatus$TrackType/REKORDBOX} (.getTrackType status)))
+                  (not (sending-status?)))
+         (report-limited-metadata @player-window player))))))
 
 (defn- suggest-updating-cache
   "Warn the user that the cache they have just attached lacks media details."
@@ -869,8 +887,7 @@
   (.setLocationRelativeTo @player-window trigger-frame)
   (seesaw/show! @player-window)
   (.toFront @player-window)
-  (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals)))
-  (when-not (sending-status?) (report-status-requirement @player-window)))
+  (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
 
 (defn build-no-player-indicator
   "Creates a label with a large border that reports the absence of any
