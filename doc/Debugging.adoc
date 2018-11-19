@@ -200,3 +200,15 @@ remove this notice, or any other, from this software. A copy of the
 license can be found in
 https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.
+
+=== Library Licenses
+
+https://sourceforge.net/projects/remotetea/[Remote Tea],
+used for communicating with the NFSv2 servers on players,
+is licensed under the
+https://opensource.org/licenses/LGPL-2.0[GNU Library General
+Public License, version 2].
+
+The http://kaitai.io[Kaitai Struct] Java runtime, used for parsing
+rekordbox exports and media analysis files, is licensed under the
+https://opensource.org/licenses/MIT[MIT License].

@@ -191,7 +191,7 @@ on, you will be able to run that copy by just double-clicking it.
 > You will need to repeat this process for each version that you
 > download.
 
-## License
+## Licenses
 
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
  src="doc/assets/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
@@ -203,3 +203,14 @@ Distributed under the
 the same as Clojure. By using this software in any fashion, you are
 agreeing to be bound by the terms of this license. You must not remove
 this notice, or any other, from this software.
+
+### Library Licenses
+
+[Remote Tea](https://sourceforge.net/projects/remotetea/),
+used for communicating with the NFSv2 servers on players,
+is licensed under the [GNU Library General
+Public License, version 2](https://opensource.org/licenses/LGPL-2.0).
+
+The [Kaitai Struct](http://kaitai.io) Java runtime, used for parsing
+rekordbox exports and media analysis files, is licensed under the
+[MIT License](https://opensource.org/licenses/MIT).

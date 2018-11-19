@@ -123,49 +123,9 @@ image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
 [[metadata]]
 ==== Metadata
 
-Now that Beat Link Trigger can request track metadata from the CDJs,
-that is often the most convenient and flexible way of matching tracks.
-To enable this feature, check menu:Network[Request Track Metadata?]
-(ideally before going online):
-
-image:assets/RequestMetadata.png[Requesting Metadata,400,205]
-
-[NOTE]
-====
-If you are already online when you turn on `Request Track Metadata?`,
-Beat Link Trigger will be using a player number that is not good for
-requesting metadata, and will warn you about it, as shown below.
-
-image:assets/Metadata2Players.png[Metadata Player Number with 2 players,578,347]
-
-In this situation, the best option is to choose to kbd:[Go Offline]
-(the default option), and then check menu:Network[Online?] again to go
-back online. Going online with menu:Network[Request Track Metadata?]
-already checked like this will use a good player number for requesting
-metadata, and everything will work great.
-
-If you are on a network which already has four physical players
-connected, though, you will see a slightly different version of the
-warning:
-
-image:assets/Metadata4Players.png[Metadata Player Number with 4 players,578,329]
-
-In such cases, as the window suggests, the safest option is to turn
-off one of the players and go offline and back online, to reliably get
-metadata. If you can't do that, though, you can also choose kbd:[Use
-Unreliable Metadata], and it will work as long as not all players are
-linked to the same media.
-
-Finally, if you have a single player connected to the network, the
-unreliable option doesn't work at all, and you will see the following
-choices instead:
-
-image:assets/Metadata1Player.png[Metadata Player Number with 1 player,562,234]
-
-In this case, definitely choose kbd:[Go Offline], and when you proceed
-to check menu:Network[Online?] after that, you will be able to get
-metadata from the single player you have connected.
-====
+Now that Beat Link Trigger can request track metadata from the CDJs
+in many different ways, that is most convenient and flexible way of
+matching tracks, and it is always enabled.
 
 When metadata is available for a track, the Player Status section
 grows to two lines, and displays the track title and artist on the
@@ -179,37 +139,6 @@ the trigger's `locals`. Metadata values available to your trigger
 expressions include `track-artist`, `track-comment`, `track-genre`,
 `track-key`, `track-label`, `track-length` (in seconds), and
 `track-title`.
-
-[IMPORTANT]
-====
-There are limitations on when you can reliably obtain metadata.
-To be safe, you should not have more than three actual CDJs or other
-players on the DJ Link network, so that Beat Link Trigger can assign
-itself a device number in the range 1 through 4.
-
-Although you can still try to request metadata when Beat Link Trigger
-has to use a device number of 5 or higher, it needs to
-&ldquo;borrow&rdquo; one of the actual players&rsquo; device numbers
-in order to make the metadata requests. It can't do that at all if
-every player has loaded tracks from the SD or USB slot on a single
-player. And even when the players have loaded tracks from different
-sources, there is a possibility that by borrowing their device
-numbers, Beat Link Trigger will confuse them and interfere with the
-DJ's ability to use the Link Info feature.
-
-It seems to be safe and reliable to request metadata as long as there
-are no more than three other players on the network, so Beat Link
-Trigger can reserve a device number from 1 to 4, or as long as the four
-players are only loading tracks from rekordbox instead of each other,
-because rekordbox will happily reply to metadata requests from device
-numbers larger than 5.
-
-In order to be able to work with metadata in a busy performance
-environment where DJs are using four physical players and potentially
-loading tracks from a single player, you can create and attach a
-<<Players#caching-metadata,Metadata Cache>> as described below.
-
-====
 
 Powerful ways to take advantage of this metadata capability are explored
 in the <<Matching#matching-tracks,Matching Tracks>> section.
@@ -424,3 +353,15 @@ remove this notice, or any other, from this software. A copy of the
 license can be found in
 https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.
+
+=== Library Licenses
+
+https://sourceforge.net/projects/remotetea/[Remote Tea],
+used for communicating with the NFSv2 servers on players,
+is licensed under the
+https://opensource.org/licenses/LGPL-2.0[GNU Library General
+Public License, version 2].
+
+The http://kaitai.io[Kaitai Struct] Java runtime, used for parsing
+rekordbox exports and media analysis files, is licensed under the
+https://opensource.org/licenses/MIT[MIT License].

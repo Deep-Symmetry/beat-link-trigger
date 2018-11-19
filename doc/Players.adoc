@@ -31,11 +31,10 @@ coming up next, and even load and play tracks during pre-show.
 == Overview
 
 Beat Link Trigger can take advantage of track metadata and related
-information from the `dbserver` running on the players to provide you
-a rich view of what is happening right now on all the decks. As shown
-in the example view below, this can be an invaluable resoure on its
-own for running visuals for a show, even if you don't have any
-triggers set up:
+information from the players to provide you a rich view of what is
+happening right now on all the decks. As shown in the example view
+below, this can be an invaluable resoure on its own for running
+visuals for a show, even if you don't have any triggers set up:
 
 image:assets/PlayerStatus.png[Player Status Window,538,678]
 
@@ -101,29 +100,6 @@ connected to, then you can use the "On-Air" indication above the
 player number as an additional hint about when you need to pay
 attention to it.
 
-If you do not have metadata requests active when you try opening the
-player window, Beat Link Trigger will show the following warning
-dialog:
-
-image:assets/NoMetadata.png[No Metadata for Player Window,644,199]
-
-In that situation, unless you have already created a metadata cache to
-use as described below, you will want to turn on metadata requests.
-See the Metadata section <<Triggers#metadata,above>> for more details about
-that process.
-
-TIP: For the status window to be of any use, you need to either have
-Beat Link Trigger configured to request track metadata (`Request Track
-Metadata?` needs to be selected in the `Network` menu, as described
-<<Triggers#metadata,above>>), or a metadata cache needs to be attached. What is
-a metadata cache, you ask? Well, read on!
-
-In order to enable you to work with metadata even during shows with a
-full complement of CDJs (when you can't be sure that all of the
-players will be never be simultaneously linked to the database you
-need metadata for) you can set up a metadata cache before the show,
-and attach that to the slot where your DJ has inserted his media.
-
 === Non-rekordbox Metadata
 
 The Player Status window is a lot less useful if non-rekordbox tracks
@@ -132,17 +108,19 @@ be available, so it will not even be possible to calculate Time Played
 or Remain information. So most sections of the window will be blank
 when such tracks are loaded.
 
-We can still usually get (and display) title and artist information
-for tracks loaded from digital audio files, and even from audio CDs if
-they were burned with the CD-TEXT extension. For other audio CDs, the
-only information we receive from the player is the track number, which
+When Beat Link Trigger is using a standard player number, it can still
+usually get (and display) title and artist information for tracks
+loaded from digital audio files, and even from audio CDs if they were
+burned with the CD-TEXT extension. For other audio CDs, the only
+information we receive from the player is the track number, which
 shows up as a title like `TRACK 01`.
 
 TIP: In order to reliably obtain title and artist information for
-non-rekordbox tracks, you need to make sure that
-menu:Network[Send Status Packets?] is checked, which also means you
-need to be using a standard player number as described in the Metadata
-section <<Triggers#metadata,above>>.
+non-rekordbox tracks, you need to make sure that menu:Network[Use Real
+Player Number?] is checked. If you are already online, this will
+require you to briefly go offline to switch numbers. If you have four
+players on the network, you will also have to turn one of them off and
+leave it off, unfortunately.
 
 NOTE: It is also not yet possible to create metadata caches for
 non-rekordbox media. Since that metadata is so much less useful, this
@@ -152,10 +130,17 @@ use case, and let us know about it.
 [[caching-metadata]]
 == Caching Metadata
 
+TIP: This is probably no longer necessary with version 0.5.0 or later,
+since we can now get metadata for rekordbox tracks even when four
+players are in use. This section (and the feature) may be removed in a
+future release once we have some experience in the field with the new
+metadata approach.
+
 To create a metadata cache, have your DJ insert his (rekordbox only)
-media into a player before the show begins, and then click on the gear
-button next to the corresponding player slot, choosing the Create
-Metadata Cache File option:
+media into a player before the show begins (and before four players
+are in use), and then click on the gear button next to the
+corresponding player slot, choosing the Create Metadata Cache File
+option:
 
 image:assets/CreateCache.png[Create Metadata Cache option,350,234]
 
@@ -302,6 +287,12 @@ image:assets/SymmetryContents.png[Example cache contents,850,480]
 [[loading-playing]]
 == Loading and Playing Tracks
 
+WARNING: Unless you are using a real player number, this feature will
+not work well in the preview releases of 0.5.0 until a new mechanism
+for picking tracks can be built. The current implementation relies on
+menu requests to the players, which will likely fail unless you are
+using a real player number.
+
 During pre-show and after-show situations, when there is no DJ on
 stage, it can be convenient to cue up and play tracks from Front of
 House. If you can ensure that the tracks are inserted into one of the
@@ -428,3 +419,15 @@ remove this notice, or any other, from this software. A copy of the
 license can be found in
 https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.
+
+=== Library Licenses
+
+https://sourceforge.net/projects/remotetea/[Remote Tea],
+used for communicating with the NFSv2 servers on players,
+is licensed under the
+https://opensource.org/licenses/LGPL-2.0[GNU Library General
+Public License, version 2].
+
+The http://kaitai.io[Kaitai Struct] Java runtime, used for parsing
+rekordbox exports and media analysis files, is licensed under the
+https://opensource.org/licenses/MIT[MIT License].

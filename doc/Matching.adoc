@@ -35,16 +35,14 @@ being played.
 == Overview
 
 As described in the <<Triggers#player-status-summary,Player Status
-Summary>> discussion, the most reliable way to match a track is using
-the `rekordbox-id`, source player, and slot values, and the most
-convenient way to do that is to turn on metadata requests, so Beat
-Link Trigger asks the player hosting the track for details like its
-title, artist, and so on. This section describes how to work with that
-metadata in your triggers. If you can't turn on metadata requests (for
-example, you are running a show with a full set of four CDJs, all
-loading tracks from the same media on a single player), you can
-prepare ahead of time by hard-coding the rekordbox ID numbers in your
-triggers, or you can set up a <<Players#caching-metadata,Metadata
+Summary>> discussion, the most convenient way to match a track is
+using metadata obtained from the players, so Beat Link Trigger asks
+the player hosting the track for details like its title, artist, and
+so on. This section describes how to work with that metadata in your
+triggers. If you are unable to get metadata (although as of version
+0.5.0 we can't think of any situations where this might apply), you
+can prepare ahead of time by hard-coding the rekordbox ID numbers in
+your triggers, or you can set up a <<Players#caching-metadata,Metadata
 Cache>>.
 
 The simplest approach is to configure your triggers to Watch Any
@@ -210,3 +208,15 @@ remove this notice, or any other, from this software. A copy of the
 license can be found in
 https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.
+
+=== Library Licenses
+
+https://sourceforge.net/projects/remotetea/[Remote Tea],
+used for communicating with the NFSv2 servers on players,
+is licensed under the
+https://opensource.org/licenses/LGPL-2.0[GNU Library General
+Public License, version 2].
+
+The http://kaitai.io[Kaitai Struct] Java runtime, used for parsing
+rekordbox exports and media analysis files, is licensed under the
+https://opensource.org/licenses/MIT[MIT License].

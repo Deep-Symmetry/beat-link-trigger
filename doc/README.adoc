@@ -28,6 +28,10 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
+IMPORTANT: This guide is being updated to reflect important changes in
+version 0.5.0. If you are using an older version, please refer to the
+built-in guide for accurate instructions.
+
 To keep page sizes manageable, this guide is split into several pages.
 It is worth reading through this whole guide once if you are new to
 Beat Link Trigger. Once you know what you are looking for, you can
@@ -107,7 +111,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking menu:Network[Online?]:
 
-image:assets/GoingOnline.png[Going Online,400,205]
+image:assets/GoingOnline.png[Going Online,400,185]
 
 You can also go offline at any time by un-checking the menu option.
 
@@ -125,7 +129,16 @@ see what Player Number it is using by looking at the menu:Network[Online?]
 menu option without toggling it again. Whenever it is checked, the
 Player Number being used by Beat Link is shown there.
 
-image:assets/CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,205]
+image:assets/CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,185]
+
+Most of the time you will want to be using Player 5, as shown here,
+because that is compatible with big shows where there are four real
+players in use. However, if you want to do things like letting an
+Ableton Link session become the Tempo Master and
+<<Link#full-sync-mode,control the speed>>
+and beat sync of the players, or display metadata for CD and other
+non-rekordbox tracks, you will need to use a real player number,
+which may require you to turn off one of the other players.
 
 == Learning More
 
@@ -190,3 +203,15 @@ remove this notice, or any other, from this software. A copy of the
 license can be found in
 https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.
+
+=== Library Licenses
+
+https://sourceforge.net/projects/remotetea/[Remote Tea],
+used for communicating with the NFSv2 servers on players,
+is licensed under the
+https://opensource.org/licenses/LGPL-2.0[GNU Library General
+Public License, version 2].
+
+The http://kaitai.io[Kaitai Struct] Java runtime, used for parsing
+rekordbox exports and media analysis files, is licensed under the
+https://opensource.org/licenses/MIT[MIT License].
