@@ -683,11 +683,10 @@
                        "You should re-create it from the current media as soon as you can.")
                   :title "Metadata Cache is Stale" :type :warning)))
 
-(defn- create-player-row
-  "Create a row a player, given the shutdown channel, a widget that
-  should be made visible only when there are no actual players on the
-  network, and the player number this row is supposed to display."
-  [shutdown-chan no-players n]
+(defn- create-player-cell
+  "Create a cell for a player, given the shutdown channel and the player
+  number this row is supposed to display."
+  [shutdown-chan n]
   (let [art            (seesaw/canvas :size [80 :by 80] :opaque? false :paint (partial paint-art n))
         preview        (WaveformPreviewComponent. (int n))
         on-air         (seesaw/canvas :size [55 :by 20] :opaque? false :paint (partial paint-on-air n))
@@ -740,20 +739,6 @@
                                 [on-air "flowy, split 2, bottom"]
                                 [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
                                 [player "left, bottom"] [preview "right, bottom, span"]])
-        dev-listener   (reify DeviceAnnouncementListener
-                         (deviceFound [this announcement]
-                           (when (= n (.getNumber announcement))
-                             (seesaw/invoke-soon
-                              (seesaw/config! row :visible? true)
-                              (seesaw/config! no-players :visible? false)
-                              (seesaw/pack! (seesaw/to-root row)))))
-                         (deviceLost [this announcement]
-                           (when (= n (.getNumber announcement))
-                             (seesaw/invoke-soon
-                              (seesaw/config! row :visible? false)
-                              (when (no-players-found)
-                                (seesaw/config! no-players :visible? true))
-                              (seesaw/pack! (seesaw/to-root row))))))
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
@@ -819,13 +804,10 @@
     (.addAlbumArtListener art-finder art-listener)  ; React to artwork changes.
     (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
     (.addCacheListener metadata-finder cache-listener)  ; React to metadata cache changes.
-    (.addDeviceAnnouncementListener device-finder dev-listener)   ; React to our device coming and going.
 
     ;; Set the initial state of the interface.
     (seesaw/hide! detail)
     (.setScale detail (seesaw/value zoom-slider))
-    (when-not (.getLatestAnnouncementFrom device-finder (int n))  ; We are starting out with no device, so vanish.
-      (seesaw/config! row :visible? false))
     (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) n title-label artist-label)
     (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
       (.mediaMounted mount-listener slot-reference)
@@ -838,7 +820,6 @@
       (.removeAlbumArtListener art-finder art-listener)
       (.removeMountListener metadata-finder mount-listener)
       (.removeCacheListener metadata-finder cache-listener)
-      (.removeDeviceAnnouncementListener device-finder dev-listener)
       (.setMonitoredPlayer preview (int 0))
       (.setMonitoredPlayer detail (int 0)))
     (async/go  ; Animation loop
@@ -870,15 +851,15 @@
             (timbre/error e "Problem updating player status row")))))
     row))
 
-(defn- create-player-rows
-  "Creates the rows for each visible player in the Player Status
+(defn- create-player-cells
+  "Creates the cells for each visible player in the Player Status
   window. A value will be delivered to `shutdown-chan` when the window
   is closed, telling the row to unregister any event listeners and
   exit any animation loops. The `no-players` widget should be made
   visible when the last player disappears, and invisible when the
   first one appears, to alert the user what is going on."
-  [shutdown-chan no-players]
-  (map (partial create-player-row shutdown-chan no-players) (range 1 5)))
+  [shutdown-chan]
+  (map (partial create-player-cell shutdown-chan) (range 1 5)))
 
 (defn- make-window-visible
   "Ensures that the Player Status window is centered on the triggers
@@ -898,6 +879,23 @@
     (.setBorder no-players (javax.swing.border.EmptyBorder. 10 10 10 10))
     no-players))
 
+(defn- players-present
+  "Builds a grid to contain only the players which are currently
+  visible on the netowrk, and if there are none, to contain the
+  no-players indicator. If there are two or fewer players, the grid
+  will have a single column, otherwise it will have two. This is
+  friendlier to the smaller screens that are often available front of
+  house."
+  [grid players no-players]
+  (let [visible-players (keep-indexed (fn [index player]
+                                        (when (some? (.getLatestAnnouncementFrom device-finder (inc index)))
+                                          player))
+                                      players)
+        grid (seesaw/grid-panel :id players :columns (if (< (count visible-players) 3) 1 2))]
+
+    (seesaw/config! grid :items (or (seq visible-players) [no-players]))
+    grid))
+
 (defn- create-window
   "Creates the Player Status window."
   [trigger-frame globals]
@@ -906,22 +904,33 @@
     (let [shutdown-chan (async/promise-chan)
           root          (seesaw/frame :title "Player Status"
                                       :on-close :dispose)
-          players       (seesaw/vertical-panel :id :players)
+          grid          (seesaw/grid-panel :id :players :columns 1)
+          players       (create-player-cells shutdown-chan)
           no-players    (build-no-player-indicator)
-          stop-listener  (reify LifecycleListener
-                           (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
-                           (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
-                             (seesaw/invoke-later
-                              (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
-      (seesaw/config! root :content (seesaw/scrollable players))
-
-      (seesaw/config! players :items (concat [no-players] (create-player-rows shutdown-chan no-players)))
+          dev-listener (reify DeviceAnnouncementListener  ; Update the grid contents as players come and go
+                         (deviceFound [this _]
+                           (seesaw/invoke-later
+                            (seesaw/config! root
+                                            :content (seesaw/scrollable (players-present grid players no-players)))
+                            (seesaw/pack! root)))
+                         (deviceLost [this _]
+                           (seesaw/invoke-later
+                            (seesaw/config! root
+                                            :content (seesaw/scrollable (players-present grid players no-players)))
+                            (seesaw/pack! root))))
+          stop-listener (reify LifecycleListener
+                          (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
+                          (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
+                            (seesaw/invoke-later
+                             (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
+      (seesaw/config! root :content (seesaw/scrollable (players-present grid players no-players)))
+      (.addDeviceAnnouncementListener device-finder dev-listener)
+      (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/listen root :window-closed (fn [e]
                                            (>!! shutdown-chan :done)
                                            (reset! player-window nil)
+                                           (.removeDeviceAnnouncementListener device-finder dev-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)))
-      (seesaw/config! no-players :visible? (no-players-found))
-      (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/pack! root)
       #_(.setResizable root false)
       (reset! player-window root)

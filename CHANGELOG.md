@@ -14,6 +14,10 @@ This change log follows the conventions of
   important, we no longer even ask the user if they want metadata. We
   always try to get it with Crate Digger and, optionally, if you are
   using a standard player number, with the older dbserver protocol.
+- Since there is now useful information for up to four players, the
+  Player Status window will switch to using two columns whenever there
+  are three or more players on the network. This will make it easier
+  to work with on smaller screens.
 
 ### Fixed
 
@@ -24,6 +28,7 @@ This change log follows the conventions of
 - Don't crash the initial drawing of the Player Status window if it
   opens before a status packet has been received from one of the
   players.
+
 
 ## [0.4.1] - 2018-10-28
 
