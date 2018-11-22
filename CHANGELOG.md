@@ -28,6 +28,9 @@ This change log follows the conventions of
 - Don't crash the initial drawing of the Player Status window if it
   opens before a status packet has been received from one of the
   players.
+- The **Load Track on Player** interface now shows rekordbox and
+  rekordbox mobile collections for any linked computers and phones,
+  allowing you to explore them and load tracks from them.
 
 
 ## [0.4.1] - 2018-10-28
