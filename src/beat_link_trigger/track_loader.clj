@@ -808,18 +808,22 @@
   the slot reference."
   [^SlotReference slot-reference]
   (let [raw    (.player slot-reference)
-        number (bit-and raw 0x0f)
+        number (cond (< raw 0x10) raw
+                     (< raw 41)   (- raw 0x20)
+                     :else        (- raw 40))
         kind   (cond
                  (< raw 0x10) "Player"
-                 (< raw 0x20) "Computer"
-                 :else        "Mixer")
+                 (< raw 41)   "Mixer"
+                 :else        "Computer")
         base   (str kind " " number " "
                     (util/case-enum (.slot slot-reference)
                       CdjStatus$TrackSourceSlot/SD_SLOT "SD"
                       CdjStatus$TrackSourceSlot/USB_SLOT "USB"
                       CdjStatus$TrackSourceSlot/COLLECTION "Collection"))
         extra  (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
-                 (str (when-let [name (.name details)] (str ": " name))
+                 (str (when-let [name (if (= kind "Computer")
+                                        (.getName (.getLatestAnnouncementFrom device-finder (.player slot-reference)))
+                                        (.name details))] (str ": " name))
                       (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
                       (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists"))))]
     (str base extra)))
