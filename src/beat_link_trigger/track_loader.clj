@@ -317,7 +317,8 @@
    (proxy [Object IMenuEntry ISearchEntry] []
      (toString [] "Search")
      (getId [] (int 0))
-     (getSlot [] slot)
+     (getSlot []  ; Return a dummy slot even though file searches don't use it because the search UI needs one.
+       (or slot (SlotReference/getSlotReference 0 CdjStatus$TrackSourceSlot/NO_TRACK)))
      (getTrackType [] nil)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
@@ -944,18 +945,21 @@
   the slot reference."
   [^SlotReference slot-reference]
   (let [raw    (.player slot-reference)
-        number (cond (< raw 0x10) raw
+        number (cond (zero? raw)  ""
+                     (< raw 0x10) raw
                      (< raw 41)   (- raw 0x20)
                      :else        (- raw 40))
         kind   (cond
-                 (< raw 0x10) "Player"
-                 (< raw 41)   "Mixer"
-                 :else        "Computer")
-        base   (str kind " " number " "
+                 (zero? raw)  "File"
+                 (< raw 0x10) "Player "
+                 (< raw 41)   "Mixer "
+                 :else        "Computer ")
+        base   (str kind number
                     (util/case-enum (.slot slot-reference)
-                      CdjStatus$TrackSourceSlot/SD_SLOT "SD"
-                      CdjStatus$TrackSourceSlot/USB_SLOT "USB"
-                      CdjStatus$TrackSourceSlot/COLLECTION "Collection"))
+                      CdjStatus$TrackSourceSlot/SD_SLOT " SD"
+                      CdjStatus$TrackSourceSlot/USB_SLOT " USB"
+                      CdjStatus$TrackSourceSlot/COLLECTION " Collection"
+                      CdjStatus$TrackSourceSlot/NO_TRACK ""))
         extra  (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
                  (str (when-let [name (if (= kind "Computer")
                                         (.getName (.getLatestAnnouncementFrom device-finder (.player slot-reference)))
@@ -1064,12 +1068,12 @@
   start of the path which leads to the Search node itself. Otherwise
   returns `nil`."
   [^TreePath path]
-  (when (and path (> (.getPathCount path) 2))
+  (when (and path (> (.getPathCount path) 1))
     (loop [result path]
       (when-let [item (.. result getLastPathComponent getUserObject)]
         (if (instance? ISearchEntry item)
           result
-          (when (> (.getPathCount result) 3)
+          (when (> (.getPathCount result) 2)
             (recur (.getParentPath result))))))))
 
 (defn- add-device
@@ -1475,7 +1479,7 @@
   [^Database database]
   (let [node (DefaultMutableTreeNode.
               (proxy [Object IMenuEntry] []
-                (toString [] (str "Choose Track from " (describe-pdb-media (.sourceFile database)) ":"))
+                (toString [] (str "Choose Track from:"))
                 (getId [] (int 0))
                 (getSlot [] nil)
                 (getTrackType [] nil)
@@ -1489,99 +1493,110 @@
   Returns the frame if creation succeeded. `pdb-file` must be a File
   object that contains a rekordbox `export.pdb` database. This must
   be invoked on the Swing Event Dispatch thread."
-   [pdb-file]
-  (if-let [pdb (Database. pdb-file)]
-    (try
-      (let [selected-track   (atom nil)
-            searches         (atom {})
-            file-model       (DefaultTreeModel. (offline-file-node pdb) true)
-            file-tree        (seesaw/tree :model file-model :id :tree)
-            file-scroll      (seesaw/scrollable file-tree)
-            choose-button    (seesaw/button :text "Choose" :enabled? false)
-            cancel-button    (seesaw/button :text "Cancel")
-            update-choose-ui (fn []
-                               (seesaw/config! choose-button :enabled? (some? @selected-track)))
-            search-label     (seesaw/label :text "Search:")
-            search-field     (seesaw/text "")
-            search-panel     (mig/mig-panel :background "#eee"
-                                            :items [[search-label] [search-field "pushx, growx"]])
-            layout           (seesaw/border-panel :center file-scroll)
-            dialog           (seesaw/dialog :content layout :options [cancel-button choose-button]
-                                            :default-option choose-button :modal? true)]
-        (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
-        (.setSize dialog 800 600)
-        (.setLocationRelativeTo dialog nil)
-        (seesaw/listen file-tree
-                       :tree-will-expand
-                       (fn [e]
-                         (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
-                               ^IMenuEntry entry (.getUserObject node)]
-                           (.loadChildren entry node)))
-                       :selection
-                       (fn [e]
-                         (try
-                           (reset! selected-track
-                                   (when (.isAddedPath e)
-                                     (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
-                                       (when (.getTrackType entry) (.getId entry)))))
-                           (update-choose-ui)
-                           #_(let [search-path   (when (.isAddedPath e)
+   [pdb]
+  (try
+    (let [selected-track   (atom nil)
+          searches         (atom {})
+          file-model       (DefaultTreeModel. (offline-file-node pdb) true)
+          file-tree        (seesaw/tree :model file-model :id :tree)
+          file-scroll      (seesaw/scrollable file-tree)
+          choose-button    (seesaw/button :text "Choose Track" :enabled? false)
+          cancel-button    (seesaw/button :text "Cancel")
+          update-choose-ui (fn []
+                             (seesaw/config! choose-button :enabled? (some? @selected-track)))
+          search-label     (seesaw/label :text "Search:")
+          search-field     (seesaw/text "")
+          search-partial   (seesaw/label "")  ; Not used in this dialog variant, but expected by search UI.
+          search-button    (seesaw/button :text "Load All")  ; Also not used but expected by search UI.
+          search-panel     (mig/mig-panel :background "#eee"
+                                          :items [[search-label] [search-field "pushx, growx"]])
+          layout           (seesaw/border-panel :center file-scroll)
+          dialog           (seesaw/dialog :content layout :options [choose-button cancel-button]
+                                          :title (str "Choose Track from " (describe-pdb-media (.sourceFile pdb)))
+                                          :default-option choose-button :modal? true)]
+      (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+      (.setSize dialog 800 600)
+      (.setLocationRelativeTo dialog nil)
+      (seesaw/listen file-tree
+                     :tree-will-expand
+                     (fn [e]
+                       (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
+                             ^IMenuEntry entry (.getUserObject node)]
+                         (.loadChildren entry node)))
+                     :selection
+                     (fn [e]
+                       (try
+                         (reset! selected-track
+                                 (when (.isAddedPath e)
+                                   (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                     (when (.getTrackType entry) (.getId entry)))))
+                         (update-choose-ui)
+                         (let [search-path     (when (.isAddedPath e)
                                                  (trim-to-search-node-path (.getPath e)))
-                                 search-node     (when search-path
-                                                   (.expandPath slots-tree search-path)
-                                                   (.. search-path getLastPathComponent))
-                                 selected-search (when search-node (.. search-node getUserObject getSlot))]
-                             (when (not= selected-search (:current @searches))
-                               (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
-                               (if selected-search
-                                 (do
-                                   (swap! searches assoc-in [selected-search :path] search-path)
-                                   (configure-search-ui search-label search-field search-partial search-button
-                                                        searches selected-search)
-                                   (seesaw/add! layout [search-panel :north]))
-                                 (seesaw/remove! layout search-panel))))
-                           (catch Throwable t
-                             (timbre/error t "Problem responding to file tree click.")))))
-        (seesaw/listen choose-button
-                       :action-performed
-                       (fn [_]
-                         (seesaw/return-from-dialog dialog @selected-track)))
-        (seesaw/listen cancel-button
-                       :action-performed
-                       (fn [_]
-                         (seesaw/return-from-dialog dialog nil)))
-        ;; TODO: Need to port search stuff
-        #_(seesaw/listen search-field #{:remove-update :insert-update :changed-update}
-                         (fn [e]
-                           (when (:current @searches)
-                             (search-text-changed (seesaw/text e) search-partial search-button searches slots-tree))))
-        (seesaw/show! dialog))
-      (catch Exception e
-        (timbre/error e "Problem Choosing Track")
-        (seesaw/alert (str "<html>Unable to Choose Track from Media Export:<br><br>" (.getMessage e)
-                           "<br><br>See the log file for more details.")
-                      :title "Problem Choosing Track" :type :error)))
-    (seesaw/alert "Could not find exported rekordbox database."
-                  :title "Nowhere to Load Tracks From" :type :error)))
+                               search-node     (when search-path
+                                                 (.expandPath file-tree search-path)
+                                                 (.. search-path getLastPathComponent))
+                               selected-search (when search-node (.. search-node getUserObject getSlot))]
+                           (when (not= selected-search (:current @searches))
+                             (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
+                             (if selected-search
+                               (do
+                                 (swap! searches assoc-in [selected-search :path] search-path)
+                                 (configure-search-ui search-label search-field search-partial search-button
+                                                      searches selected-search)
+                                 (seesaw/text! search-label (str "Search " (describe-pdb-media (.sourceFile pdb)) ":"))
+                                 (seesaw/add! layout [search-panel :north]))
+                               (seesaw/remove! layout search-panel))))
+                         (catch Throwable t
+                           (timbre/error t "Problem responding to file tree click.")))))
+      (.setSelectionRow file-tree 1)  ; Uncomment if we can get a good window title in place?
+      (seesaw/listen choose-button
+                     :action-performed
+                     (fn [_]
+                       (seesaw/return-from-dialog dialog [pdb (.. pdb trackIndex (get (long @selected-track)))])))
+      (seesaw/listen cancel-button
+                     :action-performed
+                     (fn [_]
+                       (seesaw/return-from-dialog dialog nil)))
+      (seesaw/listen search-field #{:remove-update :insert-update :changed-update}
+                     (fn [e]
+                       (when (:current @searches)
+                         (search-text-changed (seesaw/text e) search-partial search-button searches file-tree))))
+      (seesaw/show! dialog))
+    (catch Exception e
+      (timbre/error e "Problem Choosing Track")
+      (seesaw/alert (str "<html>Unable to Choose Track from Media Export:<br><br>" (.getMessage e)
+                         "<br><br>See the log file for more details.")
+                    :title "Problem Choosing Track" :type :error)))
+  )
 
 (defn choose-local-track
   "Presents a modal dialog allowing the selection of a track from a
-  locally mounted media filesystem."
-  []
-  (seesaw/invoke-now
-   (let [root (chooser/choose-file :selection-mode :dirs-only :all-files? true
-                                   :filters [rekordbox-export-filter])
-         candidates (find-pdb-recursive root 3)]
-     (cond
-       (empty? candidates)
-       (seesaw/alert "No rekordbox export found in the chosen directory."
-                     :title "Unable to Locate Database" :type :error)
+  locally mounted media filesystem. If `database` is supplied, uses
+  that already-parsed rekordbox export file; otherwise starts by
+  prompting the user to choose a media volume to parse."
+  ([]
+   (seesaw/invoke-now
+    (let [root (chooser/choose-file :selection-mode :dirs-only :all-files? true :type "Choose Media"
+                                    :filters [rekordbox-export-filter])]
+      (when root
+        (let [candidates (find-pdb-recursive root 3)]
+          (cond
+            (empty? candidates)
+            (seesaw/alert "No rekordbox export found in the chosen directory."
+                          :title "Unable to Locate Database" :type :error)
 
-       (> (count candidates) 1)
-       (seesaw/alert (str "Multiple recordbox exports found in the chosen directory.\n"
-                          "Please pick a specific media export:\n"
-                          (clojure.string/join "\n" (map describe-pdb-media candidates)))
-                     :title "Ambiguous Database Choice" :type :error)
+            (> (count candidates) 1)
+            (seesaw/alert (str "Multiple recordbox exports found in the chosen directory.\n"
+                               "Please pick a specific media export:\n"
+                               (clojure.string/join "\n" (map describe-pdb-media candidates)))
+                          :title "Ambiguous Database Choice" :type :error)
 
-       :else
-       (create-chooser-dialog (first candidates))))))
+            :else
+            (if-let [pdb (Database. (first candidates))]
+              (create-chooser-dialog pdb)
+              (seesaw/alert "Could not find exported rekordbox database."
+                            :title "Nowhere to Load Tracks From" :type :error))))))))
+  ([^Database database]
+   (seesaw/invoke-now
+    (create-chooser-dialog database))))
