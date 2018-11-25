@@ -13,7 +13,7 @@
             [seesaw.mig :as mig]
             [seesaw.chooser :as chooser]
             [taoensso.timbre :as timbre])
-  (:import [beat_link_trigger.tree_node IMenuEntry]
+  (:import [beat_link_trigger.tree_node IMenuEntry ISearchEntry]
            beat_link_trigger.util.PlayerChoice
            [java.awt.event WindowEvent]
            [java.util.concurrent.atomic AtomicInteger]
@@ -119,7 +119,6 @@
       (getId [] (int 0))
       (getSlot [] nil)
       (getTrackType [] nil)
-      (isSearch [] false)
       (loadChildren [_]))
     false)))
 
@@ -139,7 +138,6 @@
        (getId [] (int -1))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (isSearch [] false)
        (loadChildren [_]))
      false)))
 
@@ -153,6 +151,202 @@
       result
       (recur (.getParent current)
              (conj result current)))))
+
+(defn file-track-node
+  "Creates a node that represents a track available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another. If `show-artist` is `true` the artist name will be appended
+  to the track name (for disambiguation at the top-level track list)."
+  [^Database database ^RekordboxPdb$TrackRow track ^SlotReference slot show-artist]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString []
+       (let [artist-name (when-let [artist (when show-artist (.get (.artistIndex database) (.artistId track)))]
+                           (Database/getText (.name artist)))]
+         (str (Database/getText (.title track))
+              (when-not (clojure.string/blank? artist-name)
+                (str "—" artist-name)))))
+     (getId [] (int (.id track)))
+     (getSlot [] slot)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+(defn- file-tracks-node
+  "Creates a node that contains all the tracks available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Tracks")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [title-tracks (.. database trackTitleIndex values)]
+           (doseq [track-id title-tracks]
+             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))))))
+   true))
+
+(defn file-album-node
+  "Creates a node that represents an album available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^RekordboxPdb$AlbumRow album ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (Database/getText (.name album)))
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [track-id (.. database trackAlbumIndex (get (.id album)))]
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
+   true))
+
+(defn- file-albums-node
+  "Creates a node that contains all the albums available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Albums")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [name-albums (.. database albumNameIndex values)]
+           (doseq [album-id name-albums]
+             (.add node (file-album-node database (.get (.albumIndex database) album-id) slot)))))))
+   true))
+
+(defn file-artist-node
+  "Creates a node that represents an artist available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^RekordboxPdb$ArtistRow artist ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (Database/getText (.name artist)))
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [track-id (.. database trackArtistIndex (get (.id artist)))]
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot false))))))
+   true))
+
+(defn- file-artists-node
+  "Creates a node that contains all the artists available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Artists")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [name-artists (.. database artistNameIndex values)]
+           (doseq [artist-id name-artists]
+             (.add node (file-artist-node database (.get (.artistIndex database) artist-id) slot)))))))
+   true))
+
+(defn file-genre-node
+  "Creates a node that represents a genre available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^RekordboxPdb$GenreRow genre ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (Database/getText (.name genre)))
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [track-id (.. database trackGenreIndex (get (.id genre)))]
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
+   true))
+
+(defn- file-genres-node
+  "Creates a node that contains all the genres available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Genres")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [name-genres (.. database genreNameIndex values)]
+           (doseq [genre-id name-genres]
+             (.add node (file-genre-node database (.get (.genreIndex database) genre-id) slot)))))))
+   true))
+
+(defn- empty-search-node
+  "Creates the node that explains what to do when a search has not been started."
+  []
+  (empty-node "[Select this section, then type text in the search field above to see matches.]"))
+
+(defn- file-search-node
+  "Creates a node that kicks off a search of an exported rekordbox
+  database file. Optionally has an associated slot if it is being used
+  with Crate Digger to load tracks from one player onto another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry ISearchEntry] []
+     (toString [] "Search")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (.add node (empty-search-node))))
+     (getDatabase [] database))
+   true))
+
+(defn- add-file-node-children
+  "Creates all the nodes that can be used to search a downloaded or
+  local rekordbox database file and adds them to the supplied parent
+  node. If the database was downloaded from an active player, the
+  nodes created will have an associated slot reference so they can be
+  used to load tracks onto another player."
+  [^Database database ^DefaultMutableTreeNode node ^SlotReference slot]
+  (.add node (file-search-node database slot))
+  (.add node (file-tracks-node database slot))
+  (.add node (file-artists-node database slot))
+  (.add node (file-albums-node database slot))
+  (.add node (file-genres-node database slot)))
+
+(defn- attach-file-node-children
+  "Given a list of file nodes which have been loaded as a file node's
+  children, adds them to the node. If none were found, adds an inert
+  child to explain that the node was empty."
+  [^DefaultMutableTreeNode node items ^SlotReference slot-reference]
+  (if (seq items)
+    (doseq [item items]
+      (.add node item))
+    (.add node (empty-node))))
 
 (defn report-unrecognized-nodes
   "Tells the user that we don't know what to do with some nodes in the
@@ -206,7 +400,7 @@
                (.contains (str node) " [unrecognized ("))
       (.getValue (nth (.arguments item) 6)))))
 
-(defn- attach-node-children
+(defn- attach-menu-node-children
   "Given a list of menu items which have been loaded as a node's
   children, adds them to the node. If none were found, adds an inert
   child to explain that the node was empty. If `builders` is supplied,
@@ -215,7 +409,7 @@
   always contextual, and Key items mean different things when
   nested)."
   ([^DefaultMutableTreeNode node items ^SlotReference slot-reference]
-   (attach-node-children node items slot-reference {}))
+   (attach-menu-node-children node items slot-reference {}))
   ([^DefaultMutableTreeNode node items ^SlotReference slot-reference builders]
    (if (seq items)
      (let [unrecognized (atom {})]
@@ -237,10 +431,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestHistoryMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestHistoryMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for the Hot Cue Bank menu.
@@ -252,7 +445,6 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]))
    false))
 
@@ -265,10 +457,9 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))
+         (attach-menu-node-children node (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference))))
    true))
 
@@ -281,10 +472,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestTrackMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestTrackMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for the Playlist menu.
@@ -296,10 +486,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestPlaylistMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestPlaylistMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for a playlist folder.
@@ -311,10 +500,9 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestPlaylistItemsFrom metadata-finder
+         (attach-menu-node-children node (.requestPlaylistItemsFrom metadata-finder
                                                                (.player slot-reference) (.slot slot-reference)
                                                                0 (menu-item-id item) true)
                                slot-reference))))
@@ -329,10 +517,9 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestPlaylistItemsFrom metadata-finder
+         (attach-menu-node-children node (.requestPlaylistItemsFrom metadata-finder
                                                                (.player slot-reference) (.slot slot-reference)
                                                                0 (menu-item-id item) false)
                                slot-reference))))
@@ -347,10 +534,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestArtistMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestArtistMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for the Album menu.
@@ -362,10 +548,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestAlbumMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestAlbumMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for the Genre menu.
@@ -377,10 +562,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for all albums by a given artist in a
@@ -395,10 +579,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id -1 -1)
+         (attach-menu-node-children node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id -1 -1)
                                slot-reference))))
    true))
 
@@ -414,10 +597,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1)
+         (attach-menu-node-children node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1)
                                slot-reference
                                {Message$MenuItemType/ALL (partial create-all-genre-artist-albums-node genre-id)}))))
    true))
@@ -431,11 +613,10 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (let [genre-id (menu-item-id item)]
-           (attach-node-children node (.requestGenreArtistMenuFrom menu-loader slot-reference 0 genre-id)
+           (attach-menu-node-children node (.requestGenreArtistMenuFrom menu-loader slot-reference 0 genre-id)
                                  slot-reference
                                  {Message$MenuItemType/ALL (partial create-all-genre-artists-node genre-id)})))))
    true))
@@ -452,10 +633,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestArtistAlbumTrackMenuFrom menu-loader slot-reference 0 artist-id -1)
+         (attach-menu-node-children node (.requestArtistAlbumTrackMenuFrom menu-loader slot-reference 0 artist-id -1)
                                slot-reference))))
    true))
 
@@ -471,10 +651,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
+         (attach-menu-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
                                slot-reference
                                {Message$MenuItemType/ALL (partial create-all-artist-album-tracks-node artist-id)}))))
    true))
@@ -488,11 +667,10 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
-           (attach-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
+           (attach-menu-node-children node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id)
                                  slot-reference
                                  {Message$MenuItemType/ALL (partial create-all-artist-albums-node artist-id)})))))
    true))
@@ -506,10 +684,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestKeyMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestKeyMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 ;; Creates a menu item node for a key neighbor menu; invoked as a
@@ -526,12 +703,11 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
            (let [distance (.getValue (first (.arguments item)))
                  key-id   (menu-item-id item)]
-             (attach-node-children node (.requestTracksByKeyAndDistanceFrom menu-loader slot-reference 0
+             (attach-menu-node-children node (.requestTracksByKeyAndDistanceFrom menu-loader slot-reference 0
                                                                             key-id distance)
                                    slot-reference)))))
      true))
@@ -546,11 +722,10 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (let [key-id (menu-item-id item)]
-           (attach-node-children node (.requestKeyNeighborMenuFrom menu-loader slot-reference 0 key-id)
+           (attach-menu-node-children node (.requestKeyNeighborMenuFrom menu-loader slot-reference 0 key-id)
                                  slot-reference
                                  {Message$MenuItemType/KEY create-key-neighbor-node})))))
    true))
@@ -564,10 +739,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestRatingMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestRatingMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 (defn format-rating
@@ -585,10 +759,9 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestTracksByRatingFrom menu-loader slot-reference 0 (menu-item-id item))
+         (attach-menu-node-children node (.requestTracksByRatingFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference))))
    true))
 
@@ -601,10 +774,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestBpmMenuFrom menu-loader slot-reference 0) slot-reference))))
+         (attach-menu-node-children node (.requestBpmMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
 (defn- format-tempo
@@ -628,10 +800,9 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
-           (attach-node-children node (.requestTracksByBpmRangeFrom menu-loader slot-reference 0 tempo distance)
+           (attach-menu-node-children node (.requestTracksByBpmRangeFrom menu-loader slot-reference 0 tempo distance)
                                  slot-reference))))
      true)))
 
@@ -646,10 +817,9 @@
        (getId [] (int tempo))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
-           (attach-node-children node (.requestBpmRangeMenuFrom menu-loader slot-reference 0 tempo)
+           (attach-menu-node-children node (.requestBpmRangeMenuFrom menu-loader slot-reference 0 tempo)
                                  slot-reference
                                  {Message$MenuItemType/TEMPO (partial create-tempo-range-node tempo)}))))
      true)))
@@ -668,7 +838,6 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (getTrackType [] CdjStatus$TrackType/UNANALYZED)
-     (isSearch [] false)
      (loadChildren [_]))
    false))
 
@@ -686,10 +855,9 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+         (attach-menu-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference
                                {Message$MenuItemType/FOLDER create-filesystem-folder-node
                                 Message$MenuItemType/TRACK_TITLE create-filesystem-track-node}))))
@@ -707,10 +875,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 -1) slot-reference
+         (attach-menu-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 -1) slot-reference
                                {Message$MenuItemType/FOLDER create-filesystem-folder-node
                                 Message$MenuItemType/TRACK_TITLE create-filesystem-track-node}))))
    true))
@@ -724,10 +891,9 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-node-children node (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))
+         (attach-menu-node-children node (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference))))
    true))
 
@@ -740,7 +906,6 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
-     (isSearch [] false)
      (loadChildren [_]))
    false))
 
@@ -754,28 +919,23 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
-     (isSearch [] false)
      (loadChildren [_]))
    false))
 
-(defn- empty-search-node
-  "Creates the node that explains what to do when a search has not been started."
-  []
-  (empty-node "[Select this section, then type text in the search field above to see matches.]"))
-
-;; Creates a menu item node for the search interface.
+;; Creates a menu item node for the search interface. This special node is also a search entry,
+;; and returns nil for getDatabase to indicate dbserver queries should be used to perform the search.
 (defmethod menu-item-node Message$MenuItemType/SEARCH_MENU search-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
+   (proxy [Object IMenuEntry ISearchEntry] []
      (toString [] (menu-item-label item))
      (getId [] 0)
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (isSearch [] true)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (.add node (empty-search-node)))))
+         (.add node (empty-search-node))))
+     (getDatabase [] nil))
    true))
 
 
@@ -808,17 +968,19 @@
   "Creates the tree node that will allow access to the media database in
   a particular player slot."
   [^SlotReference slot-reference]
-  (let [label (slot-label slot-reference)]
+  (let [label    (slot-label slot-reference)]
     (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
        (toString [] label)
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
          (when (unloaded? node)
-           (attach-node-children node (.requestRootMenuFrom menu-loader slot-reference 0) slot-reference))))
+           (let [database (.findDatabase (org.deepsymmetry.beatlink.data.CrateDigger/getInstance) slot-reference)]
+             (if (and database (not (.getUseStandardPlayerNumber virtual-cdj)))
+               (add-file-node-children database node slot-reference)
+               (attach-menu-node-children node (.requestRootMenuFrom menu-loader slot-reference 0) slot-reference))))))
      true)))
 
 (defn- root-node
@@ -831,7 +993,6 @@
      (getId [] (int 0))
      (getSlot [] nil)
      (getTrackType [] nil)
-     (isSearch [] false)
      (loadChildren [_]))
    true))
 
@@ -906,7 +1067,7 @@
   (when (and path (> (.getPathCount path) 2))
     (loop [result path]
       (when-let [item (.. result getLastPathComponent getUserObject)]
-        (if (.isSearch item)
+        (if (instance? ISearchEntry item)
           result
           (when (> (.getPathCount result) 3)
             (recur (.getParentPath result))))))))
@@ -983,6 +1144,53 @@
     (configure-partial-search-ui search-partial search-button total (.getChildCount node))
     (swap! searches assoc :current selected-search)))  ; Record and enable the UI for the new search.
 
+(defn- file-track-matches
+  "Return nodes for every track in an exported rekordbox database that
+  matches the supplied search text."
+  [^Database database ^SlotReference slot text]
+  (mapcat (fn [title-entry]
+            (let [title (.getKey title-entry)]
+              (when (clojure.string/includes? (clojure.string/lower-case title) text)
+                (map (fn [track-id]
+                       (file-track-node database (.get (.trackIndex database) track-id) slot true))
+                     (.getValue title-entry)))))
+          (.. database trackTitleIndex entrySet)))
+
+(defn- file-artist-matches
+  "Return nodes for every artist in an exported rekordbox database that
+  matches the supplied search text."
+  [^Database database ^SlotReference slot text]
+  (mapcat (fn [name-entry]
+            (let [artist-name (.getKey name-entry)]
+              (when (clojure.string/includes? (clojure.string/lower-case artist-name) text)
+                (map (fn [artist-id]
+                       (file-artist-node database (.get (.artistIndex database) artist-id) slot))
+                     (.getValue name-entry)))))
+          (.. database artistNameIndex entrySet)))
+
+(defn- file-album-matches
+  "Return nodes for every album in an exported rekordbox database that
+  matches the supplied search text."
+  [^Database database ^SlotReference slot text]
+  (mapcat (fn [name-entry]
+            (let [album-name (.getKey name-entry)]
+              (when (clojure.string/includes? (clojure.string/lower-case album-name) text)
+                (map (fn [album-id]
+                       (file-album-node database (.get (.albumIndex database) album-id) slot))
+                     (.getValue name-entry)))))
+           (.. database albumNameIndex entrySet)))
+
+(defn- file-search
+  "Run a search on an exported rekordbox database file. We always return
+  complete results because the search is running locally."
+  [^Database database ^SlotReference slot text total]
+  (let [text (clojure.string/lower-case text)
+        results      (concat (file-track-matches database slot text)
+                             (file-artist-matches database slot text)
+                             (file-album-matches database slot text))]
+    (.set total (count results))
+    (sort #(compare (str %1) (str %2)) results)))
+
 (defn- search-text-changed
   "Start a new search because the user has changed the search text,
   unless there is no active search so this must be reloading the text
@@ -993,9 +1201,12 @@
     (let [{:keys [path]} (get @searches slot-reference)
           node           (.getLastPathComponent path)
           total          (AtomicInteger. 25)
+          database       (.. node getUserObject getDatabase)
           results        (when-not (clojure.string/blank? text)
-                           (.requestSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
-                                                      0 text total))]
+                           (if database
+                             (file-search database slot-reference text total)
+                             (.requestSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
+                                                        0 text total)))]
       (.removeAllChildren node)
       (if (empty? results)
         (do
@@ -1003,7 +1214,9 @@
           (swap! searches update slot-reference dissoc :total)
           (configure-partial-search-ui search-partial search-button nil 0))
         (do
-          (attach-node-children node results slot-reference)
+          (if database
+            (attach-file-node-children node results slot-reference)
+            (attach-menu-node-children node results slot-reference))
           (swap! searches assoc-in [slot-reference :total] (.get total))
           (configure-partial-search-ui search-partial search-button (.get total) (.getChildCount node))))
       (.setSelectionPath tree path)  ; Keep the search active in case the previous selection is gone.
@@ -1019,7 +1232,7 @@
           batch-size                (min 1000 loaded (- total loaded))
           results (.requestMoreSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
                                                  0 text loaded batch-size)]
-      (attach-node-children node results slot-reference)
+      (attach-menu-node-children node results slot-reference)
       (configure-partial-search-ui search-partial search-button total (.getChildCount node))
       (.nodesWereInserted (.getModel tree) node (int-array (range loaded (+ loaded batch-size)))))))
 
@@ -1250,179 +1463,6 @@
   find the root of the media."
   (chooser/file-filter "rekordbox media" #(seq (find-pdb-recursive % 3))))
 
-(defn file-track-node
-  "Creates a node that represents a track available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another. If `show-artist` is `true` the artist name will be appended
-  to the track name (for disambiguation at the top-level track list)."
-  [^Database database ^RekordboxPdb$TrackRow track ^SlotReference slot show-artist]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString []
-       (let [artist-name (when-let [artist (when show-artist (.get (.artistIndex database) (.artistId track)))]
-                           (Database/getText (.name artist)))]
-         (str (Database/getText (.title track))
-              (when-not (clojure.string/blank? artist-name)
-                (str "—" artist-name)))))
-     (getId [] (int (.id track)))
-     (getSlot [] slot)
-     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
-     (isSearch [] false)
-     (loadChildren [_]))
-   false))
-
-(defn- file-tracks-node
-  "Creates a node that contains all the tracks available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] "Tracks:")
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [title-tracks (.. database trackTitleIndex values)]
-           (doseq [track-id title-tracks]
-             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))))))
-   true))
-
-(defn file-album-node
-  "Creates a node that represents an album available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^RekordboxPdb$AlbumRow album ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] (Database/getText (.name album)))
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [track-id (.. database trackAlbumIndex (get (.id album)))]
-           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
-   true))
-
-(defn- file-albums-node
-  "Creates a node that contains all the albums available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] "Albums:")
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [name-albums (.. database albumNameIndex values)]
-           (doseq [album-id name-albums]
-             (.add node (file-album-node database (.get (.albumIndex database) album-id) slot)))))))
-   true))
-
-(defn file-artist-node
-  "Creates a node that represents an artist available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^RekordboxPdb$ArtistRow artist ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] (Database/getText (.name artist)))
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [track-id (.. database trackArtistIndex (get (.id artist)))]
-           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot false))))))
-   true))
-
-(defn- file-artists-node
-  "Creates a node that contains all the artists available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] "Artists:")
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [name-artists (.. database artistNameIndex values)]
-           (doseq [artist-id name-artists]
-             (.add node (file-artist-node database (.get (.artistIndex database) artist-id) slot)))))))
-   true))
-
-(defn file-genre-node
-  "Creates a node that represents a genre available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^RekordboxPdb$GenreRow genre ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] (Database/getText (.name genre)))
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [track-id (.. database trackGenreIndex (get (.id genre)))]
-           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
-   true))
-
-(defn- file-genres-node
-  "Creates a node that contains all the genres available in an exported
-  rekordbox database file. Optionally has an associated slot if it is
-  being used with Crate Digger to load tracks from one player onto
-  another."
-  [^Database database ^SlotReference slot]
-  (DefaultMutableTreeNode.
-   (proxy [Object IMenuEntry] []
-     (toString [] "Genres:")
-     (getId [] (int 0))
-     (getSlot [] slot)
-     (getTrackType [] nil)
-     (isSearch [] false)
-     (loadChildren [^javax.swing.tree.TreeNode node]
-       (when (unloaded? node)
-         (doseq [name-genres (.. database genreNameIndex values)]
-           (doseq [genre-id name-genres]
-             (.add node (file-genre-node database (.get (.genreIndex database) genre-id) slot)))))))
-   true))
-
-(defn- add-file-node-children
-  "Creates all the nodes that can be used to search a downloaded or
-  local rekordbox database file and adds them to the supplied parent
-  node. If the database was downloaded from an active player, the
-  nodes created will have an associated slot reference so they can be
-  used to load tracks onto another player."
-  [^Database database ^DefaultMutableTreeNode node ^SlotReference slot]
-  (.add node (file-tracks-node database slot))
-  (.add node (file-artists-node database slot))
-  (.add node (file-albums-node database slot))
-  (.add node (file-genres-node database slot))
-  ;; TODO: Add other node types
-  )
-
 (defn- describe-pdb-media
   "Returns the root pathname of the media containing a rekordbox
   collection export."
@@ -1439,7 +1479,6 @@
                 (getId [] (int 0))
                 (getSlot [] nil)
                 (getTrackType [] nil)
-                (isSearch [] false)
                 (loadChildren [_])))]
     (add-file-node-children database node nil)
     node))
@@ -1484,7 +1523,6 @@
                            (reset! selected-track
                                    (when (.isAddedPath e)
                                      (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
-                                       (timbre/info "Checking entry" (str entry))
                                        (when (.getTrackType entry) (.getId entry)))))
                            (update-choose-ui)
                            #_(let [search-path   (when (.isAddedPath e)

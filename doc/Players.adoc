@@ -288,10 +288,11 @@ image:assets/SymmetryContents.png[Example cache contents,850,480]
 == Loading and Playing Tracks
 
 WARNING: Unless you are using a real player number, this feature will
-not work well in the preview releases of 0.5.0 until a new mechanism
-for picking tracks can be built. The current implementation relies on
-menu requests to the players, which will likely fail unless you are
-using a real player number.
+not work well for non-rekordbox media. Although Crate Digger can be
+used to provide a simplified and faster view of a player's rekordbox
+media, browsing other kinds of media uses menu requests to the
+players, which will likely fail unless you are using a real player
+number.
 
 During pre-show and after-show situations, when there is no DJ on
 stage, it can be convenient to cue up and play tracks from Front of
@@ -323,7 +324,10 @@ NOTE: The actual sections available for each media library will depend
 on what the DJ chose to enable when configuring it within rekordbox.
 (Non-rekordbox media will only have the `FOLDER` menu, which shows the
 raw filesystem. That is also available on rekordbox media, in case
-there are some non-rekordbox tracks in there.)
+there are some non-rekordbox tracks in there.) And if you are not
+using a real player number, the sections available are a simplified
+subset offered by Crate Digger, but they are faster and more reliable
+than asking the players.
 
 You can click on the `+` icon to expand a section, or double-click
 anywhere in that row of the tree. The same actions will collapse an
