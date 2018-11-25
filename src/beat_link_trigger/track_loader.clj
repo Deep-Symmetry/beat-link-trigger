@@ -1354,6 +1354,10 @@
                layout           (seesaw/border-panel
                                  :center slots-scroll
                                  :south player-panel)
+               mouse-listener (proxy [java.awt.event.MouseAdapter] []
+                           (mousePressed [^java.awt.event.MouseEvent e]
+                             (when (and (seesaw/config load-button :enabled?) (= 2 (.getClickCount e)))
+                               (.doClick load-button))))
                stop-listener    (reify LifecycleListener
                                   (started [this _]) ; Nothing to do, we exited as soon a stop happened anyway.
                                   (stopped [this _]  ; Close our window if MetadataFinder stops (we need it).
@@ -1387,6 +1391,7 @@
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
                                   (.removeUpdateListener virtual-cdj status-listener))]
            (.setSelectionMode (.getSelectionModel slots-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+           (.addMouseListener slots-tree mouse-listener)
            (.addMountListener metadata-finder mount-listener)
            (.addDeviceAnnouncementListener device-finder dev-listener)
            (.addUpdateListener virtual-cdj status-listener)
@@ -1573,7 +1578,11 @@
           layout           (seesaw/border-panel :center file-scroll)
           dialog           (seesaw/dialog :content layout :options [choose-button cancel-button]
                                           :title (str "Choose Track from " (describe-pdb-media (.sourceFile pdb)))
-                                          :default-option choose-button :modal? true)]
+                                          :default-option choose-button :modal? true)
+          mouse-listener (proxy [java.awt.event.MouseAdapter] []
+                           (mousePressed [^java.awt.event.MouseEvent e]
+                             (when (and @selected-track (= 2 (.getClickCount e)))
+                               (.doClick choose-button))))]
       (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
       (.setSize dialog 800 600)
       (.setLocationRelativeTo dialog nil)
@@ -1609,7 +1618,7 @@
                                (seesaw/remove! layout search-panel))))
                          (catch Throwable t
                            (timbre/error t "Problem responding to file tree click.")))))
-      (.setSelectionRow file-tree 1)  ; Uncomment if we can get a good window title in place?
+      (.addMouseListener file-tree mouse-listener)
       (seesaw/listen choose-button
                      :action-performed
                      (fn [_]
@@ -1627,8 +1636,7 @@
       (timbre/error e "Problem Choosing Track")
       (seesaw/alert (str "<html>Unable to Choose Track from Media Export:<br><br>" (.getMessage e)
                          "<br><br>See the log file for more details.")
-                    :title "Problem Choosing Track" :type :error)))
-  )
+                    :title "Problem Choosing Track" :type :error))))
 
 (defn choose-local-track
   "Presents a modal dialog allowing the selection of a track from a

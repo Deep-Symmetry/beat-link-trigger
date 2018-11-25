@@ -18,6 +18,8 @@ This change log follows the conventions of
   Player Status window will switch to using two columns whenever there
   are three or more players on the network. This will make it easier
   to work with on smaller screens.
+- Double-clicking on a track in the Load Track interface is now a
+  shortcut for clicking on the Load button.
 
 ### Fixed
 
