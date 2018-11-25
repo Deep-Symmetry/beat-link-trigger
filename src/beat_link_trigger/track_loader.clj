@@ -1,13 +1,19 @@
 (ns beat-link-trigger.track-loader
   "Provides the user interface for exploring the menu trees of the
-  available media databases, and loading tracks into players."
+  available media databases, whether obtained from dbserver or Crate
+  Digger (either over the network or from a locally mounted media
+  filesystem). For tracks obtained from CDJs, we provide an interface
+  for loading tracks into players. When working with the local
+  filesytem we provide a simple track selection interface so they can
+  be added to show windows."
   (:require [beat-link-trigger.menus :as menus]
             [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
+            [seesaw.chooser :as chooser]
             [taoensso.timbre :as timbre])
-  (:import beat_link_trigger.tree_node.IMenuEntry
+  (:import [beat_link_trigger.tree_node IMenuEntry]
            beat_link_trigger.util.PlayerChoice
            [java.awt.event WindowEvent]
            [java.util.concurrent.atomic AtomicInteger]
@@ -17,7 +23,9 @@
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate DeviceUpdateListener
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
-           [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]))
+           [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]
+           [org.deepsymmetry.cratedigger Database]
+           [org.deepsymmetry.cratedigger.pdb RekordboxPdb RekordboxPdb$TrackRow]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to pick a track and
@@ -109,7 +117,6 @@
       (toString [] label)
       (getId [] (int 0))
       (getSlot [] nil)
-      (isMenu [] false)
       (getTrackType [] nil)
       (isSearch [] false)
       (loadChildren [_]))
@@ -130,7 +137,6 @@
        (toString [] (str (menu-item-label item) " [unrecognized (" kind ")" "]"))
        (getId [] (int -1))
        (getSlot [] slot-reference)
-       (isMenu [] false)
        (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [_]))
@@ -229,7 +235,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -245,7 +250,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] false)  ; We don't let you load from this yet.
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]))
@@ -259,7 +263,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -276,7 +279,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -292,7 +294,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -308,7 +309,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -327,7 +327,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -346,7 +345,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -362,7 +360,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -378,7 +375,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -397,7 +393,6 @@
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -417,7 +412,6 @@
      (toString [] "[ALL ARTISTS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -435,7 +429,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -457,7 +450,6 @@
      (toString [] "[ALL TRACKS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -477,7 +469,6 @@
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -495,7 +486,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -514,7 +504,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -535,7 +524,6 @@
        (toString [] (menu-item-label item))
        (getId [] (int 0))
        (getSlot [] slot-reference)
-       (isMenu [] true)
        (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
@@ -556,7 +544,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -575,7 +562,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -597,7 +583,6 @@
      (toString [] (format-rating (menu-item-id item)))
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -614,7 +599,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -642,7 +626,6 @@
        (toString [] (str (format-tempo tempo) (when-not (zero? distance) (str " +/- " distance "%"))))
        (getId [] (int 0))
        (getSlot [] slot-reference)
-       (isMenu [] true)
        (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
@@ -661,7 +644,6 @@
        (toString [] (format-tempo tempo))
        (getId [] (int tempo))
        (getSlot [] slot-reference)
-       (isMenu [] true)
        (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
@@ -684,7 +666,6 @@
      (toString [] (menu-item-label item))
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
-     (isMenu [] false)
      (getTrackType [] CdjStatus$TrackType/UNANALYZED)
      (isSearch [] false)
      (loadChildren [_]))
@@ -703,7 +684,6 @@
      (toString [] (menu-item-label item))
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -725,7 +705,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -743,7 +722,6 @@
      (toString [] (menu-item-label item))
      (getId [] (int 0))
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -760,7 +738,6 @@
      (toString [] (menu-item-label item))
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
-     (isMenu [] false)
      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
      (isSearch [] false)
      (loadChildren [_]))
@@ -775,7 +752,6 @@
                        (when-let [artist (menu-item-label-2 item)] (str "—" artist))))
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
-     (isMenu [] false)
      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
      (isSearch [] false)
      (loadChildren [_]))
@@ -794,7 +770,6 @@
      (toString [] (menu-item-label item))
      (getId [] 0)
      (getSlot [] slot-reference)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] true)
      (loadChildren [^javax.swing.tree.TreeNode node]
@@ -838,7 +813,6 @@
        (toString [] label)
        (getId [] (int 0))
        (getSlot [] slot-reference)
-       (isMenu [] true)
        (getTrackType [] nil)
        (isSearch [] false)
        (loadChildren [^javax.swing.tree.TreeNode node]
@@ -855,7 +829,6 @@
      (toString [] "Load Track From:")
      (getId [] (int 0))
      (getSlot [] nil)
-     (isMenu [] true)
      (getTrackType [] nil)
      (isSearch [] false)
      (loadChildren [_]))
@@ -1246,3 +1219,207 @@
        (when-let [window @loader-window]
          (seesaw/show! window)
          (.toFront window)))))))
+
+(defn find-pdb
+  "Locates the rekordbox export database file in the supplied media
+  filesystem. `media-root` can either be a File object representing
+  the root of some media containing a rekordbox export, or the
+  pathname of such a file."
+  [media-root]
+  (let [pdb (clojure.java.io/file media-root "PIONEER" "rekordbox" "export.pdb")]
+    (when (.canRead pdb)
+      pdb)))
+
+(defn find-pdb-recursive
+  "Searches recursively through a set of subdirectories for rekordbox
+  media exports. As long as `depth` is non-zero we are willing to go
+  down another layer through a recursive call with a decremented depth
+  value."
+  [root depth]
+  (if-let [found (find-pdb root)]
+    [found]
+    (and (pos? depth)
+         (filter identity (flatten (map #(and (.isDirectory %)
+                                              (find-pdb-recursive % (dec depth))) (.listFiles root)))))))
+
+(def rekordbox-export-filter
+  "A file filter that matches directories that contain exported
+  rekordbox media. To avoid taking a huge amount of time searching, we
+  are only willing to go down through a small number of directories to
+  find the root of the media."
+  (chooser/file-filter "rekordbox media" #(seq (find-pdb-recursive % 3))))
+
+(defn file-track-node
+  "Creates a node that represents a track available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  ([^Database database ^RekordboxPdb$TrackRow track]
+   (file-track-node database track nil))
+  ([^Database database ^RekordboxPdb$TrackRow track ^SlotReference slot]
+   (DefaultMutableTreeNode.
+    (proxy [Object IMenuEntry] []
+      (toString []
+        (let [artist-name (when-let [artist (.get (.artistIndex database) (.artistId track))]
+                            (Database/getText (.name artist)))]
+          (str (Database/getText (.title track))
+               (when-not (clojure.string/blank? artist-name)
+                 (str "—" artist-name)))))
+      (getId [] (int (.id track)))
+      (getSlot [] slot)
+      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+      (isSearch [] false)
+      (loadChildren [_]))
+    false)))
+
+(defn file-tracks-node
+  "Creates a node that contains all the tracks available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another. If `search-string` is not `nil`, will only include tracks
+  that match."
+  ([^Database database]
+   (file-tracks-node database nil nil))
+  ([^Database database ^SlotReference slot]
+   (file-tracks-node database slot nil))
+  ([^Database database ^SlotReference slot ^String search-string]
+   (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Tracks:")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [title-tracks (.. database trackTitleIndex values)]
+           (doseq [track-id title-tracks]
+             ;; TODO: Filter on search-string here
+             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot)))))))
+   true)))
+
+(defn- describe-pdb-media
+  "Returns the root pathname of the media containing a rekordbox
+  collection export."
+  [pdb-file]
+  (.. pdb-file getParentFile getParentFile getParentFile getAbsolutePath))
+
+(defn file-node
+  "Creates the root node for working with an offline rekordbox exported
+  database file."
+  [^Database database]
+  (let [node (DefaultMutableTreeNode.
+              (proxy [Object IMenuEntry] []
+                (toString [] (str "Choose Track from " (describe-pdb-media (.sourceFile database)) ":"))
+                (getId [] (int 0))
+                (getSlot [] nil)
+                (getTrackType [] nil)
+                (isSearch [] false)
+                (loadChildren [_])))]
+    (.add node (file-tracks-node database))
+    ;; TODO: Add other node types
+    #_(.add node (file-artists-node database))
+    node))
+
+(defn- create-chooser-dialog
+  "Builds an interface in which the user can choose a track from a
+  locally mounted media filesystem for offline inclusion into a show.
+  Returns the frame if creation succeeded. `pdb-file` must be a File
+  object that contains a rekordbox `export.pdb` database. This must
+  be invoked on the Swing Event Dispatch thread."
+   [pdb-file]
+  (if-let [pdb (Database. pdb-file)]
+    (try
+      (let [selected-track   (atom nil)
+            searches         (atom {})
+            file-model       (DefaultTreeModel. (file-node pdb) true)
+            file-tree        (seesaw/tree :model file-model :id :tree)
+            file-scroll      (seesaw/scrollable file-tree)
+            choose-button    (seesaw/button :text "Choose" :enabled? false)
+            cancel-button    (seesaw/button :text "Cancel")
+            update-choose-ui (fn []
+                               (seesaw/config! choose-button :enabled? (some? @selected-track)))
+            search-label     (seesaw/label :text "Search:")
+            search-field     (seesaw/text "")
+            search-panel     (mig/mig-panel :background "#eee"
+                                            :items [[search-label] [search-field "pushx, growx"]])
+            layout           (seesaw/border-panel :center file-scroll)
+            dialog           (seesaw/dialog :content layout :options [cancel-button choose-button]
+                                            :default-option choose-button :modal? true)]
+        (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+        (.setSize dialog 600 400)
+        (seesaw/listen file-tree
+                       :tree-will-expand
+                       (fn [e]
+                         (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
+                               ^IMenuEntry entry (.getUserObject node)]
+                           (.loadChildren entry node)))
+                       :selection
+                       (fn [e]
+                         (try
+                           (reset! selected-track
+                                   (when (.isAddedPath e)
+                                     (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                       (timbre/info "Checking entry" (str entry))
+                                       (when (.getTrackType entry) (.getId entry)))))
+                           (update-choose-ui)
+                           #_(let [search-path   (when (.isAddedPath e)
+                                                 (trim-to-search-node-path (.getPath e)))
+                                 search-node     (when search-path
+                                                   (.expandPath slots-tree search-path)
+                                                   (.. search-path getLastPathComponent))
+                                 selected-search (when search-node (.. search-node getUserObject getSlot))]
+                             (when (not= selected-search (:current @searches))
+                               (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
+                               (if selected-search
+                                 (do
+                                   (swap! searches assoc-in [selected-search :path] search-path)
+                                   (configure-search-ui search-label search-field search-partial search-button
+                                                        searches selected-search)
+                                   (seesaw/add! layout [search-panel :north]))
+                                 (seesaw/remove! layout search-panel))))
+                           (catch Throwable t
+                             (timbre/error t "Problem responding to file tree click.")))))
+        (seesaw/listen choose-button
+                       :action-performed
+                       (fn [_]
+                         (seesaw/return-from-dialog dialog @selected-track)))
+        (seesaw/listen cancel-button
+                       :action-performed
+                       (fn [_]
+                         (seesaw/return-from-dialog dialog nil)))
+        ;; TODO: Need to port search stuff
+        #_(seesaw/listen search-field #{:remove-update :insert-update :changed-update}
+                         (fn [e]
+                           (when (:current @searches)
+                             (search-text-changed (seesaw/text e) search-partial search-button searches slots-tree))))
+        (seesaw/show! dialog))
+      (catch Exception e
+        (timbre/error e "Problem Choosing Track")
+        (seesaw/alert (str "<html>Unable to Choose Track from Media Export:<br><br>" (.getMessage e)
+                           "<br><br>See the log file for more details.")
+                      :title "Problem Choosing Track" :type :error)))
+    (seesaw/alert "Could not find exported rekordbox database."
+                  :title "Nowhere to Load Tracks From" :type :error)))
+
+(defn choose-local-track
+  "Presents a modal dialog allowing the selection of a track from a
+  locally mounted media filesystem."
+  []
+  (seesaw/invoke-now
+   (let [root (chooser/choose-file :selection-mode :dirs-only :all-files? true
+                                   :filters [rekordbox-export-filter])
+         candidates (find-pdb-recursive root 3)]
+     (cond
+       (empty? candidates)
+       (seesaw/alert "No rekordbox export found in the chosen directory."
+                     :title "Unable to Locate Database" :type :error)
+
+       (> (count candidates) 1)
+       (seesaw/alert (str "Multiple recordbox exports found in the chosen directory.\n"
+                          "Please pick a specific media export:\n"
+                          (clojure.string/join "\n" (map describe-pdb-media candidates)))
+                     :title "Ambiguous Database Choice" :type :error)
+
+       :else
+       (create-chooser-dialog (first candidates))))))
