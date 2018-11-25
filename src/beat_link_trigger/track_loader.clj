@@ -25,7 +25,8 @@
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]
            [org.deepsymmetry.cratedigger Database]
-           [org.deepsymmetry.cratedigger.pdb RekordboxPdb RekordboxPdb$TrackRow]))
+           [org.deepsymmetry.cratedigger.pdb RekordboxPdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
+            RekordboxPdb$ArtistRow RekordboxPdb$GenreRow]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to pick a track and
@@ -1253,37 +1254,31 @@
   "Creates a node that represents a track available in an exported
   rekordbox database file. Optionally has an associated slot if it is
   being used with Crate Digger to load tracks from one player onto
-  another."
-  ([^Database database ^RekordboxPdb$TrackRow track]
-   (file-track-node database track nil))
-  ([^Database database ^RekordboxPdb$TrackRow track ^SlotReference slot]
-   (DefaultMutableTreeNode.
-    (proxy [Object IMenuEntry] []
-      (toString []
-        (let [artist-name (when-let [artist (.get (.artistIndex database) (.artistId track))]
-                            (Database/getText (.name artist)))]
-          (str (Database/getText (.title track))
-               (when-not (clojure.string/blank? artist-name)
-                 (str "—" artist-name)))))
-      (getId [] (int (.id track)))
-      (getSlot [] slot)
-      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
-      (isSearch [] false)
-      (loadChildren [_]))
-    false)))
+  another. If `show-artist` is `true` the artist name will be appended
+  to the track name (for disambiguation at the top-level track list)."
+  [^Database database ^RekordboxPdb$TrackRow track ^SlotReference slot show-artist]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString []
+       (let [artist-name (when-let [artist (when show-artist (.get (.artistIndex database) (.artistId track)))]
+                           (Database/getText (.name artist)))]
+         (str (Database/getText (.title track))
+              (when-not (clojure.string/blank? artist-name)
+                (str "—" artist-name)))))
+     (getId [] (int (.id track)))
+     (getSlot [] slot)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (isSearch [] false)
+     (loadChildren [_]))
+   false))
 
-(defn file-tracks-node
+(defn- file-tracks-node
   "Creates a node that contains all the tracks available in an exported
   rekordbox database file. Optionally has an associated slot if it is
   being used with Crate Digger to load tracks from one player onto
-  another. If `search-string` is not `nil`, will only include tracks
-  that match."
-  ([^Database database]
-   (file-tracks-node database nil nil))
-  ([^Database database ^SlotReference slot]
-   (file-tracks-node database slot nil))
-  ([^Database database ^SlotReference slot ^String search-string]
-   (DefaultMutableTreeNode.
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "Tracks:")
      (getId [] (int 0))
@@ -1294,9 +1289,139 @@
        (when (unloaded? node)
          (doseq [title-tracks (.. database trackTitleIndex values)]
            (doseq [track-id title-tracks]
-             ;; TODO: Filter on search-string here
-             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot)))))))
-   true)))
+             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))))))
+   true))
+
+(defn file-album-node
+  "Creates a node that represents an album available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^RekordboxPdb$AlbumRow album ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (Database/getText (.name album)))
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [track-id (.. database trackAlbumIndex (get (.id album)))]
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
+   true))
+
+(defn- file-albums-node
+  "Creates a node that contains all the albums available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Albums:")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [name-albums (.. database albumNameIndex values)]
+           (doseq [album-id name-albums]
+             (.add node (file-album-node database (.get (.albumIndex database) album-id) slot)))))))
+   true))
+
+(defn file-artist-node
+  "Creates a node that represents an artist available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^RekordboxPdb$ArtistRow artist ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (Database/getText (.name artist)))
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [track-id (.. database trackArtistIndex (get (.id artist)))]
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot false))))))
+   true))
+
+(defn- file-artists-node
+  "Creates a node that contains all the artists available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Artists:")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [name-artists (.. database artistNameIndex values)]
+           (doseq [artist-id name-artists]
+             (.add node (file-artist-node database (.get (.artistIndex database) artist-id) slot)))))))
+   true))
+
+(defn file-genre-node
+  "Creates a node that represents a genre available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^RekordboxPdb$GenreRow genre ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (Database/getText (.name genre)))
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [track-id (.. database trackGenreIndex (get (.id genre)))]
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
+   true))
+
+(defn- file-genres-node
+  "Creates a node that contains all the genres available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "Genres:")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (isSearch [] false)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [name-genres (.. database genreNameIndex values)]
+           (doseq [genre-id name-genres]
+             (.add node (file-genre-node database (.get (.genreIndex database) genre-id) slot)))))))
+   true))
+
+(defn- add-file-node-children
+  "Creates all the nodes that can be used to search a downloaded or
+  local rekordbox database file and adds them to the supplied parent
+  node. If the database was downloaded from an active player, the
+  nodes created will have an associated slot reference so they can be
+  used to load tracks onto another player."
+  [^Database database ^DefaultMutableTreeNode node ^SlotReference slot]
+  (.add node (file-tracks-node database slot))
+  (.add node (file-artists-node database slot))
+  (.add node (file-albums-node database slot))
+  (.add node (file-genres-node database slot))
+  ;; TODO: Add other node types
+  )
 
 (defn- describe-pdb-media
   "Returns the root pathname of the media containing a rekordbox
@@ -1304,7 +1429,7 @@
   [pdb-file]
   (.. pdb-file getParentFile getParentFile getParentFile getAbsolutePath))
 
-(defn file-node
+(defn offline-file-node
   "Creates the root node for working with an offline rekordbox exported
   database file."
   [^Database database]
@@ -1316,9 +1441,7 @@
                 (getTrackType [] nil)
                 (isSearch [] false)
                 (loadChildren [_])))]
-    (.add node (file-tracks-node database))
-    ;; TODO: Add other node types
-    #_(.add node (file-artists-node database))
+    (add-file-node-children database node nil)
     node))
 
 (defn- create-chooser-dialog
@@ -1332,7 +1455,7 @@
     (try
       (let [selected-track   (atom nil)
             searches         (atom {})
-            file-model       (DefaultTreeModel. (file-node pdb) true)
+            file-model       (DefaultTreeModel. (offline-file-node pdb) true)
             file-tree        (seesaw/tree :model file-model :id :tree)
             file-scroll      (seesaw/scrollable file-tree)
             choose-button    (seesaw/button :text "Choose" :enabled? false)
@@ -1347,7 +1470,8 @@
             dialog           (seesaw/dialog :content layout :options [cancel-button choose-button]
                                             :default-option choose-button :modal? true)]
         (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
-        (.setSize dialog 600 400)
+        (.setSize dialog 800 600)
+        (.setLocationRelativeTo dialog nil)
         (seesaw/listen file-tree
                        :tree-will-expand
                        (fn [e]
