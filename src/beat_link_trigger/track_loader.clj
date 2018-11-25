@@ -1253,7 +1253,7 @@
                              (file-artist-matches database slot text)
                              (file-album-matches database slot text))]
     (.set total (count results))
-    (sort #(compare (str %1) (str %2)) results)))
+    (sort #(compare (clojure.string/lower-case (str %1)) (clojure.string/lower-case (str %2))) results)))
 
 (defn- search-text-changed
   "Start a new search because the user has changed the search text,
