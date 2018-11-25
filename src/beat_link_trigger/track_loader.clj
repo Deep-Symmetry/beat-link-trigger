@@ -24,9 +24,9 @@
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]
-           [org.deepsymmetry.cratedigger Database]
+           [org.deepsymmetry.cratedigger Database Database$PlaylistFolderEntry]
            [org.deepsymmetry.cratedigger.pdb RekordboxPdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
-            RekordboxPdb$ArtistRow RekordboxPdb$GenreRow]))
+            RekordboxPdb$ArtistRow RekordboxPdb$GenreRow RekordboxPdb$PlaylistTreeRow RekordboxPdb$PlaylistEntryRow]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to pick a track and
@@ -173,6 +173,14 @@
      (loadChildren [_]))
    false))
 
+(defn- mark-if-still-empty
+  "If, after loading a node, there are still no elements in it, create a
+  marker node to make it clear that it is actually empty, and not just
+  still loading."
+  [node]
+  (when (unloaded? node)
+    (.add node (empty-node))))
+
 (defn- file-tracks-node
   "Creates a node that contains all the tracks available in an exported
   rekordbox database file. Optionally has an associated slot if it is
@@ -189,7 +197,52 @@
        (when (unloaded? node)
          (doseq [title-tracks (.. database trackTitleIndex values)]
            (doseq [track-id title-tracks]
-             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))))))
+             (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))
+         (mark-if-still-empty node))))
+   true))
+
+(declare file-playlist-node)
+
+(defn file-playlist-folder-node
+  "Creates a node that represents a playlist folder available in an
+  exported rekordbox database file. Optionally has an associated slot
+  if it is being used with Crate Digger to load tracks from one player
+  onto another."
+  [^Database database ^SlotReference slot id folder-name]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] folder-name)
+     (getId [] (int id))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [^Database$PlaylistFolderEntry entry (.. database playlistFolderIndex (get id))]
+           (when entry
+             (if (.isFolder entry)
+               (.add node (file-playlist-folder-node database slot (.id entry) (.name entry)))
+               (.add node (file-playlist-node database slot (.id entry) (.name entry))))))
+         (mark-if-still-empty node))))
+   true))
+
+(defn file-playlist-node
+  "Creates a node that represents a playlist available in an exported
+  rekordbox database file. Optionally has an associated slot if it is
+  being used with Crate Digger to load tracks from one player onto
+  another."
+  [^Database database ^SlotReference slot id playlist-name]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] playlist-name)
+     (getId [] (int id))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (doseq [^long track-id (.. database playlistIndex (get id))]
+           (when-let [^RekordboxPdb$TrackRow track (.. database trackIndex (get track-id))]
+             (.add node (file-track-node database track slot true))))
+         (mark-if-still-empty node))))
    true))
 
 (defn file-album-node
@@ -207,7 +260,8 @@
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (doseq [track-id (.. database trackAlbumIndex (get (.id album)))]
-           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))
+         (mark-if-still-empty node))))
    true))
 
 (defn- file-albums-node
@@ -226,7 +280,8 @@
        (when (unloaded? node)
          (doseq [name-albums (.. database albumNameIndex values)]
            (doseq [album-id name-albums]
-             (.add node (file-album-node database (.get (.albumIndex database) album-id) slot)))))))
+             (.add node (file-album-node database (.get (.albumIndex database) album-id) slot))))
+         (mark-if-still-empty node))))
    true))
 
 (defn file-artist-node
@@ -244,7 +299,8 @@
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (doseq [track-id (.. database trackArtistIndex (get (.id artist)))]
-           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot false))))))
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot false)))
+         (mark-if-still-empty node))))
    true))
 
 (defn- file-artists-node
@@ -263,7 +319,8 @@
        (when (unloaded? node)
          (doseq [name-artists (.. database artistNameIndex values)]
            (doseq [artist-id name-artists]
-             (.add node (file-artist-node database (.get (.artistIndex database) artist-id) slot)))))))
+             (.add node (file-artist-node database (.get (.artistIndex database) artist-id) slot))))
+         (mark-if-still-empty node))))
    true))
 
 (defn file-genre-node
@@ -281,7 +338,8 @@
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (doseq [track-id (.. database trackGenreIndex (get (.id genre)))]
-           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true))))))
+           (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))
+         (mark-if-still-empty node))))
    true))
 
 (defn- file-genres-node
@@ -300,7 +358,8 @@
        (when (unloaded? node)
          (doseq [name-genres (.. database genreNameIndex values)]
            (doseq [genre-id name-genres]
-             (.add node (file-genre-node database (.get (.genreIndex database) genre-id) slot)))))))
+             (.add node (file-genre-node database (.get (.genreIndex database) genre-id) slot))))
+         (mark-if-still-empty node))))
    true))
 
 (defn- empty-search-node
@@ -333,6 +392,7 @@
   nodes created will have an associated slot reference so they can be
   used to load tracks onto another player."
   [^Database database ^DefaultMutableTreeNode node ^SlotReference slot]
+  (.add node (file-playlist-folder-node database slot 0 "Playlists"))
   (.add node (file-search-node database slot))
   (.add node (file-tracks-node database slot))
   (.add node (file-artists-node database slot))
