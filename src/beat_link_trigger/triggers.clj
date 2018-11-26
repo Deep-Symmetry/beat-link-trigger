@@ -1,14 +1,14 @@
 (ns beat-link-trigger.triggers
   "Implements the list of triggers that send events when a CDJ starts
   playing."
-  (:require [beat-link-trigger.util :as util]
-            [beat-link-trigger.carabiner :as carabiner]
+  (:require [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as writer]
             [beat-link-trigger.track-loader :as track-loader]
+            [beat-link-trigger.show :as show]
             [beat-link-trigger.auto-cache :as auto]
             [beat-link-trigger.view-cache :as view-cache]
             [beat-link-trigger.prefs :as prefs]
@@ -27,7 +27,8 @@
            [javax.sound.midi Sequencer Synthesizer]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem]
+           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
+            CrateDigger SignatureFinder]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
@@ -1010,7 +1011,7 @@
                                     (catch Exception e
                                       (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
                                                     :title "Problem Writing File" :type :error)))))))
-                 :name "Save"
+                 :name "Save As"
                  :key "menu S"))
 
 (declare recreate-trigger-rows)
@@ -1330,6 +1331,12 @@
                                                                             :window-name "Expression Globals"))
                                         :name "Inspect Expression Globals"
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
+        new-show-action  (seesaw/action :handler (fn [e] (show/new @trigger-frame))
+                                        :name "New Show"
+                                        :tip "Create an interface for conveniently assigning cues to tracks.")
+        open-show-action (seesaw/action :handler (fn [e] (show/open @trigger-frame))
+                                        :name "Open Show"
+                                        :tip "Opens an already-created show interface.")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
         online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
         real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status
@@ -1360,6 +1367,7 @@
                          (.setSendingStatus virtual-cdj false)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [load-action save-action
+                                                         (seesaw/separator) new-show-action open-show-action
                                                          (seesaw/separator) auto-action view-cache-action
                                                          (seesaw/separator) playlist-writer-action]
                                                         menus/non-mac-file-actions))
@@ -1434,7 +1442,8 @@
   use. Also updates the Online menu item to show our player number."
   []
   (.start metadata-finder)
-  (.start (org.deepsymmetry.beatlink.data.CrateDigger/getInstance))
+  (.start (CrateDigger/getInstance))
+  (.start (SignatureFinder/getInstance))
   (.start (ArtFinder/getInstance))
   (.start (BeatGridFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)

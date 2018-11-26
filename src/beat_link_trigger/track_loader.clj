@@ -1558,7 +1558,7 @@
   Returns the frame if creation succeeded. `pdb-file` must be a File
   object that contains a rekordbox `export.pdb` database. This must
   be invoked on the Swing Event Dispatch thread."
-   [pdb]
+   [parent pdb]
   (try
     (let [selected-track   (atom nil)
           searches         (atom {})
@@ -1585,7 +1585,7 @@
                                (.doClick choose-button))))]
       (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
       (.setSize dialog 800 600)
-      (.setLocationRelativeTo dialog nil)
+      (.setLocationRelativeTo dialog parent)
       (seesaw/listen file-tree
                      :tree-will-expand
                      (fn [e]
@@ -1644,8 +1644,10 @@
   that already-parsed rekordbox export file; otherwise starts by
   prompting the user to choose a media volume to parse."
   ([]
+   (choose-local-track nil))
+  ([parent]
    (seesaw/invoke-now
-    (let [root (chooser/choose-file :selection-mode :dirs-only :all-files? true :type "Choose Media"
+    (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
                                     :filters [rekordbox-export-filter])]
       (when root
         (let [candidates (find-pdb-recursive root 3)]
@@ -1655,16 +1657,16 @@
                           :title "Unable to Locate Database" :type :error)
 
             (> (count candidates) 1)
-            (seesaw/alert (str "Multiple recordbox exports found in the chosen directory.\n"
-                               "Please pick a specific media export:\n"
-                               (clojure.string/join "\n" (map describe-pdb-media candidates)))
+            (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
+                                      "Please pick a specific media export:\n"
+                                      (clojure.string/join "\n" (map describe-pdb-media candidates)))
                           :title "Ambiguous Database Choice" :type :error)
 
             :else
             (if-let [pdb (Database. (first candidates))]
-              (create-chooser-dialog pdb)
-              (seesaw/alert "Could not find exported rekordbox database."
+              (create-chooser-dialog parent pdb)
+              (seesaw/alert parent "Could not find exported rekordbox database."
                             :title "Nowhere to Load Tracks From" :type :error))))))))
-  ([^Database database]
+  ([parent ^Database database]
    (seesaw/invoke-now
-    (create-chooser-dialog database))))
+    (create-chooser-dialog parent database))))
