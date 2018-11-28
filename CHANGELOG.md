@@ -18,6 +18,10 @@ This change log follows the conventions of
   Player Status window will switch to using two columns whenever there
   are three or more players on the network. This will make it easier
   to work with on smaller screens.
+- Beat Link is now able to obtain and display the full-color versions
+  of track waveforms used by nxs2 players and rekordbox itself. BLT
+  will preferentially use them when available; you can change that
+  by changing the `WaveformFinder` property `colorPreferred`.
 - Double-clicking on a track in the Load Track interface is now a
   shortcut for clicking on the Load button.
 

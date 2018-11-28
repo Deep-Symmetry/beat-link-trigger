@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :aot [beat-link-trigger.TexturedRaven]
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.0-beta8"]
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/data.csv "0.1.4"]
                  [clojure-humanize "0.2.2"]
