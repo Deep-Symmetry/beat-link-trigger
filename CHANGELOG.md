@@ -38,6 +38,20 @@ This change log follows the conventions of
   rekordbox mobile collections for any linked computers and phones,
   allowing you to explore them and load tracks from them.
 
+### Changed
+
+- The new Player Status window layout can no longer support different
+  sized sections for each player (this is incompatible with being able
+  to grow to a 2x2 grid), so it no longer makes sense to offer the
+  option of showing waveform details for individual players. This has
+  become a setting for the entire window, which defaults to having
+  them shown. To change that, call
+  ```
+  (beat-link-trigger.players/show-details false)
+  ```
+  in your Global Setup Expression before the Player Status window is
+  opened.
+
 
 ## [0.4.1] - 2018-10-28
 

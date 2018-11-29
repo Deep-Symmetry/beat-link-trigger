@@ -28,6 +28,18 @@
   and create and assign metadata caches to player slots."}
   player-window (atom nil))
 
+(defonce ^{:private true
+           :doc "Controls whether the window should show waveform
+  details. Consulted at creation time."}
+  should-show-details (atom true))
+
+(defn show-details
+  "Controls whether the window should show waveform details. Used when
+  creating the window, so if you want to have a new value take effect,
+  you will need to close and reopen the window after changing it."
+  [show]
+  (reset! should-show-details (boolean show)))
+
 (def device-finder
   "The object that tracks the arrival and departure of devices on the
   DJ Link network."
@@ -710,35 +722,28 @@
         sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
                                       :popup (partial slot-popup n :sd))
         sd-label       (seesaw/label :id :sd-label :text "Empty")
-        detail         (WaveformDetailComponent. (int n))
-        zoom-slider    (seesaw/slider :id :zoom :enabled? false :min 1 :max 32 :value 4
-                                      :listen [:state-changed (fn [e]
-                                                                (.setScale detail (seesaw/value e)))])
-        zoom-label     (seesaw/label :id :zoom-label :text "Zoom" :enabled? false)
-        detail-choice  (fn [show]
-                         (seesaw/config! [zoom-label zoom-slider] :enabled? show)
-                         (if show
-                           (seesaw/show! detail)
-                           (seesaw/hide! detail))
-                         (seesaw/pack! (seesaw/to-root detail)))
+        detail         (when @should-show-details (WaveformDetailComponent. (int n)))
+        zoom-slider    (when @should-show-details
+                         (seesaw/slider :id :zoom :min 1 :max 32 :value 4
+                                        :listen [:state-changed (fn [e]
+                                                                  (.setScale detail (seesaw/value e)))]))
+        zoom-label     (when @should-show-details (seesaw/label :id :zoom-label :text "Zoom"))
         row            (mig/mig-panel
                         :id (keyword (str "player-" n))
                         :background (Color/BLACK)
-                        :items [[title-label "width 340!, push, span 3"] [art "right, spany 4, wrap, hidemode 2"]
-                                [artist-label "width 340!, span 3, wrap unrelated"]
-                                [usb-gear "split 2, right"] ["USB:" "right"]
-                                [usb-label "width 280!, span 2, wrap"]
-                                [sd-gear "split 2, right"] ["SD:" "right"]
-                                [sd-label "width 280!, span 2, wrap"]
-                                [(seesaw/checkbox :id :detail :text "Show Wave Detail"
-                                                  :listen [:action (fn [e]
-                                                                     (detail-choice (seesaw/value e)))])
-                                 "skip 1"]
-                                [zoom-slider "span 2, split 2"] [zoom-label "wrap"]
-                                [detail "span, grow, wrap, hidemode 3"]
-                                [on-air "flowy, split 2, bottom"]
-                                [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
-                                [player "left, bottom"] [preview "width 408!, height 56!, right, bottom, span"]])
+                        :items (concat [[title-label "width 340!, push, span 3"] [art "right, spany 4, wrap, hidemode 2"]
+                                        [artist-label "width 340!, span 3, wrap unrelated"]
+                                        [usb-gear "split 2, right"] ["USB:" "right"]
+                                        [usb-label "width 280!, span 2, wrap"]
+                                        [sd-gear "split 2, right"] ["SD:" "right"]
+                                        [sd-label "width 280!, span 2, wrap"]]
+                                       (when @should-show-details
+                                         [[zoom-slider "span 4, grow, split 2"] [zoom-label "wrap"]
+                                          [detail "span, grow, wrap, hidemode 3"]])
+                                        [[on-air "flowy, split 2, bottom"]
+                                         [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
+                                         [player "left, bottom"]
+                                         [preview "width 408!, height 56!, right, bottom, span"]]))
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
@@ -806,8 +811,7 @@
     (.addCacheListener metadata-finder cache-listener)  ; React to metadata cache changes.
 
     ;; Set the initial state of the interface.
-    (seesaw/hide! detail)
-    (.setScale detail (seesaw/value zoom-slider))
+    (when detail (.setScale detail (seesaw/value zoom-slider)))
     (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) n title-label artist-label)
     (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
       (.mediaMounted mount-listener slot-reference)
@@ -821,7 +825,7 @@
       (.removeMountListener metadata-finder mount-listener)
       (.removeCacheListener metadata-finder cache-listener)
       (.setMonitoredPlayer preview (int 0))
-      (.setMonitoredPlayer detail (int 0)))
+      (when detail (.setMonitoredPlayer detail (int 0))))
     (async/go  ; Animation loop
       (while (nil? (async/poll! shutdown-chan))
         (try
