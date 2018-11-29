@@ -738,7 +738,7 @@
                                 [detail "span, grow, wrap, hidemode 3"]
                                 [on-air "flowy, split 2, bottom"]
                                 [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
-                                [player "left, bottom"] [preview "right, bottom, span"]])
+                                [player "left, bottom"] [preview "width 408!, height 56!, right, bottom, span"]])
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [this md-update]
                            (when (= n (.player md-update))
@@ -932,7 +932,7 @@
                                            (.removeDeviceAnnouncementListener device-finder dev-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)))
       (seesaw/pack! root)
-      #_(.setResizable root false)
+      (.setResizable root false)
       (reset! player-window root)
       (when-not (.isRunning virtual-cdj) (.stopped stop-listener virtual-cdj)))  ; In case we went offline during setup.
     (catch Exception e
