@@ -982,7 +982,8 @@
   preferences."
   []
   (prefs/put-preferences (merge (prefs/get-preferences)
-                                {:triggers (trigger-configuration)}
+                                {:triggers         (trigger-configuration)
+                                 :window-positions @util/window-positions}
                                 (when-let [exprs (:expressions @(global-user-data))]
                                   {:expressions exprs})
                                 (select-keys @(global-user-data) [:tracks-using-playlists? :send-status?]))))
@@ -1419,8 +1420,11 @@
       (reset! trigger-frame root)
       (seesaw/config! triggers :items (recreate-trigger-rows))
       (adjust-triggers)
+      (util/restore-window-position root :triggers nil)
       (seesaw/show! root)
-      (check-for-parse-error))
+      (check-for-parse-error)
+      (seesaw/listen root #{:component-moved :component-resized}
+                     (fn [e] (util/save-window-position root :triggers))))
     (catch Exception e
       (timbre/error e "Problem creating Trigger window."))))
 

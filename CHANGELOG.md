@@ -24,6 +24,12 @@ This change log follows the conventions of
   by changing the `WaveformFinder` property `colorPreferred`.
 - Double-clicking on a track in the Load Track interface is now a
   shortcut for clicking on the Load button.
+- Window positions are now remembered and restored when you reopen the
+  windows, even between runs of the program, so they stay where you
+  like them (although if they would be off the screen, they will come
+  back in a default position). So far this has been done for the
+  Triggers and Player Status windows, but it will be easy to add to
+  the others.
 
 ### Fixed
 

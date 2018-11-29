@@ -105,3 +105,37 @@
                   (neg? number) "Any Player"
                   (zero? number) "Master Player"
                   :else (str "Player " number))))
+
+
+(defonce ^{:doc "Tracks window positions so we can try to restore them
+  in the configuration the user had established."}
+  window-positions (atom {}))
+
+(defn save-window-position
+  "Saves the position of a window under the specified keyword. If
+  `no-size?` is supplied with a `true` value, only the location is
+  saved, and the window size is not recorded."
+  ([window k]
+   (save-window-position window k false))
+  ([window k no-size?]
+   (swap! window-positions assoc k (if no-size?
+                                     [(.getX window) (.getY window)]
+                                     [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))))
+
+(defn restore-window-position
+  "Tries to put a window back where in the position where it was saved
+  (under the specified keyword). If no saved position is found, or if
+  the saved position is within 100 pixels of going off the bottom
+  right of the screen, the window is instead positioned centered on
+  the supplied parent window; if `parent` is nil, `window` is centered
+  on the screen."
+  [window k parent]
+  (let [[x y width height] (get @window-positions k)
+        dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
+    (if (or (nil? x)
+            (> x (- (.getWidth dm) 100))
+            (> y (- (.getHeight dm) 100)))
+      (.setLocationRelativeTo window parent)
+      (if (nil? width)
+        (.setLocation window x y)
+        (.setBounds window x y width height)))))

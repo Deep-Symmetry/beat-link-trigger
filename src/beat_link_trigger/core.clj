@@ -4,6 +4,8 @@
   (:require [beat-link-trigger.about :as about]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
             [beat-link-trigger.triggers :as triggers]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
@@ -79,6 +81,10 @@
 
   ;; If we are on a Mac, hook up our About handler where users expect to find it.
   (menus/install-mac-about-handler)
+
+  ;; Restore saved window positions if they exist
+  (when-let [saved (:window-positions (prefs/get-preferences))]
+    (reset! util/window-positions saved))
 
   ;; Finally, try finding a Pioneer DJ Link network.
   (try-going-online))

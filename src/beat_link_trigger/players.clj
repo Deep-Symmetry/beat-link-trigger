@@ -40,6 +40,11 @@
   [show]
   (reset! should-show-details (boolean show)))
 
+(defonce ^{:doc "Stores the top left corner of where the user moved
+  the window the last time it was used, so it can be positioned in the
+  same place the next time it is opened."}
+  window-position (atom nil))
+
 (def device-finder
   "The object that tracks the arrival and departure of devices on the
   DJ Link network."
@@ -866,10 +871,8 @@
   (map (partial create-player-cell shutdown-chan) (range 1 5)))
 
 (defn- make-window-visible
-  "Ensures that the Player Status window is centered on the triggers
-  window, in front, and shown."
+  "Ensures that the Player Status window is in front and shown."
   [trigger-frame globals]
-  (.setLocationRelativeTo @player-window trigger-frame)
   (seesaw/show! @player-window)
   (.toFront @player-window)
   (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
@@ -935,6 +938,7 @@
                                            (reset! player-window nil)
                                            (.removeDeviceAnnouncementListener device-finder dev-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)))
+      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :player-status true)))
       (seesaw/pack! root)
       (.setResizable root false)
       (reset! player-window root)
@@ -947,4 +951,5 @@
   [trigger-frame globals]
   (locking player-window
     (when-not @player-window (create-window trigger-frame globals)))
+  (util/restore-window-position @player-window :player-status trigger-frame)
   (make-window-visible trigger-frame globals))
