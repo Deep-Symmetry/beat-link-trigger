@@ -37,8 +37,9 @@
 
 (defn- make-window-visible
   "Ensures that the playlist writer window is in front, and shown."
-  []
+  [parent]
   (let [our-frame @writer-window]
+    (util/restore-window-position our-frame :playlist-writer parent)
     (seesaw/show! our-frame)
     (.toFront our-frame)))
 
@@ -266,15 +267,17 @@
                                (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
       (.addUpdateListener virtual-cdj update-listener)
       (.addLifecycleListener virtual-cdj stop-listener)
-      (seesaw/listen root :window-closed (fn [e]
-                                           (.removeUpdateListener virtual-cdj update-listener)
-                                           (.removeLifecycleListener virtual-cdj stop-listener)
-                                           (close-handler)
-                                           (reset! writer-window nil)
-                                           (prefs/put-preferences
-                                            (assoc (prefs/get-preferences)
-                                                   min-time-pref-key (seesaw/value time-spinner)
-                                                   on-air-pref-key (seesaw/value on-air-checkbox)))))
+      (seesaw/listen root
+                     :window-closed (fn [e]
+                                      (.removeUpdateListener virtual-cdj update-listener)
+                                      (.removeLifecycleListener virtual-cdj stop-listener)
+                                      (close-handler)
+                                      (reset! writer-window nil)
+                                      (prefs/put-preferences
+                                       (assoc (prefs/get-preferences)
+                                              min-time-pref-key (seesaw/value time-spinner)
+                                              on-air-pref-key (seesaw/value on-air-checkbox))))
+                     :component-moved (fn [e] (util/save-window-position root :playlist-writer true)))
       (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-file
                                                                  close-handler root))
       (seesaw/pack! root)
@@ -289,4 +292,4 @@
   [trigger-frame]
   (locking writer-window
     (when-not @writer-window (create-window trigger-frame)))
-  (make-window-visible))
+  (make-window-visible trigger-frame))

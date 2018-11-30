@@ -871,8 +871,10 @@
   (map (partial create-player-cell shutdown-chan) (range 1 5)))
 
 (defn- make-window-visible
-  "Ensures that the Player Status window is in front and shown."
+  "Ensures that the Player Status window is in front, not too far off
+  the screen, and shown."
   [trigger-frame globals]
+  (util/restore-window-position @player-window :player-status trigger-frame)
   (seesaw/show! @player-window)
   (.toFront @player-window)
   (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
@@ -951,5 +953,4 @@
   [trigger-frame globals]
   (locking player-window
     (when-not @player-window (create-window trigger-frame globals)))
-  (util/restore-window-position @player-window :player-status trigger-frame)
   (make-window-visible trigger-frame globals))

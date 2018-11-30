@@ -2,6 +2,7 @@
   "Communicates with a local Carabiner daemon to participate in an
   Ableton Link session."
   (:require [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
@@ -431,8 +432,9 @@ experience synchronization glitches."
 
 (defn- make-window-visible
   "Ensures that the Carabiner window is in front, and shown."
-  []
+  [parent]
   (let [our-frame @carabiner-window]
+    (util/restore-window-position our-frame :carabiner parent)
     (seesaw/show! our-frame)
     (.toFront our-frame)))
 
@@ -905,6 +907,7 @@ experience synchronization glitches."
       (seesaw/config! root :content panel)
       (seesaw/pack! root)
       (.setResizable root false)
+      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :carabiner true)))
       (reset! carabiner-window root)
       (update-connected-status)
       (update-link-status)
@@ -917,8 +920,7 @@ experience synchronization glitches."
         (update-device-visibility device (and (.isRunning device-finder)
                                               (some? (.getLatestAnnouncementFrom device-finder device)))))
       (start-sync-state-updates root)
-      (.setLocationRelativeTo root trigger-frame)
-      (make-window-visible))
+      (make-window-visible trigger-frame))
     (catch Exception e
       (timbre/error e "Problem creating Carabiner window."))))
 
@@ -926,5 +928,5 @@ experience synchronization glitches."
   "Make the Carabiner window visible, creating it if necessary."
   [trigger-frame]
   (if @carabiner-window
-    (make-window-visible)
+    (make-window-visible trigger-frame)
     (create-window trigger-frame)))

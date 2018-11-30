@@ -5,6 +5,7 @@
   (:require [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
+            [beat-link-trigger.util :as util]
             [clojure.contrib.humanize :as humanize]
             [clojure.contrib.inflect :as inflect]
             [taoensso.timbre :as timbre])
@@ -22,10 +23,10 @@
   (MetadataFinder/getInstance))
 
 (defn- make-window-visible
-  "Ensures that the Auto Attach window is centered on the triggers
-  window, in front, and shown."
+  "Ensures that the Auto Attach window is mostly on-screen, in front,
+  and shown."
   [trigger-frame]
-  (.setLocationRelativeTo @auto-window trigger-frame)
+  (util/restore-window-position @auto-window :auto-cache trigger-frame)
   (seesaw/show! @auto-window)
   (.toFront @auto-window))
 
@@ -120,7 +121,9 @@
                       :south (mig/mig-panel :items [[add-button "pushx, align center"]]))]
       (seesaw/config! root :content panel)
       (create-file-rows files)
-      (seesaw/listen root :window-closed (fn [e] (reset! auto-window nil)))
+      (seesaw/listen root
+                     :window-closed (fn [e] (reset! auto-window nil))
+                     :component-moved (fn [e] (util/save-window-position root :auto-cache)))
       (reset! auto-window root)
       (make-window-visible trigger-frame))
     (catch Exception e
