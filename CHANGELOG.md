@@ -21,7 +21,13 @@ This change log follows the conventions of
 - Beat Link is now able to obtain and display the full-color versions
   of track waveforms used by nxs2 players and rekordbox itself. BLT
   will preferentially use them when available; you can change that
-  by changing the `WaveformFinder` property `colorPreferred`.
+  by changing the `WaveformFinder` property `colorPreferred`. In other
+  words, call
+  ```
+  (.setColorPreferred (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance) false)
+  ```
+  in your Global Setup Expression if you want the older,
+  less-informative waveforms.
 - Double-clicking on a track in the Load Track interface is now a
   shortcut for clicking on the Load button.
 - Window positions are now remembered and restored when you reopen the

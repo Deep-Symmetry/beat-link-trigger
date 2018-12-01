@@ -54,7 +54,10 @@ https://clojure.org/guides/learn/syntax[Learn Clojure] page is a good
 starting point, and there are many
 https://clojure.org/community/resources[Resources] and
 https://clojure.org/community/books[Books] if you decide you want to
-go deep.
+go deep. https://www.maria.cloud[Maria] is a fun, interactive online
+workbook that progressively introduces the language through exercises
+with instant feedback—and better support and guidance when errors
+happen than the language itself provides. It’s worth checking out.
 
 The expression you are first likely to want to use is the Enabled
 Filter, which is found in each trigger's context menu. In fact, as
