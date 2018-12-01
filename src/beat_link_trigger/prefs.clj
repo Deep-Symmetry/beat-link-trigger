@@ -75,7 +75,9 @@
     (let [prefs (prefs-node)]
       (locking prefs
         (.clear prefs)
-        (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (util/get-version)})))
+        (binding [*print-length* nil
+                  *print-level* nil]
+          (split-preference-entries prefs (prn-str (merge m {:beat-link-trigger-version (util/get-version)}))))
         (.flush prefs))
       true)
     (catch Exception e
@@ -86,7 +88,9 @@
 (defn save-to-file
   "Saves the preferences to a text file."
   [file]
-  (spit file (with-out-str (fipp/pprint (get-preferences)))))
+  (spit file (binding [*print-length* nil
+                       *print-level* nil]
+               (with-out-str (fipp/pprint (get-preferences))))))
 
 (defn valid-file?
   "Checks whether the specified file seems to be a valid save file. If
