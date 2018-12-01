@@ -905,6 +905,14 @@
     (seesaw/config! grid :items (or (seq visible-players) [no-players]))
     grid))
 
+(defonce ^{:doc "Even though this window was never designed to support
+  resizing, and so looks terrible when resized, some users came to
+  rely on using it in a maximized window. This can be set to `true` in
+  the Global Setup Expression to allow them to continue to do so until
+  such time as there is more explicit support for resizing that looks
+  good."}
+  allow-ugly-resizing (atom false))
+
 (defn- create-window
   "Creates the Player Status window."
   [trigger-frame globals]
@@ -942,7 +950,7 @@
                                            (.removeLifecycleListener virtual-cdj stop-listener)))
       (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :player-status true)))
       (seesaw/pack! root)
-      (.setResizable root false)
+      (.setResizable root @allow-ugly-resizing)
       (reset! player-window root)
       (when-not (.isRunning virtual-cdj) (.stopped stop-listener virtual-cdj)))  ; In case we went offline during setup.
     (catch Exception e
