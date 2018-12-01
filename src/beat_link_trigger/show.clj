@@ -7,6 +7,9 @@
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.track-loader :as loader]
+            [beat-link-trigger.prefs :as prefs]
+            [clojure.edn :as edn]
+            [fipp.edn :as fipp]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
@@ -15,6 +18,7 @@
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt.event WindowEvent]
+           [java.nio.file Path Files FileSystems OpenOption StandardOpenOption]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
@@ -119,38 +123,83 @@
            the root of the window."}
   open-shows (atom {}))
 
+(defn- build-filesystem-path
+  "Construct a path in the specified filesystem; translates from
+  idiomatic Clojure to Java interop with the `java.nio` package."
+  [filesystem & elements]
+  (.getPath filesystem (first elements) (into-array String (rest elements))))
+
+(defn- read-edn-path
+  "Parse the file at the specified path as EDN, and return the results."
+  [path]
+  #_(timbre/info "Reading from" path "in filesystem" (.getFileSystem path))
+  (edn/read-string {:readers @prefs/prefs-readers} (String. (Files/readAllBytes path) "UTF-8")))
+
+(defn- write-edn-path
+  "Write the supplied data as EDN to the specified path, truncating any previously existing file."
+  [data path]
+  #_(timbre/info "Writing" data "to" path "in filesystem" (.getFileSystem path))
+  (binding [*print-length* nil
+            *print-level* nil]
+    (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
+
+(defn- open-show-filesystem
+  "Opens a show file as a ZIP filesystem so the individual elements
+  inside of it can be accessed and updated. In the process verifies
+  that the file is, in fact, a properly formatted Show ZIP file.
+  Returns the opened and validated filesystem and the parsed contents
+  map."
+  [file]
+  (try
+    (let [filesystem (FileSystems/newFileSystem (.toPath file) nil)
+          contents (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
+      (when-not (= (:type contents) ::show)
+        (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
+      (when-not (= (:version contents) 1)
+        (throw (java.io.IOException. "Chosen Show is not supported by this version of Beat Link Trigger.")))
+      [filesystem contents])
+    (catch java.nio.file.ProviderNotFoundException e
+      (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
+
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
-  (try
-    (let [root         (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
-          import-menu  (seesaw/menu :text "Import Track")
-          rebuild-im   (fn []
-                         (.removeAll import-menu)
-                         (seesaw/config! import-menu :items (build-import-submenu-items root)))
-          dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go
-                         (deviceFound [this _] (rebuild-im))
-                         (deviceLost [this _] (rebuild-im)))
-          sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
-                         (signatureChanged [this _] (rebuild-im)))]
-      (swap! open-shows assoc file root)
-      ;; TODO: Once we have component inside the frame, set up its user-data as an atom containing our
-      ;; configuration information, including the file!
-      (.addDeviceAnnouncementListener device-finder dev-listener)
-      (.addSignatureListener signature-finder sig-listener)
-      (rebuild-im)
-      (seesaw/config! root :menubar (build-show-menubar root import-menu))
-      (.setSize root 800 600)
-      (.setLocationRelativeTo root nil)
-      (seesaw/listen root :window-closed
-                     (fn [e]
-                       (swap! open-shows dissoc file)
-                       (.removeDeviceAnnouncementListener device-finder dev-listener)
-                       (.removeSignatureListener signature-finder sig-listener)))
-      (seesaw/show! root))
-
-    (catch Exception e
-      (timbre/error e "Problem creating Show window."))))
+  (let [[filesystem contents]   (open-show-filesystem file)]
+    (try
+      (let [root         (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
+            import-menu  (seesaw/menu :text "Import Track")
+            rebuild-im   (fn []
+                           (.removeAll import-menu)
+                           (seesaw/config! import-menu :items (build-import-submenu-items root)))
+            dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go
+                           (deviceFound [this _] (rebuild-im))
+                           (deviceLost [this _] (rebuild-im)))
+            sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
+                           (signatureChanged [this _] (rebuild-im)))]
+        (swap! open-shows assoc file root)
+        ;; TODO: Once we have component inside the frame, set up its user-data as an atom containing our
+        ;; configuration information, including the file!
+        (.addDeviceAnnouncementListener device-finder dev-listener)
+        (.addSignatureListener signature-finder sig-listener)
+        (rebuild-im)
+        (seesaw/config! root :menubar (build-show-menubar root import-menu))
+        (.setSize root 800 600)
+        (.setLocationRelativeTo root nil)
+        (seesaw/listen root :window-closed
+                       (fn [e]
+                         (swap! open-shows dissoc file)
+                         (.removeDeviceAnnouncementListener device-finder dev-listener)
+                         (.removeSignatureListener signature-finder sig-listener)
+                         (try
+                           (.close filesystem)
+                           (catch Throwable t
+                             (timbre/error t "Problem closing Show file.")
+                             (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" e)
+                                           :title "Problem Closing Show" :type :error)))))
+        (seesaw/show! root))
+      (catch Throwable t
+        (.close filesystem)
+        (throw t)))))
 
 (defn open
   "Opens a show file. If it is already open, just brings the window to
@@ -161,13 +210,13 @@
                                      :filters [["BeatLinkTrigger Show files" ["blts"]]])]
   (let [file (.getCanonicalFile file)]
     (try
-      (slurp file)  ; TODO: Actually read and use contents!
       (if-let [existing (get @open-shows file)]
-      (.toFront existing)
-      (create-show-window file))
-    (catch Exception e
-      (seesaw/alert parent (str "<html>Unable to Open Show.<br><br>" e)
-                    :title "Problem Reading File" :type :error))))))
+        (.toFront existing)
+        (create-show-window file))
+      (catch Exception e
+        (timbre/error e "Unable to open Show.")
+        (seesaw/alert parent (str "<html>Unable to Open Show.<br><br>" e)
+                      :title "Problem Opening File" :type :error))))))
 
 (defn new
   "Creates a new show file and opens a window on it."
@@ -182,7 +231,12 @@
                       :title "Show is Already Open" :type :error)
         (when-let [file (util/confirm-overwrite-file file "blts" parent)]
           (try
-            (spit file "Nothing real yet!")  ; TODO: Actually write initial structure!
+            (Files/deleteIfExists (.toPath file))
+            (let [file-uri (.toUri (.toPath file))]
+              (with-open [filesystem (FileSystems/newFileSystem (java.net.URI. (str "jar:" (.getScheme file-uri))
+                                                                               (.getPath file-uri) nil)
+                                                                {"create" "true"})]
+                (write-edn-path {:type ::show :version 1} (build-filesystem-path filesystem "contents.edn"))))
             (create-show-window file)
             (catch Exception e
               (seesaw/alert parent (str "<html>Unable to Create Show.<br><br>" e)

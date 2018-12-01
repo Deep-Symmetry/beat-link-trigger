@@ -7,8 +7,8 @@
             [taoensso.timbre :as timbre])
   (:import java.util.prefs.Preferences))
 
-(defonce ^{:private true
-           :doc "The custom readers needed to read in our preferences"}
+(defonce ^{:doc "The custom readers needed to read in our preferences.
+  Also used by the Show file reader."}
   prefs-readers
   (atom {}))
 
