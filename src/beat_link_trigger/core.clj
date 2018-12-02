@@ -5,6 +5,7 @@
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.show :as show]
             [beat-link-trigger.util :as util]
             [beat-link-trigger.triggers :as triggers]
             [seesaw.core :as seesaw]
@@ -48,7 +49,8 @@
               (System/exit 1)))))))  ; Quit, or just closed the window, which means the same
 
   (seesaw/invoke-now
-   (triggers/start)))  ; We are online, or the user said to continue offline, so set up the Triggers window.
+   (triggers/start)  ; We are online, or the user said to continue offline, so set up the Triggers window.
+   (show/reopen-previous-shows)))  ; And reopen any Show windows the user had open during their last session.
 
 (defn start
   "Set up logging, set up our user interface look-and-feel, then make

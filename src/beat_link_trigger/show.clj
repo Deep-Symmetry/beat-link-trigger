@@ -252,7 +252,8 @@
                              (update-player-item-visibility import-menu announcement show false)))
             sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
                            (signatureChanged [this sig-update]
-                             (update-player-item-signature import-menu sig-update show)))]
+                             (update-player-item-signature import-menu sig-update show)))
+            window-name  (str "show-" (.getPath file))]
 
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
@@ -273,30 +274,48 @@
                                                    (timbre/error t "Problem closing Show file.")
                                                    (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" e)
                                                                  :title "Problem Closing Show" :type :error))))
-                                             (dissoc shows file))))
+                                             (dissoc shows file)))
+                         (swap! util/window-positions dissoc window-name))
                        #{:component-moved :component-resized}
-                       (fn [e] (util/save-window-position root (str "show-" (.getPath file)))))
+                       (fn [e] (util/save-window-position root window-name)))
         (seesaw/show! root))
       (catch Throwable t
         (.close filesystem)
         (throw t)))))
 
-(defn open
+(defn- open-internal
   "Opens a show file. If it is already open, just brings the window to
-  the front."
-  [parent]
-(when-let [file (chooser/choose-file parent :type :open
-                                     :all-files? false
-                                     :filters [["BeatLinkTrigger Show files" ["blts"]]])]
+  the front. Returns truthy if the file was newly opened."
+  [parent file]
   (let [file (.getCanonicalFile file)]
     (try
       (if-let [existing (get @open-shows file)]
         (.toFront (:frame existing))
-        (create-show-window file))
+        (do (create-show-window file)
+            true))
       (catch Exception e
-        (timbre/error e "Unable to open Show.")
-        (seesaw/alert parent (str "<html>Unable to Open Show.<br><br>" e)
-                      :title "Problem Opening File" :type :error))))))
+        (timbre/error e "Unable to open Show" file)
+        (seesaw/alert parent (str "<html>Unable to Open Show " file "<br><br>" e)
+                      :title "Problem Opening File" :type :error)
+        false))))
+
+(defn open
+  "Let the user choose a show file and tries to open it. If already
+  open, just brings the window to the front."
+  [parent]
+(when-let [file (chooser/choose-file parent :type :open
+                                     :all-files? false
+                                     :filters [["BeatLinkTrigger Show files" ["blts"]]])]
+  (open-internal parent file)))
+
+(defn reopen-previous-shows
+  "Tries to reopen any shows that were open the last time the user quit."
+  []
+  (doseq [window (keys @util/window-positions)]
+    (when (and (string? window)
+               (.startsWith window "show-"))
+      (when-not (open-internal nil (clojure.java.io/file (subs window 5)))
+        (swap! util/window-positions dissoc window)))))  ; Remove saved position if show is no longer available.
 
 (defn new
   "Creates a new show file and opens a window on it."
