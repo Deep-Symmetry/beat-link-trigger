@@ -258,9 +258,10 @@
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addSignatureListener signature-finder sig-listener)
         (seesaw/config! root :menubar (build-show-menubar show import-menu))
-        (.setSize root 800 600)
-        (.setLocationRelativeTo root nil)
-        (seesaw/listen root :window-closed
+        (.setSize root 800 600)  ; TODO: Can remove once we are packing the window.
+        (util/restore-window-position root (str "show-" (.getPath file)) nil)
+        (seesaw/listen root
+                       :window-closed
                        (fn [e]
                          (.removeDeviceAnnouncementListener device-finder dev-listener)
                          (.removeSignatureListener signature-finder sig-listener)
@@ -272,7 +273,9 @@
                                                    (timbre/error t "Problem closing Show file.")
                                                    (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" e)
                                                                  :title "Problem Closing Show" :type :error))))
-                                             (dissoc shows file)))))
+                                             (dissoc shows file))))
+                       #{:component-moved :component-resized}
+                       (fn [e] (util/save-window-position root (str "show-" (.getPath file)))))
         (seesaw/show! root))
       (catch Throwable t
         (.close filesystem)
@@ -288,7 +291,7 @@
   (let [file (.getCanonicalFile file)]
     (try
       (if-let [existing (get @open-shows file)]
-        (.toFront existing)
+        (.toFront (:frame existing))
         (create-show-window file))
       (catch Exception e
         (timbre/error e "Unable to open Show.")
