@@ -47,6 +47,9 @@ This change log follows the conventions of
 - The **Load Track on Player** interface now shows rekordbox and
   rekordbox mobile collections for any linked computers and phones,
   allowing you to explore them and load tracks from them.
+- The Beat Link library previously could be tricked when a player was
+  powered off and back on into reporting stale metadata and waveform
+  information.
 - The preferences writing code takes measures to ensure that Clojure's
   `*print-level*` and `*print-depth*` variables do not inadvertently
   truncate large trigger lists.
