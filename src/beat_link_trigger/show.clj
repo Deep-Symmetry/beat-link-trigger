@@ -78,12 +78,16 @@
                                                                  :all-files? false
                                                                  :filters [["BeatLinkTrigger Show files"
                                                                             ["blts"]]])]
-                              (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
-                                (try
-                                  (seesaw/alert "TODO: Implement saving!" :title "Saving Unfinished" :type :error)
-                                  (catch Exception e
-                                    (seesaw/alert (:frame show) (str "<html>Unable to Save.<br><br>" e)
-                                                  :title "Problem Writing File" :type :error))))))
+                              (if (get @open-shows file)
+                                (seesaw/alert (:frame show) "Cannot Replace an Open Show."
+                                              :title "Destination is Already Open" :type :error)
+                                (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
+
+                                  (try
+                                    (seesaw/alert "TODO: Implement saving!" :title "Saving Unfinished" :type :error)
+                                    (catch Exception e
+                                      (seesaw/alert (:frame show) (str "<html>Unable to Save.<br><br>" e)
+                                                    :title "Problem Writing File" :type :error)))))))
                  :name "Save As"
                  :key "menu S"))
 
