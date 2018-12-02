@@ -68,7 +68,7 @@
               result))))))
 
 (defn visible-player-numbers
-  "Return the set of players currently visible on the
+  "Return the list of players numbers currently visible on the
   network (ignoring our virtual player, and any mixers or rekordbox
   instances)."
   []

@@ -20,9 +20,9 @@
            [java.awt.event WindowEvent]
            [java.nio.file Path Files FileSystems OpenOption StandardOpenOption]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
-            SignatureFinder SignatureListener]
+            SignatureFinder SignatureListener SignatureUpdate]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def device-finder
@@ -41,49 +41,86 @@
   "A convenient reference to the SingatureFinder singleton."
   (SignatureFinder/getInstance))
 
+(defonce ^{:private true
+           :doc "The map of open shows; keys are the file, values are
+  a map containing the root of the window, the file (for ease of
+  updating the entry), the ZIP filesystem providing heierarcical
+  access to the contents of the file, and the map describing them."}
+  open-shows (atom {}))
+
+(defn- save-all-open-shows
+  "Closes the ZIP filesystems associated with any open shows, so they
+  get flushed out to the show files. Called when the virtual machine
+  is exiting as a shutdown hook to make sure changes get saved. It is
+  not safe to call this at any other time because it makes the shows
+  unusable."
+  []
+  (doseq [show (vals @open-shows)]
+    (timbre/info "Closing Show due to shutdown:" (:file show))
+    (try
+      (.close (:filesystem show))
+      (catch Throwable t
+        (timbre/error t "Problem closing show filesystem" (:filesystem show))))))
+
+(defonce ^{:private true
+           :doc "Register the shutdown hook the first time this
+  namespace is loaded."}
+  shutdown-registered (do
+                        (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
+                        true))
+
 (defn- build-save-action
   "Creates the menu action to save a show window to a new file, given
-  the root frame of the window."
-  [root]
+  the show map."
+  [show]
   (seesaw/action :handler (fn [e]
-                            (when-let [file (chooser/choose-file root :type :save
+                            (when-let [file (chooser/choose-file (:frame show) :type :save
                                                                  :all-files? false
                                                                  :filters [["BeatLinkTrigger Show files"
                                                                             ["blts"]]])]
-                              (when-let [file (util/confirm-overwrite-file file "blts" root)]
+                              (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
                                 (try
                                   (seesaw/alert "TODO: Implement saving!" :title "Saving Unfinished" :type :error)
                                   (catch Exception e
-                                    (seesaw/alert root (str "<html>Unable to Save.<br><br>" e)
+                                    (seesaw/alert (:frame show) (str "<html>Unable to Save.<br><br>" e)
                                                   :title "Problem Writing File" :type :error))))))
                  :name "Save As"
                  :key "menu S"))
 
 (defn- build-import-offline-action
   "Creates the menu action to import a track from offline media, given
-  the root frame of the window."
-  [root]
+  the show map."
+  [show]
   (seesaw/action :handler (fn [e]
-                            (when-let [[database track-row] (loader/choose-local-track root)]
+                            (when-let [[database track-row] (loader/choose-local-track (:frame show))]
                               (try
                                 (seesaw/alert "TODO: Implement Importing!" :title "Importing Unfinished" :type :error)
                                 (catch Exception e
-                                  (seesaw/alert root (str "<html>Unable to Import.<br><br>" e)
+                                  (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" e)
                                                 :title "Problem Finding Track Metadata" :type :error)))))
                  :name "from Offline Media"
                  :key "menu M"))
 
+(defn- describe-disabled-reason
+  "Returns a text description of why import from a player is disabled
+  based on an associated track signature, or `nil` if it is not
+  disabled, given the show map and a possibly-`nil` track signature."
+  [show signature]
+  (cond
+    (nil? signature)                            " (no track signature)"
+    (get-in show [:contents :tracks signature]) " (already imported)"
+    :else                                       nil))
+
 (defn- build-import-player-action
   "Creates the menu action to import a track from a player, given the
-  root frame of the window and the player number. Enables or disables
-  as appropriate, with text explaining why it is disabled."
-  [root player]
+  show map and the player number. Enables or disables as appropriate,
+  with text explaining why it is disabled."
+  [show player]
   (let [signature (.getLatestSignatureFor signature-finder player)
-        enabled?  (some? signature) ; TODO: Make sure the signature is not already present in the show.
-        reason    (when-not enabled? " (no track signature)")]
-
+        enabled?  (some? signature)
+        reason    (describe-disabled-reason show signature)]
     (seesaw/action :handler (fn [e]
-                              (seesaw/alert root "TODO: Implement Importing from Player!" :title "Unfinished"
+                              (seesaw/alert (:frame show) "TODO: Implement Importing from Player!" :title "Unfinished"
                                             :type :error))
                    :name (str "from Player " player reason)
                    :enabled? enabled?
@@ -91,37 +128,31 @@
 
 (defn- build-import-submenu-items
   "Creates the submenu items for importing tracks from all available players
-  and offline media, given the root frame of the window."
-  [root]
-  (let [current-players (sort (map (fn [status]
-                                     (let [player (.getNumber status)]
-                                       (when (< player 5) player)))
-                                    (.getCurrentDevices device-finder)))]
-    (concat (map (fn [player] (build-import-player-action root player)) (filter identity current-players))
-            [(build-import-offline-action root)])))
+  and offline media, given the show map."
+  [show]
+  (concat (map (fn [player]
+                 (seesaw/menu-item :action (build-import-player-action show player)
+                                   :visible? (some? (.getLatestAnnouncementFrom device-finder player))))
+               (map inc (range 4)))
+          [(build-import-offline-action show)]))
 
 (defn- build-close-action
-  "Creates the menu action to close a show window."
-  [root]
+  "Creates the menu action to close a show window, given the show map."
+  [show]
   (seesaw/action :handler (fn [e]
                             (seesaw/invoke-later
-                             (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
+                             (.dispatchEvent (:frame show) (WindowEvent. (:frame show) WindowEvent/WINDOW_CLOSING))))
                  :name "Close"))
 
 (defn- build-show-menubar
-  "Creates the menu bar for a show window, given the root frame of the
-  window and the import submenu."
-  [root import-submenu]
+  "Creates the menu bar for a show window, given the show map and the
+  import submenu."
+  [show import-submenu]
   (seesaw/menubar :items [(seesaw/menu :text "File"
-                                       :items (concat [(build-save-action root) (seesaw/separator)
+                                       :items (concat [(build-save-action show) (seesaw/separator)
                                                        import-submenu
-                                                       (seesaw/separator) (build-close-action root)]))
+                                                       (seesaw/separator) (build-close-action show)]))
                           (menus/build-help-menu)]))
-
-(defonce ^{:private true
-           :doc "The map of open shows; keys are the file, values are
-           the root of the window."}
-  open-shows (atom {}))
 
 (defn- build-filesystem-path
   "Construct a path in the specified filesystem; translates from
@@ -161,41 +192,65 @@
     (catch java.nio.file.ProviderNotFoundException e
       (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
 
+(defn- update-player-item-visibility
+  "Makes a player's entry in the import menu visible or invisible, given
+  the device announcement describing the player."
+  [^javax.swing.JMenu import-menu ^DeviceAnnouncement announcement visible?]
+  (let [^javax.swing.JMenuItem item (.getItem import-menu (dec (.getNumber announcement)))]
+    (.setVisible item visible?)))
+
+(defn- update-player-item-signature
+  "Makes a player's entry in the import menu enabled or disabled (with
+  an explanation), given the track signature that has just been
+  associated with the player."
+  [^javax.swing.JMenu import-menu ^SignatureUpdate sig-update show]
+  (let [new-signature               (.signature sig-update)
+        disabled-reason             (describe-disabled-reason show new-signature)
+        ^javax.swing.JMenuItem item (.getItem import-menu (dec (.player sig-update)))]
+    (.setEnabled item (nil? disabled-reason))
+    (.setText item (str "from Player " (.player sig-update) disabled-reason))))
+
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
-  (let [[filesystem contents]   (open-show-filesystem file)]
+  (let [[filesystem contents] (open-show-filesystem file)]
     (try
       (let [root         (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
-            import-menu  (seesaw/menu :text "Import Track")
-            rebuild-im   (fn []
-                           (.removeAll import-menu)
-                           (seesaw/config! import-menu :items (build-import-submenu-items root)))
+            show         {:frame      root
+                          :file       file
+                          :filesystem filesystem
+                          :contents   contents}
+            import-menu  (seesaw/menu :text "Import Track" :items (build-import-submenu-items show))
             dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go
-                           (deviceFound [this _] (rebuild-im))
-                           (deviceLost [this _] (rebuild-im)))
+                           (deviceFound [this announcement]
+                             (update-player-item-visibility import-menu announcement true))
+                           (deviceLost [this announcement]
+                             (update-player-item-visibility import-menu announcement false)))
             sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
-                           (signatureChanged [this _] (rebuild-im)))]
-        (swap! open-shows assoc file root)
+                           (signatureChanged [this sig-update]
+                             (update-player-item-signature import-menu sig-update show)))]
+
+        (swap! open-shows assoc file show)
         ;; TODO: Once we have component inside the frame, set up its user-data as an atom containing our
         ;; configuration information, including the file!
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addSignatureListener signature-finder sig-listener)
-        (rebuild-im)
         (seesaw/config! root :menubar (build-show-menubar root import-menu))
         (.setSize root 800 600)
         (.setLocationRelativeTo root nil)
         (seesaw/listen root :window-closed
                        (fn [e]
-                         (swap! open-shows dissoc file)
                          (.removeDeviceAnnouncementListener device-finder dev-listener)
                          (.removeSignatureListener signature-finder sig-listener)
-                         (try
-                           (.close filesystem)
-                           (catch Throwable t
-                             (timbre/error t "Problem closing Show file.")
-                             (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" e)
-                                           :title "Problem Closing Show" :type :error)))))
+                         (swap! open-shows (fn [shows]
+                                             (let [show (get shows file)]
+                                               (try
+                                                 (.close (:filesystem show))
+                                                 (catch Throwable t
+                                                   (timbre/error t "Problem closing Show file.")
+                                                   (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" e)
+                                                                 :title "Problem Closing Show" :type :error))))
+                                             (dissoc shows file)))))
         (seesaw/show! root))
       (catch Throwable t
         (.close filesystem)
