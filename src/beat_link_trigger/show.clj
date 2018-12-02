@@ -207,9 +207,10 @@
   import submenu."
   [show import-submenu]
   (seesaw/menubar :items [(seesaw/menu :text "File"
-                                       :items (concat [(build-save-action show) (seesaw/separator)
-                                                       import-submenu
-                                                       (seesaw/separator) (build-close-action show)]))
+                                       :items [(build-save-action show) (seesaw/separator)
+                                               (build-close-action show)])
+                          (seesaw/menu :text "Track"
+                                       :items [import-submenu])
                           (menus/build-help-menu)]))
 
 (defn- update-player-item-signature
