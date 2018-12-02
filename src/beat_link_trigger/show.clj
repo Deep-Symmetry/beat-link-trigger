@@ -114,16 +114,16 @@
 (defn- build-import-player-action
   "Creates the menu action to import a track from a player, given the
   show map and the player number. Enables or disables as appropriate,
-  with text explaining why it is disabled."
+  with text explaining why it is disabled (but only if visible, to
+  avoid mysterious extra width in the menu)."
   [show player]
-  (let [signature (.getLatestSignatureFor signature-finder player)
-        enabled?  (some? signature)
-        reason    (describe-disabled-reason show signature)]
+  (let [visible? (some? (.getLatestAnnouncementFrom device-finder player))
+        reason   (describe-disabled-reason show (.getLatestSignatureFor signature-finder player))]
     (seesaw/action :handler (fn [e]
                               (seesaw/alert (:frame show) "TODO: Implement Importing from Player!" :title "Unfinished"
                                             :type :error))
-                   :name (str "from Player " player reason)
-                   :enabled? enabled?
+                   :name (str "from Player " player (when visible? reason))
+                   :enabled? (nil? reason)
                    :key (str "menu " player))))
 
 (defn- build-import-submenu-items
@@ -192,13 +192,6 @@
     (catch java.nio.file.ProviderNotFoundException e
       (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
 
-(defn- update-player-item-visibility
-  "Makes a player's entry in the import menu visible or invisible, given
-  the device announcement describing the player."
-  [^javax.swing.JMenu import-menu ^DeviceAnnouncement announcement visible?]
-  (let [^javax.swing.JMenuItem item (.getItem import-menu (dec (.getNumber announcement)))]
-    (.setVisible item visible?)))
-
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
   an explanation), given the track signature that has just been
@@ -209,6 +202,16 @@
         ^javax.swing.JMenuItem item (.getItem import-menu (dec (.player sig-update)))]
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " (.player sig-update) disabled-reason))))
+
+(defn- update-player-item-visibility
+  "Makes a player's entry in the import menu visible or invisible, given
+  the device announcement describing the player and the show map."
+  [^javax.swing.JMenu import-menu ^DeviceAnnouncement announcement show visible?]
+  (let [^javax.swing.JMenuItem item (.getItem import-menu (dec (.getNumber announcement)))]
+    (when visible?  ; If we are becoming visible, first update the signature information we'd been ignoring before.
+      (let [reason  (describe-disabled-reason show (.getLatestSignatureFor signature-finder (.getNumber announcement)))]
+        (.setText item (str "from Player " (.getNumber announcement) reason))))
+    (.setVisible item visible?)))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
@@ -223,16 +226,14 @@
             import-menu  (seesaw/menu :text "Import Track" :items (build-import-submenu-items show))
             dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go
                            (deviceFound [this announcement]
-                             (update-player-item-visibility import-menu announcement true))
+                             (update-player-item-visibility import-menu announcement show true))
                            (deviceLost [this announcement]
-                             (update-player-item-visibility import-menu announcement false)))
+                             (update-player-item-visibility import-menu announcement show false)))
             sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
                            (signatureChanged [this sig-update]
                              (update-player-item-signature import-menu sig-update show)))]
 
         (swap! open-shows assoc file show)
-        ;; TODO: Once we have component inside the frame, set up its user-data as an atom containing our
-        ;; configuration information, including the file!
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addSignatureListener signature-finder sig-listener)
         (seesaw/config! root :menubar (build-show-menubar root import-menu))
