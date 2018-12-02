@@ -1334,10 +1334,12 @@
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
         new-show-action  (seesaw/action :handler (fn [e] (show/new @trigger-frame))
                                         :name "New Show"
-                                        :tip "Create an interface for conveniently assigning cues to tracks.")
+                                        :tip "Create an interface for conveniently assigning cues to tracks."
+                                        :key "menu N")
         open-show-action (seesaw/action :handler (fn [e] (show/open @trigger-frame))
                                         :name "Open Show"
-                                        :tip "Opens an already-created show interface.")
+                                        :tip "Opens an already-created show interface."
+                                        :key "menu O")
         using-playlists? (:tracks-using-playlists? @(global-user-data))
         online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
         real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status

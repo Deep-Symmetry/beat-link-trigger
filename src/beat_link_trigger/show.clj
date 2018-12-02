@@ -18,7 +18,7 @@
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt.event WindowEvent]
-           [java.nio.file Path Files FileSystems OpenOption StandardOpenOption]
+           [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
@@ -69,6 +69,59 @@
                         (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
                         true))
 
+(defn- build-filesystem-path
+  "Construct a path in the specified filesystem; translates from
+  idiomatic Clojure to Java interop with the `java.nio` package."
+  [filesystem & elements]
+  (.getPath filesystem (first elements) (into-array String (rest elements))))
+
+(defn- read-edn-path
+  "Parse the file at the specified path as EDN, and return the results."
+  [path]
+  #_(timbre/info "Reading from" path "in filesystem" (.getFileSystem path))
+  (edn/read-string {:readers @prefs/prefs-readers} (String. (Files/readAllBytes path) "UTF-8")))
+
+(defn- write-edn-path
+  "Write the supplied data as EDN to the specified path, truncating any previously existing file."
+  [data path]
+  #_(timbre/info "Writing" data "to" path "in filesystem" (.getFileSystem path))
+  (binding [*print-length* nil
+            *print-level* nil]
+    (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
+
+(defn- open-show-filesystem
+  "Opens a show file as a ZIP filesystem so the individual elements
+  inside of it can be accessed and updated. In the process verifies
+  that the file is, in fact, a properly formatted Show ZIP file.
+  Returns the opened and validated filesystem and the parsed contents
+  map."
+  [file]
+  (try
+    (let [filesystem (FileSystems/newFileSystem (.toPath file) nil)
+          contents (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
+      (when-not (= (:type contents) ::show)
+        (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
+      (when-not (= (:version contents) 1)
+        (throw (java.io.IOException. "Chosen Show is not supported by this version of Beat Link Trigger.")))
+      [filesystem contents])
+    (catch java.nio.file.ProviderNotFoundException e
+      (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
+
+(defn- save-show-as
+  "Closes the show filesystem to flush changes to disk, copies the file
+  to the specified destination, then reopens it."
+  [show as-file]
+  (let [{:keys [frame file filesystem]} show]
+    (try
+      (.close filesystem)
+      (Files/copy (.toPath file) (.toPath as-file) (into-array [StandardCopyOption/REPLACE_EXISTING]))
+      (catch Throwable t
+        (timbre/error t "Problem saving" file "as" as-file)
+        (throw t))
+      (finally
+        (let [[reopened-filesystem] (open-show-filesystem file)]
+          (swap! open-shows assoc-in [file :filesystem] reopened-filesystem))))))
+
 (defn- build-save-action
   "Creates the menu action to save a show window to a new file, given
   the show map."
@@ -84,10 +137,11 @@
                                 (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
 
                                   (try
-                                    (seesaw/alert "TODO: Implement saving!" :title "Saving Unfinished" :type :error)
-                                    (catch Exception e
-                                      (seesaw/alert (:frame show) (str "<html>Unable to Save.<br><br>" e)
-                                                    :title "Problem Writing File" :type :error)))))))
+                                    (save-show-as show file)
+                                    (catch Throwable t
+                                      (timbre/error t "Problem Saving Show as" file)
+                                      (seesaw/alert (:frame show) (str "<html>Unable to Save As " file ".<br><br>" t)
+                                                    :title "Problem Saving Show Copy" :type :error)))))))
                  :name "Save As"
                  :key "menu S"))
 
@@ -158,44 +212,6 @@
                                                        (seesaw/separator) (build-close-action show)]))
                           (menus/build-help-menu)]))
 
-(defn- build-filesystem-path
-  "Construct a path in the specified filesystem; translates from
-  idiomatic Clojure to Java interop with the `java.nio` package."
-  [filesystem & elements]
-  (.getPath filesystem (first elements) (into-array String (rest elements))))
-
-(defn- read-edn-path
-  "Parse the file at the specified path as EDN, and return the results."
-  [path]
-  #_(timbre/info "Reading from" path "in filesystem" (.getFileSystem path))
-  (edn/read-string {:readers @prefs/prefs-readers} (String. (Files/readAllBytes path) "UTF-8")))
-
-(defn- write-edn-path
-  "Write the supplied data as EDN to the specified path, truncating any previously existing file."
-  [data path]
-  #_(timbre/info "Writing" data "to" path "in filesystem" (.getFileSystem path))
-  (binding [*print-length* nil
-            *print-level* nil]
-    (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
-
-(defn- open-show-filesystem
-  "Opens a show file as a ZIP filesystem so the individual elements
-  inside of it can be accessed and updated. In the process verifies
-  that the file is, in fact, a properly formatted Show ZIP file.
-  Returns the opened and validated filesystem and the parsed contents
-  map."
-  [file]
-  (try
-    (let [filesystem (FileSystems/newFileSystem (.toPath file) nil)
-          contents (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
-      (when-not (= (:type contents) ::show)
-        (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
-      (when-not (= (:version contents) 1)
-        (throw (java.io.IOException. "Chosen Show is not supported by this version of Beat Link Trigger.")))
-      [filesystem contents])
-    (catch java.nio.file.ProviderNotFoundException e
-      (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
-
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
   an explanation), given the track signature that has just been
@@ -240,7 +256,7 @@
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addSignatureListener signature-finder sig-listener)
-        (seesaw/config! root :menubar (build-show-menubar root import-menu))
+        (seesaw/config! root :menubar (build-show-menubar show import-menu))
         (.setSize root 800 600)
         (.setLocationRelativeTo root nil)
         (seesaw/listen root :window-closed
