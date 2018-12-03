@@ -113,8 +113,7 @@
   "Writes the supplied Message to the specified path, truncating any previously existing file."
   [message path]
   (with-open [channel (java.nio.channels.FileChannel/open path (into-array [StandardOpenOption/WRITE
-                                                                            StandardOpenOption/CREATE
-                                                                            StandardOpenOption/TRUNCATE_EXISTING]))]
+                                                                            StandardOpenOption/CREATE_NEW]))]
     (.write message channel)))
 
 (defn- track-present?
