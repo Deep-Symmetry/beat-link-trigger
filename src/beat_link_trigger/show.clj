@@ -207,7 +207,7 @@
                               (.flip buffer))))]
         (if next-buffer
           (recur (conj tag-byte-buffers next-buffer) (inc idx))
-          (CueList. (java.util.ArrayList. (timbre/spy :info tag-byte-buffers))))))))
+          (CueList. tag-byte-buffers))))))
 
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
