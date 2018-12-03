@@ -37,6 +37,18 @@
   "A convenient reference to the MetadataFinder singleton."
   (MetadataFinder/getInstance))
 
+(def art-finder
+  "A convenient reference to the ArtFinder singleton."
+  (org.deepsymmetry.beatlink.data.ArtFinder/getInstance))
+
+(def beatgrid-finder
+  "A convenient reference to the BeatGridFinder singleton."
+  (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance))
+
+(def waveform-finder
+  "A convenient reference to the WaveformFinder singleton."
+  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
+
 (def signature-finder
   "A convenient reference to the SingatureFinder singleton."
   (SignatureFinder/getInstance))
@@ -69,6 +81,12 @@
                         (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
                         true))
 
+(defn- latest-show
+  "Returns the current version of the show given a stale copy with which
+  an object was created."
+  [show]
+  (get @open-shows (:file show)))
+
 (defn- build-filesystem-path
   "Construct a path in the specified filesystem; translates from
   idiomatic Clojure to Java interop with the `java.nio` package."
@@ -88,6 +106,124 @@
   (binding [*print-length* nil
             *print-level* nil]
     (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
+
+(defn- track-present?
+  "Checks whether there is already a track with the specified signature
+  in the Show."
+  [show signature]
+  (Files/exists (build-filesystem-path (:filesystem show) "tracks" signature) (make-array java.nio.file.LinkOption 0)))
+
+(defn- describe-disabled-reason
+  "Returns a text description of why import from a player is disabled
+  based on an associated track signature, or `nil` if it is not
+  disabled, given the show map and a possibly-`nil` track signature."
+  [show signature]
+  (cond
+    (nil? signature)                " (no track signature)"
+    (track-present? show signature) " (already imported)"
+    :else                           nil))
+
+(defn- update-player-item-signature
+  "Makes a player's entry in the import menu enabled or disabled (with
+  an explanation), given the track signature that has just been
+  associated with the player."
+  [^SignatureUpdate sig-update show]
+  (let [^javax.swing.JMenu import-menu (:import-menu show)
+        new-signature                  (.signature sig-update)
+        disabled-reason                (describe-disabled-reason show new-signature)
+        ^javax.swing.JMenuItem item    (.getItem import-menu (dec (.player sig-update)))]
+    (.setEnabled item (nil? disabled-reason))
+    (.setText item (str "from Player " (.player sig-update) disabled-reason))))
+
+(defn- item-label
+  "Resolves a SearchableItem label safely, returning `nil` if the item
+  is itself `nil`."
+  [^SearchableItem item]
+  (when item (.label item)))
+
+(defn- write-metadata
+  "Writes the metadata for a track being imported to the show
+  filesystem."
+  [track-root ^org.deepsymmetry.beatlink.data.TrackMetadata metadata]
+  (write-edn-path {:artist          (item-label (.getArtist metadata))
+                   :album           (item-label (.getAlbum metadata))
+                   :comment         (.getComment metadata)
+                   :date-added      (.getDateAdded metadata)
+                   :duration        (.getDuration metadata)
+                   :genre           (item-label (.getGenre metadata))
+                   :key             (item-label (.getKey metadata))
+                   :label           (item-label (.getLabel metadata))
+                   :original-artist (item-label (.getOriginalArtist metadata))
+                   :rating          (.getRating metadata)
+                   :remixer         (item-label (.getRemixer metadata))
+                   :tempo           (.getTempo metadata)
+                   :title           (.getTitle metadata)}
+                  (.resolve track-root "metadata.edn")))
+
+(defmacro doseq-indexed
+  "Analogous to map-indexed for doseq: iterate for side-effects with an
+  index."
+  {:style/indent 2}
+  [index-sym [item-sym coll] & body]
+  `(doseq [[~index-sym ~item-sym] (map list (range) ~coll)]
+     ~@body))
+
+(defn- write-cue-list
+  "Writes the cue list for a track being imported to the show
+  filesystem."
+  [track-root ^org.deepsymmetry.beatlink.data.CueList cue-list]
+  (timbre/info "Writing cue list. rawMessage:" (.rawMessage cue-list) ", rawTags:" (.rawTags cue-list))
+  (if (nil? (.rawMessage cue-list))
+    (doseq-indexed idx [tag-byte-buffer (.rawTags cue-list)]
+      (.rewind tag-byte-buffer)
+      (let [bytes     (byte-array (.remaining tag-byte-buffer))
+            file-name (str "cue-list-" idx ".kaitai")]
+        (.get tag-byte-buffer bytes)
+        (timbre/info "Writing " (count bytes) " bytes to " file-name)
+        (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
+    (throw (Exception. "Saving dbserver-based cue lists not yet implemented."))))
+
+(defn- import-track
+  "Imports the supplied track map into the show, after validating that
+  all required parts are present."
+  [show track]
+  (let [missing-elements (filter (fn [k] (not (get track k)))
+                                 [:signature :metadata :beat-grid :preview :detail])]
+    (if (seq missing-elements)
+      (seesaw/alert (:frame show)
+                    (str "<html>Unable to import track, missing required elements:<br>"
+                         (clojure.string/join ", " (map name missing-elements)))
+                    :title "Track Import Failed" :type :error)
+      (let [{:keys [file filesystem frame contents]}              show
+            {:keys [signature metadata beat-grid preview detail]} track
+            track-root                                            (build-filesystem-path filesystem "tracks" signature)]
+        (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
+        (write-metadata track-root metadata)
+        (write-cue-list track-root (.getCueList metadata))))))
+
+(defn- import-from-player
+  "Imports the track loaded on the specified player to the show."
+  [show player]
+  (let [signature (.getLatestSignatureFor signature-finder player)]
+    (if (track-present? show signature)
+      (seesaw/alert (:frame show) (str "Track on Player " player " is already in the Show.")
+                    :title "Can’t Re-import Track" :type :error)
+      (let [metadata  (.getLatestMetadataFor metadata-finder player)
+            beat-grid (.getLatestBeatGridFor beatgrid-finder player)
+            preview   (.getLatestPreviewFor waveform-finder player)
+            detail    (.getLatestDetailFor waveform-finder player)
+            art       (.getLatestArtFor art-finder player)]
+        (if (not= signature (.getLatestSignatureFor signature-finder player))
+          (seesaw/alert (:frame show) (str "Track on Player " player " Changed during Attempted Import.")
+                        :title "Track Import Failed" :type :error)
+          (do
+            (import-track show {:signature signature
+                                :metadata       metadata
+                                :beat-grid      beat-grid
+                                :preview        preview
+                                :detail         detail
+                                :art            art})
+            (update-player-item-signature (SignatureUpdate. player signature) show)))))))
 
 (defn- open-show-filesystem
   "Opens a show file as a ZIP filesystem so the individual elements
@@ -137,7 +273,7 @@
                                 (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
 
                                   (try
-                                    (save-show-as show file)
+                                    (save-show-as (latest-show show) file)
                                     (catch Throwable t
                                       (timbre/error t "Problem Saving Show as" file)
                                       (seesaw/alert (:frame show) (str "<html>Unable to Save As " file ".<br><br>" t)
@@ -152,22 +288,13 @@
   (seesaw/action :handler (fn [e]
                             (when-let [[database track-row] (loader/choose-local-track (:frame show))]
                               (try
+                                ;; TODO: Remember to call (latest-show show) !
                                 (seesaw/alert "TODO: Implement Importing!" :title "Importing Unfinished" :type :error)
                                 (catch Exception e
                                   (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" e)
                                                 :title "Problem Finding Track Metadata" :type :error)))))
                  :name "from Offline Media"
                  :key "menu M"))
-
-(defn- describe-disabled-reason
-  "Returns a text description of why import from a player is disabled
-  based on an associated track signature, or `nil` if it is not
-  disabled, given the show map and a possibly-`nil` track signature."
-  [show signature]
-  (cond
-    (nil? signature)                            " (no track signature)"
-    (get-in show [:contents :tracks signature]) " (already imported)"
-    :else                                       nil))
 
 (defn- build-import-player-action
   "Creates the menu action to import a track from a player, given the
@@ -177,9 +304,7 @@
   [show player]
   (let [visible? (some? (.getLatestAnnouncementFrom device-finder player))
         reason   (describe-disabled-reason show (.getLatestSignatureFor signature-finder player))]
-    (seesaw/action :handler (fn [e]
-                              (seesaw/alert (:frame show) "TODO: Implement Importing from Player!" :title "Unfinished"
-                                            :type :error))
+    (seesaw/action :handler (fn [e] (import-from-player (latest-show show) player))
                    :name (str "from Player " player (when visible? reason))
                    :enabled? (nil? reason)
                    :key (str "menu " player))))
@@ -205,60 +330,53 @@
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map and the
   import submenu."
-  [show import-submenu]
+  [show]
   (seesaw/menubar :items [(seesaw/menu :text "File"
                                        :items [(build-save-action show) (seesaw/separator)
                                                (build-close-action show)])
                           (seesaw/menu :text "Track"
-                                       :items [import-submenu])
+                                       :items [(:import-menu show)])
                           (menus/build-help-menu)]))
-
-(defn- update-player-item-signature
-  "Makes a player's entry in the import menu enabled or disabled (with
-  an explanation), given the track signature that has just been
-  associated with the player."
-  [^javax.swing.JMenu import-menu ^SignatureUpdate sig-update show]
-  (let [new-signature               (.signature sig-update)
-        disabled-reason             (describe-disabled-reason show new-signature)
-        ^javax.swing.JMenuItem item (.getItem import-menu (dec (.player sig-update)))]
-    (.setEnabled item (nil? disabled-reason))
-    (.setText item (str "from Player " (.player sig-update) disabled-reason))))
 
 (defn- update-player-item-visibility
   "Makes a player's entry in the import menu visible or invisible, given
   the device announcement describing the player and the show map."
-  [^javax.swing.JMenu import-menu ^DeviceAnnouncement announcement show visible?]
-  (let [^javax.swing.JMenuItem item (.getItem import-menu (dec (.getNumber announcement)))]
-    (when visible?  ; If we are becoming visible, first update the signature information we'd been ignoring before.
-      (let [reason  (describe-disabled-reason show (.getLatestSignatureFor signature-finder (.getNumber announcement)))]
-        (.setText item (str "from Player " (.getNumber announcement) reason))))
-    (.setVisible item visible?)))
+  [^DeviceAnnouncement announcement show visible?]
+  (let [^javax.swing.JMenu import-menu (:import-menu show)
+        player                         (.getNumber announcement)]
+    (when (< player 5)  ; Ignore non-players
+      (let [^javax.swing.JMenuItem item (.getItem import-menu (dec player))]
+        (when visible?  ; If we are becoming visible, first update the signature information we'd been ignoring before.
+          (let [reason (describe-disabled-reason show (.getLatestSignatureFor signature-finder player))]
+            (.setText item (str "from Player " player reason))))
+        (.setVisible item visible?)))))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
   (let [[filesystem contents] (open-show-filesystem file)]
     (try
-      (let [root         (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
-            show         {:frame      root
-                          :file       file
-                          :filesystem filesystem
-                          :contents   contents}
-            import-menu  (seesaw/menu :text "Import Track" :items (build-import-submenu-items show))
+      (let [root        (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
+            import-menu (seesaw/menu :text "Import Track")
+            show        {:frame       root
+                         :import-menu import-menu
+                         :file        file
+                         :filesystem  filesystem
+                         :contents    contents}
             dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go
                            (deviceFound [this announcement]
-                             (update-player-item-visibility import-menu announcement show true))
+                             (update-player-item-visibility announcement show true))
                            (deviceLost [this announcement]
-                             (update-player-item-visibility import-menu announcement show false)))
+                             (update-player-item-visibility announcement show false)))
             sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
                            (signatureChanged [this sig-update]
-                             (update-player-item-signature import-menu sig-update show)))
+                             (update-player-item-signature sig-update show)))
             window-name  (str "show-" (.getPath file))]
-
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addSignatureListener signature-finder sig-listener)
-        (seesaw/config! root :menubar (build-show-menubar show import-menu))
+        (seesaw/config! import-menu :items (build-import-submenu-items show))
+        (seesaw/config! root :menubar (build-show-menubar show))
         (.setSize root 800 600)  ; TODO: Can remove once we are packing the window.
         (util/restore-window-position root (str "show-" (.getPath file)) nil)
         (seesaw/listen root
