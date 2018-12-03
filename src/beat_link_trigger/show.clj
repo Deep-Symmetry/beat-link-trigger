@@ -22,9 +22,13 @@
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
             MixerStatus Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data ArtFinder BeatGrid BeatGridFinder CueList MetadataFinder WaveformFinder
-            SearchableItem SignatureFinder SignatureListener SignatureUpdate]
+           [org.deepsymmetry.beatlink.data AlbumArt ArtFinder BeatGrid BeatGridFinder CueList DataReference
+            MetadataFinder WaveformFinder
+            SearchableItem SignatureFinder SignatureListener SignatureUpdate TrackMetadata
+            WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
+           [org.deepsymmetry.cratedigger Database]
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def device-finder
@@ -269,12 +273,77 @@
                         :title "Track Import Failed" :type :error)
           (do
             (import-track show {:signature signature
-                                :metadata       metadata
-                                :beat-grid      beat-grid
-                                :preview        preview
-                                :detail         detail
-                                :art            art})
+                                :metadata  metadata
+                                :beat-grid beat-grid
+                                :preview   preview
+                                :detail    detail
+                                :art       art})
             (update-player-item-signature (SignatureUpdate. player signature) (latest-show show))))))))
+
+(defn- find-anlz-file
+  "Given a database and track object, returns the file in which the
+  track's analysis data can be found. If `ext?` is true, returns the
+  extended analysis path."
+  [database track-row ext?]
+  (let [volume    (.. database sourceFile getParentFile getParentFile getParentFile)
+        raw-path  (Database/getText (.analyzePath track-row))
+        subs-path (if ext?
+                    (clojure.string/replace raw-path #"DAT$" "EXT")
+                    raw-path)]
+    (.. volume toPath (resolve (subs subs-path 1)) toFile)))
+
+(defn- find-waveform-preview
+  "Helper function to find the best-available waveform preview, if any."
+  [data-ref anlz ext]
+  (if ext
+    (try
+      (WaveformPreview. data-ref ext)
+      (catch IllegalStateException e
+        (timbre/info "No color preview waveform found, chcking for blue version.")
+        (find-waveform-preview data-ref anlz nil)))
+    (when anlz (WaveformPreview. data-ref anlz))))
+
+(defn- find-art
+  "Given a database and track object, returns the track's album art, if
+  it has any."
+  [database track-row]
+  (let [art-id (long (.artworkId track-row))]
+    (when (pos? art-id)
+      (when-let [art-row (.. database artworkIndex (get art-id))]
+        (let [volume   (.. database sourceFile getParentFile getParentFile getParentFile)
+              art-path (Database/getText (.path art-row))
+              art-file (.. volume toPath (resolve (subs art-path 1)) toFile)
+              data-ref (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION art-id)]
+          (AlbumArt. data-ref art-file))))))
+
+(defn import-from-media
+  "Imports a track that has been parsed from a local media export."
+  [show database track-row]
+  (let [anlz-file (find-anlz-file database track-row false)
+        ext-file  (find-anlz-file database track-row true)
+        anlz      (when (and anlz-file (.canRead anlz-file)) (RekordboxAnlz/fromFile (.getAbsolutePath anlz-file)))
+        ext       (when (and ext-file (.canRead ext-file)) (RekordboxAnlz/fromFile (.getAbsolutePath ext-file)))
+        cue-list  (when anlz (CueList. anlz))
+        data-ref  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
+        metadata  (TrackMetadata. data-ref database cue-list)
+        beat-grid (when anlz (BeatGrid. data-ref anlz))
+        preview   (find-waveform-preview data-ref anlz ext)
+        detail    (when ext (WaveformDetail. data-ref ext))
+        art       (find-art database track-row)
+        signature (.computeTrackSignature signature-finder (.getTitle metadata) (item-label (.getArtist metadata))
+                                          (.getDuration metadata) detail beat-grid)]
+    (if (and signature (track-present? show signature))
+      (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
+                    :title "Can’t Re-import Track" :type :error)
+      (import-track show {:signature signature
+                          :metadata  metadata
+                          :beat-grid beat-grid
+                          :preview   preview
+                          :detail    detail
+                          :art       art}))
+    (when (.isRunning signature-finder)
+      (doseq [[player signature] (.getSignatures signature-finder)]
+        (update-player-item-signature (SignatureUpdate. player signature) (latest-show show))))))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
@@ -321,10 +390,10 @@
   (seesaw/action :handler (fn [e]
                             (when-let [[database track-row] (loader/choose-local-track (:frame show))]
                               (try
-                                ;; TODO: Remember to call (latest-show show) !
-                                (seesaw/alert "TODO: Implement Importing!" :title "Importing Unfinished" :type :error)
-                                (catch Exception e
-                                  (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" e)
+                                (import-from-media (latest-show show) database track-row)
+                                (catch Throwable t
+                                  (timbre/error t "Problem importing from offline media.")
+                                  (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" t)
                                                 :title "Problem Finding Track Metadata" :type :error)))))
                  :name "from Offline Media"
                  :key "menu M"))

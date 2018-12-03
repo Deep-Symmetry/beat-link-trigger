@@ -1642,7 +1642,9 @@
   "Presents a modal dialog allowing the selection of a track from a
   locally mounted media filesystem. If `database` is supplied, uses
   that already-parsed rekordbox export file; otherwise starts by
-  prompting the user to choose a media volume to parse."
+  prompting the user to choose a media volume to parse. Returns a
+  tuple of the database and the chosen track object, or `nil` if the
+  user canceled."
   ([]
    (choose-local-track nil))
   ([parent]
