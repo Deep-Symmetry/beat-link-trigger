@@ -18,11 +18,13 @@
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt.event WindowEvent]
-           [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption]
+           [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
-            SignatureFinder SignatureListener SignatureUpdate]
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
+            MixerStatus Util VirtualCdj]
+           [org.deepsymmetry.beatlink.data ArtFinder BeatGrid BeatGridFinder CueList MetadataFinder WaveformFinder
+            SearchableItem SignatureFinder SignatureListener SignatureUpdate]
+           [org.deepsymmetry.beatlink.dbserver Message]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def device-finder
@@ -107,6 +109,14 @@
             *print-level* nil]
     (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
 
+(defn- write-message-path
+  "Writes the supplied Message to the specified path, truncating any previously existing file."
+  [message path]
+  (with-open [channel (java.nio.channels.FileChannel/open path (into-array [StandardOpenOption/WRITE
+                                                                            StandardOpenOption/CREATE
+                                                                            StandardOpenOption/TRUNCATE_EXISTING]))]
+    (.write message channel)))
+
 (defn- track-present?
   "Checks whether there is already a track with the specified signature
   in the Show."
@@ -171,17 +181,34 @@
 (defn- write-cue-list
   "Writes the cue list for a track being imported to the show
   filesystem."
-  [track-root ^org.deepsymmetry.beatlink.data.CueList cue-list]
-  (timbre/info "Writing cue list. rawMessage:" (.rawMessage cue-list) ", rawTags:" (.rawTags cue-list))
+  [track-root ^CueList cue-list]
   (if (nil? (.rawMessage cue-list))
     (doseq-indexed idx [tag-byte-buffer (.rawTags cue-list)]
       (.rewind tag-byte-buffer)
       (let [bytes     (byte-array (.remaining tag-byte-buffer))
             file-name (str "cue-list-" idx ".kaitai")]
         (.get tag-byte-buffer bytes)
-        (timbre/info "Writing " (count bytes) " bytes to " file-name)
         (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
-    (throw (Exception. "Saving dbserver-based cue lists not yet implemented."))))
+    (write-message-path (.rawMessage cue-list) (.resolve track-root "cue-list.dbserver"))))
+
+(defn- read-cue-list
+  "Re-creates a CueList object from an imported track."
+  [track-root]
+  (if (Files/isReadable (.resolve track-root "cue-list.dbserver"))
+    (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") (make-array OpenOption 0))
+                data-stream  (java.io.DataInputStream. input-stream)]
+      (CueList. (Message/read data-stream)))
+    (loop [tag-byte-buffers []
+           idx              0]
+      (let [file-path (.resolve track-root (str "cue-list-" idx ".kaitai"))
+            next-buffer (when (Files/isReadable file-path)
+                          (with-open [file-channel (Files/newByteChannel file-path (make-array OpenOption 0))]
+                            (let [buffer (java.nio.ByteBuffer/allocate (.size file-channel))]
+                              (.read file-channel buffer)
+                              (.flip buffer))))]
+        (if next-buffer
+          (recur (conj tag-byte-buffers next-buffer) (inc idx))
+          (CueList. (java.util.ArrayList. (timbre/spy :info tag-byte-buffers))))))))
 
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
@@ -303,7 +330,8 @@
   avoid mysterious extra width in the menu)."
   [show player]
   (let [visible? (some? (.getLatestAnnouncementFrom device-finder player))
-        reason   (describe-disabled-reason show (.getLatestSignatureFor signature-finder player))]
+        reason   (describe-disabled-reason show (when (.isRunning signature-finder)
+                                                  (.getLatestSignatureFor signature-finder player)))]
     (seesaw/action :handler (fn [e] (import-from-player (latest-show show) player))
                    :name (str "from Player " player (when visible? reason))
                    :enabled? (nil? reason)
@@ -344,10 +372,13 @@
   [^DeviceAnnouncement announcement show visible?]
   (let [^javax.swing.JMenu import-menu (:import-menu show)
         player                         (.getNumber announcement)]
-    (when (< player 5)  ; Ignore non-players
+    (when (and (< player 5)  ; Ignore non-players, and attempts to make players visible when we are offline.
+               (or (.isRunning metadata-finder) (not visible?)))
+      #_(timbre/info "Updating player" player "menu item visibility to" visible?)
       (let [^javax.swing.JMenuItem item (.getItem import-menu (dec player))]
         (when visible?  ; If we are becoming visible, first update the signature information we'd been ignoring before.
-          (let [reason (describe-disabled-reason show (.getLatestSignatureFor signature-finder player))]
+          (let [reason (describe-disabled-reason show (when (.isRunning signature-finder)
+                                                        (.getLatestSignatureFor signature-finder player)))]
             (.setText item (str "from Player " player reason))))
         (.setVisible item visible?)))))
 
@@ -363,17 +394,26 @@
                          :file        file
                          :filesystem  filesystem
                          :contents    contents}
-            dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go
+            dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
                            (deviceFound [this announcement]
                              (update-player-item-visibility announcement show true))
                            (deviceLost [this announcement]
                              (update-player-item-visibility announcement show false)))
-            sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go
+            mf-listener (reify LifecycleListener  ; Hide or show all players if we go offline or online.
+                          (started [this sender]
+                            (doseq [announcement (.getCurrentDevices device-finder)]
+                              (update-player-item-visibility announcement show true)))
+                          (stopped [this sender]
+                            (doseq [announcement (.getCurrentDevices device-finder)]
+                              (update-player-item-visibility announcement show false))))
+            sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go.
                            (signatureChanged [this sig-update]
+                             #_(timbre/info "signatureChanged:" sig-update)
                              (update-player-item-signature sig-update show)))
             window-name  (str "show-" (.getPath file))]
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
+        (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show))
@@ -383,6 +423,7 @@
                        :window-closed
                        (fn [e]
                          (.removeDeviceAnnouncementListener device-finder dev-listener)
+                         (.removeLifecycleListener metadata-finder mf-listener)
                          (.removeSignatureListener signature-finder sig-listener)
                          (swap! open-shows (fn [shows]
                                              (let [show (get shows file)]
