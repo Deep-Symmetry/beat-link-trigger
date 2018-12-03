@@ -95,6 +95,14 @@
           (when (odd? (count clauses))
             (list (last clauses)))))))
 
+(defmacro doseq-indexed
+  "Analogous to map-indexed for doseq: iterate for side-effects with an
+  index."
+  {:style/indent 2}
+  [index-sym [item-sym coll] & body]
+  `(doseq [[~index-sym ~item-sym] (map list (range) ~coll)]
+     ~@body))
+
 ;; Used to represent the available players in the Triggers window
 ;; Watch menu, and the Load Track on a Player window. The `toString`
 ;; method tells Swing how to display it, and the number is what we

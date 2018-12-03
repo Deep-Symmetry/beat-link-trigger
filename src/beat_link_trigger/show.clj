@@ -83,12 +83,6 @@
                         (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
                         true))
 
-(defn- latest-show
-  "Returns the current version of the show given a stale copy with which
-  an object was created."
-  [show]
-  (get @open-shows (:file show)))
-
 (defn- build-filesystem-path
   "Construct a path in the specified filesystem; translates from
   idiomatic Clojure to Java interop with the `java.nio` package."
@@ -108,6 +102,41 @@
   (binding [*print-length* nil
             *print-level* nil]
     (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
+
+(defn- open-show-filesystem
+  "Opens a show file as a ZIP filesystem so the individual elements
+  inside of it can be accessed and updated. In the process verifies
+  that the file is, in fact, a properly formatted Show ZIP file.
+  Returns the opened and validated filesystem and the parsed contents
+  map."
+  [file]
+  (try
+    (let [filesystem (FileSystems/newFileSystem (.toPath file) nil)
+          contents (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
+      (when-not (= (:type contents) ::show)
+        (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
+      (when-not (= (:version contents) 1)
+        (throw (java.io.IOException. "Chosen Show is not supported by this version of Beat Link Trigger.")))
+      [filesystem contents])
+    (catch java.nio.file.ProviderNotFoundException e
+      (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
+
+(defn- latest-show
+  "Returns the current version of the show given a stale copy with which
+  an object was created."
+  [show]
+  (get @open-shows (:file show)))
+
+(defn- flush-show
+  "Closes the ZIP fileystem so that changes are written to the actual
+  show file, then reopens it."
+  [show]
+  (let [{:keys [file filesystem]} show]
+    (try
+      (.close filesystem)
+      (finally
+        (let [[reopened-filesystem] (open-show-filesystem file)]
+          (swap! open-shows assoc-in [file :filesystem] reopened-filesystem))))))
 
 (defn- write-message-path
   "Writes the supplied Message to the specified path, truncating any previously existing file."
@@ -169,20 +198,12 @@
                    :title           (.getTitle metadata)}
                   (.resolve track-root "metadata.edn")))
 
-(defmacro doseq-indexed
-  "Analogous to map-indexed for doseq: iterate for side-effects with an
-  index."
-  {:style/indent 2}
-  [index-sym [item-sym coll] & body]
-  `(doseq [[~index-sym ~item-sym] (map list (range) ~coll)]
-     ~@body))
-
 (defn- write-cue-list
   "Writes the cue list for a track being imported to the show
   filesystem."
   [track-root ^CueList cue-list]
   (if (nil? (.rawMessage cue-list))
-    (doseq-indexed idx [tag-byte-buffer (.rawTags cue-list)]
+    (util/doseq-indexed idx [tag-byte-buffer (.rawTags cue-list)]
       (.rewind tag-byte-buffer)
       (let [bytes     (byte-array (.remaining tag-byte-buffer))
             file-name (str "cue-list-" idx ".kaitai")]
@@ -225,7 +246,11 @@
             track-root                                            (build-filesystem-path filesystem "tracks" signature)]
         (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
         (write-metadata track-root metadata)
-        (write-cue-list track-root (.getCueList metadata))))))
+        (write-cue-list track-root (.getCueList metadata))
+        ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
+        ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
+        ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.
+        (flush-show show)))))
 
 (defn- import-from-player
   "Imports the track loaded on the specified player to the show."
@@ -250,24 +275,6 @@
                                 :detail         detail
                                 :art            art})
             (update-player-item-signature (SignatureUpdate. player signature) show)))))))
-
-(defn- open-show-filesystem
-  "Opens a show file as a ZIP filesystem so the individual elements
-  inside of it can be accessed and updated. In the process verifies
-  that the file is, in fact, a properly formatted Show ZIP file.
-  Returns the opened and validated filesystem and the parsed contents
-  map."
-  [file]
-  (try
-    (let [filesystem (FileSystems/newFileSystem (.toPath file) nil)
-          contents (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
-      (when-not (= (:type contents) ::show)
-        (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
-      (when-not (= (:version contents) 1)
-        (throw (java.io.IOException. "Chosen Show is not supported by this version of Beat Link Trigger.")))
-      [filesystem contents])
-    (catch java.nio.file.ProviderNotFoundException e
-      (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
