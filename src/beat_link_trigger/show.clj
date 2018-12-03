@@ -274,7 +274,7 @@
                                 :preview        preview
                                 :detail         detail
                                 :art            art})
-            (update-player-item-signature (SignatureUpdate. player signature) show)))))))
+            (update-player-item-signature (SignatureUpdate. player signature) (latest-show show))))))))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
@@ -349,7 +349,8 @@
   [show]
   (concat (map (fn [player]
                  (seesaw/menu-item :action (build-import-player-action show player)
-                                   :visible? (some? (.getLatestAnnouncementFrom device-finder player))))
+                                   :visible? (and (.isRunning metadata-finder)
+                                                  (some? (.getLatestAnnouncementFrom device-finder player)))))
                (map inc (range 4)))
           [(build-import-offline-action show)]))
 
