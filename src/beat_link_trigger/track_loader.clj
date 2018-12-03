@@ -1555,10 +1555,16 @@
 (defn- create-chooser-dialog
   "Builds an interface in which the user can choose a track from a
   locally mounted media filesystem for offline inclusion into a show.
-  Returns the frame if creation succeeded. `pdb-file` must be a File
-  object that contains a rekordbox `export.pdb` database. This must
-  be invoked on the Swing Event Dispatch thread."
-   [parent pdb]
+  Returns the frame if creation succeeded. If `parent` is not nil, the
+  dialog will be centered on it rather than in the middle of the
+  screen. `pdb` must be a Database object that contains a parsed
+  rekordbox `export.pdb` database. If `extra-labels` are provided,
+  they are used to create additional buttons at the bottom of the
+  dialog which, when clicked, return the text of the label rather than
+  the usual [database track] tuple.
+
+  This function must be invoked on the Swing Event Dispatch thread."
+   [parent pdb extra-labels]
   (try
     (let [selected-track   (atom nil)
           searches         (atom {})
@@ -1567,6 +1573,7 @@
           file-scroll      (seesaw/scrollable file-tree)
           choose-button    (seesaw/button :text "Choose Track" :enabled? false)
           cancel-button    (seesaw/button :text "Cancel")
+          extra-buttons    (map (fn [text] (seesaw/button :text text)) extra-labels)
           update-choose-ui (fn []
                              (seesaw/config! choose-button :enabled? (some? @selected-track)))
           search-label     (seesaw/label :text "Search:")
@@ -1576,7 +1583,7 @@
           search-panel     (mig/mig-panel :background "#eee"
                                           :items [[search-label] [search-field "pushx, growx"]])
           layout           (seesaw/border-panel :center file-scroll)
-          dialog           (seesaw/dialog :content layout :options [choose-button cancel-button]
+          dialog           (seesaw/dialog :content layout :options (concat [choose-button cancel-button] extra-buttons)
                                           :title (str "Choose Track from " (describe-pdb-media (.sourceFile pdb)))
                                           :default-option choose-button :modal? true)
           mouse-listener (proxy [java.awt.event.MouseAdapter] []
@@ -1619,14 +1626,13 @@
                          (catch Throwable t
                            (timbre/error t "Problem responding to file tree click.")))))
       (.addMouseListener file-tree mouse-listener)
-      (seesaw/listen choose-button
-                     :action-performed
+      (seesaw/listen choose-button :action-performed
                      (fn [_]
                        (seesaw/return-from-dialog dialog [pdb (.. pdb trackIndex (get (long @selected-track)))])))
-      (seesaw/listen cancel-button
-                     :action-performed
-                     (fn [_]
-                       (seesaw/return-from-dialog dialog nil)))
+      (seesaw/listen cancel-button :action-performed (fn [_] (seesaw/return-from-dialog dialog nil)))
+      (doseq [button extra-buttons]
+        (let [text (seesaw/text button)]
+          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog text)))))
       (seesaw/listen search-field #{:remove-update :insert-update :changed-update}
                      (fn [e]
                        (when (:current @searches)
@@ -1640,35 +1646,40 @@
 
 (defn choose-local-track
   "Presents a modal dialog allowing the selection of a track from a
-  locally mounted media filesystem. If `database` is supplied, uses
-  that already-parsed rekordbox export file; otherwise starts by
-  prompting the user to choose a media volume to parse. Returns a
-  tuple of the database and the chosen track object, or `nil` if the
-  user canceled."
+  locally mounted media filesystem. If `parent` is supplied, the
+  dialogs will be centered on it rather than in the middle of the
+  screen. If `database` is supplied, uses that already-parsed
+  rekordbox export file; otherwise starts by prompting the user to
+  choose a media volume to parse. Returns a tuple of the database and
+  the chosen track object, or `nil` if the user canceled. If
+  `extra-labels` are provided, they are used to create additional
+  buttons at the bottom of the dialog which, when clicked, return the
+  text of the label rather than the usual [database track] tuple."
   ([]
    (choose-local-track nil))
   ([parent]
+   (choose-local-track parent nil))
+  ([parent ^Database database & extra-labels]
    (seesaw/invoke-now
-    (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
-                                    :filters [rekordbox-export-filter])]
-      (when root
-        (let [candidates (find-pdb-recursive root 3)]
-          (cond
-            (empty? candidates)
-            (seesaw/alert "No rekordbox export found in the chosen directory."
-                          :title "Unable to Locate Database" :type :error)
+    (if (and database (.. database sourceFile canRead))  ; Trying to reuse a database, make sure file is still there.
+      (create-chooser-dialog parent database extra-labels)
+      (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
+                                      :filters [rekordbox-export-filter])]
+        (when root
+          (let [candidates (find-pdb-recursive root 3)]
+            (cond
+              (empty? candidates)
+              (seesaw/alert "No rekordbox export found in the chosen directory."
+                            :title "Unable to Locate Database" :type :error)
 
-            (> (count candidates) 1)
-            (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
-                                      "Please pick a specific media export:\n"
-                                      (clojure.string/join "\n" (map describe-pdb-media candidates)))
-                          :title "Ambiguous Database Choice" :type :error)
+              (> (count candidates) 1)
+              (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
+                                        "Please pick a specific media export:\n"
+                                        (clojure.string/join "\n" (map describe-pdb-media candidates)))
+                            :title "Ambiguous Database Choice" :type :error)
 
-            :else
-            (if-let [pdb (Database. (first candidates))]
-              (create-chooser-dialog parent pdb)
-              (seesaw/alert parent "Could not find exported rekordbox database."
-                            :title "Nowhere to Load Tracks From" :type :error))))))))
-  ([parent ^Database database]
-   (seesaw/invoke-now
-    (create-chooser-dialog parent database))))
+              :else
+              (if-let [pdb (Database. (first candidates))]
+                (create-chooser-dialog parent pdb extra-labels)
+                (seesaw/alert parent "Could not find exported rekordbox database."
+                              :title "Nowhere to Load Tracks From" :type :error))))))))))

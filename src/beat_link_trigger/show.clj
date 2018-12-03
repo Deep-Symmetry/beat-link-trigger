@@ -388,13 +388,21 @@
   the show map."
   [show]
   (seesaw/action :handler (fn [e]
-                            (when-let [[database track-row] (loader/choose-local-track (:frame show))]
-                              (try
-                                (import-from-media (latest-show show) database track-row)
-                                (catch Throwable t
-                                  (timbre/error t "Problem importing from offline media.")
-                                  (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" t)
-                                                :title "Problem Finding Track Metadata" :type :error)))))
+                            (loop [show (latest-show show)]
+                              (let [result (loader/choose-local-track (:frame show) (:import-database show)
+                                                                      "Change Media")]
+                                (if (string? result) ; User wants to change media
+                                  (do
+                                    (swap! open-shows update-in [(:file show)] dissoc :import-database)
+                                    (recur (latest-show show)))
+                                  (when-let [[database track-row] result]
+                                    (swap! open-shows assoc-in [(:file show) :import-database] database)
+                                    (try
+                                      (import-from-media (latest-show show) database track-row)
+                                      (catch Throwable t
+                                        (timbre/error t "Problem importing from offline media.")
+                                        (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" t)
+                                                      :title "Problem Finding Track Metadata" :type :error))))))))
                  :name "from Offline Media"
                  :key "menu M"))
 
