@@ -216,7 +216,8 @@
     (write-message-path (.rawMessage cue-list) (.resolve track-root "cue-list.dbserver"))))
 
 (defn- read-cue-list
-  "Re-creates a CueList object from an imported track."
+  "Re-creates a CueList object from an imported track. Returns `nil` if
+  none is found."
   [track-root]
   (if (Files/isReadable (.resolve track-root "cue-list.dbserver"))
     (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") (make-array OpenOption 0))
@@ -232,7 +233,50 @@
                               (.flip buffer))))]
         (if next-buffer
           (recur (conj tag-byte-buffers next-buffer) (inc idx))
-          (CueList. tag-byte-buffers))))))
+          (when (seq tag-byte-buffers) (CueList. tag-byte-buffers)))))))
+
+(defn write-beat-grid
+  "Writes the beat grid for a track being imported to the show
+  filesystem."
+  [track-root ^BeatGrid beat-grid]
+  (let [grid-vec [(mapv #(.getBeatWithinBar beat-grid (inc %)) (range (.beatCount beat-grid)))
+                  (mapv #(.getTimeWithinTrack beat-grid (inc %)) (range (.beatCount beat-grid)))]]
+    (write-edn-path grid-vec (.resolve track-root "beat-grid.edn"))))
+
+(def ^:private dummy-reference
+  "A meaningless data reference we can use to construct metadata items
+  from the show file."
+  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION 0))
+
+(defn read-beat-grid
+  "Re-creates a BeatGrid object from an imported track. Returns `nil` if
+  none is found."
+  [track-root]
+  (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
+    (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
+          beats (int-array (map int (nth grid-vec 0)))
+          times (long-array (nth grid-vec 1))]
+      (BeatGrid. dummy-reference beats times))))
+
+(defn write-preview
+  "Writes the waveform preview for a track being imported to the show
+  filesystem."
+  [track-root ^WaveformPreview preview]
+  (let [bytes (byte-array (.. preview getData remaining))
+        file-name (if (.isColor preview) "preview-color.data" "preview.data")]
+    (.. preview getData (get bytes))
+    (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
+
+(defn read-preview
+  "Re-creates a WaveformPreview object from an imported track. Returns
+  `nil` if none is found."
+  [track-root]
+  (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
+                        [(.resolve track-root "preview-color.data") true]
+                        [(.resolve track-root "preview.data") false])]
+    (when (Files/isReadable path)
+      (let [bytes (Files/readAllBytes path)]
+        (WaveformPreview. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
 
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
@@ -250,7 +294,12 @@
             track-root                                            (build-filesystem-path filesystem "tracks" signature)]
         (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
         (write-metadata track-root metadata)
-        (write-cue-list track-root (.getCueList metadata))
+        (when-let [cue-list (.getCueList metadata)]
+          (write-cue-list track-root cue-list))
+        (when beat-grid (write-beat-grid track-root beat-grid))
+        (when preview (write-preview track-root preview))
+        #_(when detail (write-preview track-root detail))
+        #_(when art (write-art track-root detail))
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
         ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.
