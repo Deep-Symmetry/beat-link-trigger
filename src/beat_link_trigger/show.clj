@@ -529,20 +529,20 @@
                          :contents    contents}
             dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
                            (deviceFound [this announcement]
-                             (update-player-item-visibility announcement show true))
+                             (update-player-item-visibility announcement (latest-show show) true))
                            (deviceLost [this announcement]
-                             (update-player-item-visibility announcement show false)))
+                             (update-player-item-visibility announcement (latest-show show) false)))
             mf-listener (reify LifecycleListener  ; Hide or show all players if we go offline or online.
                           (started [this sender]
                             (doseq [announcement (.getCurrentDevices device-finder)]
-                              (update-player-item-visibility announcement show true)))
+                              (update-player-item-visibility announcement (latest-show show) true)))
                           (stopped [this sender]
                             (doseq [announcement (.getCurrentDevices device-finder)]
-                              (update-player-item-visibility announcement show false))))
+                              (update-player-item-visibility announcement (latest-show show) false))))
             sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go.
                            (signatureChanged [this sig-update]
                              #_(timbre/info "signatureChanged:" sig-update)
-                             (update-player-item-signature sig-update show)))
+                             (update-player-item-signature sig-update (latest-show show))))
             window-name  (str "show-" (.getPath file))]
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
