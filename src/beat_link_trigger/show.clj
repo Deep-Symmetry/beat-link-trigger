@@ -278,6 +278,42 @@
       (let [bytes (Files/readAllBytes path)]
         (WaveformPreview. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
 
+(defn write-detail
+  "Writes the waveform detail for a track being imported to the show
+  filesystem."
+  [track-root ^WaveformDetail detail]
+  (let [bytes (byte-array (.. detail getData remaining))
+        file-name (if (.isColor detail) "detail-color.data" "detail.data")]
+    (.. detail getData (get bytes))
+    (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
+
+(defn read-detail
+  "Re-creates a WaveformDetail object from an imported track. Returns
+  `nil` if none is found."
+  [track-root]
+  (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
+                        [(.resolve track-root "detail-color.data") true]
+                        [(.resolve track-root "detail.data") false])]
+    (when (Files/isReadable path)
+      (let [bytes (Files/readAllBytes path)]
+        (WaveformDetail. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
+
+(defn write-art
+  "Writes album art for a track imported to the show filesystem."
+  [track-root ^AlbumArt art]
+  (let [bytes (byte-array (.. art getRawBytes remaining))]
+    (.. art getRawBytes (get bytes))
+    (Files/write (.resolve track-root "art.jpg") bytes (make-array OpenOption 0))))
+
+(defn read-art
+  "Loads album art for an imported track. Returns `nil` if none is
+  found."
+  [track-root]
+  (let [path (.resolve track-root "art.jpg")]
+    (when (Files/isReadable path)
+      (let [bytes (Files/readAllBytes path)]
+        (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
+
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
   all required parts are present."
@@ -289,17 +325,18 @@
                     (str "<html>Unable to import track, missing required elements:<br>"
                          (clojure.string/join ", " (map name missing-elements)))
                     :title "Track Import Failed" :type :error)
-      (let [{:keys [file filesystem frame contents]}              show
-            {:keys [signature metadata beat-grid preview detail]} track
-            track-root                                            (build-filesystem-path filesystem "tracks" signature)]
+      (let [{:keys [file filesystem frame contents]} show
+            {:keys [signature metadata beat-grid
+                    preview detail art]}             track
+            track-root                               (build-filesystem-path filesystem "tracks" signature)]
         (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
         (write-metadata track-root metadata)
         (when-let [cue-list (.getCueList metadata)]
           (write-cue-list track-root cue-list))
         (when beat-grid (write-beat-grid track-root beat-grid))
         (when preview (write-preview track-root preview))
-        #_(when detail (write-preview track-root detail))
-        #_(when art (write-art track-root detail))
+        (when detail (write-detail track-root detail))
+        (when art (write-art track-root art))
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
         ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.
