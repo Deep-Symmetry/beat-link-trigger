@@ -557,31 +557,71 @@
             (.setText item (str "from Player " player reason))))
         (.setVisible item visible?)))))
 
+(defn- update-track-visibility
+  "Determines the tracks that should be visible given the filter
+  text (if any) and state of the Only Loaded checkbox if we are
+  online. Updates the show's `:visible` key to hold a vector of the
+  visible track signatures, sorted by title then artist then
+  signature."
+  [show]
+  (let [show           (latest-show show)
+        text           (:filter show)
+        loaded-only?   (:loaded-only show)
+        visible-tracks (filter (fn [track]
+                                 (and
+                                  (or (clojure.string/blank? text) (clojure.string/includes? (:filter track) text))
+                                  (or (not loaded-only?) (not (online?))
+                                      ((set (vals (.getSignatures signature-finder))) (:signature track)))))
+                               (vals (:tracks show)))]
+    (swap! open-shows assoc-in [(:file show) :visible]
+           (mapv :signature (sort-by (juxt #(get-in % [:metadata :title]) #(get-in % [:metadata :artist]) :signature)
+                                     visible-tracks)))))
+
 (defn- set-loaded-only
   "Update the show UI so that all track or only loaded tracks are
   visible."
-  [show tracks loaded-only?])
+  [show tracks loaded-only?]
+  (swap! open-shows assoc-in [(:file show) :loaded-only] loaded-only?)
+  (update-track-visibility show)
+  ;; TODO: Actually walk through filters updating appropriately.
+)
 
 (defn- filter-text-changed
   "Update the show UI so that only tracks matching the specified filter
   text, if any, are visible."
-  [show tracks text])
+  [show tracks text]
+  (swap! open-shows assoc-in [(:file show) :filter] (clojure.string/lower-case text))
+  (update-track-visibility show)
+  ;; TODO: Actually walk through filters updating appropriately.
+  )
+
+(defn- build-filter-target
+  "Creates a string that can be matched against to filter a track by
+  text substring."
+  [metadata comment]
+  (let [metadata-strings (vals (select-keys metadata [:album :artist :comment :genre :label :original-artist
+                                                      :remixer :title]))]
+    (clojure.string/lower-case (clojure.string/join "\0" (filter identity (concat metadata-strings [comment]))))))
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates
   tracking indexes appropriately."
   [show track-path]
-  (let [signature (str (.getFileName track-path))
+  (let [signature (first (clojure.string/split (str (.getFileName track-path)), #"/"))  ; ZIP FS gives trailing slash!
         metadata  (read-edn-path (.resolve track-path "metadata.edn"))
         panel     (mig/mig-panel :items [[(seesaw/label :text (:title metadata))]])]
-    (swap! open-shows assoc-in [(:file show) :tracks signature] {:metadata metadata})
+    (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature  signature
+                                                                 :metadata   metadata
+                                                                 :panel      panel
+                                                                 :filter     (build-filter-target metadata nil)})
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
   [show]
   (doseq [track-path (Files/newDirectoryStream (build-filesystem-path (:filesystem show) "tracks"))]
-    (create-track-panel show track-path)))
+    (create-track-panel show track-path))
+  (update-track-visibility show))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
