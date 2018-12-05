@@ -66,27 +66,6 @@
   access to the contents of the file, and the map describing them."}
   open-shows (atom {}))
 
-(defn- save-all-open-shows
-  "Closes the ZIP filesystems associated with any open shows, so they
-  get flushed out to the show files. Called when the virtual machine
-  is exiting as a shutdown hook to make sure changes get saved. It is
-  not safe to call this at any other time because it makes the shows
-  unusable."
-  []
-  (doseq [show (vals @open-shows)]
-    (timbre/info "Closing Show due to shutdown:" (:file show))
-    (try
-      (.close (:filesystem show))
-      (catch Throwable t
-        (timbre/error t "Problem closing show filesystem" (:filesystem show))))))
-
-(defonce ^{:private true
-           :doc "Register the shutdown hook the first time this
-  namespace is loaded."}
-  shutdown-registered (do
-                        (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
-                        true))
-
 (defn online?
   "A helper function that checks if we are currently online."
   []
@@ -517,6 +496,27 @@
         (when reopen?
           (let [[reopened-filesystem] (open-show-filesystem file)]
             (swap! open-shows assoc-in [file :filesystem] reopened-filesystem)))))))
+
+(defn- save-all-open-shows
+  "Updates and closes the ZIP filesystems associated with any open
+  shows, so they get flushed out to the show files. Called when the
+  virtual machine is exiting as a shutdown hook to make sure changes
+  get saved. It is not safe to call this at any other time because it
+  makes the shows unusable."
+  []
+  (doseq [show (vals @open-shows)]
+    (timbre/info "Closing Show due to shutdown:" (:file show))
+    (try
+      (save-show show false)
+      (catch Throwable t
+        (timbre/error t "Problem saving show" (:file show))))))
+
+(defonce ^{:private true
+           :doc "Register the shutdown hook the first time this
+  namespace is loaded."}
+  shutdown-registered (do
+                        (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
+                        true))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
