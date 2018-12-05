@@ -29,6 +29,7 @@
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz]
+           [io.kaitai.struct RandomAccessFileKaitaiStream]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def device-finder
@@ -448,33 +449,50 @@
           (AlbumArt. data-ref art-file))))))
 
 (defn import-from-media
-  "Imports a track that has been parsed from a local media export."
+  "Imports a track that has been parsed from a local media export, being
+  very careful to close the underlying track analysis files no matter
+  how we exit."
   [show database track-row]
   (let [anlz-file (find-anlz-file database track-row false)
         ext-file  (find-anlz-file database track-row true)
-        anlz      (when (and anlz-file (.canRead anlz-file)) (RekordboxAnlz/fromFile (.getAbsolutePath anlz-file)))
-        ext       (when (and ext-file (.canRead ext-file)) (RekordboxAnlz/fromFile (.getAbsolutePath ext-file)))
-        cue-list  (when anlz (CueList. anlz))
-        data-ref  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
-        metadata  (TrackMetadata. data-ref database cue-list)
-        beat-grid (when anlz (BeatGrid. data-ref anlz))
-        preview   (find-waveform-preview data-ref anlz ext)
-        detail    (when ext (WaveformDetail. data-ref ext))
-        art       (find-art database track-row)
-        signature (.computeTrackSignature signature-finder (.getTitle metadata) (item-label (.getArtist metadata))
-                                          (.getDuration metadata) detail beat-grid)]
-    (if (and signature (track-present? show signature))
-      (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
-                    :title "Can’t Re-import Track" :type :error)
-      (import-track show {:signature signature
-                          :metadata  metadata
-                          :beat-grid beat-grid
-                          :preview   preview
-                          :detail    detail
-                          :art       art}))
-    (when (.isRunning signature-finder)
-      (doseq [[player signature] (.getSignatures signature-finder)]
-        (update-player-item-signature (SignatureUpdate. player signature) show)))))
+        anlz-atom (atom nil)
+        ext-atom  (atom nil)]
+    (try
+      (let [_         (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
+                                          (RekordboxAnlz.
+                                           (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
+            _         (reset! ext-atom (when (and ext-file (.canRead ext-file))
+                                         (RekordboxAnlz. (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
+            cue-list  (when @anlz-atom (CueList. @anlz-atom))
+            data-ref  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
+            metadata  (TrackMetadata. data-ref database cue-list)
+            beat-grid (when @anlz-atom (BeatGrid. data-ref @anlz-atom))
+            preview   (find-waveform-preview data-ref @anlz-atom @ext-atom)
+            detail    (when @ext-atom (WaveformDetail. data-ref @ext-atom))
+            art       (find-art database track-row)
+            signature (.computeTrackSignature signature-finder (.getTitle metadata) (item-label (.getArtist metadata))
+                                              (.getDuration metadata) detail beat-grid)]
+        (if (and signature (track-present? show signature))
+          (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
+                        :title "Can’t Re-import Track" :type :error)
+          (import-track show {:signature signature
+                              :metadata  metadata
+                              :beat-grid beat-grid
+                              :preview   preview
+                              :detail    detail
+                              :art       art}))
+        (when (.isRunning signature-finder)
+          (doseq [[player signature] (.getSignatures signature-finder)]
+            (update-player-item-signature (SignatureUpdate. player signature) show))))
+      (finally
+        (try
+          (when @anlz-atom (.. @anlz-atom _io close))
+          (catch Throwable t
+            (timbre/error t "Problem closing parsed rekordbox file" anlz-file)))
+        (try
+          (when @ext-atom (.. @ext-atom _io close))
+          (catch Throwable t
+            (timbre/error t "Problem closing parsed rekordbox file" ext-file)))))))
 
 (defn- save-show
   "Saves the show to its file, making sure the latest changes are safely
@@ -580,6 +598,10 @@
                                                                       "Change Media")]
                                 (if (string? result) ; User wants to change media
                                   (do
+                                    (try
+                                      (.close (:import-database show))
+                                      (catch Throwable t
+                                        (timbre/error t "Problem closing offline media database.")))
                                     (swap! open-shows update-in [(:file show)] dissoc :import-database)
                                     (recur (latest-show show)))
                                   (when-let [[database track-row] result]
