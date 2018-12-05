@@ -87,6 +87,11 @@
                         (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
                         true))
 
+(defn online?
+  "A helper function that checks if we are currently online."
+  []
+  (.isRunning metadata-finder))
+
 (defn- build-filesystem-path
   "Construct a path in the specified filesystem; translates from
   idiomatic Clojure to Java interop with the `java.nio` package."
@@ -512,7 +517,7 @@
   [show]
   (concat (map (fn [player]
                  (seesaw/menu-item :action (build-import-player-action show player)
-                                   :visible? (and (.isRunning metadata-finder)
+                                   :visible? (and (online?)
                                                   (some? (.getLatestAnnouncementFrom device-finder player)))))
                (map inc (range 4)))
           [(build-import-offline-action show)]))
@@ -543,7 +548,7 @@
   (let [^javax.swing.JMenu import-menu (:import-menu show)
         player                         (.getNumber announcement)]
     (when (and (< player 5)  ; Ignore non-players, and attempts to make players visible when we are offline.
-               (or (.isRunning metadata-finder) (not visible?)))
+               (or (online?) (not visible?)))
       #_(timbre/info "Updating player" player "menu item visibility to" visible?)
       (let [^javax.swing.JMenuItem item (.getItem import-menu (dec player))]
         (when visible?  ; If we are becoming visible, first update the signature information we'd been ignoring before.
@@ -552,41 +557,91 @@
             (.setText item (str "from Player " player reason))))
         (.setVisible item visible?)))))
 
+(defn- set-loaded-only
+  "Update the show UI so that all track or only loaded tracks are
+  visible."
+  [show tracks loaded-only?])
+
+(defn- filter-text-changed
+  "Update the show UI so that only tracks matching the specified filter
+  text, if any, are visible."
+  [show tracks text])
+
+(defn- create-track-panel
+  "Creates a panel that represents a track in the show. Updates
+  tracking indexes appropriately."
+  [show track-path]
+  (let [signature (str (.getFileName track-path))
+        metadata  (read-edn-path (.resolve track-path "metadata.edn"))
+        panel     (mig/mig-panel :items [[(seesaw/label :text (:title metadata))]])]
+    (swap! open-shows assoc-in [(:file show) :tracks signature] {:metadata metadata})
+    (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
+
+(defn- create-track-panels
+  "Creates all the panels that represent tracks in the show."
+  [show]
+  (doseq [track-path (Files/newDirectoryStream (build-filesystem-path (:filesystem show) "tracks"))]
+    (create-track-panel show track-path)))
+
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
   (let [[filesystem contents] (open-show-filesystem file)]
     (try
-      (let [root        (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
-            import-menu (seesaw/menu :text "Import Track")
-            show        {:frame       root
-                         :import-menu import-menu
-                         :file        file
-                         :filesystem  filesystem
-                         :contents    contents}
-            dev-listener (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
-                           (deviceFound [this announcement]
-                             (update-player-item-visibility announcement (latest-show show) true))
-                           (deviceLost [this announcement]
-                             (update-player-item-visibility announcement (latest-show show) false)))
-            mf-listener (reify LifecycleListener  ; Hide or show all players if we go offline or online.
-                          (started [this sender]
-                            (doseq [announcement (.getCurrentDevices device-finder)]
-                              (update-player-item-visibility announcement (latest-show show) true)))
-                          (stopped [this sender]
-                            (doseq [announcement (.getCurrentDevices device-finder)]
-                              (update-player-item-visibility announcement (latest-show show) false))))
-            sig-listener (reify SignatureListener  ; Update the import submenu as tracks come and go.
-                           (signatureChanged [this sig-update]
-                             #_(timbre/info "signatureChanged:" sig-update)
-                             (update-player-item-signature sig-update (latest-show show))))
-            window-name  (str "show-" (.getPath file))]
+      (let [root            (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
+            import-menu     (seesaw/menu :text "Import Track")
+            show            {:frame       root
+                             :import-menu import-menu
+                             :file        file
+                             :filesystem  filesystem
+                             :contents    contents
+                             :tracks      {}
+                             :panels      {}
+                             :visible     []}
+            tracks          (seesaw/vertical-panel)
+            tracks-scroll   (seesaw/scrollable tracks)
+            enabled-default (seesaw/combobox :id :default-enabled :model ["Never" "On-Air" "Custom" "Always"])
+            loaded-only     (seesaw/checkbox :id :loaded-only :text "Loaded Only" :selected? false :visible? (online?)
+                                             :listen [:state-changed #(set-loaded-only show tracks (seesaw/value %))])
+            filter-field    (seesaw/text "")
+            top-panel       (mig/mig-panel :background "#ccc"
+                                           :items [[(seesaw/label :text "Enabled Default:")]
+                                                   [enabled-default]
+                                                   [(seesaw/label :text "") "pushx 1, growx 1"]
+                                                   [(seesaw/label :text "Filter:") "gap unrelated"]
+                                                   [filter-field "pushx 4, growx 4"]
+                                                   [loaded-only "hidemode 3"]])
+            layout          (seesaw/border-panel :north top-panel :center tracks-scroll)
+            dev-listener    (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
+                              (deviceFound [this announcement]
+                                (update-player-item-visibility announcement (latest-show show) true))
+                              (deviceLost [this announcement]
+                                (update-player-item-visibility announcement (latest-show show) false)))
+            mf-listener     (reify LifecycleListener  ; Hide or show all players if we go offline or online.
+                              (started [this sender]
+                                (seesaw/show! loaded-only)
+                                (doseq [announcement (.getCurrentDevices device-finder)]
+                                  (update-player-item-visibility announcement (latest-show show) true)))
+                              (stopped [this sender]
+                                (seesaw/hide! loaded-only)
+                                (doseq [announcement (.getCurrentDevices device-finder)]
+                                  (update-player-item-visibility announcement (latest-show show) false))))
+            sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
+                              (signatureChanged [this sig-update]
+                                #_(timbre/info "signatureChanged:" sig-update)
+                                (update-player-item-signature sig-update (latest-show show))))
+            window-name     (str "show-" (.getPath file))]
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
-        (seesaw/config! root :menubar (build-show-menubar show))
+        (seesaw/config! root :menubar (build-show-menubar show) :content layout)
+        (create-track-panels show)
+        (seesaw/config! tracks :items (concat (keys (:panels (latest-show show))) [:fill-v]))
+        (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
+                       (fn [e] (filter-text-changed show tracks (seesaw/text e))))
+        (seesaw/selection! enabled-default "Always")
         (.setSize root 800 600)  ; TODO: Can remove once we are packing the window.
         (util/restore-window-position root (str "show-" (.getPath file)) nil)
         (seesaw/listen root
