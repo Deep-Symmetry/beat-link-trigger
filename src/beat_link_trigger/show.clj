@@ -502,6 +502,9 @@
   recorded. If `reopen?` is truthy, reopens the show filesystem for
   continued use."
   [show reopen?]
+  (let [window (:frame show)]
+    (swap! open-shows assoc-in [(:file show) :contents :window]
+           [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
   (let [show                               (latest-show show)
         {:keys [contents file filesystem]} show]
     (try
@@ -671,6 +674,20 @@
   (swap! open-shows assoc-in [(:file show) :contents :filter] (clojure.string/lower-case text))
   (update-track-visibility show))
 
+(defn- restore-window-position
+  "Tries to put the window back in the position where it was saved in
+  the show `contents`. If no saved position is found, or if the saved
+  position is within 100 pixels of going off the bottom right of the
+  screen, the window is instead positioned centered on the screen."
+  [window contents]
+  (let [[x y width height] (:window contents)
+        dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
+    (if (or (nil? x)
+            (> x (- (.getWidth dm) 100))
+            (> y (- (.getHeight dm) 100)))
+      (.setLocationRelativeTo window nil)
+      (.setBounds window x y width height))))
+
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
@@ -738,8 +755,8 @@
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
         (seesaw/selection! enabled-default (:enabled contents "Always"))
-        (.setSize root 800 600)  ; TODO: Can remove once we are packing the window.
-        (util/restore-window-position root (str "show-" (.getPath file)) nil)
+        (.setSize root 800 600)  ; Our default size if there isn't a position stored in the file.
+        (restore-window-position root contents)
         (seesaw/listen root
                        :window-closed
                        (fn [e]
