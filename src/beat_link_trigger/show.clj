@@ -704,6 +704,7 @@
                        (fn [e] (util/save-window-position root window-name)))
         (seesaw/show! root))
       (catch Throwable t
+        (swap! open-shows dissoc file)
         (.close filesystem)
         (throw t)))))
 
