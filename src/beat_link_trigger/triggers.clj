@@ -998,8 +998,15 @@
 (prefs/add-reader 'beat_link_trigger.core.MidiChoice map->MidiChoice)
 
 (defonce ^{:private true
-           :doc "The menu action which saves the configuration to a user-specified file."}
+           :doc "The menu action which saves the configuration to the preferences."}
   save-action
+  (seesaw/action :handler (fn [e] (save-triggers-to-preferences))
+                 :name "Save"
+                 :key "menu S"))
+
+(defonce ^{:private true
+           :doc "The menu action which saves the configuration to a user-specified file."}
+  save-as-action
   (seesaw/action :handler (fn [e]
                             (when (save-triggers-to-preferences)
                               (when-let [file (chooser/choose-file @trigger-frame :type :save
@@ -1012,8 +1019,7 @@
                                     (catch Exception e
                                       (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
                                                     :title "Problem Writing File" :type :error)))))))
-                 :name "Save As"
-                 :key "menu S"))
+                 :name "Save to File"))
 
 (declare recreate-trigger-rows)
 
@@ -1052,7 +1058,7 @@
                                   (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
                                                 :title "Problem Reading File" :type :error)))
                               (check-for-parse-error)))
-                 :name "Load"
+                 :name "Load from File"
                  :key "menu L"))
 
 (defonce ^{:private true
@@ -1369,7 +1375,7 @@
                          (carabiner/cancel-full-sync)
                          (.setSendingStatus virtual-cdj false)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
-                                         :items (concat [load-action save-action
+                                         :items (concat [save-action save-as-action load-action
                                                          (seesaw/separator) new-show-action open-show-action
                                                          (seesaw/separator) auto-action view-cache-action
                                                          (seesaw/separator) playlist-writer-action]
