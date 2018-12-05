@@ -110,7 +110,9 @@
   #_(timbre/info "Writing" data "to" path "in filesystem" (.getFileSystem path))
   (binding [*print-length* nil
             *print-level* nil]
-    (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8") (make-array OpenOption 0))))
+    (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8")
+                 (into-array [StandardOpenOption/CREATE StandardOpenOption/TRUNCATE_EXISTING
+                              StandardOpenOption/WRITE]))))
 
 (defn- open-show-filesystem
   "Opens a show file as a ZIP filesystem so the individual elements
@@ -175,7 +177,8 @@
   an explanation), given the track signature that has just been
   associated with the player."
   [^SignatureUpdate sig-update show]
-  (let [^javax.swing.JMenu import-menu (:import-menu show)
+  (let [show                           (latest-show show)
+        ^javax.swing.JMenu import-menu (:import-menu show)
         new-signature                  (.signature sig-update)
         disabled-reason                (describe-disabled-reason show new-signature)
         ^javax.swing.JMenuItem item    (.getItem import-menu (dec (.player sig-update)))]
@@ -319,6 +322,62 @@
       (let [bytes (Files/readAllBytes path)]
         (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
 
+(defn- update-track-visibility
+  "Determines the tracks that should be visible given the filter
+  text (if any) and state of the Only Loaded checkbox if we are
+  online. Updates the show's `:visible` key to hold a vector of the
+  visible track signatures, sorted by title then artist then
+  signature. Then uses that to update the contents of the `tracks`
+  panel appropriately."
+  [show]
+  (let [show           (latest-show show)
+        tracks         (seesaw/select (:frame show) [:#tracks])
+        text           (get-in show [:contents :filter])
+        loaded-only?   (get-in show [:contents :loaded-only])
+        visible-tracks (filter (fn [track]
+                                 (and
+                                  (or (clojure.string/blank? text) (clojure.string/includes? (:filter track) text))
+                                  (or (not loaded-only?) (not (online?))
+                                      ((set (vals (.getSignatures signature-finder))) (:signature track)))))
+                               (vals (:tracks show)))
+        sorted-tracks  (sort-by (juxt #(get-in % [:metadata :title])
+                                      #(get-in % [:metadata :artist]) :signature)
+                                visible-tracks)]
+    (swap! open-shows assoc-in [(:file show) :visible] (mapv :signature sorted-tracks))
+    (doall (map (fn [track color]
+                  (seesaw/config! (:panel track) :background color))
+                sorted-tracks (cycle ["#eee" "#ddd"])))
+    (seesaw/config! tracks :items (concat (map :panel sorted-tracks) [:fill-v]))))
+
+(defn- build-filter-target
+  "Creates a string that can be matched against to filter a track by
+  text substring."
+  [metadata comment]
+  (let [metadata-strings (vals (select-keys metadata [:album :artist :comment :genre :label :original-artist
+                                                      :remixer :title]))]
+    (clojure.string/lower-case (clojure.string/join "\0" (filter identity (concat metadata-strings [comment]))))))
+
+(defn- create-track-panel
+  "Creates a panel that represents a track in the show. Updates
+  tracking indexes appropriately."
+  [show track-path]
+  (let [signature (first (clojure.string/split (str (.getFileName track-path)), #"/"))  ; ZIP FS gives trailing slash!
+        metadata  (read-edn-path (.resolve track-path "metadata.edn"))
+        panel     (mig/mig-panel :items [[(seesaw/label :text (:title metadata))]])]
+    (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature  signature
+                                                                 :metadata   metadata
+                                                                 :panel      panel
+                                                                 :filter     (build-filter-target metadata nil)})
+    (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
+
+(defn- create-track-panels
+  "Creates all the panels that represent tracks in the show."
+  [show]
+  (let [tracks-path (build-filesystem-path (:filesystem show) "tracks")]
+    (when (Files/isReadable tracks-path)  ; We have imported at least one track.
+      (doseq [track-path (Files/newDirectoryStream tracks-path)]
+        (create-track-panel show track-path)))))
+
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
   all required parts are present."
@@ -342,6 +401,8 @@
         (when preview (write-preview track-root preview))
         (when detail (write-detail track-root detail))
         (when art (write-art track-root art))
+        (create-track-panel show track-root)
+        (update-track-visibility show)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
         ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.
@@ -369,7 +430,7 @@
                                 :preview   preview
                                 :detail    detail
                                 :art       art})
-            (update-player-item-signature (SignatureUpdate. player signature) (latest-show show))))))))
+            (update-player-item-signature (SignatureUpdate. player signature) show)))))))
 
 (defn- find-anlz-file
   "Given a database and track object, returns the file in which the
@@ -434,15 +495,34 @@
                           :art       art}))
     (when (.isRunning signature-finder)
       (doseq [[player signature] (.getSignatures signature-finder)]
-        (update-player-item-signature (SignatureUpdate. player signature) (latest-show show))))))
+        (update-player-item-signature (SignatureUpdate. player signature) show)))))
+
+(defn- save-show
+  "Saves the show to its file, making sure the latest changes are safely
+  recorded. If `reopen?` is truthy, reopens the show filesystem for
+  continued use."
+  [show reopen?]
+  (let [show                               (latest-show show)
+        {:keys [contents file filesystem]} show]
+    (try
+      (write-edn-path contents (build-filesystem-path filesystem "contents.edn"))
+      (.close filesystem)
+      (catch Throwable t
+        (timbre/error t "Problem saving" file)
+        (throw t))
+      (finally
+        (when reopen?
+          (let [[reopened-filesystem] (open-show-filesystem file)]
+            (swap! open-shows assoc-in [file :filesystem] reopened-filesystem)))))))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
   to the specified destination, then reopens it."
   [show as-file]
-  (let [{:keys [frame file filesystem]} show]
+  (let [show                            (latest-show show)
+        {:keys [frame file filesystem]} show]
     (try
-      (.close filesystem)
+      (save-show show false)
       (Files/copy (.toPath file) (.toPath as-file) (into-array [StandardCopyOption/REPLACE_EXISTING]))
       (catch Throwable t
         (timbre/error t "Problem saving" file "as" as-file)
@@ -452,6 +532,20 @@
           (swap! open-shows assoc-in [file :filesystem] reopened-filesystem))))))
 
 (defn- build-save-action
+  "Creates the menu action to save a show window, making sure the file
+  on disk is up-to-date."
+  [show]
+  (seesaw/action :handler (fn [e]
+                            (try
+                              (save-show show true)
+                              (catch Throwable t
+                                (timbre/error t "Problem Saving Show")
+                                (seesaw/alert (:frame show) (str "<html>Unable to Save As " (:file show)".<br><br>" t)
+                                              :title "Problem Saving Show" :type :error))))
+                 :name "Save"
+                 :key "menu S"))
+
+(defn- build-save-as-action
   "Creates the menu action to save a show window to a new file, given
   the show map."
   [show]
@@ -466,13 +560,12 @@
                                 (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
 
                                   (try
-                                    (save-show-as (latest-show show) file)
+                                    (save-show-as show file)
                                     (catch Throwable t
                                       (timbre/error t "Problem Saving Show as" file)
                                       (seesaw/alert (:frame show) (str "<html>Unable to Save As " file ".<br><br>" t)
                                                     :title "Problem Saving Show Copy" :type :error)))))))
-                 :name "Save As"
-                 :key "menu S"))
+                 :name "Save As"))
 
 (defn- build-import-offline-action
   "Creates the menu action to import a track from offline media, given
@@ -535,7 +628,7 @@
   import submenu."
   [show]
   (seesaw/menubar :items [(seesaw/menu :text "File"
-                                       :items [(build-save-action show) (seesaw/separator)
+                                       :items [(build-save-action show) (build-save-as-action show) (seesaw/separator)
                                                (build-close-action show)])
                           (seesaw/menu :text "Track"
                                        :items [(:import-menu show)])
@@ -545,7 +638,8 @@
   "Makes a player's entry in the import menu visible or invisible, given
   the device announcement describing the player and the show map."
   [^DeviceAnnouncement announcement show visible?]
-  (let [^javax.swing.JMenu import-menu (:import-menu show)
+  (let [show                           (latest-show show)
+        ^javax.swing.JMenu import-menu (:import-menu show)
         player                         (.getNumber announcement)]
     (when (and (< player 5)  ; Ignore non-players, and attempts to make players visible when we are offline.
                (or (online?) (not visible?)))
@@ -557,100 +651,25 @@
             (.setText item (str "from Player " player reason))))
         (.setVisible item visible?)))))
 
-(defn- update-track-visibility
-  "Determines the tracks that should be visible given the filter
-  text (if any) and state of the Only Loaded checkbox if we are
-  online. Updates the show's `:visible` key to hold a vector of the
-  visible track signatures, sorted by title then artist then
-  signature. Then uses that to update the contents of the `tracks`
-  panel appropriately."
-  [show tracks]
-  (let [show           (latest-show show)
-        text           (:filter show)
-        loaded-only?   (:loaded-only show)
-        visible-tracks (filter (fn [track]
-                                 (and
-                                  (or (clojure.string/blank? text) (clojure.string/includes? (:filter track) text))
-                                  (or (not loaded-only?) (not (online?))
-                                      ((set (vals (.getSignatures signature-finder))) (:signature track)))))
-                               (vals (:tracks show)))
-        visible-set    (set (map :signature visible-tracks))
-        sorted-tracks  (mapv :signature (sort-by (juxt #(get-in % [:metadata :title])
-                                                       #(get-in % [:metadata :artist]) :signature)
-                                                 visible-tracks))]
-    (swap! open-shows assoc-in [(:file show) :visible] sorted-tracks)
-    (loop [idx 0]
-      (let [wanted-signature (nth sorted-tracks idx nil)
-            wanted-track     (when wanted-signature (get-in show [:tracks wanted-signature]))
-            wanted-panel     (:panel wanted-track)
-            found-component  (.getComponent tracks idx)
-            found-track      (when-let [found-signature (get-in show [:panels found-component])]
-                               (get-in show [:tracks found-signature]))]
-        (timbre/info "idx:" idx)
-        (timbre/info "wanted-signature:" wanted-signature)
-        (timbre/info "wanted-track:" (:title (:metadata wanted-track)))
-        (timbre/info "found-component:" (type found-component))
-        (timbre/info "found-track:" (:title (:metadata found-track)))
-        (cond
-          (and found-track (not (visible-set (:signature found-track))))
-          (do  ; We found a track that no longer belongs in the panel.
-            (.remove tracks idx)
-            (recur idx))
-
-          (and found-track (= (:signature found-track) (:signature wanted-track)))
-          (do  ; We reached where we were supposed to insert this track, and it is already there.
-            (seesaw/config! wanted-panel :background (if (odd? idx) "#ddd" "#eee"))  ; Ensure  alternating backgrounds.
-            (recur (inc idx)))
-
-          wanted-track
-          (do  ; We found where we need to insert this track.
-            (seesaw/config! wanted-panel :background (if (odd? idx) "#ddd" "#eee"))  ; Ensure  alternating backgrounds.
-            (.add tracks wanted-panel (int idx))
-            (recur (inc idx))))))
-
-    (.revalidate tracks)
-    (.repaint tracks)))
+(defn- set-enabled-default
+  "Update the show's default enabled state for tracks that do not set
+  their own."
+  [show enabled]
+  (swap! open-shows assoc-in [(:file show) :contents :enabled] enabled))
 
 (defn- set-loaded-only
   "Update the show UI so that all track or only loaded tracks are
   visible."
-  [show tracks loaded-only?]
-  (swap! open-shows assoc-in [(:file show) :loaded-only] loaded-only?)
-  (update-track-visibility show tracks))
+  [show loaded-only?]
+  (swap! open-shows assoc-in [(:file show) :contents :loaded-only] loaded-only?)
+  (update-track-visibility show))
 
 (defn- filter-text-changed
   "Update the show UI so that only tracks matching the specified filter
   text, if any, are visible."
-  [show tracks text]
-  (swap! open-shows assoc-in [(:file show) :filter] (clojure.string/lower-case text))
-  (update-track-visibility show tracks))
-
-(defn- build-filter-target
-  "Creates a string that can be matched against to filter a track by
-  text substring."
-  [metadata comment]
-  (let [metadata-strings (vals (select-keys metadata [:album :artist :comment :genre :label :original-artist
-                                                      :remixer :title]))]
-    (clojure.string/lower-case (clojure.string/join "\0" (filter identity (concat metadata-strings [comment]))))))
-
-(defn- create-track-panel
-  "Creates a panel that represents a track in the show. Updates
-  tracking indexes appropriately."
-  [show track-path]
-  (let [signature (first (clojure.string/split (str (.getFileName track-path)), #"/"))  ; ZIP FS gives trailing slash!
-        metadata  (read-edn-path (.resolve track-path "metadata.edn"))
-        panel     (mig/mig-panel :items [[(seesaw/label :text (:title metadata))]])]
-    (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature  signature
-                                                                 :metadata   metadata
-                                                                 :panel      panel
-                                                                 :filter     (build-filter-target metadata nil)})
-    (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
-
-(defn- create-track-panels
-  "Creates all the panels that represent tracks in the show."
-  [show]
-  (doseq [track-path (Files/newDirectoryStream (build-filesystem-path (:filesystem show) "tracks"))]
-    (create-track-panel show track-path)))
+  [show text]
+  (swap! open-shows assoc-in [(:file show) :contents :filter] (clojure.string/lower-case text))
+  (update-track-visibility show))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
@@ -667,13 +686,16 @@
                              :tracks      {}
                              :panels      {}
                              :visible     []}
-            tracks          (seesaw/vertical-panel)
+            tracks          (seesaw/vertical-panel :id :tracks)
             tracks-scroll   (seesaw/scrollable tracks)
-            enabled-default (seesaw/combobox :id :default-enabled :model ["Never" "On-Air" "Custom" "Always"])
-            loaded-only     (seesaw/checkbox :id :loaded-only :text "Loaded Only" :selected? false :visible? (online?)
-                                             :listen [:state-changed #(set-loaded-only show tracks (seesaw/value %))])
-            filter-field    (seesaw/text "")
-            top-panel       (mig/mig-panel :background "#ccc"
+            enabled-default (seesaw/combobox :id :default-enabled :model ["Never" "On-Air" "Master" "Custom" "Always"]
+                                             :listen [:item-state-changed
+                                                      #(set-enabled-default show (seesaw/selection %))])
+            loaded-only     (seesaw/checkbox :id :loaded-only :text "Loaded Only"
+                                             :selected? (boolean (:loaded-only contents)) :visible? (online?)
+                                             :listen [:item-state-changed #(set-loaded-only show (seesaw/value %))])
+            filter-field    (seesaw/text (:filter contents ""))
+            top-panel       (mig/mig-panel :background "#aaa"
                                            :items [[(seesaw/label :text "Enabled Default:")]
                                                    [enabled-default]
                                                    [(seesaw/label :text "") "pushx 1, growx 1"]
@@ -683,22 +705,27 @@
             layout          (seesaw/border-panel :north top-panel :center tracks-scroll)
             dev-listener    (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
                               (deviceFound [this announcement]
-                                (update-player-item-visibility announcement (latest-show show) true))
+                                (update-player-item-visibility announcement show true))
                               (deviceLost [this announcement]
-                                (update-player-item-visibility announcement (latest-show show) false)))
+                                (update-player-item-visibility announcement show false)))
             mf-listener     (reify LifecycleListener  ; Hide or show all players if we go offline or online.
                               (started [this sender]
-                                (seesaw/show! loaded-only)
-                                (doseq [announcement (.getCurrentDevices device-finder)]
-                                  (update-player-item-visibility announcement (latest-show show) true)))
+                                (seesaw/invoke-later
+                                 (seesaw/show! loaded-only)
+                                 (doseq [announcement (.getCurrentDevices device-finder)]
+                                   (update-player-item-visibility announcement show true))
+                                 (update-track-visibility show)))
                               (stopped [this sender]
-                                (seesaw/hide! loaded-only)
-                                (doseq [announcement (.getCurrentDevices device-finder)]
-                                  (update-player-item-visibility announcement (latest-show show) false))))
+                                (seesaw/invoke-later
+                                 (seesaw/hide! loaded-only)
+                                 (doseq [announcement (.getCurrentDevices device-finder)]
+                                   (update-player-item-visibility announcement show false))
+                                 (update-track-visibility show))))
             sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
                               (signatureChanged [this sig-update]
                                 #_(timbre/info "signatureChanged:" sig-update)
-                                (update-player-item-signature sig-update (latest-show show))))
+                                (update-player-item-signature sig-update show)
+                                (seesaw/invoke-later (update-track-visibility show))))
             window-name     (str "show-" (.getPath file))]
         (swap! open-shows assoc file show)
         (.addDeviceAnnouncementListener device-finder dev-listener)
@@ -707,11 +734,10 @@
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
         (create-track-panels show)
-        (seesaw/config! tracks :items [:fill-v])
-        (update-track-visibility show tracks)
+        (update-track-visibility show)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
-                       (fn [e] (filter-text-changed show tracks (seesaw/text e))))
-        (seesaw/selection! enabled-default "Always")
+                       (fn [e] (filter-text-changed show (seesaw/text e))))
+        (seesaw/selection! enabled-default (:enabled contents "Always"))
         (.setSize root 800 600)  ; TODO: Can remove once we are packing the window.
         (util/restore-window-position root (str "show-" (.getPath file)) nil)
         (seesaw/listen root
@@ -720,15 +746,13 @@
                          (.removeDeviceAnnouncementListener device-finder dev-listener)
                          (.removeLifecycleListener metadata-finder mf-listener)
                          (.removeSignatureListener signature-finder sig-listener)
-                         (swap! open-shows (fn [shows]
-                                             (let [show (get shows file)]
-                                               (try
-                                                 (.close (:filesystem show))
-                                                 (catch Throwable t
-                                                   (timbre/error t "Problem closing Show file.")
-                                                   (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" e)
-                                                                 :title "Problem Closing Show" :type :error))))
-                                             (dissoc shows file)))
+                         (try
+                           (save-show show false)
+                           (catch Throwable t
+                             (timbre/error t "Problem closing Show file.")
+                             (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
+                                           :title "Problem Closing Show" :type :error)))
+                         (swap! open-shows dissoc file)
                          (swap! util/window-positions dissoc window-name))
                        #{:component-moved :component-resized}
                        (fn [e] (util/save-window-position root window-name)))
@@ -792,6 +816,7 @@
                                                                 {"create" "true"})]
                 (write-edn-path {:type ::show :version 1} (build-filesystem-path filesystem "contents.edn"))))
             (create-show-window file)
-            (catch Exception e
-              (seesaw/alert parent (str "<html>Unable to Create Show.<br><br>" e)
+            (catch Throwable t
+              (timbre/error t "Problem creating show")
+              (seesaw/alert parent (str "<html>Unable to Create Show.<br><br>" t)
                             :title "Problem Writing File" :type :error))))))))
