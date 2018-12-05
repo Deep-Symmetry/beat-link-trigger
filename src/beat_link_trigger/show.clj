@@ -562,8 +562,9 @@
   text (if any) and state of the Only Loaded checkbox if we are
   online. Updates the show's `:visible` key to hold a vector of the
   visible track signatures, sorted by title then artist then
-  signature."
-  [show]
+  signature. Then uses that to update the contents of the `tracks`
+  panel appropriately."
+  [show tracks]
   (let [show           (latest-show show)
         text           (:filter show)
         loaded-only?   (:loaded-only show)
@@ -572,28 +573,57 @@
                                   (or (clojure.string/blank? text) (clojure.string/includes? (:filter track) text))
                                   (or (not loaded-only?) (not (online?))
                                       ((set (vals (.getSignatures signature-finder))) (:signature track)))))
-                               (vals (:tracks show)))]
-    (swap! open-shows assoc-in [(:file show) :visible]
-           (mapv :signature (sort-by (juxt #(get-in % [:metadata :title]) #(get-in % [:metadata :artist]) :signature)
-                                     visible-tracks)))))
+                               (vals (:tracks show)))
+        visible-set    (set (map :signature visible-tracks))
+        sorted-tracks  (mapv :signature (sort-by (juxt #(get-in % [:metadata :title])
+                                                       #(get-in % [:metadata :artist]) :signature)
+                                                 visible-tracks))]
+    (swap! open-shows assoc-in [(:file show) :visible] sorted-tracks)
+    (loop [idx 0]
+      (let [wanted-signature (nth sorted-tracks idx nil)
+            wanted-track     (when wanted-signature (get-in show [:tracks wanted-signature]))
+            wanted-panel     (:panel wanted-track)
+            found-component  (.getComponent tracks idx)
+            found-track      (when-let [found-signature (get-in show [:panels found-component])]
+                               (get-in show [:tracks found-signature]))]
+        (timbre/info "idx:" idx)
+        (timbre/info "wanted-signature:" wanted-signature)
+        (timbre/info "wanted-track:" (:title (:metadata wanted-track)))
+        (timbre/info "found-component:" (type found-component))
+        (timbre/info "found-track:" (:title (:metadata found-track)))
+        (cond
+          (and found-track (not (visible-set (:signature found-track))))
+          (do  ; We found a track that no longer belongs in the panel.
+            (.remove tracks idx)
+            (recur idx))
+
+          (and found-track (= (:signature found-track) (:signature wanted-track)))
+          (do  ; We reached where we were supposed to insert this track, and it is already there.
+            (seesaw/config! wanted-panel :background (if (odd? idx) "#ddd" "#eee"))  ; Ensure  alternating backgrounds.
+            (recur (inc idx)))
+
+          wanted-track
+          (do  ; We found where we need to insert this track.
+            (seesaw/config! wanted-panel :background (if (odd? idx) "#ddd" "#eee"))  ; Ensure  alternating backgrounds.
+            (.add tracks wanted-panel (int idx))
+            (recur (inc idx))))))
+
+    (.revalidate tracks)
+    (.repaint tracks)))
 
 (defn- set-loaded-only
   "Update the show UI so that all track or only loaded tracks are
   visible."
   [show tracks loaded-only?]
   (swap! open-shows assoc-in [(:file show) :loaded-only] loaded-only?)
-  (update-track-visibility show)
-  ;; TODO: Actually walk through filters updating appropriately.
-)
+  (update-track-visibility show tracks))
 
 (defn- filter-text-changed
   "Update the show UI so that only tracks matching the specified filter
   text, if any, are visible."
   [show tracks text]
   (swap! open-shows assoc-in [(:file show) :filter] (clojure.string/lower-case text))
-  (update-track-visibility show)
-  ;; TODO: Actually walk through filters updating appropriately.
-  )
+  (update-track-visibility show tracks))
 
 (defn- build-filter-target
   "Creates a string that can be matched against to filter a track by
@@ -620,8 +650,7 @@
   "Creates all the panels that represent tracks in the show."
   [show]
   (doseq [track-path (Files/newDirectoryStream (build-filesystem-path (:filesystem show) "tracks"))]
-    (create-track-panel show track-path))
-  (update-track-visibility show))
+    (create-track-panel show track-path)))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
@@ -678,7 +707,8 @@
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
         (create-track-panels show)
-        (seesaw/config! tracks :items (concat (keys (:panels (latest-show show))) [:fill-v]))
+        (seesaw/config! tracks :items [:fill-v])
+        (update-track-visibility show tracks)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show tracks (seesaw/text e))))
         (seesaw/selection! enabled-default "Always")
