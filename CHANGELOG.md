@@ -56,6 +56,12 @@ This change log follows the conventions of
 
 ### Changed
 
+- The Triggers window's File menu now lets you Save the triggers
+  manually. (It has always saved them when you quit the program
+  normally, but if you are worried about a crash causing you to lose
+  significant work on your triggers, you can periodically manually
+  save your progress this way.) The former Save option has been
+  renamed "Save to File", and Load has become "Load from File".
 - The new Player Status window layout can no longer support different
   sized sections for each player (this is incompatible with being able
   to grow to a 2x2 grid), so it no longer makes sense to offer the
