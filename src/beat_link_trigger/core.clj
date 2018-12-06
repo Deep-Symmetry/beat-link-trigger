@@ -96,8 +96,7 @@
    (when-let [saved (:window-positions (prefs/get-preferences))]
      (reset! util/window-positions saved))
 
+
    (if offline
-     (do ; User did not want to try going online; skip that, but do start the DeviceFinder.
-       (.start (org.deepsymmetry.beatlink.DeviceFinder/getInstance))
-       (finish-startup))
+     (finish-startup)       ; User did not want to go online.
      (try-going-online))))  ; Normal startup, try finding a Pioneer DJ Link network.

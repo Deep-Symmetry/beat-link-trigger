@@ -36,7 +36,10 @@ This change log follows the conventions of
   back in a default position).
 - You can use the command-line argument `-o` or `--offline` to start
   immediately in offline mode, without spending time searching for a
-  DJ Link network.
+  DJ Link network. This will not even start the Beat Link DeviceFinder
+  until you choose to go online, so it will work even if you have
+  rekordbox running on the same machine and want to work on a Show
+  without talking to CDJs.
 
 ### Fixed
 

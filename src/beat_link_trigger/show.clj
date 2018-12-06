@@ -659,13 +659,20 @@
                  :name "from Offline Media"
                  :key "menu M"))
 
+(defn safe-check-for-player
+  "Returns truthy when the specified player is found on the network, and
+  does not throw an exception if we are deeply offline (not even the
+  DeviceFinder is running because BLT was launched in offline mode)."
+  [player]
+  (when (online?) (.getLatestAnnouncementFrom device-finder player)))
+
 (defn- build-import-player-action
   "Creates the menu action to import a track from a player, given the
   show map and the player number. Enables or disables as appropriate,
   with text explaining why it is disabled (but only if visible, to
   avoid mysterious extra width in the menu)."
   [show player]
-  (let [visible? (some? (.getLatestAnnouncementFrom device-finder player))
+  (let [visible? (safe-check-for-player player)
         reason   (describe-disabled-reason show (when (.isRunning signature-finder)
                                                   (.getLatestSignatureFor signature-finder player)))]
     (seesaw/action :handler (fn [e] (import-from-player (latest-show show) player))
@@ -679,8 +686,7 @@
   [show]
   (concat (map (fn [player]
                  (seesaw/menu-item :action (build-import-player-action show player)
-                                   :visible? (and (online?)
-                                                  (some? (.getLatestAnnouncementFrom device-finder player)))))
+                                   :visible? (safe-check-for-player player)))
                (map inc (range 4)))
           [(build-import-offline-action show)]))
 
