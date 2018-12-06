@@ -17,7 +17,9 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
+           [java.awt Font]
            [java.awt.event WindowEvent]
+           [java.lang.ref SoftReference]
            [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
@@ -337,13 +339,55 @@
                                                       :remixer :title]))]
     (clojure.string/lower-case (clojure.string/join "\0" (filter identity (concat metadata-strings [comment]))))))
 
+(defn- soft-object-loader
+  "Returns a function that can be called to obtain an object. If the
+  garbage collector does not need the space, the same object will be
+  returned on subsequent calls. If there has been a need for memory,
+  it can be garbage collected, and the next call will return a fresh
+  copy. `loader` is the function called to create the object
+  initially, and whenever it needs to be reloaded."
+  [loader]
+  (let [reference (atom (SoftReference. nil))]
+    (fn []
+      (let [result (.get @reference)]  ; See if our soft reference holds the object we need.
+        (if (some? result)
+          result  ; Yes, we can return same instance we last created.
+          (let [next-object (loader)]
+            (when next-object (timbre/info "soft loaded" next-object))
+            (reset! reference (SoftReference. next-object))
+            next-object))))))
+
+(defn- build-track-path
+  "Creates an up-to-date path into the current show filesystem for the
+  content of the track with the given signature."
+  [show signature]
+  (let [show (latest-show show)]
+    (build-filesystem-path (:filesystem show) "tracks" signature)))
+
+(defn- create-track-art
+  "Creates the widget that represents a track's artwork, if it has any,
+  or just a blank space if it has none."
+  [show signature]
+  (let [art-loader (soft-object-loader #(read-art (build-track-path show signature)))]
+    (seesaw/canvas :size [80 :by 80] :opaque? false
+                   :paint (fn [component graphics]
+                            (when-let [art (art-loader)]
+                              (when-let [image (.getImage art)]
+                                (.drawImage graphics image 0 0 nil)))))))
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates
   tracking indexes appropriately."
-  [show track-path]
-  (let [signature (first (clojure.string/split (str (.getFileName track-path)), #"/"))  ; ZIP FS gives trailing slash!
-        metadata  (read-edn-path (.resolve track-path "metadata.edn"))
-        panel     (mig/mig-panel :items [[(seesaw/label :text (:title metadata))]])]
+  [show track-root]
+  (let [signature (first (clojure.string/split (str (.getFileName track-root)), #"/"))  ; ZIP FS gives trailing slash!
+        metadata  (read-edn-path (.resolve track-root "metadata.edn"))
+        panel     (mig/mig-panel :items [[(create-track-art show signature) "spany 4"]
+                                         [(seesaw/label :text (:title metadata)
+                                                        :font (util/get-display-font :bitter Font/ITALIC 14)
+                                                        :foreground :yellow) "width 350!, wrap, gap unrelated"]
+                                         [(seesaw/label :text (:artist metadata)
+                                                        :font (util/get-display-font :bitter Font/BOLD 13)
+                                                        :foreground :green) "width 350!, wrap, gap unrelated"]])]
     (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature  signature
                                                                  :metadata   metadata
                                                                  :panel      panel

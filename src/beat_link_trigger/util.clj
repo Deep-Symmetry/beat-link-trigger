@@ -1,7 +1,8 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
   (:require [seesaw.core :as seesaw])
-  (:import [org.deepsymmetry.beatlink DeviceFinder]))
+  (:import [org.deepsymmetry.beatlink DeviceFinder]
+           [java.awt Font]))
 
 (def ^:private project-version
   (delay (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
@@ -147,3 +148,20 @@
       (if (nil? width)
         (.setLocation window x y)
         (.setBounds window x y width height)))))
+
+(defn get-display-font
+  "Find one of the fonts configured for use by keyword, which must be
+  one of `:segment`. The `style` argument is a `java.awt.Font` style
+  constant, and `size` is point size.
+
+  Bitter is available in plain, bold, or italic. Orbitron is only
+  available in bold, but asking for bold gives you Orbitron Black.
+  Segment is only available in plain. Teko is available in plain and
+  bold (but we actually deliver the semibold version, since that looks
+  nicer in the UI)."
+  [k style size]
+  (case k
+    :bitter (Font. "Bitter" style size)
+    :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
+    :segment (Font. "DSEG7 Classic" Font/PLAIN size)
+    :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))

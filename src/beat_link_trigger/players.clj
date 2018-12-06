@@ -3,7 +3,6 @@
   players, as well as creating metadata caches and assigning them to
   particular player slots."
   (:require [beat-link-trigger.track-loader :as track-loader]
-            [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
             [seesaw.chooser :as chooser]
@@ -13,15 +12,14 @@
   (:import beat_link_trigger.tree_node.IPlaylistEntry
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            java.awt.event.WindowEvent
+           javax.imageio.ImageIO
            javax.swing.JFileChooser
-           [javax.imageio ImageIO]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArtListener ArtFinder
-            MetadataCacheCreationListener MetadataCache MetadataCacheListener MetadataFinder
-            MountListener SearchableItem SlotReference TimeFinder TrackMetadataListener
-            WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
+           [org.deepsymmetry.beatlink.data AlbumArtListener ArtFinder MetadataCache MetadataCacheCreationListener
+            MetadataCacheListener MetadataFinder MountListener SearchableItem SlotReference TimeFinder
+            TrackMetadataListener WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to view player state
@@ -116,23 +114,6 @@
                         "track in Player " player " unless you enable <strong>Use Real Player Number?</strong><br>"
                         "in the <strong>Network</strong> menu.</html>")
                    :title "Beat Link Trigger isn't using a real Player Number" :type :warning))))
-
-(defn get-display-font
-  "Find one of the fonts configured for use by keyword, which must be
-  one of `:segment`. The `style` argument is a `java.awt.Font` style
-  constant, and `size` is point size.
-
-  Bitter is available in plain, bold, or italic. Orbitron is only
-  available in bold, but asking for bold gives you Orbitron Black.
-  Segment is only available in plain. Teko is available in plain and
-  bold (but we actually deliver the semibold version, since that looks
-  nicer in the UI)."
-  [k style size]
-  (case k
-    :bitter (Font. "Bitter" style size)
-    :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
-    :segment (Font. "DSEG7 Classic" Font/PLAIN size)
-    :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
 
 (defn create-metadata-cache
   "Downloads metadata for the specified player and media slot,
@@ -359,11 +340,11 @@
     (.setPaint g (if (playing? n)
                    Color/GREEN Color/DARK_GRAY))
     (.draw g outline)
-    (.setFont g (get-display-font :orbitron Font/PLAIN 12))
+    (.setFont g (util/get-display-font :orbitron Font/PLAIN 12))
     (let [frc    (.getFontRenderContext g)
           bounds (.getStringBounds (.getFont g) "Player" frc)]
       (.drawString g "Player" (float (- center (/ (.getWidth bounds) 2.0))) (float (+ (.getHeight bounds) 2.0))))
-    (.setFont g (get-display-font :orbitron Font/BOLD 42))
+    (.setFont g (util/get-display-font :orbitron Font/BOLD 42))
     (let [frc    (.getFontRenderContext g)
           num    (str n)
           bounds (.getStringBounds (.getFont g) num frc)]
@@ -395,7 +376,7 @@
     (.setStroke g (java.awt.BasicStroke. 2.0))
     (.setPaint g (if (on-air? n) Color/RED near-black))
     (.draw g outline)
-    (.setFont g (get-display-font :teko Font/BOLD 18))
+    (.setFont g (util/get-display-font :teko Font/BOLD 18))
     (let [frc    (.getFontRenderContext g)
           bounds (.getStringBounds (.getFont g) "On Air" frc)]
       (.drawString g "On Air" (float (- center (/ (.getWidth bounds) 2.0))) (float (- h 4.0))))))
@@ -456,9 +437,9 @@
         frac-frame  (if half-frame (if (even? half-frame) "0" "5") "-")]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
     (.setPaint g (if remain (Color. 255 200 200) (Color/WHITE)))
-    (.setFont g (get-display-font :teko Font/PLAIN 16))
+    (.setFont g (util/get-display-font :teko Font/PLAIN 16))
     (.drawString g (if remain "Remain" "Time") (int 4) (int 16))
-    (.setFont g (get-display-font :segment Font/PLAIN 20))
+    (.setFont g (util/get-display-font :segment Font/PLAIN 20))
     (.drawString g min (int 2) (int 40))
     (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 34.0 2.0 3.0))
     (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 24.0 2.0 3.0))
@@ -466,12 +447,12 @@
     (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 34.0 2.0 3.0))
     (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 24.0 2.0 3.0))
     (.drawString g frame (int 87) (int 40))
-    (.setFont g (get-display-font :teko Font/BOLD 10))
+    (.setFont g (util/get-display-font :teko Font/BOLD 10))
     (.drawString g "M" (int 34) (int 40))
     (.drawString g "S" (int 77) (int 40))
     (.drawString g "F" (int 135) (int 40))
     (.fill g (java.awt.geom.Rectangle2D$Double. 120.0 37.0 2.0 3.0))
-    (.setFont g (get-display-font :segment Font/PLAIN 16))
+    (.setFont g (util/get-display-font :segment Font/PLAIN 16))
     (.drawString g frac-frame (int 122) (int 40))))
 
 (defn- tempo-values
@@ -512,26 +493,26 @@
     (let [abs-pitch       (Math/abs pitch)]
       (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
       (.setPaint g (Color/WHITE))
-      (.setFont g (get-display-font :teko Font/PLAIN 16))
+      (.setFont g (util/get-display-font :teko Font/PLAIN 16))
       (.drawString g "Tempo" (int 4) (int 16))
-      (.setFont g (get-display-font :teko Font/BOLD 20))
+      (.setFont g (util/get-display-font :teko Font/BOLD 20))
       (.drawString g (if (< abs-pitch 0.025) " " (if (neg? pitch) "-" "+")) (int 2) (int 38))
-      (.setFont g (get-display-font :segment Font/PLAIN 16))
+      (.setFont g (util/get-display-font :segment Font/PLAIN 16))
       (.drawString g (clojure.string/replace (format-pitch abs-pitch) " " "!") (int 4) (int 40))
-      (.setFont g (get-display-font :teko Font/PLAIN 14))
+      (.setFont g (util/get-display-font :teko Font/PLAIN 14))
       (.drawString g "%" (int 56) (int 40)))
     (when synced
       (let [frame (java.awt.geom.RoundRectangle2D$Double. 40.0 4.0 24.0 15.0 4.0 4.0)]
         (.fill g frame)
         (.setPaint g Color/BLACK)
-        (.setFont g (get-display-font :teko Font/PLAIN 14))
+        (.setFont g (util/get-display-font :teko Font/PLAIN 14))
         (.drawString g "SYNC" (int 42) (int 16))))
     (.setPaint g (if master Color/ORANGE Color/WHITE))
     (let [frame        (java.awt.geom.RoundRectangle2D$Double. 68.0 1.0 50.0 38.0 8.0 8.0)
           clip         (.getClip g)
           tempo-string (clojure.string/replace (format-tempo tempo) " " "!")]
       (.draw g frame)
-      (.setFont g (get-display-font :teko Font/PLAIN 14))
+      (.setFont g (util/get-display-font :teko Font/PLAIN 14))
       (if master
         (do (.setClip g frame)
             (.fill g (java.awt.geom.Rectangle2D$Double. 68.0 27.0 50.0 13.0))
@@ -539,10 +520,10 @@
             (.drawString g "MASTER" (int 77) (int 38))
             (.setClip g clip))
         (.drawString g "BPM" (int 97) (int 36)))
-      (.setFont g (get-display-font :segment Font/PLAIN 16))
+      (.setFont g (util/get-display-font :segment Font/PLAIN 16))
       (.setColor g (if master Color/ORANGE Color/WHITE))
       (.drawString g (subs tempo-string 0 4) (int 68) (int 22))
-      (.setFont g (get-display-font :segment Font/PLAIN 12))
+      (.setFont g (util/get-display-font :segment Font/PLAIN 12))
       (.drawString g (subs tempo-string 4) (int 107) (int 22)))))
 
 (defn generic-media-image
@@ -719,8 +700,8 @@
         tempo          (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
         last-tempo     (atom nil)
         title-label    (seesaw/label :text "[track metadata not available]"
-                                     :font (get-display-font :bitter Font/ITALIC 14) :foreground :yellow)
-        artist-label   (seesaw/label :text "" :font (get-display-font :bitter Font/BOLD 12) :foreground :green)
+                                     :font (util/get-display-font :bitter Font/ITALIC 14) :foreground :yellow)
+        artist-label   (seesaw/label :text "" :font (util/get-display-font :bitter Font/BOLD 12) :foreground :green)
         usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
                                       :popup (partial slot-popup n :usb))
         usb-label      (seesaw/label :id :usb-label :text "Empty")
@@ -884,7 +865,7 @@
   players on the network."
   []
   (let [no-players (seesaw/label :text "No players are currently visible on the network."
-                                 :font (get-display-font :orbitron Font/PLAIN 16))]
+                                 :font (util/get-display-font :orbitron Font/PLAIN 16))]
     (.setBorder no-players (javax.swing.border.EmptyBorder. 10 10 10 10))
     no-players))
 
