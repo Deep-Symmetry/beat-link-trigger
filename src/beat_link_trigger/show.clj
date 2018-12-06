@@ -664,7 +664,7 @@
   does not throw an exception if we are deeply offline (not even the
   DeviceFinder is running because BLT was launched in offline mode)."
   [player]
-  (when (online?) (.getLatestAnnouncementFrom device-finder player)))
+  (when (.isRunning device-finder) (.getLatestAnnouncementFrom device-finder player)))
 
 (defn- build-import-player-action
   "Creates the menu action to import a track from a player, given the
