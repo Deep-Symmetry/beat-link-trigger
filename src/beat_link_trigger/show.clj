@@ -364,9 +364,32 @@
   (let [show (latest-show show)]
     (build-filesystem-path (:filesystem show) "tracks" signature)))
 
+(defn- create-reloadable-component
+  "Creates a canvas that hosts another component using a soft reference
+  and loader so the underlying component can be garbage collected when
+  it is not needed (e.g. scrolled far out of view) but brought back
+  when it needs to be displayed. If `preferred-size` is supplied, it
+  overrides the wrapped component's natural preferred size."
+  ([loader]
+   (create-reloadable-component nil))
+  ([loader preferred-size]
+   (let [bounds    (java.awt.Rectangle.)
+         wrapped   (loader)
+         size-opts (when wrapped
+                     [:minimum-size   (.getMinimumSize wrapped)
+                      :preferred-size (or preferred-size (.getPreferredSize wrapped))
+                      :maximum-size   (.getMaximumSize wrapped)])]
+     (apply seesaw/canvas (concat [:opaque? false
+                                   :paint   (fn [canvas graphics]
+                                              (when-let [component (loader)]
+                                                (.getBounds canvas bounds)
+                                                (.setBounds component bounds)
+                                                (.paint component graphics)))]
+                                  size-opts)))))
+
 (defn- create-track-art
-  "Creates the widget that represents a track's artwork, if it has any,
-  or just a blank space if it has none."
+  "Creates the softly-held widget that represents a track's artwork, if
+  it has any, or just a blank space if it has none."
   [show signature]
   (let [art-loader (soft-object-loader #(read-art (build-track-path show signature)))]
     (seesaw/canvas :size [80 :by 80] :opaque? false
@@ -374,6 +397,19 @@
                             (when-let [art (art-loader)]
                               (when-let [image (.getImage art)]
                                 (.drawImage graphics image 0 0 nil)))))))
+
+(defn- create-track-preview
+  "Creates the softly-held widget that draws the track's waveform
+  preview."
+  [show signature metadata]
+  (let [loader (fn []
+                 (let [track-root (build-track-path show signature)
+                       preview    (read-preview track-root)
+                       cue-list   (read-cue-list track-root)]
+                   #_(timbre/info "Created" (:title metadata) "maxHeight:" (.maxHeight preview)
+                                "segmentCount:" (.segmentCount preview))
+                   (WaveformPreviewComponent. preview (:duration metadata) cue-list)))]
+    (create-reloadable-component (soft-object-loader loader) (java.awt.Dimension. 608 88))))
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates
@@ -384,7 +420,9 @@
         panel     (mig/mig-panel :items [[(create-track-art show signature) "spany 4"]
                                          [(seesaw/label :text (:title metadata)
                                                         :font (util/get-display-font :bitter Font/ITALIC 14)
-                                                        :foreground :yellow) "width 350!, wrap, gap unrelated"]
+                                                        :foreground :yellow) "width 350!, gap unrelated"]
+                                         [(create-track-preview show signature metadata)
+                                          "gap unrelated, spany 4, grow, wrap"]
                                          [(seesaw/label :text (:artist metadata)
                                                         :font (util/get-display-font :bitter Font/BOLD 13)
                                                         :foreground :green) "width 350!, wrap, gap unrelated"]])]
