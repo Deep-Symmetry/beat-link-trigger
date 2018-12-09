@@ -406,40 +406,46 @@
                               (when-let [image (.getImage art)]
                                 (.drawImage graphics image 0 0 nil)))))))
 
+(defn- create-preview-loader
+  "Creates the loader function that can (re)create a track preview
+  component as needed."
+  [show signature metadata]
+  (fn []
+    (let [track-root (build-track-path show signature)
+          preview    (read-preview track-root)
+          cue-list   (read-cue-list track-root)]
+      #_(timbre/info "Created" (:title metadata) "maxHeight:" (.maxHeight preview)
+                     "segmentCount:" (.segmentCount preview))
+      (WaveformPreviewComponent. preview (:duration metadata) cue-list))))
+
 (defn- create-track-preview
   "Creates the softly-held widget that draws the track's waveform
   preview."
-  [show signature metadata]
-  (let [loader (fn []
-                 (let [track-root (build-track-path show signature)
-                       preview    (read-preview track-root)
-                       cue-list   (read-cue-list track-root)]
-                   #_(timbre/info "Created" (:title metadata) "maxHeight:" (.maxHeight preview)
-                                  "segmentCount:" (.segmentCount preview))
-                   (WaveformPreviewComponent. preview (:duration metadata) cue-list)))]
-    (create-reloadable-component (soft-object-loader loader) {:maximum-size   (java.awt.Dimension. 1208 152)
-                                                              :minimum-size   (java.awt.Dimension. 408 56)
-                                                              :preferred-size (java.awt.Dimension. 608 88)})))
+  [loader]
+  (create-reloadable-component (soft-object-loader loader) {:maximum-size   (java.awt.Dimension. 1208 152)
+                                                            :minimum-size   (java.awt.Dimension. 408 56)
+                                                            :preferred-size (java.awt.Dimension. 608 88)}))
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates
   tracking indexes appropriately."
   [show track-root]
-  (let [signature (first (clojure.string/split (str (.getFileName track-root)), #"/"))  ; ZIP FS gives trailing slash!
-        metadata  (read-edn-path (.resolve track-root "metadata.edn"))
-        panel     (mig/mig-panel :items [[(create-track-art show signature) "spany 4"]
-                                         [(seesaw/label :text (:title metadata)
-                                                        :font (util/get-display-font :bitter Font/ITALIC 14)
-                                                        :foreground :yellow) "width 300!, gap unrelated"]
-                                         [(create-track-preview show signature metadata)
-                                          "gap unrelated, spany 4, grow, wrap"]
-                                         [(seesaw/label :text (:artist metadata)
-                                                        :font (util/get-display-font :bitter Font/BOLD 13)
-                                                        :foreground :green) "width 300!, wrap, gap unrelated"]])]
-    (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature  signature
-                                                                 :metadata   metadata
-                                                                 :panel      panel
-                                                                 :filter     (build-filter-target metadata nil)})
+  (let [signature      (first (clojure.string/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
+        metadata       (read-edn-path (.resolve track-root "metadata.edn"))
+        preview-loader (create-preview-loader show signature metadata)
+        panel          (mig/mig-panel :items [[(create-track-art show signature) "spany 4"]
+                                              [(seesaw/label :text (:title metadata)
+                                                             :font (util/get-display-font :bitter Font/ITALIC 14)
+                                                             :foreground :yellow) "width 300!, gap unrelated"]
+                                              [(create-track-preview preview-loader)
+                                               "gap unrelated, spany 4, grow, wrap"]
+                                              [(seesaw/label :text (:artist metadata)
+                                                             :font (util/get-display-font :bitter Font/BOLD 13)
+                                                             :foreground :green) "width 300!, wrap, gap unrelated"]])]
+    (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature signature
+                                                                 :metadata  metadata
+                                                                 :panel     panel
+                                                                 :filter    (build-filter-target metadata nil)})
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
 
 (defn- create-track-panels
