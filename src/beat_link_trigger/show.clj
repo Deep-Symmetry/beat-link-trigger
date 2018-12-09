@@ -433,6 +433,10 @@
                                        :minimum-size   (java.awt.Dimension. 408 56)
                                        :preferred-size (java.awt.Dimension. 608 88)}))
 
+(defn- format-artist-album
+  [metadata]
+  (clojure.string/join ": " (filter identity (map util/remove-blanks [(:artist metadata) (:album metadata)]))))
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately. If `contents` is not `nil` we are creating
@@ -458,7 +462,7 @@
                                                       :foreground :yellow)
                                         "width 60:120, growx 100, pushx 100, gap unrelated"]
                                        [soft-preview "gap unrelated, spany 4, growx 300, pushx 300, shrink 300, wrap"]
-                                       [(seesaw/label :text (:artist metadata)
+                                       [(seesaw/label :text (format-artist-album metadata)
                                                       :font (util/get-display-font :bitter Font/BOLD 13)
                                                       :foreground :green)
                                         "width 60:120, growx 100, pushx 100, wrap, gap unrelated"]
