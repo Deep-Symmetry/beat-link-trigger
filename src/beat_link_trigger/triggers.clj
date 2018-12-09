@@ -23,7 +23,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import beat_link_trigger.util.PlayerChoice
-           java.awt.RenderingHints
+           [java.awt Color RenderingHints]
            [javax.sound.midi Sequencer Synthesizer]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
@@ -588,19 +588,6 @@
                         :title "Exception in Custom Expression" :type :error)
           [nil t])))))
 
-(defn paint-placeholder
-  "A function which will paint placeholder text in a text field if the
-  user has not added any text of their own, since Swing does not have
-  this ability built in. Takes the text of the placeholder, the
-  component into which it should be painted, and the graphics content
-  in which painting is taking place."
-  [text c g]
-  (when (zero? (.. c (getText) (length)))
-    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
-    (.setColor g java.awt.Color/gray)
-    (.drawString g text (.. c (getInsets) left)
-                 (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
-
 (defn paint-state
   "Draws a representation of the state of the trigger, including both
   whether it is enabled and whether it has tripped (or would have, if
@@ -615,15 +602,15 @@
 
     (if (:tripped state)
       (do  ; Draw the inner filled circle showing the trigger is tripped
-        (.setPaint g java.awt.Color/green)
+        (.setPaint g Color/green)
         (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
       (when (:playing state)  ; Draw the inner gray circle showing it would trip if it were not disabled
-        (.setPaint g java.awt.Color/lightGray)
+        (.setPaint g Color/lightGray)
         (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0)))))
 
     ;; Draw the outer circle that reflects the enabled state
     (.setStroke g (java.awt.BasicStroke. 2.0))
-    (.setPaint g (if enabled? java.awt.Color/green java.awt.Color/red))
+    (.setPaint g (if enabled? Color/green Color/red))
     (.draw g outline)
     (when-not enabled?
       (.clip g outline)
@@ -750,7 +737,8 @@
          panel   (mig/mig-panel
                   :id :panel
                   :items [[(seesaw/label :id :index :text "1.") "align right"]
-                          [(seesaw/text :id :comment :paint (partial paint-placeholder "Comment")) "span, grow, wrap"]
+                          [(seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment"))
+                           "span, grow, wrap"]
 
                           [gear]
                           ["Watch:" "alignx trailing"]

@@ -2,7 +2,7 @@
   "Provides commonly useful utility functions."
   (:require [seesaw.core :as seesaw])
   (:import [org.deepsymmetry.beatlink DeviceFinder]
-           [java.awt Font]))
+           [java.awt Color Font RenderingHints]))
 
 (def ^:private project-version
   (delay (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
@@ -82,6 +82,19 @@
   (if (clojure.string/blank? s)
     nil
     s))
+
+(defn paint-placeholder
+  "A function which will paint placeholder text in a text field if the
+  user has not added any text of their own, since Swing does not have
+  this ability built in. Takes the text of the placeholder, the
+  component into which it should be painted, and the graphics content
+  in which painting is taking place."
+  [text c g]
+  (when (zero? (.. c (getText) (length)))
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setColor g java.awt.Color/gray)
+    (.drawString g text (.. c (getInsets) left)
+                 (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
 
 (defmacro case-enum
   "Like `case`, but explicitly dispatch on Java enum ordinals."
