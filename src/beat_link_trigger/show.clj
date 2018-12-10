@@ -26,7 +26,7 @@
             MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt ArtFinder BeatGrid BeatGridFinder CueList DataReference
             MetadataFinder WaveformFinder
-            SearchableItem SignatureFinder SignatureListener SignatureUpdate TrackMetadata
+            SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder TrackMetadata
             WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
@@ -61,6 +61,10 @@
 (def signature-finder
   "A convenient reference to the SingatureFinder singleton."
   (SignatureFinder/getInstance))
+
+(def time-finder
+  "A convenient reference to the TimeFinder singleton."
+  (TimeFinder/getInstance))
 
 (defonce ^{:private true
            :doc "The map of open shows; keys are the file, values are
@@ -154,18 +158,108 @@
     (track-present? show signature) " (already imported)"
     :else                           nil))
 
+(defn- no-longer-playing
+  "Performs the bookeeping to reflect that the specified player is no
+  longer playing the track with the specified signature. If this
+  causes the track to stop having any player playing it, run the
+  track's Stopped expression, if there is one."
+  [show player signature]
+  ;; TODO: flesh out!
+  )
+
+(defn- update-loaded-text
+  "Formats the text describing the players that have a track loaded, and
+  sets it into the proper UI label."
+  [show signature loaded]
+  (let [text         (if (empty? loaded)
+                       "--"
+                       (clojure.string/join ", " (sort loaded))) ;; TODO: Make on-air players red?
+        loaded-label (seesaw/select (get-in (latest-show show) [:tracks signature :panel]) [:#players])]
+    (seesaw/invoke-later
+     (seesaw/config! loaded-label :text text))))
+
+(defn- no-longer-loaded
+  "Performs the bookeeping to reflect that the specified player no
+  longer has the track with the specified signature loaded. If this
+  causes the track to stop being loaded in any player, run the track's
+  Unloaded expression, if there is one."
+  [show player signature]
+  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] disj player)
+        now-loaded (get-in shows [(:file show) :tracks signature :loaded])]
+    (when (empty? now-loaded)
+      ;; TODO: Run the Unloaded expression.
+      ;; TODO: Stop the position animation loop.
+      (when-let [preview ((get-in (latest-show show) [:tracks signature :preview]))]
+        (.clearPlaybackState preview)))
+    (update-loaded-text show signature now-loaded)))
+
+(defn- now-loaded
+  "Performs the bookeeping to reflect that the specified player now has
+  the track with the specified signature loaded. If this is the first
+  player to load the track, run the track's Loaded expression, if
+  there is one."
+  [show player signature]
+  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] conj player)
+        now-loaded (get-in shows [(:file show) :tracks signature :loaded])]
+    (when (= #{player} now-loaded)
+      ;; TODO: Run the Loaded expression.
+      )
+    (update-loaded-text show signature now-loaded)
+    (when-let [position (.getLatestPositionFor time-finder player)]
+      (when-let [preview ((get-in (latest-show show) [:tracks signature :preview]))]
+        (.setPlaybackState preview player (.milliseconds position) (.playing position))))
+    ;; TODO: Start an animation loop to update playback position markers and active cue indicators.
+    ))
+
+(defn- now-playing
+  "Performs the bookeeping to reflect that the specified player is now
+  playing the track with the specified signature. If this is the first
+  player playing the track, run the track's Started expression, if
+  there is one."
+  [show player signature]
+  ;; TODO: flesh out!
+  )
+
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
   an explanation), given the track signature that has just been
-  associated with the player."
+  associated with the player, updates the affected track(s) sets of
+  loaded players, and runs any expressions that need to be informed
+  about the loss of the former signature or gain of a new signature.
+  Also removes any position being tracked for a playe that has lost
+  its signature. It is important that this function be idempotent
+  because it needs to be called redundantly when importing new
+  tracks."
   [^SignatureUpdate sig-update show]
   (let [show                           (latest-show show)
         ^javax.swing.JMenu import-menu (:import-menu show)
-        new-signature                  (.signature sig-update)
-        disabled-reason                (describe-disabled-reason show new-signature)
+        disabled-reason                (describe-disabled-reason show (.signature sig-update))
         ^javax.swing.JMenuItem item    (.getItem import-menu (dec (.player sig-update)))]
     (.setEnabled item (nil? disabled-reason))
-    (.setText item (str "from Player " (.player sig-update) disabled-reason))))
+    (.setText item (str "from Player " (.player sig-update) disabled-reason)))
+  (let [old-loaded  (volatile! nil)
+        old-playing (volatile! nil)]
+    (locking open-shows
+      (let [show (latest-show show)]
+        (vreset! old-loaded (get-in show [:loaded (.player sig-update)]))
+        (vreset! old-playing (get-in show [:playing (.player sig-update)]))
+        (swap! open-shows assoc-in [(:file show) :loaded (.player sig-update)] (.signature sig-update))
+        (swap! open-shows assoc-in [(:file show) :playing (.player sig-update)] nil)))
+    (when (and @old-playing (not= @old-playing (.signature sig-update)))
+      (no-longer-playing show (.player sig-update) @old-playing))
+    (when (and @old-loaded (not= @old-loaded (.signature sig-update)))
+      (no-longer-loaded show (.player sig-update) @old-loaded))
+    (when (and (.signature sig-update) (not= (.signature sig-update) @old-loaded))
+      (now-loaded show (.player sig-update) (.signature sig-update)))))
+
+(defn- refresh-signatures
+  "Reports the current track signatures on each player; this is done
+  after each new track import, and when first creating a show window,
+  to get all the tracks aware of the pre-existing state."
+  [show]
+  (when (.isRunning signature-finder)
+    (doseq [[player signature] (.getSignatures signature-finder)]
+      (update-player-item-signature (SignatureUpdate. player signature) show))))
 
 (defn- item-label
   "Resolves a SearchableItem label safely, returning `nil` if the item
@@ -466,13 +560,19 @@
                                                       :font (util/get-display-font :bitter Font/BOLD 13)
                                                       :foreground :green)
                                         "width 60:120, growx 100, pushx 100, wrap, gap unrelated"]
-                                       [comment-field "growx 100, wrap"]])]
+                                       [comment-field "growx 100, wrap, gap unrelated"]
+                                       [(seesaw/label :text "Players:") "split 4, gap unrelated"]
+                                       [(seesaw/label :id :players :text "--")]
+                                       [(seesaw/label :text "Playing:") "gap unrelated"]
+                                       [(seesaw/label :id :playing :text "--") "wrap"]])]
     (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature signature
                                                                  :metadata  metadata
                                                                  :comment   comment
                                                                  :panel     panel
-                                                                 :filter    (build-filter-target metadata comment)})
-    (swap! open-shows update-in [(:file show) :preview] #(or % (preview-loader))) ; TODO: remove this!
+                                                                 :filter    (build-filter-target metadata comment)
+                                                                 :preview   preview-loader
+                                                                 :loaded    #{}   ; The players that have this loaded.
+                                                                 :playing   #{}}) ; The players actively playing this.
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
 
 (defn- create-track-panels
@@ -606,9 +706,7 @@
                               :preview   preview
                               :detail    detail
                               :art       art}))
-        (when (.isRunning signature-finder)
-          (doseq [[player signature] (.getSignatures signature-finder)]
-            (update-player-item-signature (SignatureUpdate. player signature) show))))
+        (refresh-signatures))
       (finally
         (try
           (when @anlz-atom (.. @anlz-atom _io close))
@@ -865,9 +963,11 @@
                              :file        file
                              :filesystem  filesystem
                              :contents    contents
-                             :tracks      {}
-                             :panels      {}
-                             :visible     []}
+                             :tracks      {}  ; Lots of info about each track, including loaded metadata.
+                             :panels      {}  ; Maps from panel object to track signature, for updating visibility.
+                             :loaded      {}  ; Map from player number to signature that has been reported loaded.
+                             :playing     {}  ; Map from player number to signature that has been reported playing.
+                             :visible     []} ; The visible (through filters) track signatures in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)
             tracks-scroll   (seesaw/scrollable tracks)
             enabled-default (seesaw/combobox :id :default-enabled :model ["Never" "On-Air" "Master" "Custom" "Always"]
@@ -917,6 +1017,7 @@
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
         (create-track-panels show contents)
         (update-track-visibility show)
+        (refresh-signatures show)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
         (seesaw/selection! enabled-default (:enabled contents "Always"))
