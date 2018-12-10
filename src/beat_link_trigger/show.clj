@@ -566,7 +566,7 @@
                                        [(seesaw/label :text "Players:") "split 4, gap unrelated"]
                                        [(seesaw/label :id :players :text "--")]
                                        [(seesaw/label :text "Playing:") "gap unrelated"]
-                                       [(seesaw/label :id :playing :text "--") "wrap"]])]
+                                       [(seesaw/label :id :playing :text "--") "wrap, gapafter push"]])]
     (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature signature
                                                                  :metadata  metadata
                                                                  :comment   comment
@@ -957,7 +957,7 @@
   "Called when the show window has resized, to put appropriate
   constraints on the columns of the track panels."
   [panels width]
-  (let [text-width (max 160 (int (/ (- width 140) 4)))
+  (let [text-width (max 180 (int (/ (- width 140) 4)))
         preview-width (max 408 (* text-width 3))]
     (doseq [panel panels]
       (seesaw/config! panel :constraints
