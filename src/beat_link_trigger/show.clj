@@ -549,18 +549,20 @@
                                   (build-filter-target metadata comment))))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text comment :listen [:document update-comment])
-        panel          (mig/mig-panel :items
+        panel          (mig/mig-panel :constraints [""
+                                                    "[]unrelated[fill, 160]unrelated[fill, 408]"]
+                                      :items
                                       [[(create-track-art show signature) "spany 4"]
                                        [(seesaw/label :text (:title metadata)
                                                       :font (util/get-display-font :bitter Font/ITALIC 14)
                                                       :foreground :yellow)
-                                        "width 60:120, growx 100, pushx 100, gap unrelated"]
-                                       [soft-preview "gap unrelated, spany 4, growx 300, pushx 300, shrink 300, wrap"]
+                                        "width 60:120"]
+                                       [soft-preview "spany 4, wrap"]
                                        [(seesaw/label :text (format-artist-album metadata)
                                                       :font (util/get-display-font :bitter Font/BOLD 13)
                                                       :foreground :green)
-                                        "width 60:120, growx 100, pushx 100, wrap, gap unrelated"]
-                                       [comment-field "growx 100, wrap, gap unrelated"]
+                                        "width 60:120, wrap"]
+                                       [comment-field "wrap"]
                                        [(seesaw/label :text "Players:") "split 4, gap unrelated"]
                                        [(seesaw/label :id :players :text "--")]
                                        [(seesaw/label :text "Playing:") "gap unrelated"]
@@ -951,6 +953,17 @@
       (.setLocationRelativeTo window nil)
       (.setBounds window x y width height))))
 
+(defn- resize-track-panels
+  "Called when the show window has resized, to put appropriate
+  constraints on the columns of the track panels."
+  [panels width]
+  (let [text-width (max 160 (int (/ (- width 140) 4)))
+        preview-width (max 408 (* text-width 3))]
+    (doseq [panel panels]
+      (seesaw/config! panel :constraints
+                      ["" (str "[]unrelated[fill, " text-width "]unrelated[fill, " preview-width "]")])
+      (.revalidate panel))))
+
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
@@ -1038,7 +1051,11 @@
                          (swap! open-shows dissoc file)
                          (swap! util/window-positions dissoc window-name))
                        #{:component-moved :component-resized}
-                       (fn [e] (util/save-window-position root window-name)))
+                       (fn [e]
+                         (util/save-window-position root window-name)
+                         (when (= (.getID e) java.awt.event.ComponentEvent/COMPONENT_RESIZED)
+                           (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
+        (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root))
         (seesaw/show! root))
       (catch Throwable t
         (swap! open-shows dissoc file)
