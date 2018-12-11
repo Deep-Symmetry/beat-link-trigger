@@ -533,18 +533,18 @@
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
-  indexes appropriately. If `contents` is not `nil` we are creating
-  all the panels upon opening the show, and it can be used to load
-  cues and customized comments."
-  [show track-root contents]
+  indexes appropriately."
+  [show track-root]
   (let [signature      (first (clojure.string/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
         metadata       (read-edn-path (.resolve track-root "metadata.edn"))
-        comment        (or (get-in contents [:comments signature]) (:comment metadata))
+        contents-path  (.resolve track-root "contents.edn")
+        contents       (when (Files/isReadable contents-path) (read-edn-path contents-path))
+        comment        (or (:comment contents) (:comment metadata))
         preview-loader (create-preview-loader show signature metadata)
         soft-preview   (create-track-preview preview-loader)
         update-comment (fn [c]
-                         (let [comment (util/remove-blanks (seesaw/text c))]
-                           (swap! open-shows assoc-in [(:file show) :tracks signature :comment] comment)
+                         (let [comment (seesaw/text c)]
+                           (swap! open-shows assoc-in [(:file show) :tracks signature :contents :comment] comment)
                            (swap! open-shows assoc-in [(:file show) :tracks signature :filter]
                                   (build-filter-target metadata comment))))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
@@ -566,24 +566,27 @@
                                        [(seesaw/label :text "Players:") "split 4, gap unrelated"]
                                        [(seesaw/label :id :players :text "--")]
                                        [(seesaw/label :text "Playing:") "gap unrelated"]
-                                       [(seesaw/label :id :playing :text "--") "wrap, gapafter push"]])]
-    (swap! open-shows assoc-in [(:file show) :tracks signature] {:signature signature
-                                                                 :metadata  metadata
-                                                                 :comment   comment
-                                                                 :panel     panel
-                                                                 :filter    (build-filter-target metadata comment)
-                                                                 :preview   preview-loader
-                                                                 :loaded    #{}   ; The players that have this loaded.
-                                                                 :playing   #{}}) ; The players actively playing this.
+                                       [(seesaw/label :id :playing :text "--") "wrap, gapafter push"]
+                                       ])]
+    (swap! open-shows assoc-in [(:file show) :tracks signature]
+           {:signature         signature
+            :metadata          metadata
+            :contents          contents
+            :original-contents contents
+            :panel             panel
+            :filter            (build-filter-target metadata comment)
+            :preview           preview-loader
+            :loaded            #{} ; The players that have this loaded.
+            :playing           #{}}) ; The players actively playing this.
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
-  [show contents]
+  [show]
   (let [tracks-path (build-filesystem-path (:filesystem show) "tracks")]
     (when (Files/isReadable tracks-path)  ; We have imported at least one track.
       (doseq [track-path (Files/newDirectoryStream tracks-path)]
-        (create-track-panel show track-path contents)))))
+        (create-track-panel show track-path)))))
 
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
@@ -608,7 +611,7 @@
         (when preview (write-preview track-root preview))
         (when detail (write-detail track-root detail))
         (when art (write-art track-root art))
-        (create-track-panel show track-root nil)
+        (create-track-panel show track-root)
         (update-track-visibility show)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
@@ -719,16 +722,14 @@
           (catch Throwable t
             (timbre/error t "Problem closing parsed rekordbox file" ext-file)))))))
 
-(defn- gather-changed-comments
-  "Builds a map of all tracks in a show whose comments have been edited
-  from when they were imported. Keys are the track signature, and
-  values are the edited comment text."
+(defn save-track-contents
+  "Saves the contents maps for any tracks that have changed them."
   [show]
-  (into {} (filter identity (map (fn [track]
-                                   (let [{:keys [signature metadata comment]} track]
-                                     (when (and comment (not= comment (:comment metadata)))
-                                       [signature comment])))
-                                 (vals (:tracks (latest-show show)))))))
+  (doseq [track (vals (:tracks (latest-show show)))]
+    (let [contents (:contents track)]
+      (when (not= contents (:original-contents track))
+        (write-edn-path contents (.resolve (build-track-path show (:signature track)) "contents.edn"))
+        (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :original-contents] contents)))))
 
 (defn- save-show
   "Saves the show to its file, making sure the latest changes are safely
@@ -737,12 +738,12 @@
   [show reopen?]
   (let [window (:frame show)]
     (swap! open-shows update-in [(:file show) :contents]
-           merge {:window   [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]
-                  :comments (gather-changed-comments show)}))
+           merge {:window   [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]}))
   (let [show                               (latest-show show)
         {:keys [contents file filesystem]} show]
     (try
       (write-edn-path contents (build-filesystem-path filesystem "contents.edn"))
+      (save-track-contents show)
       (.close filesystem)
       (catch Throwable t
         (timbre/error t "Problem saving" file)
@@ -1028,7 +1029,7 @@
         (.addSignatureListener signature-finder sig-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
-        (create-track-panels show contents)
+        (create-track-panels show)
         (update-track-visibility show)
         (refresh-signatures show)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
