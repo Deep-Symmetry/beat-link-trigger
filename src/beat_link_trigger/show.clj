@@ -173,7 +173,8 @@
   "Performs the bookeeping to reflect that the specified player is no
   longer playing the track with the specified signature. If this
   causes the track to stop having any player playing it, run the
-  track's Stopped expression, if there is one."
+  track's Stopped expression, if there is one. Must be passed a
+  current view of the show."
   [show player signature]
   ;; TODO: flesh out!
   )
@@ -193,32 +194,35 @@
   "Performs the bookeeping to reflect that the specified player no
   longer has the track with the specified signature loaded. If this
   causes the track to stop being loaded in any player, run the track's
-  Unloaded expression, if there is one."
+  Unloaded expression, if there is one. Must be passed a current view
+  of the show."
   [show player signature]
   (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] disj player)
         now-loaded (get-in shows [(:file show) :tracks signature :loaded])]
     (when (empty? now-loaded)
       ;; TODO: Run the Unloaded expression.
       ;; TODO: Stop the position animation loop.
-      (when-let [preview ((get-in (latest-show show) [:tracks signature :preview]))]
-        (.clearPlaybackState preview)))
+      (when-let [preview-loader (get-in show [:tracks signature :preview])]
+        (when-let [preview (preview-loader)]
+          (.clearPlaybackState preview))))
     (update-loaded-text show signature now-loaded)))
 
 (defn- now-loaded
   "Performs the bookeeping to reflect that the specified player now has
   the track with the specified signature loaded. If this is the first
   player to load the track, run the track's Loaded expression, if
-  there is one."
+  there is one. Must be passed a current view of the show."
   [show player signature]
   (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] conj player)
         now-loaded (get-in shows [(:file show) :tracks signature :loaded])]
-    (when (= #{player} now-loaded)
+    (when (= #{player} now-loaded)  ; This is the first player to load the track.
       ;; TODO: Run the Loaded expression.
       )
     (update-loaded-text show signature now-loaded)
     (when-let [position (.getLatestPositionFor time-finder player)]
-      (when-let [preview ((get-in (latest-show show) [:tracks signature :preview]))]
-        (.setPlaybackState preview player (.milliseconds position) (.playing position))))
+      (when-let [preview-loader (get-in show [:tracks signature :preview])]
+        (when-let [preview (preview-loader)]
+          (.setPlaybackState preview player (.milliseconds position) (.playing position)))))
     ;; TODO: Start an animation loop to update playback position markers and active cue indicators.
     ))
 
@@ -226,9 +230,9 @@
   "Performs the bookeeping to reflect that the specified player is now
   playing the track with the specified signature. If this is the first
   player playing the track, run the track's Started expression, if
-  there is one."
+  there is one. Must be passed a current view of the show."
   [show player signature]
-  ;; TODO: flesh out!
+    ;; TODO: flesh out!
   )
 
 (defn- update-player-item-signature
@@ -247,21 +251,22 @@
         disabled-reason                (describe-disabled-reason show (.signature sig-update))
         ^javax.swing.JMenuItem item    (.getItem import-menu (dec (.player sig-update)))]
     (.setEnabled item (nil? disabled-reason))
-    (.setText item (str "from Player " (.player sig-update) disabled-reason)))
-  (let [old-loaded  (volatile! nil)
-        old-playing (volatile! nil)]
-    (locking open-shows
-      (let [show (latest-show show)]
-        (vreset! old-loaded (get-in show [:loaded (.player sig-update)]))
-        (vreset! old-playing (get-in show [:playing (.player sig-update)]))
-        (swap! open-shows assoc-in [(:file show) :loaded (.player sig-update)] (.signature sig-update))
-        (swap! open-shows assoc-in [(:file show) :playing (.player sig-update)] nil)))
-    (when (and @old-playing (not= @old-playing (.signature sig-update)))
-      (no-longer-playing show (.player sig-update) @old-playing))
-    (when (and @old-loaded (not= @old-loaded (.signature sig-update)))
-      (no-longer-loaded show (.player sig-update) @old-loaded))
-    (when (and (.signature sig-update) (not= (.signature sig-update) @old-loaded))
-      (now-loaded show (.player sig-update) (.signature sig-update)))))
+    (.setText item (str "from Player " (.player sig-update) disabled-reason))
+    (when-let [track (get-in show [:tracks (.signature sig-update)])]  ; Only do this if the track is part of the show.
+      (let [old-loaded  (volatile! nil)
+            old-playing (volatile! nil)]
+        (locking open-shows
+          (let [show (latest-show show)]
+            (vreset! old-loaded (get-in show [:loaded (.player sig-update)]))
+            (vreset! old-playing (get-in show [:playing (.player sig-update)]))
+            (swap! open-shows assoc-in [(:file show) :loaded (.player sig-update)] (.signature sig-update))
+            (swap! open-shows assoc-in [(:file show) :playing (.player sig-update)] nil)))
+        (when (and @old-playing (not= @old-playing (.signature sig-update)))
+          (no-longer-playing show (.player sig-update) @old-playing))
+        (when (and @old-loaded (not= @old-loaded (.signature sig-update)))
+          (no-longer-loaded show (.player sig-update) @old-loaded))
+        (when (and (.signature sig-update) (not= (.signature sig-update) @old-loaded))
+          (now-loaded show (.player sig-update) (.signature sig-update)))))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -741,7 +746,7 @@
                               :preview   preview
                               :detail    detail
                               :art       art}))
-        (refresh-signatures))
+        (refresh-signatures show))
       (finally
         (try
           (when @anlz-atom (.. @anlz-atom _io close))
