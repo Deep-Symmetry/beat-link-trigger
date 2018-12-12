@@ -119,10 +119,16 @@
       (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))
 
 (defn- latest-show
-  "Returns the current version of the show given a stale copy with which
-  an object was created."
+  "Returns the current version of the show given a potentially stale
+  copy."
   [show]
   (get @open-shows (:file show)))
+
+(defn- latest-track
+  "Returns the current version of a track given a potentially stale
+  copy."
+  [track]
+  (get-in @open-shows [(:file track) :tracks (:signature track)]))
 
 (defn- assoc-track-content
   "Updates the show to associate the supplied key and value into the
@@ -414,6 +420,67 @@
       (let [bytes (Files/readAllBytes path)]
         (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
 
+(defn get-chosen-output
+  "Return the MIDI output to which messages should be sent for a given
+  track, opening it if this is the first time we are using it, or
+  reusing it if we already opened it. Returns `nil` if the output can
+  not currently be found (it was disconnected, or present in a loaded
+  file but not on this system).
+  to be reloaded."
+  [track]
+  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
+    (let [device-name (.full_name selection)]
+      (or (get @util/opened-outputs device-name)
+          (try
+            (let [new-output (midi/midi-out device-name)]
+              (swap! util/opened-outputs assoc device-name new-output)
+              new-output)
+            (catch IllegalArgumentException e  ; The chosen output is not currently available
+              (timbre/debug e "Track using nonexisting MIDI output" device-name))
+            (catch Exception e  ; Some other problem opening the device
+              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
+
+(defn- show-midi-status
+  "Set the visibility of the Enabled checkbox and the text and color
+  of its label based on whether the currently-selected MIDI output can
+  be found. This function must be called on the Swing Event Update
+  thread since it interacts with UI objects."
+  [track]
+  (try
+    (let [panel (:panel track)
+          enabled-label (seesaw/select panel [:#enabled-label])
+          enabled (seesaw/select panel [:#enabled])
+          #_state #_(seesaw/select track [:#state])]
+      (if-let [output (get-chosen-output track)]
+        (do (seesaw/config! enabled-label :foreground "white")
+            (seesaw/value! enabled-label "Enabled:")
+            (seesaw/config! enabled :visible? true)
+            #_(seesaw/config! state :visible? true))
+        (do (seesaw/config! enabled-label :foreground "red")
+            (seesaw/value! enabled-label "Not found.")
+            (seesaw/config! enabled :visible? false)
+            #_(seesaw/config! state :visible? false))))
+    (catch Exception e
+      (timbre/error e "Problem showing Track MIDI status."))))
+
+(defn- attach-message-visibility-handler
+  "Sets up an action handler so that when one of the message menus is
+  changed, the appropriate UI elements are shown or hidden."
+  [track kind]
+  (let [panel           (:panel track)
+        message-menu    (seesaw/select panel [(keyword (str "#" kind "-message"))])
+        note-spinner    (seesaw/select panel [(keyword (str "#" kind "-note"))])
+        label           (seesaw/select panel [(keyword (str "#" kind "-channel-label"))])
+        channel-spinner (seesaw/select panel [(keyword (str "#" kind "-channel"))])]
+    (seesaw/listen message-menu
+                   :action-performed (fn [_]
+                                       (let [choice (seesaw/selection message-menu)]
+                                         ;; TODO: Pop up custom editor if Custom chosen and expression empty.
+                                         ;; (see Triggers implementation)
+                                         (if (= "None" choice)
+                                           (seesaw/hide! [note-spinner label channel-spinner])
+                                           (seesaw/show! [note-spinner label channel-spinner])))))))
+
 (defn- update-track-visibility
   "Determines the tracks that should be visible given the filter
   text (if any) and state of the Only Loaded checkbox if we are
@@ -610,22 +677,96 @@
                                                                                         (seesaw/selection %))])]
 
                                        ["Loaded Message:" "gap unrelated"]
+                                       [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
+                                                         :selected-item nil  ; So update below saves default.
+                                                         :listen [:item-state-changed
+                                                                  #(assoc-track-content show signature :loaded-message
+                                                                                        (seesaw/selection %))])]
+                                       [(seesaw/spinner :id :loaded-note
 
-                                       ])]
-    (swap! open-shows assoc-in [(:file show) :tracks signature]
-           {:signature         signature
-            :metadata          metadata
-            :contents          contents
-            :original-contents contents
-            :panel             panel
-            :filter            (build-filter-target metadata comment)
-            :preview           preview-loader
-            :loaded            #{} ; The players that have this loaded.
-            :playing           #{}}) ; The players actively playing this.
-    (swap! open-shows assoc-in [(:file show) :panels panel] signature)
+                                                        :model (seesaw/spinner-model (or (:loaded-note contents) 126)
+                                                                                     :from 1 :to 127)
+                                                        :listen [:state-changed
+                                                                 #(assoc-track-content show signature :loaded-note
+                                                                                       (seesaw/value %))])
+                                        "hidemode 3"]
+
+                                       [(seesaw/label :id :loaded-channel-label :text "Channel:")
+                                        "gap unrelated, hidemode 3"]
+                                       [(seesaw/spinner :id :loaded-channel
+                                                        :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
+                                                                                     :from 1 :to 16)
+                                                        :listen [:state-changed
+                                                                 #(assoc-track-content show signature :loaded-channel
+                                                                                       (seesaw/value %))])
+                                        "hidemode 3"]  ; TODO: Loaded state indicator canvas.
+
+                                       ["Playing Message:" "gap unrelated"]
+                                       [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
+                                                         :selected-item nil  ; So update below saves default.
+                                                         :listen [:item-state-changed
+                                                                  #(assoc-track-content show signature :playing-message
+                                                                                        (seesaw/selection %))])]
+                                       [(seesaw/spinner :id :playing-note
+                                                        :model (seesaw/spinner-model (or (:playing-note contents) 127)
+                                                                                     :from 1 :to 127)
+                                                        :listen [:state-changed
+                                                                 #(assoc-track-content show signature :playing-note
+                                                                                       (seesaw/value %))])
+                                        "hidemode 3"]
+
+                                       [(seesaw/label :id :playing-channel-label :text "Channel:")
+                                        "gap unrelated, hidemode 3"]
+                                       [(seesaw/spinner :id :playing-channel
+                                                        :model (seesaw/spinner-model (or (:playing-channel contents) 1)
+                                                                                     :from 1 :to 16)
+                                                        :listen [:state-changed
+                                                                 #(assoc-track-content show signature :playing-channel
+                                                                                       (seesaw/value %))])
+                                        "hidemode 3"]  ; TODO: Playing state indicator canvas.
+
+                                       [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
+                                       [(seesaw/combobox :id :enabled
+                                                         :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
+                                                         :selected-item nil  ; So update below saves default.
+                                                         :listen [:item-state-changed
+                                                                  #(assoc-track-content show signature :enabled
+                                                                                        (seesaw/value %))])
+                                        "hidemode 3"]])]
+
+    (let [track {:file              (:file show)
+                 :signature         signature
+                 :metadata          metadata
+                 :contents          contents
+                 :original-contents contents
+                 :panel             panel
+                 :filter            (build-filter-target metadata comment)
+                 :preview           preview-loader
+                 :loaded            #{}   ; The players that have this loaded.
+                 :playing           #{}}] ; The players actively playing this.
+      (swap! open-shows assoc-in [(:file show) :tracks signature] track)
+      (swap! open-shows assoc-in [(:file show) :panels panel] signature)
+
+      ;; Update output status when selection changes, giving a chance for the other handler to run first
+      ;; so the data is ready.
+      (seesaw/listen (seesaw/select panel [:#outputs])
+                     :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
+      (attach-message-visibility-handler track "loaded")
+      (attach-message-visibility-handler track "playing"))
+
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
-    (seesaw/selection! (seesaw/select panel [:#outputs]) (or (:midi-device contents) (first outputs)))))
+    (seesaw/selection! (seesaw/select panel [:#outputs]) (or (:midi-device contents) (first outputs)))
+    (seesaw/selection! (seesaw/select panel [:#loaded-message]) (or (:loaded-message contents) "None"))
+    (seesaw/selection! (seesaw/select panel [:#playing-message]) (or (:playing-message contents) "None"))
+    (seesaw/selection! (seesaw/select panel [:#enabled]) (or (:enabled contents) "Default"))
+
+    ;; In case this is the inital creation of the track, record the defaulted values of the numeric inputs too.
+    ;; This will have no effect if they were loaded.
+    (assoc-track-content show signature :loaded-note (seesaw/value (seesaw/select panel [:#loaded-note])))
+    (assoc-track-content show signature :loaded-channel (seesaw/value (seesaw/select panel [:#loaded-channel])))
+    (assoc-track-content show signature :playing-note (seesaw/value (seesaw/select panel [:#playing-note])))
+    (assoc-track-content show signature :playing-channel (seesaw/value (seesaw/select panel [:#playing-channel])))))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
