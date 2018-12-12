@@ -547,6 +547,14 @@
   [metadata]
   (clojure.string/join ": " (filter identity (map util/remove-blanks [(:artist metadata) (:album metadata)]))))
 
+(defn- track-panel-constraints
+  "Calculates the proper layout constraints for a track panel to look
+  right at a given window width."
+  [width]
+  (let [text-width (max 180 (int (/ (- width 140) 4)))
+        preview-width (max 408 (* text-width 3))]
+    ["" (str "[]unrelated[fill, " text-width "]unrelated[fill, " preview-width "]")]))
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately."
@@ -567,8 +575,7 @@
         soft-preview   (create-track-preview preview-loader)
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
-        panel          (mig/mig-panel :constraints [""
-                                                    "[]unrelated[fill, 160]unrelated[fill, 408]"]
+        panel          (mig/mig-panel :constraints (track-panel-constraints (.getWidth (:frame show)))
                                       :items
                                       [[(create-track-art show signature) "spany 4"]
                                        [(seesaw/label :text (:title metadata)
@@ -993,11 +1000,9 @@
   "Called when the show window has resized, to put appropriate
   constraints on the columns of the track panels."
   [panels width]
-  (let [text-width (max 180 (int (/ (- width 140) 4)))
-        preview-width (max 408 (* text-width 3))]
+  (let [constraints (track-panel-constraints width)]
     (doseq [panel panels]
-      (seesaw/config! panel :constraints
-                      ["" (str "[]unrelated[fill, " text-width "]unrelated[fill, " preview-width "]")])
+      (seesaw/config! panel :constraints constraints)
       (.revalidate panel))))
 
 (defn- create-show-window
