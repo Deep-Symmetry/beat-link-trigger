@@ -3,7 +3,7 @@
   (:require [seesaw.core :as seesaw]
             [overtone.midi :as midi])
   (:import [org.deepsymmetry.beatlink DeviceFinder]
-           [java.awt Color Font RenderingHints]
+           [java.awt Color Font GraphicsEnvironment RenderingHints]
            [javax.sound.midi Sequencer Synthesizer]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
@@ -156,6 +156,29 @@
   []
   (map #(MidiChoice. (:name %)) (filter usable-midi-device? (sort-by :name (midi/midi-sinks)))))
 
+(defonce ^{:private true
+           :doc "Keeps track of whether we have loaded our custom fonts yet."}
+  fonts-loaded
+  (atom false))
+
+(defn load-fonts
+  "Load and register the fonts we will use to draw on the display, if
+  they have not already been."
+  []
+  (or @fonts-loaded
+      (let [ge (GraphicsEnvironment/getLocalGraphicsEnvironment)]
+        (doseq [font-file ["/fonts/DSEG/DSEG7Classic-Regular.ttf"
+                           "/fonts/Orbitron/Orbitron-Black.ttf"
+                           "/fonts/Orbitron/Orbitron-Bold.ttf"
+                           "/fonts/Teko/Teko-Regular.ttf"
+                           "/fonts/Teko/Teko-SemiBold.ttf"
+                           "/fonts/Bitter/Bitter-Bold.ttf"
+                           "/fonts/Bitter/Bitter-Italic.ttf"
+                           "/fonts/Bitter/Bitter-Regular.ttf"]]
+            (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
+                                               (.getResourceAsStream MidiChoice font-file))))
+        (reset! fonts-loaded true))))
+
 (defn save-window-position
   "Saves the position of a window under the specified keyword. If
   `no-size?` is supplied with a `true` value, only the location is
@@ -169,7 +192,8 @@
 
 (defonce ^{:doc "Holds a map of all the MIDI output devices we have
   opened, keyed by their names, so we can reuse them."}
-  opened-outputs (atom {}))
+  opened-outputs
+  (atom {}))
 
 (defn restore-window-position
   "Tries to put a window back where in the position where it was saved

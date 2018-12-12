@@ -968,6 +968,7 @@
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [file]
+  (util/load-fonts)
   (let [[filesystem contents] (open-show-filesystem file)]
     (try
       (let [root            (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)

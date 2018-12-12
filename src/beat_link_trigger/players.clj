@@ -68,27 +68,6 @@
   "The object that can obtain album artwork."
   (ArtFinder/getInstance))
 
-(defonce fonts-loaded
-  (atom false))
-
-(defn load-fonts
-  "Load and register the fonts we will use to draw on the display, if
-  they have not already been."
-  []
-  (or @fonts-loaded
-      (let [ge (GraphicsEnvironment/getLocalGraphicsEnvironment)]
-        (doseq [font-file ["/fonts/DSEG/DSEG7Classic-Regular.ttf"
-                           "/fonts/Orbitron/Orbitron-Black.ttf"
-                           "/fonts/Orbitron/Orbitron-Bold.ttf"
-                           "/fonts/Teko/Teko-Regular.ttf"
-                           "/fonts/Teko/Teko-SemiBold.ttf"
-                           "/fonts/Bitter/Bitter-Bold.ttf"
-                           "/fonts/Bitter/Bitter-Italic.ttf"
-                           "/fonts/Bitter/Bitter-Regular.ttf"]]
-            (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
-                                               (.getResourceAsStream IPlaylistEntry font-file))))
-        (reset! fonts-loaded true))))
-
 (defn- sending-status?
   "Checks whether we are currently sending status packets, which is
   required to reliably obtain metadata for non-rekordbox tracks."
@@ -898,7 +877,7 @@
   "Creates the Player Status window."
   [trigger-frame globals]
   (try
-    (load-fonts)
+    (util/load-fonts)
     (let [shutdown-chan (async/promise-chan)
           root          (seesaw/frame :title "Player Status"
                                       :on-close :dispose)
