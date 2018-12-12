@@ -1081,7 +1081,7 @@
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
         (seesaw/selection! enabled-default (:enabled contents "Always"))
-        (.setSize root 800 600)  ; Our default size if there isn't a position stored in the file.
+        (.setSize root 900 600)  ; Our default size if there isn't a position stored in the file.
         (restore-window-position root contents)
         (seesaw/listen root
                        :window-closed
