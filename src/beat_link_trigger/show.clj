@@ -124,6 +124,17 @@
   [show]
   (get @open-shows (:file show)))
 
+(defn- assoc-track-content
+  "Updates the show to associate the supplied key and value into the
+  specified track's contents map. Track can either be a string
+  signature or a full track map, and k-or-ks can either be a single
+  key or a sequence of keys to associate a value deeper into the
+  contents map."
+  [show track k-or-ks v]
+  (let [signature (if (string? track) track (:signature track))
+        ks (if (sequential? k-or-ks) k-or-ks [k-or-ks])]
+    (swap! open-shows assoc-in (concat [(:file show) :tracks signature :contents] ks) v)))
+
 (defn- flush-show
   "Closes the ZIP fileystem so that changes are written to the actual
   show file, then reopens it."
@@ -540,8 +551,6 @@
         contents-path  (.resolve track-root "contents.edn")
         contents       (when (Files/isReadable contents-path) (read-edn-path contents-path))
         comment        (or (:comment contents) (:comment metadata))
-        preview-loader (create-preview-loader show signature metadata)
-        soft-preview   (create-track-preview preview-loader)
         update-comment (fn [c]
                          (let [comment (seesaw/text c)]
                            (swap! open-shows assoc-in [(:file show) :tracks signature :contents :comment] comment)
@@ -549,6 +558,10 @@
                                   (build-filter-target metadata comment))))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text comment :listen [:document update-comment])
+        preview-loader (create-preview-loader show signature metadata)
+        soft-preview   (create-track-preview preview-loader)
+        outputs        (util/get-midi-outputs)
+        gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         panel          (mig/mig-panel :constraints [""
                                                     "[]unrelated[fill, 160]unrelated[fill, 408]"]
                                       :items
@@ -558,15 +571,30 @@
                                                       :foreground :yellow)
                                         "width 60:120"]
                                        [soft-preview "spany 4, wrap"]
+
                                        [(seesaw/label :text (format-artist-album metadata)
                                                       :font (util/get-display-font :bitter Font/BOLD 13)
                                                       :foreground :green)
                                         "width 60:120, wrap"]
+
                                        [comment-field "wrap"]
+
                                        [(seesaw/label :text "Players:") "split 4, gap unrelated"]
                                        [(seesaw/label :id :players :text "--")]
                                        [(seesaw/label :text "Playing:") "gap unrelated"]
-                                       [(seesaw/label :id :playing :text "--") "wrap, gapafter push"]
+                                       [(seesaw/label :id :playing :text "--") "wrap unrelated, gapafter push"]
+
+                                       [gear "spanx, split"]
+                                       ["MIDI Output:" "gap unrelated"]
+                                       [(seesaw/combobox :id :outputs
+                                                         :model (concat outputs
+                                                                        (when-let [chosen (:midi-device contents)]
+                                                                          (when-not ((set outputs) chosen)
+                                                                            [chosen])))
+                                                         :selected-item (or (:midi-device contents) (first outputs))
+                                                         :listen [:item-state-changed
+                                                                  #(assoc-track-content show signature :midi-device
+                                                                                        (seesaw/selection %))])]
                                        ])]
     (swap! open-shows assoc-in [(:file show) :tracks signature]
            {:signature         signature
@@ -578,6 +606,8 @@
             :preview           preview-loader
             :loaded            #{} ; The players that have this loaded.
             :playing           #{}}) ; The players actively playing this.
+    ;; Record the initial setting of the MIDI Output choice in case this is a brand new track.
+    (assoc-track-content show signature :midi-device (seesaw/selection (seesaw/select panel [:#outputs])))
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
 
 (defn- create-track-panels
