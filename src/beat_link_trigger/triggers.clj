@@ -22,9 +22,8 @@
             [seesaw.icon :as icon]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import beat_link_trigger.util.PlayerChoice
+  (:import [beat_link_trigger.util PlayerChoice]
            [java.awt Color RenderingHints]
-           [javax.sound.midi Sequencer Synthesizer]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
@@ -153,37 +152,12 @@
              (and (zero? (:number player-selection)) (.isTempoMaster status))
              (and (neg? (:number player-selection)) (is-better-match? status trigger))))))
 
-;; Used to represent the available MIDI outputs in the output menu. The `toString` method
-;; tells Swing how to display it, so we can suppress the CoreMidi4J prefix.
-(defrecord MidiChoice [full-name]
-  Object
-  (toString [_] (clojure.string/replace full-name #"^CoreMIDI4J - " "")))
-
-(defn usable-midi-device?
-  "Returns true if a MIDI device should be visible. Filters out non-CoreMidi4J devices when that library
-  is active."
-  [device]
-  (or (not (CoreMidiDeviceProvider/isLibraryLoaded))
-      (let [raw-device (:device device)]
-        (or (instance? Sequencer raw-device) (instance? Synthesizer raw-device)
-            (instance? CoreMidiDestination raw-device) (instance? CoreMidiSource raw-device)))))
-
-(defn get-midi-outputs
-  "Returns all available MIDI output devices as menu choice model objects"
-  []
-  (map #(MidiChoice. (:name %)) (filter usable-midi-device? (sort-by :name (midi/midi-sinks)))))
-
 (defn get-player-choices
   "Returns a sorted list of the player watching choices, including
   options to watch Any Player and the Master Player."
   []
   (for [i (range -1 5)]
     (PlayerChoice. i)))
-
-(defonce ^{:private true
-           :doc "Holds a map of all the MIDI output devices we have
-  opened, keyed by their names, so we can reuse them."}
-  opened-outputs (atom {}))
 
 (defn get-chosen-output
   "Return the MIDI output to which messages should be sent for a given
@@ -198,10 +172,10 @@
   ([trigger data]
    (when-let [selection (get-in data [:value :outputs])]
      (let [device-name (.full_name selection)]
-       (or (get @opened-outputs device-name)
+       (or (get @util/opened-outputs device-name)
            (try
              (let [new-output (midi/midi-out device-name)]
-               (swap! opened-outputs assoc device-name new-output)
+               (swap! util/opened-outputs assoc device-name new-output)
                new-output)
              (catch IllegalArgumentException e  ; The chosen output is not currently available
                (timbre/debug e "Trigger using nonexisting MIDI output" device-name))
@@ -732,7 +706,7 @@
   ([]
    (create-trigger-row nil))
   ([m]
-   (let [outputs (get-midi-outputs)
+   (let [outputs (util/get-midi-outputs)
          gear    (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
          panel   (mig/mig-panel
                   :id :panel
@@ -978,12 +952,13 @@
 
 ;; Register the custom readers needed to read back in the defrecords that we use.
 (prefs/add-reader 'beat_link_trigger.util.PlayerChoice util/map->PlayerChoice)
-(prefs/add-reader 'beat_link_trigger.triggers.MidiChoice map->MidiChoice)
+(prefs/add-reader 'beat_link_trigger.util.MidiChoice util/map->MidiChoice)
 ;; For backwards compatibility:
-;; Also register under the old package names before they were moved to the triggers and util namespaces.
+;; Also register under the old package names before they were moved to the util namespace.
 (prefs/add-reader 'beat_link_trigger.triggers.PlayerChoice util/map->PlayerChoice)
 (prefs/add-reader 'beat_link_trigger.core.PlayerChoice util/map->PlayerChoice)
-(prefs/add-reader 'beat_link_trigger.core.MidiChoice map->MidiChoice)
+(prefs/add-reader 'beat_link_trigger.triggers.MidiChoice util/map->MidiChoice)
+(prefs/add-reader 'beat_link_trigger.core.MidiChoice util/map->MidiChoice)
 
 (defonce ^{:private true
            :doc "The menu action which saves the configuration to the preferences."}
@@ -1068,9 +1043,9 @@
   []
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
    (try
-     (let [new-outputs (get-midi-outputs)]
+     (let [new-outputs (util/get-midi-outputs)]
        ;; Remove any opened outputs that are no longer available in the MIDI environment
-       (swap! opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
+       (swap! util/opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
 
        (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
          (let [output-menu (seesaw/select trigger [:#outputs])

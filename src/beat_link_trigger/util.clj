@@ -1,8 +1,11 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
-  (:require [seesaw.core :as seesaw])
+  (:require [seesaw.core :as seesaw]
+            [overtone.midi :as midi])
   (:import [org.deepsymmetry.beatlink DeviceFinder]
-           [java.awt Color Font RenderingHints]))
+           [java.awt Color Font RenderingHints]
+           [javax.sound.midi Sequencer Synthesizer]
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def ^:private project-version
   (delay (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
@@ -129,9 +132,29 @@
                   :else (str "Player " number))))
 
 
+;; Used to represent the available MIDI outputs in the output menu. The `toString` method
+;; tells Swing how to display it, so we can suppress the CoreMidi4J prefix.
+(defrecord MidiChoice [full-name]
+  Object
+  (toString [_] (clojure.string/replace full-name #"^CoreMIDI4J - " "")))
+
 (defonce ^{:doc "Tracks window positions so we can try to restore them
   in the configuration the user had established."}
   window-positions (atom {}))
+
+(defn usable-midi-device?
+  "Returns true if a MIDI device should be visible. Filters out non-CoreMidi4J devices when that library
+  is active."
+  [device]
+  (or (not (CoreMidiDeviceProvider/isLibraryLoaded))
+      (let [raw-device (:device device)]
+        (or (instance? Sequencer raw-device) (instance? Synthesizer raw-device)
+            (instance? CoreMidiDestination raw-device) (instance? CoreMidiSource raw-device)))))
+
+(defn get-midi-outputs
+  "Returns all available MIDI output devices as menu choice model objects"
+  []
+  (map #(MidiChoice. (:name %)) (filter usable-midi-device? (sort-by :name (midi/midi-sinks)))))
 
 (defn save-window-position
   "Saves the position of a window under the specified keyword. If
@@ -143,6 +166,10 @@
    (swap! window-positions assoc k (if no-size?
                                      [(.getX window) (.getY window)]
                                      [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))))
+
+(defonce ^{:doc "Holds a map of all the MIDI output devices we have
+  opened, keyed by their names, so we can reuse them."}
+  opened-outputs (atom {}))
 
 (defn restore-window-position
   "Tries to put a window back where in the position where it was saved
