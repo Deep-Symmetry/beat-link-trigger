@@ -597,16 +597,20 @@
                                        [(seesaw/label :id :playing :text "--") "wrap unrelated, gapafter push"]
 
                                        [gear "spanx, split"]
+
                                        ["MIDI Output:" "gap unrelated"]
                                        [(seesaw/combobox :id :outputs
                                                          :model (concat outputs
                                                                         (when-let [chosen (:midi-device contents)]
                                                                           (when-not ((set outputs) chosen)
                                                                             [chosen])))
-                                                         :selected-item (or (:midi-device contents) (first outputs))
+                                                         :selected-item nil  ; So update below saves default.
                                                          :listen [:item-state-changed
                                                                   #(assoc-track-content show signature :midi-device
                                                                                         (seesaw/selection %))])]
+
+                                       ["Loaded Message:" "gap unrelated"]
+
                                        ])]
     (swap! open-shows assoc-in [(:file show) :tracks signature]
            {:signature         signature
@@ -618,9 +622,10 @@
             :preview           preview-loader
             :loaded            #{} ; The players that have this loaded.
             :playing           #{}}) ; The players actively playing this.
-    ;; Record the initial setting of the MIDI Output choice in case this is a brand new track.
-    (assoc-track-content show signature :midi-device (seesaw/selection (seesaw/select panel [:#outputs])))
-    (swap! open-shows assoc-in [(:file show) :panels panel] signature)))
+    (swap! open-shows assoc-in [(:file show) :panels panel] signature)
+    ;; Establish the saved or initial settings of the UI elements, which will also record them for the
+    ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
+    (seesaw/selection! (seesaw/select panel [:#outputs]) (or (:midi-device contents) (first outputs)))))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
