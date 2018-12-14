@@ -1301,9 +1301,9 @@
                              (timbre/error t "Problem closing Show file.")
                              (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
                                            :title "Problem Closing Show" :type :error)))
+                         (run-global-function show :shutdown)
                          (swap! open-shows dissoc file)
-                         (swap! util/window-positions dissoc window-name)
-                         (run-global-function show :shutdown))
+                         (swap! util/window-positions dissoc window-name))
                        #{:component-moved :component-resized}
                        (fn [e]
                          (util/save-window-position root window-name)
