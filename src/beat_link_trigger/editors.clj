@@ -29,6 +29,14 @@
   (dispose [this]
   "Permanently close the window and release its resources."))))
 
+(defn sort-setup-to-front
+  "Given a sequence of expression keys and value tuples, makes sure
+  that if a `:setup` key is present, it and its expression are first
+  in the sequence, so they get evaluated first, in case they define
+  any functions needed to evaluate the other expressions."
+  [exprs]
+  (concat (filter #(= :setup (first %)) exprs) (filter #(not= :setup (first %)) exprs)))
+
 (def trigger-bindings
   "Identifies symbols which can be used inside any trigger expression,
   along with the expression that will be used to automatically bind
@@ -215,6 +223,56 @@
   connections) that you opened in the Setup expression."
               :bindings (trigger-bindings-for-class nil)}))
 
+(def global-show-editors
+  "Specifies the kinds of editor which can be opened for a Show
+  window overall, along with the details needed to describe and
+  compile the expressions they edit. Created as an explicit array map
+  to keep the keys in the order they are found here."
+  (array-map
+   :setup {:title "Global Setup Expression"
+           :tip "Called once to set up any state your show&rsquo;s
+           expressions may need."
+           :description
+           "Called once when the show is loaded, or when you edit the
+  expression. Set up any global state (such as counters, flags, or
+  network connections) that your expressions within any track or cue
+  need. Use the Global Shutdown expression to clean up resources when
+  the show window is shutting down."
+           :bindings nil}
+
+   :shutdown {:title "Global Shutdown Expression"
+              :tip "Called once to release global resources."
+              :description
+              "Called when when the show window is closing. Close and
+  release any shared system resources (such as network connections)
+  that you opened in the Global Setup expression."
+              :bindings nil}))
+
+(def show-track-editors
+  "Specifies the kinds of editor which can be opened for a show track,
+  along with the details needed to describe and compile the
+  expressions they edit. Created as an explicit array map to keep the
+  keys in the order they are found here."
+  (array-map
+   :setup {:title "Setup Expression"
+           :tip "Called once to set up any state your other expressions may need."
+           :description
+           "Called once when the show is loaded, or when you edit the
+  expression. Set up any state (such as counters, flags, or network
+  connections) that your other expressions for this trigger need. Use
+  the Shutdown expression to clean up resources when the show is
+  shutting down."
+           :bindings nil #_(trigger-bindings-for-class nil)}  ; TODO: Flesh out, and add rest, see Triggers!
+
+   :shutdown {:title "Shutdown Expression"
+              :tip "Called once to release resources your track had been using."
+              :description
+              "Called when when the track is shutting down, either
+  because it was deleted or the show was closed. Close and release any
+  system resources (such as network connections) that you opened in
+  the Setup expression."
+              :bindings nil #_(trigger-bindings-for-class nil)}))  ; TODO: Flesh out!
+
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
   overall application look."
@@ -230,8 +288,8 @@
   (let [index (:index (seesaw/value trigger))]
     (subs index 0 (dec (count index)))))
 
-(defn editor-title
-  "Determines the title for an editor window. If it is from an
+(defn triggers-editor-title
+  "Determines the title for a triggers editor window. If it is from an
   individual trigger, identifies it as such."
   [kind trigger global?]
   (let [title (get-in (if global? global-editors trigger-editors) [kind :title])]
@@ -239,10 +297,11 @@
       title
       (str "Trigger " (trigger-index trigger) " " title))))
 
-(defn update-expression
-  "Called when an expression's editor is ending and the user has asked
-  to update the expression with the value they have edited. If
-  `update-fn` is not nil, it will be called with no arguments."
+(defn update-triggers-expression
+  "Called when a triggers window expression's editor is ending and the
+  user has asked to update the expression with the value they have
+  edited. If `update-fn` is not nil, it will be called with no
+  arguments."
   [kind trigger global? text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
   (let [text (clojure.string/trim text)  ; Remove whitespace on either end
@@ -251,11 +310,87 @@
       (when (seq text)  ; If we got a new expression, try to compile it
         (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
                (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                  (editor-title kind trigger global?))))
+                                                  (triggers-editor-title kind trigger global?))))
       (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
         (dispose editor)  ; Close the editor
         (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
       (swap! (seesaw/user-data trigger) assoc-in [:expressions kind] text)  ; Save the new text
+      (catch Throwable e
+        (timbre/error e "Problem parsing" (:title editor-info))
+        (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                           ".<br><br>" e "<br><br>You may wish to check the log file for the detailed stack trace.")
+                      :title "Exception during Clojure evaluation" :type :error))))
+  (when update-fn
+    (try
+      (update-fn)
+      (catch Throwable t
+        (timbre/error t "Problem running expression editor update function.")))))
+
+(defn- find-show-expression-text
+  "Returns the source code, if any, of the specified show expression
+  type for the specified show and track. If `track` is `nil`, `kind`
+  refers to a global expression."
+  [kind show track]
+  (get-in show (if track
+                 [:tracks (:signature track) :contents :expressions kind]
+                 [:contents :expressions kind])))
+
+(defn- find-show-expression-fn
+  "Returns the compiled function, if any, for the specified show
+  expression type for the specified show and track. If `track` is
+  `nil`, `kind` refers to a global expression."
+  [kind show track]
+  (get-in show (if track
+                 [:tracks (:signature track) :expression-fns kind]
+                 [:expression-fns kind])))
+
+(defn- find-show-expression-editor
+  "Returns the open editor window, if any, for the specified show
+  expression type for the specified show and track. If `track` is
+  `nil`, `kind` refers to a global expression."
+  [kind show track]
+  (get-in show (if track
+                 [:tracks (:signature track) :expression-editors kind]
+                 [:expression-editors kind])))
+
+(defn show-editor-title
+  "Determines the title for a show expression editor window. If it is
+  from an individual track, identifies it as such."
+  [kind show track]
+  (let [title (get-in (if track show-track-editors global-show-editors) [kind :title])]
+    (if track
+      (str "Track \"" (get-in show [:tracks (:signature track) :metadata :title]) "\" " title)
+      (str "Show \"" (.getName (:file show)) "\" " title))))
+
+(defn update-show-expression
+  "Called when an show window expression's editor is ending and the user
+  has asked to update the expression with the value they have edited.
+  If `update-fn` is not nil, it will be called with no arguments."
+  [open-shows kind show track text update-fn]
+  (swap! open-shows update-in (if track
+                                [(:file show) :tracks (:signature track) :expression-fns]
+                                [(:file show) :expression-fns])
+         dissoc kind) ; In case parse fails, leave nothing there
+  (let [text        (clojure.string/trim text) ; Remove whitespace on either end
+        editor-info (get (if track show-track-editors global-show-editors) kind)]
+    (try
+      (when (seq text)  ; If we got a new expression, try to compile it
+        (swap! open-shows assoc-in (if track
+                                     [(:file show) :tracks (:signature track) :expression-fns kind]
+                                     [(:file show) :expression-fns kind])
+               (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
+                                                  (show-editor-title kind show track))))
+      (when-let [editor (find-show-expression-editor kind show track)]
+        (dispose editor)  ; Close the editor
+        (swap! open-shows update-in (if track
+                                      [(:file show) :tracks (:signature track) :expression-editors]
+                                      [(:file show) :expression-editors])
+               dissoc kind))
+
+      (swap! open-shows assoc-in (if track
+                                   [(:file show) :tracks (:signature track) :contents :expressions kind]
+                                   [(:file show) :contents :expressions kind])
+             text)  ; Save the new text
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
@@ -288,8 +423,8 @@ a {
 
 (defn- build-help
   "Create the help information for an editor with the specified kind."
-  [kind global?]
-  (let [editor-info (get (if global? global-editors trigger-editors) kind)]
+  [kind global? editors]
+  (let [editor-info (get editors kind)]
     (clojure.string/join (concat [help-header "<h1>Description</h1>"
                                   (:description editor-info)
                                   "<p>The "
@@ -307,15 +442,15 @@ a {
                                                 (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
                                  ["</dl>"]))))
 
-(defn- create-editor-window
-  "Create and show a window for editing the Clojure code of a
-  particular kind of expression, with an update function to be called
-  when the editor successfully updates the expression.."
+(defn- create-triggers-editor-window
+  "Create and show a window for editing the Clojure code of a particular
+  kind of Triggers window expression, with an update function to be
+  called when the editor successfully updates the expression."
   [kind trigger update-fn]
   (let [global? (:global @(seesaw/user-data trigger))
         text (get-in @(seesaw/user-data trigger) [:expressions kind])
-        save-fn (fn [text] (update-expression kind trigger global? text update-fn))
-        root (seesaw/frame :title (editor-title kind trigger global?) :on-close :dispose :size [800 :by 600]
+        save-fn (fn [text] (update-triggers-expression kind trigger global? text update-fn))
+        root (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :dispose :size [800 :by 600]
                            ;; TODO: Add save/load capabilities?
                            #_:menubar #_(seesaw/menubar
                                      :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
@@ -336,7 +471,7 @@ a {
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setContentType help "text/html")
-    (.setText help (build-help kind global?))
+    (.setText help (build-help kind global? (if global? global-editors trigger-editors)))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -350,7 +485,7 @@ a {
     (let [result
           (reify IExpressionEditor
             (retitle [_]
-              (seesaw/config! root :title (editor-title kind trigger global?)))
+              (seesaw/config! root :title (triggers-editor-title kind trigger global?)))
             (show [_]
               (.setLocationRelativeTo root trigger)
               (seesaw/show! root)
@@ -372,7 +507,78 @@ a {
   [kind trigger update-fn]
   (try
     (let [editor (or (get-in @(seesaw/user-data trigger) [:expression-editors kind])
-                     (create-editor-window kind trigger update-fn))]
+                     (create-triggers-editor-window kind trigger update-fn))]
       (show editor))
     (catch Exception e
       (timbre/error e "Problem showing trigger" kind "editor"))))
+
+(defn- create-show-editor-window
+  "Create and show a window for editing the Clojure code of a particular
+  kind of Show window expression, with an update function to be
+  called when the editor successfully updates the expression."
+  [open-shows kind show track parent-frame update-fn]
+  (let [text        (find-show-expression-text kind show track)
+        save-fn     (fn [text] (update-show-expression open-shows kind show track text update-fn))
+        root        (seesaw/frame :title (show-editor-title kind show track) :on-close :dispose :size [800 :by 600])
+        editor      (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])
+        help        (seesaw/styled-text :id :help :wrap-lines? true)
+        close-fn    (fn [] (swap! open-shows update-in (if track
+                                                         [(:file show) :tracks (:signature track) :expression-editors]
+                                                         [(:file show) :expression-editors])
+                                  dissoc kind))]
+    (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
+    (.apply editor-theme editor)
+    (seesaw/config! help :editable? false)
+    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
+                                                         [save-button "push, align center, wrap"]
+                                                         [(seesaw/scrollable help :hscroll :never)
+                                                          "sizegroup a, gapy unrelated, width 100%"]]))
+    (seesaw/config! editor :id :source)
+    (seesaw/value! root {:source text})
+    (.setContentType help "text/html")
+    (.setText help (build-help kind (not track) (if track show-track-editors global-show-editors)))
+    (seesaw/scroll! help :to :top)
+    (seesaw/config! help :background :black)
+    (seesaw/listen help :hyperlink-update
+                   (fn [e]
+                     (let [type (.getEventType e)
+                           url  (.getURL e)]
+                       (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
+                         (clojure.java.browse/browse-url url)))))
+    (seesaw/listen root :window-closed
+                   (fn [_] (close-fn)))
+    (let [result
+          (reify IExpressionEditor
+            (retitle [_]
+              (seesaw/config! root :title (show-editor-title kind show track)))
+            (show [_]
+              (.setLocationRelativeTo root parent-frame)
+              (seesaw/show! root)
+              (.toFront root))
+            (dispose [_]
+              (close-fn)
+              (seesaw/dispose! root)))]
+      (swap! open-shows assoc-in  (if track
+                                    [(:file show) :tracks (:signature track) :expression-editors kind]
+                                    [(:file show) :expression-editors kind])
+             result)
+      result)))
+
+(defn show-show-editor
+  "Find or create the editor for the specified kind of expression
+  associated with the specified show (and optionally track), make it
+  visible, and add it to the show's list of active editors. Register
+  an update function to be invoked with no arguments when the user has
+  successfully updated the expression. If `track` is nil we are
+  editing global expressions."
+  [open-shows kind show-map track parent-frame update-fn]
+  ;; We need to use `show-map` instead of `show` as the argument name so we can call the show function
+  ;; defined in the editor's `IExpressionEditor` implemntation. D'ohh!
+  (try
+    (let [editor (or (get-in show-map [:expression-editors kind])
+                     (create-show-editor-window open-shows kind show-map track parent-frame update-fn))]
+      (show editor))
+    (catch Throwable t
+      (timbre/error t "Problem showing show" kind "editor"))))

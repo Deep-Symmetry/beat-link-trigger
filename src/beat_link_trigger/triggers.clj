@@ -95,7 +95,7 @@
       (try
         [(custom-fn status data expression-globals) nil]
         (catch Throwable t
-          (timbre/error t (str "Problem running " (editors/editor-title kind trigger false) ":\n"
+          (timbre/error t (str "Problem running " (editors/triggers-editor-title kind trigger false) ":\n"
                                (get-in data [:expressions kind])))
           (when alert?
             (seesaw/alert (str "<html>Problem running trigger " (name kind) " expression.<br><br>" t)
@@ -547,9 +547,7 @@
   "Checks whether the trigger frame has a custom function of the
   specified kind installed, and if so runs it with a nil status and
   trigger local atom, and the trigger global atom. Returns a tuple of
-  the function return value and any thrown exception. If `alert?` is
-  `true` the user will be alerted when there is a problem running the
-  function."
+  the function return value and any thrown exception."
   [kind]
   (let [data @(global-user-data)]
     (when-let [custom-fn (get-in data [:expression-fns kind])]
@@ -653,14 +651,6 @@
   []
   {:creating true :playing false :tripped false :locals (atom {})})
 
-(defn- sort-setup-to-front
-  "Given a sequence of expression keys and value tuples, makes sure
-  that if a `:setup` key is present, it and its expression are first
-  in the sequence, so they get evaluated first, in case they define
-  any functions needed to evaluate the other expressions."
-  [exprs]
-  (concat (filter #(= :setup (first %)) exprs) (filter #(not= :setup (first %)) exprs)))
-
 (defn- load-trigger-from-map
   "Repopulate the content of a trigger row from a map as obtained from
   the preferences, a save file, or an export file."
@@ -670,12 +660,12 @@
    (reset! (seesaw/user-data trigger) (initial-trigger-user-data))
    (when-let [exprs (:expressions m)]
      (swap! (seesaw/user-data trigger) assoc :expressions exprs)
-     (doseq [[kind expr] (sort-setup-to-front exprs)]
+     (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
        (let [editor-info (get editors/trigger-editors kind)]
          (try
            (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
                   (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                     (editors/editor-title kind trigger false)))
+                                                     (editors/triggers-editor-title kind trigger false)))
            (catch Exception e
              (swap! (seesaw/user-data trigger) assoc :expression-load-error true)
              (timbre/error e (str "Problem parsing " (:title editor-info)
@@ -1174,12 +1164,12 @@
     (.setSelected (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
-      (doseq [[kind expr] (sort-setup-to-front exprs)]
+      (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
         (let [editor-info (get editors/global-editors kind)]
           (try
             (swap! (global-user-data) assoc-in [:expression-fns kind]
                    (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                      (editors/editor-title kind nil true)))
+                                                      (editors/triggers-editor-title kind nil true)))
             (catch Exception e
               (timbre/error e (str "Problem parsing " (:title editor-info)
                                    " when loading Triggers. Expression:\n" expr "\n"))

@@ -10,6 +10,7 @@
             [beat-link-trigger.prefs :as prefs]
             [clojure.edn :as edn]
             [fipp.edn :as fipp]
+            [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
@@ -776,6 +777,26 @@
       (doseq [track-path (Files/newDirectoryStream tracks-path)]
         (create-track-panel show track-path)))))
 
+(defn update-global-expression-icons
+  "Updates the icons next to expressions in the Tracks menu to
+  reflect whether they have been assigned a non-empty value."
+  [show]
+  (let [show (latest-show show)
+        menu (seesaw/select (:frame show) [:#tracks-menu])]
+    (doseq [i (range (.getItemCount menu))]
+      (let [item (.getItem menu i)]
+        (when item
+          (let [label (.getText item)]
+            (cond (= label "Edit Global Setup Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :setup]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png")))
+
+                  (= label "Edit Global Shutdown Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :shutdown]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png"))))))))))
+
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
   all required parts are present."
@@ -1080,16 +1101,59 @@
                              (.dispatchEvent (:frame show) (WindowEvent. (:frame show) WindowEvent/WINDOW_CLOSING))))
                  :name "Close"))
 
+(defn- run-global-function
+  "Checks whether the show has a custom function of the specified kind
+  installed, and if so runs it with a nil status and track local
+  atom, and the show's global atom. Returns a tuple of the function
+  return value and any thrown exception."
+  [show kind]
+  (let [show (latest-show show)]
+    (when-let [expression-fn (get-in show [:expression-fns kind])]
+      (try
+        [(expression-fn nil nil (:expression-globals show)) nil]
+        (catch Throwable t
+          (timbre/error t "Problem running show global " kind " expression,"
+                        (get-in show [:contents :expressions kind]))
+          (seesaw/alert (str "<html>Problem running show global " (name kind) " expression.<br><br>" t)
+                        :title "Exception in Show Expression" :type :error)
+          [nil t])))))
+
+
+
+(defn build-global-editor-action
+  "Creates an action which edits one of a show's global expressions."
+  [show kind]
+  (seesaw/action :handler (fn [e] (editors/show-show-editor open-shows kind (latest-show show) nil (:frame show)
+                                                            (fn []
+                                                              (when (= :setup kind)
+                                                                (run-global-function show :shutdown)
+                                                                (reset! (:expression-globals show) {})
+                                                                (run-global-function show :setup))
+                                                              (update-global-expression-icons show))))
+                 :name (str "Edit " (get-in editors/global-editors [kind :title]))
+                 :tip (get-in editors/global-editors [kind :tip])
+                 :icon (seesaw/icon (if (empty? (get-in show [:contents :expressions kind]))
+                                       "images/Gear-outline.png"
+                                       "images/Gear-icon.png"))))
+
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map and the
   import submenu."
   [show]
-  (seesaw/menubar :items [(seesaw/menu :text "File"
-                                       :items [(build-save-action show) (build-save-as-action show) (seesaw/separator)
-                                               (build-close-action show)])
-                          (seesaw/menu :text "Track"
-                                       :items [(:import-menu show)])
-                          (menus/build-help-menu)]))
+  (let [inspect-action   (seesaw/action :handler (fn [e] (inspector/inspect @(:expression-globals show)
+                                                                            :window-name "Expression Globals"))
+                                        :name "Inspect Expression Globals"
+                                        :tip "Examine any values set as globals by any Track Expressions.")]
+    (seesaw/menubar :items [(seesaw/menu :text "File"
+                                         :items [(build-save-action show) (build-save-as-action show) (seesaw/separator)
+                                                 (build-close-action show)])
+                            (seesaw/menu :text "Tracks"
+                                         :id :tracks-menu
+                                         :items (concat [(:import-menu show)]
+                                                        (map (partial build-global-editor-action show)
+                                                              (keys editors/global-show-editors))
+                                                        [(seesaw/separator) inspect-action]))
+                            (menus/build-help-menu)])))
 
 (defn- update-player-item-visibility
   "Makes a player's entry in the import menu visible or invisible, given
@@ -1160,6 +1224,7 @@
       (let [root            (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
             import-menu     (seesaw/menu :text "Import Track")
             show            {:frame       root
+                             :expression-globals (atom {})
                              :import-menu import-menu
                              :file        file
                              :filesystem  filesystem
@@ -1237,13 +1302,28 @@
                              (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
                                            :title "Problem Closing Show" :type :error)))
                          (swap! open-shows dissoc file)
-                         (swap! util/window-positions dissoc window-name))
+                         (swap! util/window-positions dissoc window-name)
+                         (run-global-function show :shutdown))
                        #{:component-moved :component-resized}
                        (fn [e]
                          (util/save-window-position root window-name)
                          (when (= (.getID e) java.awt.event.ComponentEvent/COMPONENT_RESIZED)
                            (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
         (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root))
+        (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
+          (let [editor-info (get editors/global-show-editors kind)]
+            (try
+              (swap! open-shows assoc-in [(:file show) :expression-fns kind]
+                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                        (editors/show-editor-title kind show nil)))
+              (catch Exception e
+                (timbre/error e (str "Problem parsing " (:title editor-info)
+                                     " when loading Show. Expression:\n" expr "\n"))
+                (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                                   "Check the log file for details.")
+                              :title "Exception during Clojure evaluation" :type :error)))))
+        (run-global-function show :setup)
+        (update-global-expression-icons show)
         (seesaw/show! root))
       (catch Throwable t
         (swap! open-shows dissoc file)
