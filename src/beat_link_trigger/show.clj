@@ -1021,11 +1021,11 @@
                             (when-let [file (chooser/choose-file (:frame show) :type :save
                                                                  :all-files? false
                                                                  :filters [["BeatLinkTrigger Show files"
-                                                                            ["blts"]]])]
+                                                                            ["bls"]]])]
                               (if (get @open-shows file)
                                 (seesaw/alert (:frame show) "Cannot Replace an Open Show."
                                               :title "Destination is Already Open" :type :error)
-                                (when-let [file (util/confirm-overwrite-file file "blts" (:frame show))]
+                                (when-let [file (util/confirm-overwrite-file file "bls" (:frame show))]
 
                                   (try
                                     (save-show-as show file)
@@ -1352,7 +1352,7 @@
   [parent]
 (when-let [file (chooser/choose-file parent :type :open
                                      :all-files? false
-                                     :filters [["BeatLinkTrigger Show files" ["blts"]]])]
+                                     :filters [["BeatLinkTrigger Show files" ["bls"]]])]
   (open-internal parent file)))
 
 (defn reopen-previous-shows
@@ -1370,12 +1370,12 @@
   (when-let [file (chooser/choose-file parent :type :save
                                        :all-files? false
                                        :filters [["BeatLinkTrigger Show files"
-                                                  ["blts"]]])]
+                                                  ["bls"]]])]
     (let [file (.getCanonicalFile file)]
       (if (get @open-shows file)
         (seesaw/alert parent "Cannot Replace an Open Show."
                       :title "Show is Already Open" :type :error)
-        (when-let [file (util/confirm-overwrite-file file "blts" parent)]
+        (when-let [file (util/confirm-overwrite-file file "bls" parent)]
           (try
             (Files/deleteIfExists (.toPath file))
             (let [file-uri (.toUri (.toPath file))]
