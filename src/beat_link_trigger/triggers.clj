@@ -1288,7 +1288,7 @@
   "Creates the menu bar for the trigger window."
   []
   (let [inspect-action   (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
-                                                                            :window-name "Expression Globals"))
+                                                                            :window-name "Trigger Expression Globals"))
                                         :name "Inspect Expression Globals"
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
         new-show-action  (seesaw/action :handler (fn [e] (show/new @trigger-frame))

@@ -1141,7 +1141,7 @@
   import submenu."
   [show]
   (let [inspect-action   (seesaw/action :handler (fn [e] (inspector/inspect @(:expression-globals show)
-                                                                            :window-name "Expression Globals"))
+                                                                            :window-name "Show Expression Globals"))
                                         :name "Inspect Expression Globals"
                                         :tip "Examine any values set as globals by any Track Expressions.")]
     (seesaw/menubar :items [(seesaw/menu :text "File"
