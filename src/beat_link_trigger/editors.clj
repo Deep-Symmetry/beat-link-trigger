@@ -52,8 +52,9 @@
 
    'trigger-message {:code '(get-in trigger-data [:value :message])
                      :doc "The type of MIDI message the trigger is
-   configured to send; one of <code>\"Note\"</code>,
-   <code>\"CC\"</code>, or <code>\"Custom\"</code>."}
+  configured to send; one of <code>\"Note\"</code>,
+  <code>\"CC\"</code>, <code>\"Clock\"</code>,
+  <code>\"Link\"</code>, or <code>\"Custom\"</code>."}
 
    'trigger-note {:code
                   '(get-in trigger-data [:value :note])
@@ -66,7 +67,7 @@
 
    'trigger-enabled {:code '(get-in trigger-data [:value :enabled])
                      :doc "The conditions under which the trigger is
-  enabled to send MIDI; one of , <code>\"Never\"</code>,
+  enabled to send MIDI; one of <code>\"Never\"</code>,
   <code>\"On-Air\"</code>, <code>\"Custom\"</code>, or
   <code>\"Always\"</code>."}
 
@@ -82,7 +83,7 @@
   [update-class]
   (merge trigger-bindings (when update-class (expressions/bindings-for-update-class update-class))))
 
-(def global-editors
+(def global-trigger-editors
   "Specifies the kinds of editor which can be opened for the Trigger
   window overall, along with the details needed to describe and
   compile the expressions they edit. Created as an explicit array map
@@ -223,6 +224,105 @@
   connections) that you opened in the Setup expression."
               :bindings (trigger-bindings-for-class nil)}))
 
+(def show-bindings
+  "Identifies symbols which can be used inside any show expression,
+  along with the expression that will be used to automatically bind
+  that symbol if it is used in the expression, and the documentation
+  to show the user what the binding is for."
+  {'show {:code '(deref delayed-show-data)
+          :doc "All the details known about the show. Copy to an
+  Expression Global if you want to use the Inspector to
+  explore them."}})
+
+(defn- show-bindings-for-class
+  "Collects the set of bindings for a show editor which is called with a
+  particular class of status object. Merges the standard show
+  convenience bindings with those associated with the specified class,
+  which may be `nil`."
+  [update-class]
+  (merge show-bindings (when update-class (expressions/bindings-for-update-class update-class))))
+
+(def show-bindings-for-track
+  "Identifies symbols which can be used inside any show track
+  expression, along with the expression that will be used to
+  automatically bind that symbol if it is used in the expression, and
+  the documentation to show the user what the binding is for."
+  {'track {:code '(deref delayed-track-data)
+           :doc "All the details known about the track. Copy to an
+  Expression Global if you want to use the Inspector to
+  explore them."}
+
+   'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
+                         (deref delayed-track-data))
+                 :doc "The MIDI output object chosen for this
+  track. May be <code>nil</code> if the output device cannot be
+  found in the current MIDI environment."}
+
+   'loaded-message {:code '(get-in (deref delayed-track-data)
+                                   [:contents :loaded-message])
+                    :doc "The type of MIDI message to be sent when
+  the track is loaded; one of <code>\"None\"</code>,
+  <code>\"Note\"</code>, <code>\"CC\"</code>, or
+  <code>\"Custom\"</code>."}
+
+   'loaded-note {:code '(get-in (deref delayed-track-data)
+                                [:contents :loaded-note])
+                 :doc "The MIDI note or CC number sent when the track
+  is loaded or unloaded."}
+
+   'loaded-channel {:code '(get-in (deref delayed-track-data)
+                                   [:contents :loaded-channel])
+                    :doc "The MIDI channel on which track load and
+  unload messages are sent."}
+
+   'loaded-players {:code '(:loaded (deref delayed-track-data))
+                    :doc "The set of player numbers that currently
+  have this track loaded, if any."}
+
+   'playing-message {:code '(get-in (deref delayed-track-data)
+                                    [:contents :playing-message])
+                     :doc "The type of MIDI message to be sent when
+  the track starts playing; one of <code>\"None\"</code>,
+  <code>\"Note\"</code>, <code>\"CC\"</code>, or
+  <code>\"Custom\"</code>."}
+
+   'playing-note {:code '(get-in (deref delayed-track-data)
+                                 [:contents :playing-note])
+                  :doc "The MIDI note or CC number sent when the track
+  starts or stops playing."}
+
+   'playing-channel {:code '(get-in (deref delayed-track-data)
+                                    [:contents :playing-channel])
+                     :doc "The MIDI channel on which track playing
+  messages are sent."}
+
+   'track-enabled {:code '(let [local (get-in (deref delayed-track-data)
+                                              [:contents :enabled])]
+                            (if (= "Default" local)
+                              (get-in (deref delayed-show-data)
+                                      [:contents enabled])
+                              local))
+                   :doc "The conditions under which the track is
+  enabled to send MIDI; one of <code>\"Never\"</code>,
+  <code>\"On-Air\"</code>, <code>\"Master\"</code>,
+  <code>\"Custom\"</code>, or <code>\"Always\"</code>. (If this track
+  is configured as \"Default\", the show's Enabled Default value is
+  returned.)"}
+
+   'playing-players {:code '(:playing (deref delayed-track-data))
+                     :doc "The set of player numbers that are currently
+  playing this track, if any."}})
+
+(defn- show-bindings-for-track-and-class
+  "Collects the set of bindings for a show track editor which is called
+  with a particular class of status object. Merges the standard show
+  track convenience bindings with those associated with the specified
+  class, which may be `nil`."
+  [update-class]
+  (merge show-bindings
+         show-bindings-for-track
+         (when update-class (expressions/bindings-for-update-class update-class))))
+
 (def global-show-editors
   "Specifies the kinds of editor which can be opened for a Show
   window overall, along with the details needed to describe and
@@ -238,7 +338,7 @@
   network connections) that your expressions within any track or cue
   need. Use the Global Shutdown expression to clean up resources when
   the show window is shutting down."
-           :bindings nil}
+           :bindings (show-bindings-for-class nil)}
 
    :shutdown {:title "Global Shutdown Expression"
               :tip "Called once to release global resources."
@@ -246,7 +346,7 @@
               "Called when when the show window is closing. Close and
   release any shared system resources (such as network connections)
   that you opened in the Global Setup expression."
-              :bindings nil}))
+              :bindings (show-bindings-for-class nil)}))
 
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
@@ -262,7 +362,112 @@
   connections) that your other expressions for this trigger need. Use
   the Shutdown expression to clean up resources when the show is
   shutting down."
-           :bindings nil #_(trigger-bindings-for-class nil)}  ; TODO: Flesh out, and add rest, see Triggers!
+           :bindings (show-bindings-for-track-and-class nil)}
+
+   :enabled {:title "Enabled Filter Expression"
+             :tip "Called to see if the track should be enabled."
+             :description
+             "Called whenever a status update packet is received from any
+  player. Return a <code>true</code> value as the last expression
+  to enable the track. The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described
+  below."
+             :bindings (show-bindings-for-track-and-class CdjStatus)}
+
+   :loaded {:title "Loaded Expression"
+            :tip "Called when a player loads this track, if enabled."
+            :description
+            "Called when the trigger is enabled and the first player loads
+  this track. You can use this to trigger systems that do
+  not respond to MIDI, or to send more detailed information than MIDI
+  allows."
+            :bindings (show-bindings-for-track-and-class nil)}
+
+   :playing {:title "Playing Expression"
+             :tip "Called when a player plays this track, if enabled."
+             :description
+             "Called when the trigger is enabled and the first player starts
+  playing this track. You can use this to trigger systems that do
+  not respond to MIDI, or to send more detailed information than MIDI
+  allows.<p>
+
+  The status update object which reported the track starting to play, a
+  beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
+             :bindings (show-bindings-for-track-and-class CdjStatus)}
+
+   :beat {:title "Beat Expression"
+          :tip "Called on each beat from devices with the track loaded."
+          :description "Called whenever a beat packet is received from a
+  player. You can use this for beat-driven integrations with other
+  systems.<p>
+
+  The beat object that was received, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html\"><code>Beat</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
+          :bindings (show-bindings-for-track-and-class Beat)}  ; TODO: Upgrade to TimeFinder-enhanced beats!
+
+   :tracked {:title "Tracked Update Expression"
+             :tip "Called for each update from a player with this track loaded, when enabled."
+             :description
+             "Called whenever a status update packet is received from
+  a player that has this track loaded, after the Enabled Filter
+  Expression, if any, has had a chance to decide if the trigger is
+  enabled, and after the Loaded, Playing, Stopped, or Unloaded
+  expression, if appropriate. The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below.
+  If you want to only relay updates when the track is active (is
+  enabled, and at least one player is playing), wrap your code inside a
+  <code>when</code> expression conditioned on the
+  <code>playing-players</code> convenience variable."
+             :bindings (show-bindings-for-track-and-class CdjStatus)}
+
+   :stopped {:title "Stopped Expression"
+                  :tip "Called when all players stop playing the track, or the track is disabled."
+                  :description "Called when the track becomes disabled or when the last
+  player stops playing the track, if any had been. You can use this
+  to trigger systems that do not respond to MIDI, or to send more
+  detailed information than MIDI allows.<p>
+
+  The status update object (if any) that reported playback stopping, a
+  beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described
+  below.<p>
+
+  Note that sometimes
+  <code>status</code> will be <code>nil</code>, such as when a device
+  has disappeared or the track settings have been changed, so your
+  expression must be able to cope with <code>nil</code> values for all
+  the convenience variables that it uses."
+                  :bindings (show-bindings-for-track-and-class CdjStatus)
+                  :nil-status? true}
+
+   :unloaded {:title "Unloaded Expression"
+              :tip "Called when all players unload the track, or the track is disabled."
+              :description "Called when the track becomes disabled or when the last
+  player unloads the track, if any had it loaded. You can use this
+  to trigger systems that do not respond to MIDI, or to send more
+  detailed information than MIDI allows."
+                  :bindings (show-bindings-for-track-and-class nil)}
 
    :shutdown {:title "Shutdown Expression"
               :tip "Called once to release resources your track had been using."
@@ -271,7 +476,7 @@
   because it was deleted or the show was closed. Close and release any
   system resources (such as network connections) that you opened in
   the Setup expression."
-              :bindings nil #_(trigger-bindings-for-class nil)}))  ; TODO: Flesh out!
+              :bindings (show-bindings-for-track-and-class nil)}))
 
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
@@ -292,7 +497,7 @@
   "Determines the title for a triggers editor window. If it is from an
   individual trigger, identifies it as such."
   [kind trigger global?]
-  (let [title (get-in (if global? global-editors trigger-editors) [kind :title])]
+  (let [title (get-in (if global? global-trigger-editors trigger-editors) [kind :title])]
     (if global?
       title
       (str "Trigger " (trigger-index trigger) " " title))))
@@ -305,7 +510,7 @@
   [kind trigger global? text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
   (let [text (clojure.string/trim text)  ; Remove whitespace on either end
-        editor-info (get (if global? global-editors trigger-editors) kind)]
+        editor-info (get (if global? global-trigger-editors trigger-editors) kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it
         (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
@@ -471,7 +676,7 @@ a {
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setContentType help "text/html")
-    (.setText help (build-help kind global? (if global? global-editors trigger-editors)))
+    (.setText help (build-help kind global? (if global? global-trigger-editors trigger-editors)))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update

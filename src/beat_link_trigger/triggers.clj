@@ -1165,7 +1165,7 @@
     (when-let [exprs (:expressions m)]
       (swap! (global-user-data) assoc :expressions exprs)
       (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
-        (let [editor-info (get editors/global-editors kind)]
+        (let [editor-info (get editors/global-trigger-editors kind)]
           (try
             (swap! (global-user-data) assoc-in [:expression-fns kind]
                    (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
@@ -1194,8 +1194,8 @@
                                                                    (reset! expression-globals {})
                                                                    (run-global-function :setup))
                                                                  (update-global-expression-icons))))
-                 :name (str "Edit " (get-in editors/global-editors [kind :title]))
-                 :tip (get-in editors/global-editors [kind :tip])
+                 :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
+                 :tip (get-in editors/global-trigger-editors [kind :tip])
                  :icon (seesaw/icon (if (empty? (get-in @(global-user-data) [:expressions kind]))
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
@@ -1335,7 +1335,7 @@
                                                         menus/non-mac-file-actions))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]
-                                                        (map build-global-editor-action (keys editors/global-editors))
+                                                        (map build-global-editor-action (keys editors/global-trigger-editors))
                                                         [(seesaw/separator)
                                                          track-submenu inspect-action
                                                          (seesaw/separator) clear-triggers-action])

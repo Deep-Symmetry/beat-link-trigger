@@ -239,7 +239,7 @@
   player playing the track, run the track's Started expression, if
   there is one. Must be passed a current view of the show."
   [show player signature]
-    ;; TODO: flesh out!
+    ;; TODO: flesh out! Use key :playing
   )
 
 (defn- update-player-item-signature
@@ -1130,8 +1130,8 @@
                                                                 (reset! (:expression-globals show) {})
                                                                 (run-global-function show :setup))
                                                               (update-global-expression-icons show))))
-                 :name (str "Edit " (get-in editors/global-editors [kind :title]))
-                 :tip (get-in editors/global-editors [kind :tip])
+                 :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
+                 :tip (get-in editors/global-trigger-editors [kind :tip])
                  :icon (seesaw/icon (if (empty? (get-in show [:contents :expressions kind]))
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
