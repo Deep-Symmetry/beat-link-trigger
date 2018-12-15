@@ -911,16 +911,17 @@
   "Saves a single trigger to a file for exchange or archival
   purposes."
   [trigger]
-  (when-let [file (chooser/choose-file @trigger-frame :type "Export"
-                                       :all-files? false
-                                       :filters [["Trigger Export files" ["bltx"]]])]
-    (when-let [file (util/confirm-overwrite-file file "bltx" @trigger-frame)]
-      (try
-        (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (util/get-version)
-                                               :item                     (format-trigger trigger)})))
-        (catch Exception e
-          (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
-                        :title "Problem Writing File" :type :error))))))
+  (let [extension (util/extension-for-file-type :trigger-export)]
+    (when-let [file (chooser/choose-file @trigger-frame :type "Export"
+                                         :all-files? false
+                                         :filters [["Trigger Export files" [extension]]])]
+      (when-let [file (util/confirm-overwrite-file file extension @trigger-frame)]
+        (try
+          (spit file (with-out-str (fipp/pprint {:beat-link-trigger-export (util/get-version)
+                                                 :item                     (format-trigger trigger)})))
+          (catch Exception e
+            (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
+                          :title "Problem Writing File" :type :error)))))))
 
 (defn- trigger-configuration
   "Returns the current Trigger window configuration, so it can be
@@ -962,16 +963,17 @@
   save-as-action
   (seesaw/action :handler (fn [e]
                             (when (save-triggers-to-preferences)
-                              (when-let [file (chooser/choose-file @trigger-frame :type :save
-                                                                   :all-files? false
-                                                                   :filters [["BeatLinkTrigger configuration files"
-                                                                              ["blt"]]])]
-                                (when-let [file (util/confirm-overwrite-file file "blt" @trigger-frame)]
-                                  (try
-                                    (prefs/save-to-file file)
-                                    (catch Exception e
-                                      (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
-                                                    :title "Problem Writing File" :type :error)))))))
+                              (let [extension (util/extension-for-file-type :configuration)]
+                                (when-let [file (chooser/choose-file @trigger-frame :type :save
+                                                                     :all-files? false
+                                                                     :filters [["BeatLinkTrigger configuration files"
+                                                                                [extension]]])]
+                                  (when-let [file (util/confirm-overwrite-file file extension @trigger-frame)]
+                                    (try
+                                      (prefs/save-to-file file)
+                                      (catch Exception e
+                                        (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
+                                                      :title "Problem Writing File" :type :error))))))))
                  :name "Save to File"))
 
 (declare recreate-trigger-rows)
@@ -995,22 +997,23 @@
            :doc "The menu action which loads the configuration from a user-specified file."}
   load-action
   (seesaw/action :handler (fn [e]
-                            (when-let [file (chooser/choose-file
-                                             @trigger-frame
-                                             :all-files? false
-                                             :filters [["BeatLinkTrigger configuration files" ["blt"]]
-                                                       (chooser/file-filter "All files" (constantly true))])]
-                              (try
-                                (prefs/load-from-file file)
-                                (delete-all-triggers)
-                                (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                :items (recreate-trigger-rows))
-                                (adjust-triggers)
-                                (catch Exception e
-                                  (timbre/error e "Problem loading" file)
-                                  (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
-                                                :title "Problem Reading File" :type :error)))
-                              (check-for-parse-error)))
+                            (let [extension (util/extension-for-file-type :configuration)]
+                              (when-let [file (chooser/choose-file
+                                               @trigger-frame
+                                               :all-files? false
+                                               :filters [["BeatLinkTrigger configuration files" [extension]]
+                                                         (chooser/file-filter "All files" (constantly true))])]
+                                (try
+                                  (prefs/load-from-file file)
+                                  (delete-all-triggers)
+                                  (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                  :items (recreate-trigger-rows))
+                                  (adjust-triggers)
+                                  (catch Exception e
+                                    (timbre/error e "Problem loading" file)
+                                    (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
+                                                  :title "Problem Reading File" :type :error)))
+                                (check-for-parse-error))))
                  :name "Load from File"
                  :key "menu L"))
 
@@ -1138,20 +1141,21 @@
   "Replaces the content of a single trigger with a previously exported
   version."
   [trigger]
-  (when-let [file (chooser/choose-file
-                   @trigger-frame
-                   :all-files? false
-                   :filters [["Trigger Export files" ["bltx"]]
-                             (chooser/file-filter "All files" (constantly true))])]
-                              (try
-                                (cleanup-trigger trigger)
-                                (let [m (prefs/read-file :beat-link-trigger-export file)]
-                                  (load-trigger-from-map trigger (translate-custom-enabled (:item m))))
-                                (catch Exception e
-                                  (timbre/error e "Problem importing" file)
-                                  (seesaw/alert (str "<html>Unable to Import.<br><br>" e)
-                                                :title "Problem Importing Trigger" :type :error)))
-                              (check-for-parse-error)))
+  (let [extension (util/extension-for-file-type :trigger-export)]
+    (when-let [file (chooser/choose-file
+                     @trigger-frame
+                     :all-files? false
+                     :filters [["Trigger Export files" [extension]]
+                               (chooser/file-filter "All files" (constantly true))])]
+      (try
+        (cleanup-trigger trigger)
+        (let [m (prefs/read-file :beat-link-trigger-export file)]
+          (load-trigger-from-map trigger (translate-custom-enabled (:item m))))
+        (catch Exception e
+          (timbre/error e "Problem importing" file)
+          (seesaw/alert (str "<html>Unable to Import.<br><br>" e)
+                        :title "Problem Importing Trigger" :type :error)))
+      (check-for-parse-error))))
 
 (defn- recreate-trigger-rows
   "Reads the preferences and recreates any trigger rows that were

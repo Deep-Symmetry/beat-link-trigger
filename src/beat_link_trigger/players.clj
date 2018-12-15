@@ -227,9 +227,10 @@
            root                  (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
                                                            (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD"))
                                                :on-close :dispose :resizable? false)
+           extension             (util/extension-for-file-type :metadata)
            ^JFileChooser chooser (@#'chooser/configure-file-chooser (JFileChooser.)
                                   {:all-files? false
-                                   :filters    [["BeatLink metadata cache" ["bltm"]]]})
+                                   :filters    [["BeatLink metadata cache" [extension]]]})
            heading               (seesaw/label :text "Choose what to cache and where to save it:")
            tree                  (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
                                               :root-visible? false)
@@ -273,7 +274,7 @@
                         (if (= (.getActionCommand action) JFileChooser/APPROVE_SELECTION)
                           (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
                             (@#'chooser/remember-chooser-dir chooser)
-                            (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) "bltm" nil)]
+                            (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) extension nil)]
                               (MetadataCache/setCachePauseInterval (if (seesaw/value speed) 1000 50))
                               (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
                             (.dispose root))
@@ -604,7 +605,8 @@
                            :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
           slot-reference (SlotReference/getSlotReference (int n) slot)
           rekordbox?     (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
-                           (= CdjStatus$TrackType/REKORDBOX (.mediaType details)))]
+                           (= CdjStatus$TrackType/REKORDBOX (.mediaType details)))
+          extension      (util/extension-for-file-type :metadata)]
       (filter identity
               [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
                               :name "Load Track from Here on a Player")
@@ -620,7 +622,7 @@
                                            (when-let [file (chooser/choose-file
                                                             @player-window
                                                             :all-files? false
-                                                            :filters [["BeatLink metadata cache" ["bltm"]]])]
+                                                            :filters [["BeatLink metadata cache" [extension]]])]
                                              (try
                                                (.attachMetadataCache metadata-finder slot-reference file)
                                                (let [cache (.getMetadataCache metadata-finder slot-reference)]

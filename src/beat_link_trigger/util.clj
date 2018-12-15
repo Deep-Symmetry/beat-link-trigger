@@ -1,7 +1,8 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
   (:require [seesaw.core :as seesaw]
-            [overtone.midi :as midi])
+            [overtone.midi :as midi]
+            [me.raynes.fs :as fs])
   (:import [org.deepsymmetry.beatlink DeviceFinder]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            [javax.sound.midi Sequencer Synthesizer]
@@ -43,15 +44,55 @@
                 attributes (.getMainAttributes manifest)]
             (.getValue attributes "Build-Timestamp")))))))
 
+(def ^:private file-types
+  "A map from keywords identifying the kinds of files we work with to
+  the filename extensions we create them with and require them to
+  have."
+  {:configuration  "blt"
+   :trigger-export "bltx"
+   :metadata       "bltm"
+   :playlist       "csv"
+   :show           "bls"})
+
+(def ^:private file-extensions
+  "A map from filename extensions we use to the corresponding keyword
+  identifying that type of file."
+  (clojure.set/map-invert file-types))
+
+(defn extension-for-file-type
+  "Given a keyword identifying one of the types of files we work with,
+  return the corresponding filename extension we require."
+  [file-type]
+  (file-types file-type))
+
+(defn file-type-for-extension
+  "Given a filename extension, return the keyword identifying it as one
+  of the types of files we work with, or `nil` if we don't recognize
+  it."
+  [extension]
+  (file-extensions extension))
+
+(defn file-type
+  "Given a file, return the keyword identifying it as one of the types
+  of files we work with, or, `nil` if we don't recognize it."
+  [file]
+  (file-type-for-extension (fs/extension (clojure.java.io/file file))))
+
+(defn trim-extension
+  "Removes a file extension from the end of a string."
+  [s]
+  (let [dot (.lastIndexOf s ".")]
+    (if (pos? dot) (subs s 0 dot) s)))
+
 (defn confirm-overwrite-file
   "If the specified file already exists, asks the user to confirm that
-  they want to overwrite it. If `required-extension` is supplied, the
-  that extension is added to the end of the filename, if it is not
-  already present, before checking. Returns the file to write if the
-  user confirmed overwrite, or if a conflicting file did not already
-  exist, and `nil` if the user said to cancel the operation. If a
-  non-`nil` window is passed in `parent`, the confirmation dialog will
-  be centered over it."
+  they want to overwrite it. If `required-extension` is supplied, that
+  extension is added to the end of the filename, if it is not already
+  present, before checking. Returns the file to write if the user
+  confirmed overwrite, or if a conflicting file did not already exist,
+  and `nil` if the user said to cancel the operation. If a non-`nil`
+  window is passed in `parent`, the confirmation dialog will be
+  centered over it."
   [file required-extension parent]
   (when file
     (let [required-extension (if (.startsWith required-extension ".")

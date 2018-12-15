@@ -114,20 +114,21 @@
         (seesaw/config! button :text "Start")
         (seesaw/config! status :text idle-status)
         (reset! file-atom nil))
-      (when-let [file (util/confirm-overwrite-file
-                       (seesaw.chooser/choose-file frame :type :save
-                                                   :filters [["Playlist CSV files" ["csv"]]]
-                                                   :all-files? false)
-                       "csv"
-                       frame)]
-        (try
-          (with-open [writer (clojure.java.io/writer file)]
-            (csv/write-csv writer [["Title" "Artist" "Album" "Player" "Source" "Started" "Stopped" "Play Time"]]))
-          (reset! file-atom file)
-          (seesaw/config! button :text "Stop")
-          (seesaw/config! status :text (str "Writing to " (.getName file)))
-          (catch Throwable t
-            (timbre/error t "Problem creating playlist file" file)))))))
+      (let [extension (util/extension-for-file-type :playlist)]
+        (when-let [file (util/confirm-overwrite-file
+                         (seesaw.chooser/choose-file frame :type :save
+                                                     :filters [["Playlist CSV files" [extension]]]
+                                                     :all-files? false)
+                         extension
+                         frame)]
+          (try
+            (with-open [writer (clojure.java.io/writer file)]
+              (csv/write-csv writer [["Title" "Artist" "Album" "Player" "Source" "Started" "Stopped" "Play Time"]]))
+            (reset! file-atom file)
+            (seesaw/config! button :text "Stop")
+            (seesaw/config! status :text (str "Writing to " (.getName file)))
+            (catch Throwable t
+              (timbre/error t "Problem creating playlist file" file))))))))
 
 (defn- format-play-time
   "Formats the number of seconds a track has been playing as minutes:seconds"

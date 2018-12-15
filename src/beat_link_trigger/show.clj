@@ -1018,21 +1018,22 @@
   the show map."
   [show]
   (seesaw/action :handler (fn [e]
-                            (when-let [file (chooser/choose-file (:frame show) :type :save
-                                                                 :all-files? false
-                                                                 :filters [["BeatLinkTrigger Show files"
-                                                                            ["bls"]]])]
-                              (if (get @open-shows file)
-                                (seesaw/alert (:frame show) "Cannot Replace an Open Show."
-                                              :title "Destination is Already Open" :type :error)
-                                (when-let [file (util/confirm-overwrite-file file "bls" (:frame show))]
+                            (let [extension (util/extension-for-file-type :show)]
+                              (when-let [file (chooser/choose-file (:frame show) :type :save
+                                                                   :all-files? false
+                                                                   :filters [["BeatLinkTrigger Show files"
+                                                                              [extension]]])]
+                                (if (get @open-shows file)
+                                  (seesaw/alert (:frame show) "Cannot Replace an Open Show."
+                                                :title "Destination is Already Open" :type :error)
+                                  (when-let [file (util/confirm-overwrite-file file extension (:frame show))]
 
-                                  (try
-                                    (save-show-as show file)
-                                    (catch Throwable t
-                                      (timbre/error t "Problem Saving Show as" file)
-                                      (seesaw/alert (:frame show) (str "<html>Unable to Save As " file ".<br><br>" t)
-                                                    :title "Problem Saving Show Copy" :type :error)))))))
+                                    (try
+                                      (save-show-as show file)
+                                      (catch Throwable t
+                                        (timbre/error t "Problem Saving Show as" file)
+                                        (seesaw/alert (:frame show) (str "<html>Unable to Save As " file ".<br><br>" t)
+                                                      :title "Problem Saving Show Copy" :type :error))))))))
                  :name "Save As"))
 
 (defn- build-import-offline-action
@@ -1221,7 +1222,8 @@
   (util/load-fonts)
   (let [[filesystem contents] (open-show-filesystem file)]
     (try
-      (let [root            (seesaw/frame :title (str "Beat Link Show: " (.getPath file)) :on-close :dispose)
+      (let [root            (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
+                                          :on-close :dispose)
             import-menu     (seesaw/menu :text "Import Track")
             show            {:frame       root
                              :expression-globals (atom {})
@@ -1352,7 +1354,7 @@
   [parent]
 (when-let [file (chooser/choose-file parent :type :open
                                      :all-files? false
-                                     :filters [["BeatLinkTrigger Show files" ["bls"]]])]
+                                     :filters [["BeatLinkTrigger Show files" [(util/extension-for-file-type :show)]]])]
   (open-internal parent file)))
 
 (defn reopen-previous-shows
@@ -1367,24 +1369,25 @@
 (defn new
   "Creates a new show file and opens a window on it."
   [parent]
-  (when-let [file (chooser/choose-file parent :type :save
-                                       :all-files? false
-                                       :filters [["BeatLinkTrigger Show files"
-                                                  ["bls"]]])]
-    (let [file (.getCanonicalFile file)]
-      (if (get @open-shows file)
-        (seesaw/alert parent "Cannot Replace an Open Show."
-                      :title "Show is Already Open" :type :error)
-        (when-let [file (util/confirm-overwrite-file file "bls" parent)]
-          (try
-            (Files/deleteIfExists (.toPath file))
-            (let [file-uri (.toUri (.toPath file))]
-              (with-open [filesystem (FileSystems/newFileSystem (java.net.URI. (str "jar:" (.getScheme file-uri))
-                                                                               (.getPath file-uri) nil)
-                                                                {"create" "true"})]
-                (write-edn-path {:type ::show :version 1} (build-filesystem-path filesystem "contents.edn"))))
-            (create-show-window file)
-            (catch Throwable t
-              (timbre/error t "Problem creating show")
-              (seesaw/alert parent (str "<html>Unable to Create Show.<br><br>" t)
-                            :title "Problem Writing File" :type :error))))))))
+  (let [extension (util/extension-for-file-type :show)]
+    (when-let [file (chooser/choose-file parent :type :save
+                                         :all-files? false
+                                         :filters [["BeatLinkTrigger Show files"
+                                                    [extension]]])]
+      (let [file (.getCanonicalFile file)]
+        (if (get @open-shows file)
+          (seesaw/alert parent "Cannot Replace an Open Show."
+                        :title "Show is Already Open" :type :error)
+          (when-let [file (util/confirm-overwrite-file file extension parent)]
+            (try
+              (Files/deleteIfExists (.toPath file))
+              (let [file-uri (.toUri (.toPath file))]
+                (with-open [filesystem (FileSystems/newFileSystem (java.net.URI. (str "jar:" (.getScheme file-uri))
+                                                                                 (.getPath file-uri) nil)
+                                                                  {"create" "true"})]
+                  (write-edn-path {:type ::show :version 1} (build-filesystem-path filesystem "contents.edn"))))
+              (create-show-window file)
+              (catch Throwable t
+                (timbre/error t "Problem creating show")
+                (seesaw/alert parent (str "<html>Unable to Create Show.<br><br>" t)
+                              :title "Problem Writing File" :type :error)))))))))
