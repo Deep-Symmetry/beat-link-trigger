@@ -140,6 +140,12 @@
     (.drawString g text (.. c (getInsets) left)
                  (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
 
+(defn show-popup-from-button
+  "Displays a popup menu when the gear button is clicked as an
+  ordinary mouse event."
+  [target popup event]
+  (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
+
 (defmacro case-enum
   "Like `case`, but explicitly dispatch on Java enum ordinals."
   {:style/indent 1}

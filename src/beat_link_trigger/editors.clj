@@ -5,6 +5,7 @@
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [me.raynes.fs :as fs]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
@@ -93,7 +94,7 @@
            :tip "Called once to set up any state your triggers&rsquo;
            expressions may need."
            :description
-           "Called once when the triggers are loaded, or when you edit
+           "Called once when the triggers are loaded, or when you update
   the expression. Set up any global state (such as counters, flags, or
   network connections) that your expressions within any trigger need.
   Use the Global Shutdown expression to clean up resources when the
@@ -118,7 +119,7 @@
    :setup {:title "Setup Expression"
            :tip "Called once to set up any state your other expressions may need."
            :description
-           "Called once when the triggers are loaded, or when you edit the
+           "Called once when the triggers are loaded, or when you update the
   expression. Set up any state (such as counters, flags, or network
   connections) that your other expressions for this trigger need. Use
   the Shutdown expression to clean up resources when the trigger is
@@ -229,7 +230,7 @@
   along with the expression that will be used to automatically bind
   that symbol if it is used in the expression, and the documentation
   to show the user what the binding is for."
-  {'show {:code '(deref delayed-show-data)
+  {'show {:code '(:show trigger-data)
           :doc "All the details known about the show. Copy to an
   Expression Global if you want to use the Inspector to
   explore them."}})
@@ -247,60 +248,60 @@
   expression, along with the expression that will be used to
   automatically bind that symbol if it is used in the expression, and
   the documentation to show the user what the binding is for."
-  {'track {:code '(deref delayed-track-data)
+  {'track {:code '(:track trigger-data)
            :doc "All the details known about the track. Copy to an
   Expression Global if you want to use the Inspector to
   explore them."}
 
    'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
-                         (deref delayed-track-data))
+                         (:track trigger-data))
                  :doc "The MIDI output object chosen for this
   track. May be <code>nil</code> if the output device cannot be
   found in the current MIDI environment."}
 
-   'loaded-message {:code '(get-in (deref delayed-track-data)
+   'loaded-message {:code '(get-in (:track trigger-data)
                                    [:contents :loaded-message])
                     :doc "The type of MIDI message to be sent when
   the track is loaded; one of <code>\"None\"</code>,
   <code>\"Note\"</code>, <code>\"CC\"</code>, or
   <code>\"Custom\"</code>."}
 
-   'loaded-note {:code '(get-in (deref delayed-track-data)
+   'loaded-note {:code '(get-in (:track trigger-data)
                                 [:contents :loaded-note])
                  :doc "The MIDI note or CC number sent when the track
   is loaded or unloaded."}
 
-   'loaded-channel {:code '(get-in (deref delayed-track-data)
+   'loaded-channel {:code '(get-in (:track trigger-data)
                                    [:contents :loaded-channel])
                     :doc "The MIDI channel on which track load and
   unload messages are sent."}
 
-   'loaded-players {:code '(:loaded (deref delayed-track-data))
+   'loaded-players {:code '(:loaded (:track trigger-data))
                     :doc "The set of player numbers that currently
   have this track loaded, if any."}
 
-   'playing-message {:code '(get-in (deref delayed-track-data)
+   'playing-message {:code '(get-in (:track trigger-data)
                                     [:contents :playing-message])
                      :doc "The type of MIDI message to be sent when
   the track starts playing; one of <code>\"None\"</code>,
   <code>\"Note\"</code>, <code>\"CC\"</code>, or
   <code>\"Custom\"</code>."}
 
-   'playing-note {:code '(get-in (deref delayed-track-data)
+   'playing-note {:code '(get-in (:track trigger-data)
                                  [:contents :playing-note])
                   :doc "The MIDI note or CC number sent when the track
   starts or stops playing."}
 
-   'playing-channel {:code '(get-in (deref delayed-track-data)
+   'playing-channel {:code '(get-in (:track trigger-data)
                                     [:contents :playing-channel])
                      :doc "The MIDI channel on which track playing
   messages are sent."}
 
-   'track-enabled {:code '(let [local (get-in (deref delayed-track-data)
+   'track-enabled {:code '(let [local (get-in (:track trigger-data)
                                               [:contents :enabled])]
                             (if (= "Default" local)
-                              (get-in (deref delayed-show-data)
-                                      [:contents enabled])
+                              (get-in (:show trigger-data)
+                                      [:contents :enabled])
                               local))
                    :doc "The conditions under which the track is
   enabled to send MIDI; one of <code>\"Never\"</code>,
@@ -309,7 +310,7 @@
   is configured as \"Default\", the show's Enabled Default value is
   returned.)"}
 
-   'playing-players {:code '(:playing (deref delayed-track-data))
+   'playing-players {:code '(:playing (:track trigger-data))
                      :doc "The set of player numbers that are currently
   playing this track, if any."}})
 
@@ -333,7 +334,7 @@
            :tip "Called once to set up any state your show&rsquo;s
            expressions may need."
            :description
-           "Called once when the show is loaded, or when you edit the
+           "Called once when the show is loaded, or when you update the
   expression. Set up any global state (such as counters, flags, or
   network connections) that your expressions within any track or cue
   need. Use the Global Shutdown expression to clean up resources when
@@ -357,9 +358,9 @@
    :setup {:title "Setup Expression"
            :tip "Called once to set up any state your other expressions may need."
            :description
-           "Called once when the show is loaded, or when you edit the
+           "Called once when the show is loaded, or when you update the
   expression. Set up any state (such as counters, flags, or network
-  connections) that your other expressions for this trigger need. Use
+  connections) that your other expressions for this track need. Use
   the Shutdown expression to clean up resources when the show is
   shutting down."
            :bindings (show-bindings-for-track-and-class nil)}
@@ -381,7 +382,7 @@
    :loaded {:title "Loaded Expression"
             :tip "Called when a player loads this track, if enabled."
             :description
-            "Called when the trigger is enabled and the first player loads
+            "Called when the track is enabled and the first player loads
   this track. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
@@ -390,7 +391,7 @@
    :playing {:title "Playing Expression"
              :tip "Called when a player plays this track, if enabled."
              :description
-             "Called when the trigger is enabled and the first player starts
+             "Called when the track is enabled and the first player starts
   playing this track. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows.<p>
@@ -423,7 +424,7 @@
              :description
              "Called whenever a status update packet is received from
   a player that has this track loaded, after the Enabled Filter
-  Expression, if any, has had a chance to decide if the trigger is
+  Expression, if any, has had a chance to decide if the track is
   enabled, and after the Loaded, Playing, Stopped, or Unloaded
   expression, if appropriate. The status update object, a beat-link <a
   href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
@@ -564,8 +565,8 @@
   [kind show track]
   (let [title (get-in (if track show-track-editors global-show-editors) [kind :title])]
     (if track
-      (str "Track \"" (get-in show [:tracks (:signature track) :metadata :title]) "\" " title)
-      (str "Show \"" (.getName (:file show)) "\" " title))))
+      (str title " for Track \"" (get-in show [:tracks (:signature track) :metadata :title]) "\"")
+      (str "Show \"" (fs/base-name (:file show) true) "\" " title))))
 
 (defn update-show-expression
   "Called when an show window expression's editor is ending and the user
@@ -626,8 +627,9 @@ a {
 }
 </style></head>")
 
-(defn- build-help
-  "Create the help information for an editor with the specified kind."
+(defn- build-triggers-help
+  "Create the help information for a triggers window editor with the
+  specified kind."
   [kind global? editors]
   (let [editor-info (get editors kind)]
     (clojure.string/join (concat [help-header "<h1>Description</h1>"
@@ -676,7 +678,7 @@ a {
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setContentType help "text/html")
-    (.setText help (build-help kind global? (if global? global-trigger-editors trigger-editors)))
+    (.setText help (build-triggers-help kind global? (if global? global-trigger-editors trigger-editors)))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -717,6 +719,30 @@ a {
     (catch Exception e
       (timbre/error e "Problem showing trigger" kind "editor"))))
 
+;; TODO: Provide access to trigger-globals from show expressions and document that here, or
+;;       reword build-trigger-help.
+(defn- build-show-help
+  "Create the help information for a show window editor with the
+  specified kind."
+  [kind global? editors]
+  (let [editor-info (get editors kind)]
+    (clojure.string/join (concat [help-header "<h1>Description</h1>"
+                                  (:description editor-info)
+                                  "<p>The "
+                                  (when-not global? "atom
+  <code>locals</code> is available for use by all expressions on this
+  track, and the ")
+                                  "atom <code>globals</code> is shared across all expressions in this show."]
+                                 (when (seq (:bindings editor-info))
+                                      (concat ["
+
+  <h1>Values Available</h1>
+
+  The following values are available for you to use in writing your expression:<dl>"]
+                                              (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
+                                                (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
+                                 ["</dl>"]))))
+
 (defn- create-show-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Show window expression, with an update function to be
@@ -743,7 +769,7 @@ a {
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setContentType help "text/html")
-    (.setText help (build-help kind (not track) (if track show-track-editors global-show-editors)))
+    (.setText help (build-show-help kind (not track) (if track show-track-editors global-show-editors)))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -782,7 +808,9 @@ a {
   ;; We need to use `show-map` instead of `show` as the argument name so we can call the show function
   ;; defined in the editor's `IExpressionEditor` implemntation. D'ohh!
   (try
-    (let [editor (or (get-in show-map [:expression-editors kind])
+    (let [editor (or (get-in show-map (if track
+                                        [:tracks (:signature track) :expression-editors kind]
+                                        [:expression-editors kind]))
                      (create-show-editor-window open-shows kind show-map track parent-frame update-fn))]
       (show editor))
     (catch Throwable t

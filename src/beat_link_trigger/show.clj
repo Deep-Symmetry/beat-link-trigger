@@ -464,10 +464,19 @@
     (catch Exception e
       (timbre/error e "Problem showing Track MIDI status."))))
 
+(defn- update-gear-icon
+  "Determines whether the gear button for a track should be hollow or
+  filled in, depending on whether any expressions have been assigned
+  to it."  ; TODO: Or cues, once implemented?
+  [track gear]
+  (seesaw/config! gear :icon (if (every? empty? (vals (get-in (latest-track track) [:contents :expressions])))
+                               (seesaw/icon "images/Gear-outline.png")
+                               (seesaw/icon "images/Gear-icon.png"))))
+
 (defn- attach-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
   changed, the appropriate UI elements are shown or hidden."
-  [track kind]
+  [show track kind gear]
   (let [panel           (:panel track)
         message-menu    (seesaw/select panel [(keyword (str "#" kind "-message"))])
         note-spinner    (seesaw/select panel [(keyword (str "#" kind "-note"))])
@@ -475,9 +484,14 @@
         channel-spinner (seesaw/select panel [(keyword (str "#" kind "-channel"))])]
     (seesaw/listen message-menu
                    :action-performed (fn [_]
-                                       (let [choice (seesaw/selection message-menu)]
-                                         ;; TODO: Pop up custom editor if Custom chosen and expression empty.
-                                         ;; (see Triggers implementation)
+                                       (let [choice (seesaw/selection message-menu)
+                                             track  (latest-track track)]
+                                         (when (and (= "Custom" choice)
+                                                    (not (:creating track))
+                                                    (empty? (get-in track [:contents :expressions (keyword kind)]))
+                                                    (editors/show-show-editor open-shows (keyword kind)
+                                                                              (latest-show show) track panel
+                                                                              #(update-gear-icon panel gear))))
                                          (if (= "None" choice)
                                            (seesaw/hide! [note-spinner label channel-spinner])
                                            (seesaw/show! [note-spinner label channel-spinner])))))))
@@ -611,6 +625,37 @@
                                        :minimum-size   (java.awt.Dimension. 408 56)
                                        :preferred-size (java.awt.Dimension. 608 88)}))
 
+(defn save-track-contents
+  "Saves the contents maps for any tracks that have changed them."
+  [show]
+  (doseq [track (vals (:tracks (latest-show show)))]
+    (let [contents (:contents track)]
+      (when (not= contents (:original-contents track))
+        (write-edn-path contents (.resolve (build-track-path show (:signature track)) "contents.edn"))
+        (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :original-contents] contents)))))
+
+(defn- run-track-function
+  "Checks whether the track has a custom function of the specified kind
+  installed and if so runs it with the supplied status argument and
+  the track local and global atoms. Returns a tuple of the function
+  return value and any thrown exception. If `alert?` is `true` the
+  user will be alerted when there is a problem running the function."
+  [show track kind status alert?]
+  (let [show  (latest-show show)
+        track (latest-track track)]
+    (when-let [expression-fn (get-in track [:expression-fns kind])]
+      (try
+        [(expression-fn status {:locals (:expression-locals track)
+                                :show   show
+                                :track  track} (:expression-globals show)) nil]
+        (catch Throwable t
+          (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
+                               (get-in track [:contents :expressions kind])))
+          (when alert?
+            (seesaw/alert (str "<html>Problem running track " (name kind) " expression.<br><br>" t)
+                          :title "Exception in Show Track Expression" :type :error))
+          [nil t])))))
+
 (defn- format-artist-album
   [metadata]
   (clojure.string/join ": " (filter identity (map util/remove-blanks [(:artist metadata) (:album metadata)]))))
@@ -733,27 +778,67 @@
                                                          :listen [:item-state-changed
                                                                   #(assoc-track-content show signature :enabled
                                                                                         (seesaw/value %))])
-                                        "hidemode 3"]])]
+                                        "hidemode 3"]])
 
-    (let [track {:file              (:file show)
-                 :signature         signature
-                 :metadata          metadata
-                 :contents          contents
-                 :original-contents contents
-                 :panel             panel
-                 :filter            (build-filter-target metadata comment)
-                 :preview           preview-loader
-                 :loaded            #{}   ; The players that have this loaded.
-                 :playing           #{}}] ; The players actively playing this.
-      (swap! open-shows assoc-in [(:file show) :tracks signature] track)
-      (swap! open-shows assoc-in [(:file show) :panels panel] signature)
+        track          {:file              (:file show)
+                        :signature         signature
+                        :metadata          metadata
+                        :contents          contents
+                        :original-contents contents
+                        :panel             panel
+                        :filter            (build-filter-target metadata comment)
+                        :preview           preview-loader
+                        :expression-locals (atom {})
+                        :creating          true ; Suppress popup expression editors when reopening a show.
+                        :loaded            #{}  ; The players that have this loaded.
+                        :playing           #{}} ; The players actively playing this.
 
-      ;; Update output status when selection changes, giving a chance for the other handler to run first
-      ;; so the data is ready.
-      (seesaw/listen (seesaw/select panel [:#outputs])
-                     :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
-      (attach-message-visibility-handler track "loaded")
-      (attach-message-visibility-handler track "playing"))
+        delete-action  (seesaw/action :handler (fn [_]
+                                                 (seesaw/alert "Not yet implemented!")))
+        inspect-action (seesaw/action :handler (fn [_]
+                                                 (inspector/inspect @(:expression-locals track)
+                                                                    :window-name (str "Expression Locals for "
+                                                                                      (:title (:metadata track)))))
+                                      :name "Inspect Expression Locals"
+                                      :tip "Examine any values set as Track locals by its Expressions.")
+        editor-actions (fn []
+                         (for [[kind spec] editors/show-track-editors]
+                           (let [update-fn (fn []
+                                             (when (= kind :setup)  ; Clean up then run the new setup function
+                                               (run-track-function show track :shutdown nil true)
+                                               (reset! (:expression-locals track) {})
+                                               (run-track-function show track :setup nil true))
+                                             (update-gear-icon track gear))]
+                             (seesaw/action :handler (fn [e] (editors/show-show-editor
+                                                              open-shows kind (latest-show show)
+                                                              (latest-track track) panel update-fn))
+                                            :name (str "Edit " (:title spec))
+                                            :tip (:tip spec)
+                                            :icon (if (empty? (get-in track [:contents :expressions kind]))
+                                                    "images/Gear-outline.png"
+                                                    "images/Gear-icon.png")))))
+        popup-fn       (fn [e] (concat (editor-actions)
+                                       [(seesaw/separator) inspect-action (seesaw/separator)]
+                                       #_(copy-actions)))]  ; TODO: implement!
+
+    (swap! open-shows assoc-in [(:file show) :tracks signature] track)
+    (swap! open-shows assoc-in [(:file show) :panels panel] signature)
+
+    ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
+    ;; or right click on the gear button. Also set the proper initial gear appearance.
+    (seesaw/config! [panel gear] :popup popup-fn)
+    (seesaw/listen gear
+                   :mouse-pressed (fn [e]
+                                    (let [popup (seesaw/popup :items (popup-fn e))]
+                                      (util/show-popup-from-button gear popup e))))
+    (update-gear-icon track gear)
+
+    ;; Update output status when selection changes, giving a chance for the other handlers to run first
+    ;; so the data is ready.
+    (seesaw/listen (seesaw/select panel [:#outputs])
+                   :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
+    (attach-message-visibility-handler show track "loaded" gear)
+    (attach-message-visibility-handler show track "playing" gear)
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
@@ -767,7 +852,19 @@
     (assoc-track-content show signature :loaded-note (seesaw/value (seesaw/select panel [:#loaded-note])))
     (assoc-track-content show signature :loaded-channel (seesaw/value (seesaw/select panel [:#loaded-channel])))
     (assoc-track-content show signature :playing-note (seesaw/value (seesaw/select panel [:#playing-note])))
-    (assoc-track-content show signature :playing-channel (seesaw/value (seesaw/select panel [:#playing-channel])))))
+    (assoc-track-content show signature :playing-channel (seesaw/value (seesaw/select panel [:#playing-channel])))
+
+    ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
+    ;; the user requests a custom message.
+    (swap! open-shows update-in [(:file show) :tracks signature] dissoc :creating)))
+
+(defn- cleanup-track
+  "Process the removal of a track, either via deletion, or because the
+  show is closing."
+  [show track]
+  (run-track-function show track :shutdown nil true)
+  (doseq [editor (vals (:expression-editors (latest-track track)))]
+    (editors/dispose editor)))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
@@ -930,15 +1027,6 @@
           (when @ext-atom (.. @ext-atom _io close))
           (catch Throwable t
             (timbre/error t "Problem closing parsed rekordbox file" ext-file)))))))
-
-(defn save-track-contents
-  "Saves the contents maps for any tracks that have changed them."
-  [show]
-  (doseq [track (vals (:tracks (latest-show show)))]
-    (let [contents (:contents track)]
-      (when (not= contents (:original-contents track))
-        (write-edn-path contents (.resolve (build-track-path show (:signature track)) "contents.edn"))
-        (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :original-contents] contents)))))
 
 (defn- save-show
   "Saves the show to its file, making sure the latest changes are safely
@@ -1134,17 +1222,18 @@
                  :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
                  :tip (get-in editors/global-trigger-editors [kind :tip])
                  :icon (seesaw/icon (if (empty? (get-in show [:contents :expressions kind]))
-                                       "images/Gear-outline.png"
-                                       "images/Gear-icon.png"))))
+                                      "images/Gear-outline.png"
+                                      "images/Gear-icon.png"))))
 
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map and the
   import submenu."
   [show]
-  (let [inspect-action   (seesaw/action :handler (fn [e] (inspector/inspect @(:expression-globals show)
-                                                                            :window-name "Show Expression Globals"))
-                                        :name "Inspect Expression Globals"
-                                        :tip "Examine any values set as globals by any Track Expressions.")]
+  (let [title          (str "Expression Globals for Show " (util/trim-extension (.getPath (:file show))))
+        inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @(:expression-globals show)
+                                                                          :window-name title))
+                                      :name "Inspect Expression Globals"
+                                      :tip "Examine any values set as globals by any Track Expressions.")]
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items [(build-save-action show) (build-save-as-action show) (seesaw/separator)
                                                  (build-close-action show)])
@@ -1297,14 +1386,20 @@
                          (.removeDeviceAnnouncementListener device-finder dev-listener)
                          (.removeLifecycleListener metadata-finder mf-listener)
                          (.removeSignatureListener signature-finder sig-listener)
+                         (let [show (latest-show show)]
+                           (doseq [track (vals (:tracks show))]
+                             (cleanup-track show track))
+                           (run-global-function show :shutdown)
+                           (doseq [editor (vals (:expression-editors show))]
+                             (editors/dispose editor)))
                          (try
                            (save-show show false)
                            (catch Throwable t
                              (timbre/error t "Problem closing Show file.")
                              (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
                                            :title "Problem Closing Show" :type :error)))
-                         (run-global-function show :shutdown)
-                         (swap! open-shows dissoc file)
+                         (seesaw/invoke-later  ; Give windows time to close so they don't recreate a broken show.
+                          (swap! open-shows dissoc file))
                          (swap! util/window-positions dissoc window-name))
                        #{:component-moved :component-resized}
                        (fn [e]

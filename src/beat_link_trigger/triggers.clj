@@ -99,7 +99,7 @@
                                (get-in data [:expressions kind])))
           (when alert?
             (seesaw/alert (str "<html>Problem running trigger " (name kind) " expression.<br><br>" t)
-                          :title "Exception in Custom Expression" :type :error))
+                          :title "Exception in Trigger Expression" :type :error))
           [nil t])))))
 
 (defn- run-custom-enabled
@@ -588,12 +588,6 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
-(defn- show-popup-from-button
-  "Displays the popup menu when the gear button is clicked as an
-  ordinary mouse event."
-  [target popup event]
-  (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
-
 (defn- cleanup-trigger
   "Process the removal of a trigger, either via deletion, or importing
   a different trigger on top of it."
@@ -783,7 +777,7 @@
      (seesaw/listen gear
                     :mouse-pressed (fn [e]
                                      (let [popup (seesaw/popup :items (popup-fn e))]
-                                       (show-popup-from-button gear popup e))))
+                                       (util/show-popup-from-button gear popup e))))
 
      ;; Attach the custom paint function to render the graphical trigger state
      (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))

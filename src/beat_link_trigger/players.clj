@@ -644,12 +644,6 @@
        (.getName (clojure.java.io/file (.getName cache))) ", "
        (.-trackCount cache) " tracks"))
 
-(defn- show-popup-from-button
-  "Displays the popup menu when the gear button is clicked as an
-  ordinary mouse event."
-  [target popup event]
-  (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
-
 (defn- warn-about-stale-cache
   "Warn the user that a cache that has just attached seems outdated."
   [zip-file media-details]
@@ -765,11 +759,11 @@
     (seesaw/listen usb-gear
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (slot-popup n :usb e))]
-                                      (show-popup-from-button usb-gear popup e))))
+                                      (util/show-popup-from-button usb-gear popup e))))
     (seesaw/listen sd-gear
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (slot-popup n :sd e))]
-                                      (show-popup-from-button sd-gear popup e))))
+                                      (util/show-popup-from-button sd-gear popup e))))
 
     ;; Set up all our listeners to automatically update the interface when the environment changes.
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
