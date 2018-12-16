@@ -148,8 +148,11 @@
   show file, then reopens it."
   [show]
   (let [{:keys [file filesystem]} show]
+    (swap! open-shows update file dissoc :filesystem)
     (try
       (.close filesystem)
+      (catch Throwable t
+        (timbre/error t "Problem flushing show filesystem!"))
       (finally
         (let [[reopened-filesystem] (open-show-filesystem file)]
           (swap! open-shows assoc-in [file :filesystem] reopened-filesystem))))))
@@ -744,18 +747,21 @@
                                                              "configuration, expressions, and cues created for it.")
                                                   :type :question :title "Delete Track?")
                               (try
-                                (let [track-root (build-track-path show (:signature track))]
+                                (let [show       (latest-show show)
+                                      track-root (build-track-path show (:signature track))]
                                   (doseq [path (-> (Files/walk (.toAbsolutePath track-root)
                                                                (make-array java.nio.file.FileVisitOption 0))
                                                    (.sorted #(compare (str %2) (str %1)))
                                                    .iterator
                                                    iterator-seq)]
-                                    (Files/delete path)))
+                                    #_(timbre/info "Trying to delete:" (str path))
+                                    #_(timbre/info "Exists?" (Files/isReadable path))
+                                    (Files/delete path)
+                                    #_(timbre/info "Still there?" (Files/isReadable path))))
                                 (swap! open-shows update-in [(:file show) :tracks] dissoc (:signature track))
                                 (swap! open-shows update-in [(:file show) :panels] dissoc panel)
                                 (refresh-signatures show)
                                 (update-track-visibility show)
-                                (flush-show show)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting track")
                                   (seesaw/alert "Problem deleting track:" e)))))
