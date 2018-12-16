@@ -668,6 +668,55 @@
         preview-width (max 408 (* text-width 3))]
     ["" (str "[]unrelated[fill, " text-width "]unrelated[fill, " preview-width "]")]))
 
+(defn- edit-cues-action
+  "Creates the menu action which opens the track's cue editor window."
+  [show track panel gear]
+  (seesaw/action :handler (fn [_]
+                            (seesaw/alert panel "Not yet implemented!"))
+                 :name "Edit Track Cues"
+                 :tip "Set up cues that react to particular sections of the track being played."
+                 :icon (if (empty? (get-in track [:contents :cues]))
+                         "images/Gear-outline.png"
+                         "images/Gear-icon.png")))
+
+(defn- editor-actions
+  "Creates the popup menu actions corresponding to the available
+  expression editors for a given track."
+  [show track panel gear]
+  (for [[kind spec] editors/show-track-editors]
+    (let [update-fn (fn []
+                      (when (= kind :setup)  ; Clean up then run the new setup function
+                        (run-track-function show track :shutdown nil true)
+                        (reset! (:expression-locals track) {})
+                        (run-track-function show track :setup nil true))
+                      (update-gear-icon track gear))]
+      (seesaw/action :handler (fn [e] (editors/show-show-editor
+                                       open-shows kind (latest-show show)
+                                       (latest-track track) panel update-fn))
+                     :name (str "Edit " (:title spec))
+                     :tip (:tip spec)
+                     :icon (if (empty? (get-in track [:contents :expressions kind]))
+                             "images/Gear-outline.png"
+                             "images/Gear-icon.png")))))
+
+(defn- inspect-action
+  "Creates the menu action which allows a track's local bindings to be
+  inspected."
+  [track]
+  (seesaw/action :handler (fn [_]
+                            (inspector/inspect @(:expression-locals track)
+                                               :window-name (str "Expression Locals for "
+                                                                 (:title (:metadata track)))))
+                 :name "Inspect Expression Locals"
+                 :tip "Examine any values set as Track locals by its Expressions."))
+
+(defn- copy-actions
+  "Returns a set of menu actions which offer to copy the track to any
+  other open shows which do not already contain it."
+  [show track]
+  ;; TODO: Implement!
+  )
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately."
@@ -795,31 +844,10 @@
 
         delete-action  (seesaw/action :handler (fn [_]
                                                  (seesaw/alert "Not yet implemented!")))
-        inspect-action (seesaw/action :handler (fn [_]
-                                                 (inspector/inspect @(:expression-locals track)
-                                                                    :window-name (str "Expression Locals for "
-                                                                                      (:title (:metadata track)))))
-                                      :name "Inspect Expression Locals"
-                                      :tip "Examine any values set as Track locals by its Expressions.")
-        editor-actions (fn []
-                         (for [[kind spec] editors/show-track-editors]
-                           (let [update-fn (fn []
-                                             (when (= kind :setup)  ; Clean up then run the new setup function
-                                               (run-track-function show track :shutdown nil true)
-                                               (reset! (:expression-locals track) {})
-                                               (run-track-function show track :setup nil true))
-                                             (update-gear-icon track gear))]
-                             (seesaw/action :handler (fn [e] (editors/show-show-editor
-                                                              open-shows kind (latest-show show)
-                                                              (latest-track track) panel update-fn))
-                                            :name (str "Edit " (:title spec))
-                                            :tip (:tip spec)
-                                            :icon (if (empty? (get-in track [:contents :expressions kind]))
-                                                    "images/Gear-outline.png"
-                                                    "images/Gear-icon.png")))))
-        popup-fn       (fn [e] (concat (editor-actions)
-                                       [(seesaw/separator) inspect-action (seesaw/separator)]
-                                       #_(copy-actions)))]  ; TODO: implement!
+        popup-fn       (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
+                                       (editor-actions show track panel gear)
+                                       [(seesaw/separator) (inspect-action track) (seesaw/separator)]
+                                       (copy-actions show track)))]
 
     (swap! open-shows assoc-in [(:file show) :tracks signature] track)
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)
@@ -1112,7 +1140,7 @@
                                         (timbre/error t "Problem Saving Show as" file)
                                         (seesaw/alert (:frame show) (str "<html>Unable to Save As " file ".<br><br>" t)
                                                       :title "Problem Saving Show Copy" :type :error))))))))
-                 :name "Save As"))
+                 :name "Save a Copy"))
 
 (defn- build-import-offline-action
   "Creates the menu action to import a track from offline media, given
