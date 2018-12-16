@@ -699,7 +699,7 @@
                                        (latest-track track) panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
-                     :icon (if (empty? (get-in track [:contents :expressions kind]))
+                     :icon (if (empty? (get-in (latest-track track) [:contents :expressions kind]))
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
 
