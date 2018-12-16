@@ -97,8 +97,7 @@
   to keep the keys in the order they are found here."
   (array-map
    :setup {:title "Global Setup Expression"
-           :tip "Called once to set up any state your triggers&rsquo;
-           expressions may need."
+           :tip "Called once to set up any state your trigger expressions may need."
            :description
            "Called once when the triggers are loaded, or when you update
   the expression. Set up any global state (such as counters, flags, or
@@ -337,8 +336,7 @@
   to keep the keys in the order they are found here."
   (array-map
    :setup {:title "Global Setup Expression"
-           :tip "Called once to set up any state your show&rsquo;s
-           expressions may need."
+           :tip "Called once to set up any state your show expressions may need."
            :description
            "Called once when the show is loaded, or when you update the
   expression. Set up any global state (such as counters, flags, or
