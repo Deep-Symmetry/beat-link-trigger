@@ -11,6 +11,7 @@
             [clojure.edn :as edn]
             [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
+            [me.raynes.fs :as fs]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
@@ -290,24 +291,24 @@
   [^SearchableItem item]
   (when item (.label item)))
 
-(defn- write-metadata
-  "Writes the metadata for a track being imported to the show
-  filesystem."
-  [track-root ^org.deepsymmetry.beatlink.data.TrackMetadata metadata]
-  (write-edn-path {:artist          (item-label (.getArtist metadata))
-                   :album           (item-label (.getAlbum metadata))
-                   :comment         (.getComment metadata)
-                   :date-added      (.getDateAdded metadata)
-                   :duration        (.getDuration metadata)
-                   :genre           (item-label (.getGenre metadata))
-                   :key             (item-label (.getKey metadata))
-                   :label           (item-label (.getLabel metadata))
-                   :original-artist (item-label (.getOriginalArtist metadata))
-                   :rating          (.getRating metadata)
-                   :remixer         (item-label (.getRemixer metadata))
-                   :tempo           (.getTempo metadata)
-                   :title           (.getTitle metadata)}
-                  (.resolve track-root "metadata.edn")))
+(defn- extract-metadata
+  "Converts the metadata for a track being imported to the show
+  filesystem into an ordinary Clojure map so it can be saved and
+  reloaded."
+  [^org.deepsymmetry.beatlink.data.TrackMetadata metadata]
+  {:artist          (item-label (.getArtist metadata))
+   :album           (item-label (.getAlbum metadata))
+   :comment         (.getComment metadata)
+   :date-added      (.getDateAdded metadata)
+   :duration        (.getDuration metadata)
+   :genre           (item-label (.getGenre metadata))
+   :key             (item-label (.getKey metadata))
+   :label           (item-label (.getLabel metadata))
+   :original-artist (item-label (.getOriginalArtist metadata))
+   :rating          (.getRating metadata)
+   :remixer         (item-label (.getRemixer metadata))
+   :tempo           (.getTempo metadata)
+   :title           (.getTitle metadata)})
 
 (defn- write-cue-list
   "Writes the cue list for a track being imported to the show
@@ -710,12 +711,30 @@
                  :name "Inspect Expression Locals"
                  :tip "Examine any values set as Track locals by its Expressions."))
 
+(declare import-track)
+
 (defn- copy-actions
   "Returns a set of menu actions which offer to copy the track to any
   other open shows which do not already contain it."
   [show track]
-  ;; TODO: Implement!
-  )
+  (let [show       (latest-show show)
+        track      (latest-track track)
+        track-root (build-track-path show (:signature track))]
+    (filter identity
+            (map (fn [other-show]
+                   (when (and (not= (:file show) (:file other-show))
+                              (not (get-in other-show [:tracks (:signature track)])))
+                     (seesaw/action :handler (fn [_]
+                                               (let [new-track (merge (select-keys track [:signature :metadata
+                                                                                          :contents])
+                                                                      {:cue-list  (read-cue-list track-root)
+                                                                       :beat-grid (read-beat-grid track-root)
+                                                                       :preview   (read-preview track-root)
+                                                                       :detail    (read-detail track-root)
+                                                                       :art       (read-art track-root)})]
+                                                 (import-track other-show new-track)))
+                                    :name (str "Copy to Show \"" (fs/base-name (:file other-show) true) "\""))))
+                 (vals @open-shows)))))
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
@@ -945,17 +964,19 @@
                          (clojure.string/join ", " (map name missing-elements)))
                     :title "Track Import Failed" :type :error)
       (let [{:keys [file filesystem frame contents]} show
-            {:keys [signature metadata beat-grid
-                    preview detail art]}             track
+            {:keys [signature metadata cue-list
+                    beat-grid preview detail art]}   track
             track-root                               (build-filesystem-path filesystem "tracks" signature)]
         (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
-        (write-metadata track-root metadata)
-        (when-let [cue-list (.getCueList metadata)]
+        (write-edn-path metadata (.resolve track-root "metadata.edn"))
+        (when cue-list
           (write-cue-list track-root cue-list))
         (when beat-grid (write-beat-grid track-root beat-grid))
         (when preview (write-preview track-root preview))
         (when detail (write-detail track-root detail))
         (when art (write-art track-root art))
+        (when-let [track-contents (:contents track)]  ; In case this is being copied from an existing show.
+          (write-edn-path track-contents (.resolve track-root "contents.edn")))
         (create-track-panel show track-root)
         (update-track-visibility show)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
@@ -971,6 +992,7 @@
       (seesaw/alert (:frame show) (str "Track on Player " player " is already in the Show.")
                     :title "Can’t Re-import Track" :type :error)
       (let [metadata  (.getLatestMetadataFor metadata-finder player)
+            cue-list  (.getCueList metadata)
             beat-grid (.getLatestBeatGridFor beatgrid-finder player)
             preview   (.getLatestPreviewFor waveform-finder player)
             detail    (.getLatestDetailFor waveform-finder player)
@@ -980,7 +1002,8 @@
                         :title "Track Import Failed" :type :error)
           (do
             (import-track show {:signature signature
-                                :metadata  metadata
+                                :metadata  (extract-metadata metadata)
+                                :cue-list  cue-list
                                 :beat-grid beat-grid
                                 :preview   preview
                                 :detail    detail
@@ -1051,7 +1074,8 @@
           (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
                         :title "Can’t Re-import Track" :type :error)
           (import-track show {:signature signature
-                              :metadata  metadata
+                              :metadata  (extract-metadata metadata)
+                              :cue-list  cue-list
                               :beat-grid beat-grid
                               :preview   preview
                               :detail    detail
