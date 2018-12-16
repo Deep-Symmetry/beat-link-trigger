@@ -858,13 +858,24 @@
     ;; the user requests a custom message.
     (swap! open-shows update-in [(:file show) :tracks signature] dissoc :creating)))
 
+(defn- close-track-editors?
+  "Tries closing all open expression editors for the track. If
+  `force?` is true, simply closes them even if they have unsaved
+  changes. Othewise checks whether the user wants to save any unsaved
+  changes. Returns truthy if there are none left open the user wants
+  to deal with."
+  [force? track]
+  (every? (partial editors/close-editor? force?) (vals (:expression-editors (latest-track track)))))
+
 (defn- cleanup-track
   "Process the removal of a track, either via deletion, or because the
-  show is closing."
-  [show track]
-  (run-track-function show track :shutdown nil true)
-  (doseq [editor (vals (:expression-editors (latest-track track)))]
-    (editors/dispose editor)))
+  show is closing. If `force?` is true, any unsaved expression editors
+  will simply be closed. Otherwise, they will block the track removal,
+  which will be indicated by this function returning falsey."
+  [force? show track]
+  (when (close-track-editors? force? track)
+    (run-track-function show track :shutdown nil true)
+    true))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
@@ -1049,27 +1060,6 @@
         (when reopen?
           (let [[reopened-filesystem] (open-show-filesystem file)]
             (swap! open-shows assoc-in [file :filesystem] reopened-filesystem)))))))
-
-(defn- save-all-open-shows
-  "Updates and closes the ZIP filesystems associated with any open
-  shows, so they get flushed out to the show files. Called when the
-  virtual machine is exiting as a shutdown hook to make sure changes
-  get saved. It is not safe to call this at any other time because it
-  makes the shows unusable."
-  []
-  (doseq [show (vals @open-shows)]
-    (timbre/info "Closing Show due to shutdown:" (:file show))
-    (try
-      (save-show show false)
-      (catch Throwable t
-        (timbre/error t "Problem saving show" (:file show))))))
-
-(defonce ^{:private true
-           :doc "Register the shutdown hook the first time this
-  namespace is loaded."}
-  shutdown-registered (do
-                        (.addShutdownHook (Runtime/getRuntime) (Thread. save-all-open-shows))
-                        true))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
@@ -1312,7 +1302,7 @@
   (let [[filesystem contents] (open-show-filesystem file)]
     (try
       (let [root            (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
-                                          :on-close :dispose)
+                                          :on-close :nothing)
             import-menu     (seesaw/menu :text "Import Track")
             show            {:frame       root
                              :expression-globals (atom {})
@@ -1365,8 +1355,37 @@
                                 #_(timbre/info "signatureChanged:" sig-update)
                                 (update-player-item-signature sig-update show)
                                 (seesaw/invoke-later (update-track-visibility show))))
-            window-name     (str "show-" (.getPath file))]
-        (swap! open-shows assoc file show)
+            window-name     (str "show-" (.getPath file))
+            close-fn        (fn [force? quitting?]
+                              ;; Closes the show window and performs all necessary cleanup If `force?` is true,
+                              ;; will do so even in the presence of windows with unsaved user changes. Otherwise
+                              ;; prompts the user about all unsaved changes, giving them a chance to veto the
+                              ;; closure. Returns truthy if the show was closed.
+                              (let [show (latest-show show)]
+                                (when (and (every? (partial close-track-editors? false) (vals (:tracks show)))
+                                           (every? (partial editors/close-editor? false)
+                                                   (vals (:expression-editors show))))
+                                  (.removeDeviceAnnouncementListener device-finder dev-listener)
+                                  (.removeLifecycleListener metadata-finder mf-listener)
+                                  (.removeSignatureListener signature-finder sig-listener)
+                                  (doseq [track (vals (:tracks show))]
+                                    (cleanup-track true show track))
+                                  (run-global-function show :shutdown)
+                                  (try
+                                    (save-show show false)
+                                    (catch Throwable t
+                                      (timbre/error t "Problem closing Show file.")
+                                      (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
+                                                    :title "Problem Closing Show" :type :error)))
+                                  (seesaw/invoke-later
+                                   ;; Gives windows time to close first, so they don't recreate a broken show.
+                                   (swap! open-shows dissoc file))
+                                  ;; Remove the instruction to reopen this window the next time the program runs,
+                                  ;; unless we are closing it because the application is quitting.
+                                  (when-not quitting? (swap! util/window-positions dissoc window-name))
+                                  (.dispose root)
+                                  true)))]
+        (swap! open-shows assoc file (assoc show :close close-fn))
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
@@ -1381,26 +1400,7 @@
         (.setSize root 900 600)  ; Our default size if there isn't a position stored in the file.
         (restore-window-position root contents)
         (seesaw/listen root
-                       :window-closed
-                       (fn [e]
-                         (.removeDeviceAnnouncementListener device-finder dev-listener)
-                         (.removeLifecycleListener metadata-finder mf-listener)
-                         (.removeSignatureListener signature-finder sig-listener)
-                         (let [show (latest-show show)]
-                           (doseq [track (vals (:tracks show))]
-                             (cleanup-track show track))
-                           (run-global-function show :shutdown)
-                           (doseq [editor (vals (:expression-editors show))]
-                             (editors/dispose editor)))
-                         (try
-                           (save-show show false)
-                           (catch Throwable t
-                             (timbre/error t "Problem closing Show file.")
-                             (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
-                                           :title "Problem Closing Show" :type :error)))
-                         (seesaw/invoke-later  ; Give windows time to close so they don't recreate a broken show.
-                          (swap! open-shows dissoc file))
-                         (swap! util/window-positions dissoc window-name))
+                       :window-closing (fn [e] (close-fn false false))
                        #{:component-moved :component-resized}
                        (fn [e]
                          (util/save-window-position root window-name)
@@ -1486,3 +1486,12 @@
                 (timbre/error t "Problem creating show")
                 (seesaw/alert parent (str "<html>Unable to Create Show.<br><br>" t)
                               :title "Problem Writing File" :type :error)))))))))
+
+(defn close-all-shows
+  "Tries to close all open shows because the program is quitting. If
+  `force?` is true, will do so even if they have any open editors with
+  unsaved changes. Otherwise gives the user a chance to veto the
+  closure so they have a chance to save their changes. Returns truthy
+  if all shows have been closed."
+  [force?]
+  (every? (fn [show] ((:close show) force? true)) (vals @open-shows)))

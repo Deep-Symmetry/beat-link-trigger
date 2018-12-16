@@ -9,7 +9,8 @@
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]))
 
 (defonce
@@ -22,13 +23,18 @@
   make up the body of a function that customizes application
   behavior."
   (show [this]
-  "Make the window visible again if it had been closed or dropped
+    "Make the window visible again if it had been closed or dropped
   behind others.")
   (retitle [this]
-  "Update the window title to reflect a new index for its associated
+    "Update the window title to reflect a new index for its associated
   trigger.")
+  (can-close? [this]
+    "Check if the editor has no unsaved changes, or if the user is
+  willing to abandon them. If so, return truthy. Otherwise return falsey,
+  which should abort whatever operation was in process.")
   (dispose [this]
-  "Permanently close the window and release its resources."))))
+    "Permanently close the window and release its resources, without
+  regard to whether there are unsaved changes."))))
 
 (defn sort-setup-to-front
   "Given a sequence of expression keys and value tuples, makes sure
@@ -532,32 +538,38 @@
       (catch Throwable t
         (timbre/error t "Problem running expression editor update function.")))))
 
+(defn latest-show
+  "Returns the current version of a show given a potentially stale
+  copy."
+  [open-shows show]
+  (get @open-shows (:file show)))
+
 (defn- find-show-expression-text
   "Returns the source code, if any, of the specified show expression
   type for the specified show and track. If `track` is `nil`, `kind`
   refers to a global expression."
-  [kind show track]
-  (get-in show (if track
-                 [:tracks (:signature track) :contents :expressions kind]
-                 [:contents :expressions kind])))
+  [kind open-shows show track]
+  (get-in (latest-show open-shows show) (if track
+                                          [:tracks (:signature track) :contents :expressions kind]
+                                          [:contents :expressions kind])))
 
-(defn- find-show-expression-fn
+#_(defn find-show-expression-fn
   "Returns the compiled function, if any, for the specified show
   expression type for the specified show and track. If `track` is
   `nil`, `kind` refers to a global expression."
-  [kind show track]
-  (get-in show (if track
-                 [:tracks (:signature track) :expression-fns kind]
-                 [:expression-fns kind])))
+  [kind open-shows show track]
+  (get-in (latest-show open-shows show) (if track
+                                          [:tracks (:signature track) :expression-fns kind]
+                                          [:expression-fns kind])))
 
 (defn- find-show-expression-editor
   "Returns the open editor window, if any, for the specified show
   expression type for the specified show and track. If `track` is
   `nil`, `kind` refers to a global expression."
-  [kind show track]
-  (get-in show (if track
-                 [:tracks (:signature track) :expression-editors kind]
-                 [:expression-editors kind])))
+  [kind open-shows show track]
+  (get-in (latest-show open-shows show) (if track
+                                          [:tracks (:signature track) :expression-editors kind]
+                                          [:expression-editors kind])))
 
 (defn show-editor-title
   "Determines the title for a show expression editor window. If it is
@@ -586,7 +598,7 @@
                                      [(:file show) :expression-fns kind])
                (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
                                                   (show-editor-title kind show track))))
-      (when-let [editor (find-show-expression-editor kind show track)]
+      (when-let [editor (find-show-expression-editor kind open-shows show track)]
         (dispose editor)  ; Close the editor
         (swap! open-shows update-in (if track
                                       [(:file show) :tracks (:signature track) :expression-editors]
@@ -649,6 +661,18 @@ a {
                                                 (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
                                  ["</dl>"]))))
 
+(defn- confirm-close-if-dirty
+  "Checks if an editor window has unsaved changes (which will be
+  reflected by the enabled state of the supplied save button). If it
+  does, bring the frame to the front and show a modal confirmation
+  dialog. Return truthy if the editor should be closed."
+  [frame save-button]
+  (or (not (seesaw/config save-button :enabled?))
+      (do
+        (.toFront frame)
+        (seesaw/confirm frame "Closing will discard the changes you made. Proceed?"
+                        :type :question :title "Discard Changes?"))))
+
 (defn- create-triggers-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Triggers window expression, with an update function to be
@@ -657,7 +681,7 @@ a {
   (let [global? (:global @(seesaw/user-data trigger))
         text (get-in @(seesaw/user-data trigger) [:expressions kind])
         save-fn (fn [text] (update-triggers-expression kind trigger global? text update-fn))
-        root (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :dispose :size [800 :by 600]
+        root (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :nothing :size [800 :by 600]
                            ;; TODO: Add save/load capabilities?
                            #_:menubar #_(seesaw/menubar
                                      :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
@@ -666,7 +690,8 @@ a {
                                                           :items [new-trigger-action clear-triggers-action])]))
         editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])
+        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
+                                   :enabled? false)
         help (seesaw/styled-text :id :help :wrap-lines? true)]
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.apply editor-theme editor)
@@ -676,6 +701,11 @@ a {
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "sizegroup a, gapy unrelated, width 100%"]]))
     (seesaw/config! editor :id :source)
+    (seesaw/listen editor #{:remove-update :insert-update :changed-update}
+                   (fn [e]
+                     (seesaw/config! save-button :enabled?
+                                     (not= (util/remove-blanks (get-in @(seesaw/user-data trigger) [:expressions kind]))
+                                           (util/remove-blanks (seesaw/text e))))))
     (seesaw/value! root {:source text})
     (.setContentType help "text/html")
     (.setText help (build-triggers-help kind global? (if global? global-trigger-editors trigger-editors)))
@@ -687,8 +717,10 @@ a {
                            url (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closed
-                   (fn [_] (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind)))
+    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root save-button)
+                                                  (swap! (seesaw/user-data trigger) update-in [:expression-editors]
+                                                         dissoc kind)
+                                                  (.dispose root))))
     (let [result
           (reify IExpressionEditor
             (retitle [_]
@@ -697,6 +729,7 @@ a {
               (.setLocationRelativeTo root trigger)
               (seesaw/show! root)
               (.toFront root))
+            (can-close? [_]  (confirm-close-if-dirty root save-button))
             (dispose [_]
               (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind)
               (seesaw/dispose! root)))]
@@ -748,12 +781,13 @@ a {
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
   [open-shows kind show track parent-frame update-fn]
-  (let [text        (find-show-expression-text kind show track)
+  (let [text        (find-show-expression-text kind open-shows show track)
         save-fn     (fn [text] (update-show-expression open-shows kind show track text update-fn))
-        root        (seesaw/frame :title (show-editor-title kind show track) :on-close :dispose :size [800 :by 600])
+        root        (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
         editor      (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))])
+        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
+                                   :enabled? false)
         help        (seesaw/styled-text :id :help :wrap-lines? true)
         close-fn    (fn [] (swap! open-shows update-in (if track
                                                          [(:file show) :tracks (:signature track) :expression-editors]
@@ -761,6 +795,11 @@ a {
                                   dissoc kind))]
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.apply editor-theme editor)
+    (seesaw/listen editor #{:remove-update :insert-update :changed-update}
+                   (fn [e]
+                     (seesaw/config! save-button :enabled?
+                                     (not= (util/remove-blanks (find-show-expression-text kind open-shows show track))
+                                           (util/remove-blanks (seesaw/text e))))))
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
                                                          [save-button "push, align center, wrap"]
@@ -778,8 +817,9 @@ a {
                            url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closed
-                   (fn [_] (close-fn)))
+    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root save-button)
+                                                  (close-fn)
+                                                  (.dispose root))))
     (let [result
           (reify IExpressionEditor
             (retitle [_]
@@ -788,6 +828,7 @@ a {
               (.setLocationRelativeTo root parent-frame)
               (seesaw/show! root)
               (.toFront root))
+            (can-close? [_] (confirm-close-if-dirty root save-button))
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
@@ -815,3 +856,13 @@ a {
       (show editor))
     (catch Throwable t
       (timbre/error t "Problem showing show" kind "editor"))))
+
+(defn close-editor?
+  "Tries to close an editor window. If `force?` is true, simply closes
+  it and returns truthy. Otherwise, checks if it has any unsaved
+  changes and if the user is willing to discard them. Returns falsey
+  if the user wants to keep it open."
+  [force? editor]
+  (when (or force? (can-close? editor))
+    (dispose editor)
+    true))

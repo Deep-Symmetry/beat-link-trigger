@@ -24,6 +24,7 @@
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt Color RenderingHints]
+           [java.awt.event WindowEvent]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
@@ -61,6 +62,16 @@
   (if (nil? @trigger-frame)
     (atom (initial-global-user-data)) ; Don't crash during initial window setup
     (seesaw/user-data (seesaw/config @trigger-frame :content))))
+
+(defn quit
+  "Gracefully attempt to quit, giving the user a chance to veto so they
+  can save unsaved changes in editor windows. Essentially, click the
+  close box of the Triggers window, if it is open; otherwise we are in
+  a state where there is nothing to save anyway, so just exit."
+  []
+  (if @trigger-frame
+    (.dispatchEvent @trigger-frame (WindowEvent. @trigger-frame WindowEvent/WINDOW_CLOSING))
+    (System/exit 0)))
 
 (defn real-player?
   "Checks whether the user wants to pose as a real player, numbered 1
@@ -588,26 +599,43 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
+(defn- close-trigger-editors?
+  "Tries closing all open expression editors for the trigger. If
+  `force?` is true, simply closes them even if they have unsaved
+  changes. Othewise checks whether the user wants to save any unsaved
+  changes. Returns truthy if there are none left open the user wants
+  to deal with."
+  [force? trigger]
+  (every? (partial editors/close-editor? force?) (vals (:expression-editors @(seesaw/user-data trigger)))))
+
 (defn- cleanup-trigger
-  "Process the removal of a trigger, either via deletion, or importing
-  a different trigger on top of it."
-  [trigger]
-  (run-trigger-function trigger :shutdown nil true)
-  (seesaw/selection! (seesaw/select trigger [:#enabled]) "Never")   ; Ensures any clock thread stops
-  (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
-      (editors/dispose editor)))
+  "Process the removal of a trigger, either via deletion, or importing a
+  different trigger on top of it. If `force?` is true, any unsaved
+  expression editors will simply be closed. Otherwise, they will block
+  the trigger removal, which will be indicated by this function
+  returning falsey."
+  [force? trigger]
+  (when (close-trigger-editors? force? trigger)
+    (run-trigger-function trigger :shutdown nil true)
+    (seesaw/selection! (seesaw/select trigger [:#enabled]) "Never")  ; Ensures any clock thread stops.
+    true))
 
 (defn- delete-trigger
-  "Removes a trigger row from the window, running its shutdown
-  function if needed, closing any editor windows associated with it,
-  and readjusting any triggers that remain."
-  [trigger]
+  "Removes a trigger row from the window, running its shutdown function
+  if needed, closing any editor windows associated with it, and
+  readjusting any triggers that remain. If `force?` is true, editor
+  windows will be closed even if they have unsaved changes, otherwise
+  the user will be given a chance to cancel the operation. Returns
+  truthy if the trigger was actually deleted."
+  [force? trigger]
   (try
-    (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                    :items (remove #(= % trigger) (get-triggers)))
-    (cleanup-trigger trigger)
-    (adjust-triggers)
-    (.pack @trigger-frame)
+    (when (close-trigger-editors? force? trigger)
+      (cleanup-trigger true trigger)
+      (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                      :items (remove #(= % trigger) (get-triggers)))
+      (adjust-triggers)
+      (.pack @trigger-frame)
+      true)
     (catch Exception e
       (timbre/error e "Problem deleting Trigger."))))
 
@@ -616,16 +644,20 @@
 (defn- delete-all-triggers
   "Closes any global expression editors, then removes all triggers,
   running their own shutdown functions, and finally runs the global
-  shutdown function."
-  []
-  (doseq [trigger (get-triggers)]
-    (delete-trigger trigger))
-  (doseq [editor (vals (:expression-editors @(global-user-data)))]
-    (editors/dispose editor))
-  (run-global-function :shutdown)
-  (reset! expression-globals {})
-  (reset! (global-user-data) (initial-global-user-data))
-  (update-global-expression-icons))
+  shutdown function. If `force?` is true, editor windows will be
+  closed even if they have unsaved changes, otherwise the user will be
+  given a chance to cancel the operation. Returns truthy if the
+  trigger was actually deleted."
+  [force?]
+  (when (and (every? (partial close-trigger-editors? force?) (get-triggers))
+             (every? (partial editors/close-editor? force?) (vals (:expression-editors @(global-user-data)))))
+    (doseq [trigger (get-triggers)]
+      (delete-trigger true trigger))
+    (run-global-function :shutdown)
+    (reset! expression-globals {})
+    (reset! (global-user-data) (initial-global-user-data))
+    (update-global-expression-icons)
+    true))
 
 (defn- update-gear-icon
   "Determines whether the gear button for a trigger should be hollow
@@ -746,7 +778,7 @@
                                        :name "Export Trigger")
          import-action  (seesaw/action :handler (fn [_] (import-trigger panel))
                                        :name "Import Trigger")
-         delete-action  (seesaw/action :handler (fn [_] (delete-trigger panel))
+         delete-action  (seesaw/action :handler (fn [_] (delete-trigger true panel))
                                        :name "Delete Trigger")
          inspect-action (seesaw/action :handler (fn [_] (inspector/inspect @(:locals @(seesaw/user-data panel))
                                                                            :window-name "Trigger Expression Locals"))
@@ -865,14 +897,6 @@
   (seesaw/action :handler (fn [e] (track-loader/show-dialog))
                  :name "Load Track on Player" :enabled? false))
 
-(defn- close-all-editors
-  "Close any custom expression editors windows that are open, in
-  preparation for deleting all triggers."
-  []
-  (doseq [trigger (get-triggers)]
-    (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
-      (editors/dispose editor))))
-
 (defonce ^{:private true
            :doc "The menu action which empties the Trigger list."}
   clear-triggers-action
@@ -884,7 +908,7 @@
                                 (.pack confirm)
                                 (.setLocationRelativeTo confirm @trigger-frame)
                                 (when (= :success (seesaw/show! confirm))
-                                  (delete-all-triggers)
+                                  (delete-all-triggers true)
                                   (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                   :items [(create-trigger-row)])
                                   (adjust-triggers))
@@ -998,11 +1022,11 @@
                                                :filters [["BeatLinkTrigger configuration files" [extension]]
                                                          (chooser/file-filter "All files" (constantly true))])]
                                 (try
-                                  (prefs/load-from-file file)
-                                  (delete-all-triggers)
-                                  (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                  :items (recreate-trigger-rows))
-                                  (adjust-triggers)
+                                  (when (delete-all-triggers false)
+                                    (prefs/load-from-file file)
+                                    (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                    :items (recreate-trigger-rows))
+                                    (adjust-triggers))
                                   (catch Exception e
                                     (timbre/error e "Problem loading" file)
                                     (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
@@ -1142,7 +1166,7 @@
                      :filters [["Trigger Export files" [extension]]
                                (chooser/file-filter "All files" (constantly true))])]
       (try
-        (cleanup-trigger trigger)
+        (cleanup-trigger true trigger)
         (let [m (prefs/read-file :beat-link-trigger-export file)]
           (load-trigger-from-map trigger (translate-custom-enabled (:item m))))
         (catch Exception e
@@ -1330,7 +1354,7 @@
                                                          (seesaw/separator) new-show-action open-show-action
                                                          (seesaw/separator) auto-action view-cache-action
                                                          (seesaw/separator) playlist-writer-action]
-                                                        menus/non-mac-file-actions))
+                                                        (menus/non-mac-file-actions quit)))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-trigger-editors))
@@ -1371,7 +1395,7 @@
   "Create and show the trigger window."
   []
   (try
-    (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :exit
+    (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :nothing
                              :menubar (build-trigger-menubar))
           triggers (seesaw/vertical-panel :id :triggers)
           panel (seesaw/scrollable triggers :user-data (atom (initial-global-user-data)))]
@@ -1382,7 +1406,18 @@
       (util/restore-window-position root :triggers nil)
       (seesaw/show! root)
       (check-for-parse-error)
-      (seesaw/listen root #{:component-moved :component-resized}
+      (seesaw/listen root
+                     :window-closing
+                     (fn [e]
+                       (save-triggers-to-preferences)
+                       (if (and (show/close-all-shows false)
+                                (delete-all-triggers false))
+                         (do
+                           (menus/respond-to-quit-request true)  ; In case it came from the OS
+                           (System/exit 0))
+                         (menus/respond-to-quit-request false)))
+
+                     #{:component-moved :component-resized}
                      (fn [e] (util/save-window-position root :triggers))))
     (catch Exception e
       (timbre/error e "Problem creating Trigger window."))))
@@ -1433,7 +1468,6 @@
 
       ;; Open the trigger window
       (create-trigger-window)
-      (.addShutdownHook (Runtime/getRuntime) (Thread. save-triggers-to-preferences))
 
       ;; Be able to react to players coming and going
       (.addDeviceAnnouncementListener (DeviceFinder/getInstance) device-listener)

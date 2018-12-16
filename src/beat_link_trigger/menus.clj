@@ -35,13 +35,53 @@
       (catch Throwable t
         (timbre/error t "Unable to install Mac \"About\" handler.")))))
 
-(def non-mac-file-actions
-  "The actions which are automatically available in the Application
-  menu on the Mac, but must be added to the File menu on other
-  platforms. This value will be empty when running on the Mac."
+(defonce ^{:private true
+       :doc "Holds the function, if any, that is waiting for an indication of whether it is OK to quit."}
+  quit-response-fn (atom nil))
+
+(defn install-mac-quit-handler
+  "If we are running on a Mac, install our Quit handler."
+  []
+  (when (on-mac?)
+    (binding [*ns* (the-ns 'beat-link-trigger.menus)]
+      (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
+        (eval '(.setQuitHandler (com.apple.eawt.Application/getApplication) ; Use old, Mac-specific approach.
+                                (proxy [com.apple.eawt.QuitHandler] []
+                                  (handleQuitRequestWith [e response]
+                                    (reset! quit-response-fn
+                                            (fn [proceed?]
+                                              (if proceed?
+                                                (.performQuit response)
+                                                (.cancelQuit response))))
+                                    ((resolve 'beat-link-trigger.triggers/quit))))))
+        (eval '(.setQuitHandler (java.awt.Desktop/getDesktop) ; Java 9 or later has a cross-platform way to do it.
+                                (proxy [java.awt.desktop.QuitHandler] []
+                                  (handleQuitRequestWith [e response]
+                                    (reset! quit-response-fn
+                                            (fn [proceed?]
+                                              (if proceed?
+                                                (.performQuit response)
+                                                (.cancelQuit response))))
+                                    ((resolve 'beat-link-trigger.triggers/quit))))))))))
+
+(defn respond-to-quit-request
+  "If we were asked to quit by the host operating system, let it know
+  that it is OK to proceed, or that the user chose to cancel the
+  operation due to unsaved changes."
+  [proceed?]
+  (when-let [response-handler @quit-response-fn]  ; First check if there is a request to respond to!
+    (response-handler proceed?)))
+
+(defn non-mac-file-actions
+  "Return The actions which are automatically available in the
+  Application menu on the Mac, but must be added to the File menu on
+  other platforms. This value will be empty when running on the Mac.
+  `quit` the function that should be used to gracefully quit the
+  application."
+  [quit]
   (when-not (on-mac?)
     [(seesaw/separator)
-     (seesaw/action :handler (fn [e] (System/exit 0))
+     (seesaw/action :handler (fn [e] quit)
                     :name "Exit")]))
 
 (defn mail-supported?

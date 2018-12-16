@@ -30,6 +30,11 @@ This change log follows the conventions of
   less-informative waveforms.
 - Double-clicking on a track in the Load Track interface is now a
   shortcut for clicking on the Load button.
+- When you try to close a show or quit (including by closing the
+  Triggers window), if there are unsaved changes in any editor window,
+  you are prompted to confirm that you want to discard them, giving
+  you an opportunity to veto the close or quit operation until you
+  have a chance to save them.
 - Window positions are now remembered and restored when you reopen the
   windows, even between runs of the program, so they stay where you
   like them (although if they would be off the screen, they will come

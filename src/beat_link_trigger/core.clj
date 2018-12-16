@@ -89,8 +89,10 @@
                                          [k v])))]
         (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle v) (.getSize v))))))
 
-   ;; If we are on a Mac, hook up our About handler where users expect to find it.
+   ;; If we are on a Mac, hook up our About handler where users expect to find it, and add a Quit handler
+   ;; that saves the state, and gives users a chance to veto losing unsaved editor windows.
    (menus/install-mac-about-handler)
+   (menus/install-mac-quit-handler)
 
    ;; Restore saved window positions if they exist
    (when-let [saved (:window-positions (prefs/get-preferences))]
