@@ -753,6 +753,7 @@
                                     (Files/delete path)))
                                 (swap! open-shows update-in [(:file show) :tracks] dissoc (:signature track))
                                 (swap! open-shows update-in [(:file show) :panels] dissoc panel)
+                                (refresh-signatures show)
                                 (update-track-visibility show)
                                 (flush-show show)
                                 (catch Exception e
