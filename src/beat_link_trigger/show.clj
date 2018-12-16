@@ -735,9 +735,34 @@
                                                                        :preview   (read-preview track-root)
                                                                        :detail    (read-detail track-root)
                                                                        :art       (read-art track-root)})]
-                                                 (import-track other-show new-track)))
+                                                 (import-track other-show new-track)
+                                                 (refresh-signatures other-show)))
                                     :name (str "Copy to Show \"" (fs/base-name (:file other-show) true) "\""))))
                  (vals @open-shows)))))
+
+(defn- remove-signature
+  "Filters a map from players to signatures (such as the :loaded
+  and :playing entries in a show) to remove any keys whose value match
+  the supplied signature. This is used as part of cleaning up a show
+  when a track has been deleted."
+  [player-map signature]
+  (reduce (fn [result [k v]]
+            (if (= v signature)
+              result
+              (assoc result k v)))
+          {}
+          player-map))
+
+(defn- clean-up-deleted-track
+  "Removes all the items from a show that need to be cleaned up when the
+  track has been deleted. This function is designed to be used in a
+  single swap! call for simplicity and efficiency."
+  [show track panel]
+  (-> show
+      (update :tracks dissoc (:signature track))
+      (update :panels dissoc panel)
+      (update :loaded remove-signature (:signature track))
+      (update :playing remove-signature (:signature track))))
 
 (defn- delete-action
   "Creates the menu action which deletes a track after confirmation."
@@ -758,8 +783,7 @@
                                     #_(timbre/info "Exists?" (Files/isReadable path))
                                     (Files/delete path)
                                     #_(timbre/info "Still there?" (Files/isReadable path))))
-                                (swap! open-shows update-in [(:file show) :tracks] dissoc (:signature track))
-                                (swap! open-shows update-in [(:file show) :panels] dissoc panel)
+                                (swap! open-shows update (:file show) clean-up-deleted-track track panel)
                                 (refresh-signatures show)
                                 (update-track-visibility show)
                                 (catch Exception e
