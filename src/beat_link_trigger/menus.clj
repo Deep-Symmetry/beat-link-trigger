@@ -69,8 +69,11 @@
   that it is OK to proceed, or that the user chose to cancel the
   operation due to unsaved changes."
   [proceed?]
-  (when-let [response-handler @quit-response-fn]  ; First check if there is a request to respond to!
-    (response-handler proceed?)))
+  (swap! quit-response-fn (fn [response-handler]
+                            ;; Only call the handler if it is present, meaning the OS supplied one asking us to quit.
+                            (when response-handler (response-handler proceed?))
+                            ;; Remove the handler, if there was one, since it can only be used once.
+                            nil)))
 
 (defn non-mac-file-actions
   "Return The actions which are automatically available in the
