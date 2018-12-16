@@ -736,6 +736,30 @@
                                     :name (str "Copy to Show \"" (fs/base-name (:file other-show) true) "\""))))
                  (vals @open-shows)))))
 
+(defn- delete-action
+  "Creates the menu action which deletes a track after confirmation."
+  [show track panel]
+  (seesaw/action :handler (fn [_]
+                            (when (seesaw/confirm panel (str "This will irreversibly remove the track, losing any\r\n"
+                                                             "configuration, expressions, and cues created for it.")
+                                                  :type :question :title "Delete Track?")
+                              (try
+                                (let [track-root (build-track-path show (:signature track))]
+                                  (doseq [path (-> (Files/walk (.toAbsolutePath track-root)
+                                                               (make-array java.nio.file.FileVisitOption 0))
+                                                   (.sorted #(compare (str %2) (str %1)))
+                                                   .iterator
+                                                   iterator-seq)]
+                                    (Files/delete path)))
+                                (swap! open-shows update-in [(:file show) :tracks] dissoc (:signature track))
+                                (swap! open-shows update-in [(:file show) :panels] dissoc panel)
+                                (update-track-visibility show)
+                                (flush-show show)
+                                (catch Exception e
+                                  (timbre/error e "Problem deleting track")
+                                  (seesaw/alert "Problem deleting track:" e)))))
+                 :name "Delete Track"))
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately."
@@ -861,12 +885,11 @@
                         :loaded            #{}  ; The players that have this loaded.
                         :playing           #{}} ; The players actively playing this.
 
-        delete-action  (seesaw/action :handler (fn [_]
-                                                 (seesaw/alert "Not yet implemented!")))
         popup-fn       (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
                                        (editor-actions show track panel gear)
                                        [(seesaw/separator) (inspect-action track) (seesaw/separator)]
-                                       (copy-actions show track)))]
+                                       (copy-actions show track)
+                                       [(seesaw/separator) (delete-action show track panel)]))]
 
     (swap! open-shows assoc-in [(:file show) :tracks signature] track)
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)
