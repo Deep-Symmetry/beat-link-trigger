@@ -172,10 +172,10 @@
 
 (defn- run-global-function
   "Checks whether the show has a custom function of the specified kind
-  installed, and if so runs it with a nil status and track local
-  atom, and the show's global atom. Returns a tuple of the function
-  return value and any thrown exception. If `alert?` is `true` the
-  user will be alerted when there is a problem running the function."
+  installed, and if so runs it with the supplied status argument, and
+  the show and its globals. Returns a tuple of the function return
+  value and any thrown exception. If `alert?` is `true` the user will
+  be alerted when there is a problem running the function."
   [show kind status alert?]
   (let [show (latest-show show)]
     (when-let [expression-fn (get-in show [:expression-fns kind])]
@@ -1155,6 +1155,11 @@
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png")))
 
+                  (= label "Edit Default Enabled Filter Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :enabled]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png")))
+
                   (= label "Edit Global Shutdown Expression")
                   (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :shutdown]))
                                                 "images/Gear-outline.png"
@@ -1450,8 +1455,8 @@
                                                                 (reset! (:expression-globals show) {})
                                                                 (run-global-function show :setup nil true))
                                                               (update-global-expression-icons show))))
-                 :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
-                 :tip (get-in editors/global-trigger-editors [kind :tip])
+                 :name (str "Edit " (get-in editors/global-show-editors [kind :title]))
+                 :tip (get-in editors/global-show-editors [kind :tip])
                  :icon (seesaw/icon (if (empty? (get-in show [:contents :expressions kind]))
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))

@@ -134,15 +134,15 @@
    :enabled {:title "Enabled Filter Expression"
              :tip "Called to see if the trigger should be enabled."
              :description
-             "Called whenever a status update packet is received from the watched
-  player(s). Return a <code>true</code> value as the last expression
-  to enable the trigger. The status update object, a beat-link <a
+             "Called whenever a status update packet is received from
+  the watched player(s) and the trigger's Enabled mode is set to
+  Custom. Return a <code>true</code> value as the last expression to
+  enable the trigger. The status update object, a beat-link <a
   href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
   object, is available as <code>status</code>, and you can use normal
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
-  generally easier to use the convenience variables described
-  below."
+  generally easier to use the convenience variables described below."
              :bindings (trigger-bindings-for-class CdjStatus)}
 
    :activation {:title "Activation Expression"
@@ -345,6 +345,21 @@
   the show window is shutting down."
            :bindings (show-bindings-for-class nil)}
 
+   :enabled {:title "Default Enabled Filter Expression"
+             :tip "Called to see if a track set to Default should be enabled."
+             :description
+             "Called whenever a status update packet is received from
+  a player that has loaded a track whose Enabled mode is set to
+  Default, when the show itself has chosen Custom as its Enabled
+  Default. Return a <code>true</code> value as the last expression to
+  enable the track. The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
+             :bindings (show-bindings-for-class CdjStatus)}
+
    :shutdown {:title "Global Shutdown Expression"
               :tip "Called once to release global resources."
               :description
@@ -372,15 +387,15 @@
    :enabled {:title "Enabled Filter Expression"
              :tip "Called to see if the track should be enabled."
              :description
-             "Called whenever a status update packet is received from any
-  player. Return a <code>true</code> value as the last expression
-  to enable the track. The status update object, a beat-link <a
+             "Called whenever a status update packet is received from
+  a player that has loaded a track whose Enabled mode is set to
+  Custom. Return a <code>true</code> value as the last expression to
+  enable the track. The status update object, a beat-link <a
   href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
   object, is available as <code>status</code>, and you can use normal
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
-  generally easier to use the convenience variables described
-  below."
+  generally easier to use the convenience variables described below."
              :bindings (show-bindings-for-track-and-class CdjStatus)}
 
    :loaded {:title "Loaded Expression"
