@@ -170,6 +170,95 @@
   [show signature]
   (Files/exists (build-filesystem-path (:filesystem show) "tracks" signature) (make-array java.nio.file.LinkOption 0)))
 
+(defn- run-global-function
+  "Checks whether the show has a custom function of the specified kind
+  installed, and if so runs it with a nil status and track local
+  atom, and the show's global atom. Returns a tuple of the function
+  return value and any thrown exception. If `alert?` is `true` the
+  user will be alerted when there is a problem running the function."
+  [show kind status alert?]
+  (let [show (latest-show show)]
+    (when-let [expression-fn (get-in show [:expression-fns kind])]
+      (try
+        [(expression-fn status {:show show} (:expression-globals show)) nil]
+        (catch Throwable t
+          (timbre/error t "Problem running show global " kind " expression,"
+                        (get-in show [:contents :expressions kind]))
+          (when alert? (seesaw/alert (str "<html>Problem running show global " (name kind) " expression.<br><br>" t)
+                                     :title "Exception in Show Expression" :type :error))
+          [nil t])))))
+
+(defn- run-track-function
+  "Checks whether the track has a custom function of the specified kind
+  installed and if so runs it with the supplied status argument and
+  the track local and global atoms. Returns a tuple of the function
+  return value and any thrown exception. If `alert?` is `true` the
+  user will be alerted when there is a problem running the function."
+  [show track kind status alert?]
+  (let [show  (latest-show show)
+        track (latest-track track)]
+    (when-let [expression-fn (get-in track [:expression-fns kind])]
+      (try
+        [(expression-fn status {:locals (:expression-locals track)
+                                :show   show
+                                :track  track} (:expression-globals show)) nil]
+        (catch Throwable t
+          (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
+                               (get-in track [:contents :expressions kind])))
+          (when alert? (seesaw/alert (str "<html>Problem running track " (name kind) " expression.<br><br>" t)
+                                     :title "Exception in Show Track Expression" :type :error))
+          [nil t])))))
+
+(defn- run-custom-enabled
+  "Invokes the custom enabled filter assigned to a track or show, if
+  any, recording the result in the show data. `show` and `track` must
+  be up-to-date."
+  [show track status]
+  (if track
+    (when (= "Custom" (:enabled track))
+      (let [[enabled? _] (run-track-function show track :enabled status false)]
+        (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :expression-results :enabled] enabled?)))
+    (when (= "Custom" (:enabled show))
+      (let [[enabled? _] (run-global-function show :enabled status false)]
+        (swap! open-shows assoc-in [(:file show) :expression-results :enabled] enabled?)))))
+
+(defn- enabled?
+  "Checks whether the track is enabled, given its configuration and
+  current state. If `status` is supplied, it checks whether the track
+  is enabled with respect to that specific status update (important
+  for Master and On-Air modes). `show` must be a current view of the
+  show, it will not be looked up because this function is also used
+  inside of a `swap!` that updates the show."
+  ([show track]
+   (enabled? show track nil))
+  ([show track ^CdjStatus status]
+   (let [track         (get-in show [:tracks (:signature track)])
+         track-setting (get-in track [:contents :enabled])
+         show-setting  (get-in show [:contents :enabled])
+         setting       (if (= track-setting "Default")
+                         (if (= show-setting "Custom") "CustomShow" show-setting)
+                         track-setting)]
+     (case setting
+       "Always"     true
+       "On-Air"     (if status
+                      (.isOnAir status)
+                      ((set (vals (:on-air show))) (:signature track)))
+       "Master"     (if status
+                      (.isTempoMaster status)
+                      ((set (vals (:master show))) (:signature track)))
+       "Custom"     (get-in track [:expression-results :enabled])
+       "CustomShow" (get-in show [:expression-results :enabled])
+       false))))
+
+(defn trip?
+  "Checks whether the track should fire its deferred loaded and playing
+  expressions, given that it has just become enabled."
+  [show track]
+  (let [show  (latest-show show)]
+    (or ((set (vals (:loaded show))) (:signature track))
+        ((set (vals (:playing show))) (:signature track)))))
+
+
 (defn- describe-disabled-reason
   "Returns a text description of why import from a player is disabled
   based on an associated track signature, or `nil` if it is not
@@ -180,15 +269,45 @@
     (track-present? show signature) " (already imported)"
     :else                           nil))
 
+(defn- update-playing-text
+  "Formats the text describing the players that are playing a track, and
+  sets it into the proper UI label."
+  [show signature playing]
+  (let [text         (if (empty? playing)
+                       "--"
+                       (clojure.string/join ", " (sort playing))) ;; TODO: Make Master players amber?
+        playing-label (seesaw/select (get-in (latest-show show) [:tracks signature :panel]) [:#playing])]
+    (seesaw/invoke-later
+     (seesaw/config! playing-label :text text))))
+
+(defn update-playback-position
+  "Updates the position and color of the playback position bar for the
+  specified player in the track preview."
+  [show signature player]
+  (when-let [position (.getLatestPositionFor time-finder player)]
+    (when-let [preview-loader (get-in show [:tracks signature :preview])]
+      (when-let [preview (preview-loader)]
+        (.setPlaybackState preview player (.milliseconds position) (.playing position))))))
+
 (defn- no-longer-playing
   "Performs the bookeeping to reflect that the specified player is no
   longer playing the track with the specified signature. If this
   causes the track to stop having any player playing it, run the
   track's Stopped expression, if there is one. Must be passed a
-  current view of the show."
-  [show player signature]
-  ;; TODO: flesh out!
-  )
+  current view of the show. If we learned about the stoppage from a
+  status update, it will be in `status`. When a track is in the
+  process of becoming disabled, `ignore-tripped` will have the value
+  `true` to indicate we should run the expressions that we normally
+  would not for a non-tripped track."
+  [show player signature status ignore-tripped]
+  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :playing] disj player)
+        track      (get-in shows [(:file show) :tracks signature])
+        now-playing (:playing track)]
+    (when (empty? now-playing)
+      (when (or ignore-tripped (:tripped track))
+        (run-track-function show track :stopped status false)))
+    (update-playback-position show signature player)
+    (update-playing-text show signature now-playing)))
 
 (defn- update-loaded-text
   "Formats the text describing the players that have a track loaded, and
@@ -206,13 +325,17 @@
   longer has the track with the specified signature loaded. If this
   causes the track to stop being loaded in any player, run the track's
   Unloaded expression, if there is one. Must be passed a current view
-  of the show."
-  [show player signature]
+  of the show. When a track is in the process of becoming disabled,
+  `ignore-tripped` will have the value `true` to indicate we should
+  run the expressions that we normally would not for a non-tripped
+  track."
+  [show player signature ignore-tripped]
   (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] disj player)
-        now-loaded (get-in shows [(:file show) :tracks signature :loaded])]
+        track      (get-in shows [(:file show) :tracks signature])
+        now-loaded (:loaded track)]
     (when (empty? now-loaded)
-      ;; TODO: Run the Unloaded expression.
-      ;; TODO: Stop the position animation loop.
+      (when (or ignore-tripped (:tripped track))
+        (run-track-function show track :unloaded nil false))
       (when-let [preview-loader (get-in show [:tracks signature :preview])]
         (when-let [preview (preview-loader)]
           (.clearPlaybackState preview))))
@@ -225,26 +348,71 @@
   there is one. Must be passed a current view of the show."
   [show player signature]
   (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] conj player)
-        now-loaded (get-in shows [(:file show) :tracks signature :loaded])]
-    (when (= #{player} now-loaded)  ; This is the first player to load the track.
-      ;; TODO: Run the Loaded expression.
-      )
+        track      (get-in shows [(:file show) :tracks signature])
+        now-loaded (:loaded track)]
+    (when (and (= #{player} now-loaded)  ; This is the first player to load the track.
+               (:tripped track))
+      (run-track-function show track :loaded nil false))
     (update-loaded-text show signature now-loaded)
-    (when-let [position (.getLatestPositionFor time-finder player)]
-      (when-let [preview-loader (get-in show [:tracks signature :preview])]
-        (when-let [preview (preview-loader)]
-          (.setPlaybackState preview player (.milliseconds position) (.playing position)))))
-    ;; TODO: Start an animation loop to update playback position markers and active cue indicators.
-    ))
+    (update-playback-position show signature player)))
 
 (defn- now-playing
   "Performs the bookeeping to reflect that the specified player is now
   playing the track with the specified signature. If this is the first
   player playing the track, run the track's Started expression, if
-  there is one. Must be passed a current view of the show."
-  [show player signature]
-    ;; TODO: flesh out! Use key :playing
-  )
+  there is one. Must be passed a current view of the show. If we
+  learned about the stoppage from a status update, it will be in
+  `status`."
+  [show player signature status]
+  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :playing] conj player)
+        track      (get-in shows [(:file show) :tracks signature])
+        now-playing (:playing track)]
+    (when (and (= #{player} now-playing)  ; This is the first player to play the track.
+               (:tripped track))
+      (run-track-function show track :playing status false))
+    (update-playing-text show signature now-playing)
+    (update-playback-position show signature player)))
+
+(defn- update-track-status
+  "Adjusts the track state to reflect a new status packet received from
+  a player that has it loaded. `show` and `track` must be up-to-date
+  with current state."
+  [^CdjStatus status show track]
+  (let [old-playing (volatile! nil)
+        old-tripped (volatile! nil)
+        player      (.getDeviceNumber status)
+        is-playing  (.isPlaying status)
+        signature   (:signature track)]
+        (locking open-shows
+          (let [show (latest-show show)]
+            (vreset! old-playing (get-in show [:playing player]))
+            (vreset! old-tripped (:tripped track))
+            (swap! open-shows update (:file show)
+                   (fn [show]
+                     (let [updated (-> show
+                                       (assoc-in [:playing player] (when is-playing signature))
+                                       (assoc-in [:on-air player] (when (.isOnAir status) signature))
+                                       (assoc-in [:master player] (when (.isTempoMaster status) signature)))]
+                       (assoc-in updated [:tracks signature :tripped] (and (enabled? updated track status)
+                                                                           (trip? updated track))))))))
+        (let [show  (latest-show show)
+              track (latest-track track)]
+          (if (not= old-tripped (:tripped track))  ; This is an overall activation/deactivation.
+            (if (:tripped track)
+              (do  ; Track is now active.
+                (now-loaded show player signature)
+                (when is-playing (now-playing show player signature status)))
+              (do  ; Track is no longer active.
+                (when @old-playing (no-longer-playing show player signature status true))
+                (no-longer-loaded show player signature true)))
+            (when (:tripped track)  ; Track was already tripped, but we may be reporting a new playing state.
+              (when (and @old-playing (or (not is-playing) (not= @old-playing signature)))
+                (no-longer-playing show player @old-playing status false))
+              (when (and is-playing (not= signature @old-playing))
+                (now-playing show player signature status))))
+          (update-playback-position show signature player)
+          ;; TODO: Repaint status indicators here.
+          )))
 
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
@@ -258,26 +426,34 @@
   tracks."
   [^SignatureUpdate sig-update show]
   (let [show                           (latest-show show)
+        player                         (.player sig-update)
+        signature                      (.signature sig-update)
         ^javax.swing.JMenu import-menu (:import-menu show)
-        disabled-reason                (describe-disabled-reason show (.signature sig-update))
-        ^javax.swing.JMenuItem item    (.getItem import-menu (dec (.player sig-update)))]
+        disabled-reason                (describe-disabled-reason show signature)
+        ^javax.swing.JMenuItem item    (.getItem import-menu (dec player))]
     (.setEnabled item (nil? disabled-reason))
-    (.setText item (str "from Player " (.player sig-update) disabled-reason))
-    (when-let [track (get-in show [:tracks (.signature sig-update)])]  ; Only do this if the track is part of the show.
+    (.setText item (str "from Player " player disabled-reason))
+    (when-let [track (get-in show [:tracks signature])]  ; Only do this if the track is part of the show.
       (let [old-loaded  (volatile! nil)
             old-playing (volatile! nil)]
         (locking open-shows
           (let [show (latest-show show)]
-            (vreset! old-loaded (get-in show [:loaded (.player sig-update)]))
-            (vreset! old-playing (get-in show [:playing (.player sig-update)]))
-            (swap! open-shows assoc-in [(:file show) :loaded (.player sig-update)] (.signature sig-update))
-            (swap! open-shows assoc-in [(:file show) :playing (.player sig-update)] nil)))
-        (when (and @old-playing (not= @old-playing (.signature sig-update)))
-          (no-longer-playing show (.player sig-update) @old-playing))
-        (when (and @old-loaded (not= @old-loaded (.signature sig-update)))
-          (no-longer-loaded show (.player sig-update) @old-loaded))
-        (when (and (.signature sig-update) (not= (.signature sig-update) @old-loaded))
-          (now-loaded show (.player sig-update) (.signature sig-update)))))))
+            (vreset! old-loaded (get-in show [:loaded player]))
+            (vreset! old-playing (get-in show [:playing player]))
+            (swap! open-shows update (:file show)
+                   (fn [show]
+                     (-> show
+                         (assoc-in [:loaded player] signature)
+                         (update :playing dissoc player)
+                         (update :on-air dissoc player)
+                         (update :master dissoc player))))))
+        (let [show (latest-show show)]
+          (when (and @old-playing (not= @old-playing signature))
+            (no-longer-playing show player @old-playing nil false))
+          (when (and @old-loaded (not= @old-loaded signature))
+            (no-longer-loaded show player @old-loaded false))
+          (when (and signature (not= signature @old-loaded))
+            (now-loaded show player signature)))))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -637,28 +813,6 @@
       (when (not= contents (:original-contents track))
         (write-edn-path contents (.resolve (build-track-path show (:signature track)) "contents.edn"))
         (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :original-contents] contents)))))
-
-(defn- run-track-function
-  "Checks whether the track has a custom function of the specified kind
-  installed and if so runs it with the supplied status argument and
-  the track local and global atoms. Returns a tuple of the function
-  return value and any thrown exception. If `alert?` is `true` the
-  user will be alerted when there is a problem running the function."
-  [show track kind status alert?]
-  (let [show  (latest-show show)
-        track (latest-track track)]
-    (when-let [expression-fn (get-in track [:expression-fns kind])]
-      (try
-        [(expression-fn status {:locals (:expression-locals track)
-                                :show   show
-                                :track  track} (:expression-globals show)) nil]
-        (catch Throwable t
-          (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
-                               (get-in track [:contents :expressions kind])))
-          (when alert?
-            (seesaw/alert (str "<html>Problem running track " (name kind) " expression.<br><br>" t)
-                          :title "Exception in Show Track Expression" :type :error))
-          [nil t])))))
 
 (defn- format-artist-album
   [metadata]
@@ -1286,34 +1440,15 @@
                              (.dispatchEvent (:frame show) (WindowEvent. (:frame show) WindowEvent/WINDOW_CLOSING))))
                  :name "Close"))
 
-(defn- run-global-function
-  "Checks whether the show has a custom function of the specified kind
-  installed, and if so runs it with a nil status and track local
-  atom, and the show's global atom. Returns a tuple of the function
-  return value and any thrown exception."
-  [show kind]
-  (let [show (latest-show show)]
-    (when-let [expression-fn (get-in show [:expression-fns kind])]
-      (try
-        [(expression-fn nil nil (:expression-globals show)) nil]
-        (catch Throwable t
-          (timbre/error t "Problem running show global " kind " expression,"
-                        (get-in show [:contents :expressions kind]))
-          (seesaw/alert (str "<html>Problem running show global " (name kind) " expression.<br><br>" t)
-                        :title "Exception in Show Expression" :type :error)
-          [nil t])))))
-
-
-
 (defn build-global-editor-action
   "Creates an action which edits one of a show's global expressions."
   [show kind]
   (seesaw/action :handler (fn [e] (editors/show-show-editor open-shows kind (latest-show show) nil (:frame show)
                                                             (fn []
                                                               (when (= :setup kind)
-                                                                (run-global-function show :shutdown)
+                                                                (run-global-function show :shutdown nil true)
                                                                 (reset! (:expression-globals show) {})
-                                                                (run-global-function show :setup))
+                                                                (run-global-function show :setup nil true))
                                                               (update-global-expression-icons show))))
                  :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
                  :tip (get-in editors/global-trigger-editors [kind :tip])
@@ -1458,9 +1593,18 @@
                                  (update-track-visibility show))))
             sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
                               (signatureChanged [this sig-update]
-                                #_(timbre/info "signatureChanged:" sig-update)
                                 (update-player-item-signature sig-update show)
                                 (seesaw/invoke-later (update-track-visibility show))))
+            update-listener (reify DeviceUpdateListener
+                              (received [this status]
+                                (try
+                                  (run-custom-enabled show nil status)
+                                  (when-let [signature (.getLatestSignatureFor signature-finder status)]
+                                    (when-let [track (get-in (latest-show show) [:tracks signature])]
+                                      (run-custom-enabled show track status)
+                                      (update-track-status status show track)))
+                                  (catch Exception e
+                                    (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
             close-fn        (fn [force? quitting?]
                               ;; Closes the show window and performs all necessary cleanup If `force?` is true,
@@ -1471,12 +1615,13 @@
                                 (when (and (every? (partial close-track-editors? false) (vals (:tracks show)))
                                            (every? (partial editors/close-editor? false)
                                                    (vals (:expression-editors show))))
+                                  (.removeUpdateListener virtual-cdj update-listener)
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
                                   (.removeLifecycleListener metadata-finder mf-listener)
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true show track))
-                                  (run-global-function show :shutdown)
+                                  (run-global-function show :shutdown nil false)
                                   (try
                                     (save-show show false)
                                     (catch Throwable t
@@ -1495,6 +1640,7 @@
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
+        (.addUpdateListener virtual-cdj update-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
         (create-track-panels show)
@@ -1525,7 +1671,7 @@
                 (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
-        (run-global-function show :setup)
+        (run-global-function show :setup nil true)
         (update-global-expression-icons show)
         (seesaw/show! root))
       (catch Throwable t
