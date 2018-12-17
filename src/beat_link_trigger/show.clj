@@ -300,10 +300,11 @@
   `true` to indicate we should run the expressions that we normally
   would not for a non-tripped track."
   [show player signature status ignore-tripped]
-  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :playing] disj player)
-        track      (get-in shows [(:file show) :tracks signature])
-        now-playing (:playing track)]
-    (when (empty? now-playing)
+  (let [shows       (swap! open-shows update-in [(:file show) :playing] disj player)
+        show        (get shows (:file show))
+        track       (get-in show [:tracks signature])
+        now-playing (set (vals (:playing show)))]
+    (when-not (now-playing signature)
       (when (or ignore-tripped (:tripped track))
         (run-track-function show track :stopped status false)))
     (update-playback-position show signature player)
@@ -330,10 +331,11 @@
   run the expressions that we normally would not for a non-tripped
   track."
   [show player signature ignore-tripped]
-  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] disj player)
-        track      (get-in shows [(:file show) :tracks signature])
-        now-loaded (:loaded track)]
-    (when (empty? now-loaded)
+  (let [shows      (swap! open-shows update-in [(:file show) :loaded] disj player)
+        show       (get shows (:file show))
+        track      (get-in show [:tracks signature])
+        now-loaded (set (vals (:loaded show)))]
+    (when-not (now-loaded signature)
       (when (or ignore-tripped (:tripped track))
         (run-track-function show track :unloaded nil false))
       (when-let [preview-loader (get-in show [:tracks signature :preview])]
@@ -341,15 +343,27 @@
           (.clearPlaybackState preview))))
     (update-loaded-text show signature now-loaded)))
 
+(defn- players-signature-set
+  "Given a map from player number to signature, returns the the set of
+  player numbers whose value matched a particular signature."
+  [player-map signature]
+  (reduce (fn [result [k v]]
+            (if (= v signature)
+              (conj result k)
+              result))
+          #{}
+          player-map))
+
 (defn- now-loaded
   "Performs the bookeeping to reflect that the specified player now has
   the track with the specified signature loaded. If this is the first
   player to load the track, run the track's Loaded expression, if
   there is one. Must be passed a current view of the show."
   [show player signature]
-  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :loaded] conj player)
-        track      (get-in shows [(:file show) :tracks signature])
-        now-loaded (:loaded track)]
+  (let [shows      (swap! open-shows assoc-in [(:file show) :loaded player] signature)
+        show       (get shows (:file show))
+        track      (get-in show [:tracks signature])
+        now-loaded (players-signature-set (:loaded show) signature)]
     (when (and (= #{player} now-loaded)  ; This is the first player to load the track.
                (:tripped track))
       (run-track-function show track :loaded nil false))
@@ -364,9 +378,10 @@
   learned about the stoppage from a status update, it will be in
   `status`."
   [show player signature status]
-  (let [shows      (swap! open-shows update-in [(:file show) :tracks signature :playing] conj player)
-        track      (get-in shows [(:file show) :tracks signature])
-        now-playing (:playing track)]
+  (let [shows       (swap! open-shows assoc-in [(:file show) :playing player] signature)
+        show        (get shows (:file show))
+        track       (get-in show [:tracks signature])
+        now-playing (players-signature-set (:playing show) signature)]
     (when (and (= #{player} now-playing)  ; This is the first player to play the track.
                (:tripped track))
       (run-track-function show track :playing status false))
