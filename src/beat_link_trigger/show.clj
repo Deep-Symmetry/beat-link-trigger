@@ -1141,10 +1141,19 @@
   "Process the removal of a track, either via deletion, or because the
   show is closing. If `force?` is true, any unsaved expression editors
   will simply be closed. Otherwise, they will block the track removal,
-  which will be indicated by this function returning falsey."
+  which will be indicated by this function returning falsey. Run any
+  appropriate custom expressions to reflect the departure of the
+  track."
   [force? show track]
   (when (close-track-editors? force? track)
-    (run-track-function show track :shutdown nil true)
+    (let [show  (latest-show show)
+          track (get-in show [:tracks (:signature track)])]
+      (when (:tripped track)
+        (when ((set (vals (:playing show))) (:signature track))
+          (run-track-function show track :stopped nil false))
+        (when ((set (vals (:loaded show))) (:signature track))
+          (run-track-function show track :unloaded nil false)))
+      (run-track-function show track :shutdown nil (not force?)))
     true))
 
 (defn- create-track-panels
@@ -1641,7 +1650,7 @@
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true show track))
-                                  (run-global-function show :shutdown nil false)
+                                  (run-global-function show :shutdown nil (not force?))
                                   (try
                                     (save-show show false)
                                     (catch Throwable t
