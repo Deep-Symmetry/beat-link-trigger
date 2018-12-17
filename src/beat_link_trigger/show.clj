@@ -1569,6 +1569,9 @@
   "Create and show a new show window on the specified file."
   [file]
   (util/load-fonts)
+  (when (online?)  ; Start out the finders that aren't otherwise guaranteed to be running.
+    (.start time-finder)
+    (.start signature-finder))
   (let [[filesystem contents] (open-show-filesystem file)]
     (try
       (let [root            (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
@@ -1609,6 +1612,8 @@
                                 (update-player-item-visibility announcement show false)))
             mf-listener     (reify LifecycleListener  ; Hide or show all players if we go offline or online.
                               (started [this sender]
+                                (.start time-finder)  ; We need this too, and it doesn't auto-restart.
+                                (.start signature-finder)  ; In case we started out offline.
                                 (seesaw/invoke-later
                                  (seesaw/show! loaded-only)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
@@ -1627,11 +1632,12 @@
             update-listener (reify DeviceUpdateListener
                               (received [this status]
                                 (try
-                                  (run-custom-enabled show nil status)
-                                  (when-let [signature (.getLatestSignatureFor signature-finder status)]
-                                    (when-let [track (get-in (latest-show show) [:tracks signature])]
-                                      (run-custom-enabled show track status)
-                                      (update-track-status status show track)))
+                                  (when (.isRunning signature-finder)  ; Ignore packets when we aren't fully online.
+                                    (run-custom-enabled show nil status)
+                                    (when-let [signature (.getLatestSignatureFor signature-finder status)]
+                                      (when-let [track (get-in (latest-show show) [:tracks signature])]
+                                        (run-custom-enabled show track status)
+                                        (update-track-status status show track))))
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
