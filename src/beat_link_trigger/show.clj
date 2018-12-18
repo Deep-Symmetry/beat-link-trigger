@@ -289,26 +289,32 @@
       (when-let [preview (preview-loader)]
         (.setPlaybackState preview player (.milliseconds position) (.playing position))))))
 
+(defn- players-signature-set
+  "Given a map from player number to signature, returns the the set of
+  player numbers whose value matched a particular signature."
+  [player-map signature]
+  (reduce (fn [result [k v]]
+            (if (= v signature)
+              (conj result k)
+              result))
+          #{}
+          player-map))
+
 (defn- no-longer-playing
-  "Performs the bookeeping to reflect that the specified player is no
-  longer playing the track with the specified signature. If this
-  causes the track to stop having any player playing it, run the
-  track's Stopped expression, if there is one. Must be passed a
-  current view of the show. If we learned about the stoppage from a
-  status update, it will be in `status`. When a track is in the
-  process of becoming disabled, `ignore-tripped` will have the value
-  `true` to indicate we should run the expressions that we normally
-  would not for a non-tripped track."
-  [show player signature status ignore-tripped]
-  (let [shows       (swap! open-shows update-in [(:file show) :playing] disj player)
-        show        (get shows (:file show))
-        track       (get-in show [:tracks signature])
-        now-playing (set (vals (:playing show)))]
-    (when-not (now-playing signature)
-      (when (or ignore-tripped (:tripped track))
+  "Reacts to the fact that the specified player is no longer playing the
+  specified track. If this left the track with no player playing it,
+  run the track's Stopped expression, if there is one. Must be passed
+  a current view of the show and the previous track state. If we
+  learned about the stoppage from a status update, it will be in
+  `status`."
+  [show player track status]
+  (let [signature (:signature track)
+        now-playing       (players-signature-set (:playing show) signature)]
+    (when-not (now-playing player)  ; The track is no longer playing on any player.
+      (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (run-track-function show track :stopped status false)))
-    (update-playback-position show signature player)
-    (update-playing-text show signature now-playing)))
+    (update-playing-text show signature now-playing)
+    (update-playback-position show signature player)))
 
 (defn- update-loaded-text
   "Formats the text describing the players that have a track loaded, and
@@ -322,47 +328,29 @@
      (seesaw/config! loaded-label :text text))))
 
 (defn- no-longer-loaded
-  "Performs the bookeeping to reflect that the specified player no
-  longer has the track with the specified signature loaded. If this
-  causes the track to stop being loaded in any player, run the track's
-  Unloaded expression, if there is one. Must be passed a current view
-  of the show. When a track is in the process of becoming disabled,
-  `ignore-tripped` will have the value `true` to indicate we should
-  run the expressions that we normally would not for a non-tripped
-  track."
-  [show player signature ignore-tripped]
-  (let [shows      (swap! open-shows update-in [(:file show) :loaded] disj player)
-        show       (get shows (:file show))
-        track      (get-in show [:tracks signature])
-        now-loaded (set (vals (:loaded show)))]
-    (when-not (now-loaded signature)
-      (when (or ignore-tripped (:tripped track))
-        (run-track-function show track :unloaded nil false))
-      (when-let [preview-loader (get-in show [:tracks signature :preview])]
-        (when-let [preview (preview-loader)]
-          (.clearPlaybackState preview))))
-    (update-loaded-text show signature now-loaded)))
-
-(defn- players-signature-set
-  "Given a map from player number to signature, returns the the set of
-  player numbers whose value matched a particular signature."
-  [player-map signature]
-  (reduce (fn [result [k v]]
-            (if (= v signature)
-              (conj result k)
-              result))
-          #{}
-          player-map))
+  "Reacts to the fact that the specified player no longer has the
+  specified track loaded. If this leaves track not loaded in any
+  player, run the track's Unloaded expression, if there is one. Must
+  be passed a current view of the show and the previous track state."
+  [show player track]
+  (let [signature  (:signature track)
+        now-loaded (players-signature-set (:loaded show) signature)]
+    (when-not (now-loaded player)  ; The track is no longer loaded by any player.
+      (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
+        (run-track-function show track :unloaded nil false)))
+    (update-loaded-text show signature now-loaded)
+    (update-playing-text show signature (players-signature-set (:playing show) signature))
+    (when-let [preview-loader (get-in show [:tracks signature :preview])]
+      (when-let [preview (preview-loader)]
+        (.clearPlaybackState preview)))))
 
 (defn- now-loaded
-  "Performs the bookeeping to reflect that the specified player now has
-  the track with the specified signature loaded. If this is the first
-  player to load the track, run the track's Loaded expression, if
-  there is one. Must be passed a current view of the show."
-  [show player signature]
-  (let [shows      (swap! open-shows assoc-in [(:file show) :loaded player] signature)
-        show       (get shows (:file show))
-        track      (get-in show [:tracks signature])
+  "Reacts to the fact that the specified player now has the specified
+  track loaded. If this is the first player to load the track, run the
+  track's Loaded expression, if there is one. Must be passed a current
+  view of the show and track."
+  [show player track]
+  (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (and (= #{player} now-loaded)  ; This is the first player to load the track.
                (:tripped track))
@@ -371,16 +359,13 @@
     (update-playback-position show signature player)))
 
 (defn- now-playing
-  "Performs the bookeeping to reflect that the specified player is now
-  playing the track with the specified signature. If this is the first
-  player playing the track, run the track's Started expression, if
-  there is one. Must be passed a current view of the show. If we
-  learned about the stoppage from a status update, it will be in
-  `status`."
-  [show player signature status]
-  (let [shows       (swap! open-shows assoc-in [(:file show) :playing player] signature)
-        show        (get shows (:file show))
-        track       (get-in show [:tracks signature])
+  "Reacts to the fact that the specified player is now playing the
+  specified track. If this is the first player playing the track, run
+  the track's Started expression, if there is one. Must be passed a
+  current view of the show and track. If we learned about the playback
+  from a status update, it will be in `status`."
+  [show player track status]
+  (let [signature   (:signature track)
         now-playing (players-signature-set (:playing show) signature)]
     (when (and (= #{player} now-playing)  ; This is the first player to play the track.
                (:tripped track))
@@ -388,46 +373,87 @@
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
 
+(defn- capture-current-state
+  "Copies the expression-relevant show state into the `:last` key,
+  so that changes can be examined after a `swap!` operation, and
+  appropriate expressions run and user interface updates made."
+  [show]
+  (let [state (select-keys show [:loaded :playing :tracks])]
+    (assoc show :last state)))
+
 (defn- update-track-status
+  "As part of `update-show-status` below, set the `:tripped` state of
+  the track appropriately based on the current show configuration and
+  status packet. Called within `swap!` so simply returns the new value.
+  If `track` is `nil`, returns `show` unmodified."
+  [show track ^CdjStatus status]
+  (if track
+    (assoc-in show [:tracks (:signature track) :tripped]
+              (boolean (and (enabled? show track status)
+                            (trip? show track))))
+    show))
+
+(defn- deliver-change-events
+  "Called when a status packet or signature change has updated the show
+  status. Compares the new status with the snapshot of the last
+  status, runs any relevant expressions, and updates any needed UI
+  elements. `show` and `track` must be the just-updated values, with a
+  valid snapshot in the show's `:last` key (although `track` can be
+  `nil` if the track is not recognized or not part of the show).
+  `player` is the player number, in case `status` is `nil` because we
+  are reacting to a signature change rather than a status packet."
+  [show track player ^CdjStatus status]
+  (let [signature   (:signature track)
+        old-loaded          (get-in show [:last :loaded player])
+        old-playing (get-in show [:last :playing player])
+        old-track   (when old-loaded (get-in show [:last :tracks old-loaded]))
+        is-playing  (when status (.isPlaying status))]
+    (cond
+      (and (:tripped old-track) (:tripped track) (not= old-loaded signature))
+      (do  ; This is a switch between two different tripped tracks.
+        (when old-playing (no-longer-playing show player old-track status))
+        (when old-loaded (no-longer-loaded show player old-track))
+        (now-loaded show player track)
+        (when is-playing (now-playing show player track status)))
+
+      (not= (:tripped old-track) (:tripped track))
+      (do  ; This is an overall activation/deactivation.
+        (if (:tripped track)
+          (do  ; Track is now active.
+            (now-loaded show player track)
+            (when is-playing (now-playing show player track status)))
+          (do  ; Track is no longer active.
+            (when old-playing (no-longer-playing show player old-track status))
+            (when old-track (no-longer-loaded show player old-track)))))
+
+      :else
+      (do  ; Track is not changing tripped state, but we may be reporting a new playing state.
+        (when (and old-playing (or (not is-playing) (not= old-playing signature)))
+          (no-longer-playing show player old-track status))
+        (when (and is-playing (not= signature old-playing))
+          (now-playing show player signature status))))
+    (when track (update-playback-position show signature player))
+    ;; TODO: Repaint status indicators here.
+    ))
+
+(defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
-  a player that has it loaded. `show` and `track` must be up-to-date
-  with current state."
-  [^CdjStatus status show track]
-  (let [old-playing (volatile! nil)
-        old-tripped (volatile! nil)
-        player      (.getDeviceNumber status)
-        is-playing  (.isPlaying status)
-        signature   (:signature track)]
-        (locking open-shows
-          (let [show (latest-show show)]
-            (vreset! old-playing (get-in show [:playing player]))
-            (vreset! old-tripped (:tripped track))
-            (swap! open-shows update (:file show)
-                   (fn [show]
-                     (let [updated (-> show
-                                       (assoc-in [:playing player] (when is-playing signature))
-                                       (assoc-in [:on-air player] (when (.isOnAir status) signature))
-                                       (assoc-in [:master player] (when (.isTempoMaster status) signature)))]
-                       (assoc-in updated [:tracks signature :tripped] (and (enabled? updated track status)
-                                                                           (trip? updated track))))))))
-        (let [show  (latest-show show)
-              track (latest-track track)]
-          (if (not= old-tripped (:tripped track))  ; This is an overall activation/deactivation.
-            (if (:tripped track)
-              (do  ; Track is now active.
-                (now-loaded show player signature)
-                (when is-playing (now-playing show player signature status)))
-              (do  ; Track is no longer active.
-                (when @old-playing (no-longer-playing show player signature status true))
-                (no-longer-loaded show player signature true)))
-            (when (:tripped track)  ; Track was already tripped, but we may be reporting a new playing state.
-              (when (and @old-playing (or (not is-playing) (not= @old-playing signature)))
-                (no-longer-playing show player @old-playing status false))
-              (when (and is-playing (not= signature @old-playing))
-                (now-playing show player signature status))))
-          (update-playback-position show signature player)
-          ;; TODO: Repaint status indicators here.
-          )))
+  a player that has it loaded. `track` may be `nil` if the track is
+  unrecognized or not part of the show."
+  [show track ^CdjStatus status]
+  (let [player     (.getDeviceNumber status)
+        signature  (:signature track)
+        track      (when track (latest-track track))
+        show       (swap! open-shows update (:file show)
+                          (fn [show]
+                            (-> show
+                                capture-current-state
+                                (assoc-in [:playing player] (when (.isPlaying status) signature))
+                                (assoc-in [:on-air player] (when (.isOnAir status) signature))
+                                (assoc-in [:master player] (when (.isTempoMaster status) signature))
+                                (update-track-status track status))))
+        track      (when track (get-in show [:tracks (:signature track)]))]
+    (deliver-change-events show track player status)))
 
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
@@ -440,35 +466,21 @@
   because it needs to be called redundantly when importing new
   tracks."
   [^SignatureUpdate sig-update show]
-  (let [show                           (latest-show show)
-        player                         (.player sig-update)
+  (let [player                         (.player sig-update)
         signature                      (.signature sig-update)
         ^javax.swing.JMenu import-menu (:import-menu show)
         disabled-reason                (describe-disabled-reason show signature)
         ^javax.swing.JMenuItem item    (.getItem import-menu (dec player))]
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " player disabled-reason))
-    (when-let [track (get-in show [:tracks signature])]  ; Only do this if the track is part of the show.
-      (let [old-loaded  (volatile! nil)
-            old-playing (volatile! nil)]
-        (locking open-shows
-          (let [show (latest-show show)]
-            (vreset! old-loaded (get-in show [:loaded player]))
-            (vreset! old-playing (get-in show [:playing player]))
-            (swap! open-shows update (:file show)
-                   (fn [show]
-                     (-> show
-                         (assoc-in [:loaded player] signature)
-                         (update :playing dissoc player)
-                         (update :on-air dissoc player)
-                         (update :master dissoc player))))))
-        (let [show (latest-show show)]
-          (when (and @old-playing (not= @old-playing signature))
-            (no-longer-playing show player @old-playing nil false))
-          (when (and @old-loaded (not= @old-loaded signature))
-            (no-longer-loaded show player @old-loaded false))
-          (when (and signature (not= signature @old-loaded))
-            (now-loaded show player signature)))))))
+    (let [show  (swap! open-shows update (:file show)
+                       (fn [show]
+                         (-> show
+                             capture-current-state
+                             (assoc-in [:loaded player] signature)
+                             (update :playing dissoc player))))
+          track (when signature (get-in show [:tracks signature]))]
+      (deliver-change-events show track player nil))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -1634,10 +1646,10 @@
                                 (try
                                   (when (.isRunning signature-finder)  ; Ignore packets when we aren't fully online.
                                     (run-custom-enabled show nil status)
-                                    (when-let [signature (.getLatestSignatureFor signature-finder status)]
-                                      (when-let [track (get-in (latest-show show) [:tracks signature])]
-                                        (run-custom-enabled show track status)
-                                        (update-track-status status show track))))
+                                    (let [signature (.getLatestSignatureFor signature-finder status)
+                                          track (get-in (latest-show show) [:tracks signature])]
+                                      (when track (run-custom-enabled show track status))
+                                      (update-show-status show track status)))
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
