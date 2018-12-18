@@ -308,8 +308,8 @@
   learned about the stoppage from a status update, it will be in
   `status`."
   [show player track status]
-  (let [signature (:signature track)
-        now-playing       (players-signature-set (:playing show) signature)]
+  (let [signature   (:signature track)
+        now-playing (players-signature-set (:playing show) signature)]
     (when-not (now-playing player)  ; The track is no longer playing on any player.
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (run-track-function show track :stopped status false)))
@@ -431,7 +431,8 @@
         (when (and old-playing (or (not is-playing) (not= old-playing signature)))
           (no-longer-playing show player old-track status))
         (when (and is-playing (not= signature old-playing))
-          (now-playing show player signature status))))
+          (now-playing show player track status))))
+
     (when track (update-playback-position show signature player))
     ;; TODO: Repaint status indicators here.
     ))
@@ -441,18 +442,19 @@
   a player that has it loaded. `track` may be `nil` if the track is
   unrecognized or not part of the show."
   [show track ^CdjStatus status]
-  (let [player     (.getDeviceNumber status)
-        signature  (:signature track)
-        track      (when track (latest-track track))
-        show       (swap! open-shows update (:file show)
-                          (fn [show]
-                            (-> show
-                                capture-current-state
-                                (assoc-in [:playing player] (when (.isPlaying status) signature))
-                                (assoc-in [:on-air player] (when (.isOnAir status) signature))
-                                (assoc-in [:master player] (when (.isTempoMaster status) signature))
-                                (update-track-status track status))))
-        track      (when track (get-in show [:tracks (:signature track)]))]
+  (let [player    (.getDeviceNumber status)
+        signature (:signature track)
+        track     (when track (latest-track track))
+        shows     (swap! open-shows update (:file show)
+                         (fn [show]
+                           (-> show
+                               capture-current-state
+                               (assoc-in [:playing player] (when (.isPlaying status) signature))
+                               (assoc-in [:on-air player] (when (.isOnAir status) signature))
+                               (assoc-in [:master player] (when (.isTempoMaster status) signature))
+                               (update-track-status track status))))
+        show      (get shows (:file show))
+        track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show track player status)))
 
 (defn- update-player-item-signature
@@ -473,12 +475,13 @@
         ^javax.swing.JMenuItem item    (.getItem import-menu (dec player))]
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " player disabled-reason))
-    (let [show  (swap! open-shows update (:file show)
+    (let [shows (swap! open-shows update (:file show)
                        (fn [show]
                          (-> show
                              capture-current-state
                              (assoc-in [:loaded player] signature)
                              (update :playing dissoc player))))
+          show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show track player nil))))
 
@@ -1644,10 +1647,11 @@
             update-listener (reify DeviceUpdateListener
                               (received [this status]
                                 (try
-                                  (when (.isRunning signature-finder)  ; Ignore packets when we aren't fully online.
+                                  (when (and (.isRunning signature-finder)  ; Ignore packets when not yet fully online.
+                                             (instance? CdjStatus status))  ; We only want CDJ information.
                                     (run-custom-enabled show nil status)
                                     (let [signature (.getLatestSignatureFor signature-finder status)
-                                          track (get-in (latest-show show) [:tracks signature])]
+                                          track     (get-in (latest-show show) [:tracks signature])]
                                       (when track (run-custom-enabled show track status))
                                       (update-show-status show track status)))
                                   (catch Exception e
