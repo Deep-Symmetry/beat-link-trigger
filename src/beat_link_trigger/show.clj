@@ -209,18 +209,45 @@
                                      :title "Exception in Show Track Expression" :type :error))
           [nil t])))))
 
+(defn- repaint-states
+  "Causes the two track state indicators to redraw themselves to reflect
+  a change in state."
+  [show signature]
+  (let [panel (get-in (latest-show show) [:tracks signature :panel])]
+    (seesaw/repaint! (seesaw/select panel [:#loaded-state]))
+    (seesaw/repaint! (seesaw/select panel [:#playing-state]))))
+
+(defn repaint-all-states
+  "Causes the track state indicators for all tracks in a show to redraw
+  themselves to reflect a change in state."
+  [show]
+  (doseq [signature (keys (:tracks (latest-show show)))]
+    (repaint-states show signature)))
+
+(defn- update-track-enabled
+  "Updates either a the track or default enabled filter stored result to the value passed in.
+  Currently we only store results at the track level, byt maybe
+  someday shows themselves will be enabled/disabled too."
+  [show track enabled?]
+  (let [ks    [:tracks (:signature track) :expression-results :enabled]
+        shows (swap! open-shows update (:file show)
+                     (fn [show]
+                       (-> show
+                           (assoc-in [:last :enabled] (get-in show ks))
+                           (assoc-in ks enabled?))))]
+    (when (not= enabled? (get-in shows [(:file show) :last :enabled]))
+      (repaint-states show (:signature track)))))
+
 (defn- run-custom-enabled
-  "Invokes the custom enabled filter assigned to a track or show, if
-  any, recording the result in the show data. `show` and `track` must
-  be up-to-date."
+  "Invokes the custom enabled filter assigned to a track (or to the
+  show, if the track is set to Default and the show is set to Custom),
+  if any, recording the result in the track data. `show` and `track`
+  must be up-to-date."
   [show track status]
-  (if track
-    (when (= "Custom" (:enabled track))
-      (let [[enabled? _] (run-track-function show track :enabled status false)]
-        (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :expression-results :enabled] enabled?)))
-    (when (= "Custom" (:enabled show))
-      (let [[enabled? _] (run-global-function show :enabled status false)]
-        (swap! open-shows assoc-in [(:file show) :expression-results :enabled] enabled?)))))
+  (if (= "Custom" (get-in track [:contents :enabled]))
+    (update-track-enabled show track (boolean (first (run-track-function show track :enabled status false))))
+    (when (and (= "Default" (get-in track [:contents :enabled])) (= "Custom" (get-in show [:contents :enabled])))
+      (update-track-enabled show track (boolean (first (run-global-function show :enabled status false)))))))
 
 (defn- enabled?
   "Checks whether the track is enabled, given its configuration and
@@ -236,7 +263,7 @@
          track-setting (get-in track [:contents :enabled])
          show-setting  (get-in show [:contents :enabled])
          setting       (if (= track-setting "Default")
-                         (if (= show-setting "Custom") "CustomShow" show-setting)
+                         show-setting
                          track-setting)]
      (case setting
        "Always"     true
@@ -247,17 +274,7 @@
                       (.isTempoMaster status)
                       ((set (vals (:master show))) (:signature track)))
        "Custom"     (get-in track [:expression-results :enabled])
-       "CustomShow" (get-in show [:expression-results :enabled])
        false))))
-
-(defn trip?
-  "Checks whether the track should fire its deferred loaded and playing
-  expressions, given that it has just become enabled."
-  [show track]
-  (let [show  (latest-show show)]
-    (or ((set (vals (:loaded show))) (:signature track))
-        ((set (vals (:playing show))) (:signature track)))))
-
 
 (defn- describe-disabled-reason
   "Returns a text description of why import from a player is disabled
@@ -299,15 +316,6 @@
               result))
           #{}
           player-map))
-
-(defn- repaint-states
-  "Causes the two track state indicators to redraw themselves to reflect
-  a change in state."
-  [show signature]
-  (seesaw/invoke-later)
-  (let [panel (get-in (latest-show show) [:tracks signature :panel])]
-    (seesaw/repaint! (seesaw/select panel [:#loaded-state]))
-    (seesaw/repaint! (seesaw/select panel [:#playing-state]))))
 
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
@@ -394,6 +402,15 @@
   [show]
   (let [state (select-keys show [:loaded :playing :tracks])]
     (assoc show :last state)))
+
+(defn trip?
+  "Checks whether the track should fire its deferred loaded and playing
+  expressions, given that it has just become enabled. Called within
+  `swap!` so `show` and `track` can be trusted to have current
+  values."
+  [show track]
+  (or ((set (vals (:loaded show))) (:signature track))
+      ((set (vals (:playing show))) (:signature track))))
 
 (defn- update-track-status
   "As part of `update-show-status` below, set the `:tripped` state of
@@ -699,6 +716,53 @@
                                (seesaw/icon "images/Gear-outline.png")
                                (seesaw/icon "images/Gear-icon.png"))))
 
+(defn update-global-expression-icons
+  "Updates the icons next to expressions in the Tracks menu to
+  reflect whether they have been assigned a non-empty value."
+  [show]
+  (let [show (latest-show show)
+        menu (seesaw/select (:frame show) [:#tracks-menu])]
+    (doseq [i (range (.getItemCount menu))]
+      (let [item (.getItem menu i)]
+        (when item
+          (let [label (.getText item)]
+            (cond (= label "Edit Global Setup Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :setup]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png")))
+
+                  (= label "Edit Default Enabled Filter Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :enabled]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png")))
+
+                  (= label "Edit Global Shutdown Expression")
+                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :shutdown]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png"))))))))))
+
+(defn- attach-custom-editor-opener
+  "Sets up an action handler so that when one of the popup menus is set
+  to Custom, if there is not already an expession of the appropriate
+  kind present, an editor for that expression is automatically
+  opened."
+  [show track menu kind gear]
+  (let [panel (or (:panel track) (:frame show))]
+    (seesaw/listen menu
+                   :action-performed (fn [_]
+                                       (let [choice (seesaw/selection menu)
+                                             show   (latest-show show)
+                                             track  (when track (get-in show [:tracks (:signature track)]))]
+                                         (when (and (= "Custom" choice)
+                                                    (not (if track (:creating track) (:creating show)))
+                                                    (empty? (get-in (or track show)
+                                                                    [:contents :expressions (keyword kind)]))
+                                                    (editors/show-show-editor
+                                                     open-shows (keyword kind) show track panel
+                                                     (if gear
+                                                       #(update-gear-icon track gear)
+                                                       #(update-global-expression-icons show))))))))))
+
 (defn- attach-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
   changed, the appropriate UI elements are shown or hidden."
@@ -710,17 +774,11 @@
         channel-spinner (seesaw/select panel [(keyword (str "#" kind "-channel"))])]
     (seesaw/listen message-menu
                    :action-performed (fn [_]
-                                       (let [choice (seesaw/selection message-menu)
-                                             track  (latest-track track)]
-                                         (when (and (= "Custom" choice)
-                                                    (not (:creating track))
-                                                    (empty? (get-in track [:contents :expressions (keyword kind)]))
-                                                    (editors/show-show-editor open-shows (keyword kind)
-                                                                              (latest-show show) track panel
-                                                                              #(update-gear-icon panel gear))))
+                                       (let [choice (seesaw/selection message-menu)]
                                          (if (= "None" choice)
                                            (seesaw/hide! [note-spinner label channel-spinner])
-                                           (seesaw/show! [note-spinner label channel-spinner])))))))
+                                           (seesaw/show! [note-spinner label channel-spinner])))))
+    (attach-custom-editor-opener show track message-menu kind gear)))
 
 (defn- update-track-visibility
   "Determines the tracks that should be visible given the filter
@@ -1170,7 +1228,8 @@
     (update-gear-icon track gear)
 
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
-    ;; so the data is ready.
+    ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
+    ;; Enabled Filter if "Custom" is chosen as the Message.
     (seesaw/listen (seesaw/select panel [:#outputs])
                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
     (attach-message-visibility-handler show track "loaded" gear)
@@ -1189,6 +1248,19 @@
     (assoc-track-content show signature :loaded-channel (seesaw/value (seesaw/select panel [:#loaded-channel])))
     (assoc-track-content show signature :playing-note (seesaw/value (seesaw/select panel [:#playing-note])))
     (assoc-track-content show signature :playing-channel (seesaw/value (seesaw/select panel [:#playing-channel])))
+
+    (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
+      (let [editor-info (get editors/show-track-editors kind)]
+        (try
+          (swap! open-shows assoc-in [(:file show) :tracks signature :expression-fns kind]
+                 (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                    (editors/show-editor-title kind show track)))
+              (catch Exception e
+                (timbre/error e (str "Problem parsing " (:title editor-info)
+                                     " when loading Show. Expression:\n" expr "\n"))
+                (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                                   "Check the log file for details.")
+                              :title "Exception during Clojure evaluation" :type :error)))))
 
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.
@@ -1229,31 +1301,6 @@
     (when (Files/isReadable tracks-path)  ; We have imported at least one track.
       (doseq [track-path (Files/newDirectoryStream tracks-path)]
         (create-track-panel show track-path)))))
-
-(defn update-global-expression-icons
-  "Updates the icons next to expressions in the Tracks menu to
-  reflect whether they have been assigned a non-empty value."
-  [show]
-  (let [show (latest-show show)
-        menu (seesaw/select (:frame show) [:#tracks-menu])]
-    (doseq [i (range (.getItemCount menu))]
-      (let [item (.getItem menu i)]
-        (when item
-          (let [label (.getText item)]
-            (cond (= label "Edit Global Setup Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :setup]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png")))
-
-                  (= label "Edit Default Enabled Filter Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :enabled]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png")))
-
-                  (= label "Edit Global Shutdown Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :shutdown]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png"))))))))))
 
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
@@ -1593,8 +1640,7 @@
   their own."
   [show enabled]
   (swap! open-shows assoc-in [(:file show) :contents :enabled] enabled)
-  (doseq [signature (keys (:tracks (latest-show show)))]
-    (repaint-states show signature)))
+  (repaint-all-states show))
 
 (defn- set-loaded-only
   "Update the show UI so that all track or only loaded tracks are
@@ -1645,7 +1691,8 @@
       (let [root            (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
                                           :on-close :nothing)
             import-menu     (seesaw/menu :text "Import Track")
-            show            {:frame       root
+            show            {:creating    true
+                             :frame       root
                              :expression-globals (atom {})
                              :import-menu import-menu
                              :file        file
@@ -1702,8 +1749,9 @@
                                 (try
                                   (when (and (.isRunning signature-finder)  ; Ignore packets when not yet fully online.
                                              (instance? CdjStatus status))  ; We only want CDJ information.
-                                    (run-custom-enabled show nil status)
+                                    #_(run-custom-enabled (latest-show show) nil status)  ; Currently not meaningful.
                                     (let [signature (.getLatestSignatureFor signature-finder status)
+                                          show      (latest-show show)
                                           track     (get-in (latest-show show) [:tracks signature])]
                                       (when track (run-custom-enabled show track status))
                                       (update-show-status show track status)))
@@ -1752,6 +1800,7 @@
         (refresh-signatures show)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
+        (attach-custom-editor-opener show nil enabled-default :enabled nil)
         (seesaw/selection! enabled-default (:enabled contents "Always"))
         (.setSize root 900 600)  ; Our default size if there isn't a position stored in the file.
         (restore-window-position root contents)
@@ -1766,7 +1815,7 @@
         (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
           (let [editor-info (get editors/global-show-editors kind)]
             (try
-              (swap! open-shows assoc-in [(:file show) :expression-fns kind]
+              (swap! open-shows assoc-in [file :expression-fns kind]
                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
                                                         (editors/show-editor-title kind show nil)))
               (catch Exception e
@@ -1776,6 +1825,7 @@
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
         (run-global-function show :setup nil true)
+        (swap! open-shows update file dissoc :creating)
         (update-global-expression-icons show)
         (seesaw/show! root))
       (catch Throwable t
