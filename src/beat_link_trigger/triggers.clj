@@ -571,7 +571,7 @@
                         :title "Exception in Custom Expression" :type :error)
           [nil t])))))
 
-(defn paint-state
+(defn- paint-state
   "Draws a representation of the state of the trigger, including both
   whether it is enabled and whether it has tripped (or would have, if
   it were not disabled)."

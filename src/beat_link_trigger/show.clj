@@ -19,7 +19,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
-           [java.awt Font]
+           [java.awt Color Font RenderingHints]
            [java.awt.event WindowEvent]
            [java.lang.ref SoftReference]
            [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
@@ -300,6 +300,15 @@
           #{}
           player-map))
 
+(defn- repaint-states
+  "Causes the two track state indicators to redraw themselves to reflect
+  a change in state."
+  [show signature]
+  (seesaw/invoke-later)
+  (let [panel (get-in (latest-show show) [:tracks signature :panel])]
+    (seesaw/repaint! (seesaw/select panel [:#loaded-state]))
+    (seesaw/repaint! (seesaw/select panel [:#playing-state]))))
+
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   specified track. If this left the track with no player playing it,
@@ -312,7 +321,8 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when-not (now-playing player)  ; The track is no longer playing on any player.
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (run-track-function show track :stopped status false)))
+        (run-track-function show track :stopped status false))
+      (repaint-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
 
@@ -337,9 +347,11 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when-not (now-loaded player)  ; The track is no longer loaded by any player.
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (run-track-function show track :unloaded nil false)))
+        (run-track-function show track :unloaded nil false))
+      (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playing-text show signature (players-signature-set (:playing show) signature))
+
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
       (when-let [preview (preview-loader)]
         (.clearPlaybackState preview)))))
@@ -352,9 +364,10 @@
   [show player track]
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
-    (when (and (= #{player} now-loaded)  ; This is the first player to load the track.
-               (:tripped track))
-      (run-track-function show track :loaded nil false))
+    (when (= #{player} now-loaded)  ; This is the first player to load the track.
+      (when (:tripped track)
+        (run-track-function show track :loaded nil false))
+      (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playback-position show signature player)))
 
@@ -367,9 +380,10 @@
   [show player track status]
   (let [signature   (:signature track)
         now-playing (players-signature-set (:playing show) signature)]
-    (when (and (= #{player} now-playing)  ; This is the first player to play the track.
-               (:tripped track))
-      (run-track-function show track :playing status false))
+    (when (= #{player} now-playing)  ; This is the first player to play the track.
+      (when (:tripped track)
+        (run-track-function show track :playing status false))
+      (repaint-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
 
@@ -404,7 +418,7 @@
   are reacting to a signature change rather than a status packet."
   [show track player ^CdjStatus status]
   (let [signature   (:signature track)
-        old-loaded          (get-in show [:last :loaded player])
+        old-loaded  (get-in show [:last :loaded player])
         old-playing (get-in show [:last :playing player])
         old-track   (when old-loaded (get-in show [:last :tracks old-loaded]))
         is-playing  (when status (.isPlaying status))]
@@ -480,7 +494,9 @@
                          (-> show
                              capture-current-state
                              (assoc-in [:loaded player] signature)
-                             (update :playing dissoc player))))
+                             (update :playing dissoc player)
+                             (update :on-air dissoc player)
+                             (update :master dissoc player))))
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show track player nil))))
@@ -975,6 +991,32 @@
                                   (seesaw/alert "Problem deleting track:" e)))))
                  :name "Delete Track"))
 
+(defn- paint-state
+  "Draws a representation of the state of the track, including whether
+  it is enabled and whether any players have it loaded or playing (as
+  deterimined by the keyword passed in `k`)."
+  [show signature k c g]
+  (let [w        (double (seesaw/width c))
+        h        (double (seesaw/height c))
+        outline  (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
+        show     (latest-show show)
+        track    (get-in show [:tracks signature])
+        enabled? (enabled? show track)
+        active?  (seq (players-signature-set (k show) signature))]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+
+    (when active? ; Draw the inner filled circle showing the track is loaded or playing
+      (.setPaint g (if enabled? Color/green Color/lightGray))
+      (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
+
+    ;; Draw the outer circle that reflects the enabled state
+    (.setStroke g (java.awt.BasicStroke. 2.0))
+    (.setPaint g (if enabled? Color/green Color/red))
+    (.draw g outline)
+    (when-not enabled?
+      (.clip g outline)
+      (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately."
@@ -1029,7 +1071,11 @@
                                                                   #(assoc-track-content show signature :midi-device
                                                                                         (seesaw/selection %))])]
 
-                                       ["Loaded Message:" "gap unrelated"]
+                                       ["Loaded:" "gap unrelated"]
+                                       [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
+                                                       :tip "Outer ring shows track enabled, inner light when loaded."
+                                                       :paint (partial paint-state show signature :loaded))]
+                                       ["Message:"]
                                        [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
                                                          :selected-item nil  ; So update below saves default.
                                                          :listen [:item-state-changed
@@ -1052,9 +1098,13 @@
                                                         :listen [:state-changed
                                                                  #(assoc-track-content show signature :loaded-channel
                                                                                        (seesaw/value %))])
-                                        "hidemode 3"]  ; TODO: Loaded state indicator canvas.
+                                        "hidemode 3"]
 
-                                       ["Playing Message:" "gap unrelated"]
+                                       ["Playing:" "gap unrelated"]
+                                       [(seesaw/canvas :id :playing-state :size [18 :by 18] :opaque? false
+                                                       :tip "Outer ring shows track enabled, inner light when playing."
+                                                       :paint (partial paint-state show signature :playing))]
+                                       ["Message:"]
                                        [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
                                                          :selected-item nil  ; So update below saves default.
                                                          :listen [:item-state-changed
@@ -1083,8 +1133,9 @@
                                                          :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
                                                          :selected-item nil  ; So update below saves default.
                                                          :listen [:item-state-changed
-                                                                  #(assoc-track-content show signature :enabled
-                                                                                        (seesaw/value %))])
+                                                                  #(do (assoc-track-content show signature :enabled
+                                                                                            (seesaw/value %))
+                                                                       (repaint-states show signature))])
                                         "hidemode 3"]])
 
         track          {:file              (:file show)
@@ -1541,7 +1592,9 @@
   "Update the show's default enabled state for tracks that do not set
   their own."
   [show enabled]
-  (swap! open-shows assoc-in [(:file show) :contents :enabled] enabled))
+  (swap! open-shows assoc-in [(:file show) :contents :enabled] enabled)
+  (doseq [signature (keys (:tracks (latest-show show)))]
+    (repaint-states show signature)))
 
 (defn- set-loaded-only
   "Update the show UI so that all track or only loaded tracks are
