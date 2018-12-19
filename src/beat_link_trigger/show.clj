@@ -324,10 +324,10 @@
   a current view of the show and the previous track state. If we
   learned about the stoppage from a status update, it will be in
   `status`."
-  [show player track status]
+  [show player track status tripped-changed]
   (let [signature   (:signature track)
         now-playing (players-signature-set (:playing show) signature)]
-    (when-not (now-playing player)  ; The track is no longer playing on any player.
+    (when (or tripped-changed (not (now-playing player)))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (run-track-function show track :stopped status false))
       (repaint-states show signature))
@@ -350,10 +350,10 @@
   specified track loaded. If this leaves track not loaded in any
   player, run the track's Unloaded expression, if there is one. Must
   be passed a current view of the show and the previous track state."
-  [show player track]
+  [show player track tripped-changed]
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
-    (when-not (now-loaded player)  ; The track is no longer loaded by any player.
+    (when (or tripped-changed (not (now-loaded player)))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (run-track-function show track :unloaded nil false))
       (repaint-states show signature))
@@ -369,10 +369,10 @@
   track loaded. If this is the first player to load the track, run the
   track's Loaded expression, if there is one. Must be passed a current
   view of the show and track."
-  [show player track]
+  [show player track tripped-changed]
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
-    (when (= #{player} now-loaded)  ; This is the first player to load the track.
+    (when (or tripped-changed (= #{player} now-loaded))  ; This is the first player to load the track.
       (when (:tripped track)
         (run-track-function show track :loaded nil false))
       (repaint-states show signature))
@@ -385,10 +385,10 @@
   the track's Started expression, if there is one. Must be passed a
   current view of the show and track. If we learned about the playback
   from a status update, it will be in `status`."
-  [show player track status]
+  [show player track status tripped-changed]
   (let [signature   (:signature track)
         now-playing (players-signature-set (:playing show) signature)]
-    (when (= #{player} now-playing)  ; This is the first player to play the track.
+    (when (or tripped-changed (= #{player} now-playing))  ; This is the first player to play the track.
       (when (:tripped track)
         (run-track-function show track :playing status false))
       (repaint-states show signature))
@@ -442,32 +442,30 @@
     (cond
       (and (:tripped old-track) (:tripped track) (not= old-loaded signature))
       (do  ; This is a switch between two different tripped tracks.
-        (when old-playing (no-longer-playing show player old-track status))
-        (when old-loaded (no-longer-loaded show player old-track))
-        (now-loaded show player track)
-        (when is-playing (now-playing show player track status)))
+        (when old-playing (no-longer-playing show player old-track status false))
+        (when old-loaded (no-longer-loaded show player old-track false))
+        (now-loaded show player track false)
+        (when is-playing (now-playing show player track status false)))
 
       (not= (:tripped old-track) (:tripped track))
       (do  ; This is an overall activation/deactivation.
         (if (:tripped track)
           (do  ; Track is now active.
             (when (seq (players-signature-set (:loaded show) signature))
-              (run-track-function show track :loaded nil false))
-            (when is-playing (run-track-function show track :playing status false)))
+              (now-loaded show player track true))
+            (when is-playing (now-playing show player track status true)))
           (do  ; Track is no longer active.
-            (when old-playing (run-track-function show track :stopped status false))
-            (when old-track (run-track-function show track :unloaded nil false)))))
+            (when old-playing (no-longer-playing show player old-track status true))
+            (when old-track (no-longer-loaded show player old-track true)))))
 
       :else
       (do  ; Track is not changing tripped state, but we may be reporting a new playing state.
         (when (and old-playing (or (not is-playing) (not= old-playing signature)))
-          (no-longer-playing show player old-track status))
+          (no-longer-playing show player old-track status false))
         (when (and is-playing (not= signature old-playing))
-          (now-playing show player track status))))
+          (now-playing show player track status false))))
 
-    (when track (update-playback-position show signature player))
-    ;; TODO: Repaint status indicators here.
-    ))
+    (when track (update-playback-position show signature player))))
 
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
