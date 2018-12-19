@@ -868,7 +868,7 @@
   "Calculates the proper layout constraints for a track panel to look
   right at a given window width."
   [width]
-  (let [text-width (max 180 (int (/ (- width 140) 4)))
+  (let [text-width (max 180 (int (/ (- width 142) 4)))
         preview-width (max 408 (* text-width 3))]
     ["" (str "[]unrelated[fill, " text-width "]unrelated[fill, " preview-width "]")]))
 
