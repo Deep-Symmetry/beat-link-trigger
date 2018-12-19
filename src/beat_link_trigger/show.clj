@@ -451,11 +451,12 @@
       (do  ; This is an overall activation/deactivation.
         (if (:tripped track)
           (do  ; Track is now active.
-            (now-loaded show player track)
-            (when is-playing (now-playing show player track status)))
+            (when (seq (players-signature-set (:loaded show) signature))
+              (run-track-function show track :loaded nil false))
+            (when is-playing (run-track-function show track :playing status false)))
           (do  ; Track is no longer active.
-            (when old-playing (no-longer-playing show player old-track status))
-            (when old-track (no-longer-loaded show player old-track)))))
+            (when old-playing (run-track-function show track :stopped status false))
+            (when old-track (run-track-function show track :unloaded nil false)))))
 
       :else
       (do  ; Track is not changing tripped state, but we may be reporting a new playing state.
