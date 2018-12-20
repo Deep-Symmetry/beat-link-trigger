@@ -317,6 +317,21 @@
           #{}
           player-map))
 
+(defn- send-stopped-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a track is no longer playing. `track` must be current."
+  [show track status]
+  (try
+    (when-let [output (get-chosen-output track)]
+      (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
+        (case playing-message
+          "Note" (midi/midi-note-off output playing-note (dec playing-channel))
+          "CC"   (midi/midi-control output playing-note 0 (dec playing-channel))
+          nil)))
+    (run-track-function show track :stopped status false)
+    (catch Exception e
+      (timbre/error e "Problem reporting stopped track."))))
+
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   specified track. If this left the track with no player playing it,
@@ -329,16 +344,7 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when (or tripped-changed (not (now-playing player)))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (try
-          (when-let [output (get-chosen-output track)]
-            (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
-              (case playing-message
-                "Note" (midi/midi-note-off output playing-note (dec playing-channel))
-                "CC"   (midi/midi-control output playing-note 0 (dec playing-channel))
-                nil)))
-          (run-track-function show track :stopped status false)
-          (catch Exception e
-            (timbre/error e "Problem reporting stopped track."))))
+        (send-stopped-messages show track status))
       (repaint-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
@@ -354,6 +360,21 @@
     (seesaw/invoke-later
      (seesaw/config! loaded-label :text text))))
 
+(defn- send-unloaded-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a track is no longer loaded. `track` must be current."
+  [show track]
+  (try
+    (when-let [output (get-chosen-output track)]
+      (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
+        (case loaded-message
+          "Note" (midi/midi-note-off output loaded-note (dec loaded-channel))
+          "CC"   (midi/midi-control output loaded-note 0 (dec loaded-channel))
+          nil)))
+    (run-track-function show track :unloaded nil false)
+    (catch Exception e
+      (timbre/error e "Problem reporting unloaded track."))))
+
 (defn- no-longer-loaded
   "Reacts to the fact that the specified player no longer has the
   specified track loaded. If this leaves track not loaded in any
@@ -364,16 +385,7 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (not (now-loaded player)))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (try
-          (when-let [output (get-chosen-output track)]
-            (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
-              (case loaded-message
-                "Note" (midi/midi-note-off output loaded-note (dec loaded-channel))
-                "CC"   (midi/midi-control output loaded-note 0 (dec loaded-channel))
-                nil)))
-          (run-track-function show track :unloaded nil false)
-          (catch Exception e
-            (timbre/error e "Problem reporting unloaded track."))))
+        (send-unloaded-messages show track))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playing-text show signature (players-signature-set (:playing show) signature))
@@ -969,7 +981,7 @@
   "Creates the menu action which opens the track's cue editor window."
   [show track panel gear]
   (seesaw/action :handler (fn [_]
-                            (seesaw/alert panel "Not yet implemented!"))
+                            (seesaw/alert panel "Not yet implemented!" :title "Coming soon..."))
                  :name "Edit Track Cues"
                  :tip "Set up cues that react to particular sections of the track being played."
                  :icon (if (empty? (get-in track [:contents :cues]))
@@ -1315,17 +1327,17 @@
   show is closing. If `force?` is true, any unsaved expression editors
   will simply be closed. Otherwise, they will block the track removal,
   which will be indicated by this function returning falsey. Run any
-  appropriate custom expressions to reflect the departure of the
-  track."
+  appropriate custom expressions and send configured MIDI messages to
+  reflect the departure of the track."
   [force? show track]
   (when (close-track-editors? force? track)
     (let [show  (latest-show show)
           track (get-in show [:tracks (:signature track)])]
       (when (:tripped track)
         (when ((set (vals (:playing show))) (:signature track))
-          (run-track-function show track :stopped nil false))
+          (send-stopped-messages show track nil))
         (when ((set (vals (:loaded show))) (:signature track))
-          (run-track-function show track :unloaded nil false)))
+          (send-unloaded-messages show track)))
       (run-track-function show track :shutdown nil (not force?)))
     true))
 
