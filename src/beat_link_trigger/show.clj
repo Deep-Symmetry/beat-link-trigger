@@ -329,7 +329,16 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when (or tripped-changed (not (now-playing player)))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (run-track-function show track :stopped status false))
+        (try
+          (when-let [output (get-chosen-output track)]
+            (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
+              (case playing-message
+                "Note" (midi/midi-note-off output playing-note (dec playing-channel))
+                "CC"   (midi/midi-control output playing-note 0 (dec playing-channel))
+                nil)))
+          (run-track-function show track :stopped status false)
+          (catch Exception e
+            (timbre/error e "Problem reporting stopped track."))))
       (repaint-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
@@ -355,7 +364,16 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (not (now-loaded player)))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (run-track-function show track :unloaded nil false))
+        (try
+          (when-let [output (get-chosen-output track)]
+            (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
+              (case loaded-message
+                "Note" (midi/midi-note-off output loaded-note (dec loaded-channel))
+                "CC"   (midi/midi-control output loaded-note 0 (dec loaded-channel))
+                nil)))
+          (run-track-function show track :unloaded nil false)
+          (catch Exception e
+            (timbre/error e "Problem reporting unloaded track."))))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playing-text show signature (players-signature-set (:playing show) signature))
@@ -374,7 +392,16 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (= #{player} now-loaded))  ; This is the first player to load the track.
       (when (:tripped track)
-        (run-track-function show track :loaded nil false))
+        (try
+          (when-let [output (get-chosen-output track)]
+            (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
+              (case loaded-message
+                "Note" (midi/midi-note-on output loaded-note 127 (dec loaded-channel))
+                "CC"   (midi/midi-control output loaded-note 126 (dec loaded-channel))
+                nil)))
+          (run-track-function show track :loaded nil false)
+          (catch Exception e
+            (timbre/error e "Problem reporting loaded track."))))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playback-position show signature player)))
@@ -390,7 +417,16 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when (or tripped-changed (= #{player} now-playing))  ; This is the first player to play the track.
       (when (:tripped track)
-        (run-track-function show track :playing status false))
+        (try
+          (when-let [output (get-chosen-output track)]
+            (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
+              (case playing-message
+                "Note" (midi/midi-note-on output playing-note 127 (dec playing-channel))
+                "CC"   (midi/midi-control output playing-note 127 (dec playing-channel))
+                nil)))
+          (run-track-function show track :playing status false)
+          (catch Exception e
+            (timbre/error e "Problem reporting playing track."))))
       (repaint-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
