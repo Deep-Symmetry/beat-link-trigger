@@ -317,6 +317,26 @@
           #{}
           player-map))
 
+(defn get-chosen-output
+  "Return the MIDI output to which messages should be sent for a given
+  track, opening it if this is the first time we are using it, or
+  reusing it if we already opened it. Returns `nil` if the output can
+  not currently be found (it was disconnected, or present in a loaded
+  file but not on this system).
+  to be reloaded."
+  [track]
+  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
+    (let [device-name (.full_name selection)]
+      (or (get @util/opened-outputs device-name)
+          (try
+            (let [new-output (midi/midi-out device-name)]
+              (swap! util/opened-outputs assoc device-name new-output)
+              new-output)
+            (catch IllegalArgumentException e  ; The chosen output is not currently available
+              (timbre/debug e "Track using nonexisting MIDI output" device-name))
+            (catch Exception e  ; Some other problem opening the device
+              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
+
 (defn- send-stopped-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a track is no longer playing. `track` must be current."
@@ -480,10 +500,11 @@
   valid snapshot in the show's `:last` key (although `track` can be
   `nil` if the track is not recognized or not part of the show).
   `player` is the player number, in case `status` is `nil` because we
-  are reacting to a signature change rather than a status packet."
-  [show track player ^CdjStatus status]
-  (let [signature   (:signature track)
-        old-loaded  (get-in show [:last :loaded player])
+  are reacting to a signature change rather than a status packet. For
+  similar reasons, we also pass the raw signature in case it does not
+  correspond to a recognized track."
+  [show signature track player ^CdjStatus status]
+  (let [old-loaded  (get-in show [:last :loaded player])
         old-playing (get-in show [:last :playing player])
         old-track   (when old-loaded (get-in show [:last :tracks old-loaded]))
         is-playing  (when status (.isPlaying status))]
@@ -491,10 +512,12 @@
       (not= old-loaded signature)
       (do  ; This is a switch between two different tracks.
         (timbre/info "Switching between two tracks." old-loaded signature)
-        (when old-playing (no-longer-playing show player old-track status false))
-        (when old-loaded (no-longer-loaded show player old-track false))
-        (now-loaded show player track false)
-        (when is-playing (now-playing show player track status false)))
+        (when old-track
+          (when old-playing (no-longer-playing show player old-track status false))
+          (no-longer-loaded show player old-track false))
+        (when track
+          (now-loaded show player track false)
+          (when is-playing (now-playing show player track status false))))
 
       (and (not= (:tripped old-track) (:tripped track)))
       (do  ; This is an overall activation/deactivation.
@@ -509,7 +532,7 @@
             (when old-track (no-longer-loaded show player old-track true)))))
 
       :else
-      (do  ; Track is not changing tripped state, but we may be reporting a new playing state.
+      (when track  ; Track is not changing tripped state, but we may be reporting a new playing state.
         (when (and old-playing (not is-playing))
           (timbre/info "Track stopped playing naturally.")
           (no-longer-playing show player old-track status false))
@@ -537,7 +560,7 @@
                                (update-track-status track status))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
-    (deliver-change-events show track player status)))
+    (deliver-change-events show signature track player status)))
 
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
@@ -567,7 +590,7 @@
                              (update :master dissoc player))))
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
-      (deliver-change-events show track player nil))))
+      (deliver-change-events show signature track player nil))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -714,26 +737,6 @@
     (when (Files/isReadable path)
       (let [bytes (Files/readAllBytes path)]
         (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
-
-(defn get-chosen-output
-  "Return the MIDI output to which messages should be sent for a given
-  track, opening it if this is the first time we are using it, or
-  reusing it if we already opened it. Returns `nil` if the output can
-  not currently be found (it was disconnected, or present in a loaded
-  file but not on this system).
-  to be reloaded."
-  [track]
-  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
-    (let [device-name (.full_name selection)]
-      (or (get @util/opened-outputs device-name)
-          (try
-            (let [new-output (midi/midi-out device-name)]
-              (swap! util/opened-outputs assoc device-name new-output)
-              new-output)
-            (catch IllegalArgumentException e  ; The chosen output is not currently available
-              (timbre/debug e "Track using nonexisting MIDI output" device-name))
-            (catch Exception e  ; Some other problem opening the device
-              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
 
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color
@@ -1804,8 +1807,9 @@
                                     (let [signature (.getLatestSignatureFor signature-finder status)
                                           show      (latest-show show)
                                           track     (get-in (latest-show show) [:tracks signature])]
-                                      (when track (run-custom-enabled show track status))
-                                      (update-show-status show track status)))
+                                      (when track
+                                        (run-custom-enabled show track status)
+                                        (update-show-status show track status))))
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
