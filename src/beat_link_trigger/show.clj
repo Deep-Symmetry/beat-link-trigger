@@ -488,15 +488,17 @@
         old-track   (when old-loaded (get-in show [:last :tracks old-loaded]))
         is-playing  (when status (.isPlaying status))]
     (cond
-      (and (:tripped old-track) (:tripped track) (not= old-loaded signature))
-      (do  ; This is a switch between two different tripped tracks.
+      (not= old-loaded signature)
+      (do  ; This is a switch between two different tracks.
+        (timbre/info "Switching between two tracks." old-loaded signature)
         (when old-playing (no-longer-playing show player old-track status false))
         (when old-loaded (no-longer-loaded show player old-track false))
         (now-loaded show player track false)
         (when is-playing (now-playing show player track status false)))
 
-      (not= (:tripped old-track) (:tripped track))
+      (and (not= (:tripped old-track) (:tripped track)))
       (do  ; This is an overall activation/deactivation.
+        (timbre/info "Track changing tripped to " (:tripped track))
         (if (:tripped track)
           (do  ; Track is now active.
             (when (seq (players-signature-set (:loaded show) signature))
@@ -508,9 +510,11 @@
 
       :else
       (do  ; Track is not changing tripped state, but we may be reporting a new playing state.
-        (when (and old-playing (or (not is-playing) (not= old-playing signature)))
+        (when (and old-playing (not is-playing))
+          (timbre/info "Track stopped playing naturally.")
           (no-longer-playing show player old-track status false))
-        (when (and is-playing (not= signature old-playing))
+        (when (and is-playing (not old-playing))
+          (timbre/info "Track started playing naturally.")
           (now-playing show player track status false))))
 
     (when track (update-playback-position show signature player))))
