@@ -886,8 +886,9 @@
                                   (or (not loaded-only?) (not (online?))
                                       ((set (vals (.getSignatures signature-finder))) (:signature track)))))
                                (vals (:tracks show)))
-        sorted-tracks  (sort-by (juxt #(get-in % [:metadata :title])
-                                      #(get-in % [:metadata :artist]) :signature)
+        sorted-tracks  (sort-by (juxt #(clojure.string/lower-case (get-in % [:metadata :title] ""))
+                                      #(clojure.string/lower-case (get-in % [:metadata :artist] ""))
+                                      :signature)
                                 visible-tracks)]
     (swap! open-shows assoc-in [(:file show) :visible] (mapv :signature sorted-tracks))
     (doall (map (fn [track color]
