@@ -502,7 +502,9 @@
   `player` is the player number, in case `status` is `nil` because we
   are reacting to a signature change rather than a status packet. For
   similar reasons, we also pass the raw signature in case it does not
-  correspond to a recognized track."
+  correspond to a recognized track. Finally, even if nothing has
+  changed, if there is a status packet and the track is tripped and
+  has a Tracked Update Expression, it is run with the status update."
   [show signature track player ^CdjStatus status]
   (let [old-loaded  (get-in show [:last :loaded player])
         old-playing (get-in show [:last :playing player])
@@ -540,7 +542,9 @@
           (timbre/info "Track started playing naturally.")
           (now-playing show player track status false))))
 
-    (when track (update-playback-position show signature player))))
+    (when track
+      (when (:tripped track) (future (run-track-function show track :tracked status false)))
+      (update-playback-position show signature player))))
 
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
