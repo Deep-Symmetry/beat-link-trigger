@@ -9,7 +9,7 @@
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder]
+           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder TrackPositionUpdate]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 (defn track-source-slot
@@ -208,68 +208,81 @@
                 :bindings {'tempo-master? {:code '(.isTempoMaster status)
                                            :doc  "Is this mixer the current tempo master?"}}}
 
-   CdjStatus {:inherit  [DeviceUpdate]
-              :bindings {'at-end?             {:code '(.isAtEnd status)
-                                               :doc  "Is the player currently stopped at the end of a track?"}
-                         'beat-number         {:code '(.getBeatNumber status)
-                                               :doc
-                                               "Identifies the beat of the track that being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
-                         'busy?               {:code '(.isBusy status)
-                                               :doc  "Will be <code>true</code> if the player is doing anything."}
-                         'cue-countdown       {:code '(.getCueCountdown status)
-                                               :doc
-                                               "How many beats away is the next cue point in the track? If there is no saved cue point after the current play location, or if it is further than 64 bars ahead, the value 511 is returned (and the CDJ will display &ldquo;--.- bars&rdquo;. As soon as there are just 64 bars (256 beats) to go before the next cue point, this value becomes 256. This is the point at which the CDJ starts to display a countdown, which it displays as  &ldquo;63.4 Bars&rdquo;.<p> As each beat goes by, this value decrements by 1, until the cue point is about to be reached, at which point the value is 1 and the CDJ displays &ldquo;00.1 Bars&rdquo;. On the beat on which the cue point was saved the value is 0  and the CDJ displays &ldquo;00.0 Bars&rdquo;. On the next beat, the value becomes determined by the next cue point (if any) in the track."}
-                         'cue-countdown-text  {:code '(.formatCueCountdown status)
-                                               :doc  "Contains the information from <code>cue-countdown</code> formatted the way it would be displayed on the player, e.g. &ldquo;07.4&rdquo; or &ldquo;--.-&rdquo;."}
-                         'cued?               {:code '(.isCued status)
-                                               :doc  "Is the player currently cued (paused at the cue point)?"}
-                         'looping?            {:code '(.isLooping status)
-                                               :doc  "Is the player currently playing a loop?"}
-                         'on-air?             {:code '(.isOnAir status)
-                                               :doc
-                                               "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}
-                         'paused?             {:code '(.isPaused status)
-                                               :doc  "Is the player currently paused?"}
-                         'playing?            {:code '(.isPlaying status)
-                                               :doc  "Is the player currently playing a track?"}
-                         'rekordbox-id        {:code '(.getRekordboxId status)
-                                               :doc  "The rekordbox id of the loaded track. Will be 0 if no track is loaded. If the track was loaded from an ordinary audio CD in the CD slot, this will just be the track number."}
-                         'synced?             {:code '(.isSynced status)
-                                               :doc  "Is the player currently in Sync mode?"}
-                         'tempo-master?       {:code '(.isTempoMaster status)
-                                               :doc  "Is this player the current tempo master?"}
-                         'track-album         {:code '(when (some? track-metadata) (when-let [album (.getAlbum track-metadata)] (.label album)))
-                                               :doc  "The album of the loaded track, if metadata is available."}
-                         'track-artist        {:code '(when (some? track-metadata) (when-let [artist (.getArtist track-metadata)] (.label artist)))
-                                               :doc  "The artist of the loaded track, if metadata is available."}
-                         'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] comment))
-                                               :doc  "The comment assigned to the loaded track, if metadata is available."}
-                         'track-genre         {:code '(when (some? track-metadata) (when-let [genre (.getGenre track-metadata)] (.label genre)))
-                                               :doc  "The genre of the loaded track, if metadata is available."}
-                         'track-key           {:code '(when (some? track-metadata) (when-let [key (.getKey track-metadata)] (.label key)))
-                                               :doc  "The key of the loaded track, if metadata is available."}
-                         'track-label         {:code '(when (some? track-metadata) (when-let [label (.getLabel track-metadata)] (.label label)))
-                                               :doc  "The label of the loaded track, if metadata is available."}
-                         'track-length        {:code '(when (some? track-metadata) (.getLength track-metadata))
-                                               :doc  "The length in seconds of the loaded track, if metadata is available."}
-                         'track-metadata      {:code '(.getLatestMetadataFor
-                                                       (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
-                                                       status)
-                                               :doc  "The metadata object for the loaded track, if one is available."}
-                         'track-number        {:code '(.getTrackNumber status)
-                                               :doc  "The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks in the CDJ's browse interface."}
-                         'track-source-player {:code '(.getTrackSourcePlayer status)
-                                               :doc  "Which player was the track loaded from? Returns the device number, or 0 if there is no track loaded."}
-                         'track-source-slot   {:code '(track-source-slot status)
-                                               :doc  "Which slot was the track loaded from? Values are <code>:no-track</code>, <code>:cd-slot</code>, <code>:sd-slot</code>, <code>:usb-slot</code>, or <code>:unknown</code>."}
-                         'track-time-reached  {:code '(let [time-finder (TimeFinder/getInstance)]
-                                                        (when (.isRunning time-finder)
-                                                          (.getTimeFor time-finder status)))
-                                               :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running; the easiest way to make sure that it is running is to open the Player Status window."}
-                         'track-title         {:code '(when (some? track-metadata) (.getTitle track-metadata))
-                                               :doc  "The title of the loaded track, if metadata is available."}
-                         'track-type          {:code '(track-type status)
-                                               :doc  "What kind of track was loaded? Values are <code>:no-track</code>, <code>:cd-digital-audio</code>, <code>:rekordbox</code>, or <code>:unknown</code>."}}}})
+   CdjStatus           {:inherit  [DeviceUpdate]
+                        :bindings {'at-end?             {:code '(.isAtEnd status)
+                                                         :doc  "Is the player currently stopped at the end of a track?"}
+                                   'beat-number         {:code '(.getBeatNumber status)
+                                                         :doc
+                                                         "Identifies the beat of the track that being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
+                                   'busy?               {:code '(.isBusy status)
+                                                         :doc  "Will be <code>true</code> if the player is doing anything."}
+                                   'cue-countdown       {:code '(.getCueCountdown status)
+                                                         :doc
+                                                         "How many beats away is the next cue point in the track? If there is no saved cue point after the current play location, or if it is further than 64 bars ahead, the value 511 is returned (and the CDJ will display &ldquo;--.- bars&rdquo;. As soon as there are just 64 bars (256 beats) to go before the next cue point, this value becomes 256. This is the point at which the CDJ starts to display a countdown, which it displays as  &ldquo;63.4 Bars&rdquo;.<p> As each beat goes by, this value decrements by 1, until the cue point is about to be reached, at which point the value is 1 and the CDJ displays &ldquo;00.1 Bars&rdquo;. On the beat on which the cue point was saved the value is 0  and the CDJ displays &ldquo;00.0 Bars&rdquo;. On the next beat, the value becomes determined by the next cue point (if any) in the track."}
+                                   'cue-countdown-text  {:code '(.formatCueCountdown status)
+                                                         :doc  "Contains the information from <code>cue-countdown</code> formatted the way it would be displayed on the player, e.g. &ldquo;07.4&rdquo; or &ldquo;--.-&rdquo;."}
+                                   'cued?               {:code '(.isCued status)
+                                                         :doc  "Is the player currently cued (paused at the cue point)?"}
+                                   'looping?            {:code '(.isLooping status)
+                                                         :doc  "Is the player currently playing a loop?"}
+                                   'on-air?             {:code '(.isOnAir status)
+                                                         :doc
+                                                         "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}
+                                   'paused?             {:code '(.isPaused status)
+                                                         :doc  "Is the player currently paused?"}
+                                   'playing?            {:code '(.isPlaying status)
+                                                         :doc  "Is the player currently playing a track?"}
+                                   'rekordbox-id        {:code '(.getRekordboxId status)
+                                                         :doc  "The rekordbox id of the loaded track. Will be 0 if no track is loaded. If the track was loaded from an ordinary audio CD in the CD slot, this will just be the track number."}
+                                   'synced?             {:code '(.isSynced status)
+                                                         :doc  "Is the player currently in Sync mode?"}
+                                   'tempo-master?       {:code '(.isTempoMaster status)
+                                                         :doc  "Is this player the current tempo master?"}
+                                   'track-album         {:code '(when (some? track-metadata) (when-let [album (.getAlbum track-metadata)] (.label album)))
+                                                         :doc  "The album of the loaded track, if metadata is available."}
+                                   'track-artist        {:code '(when (some? track-metadata) (when-let [artist (.getArtist track-metadata)] (.label artist)))
+                                                         :doc  "The artist of the loaded track, if metadata is available."}
+                                   'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] comment))
+                                                         :doc  "The comment assigned to the loaded track, if metadata is available."}
+                                   'track-genre         {:code '(when (some? track-metadata) (when-let [genre (.getGenre track-metadata)] (.label genre)))
+                                                         :doc  "The genre of the loaded track, if metadata is available."}
+                                   'track-key           {:code '(when (some? track-metadata) (when-let [key (.getKey track-metadata)] (.label key)))
+                                                         :doc  "The key of the loaded track, if metadata is available."}
+                                   'track-label         {:code '(when (some? track-metadata) (when-let [label (.getLabel track-metadata)] (.label label)))
+                                                         :doc  "The label of the loaded track, if metadata is available."}
+                                   'track-length        {:code '(when (some? track-metadata) (.getLength track-metadata))
+                                                         :doc  "The length in seconds of the loaded track, if metadata is available."}
+                                   'track-metadata      {:code '(.getLatestMetadataFor
+                                                                 (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                 status)
+                                                         :doc  "The metadata object for the loaded track, if one is available."}
+                                   'track-number        {:code '(.getTrackNumber status)
+                                                         :doc  "The track number of the loaded track. Identifies the track within a playlist or other scrolling list of tracks in the CDJ's browse interface."}
+                                   'track-source-player {:code '(.getTrackSourcePlayer status)
+                                                         :doc  "Which player was the track loaded from? Returns the device number, or 0 if there is no track loaded."}
+                                   'track-source-slot   {:code '(track-source-slot status)
+                                                         :doc  "Which slot was the track loaded from? Values are <code>:no-track</code>, <code>:cd-slot</code>, <code>:sd-slot</code>, <code>:usb-slot</code>, or <code>:unknown</code>."}
+                                   'track-time-reached  {:code '(let [time-finder (TimeFinder/getInstance)]
+                                                                  (when (.isRunning time-finder)
+                                                                    (.getTimeFor time-finder status)))
+                                                         :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running; the easiest way to make sure that it is running is to open the Player Status window."}
+                                   'track-title         {:code '(when (some? track-metadata) (.getTitle track-metadata))
+                                                         :doc  "The title of the loaded track, if metadata is available."}
+                                   'track-type          {:code '(track-type status)
+                                                         :doc  "What kind of track was loaded? Values are <code>:no-track</code>, <code>:cd-digital-audio</code>, <code>:rekordbox</code>, or <code>:unknown</code>."}}}
+   TrackPositionUpdate {:bindings {'beat-number        {:code '(.beatNumber status)
+                                                        :doc
+                                                        "Identifies the beat of the track that being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
+                                   'track-time-reached {:code '(.milliseconds status)
+                                                        :doc  "How far into the track has been played, in thousandths of a second."}
+                                   'pitch-multiplier   {:code '(Util/pitchToMultiplier (.pitch status))
+                                                        :doc
+                                                        "Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
+                                   'pitch-percent      {:code '(Util/pitchToPercentage (.pitch status))
+                                                        :doc
+                                                        "Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
+                                   'timestamp          {:code '(.timestamp status)
+                                                        :doc  "Records the nanosecond at which we received this update."}}}})
 
 (def ^:private metadata-bindings
   "The convenience bindings which require the track metadata to be

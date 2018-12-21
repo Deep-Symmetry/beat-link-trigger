@@ -27,9 +27,9 @@
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
             MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt ArtFinder BeatGrid BeatGridFinder CueList DataReference
-            MetadataFinder WaveformFinder
-            SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder TrackMetadata
-            WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
+            MetadataFinder SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder
+            TrackMetadata TrackPositionUpdate
+            WaveformDetail WaveformDetailComponent WaveformFinder WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz]
@@ -401,6 +401,9 @@
   player, run the track's Unloaded expression, if there is one. Must
   be passed a current view of the show and the previous track state."
   [show player track tripped-changed]
+  (when-let [listener (get-in track [:listeners player])]
+    (.removeTrackPositionListener time-finder listener)
+    (swap! open-shows update-in [(:file show) :tracks (:signature track) :listeners] dissoc player))
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (not (now-loaded player)))
@@ -414,12 +417,38 @@
       (when-let [preview (preview-loader)]
         (.clearPlaybackState preview)))))
 
+(defn- add-position-listener
+  "Adds a track position listener for the specified player to the time
+  finder, making very sure this happens only once. This is used to
+  provide us with augmented information whenever this player reports a
+  beat, so we can use it to determine which cues to activate and
+  deactivate, and make it available to the track's Beat expression."
+  [show player track]
+  (let [shows (swap! open-shows update-in [(:file show) :tracks (:signature track) :listeners player]
+                     (fn [listener]
+                       (or listener
+                           (proxy [org.deepsymmetry.beatlink.data.TrackPositionBeatListener] []
+                             (movementChanged [position])
+                             (newBeat [^Beat beat ^TrackPositionUpdate position]
+                               (let [show (latest-show show)
+                                     track (get-in show [:tracks (:signature track)])]
+                                 ;; TODO: Enter/exit any affected cues.
+                                 (future
+                                   (try
+                                     (when (enabled? show track)
+                                       (run-track-function show track :beat position false))
+                                     (catch Exception e
+                                       (timbre/error e "Problem reporting track beat."))))))))))
+        listener (get-in shows [(:file show) :tracks (:signature track) :listeners player])]
+    (.addTrackPositionListener time-finder player listener)))
+
 (defn- now-loaded
   "Reacts to the fact that the specified player now has the specified
   track loaded. If this is the first player to load the track, run the
   track's Loaded expression, if there is one. Must be passed a current
   view of the show and track."
   [show player track tripped-changed]
+  (add-position-listener show player track)
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (= #{player} now-loaded))  ; This is the first player to load the track.
@@ -1349,6 +1378,9 @@
           (send-stopped-messages show track nil))
         (when ((set (vals (:loaded show))) (:signature track))
           (send-unloaded-messages show track)))
+      (doseq [listener (vals (:listeners track))]
+        (.removeTrackPositionListener time-finder listener))
+      (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :listeners)
       (run-track-function show track :shutdown nil (not force?)))
     true))
 

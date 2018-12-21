@@ -11,7 +11,8 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre]
             [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]))
+  (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]
+           [org.deepsymmetry.beatlink.data TrackPositionUpdate]))
 
 (defonce
   ^{:private true
@@ -430,13 +431,17 @@
   player. You can use this for beat-driven integrations with other
   systems.<p>
 
-  The beat object that was received, a beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html\"><code>Beat</code></a>
+  The player track position inferred from the beat object that was received, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
   object, is available as <code>status</code>, and you can use normal
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
-  generally easier to use the convenience variables described below."
-          :bindings (show-bindings-for-track-and-class Beat)}  ; TODO: Upgrade to TimeFinder-enhanced beats!
+  generally easier to use the convenience variables described below.<p>
+
+  This expression is called on its own thread, so it is free to
+  perform-long running operations, such as network communication,
+  without concern for tying up other Beat Link Trigger activities."
+          :bindings (show-bindings-for-track-and-class TrackPositionUpdate)}
 
    :tracked {:title "Tracked Update Expression"
              :tip "Called for each update from a player with this track loaded, when enabled."
@@ -454,7 +459,11 @@
   If you want to only relay updates when the track is active (is
   enabled, and at least one player is playing), wrap your code inside a
   <code>when</code> expression conditioned on the
-  <code>playing-players</code> convenience variable."
+  <code>playing-players</code> convenience variable.<p>
+
+  This expression is called on its own thread, so it is free to
+  perform long-running operations, such as network communication,
+  without concern for tying up other Beat Link Trigger activities."
              :bindings (show-bindings-for-track-and-class CdjStatus)}
 
    :stopped {:title "Stopped Expression"
