@@ -168,7 +168,8 @@
   "Checks whether there is already a track with the specified signature
   in the Show."
   [show signature]
-  (Files/exists (build-filesystem-path (:filesystem show) "tracks" signature) (make-array java.nio.file.LinkOption 0)))
+  (Files/exists (build-filesystem-path (:filesystem (latest-show show)) "tracks" signature)
+                (make-array java.nio.file.LinkOption 0)))
 
 (defn- run-global-function
   "Checks whether the show has a custom function of the specified kind
