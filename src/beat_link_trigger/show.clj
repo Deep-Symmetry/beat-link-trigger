@@ -1872,6 +1872,8 @@
                                       (timbre/error t "Problem closing Show file.")
                                       (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
                                                     :title "Problem Closing Show" :type :error)))
+                                  (when-let [database (:import-database show)]
+                                    (.close database))
                                   (seesaw/invoke-later
                                    ;; Gives windows time to close first, so they don't recreate a broken show.
                                    (swap! open-shows dissoc file))
