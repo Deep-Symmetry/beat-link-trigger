@@ -363,7 +363,7 @@
   [show player track status tripped-changed]
   (let [signature   (:signature track)
         now-playing (players-signature-set (:playing show) signature)]
-    (when (or tripped-changed (not (now-playing player)))
+    (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (send-stopped-messages show track status))
       (repaint-states show signature))
@@ -407,7 +407,7 @@
     (swap! open-shows update-in [(:file show) :tracks (:signature track) :listeners] dissoc player))
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
-    (when (or tripped-changed (not (now-loaded player)))
+    (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (send-unloaded-messages show track))
       (repaint-states show signature))
