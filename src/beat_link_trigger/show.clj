@@ -75,6 +75,9 @@
   access to the contents of the file, and the map describing them."}
   open-shows (atom {}))
 
+;;; This section defines a bunch of utility functions that are used by
+;;; both the Show and Cues windows.
+
 (defn online?
   "A helper function that checks if we are currently online."
   []
@@ -287,6 +290,67 @@
     (track-present? show signature) " (already imported)"
     :else                           nil))
 
+(defn get-chosen-output
+  "Return the MIDI output to which messages should be sent for a given
+  track, opening it if this is the first time we are using it, or
+  reusing it if we already opened it. Returns `nil` if the output can
+  not currently be found (it was disconnected, or present in a loaded
+  file but not on this system).
+  to be reloaded."
+  [track]
+  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
+    (let [device-name (.full_name selection)]
+      (or (get @util/opened-outputs device-name)
+          (try
+            (let [new-output (midi/midi-out device-name)]
+              (swap! util/opened-outputs assoc device-name new-output)
+              new-output)
+            (catch IllegalArgumentException e  ; The chosen output is not currently available
+              (timbre/debug e "Track using nonexisting MIDI output" device-name))
+            (catch Exception e  ; Some other problem opening the device
+              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
+
+;;; This next section implements the Cues window and Cue rows.
+
+(defn- create-cues-window
+  "Create and show a new cues window for the specified show and track.
+  Must be supplied current versions of `show` and `track.`"
+  [show track parent]
+  (let [root        (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
+                                  :on-close :nothing)
+        cues        (seesaw/vertical-panel :id :cues)
+        cues-scroll (seesaw/scrollable cues)
+        close-fn    (fn [force?]
+                      ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
+                      ;; will do so even in the presence of windows with unsaved user changes. Otherwise
+                      ;; prompts the user about all unsaved changes, giving them a chance to veto the
+                      ;; closure. Returns truthy if the window was closed.
+                      (let [show (latest-show show)]
+                        ;; TODO: Look at close-fn in create-show-window for some of what we need to do.
+                        (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :cues-frame)
+                        (.dispose root)
+                        true))]
+    (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-frame {:frame    root
+                                                                                             :close-fn close-fn})
+    (.setSize root 800 600)
+    (.setLocationRelativeTo root parent)
+    (seesaw/listen root :window-closing (fn [e] (close-fn false)))
+    (seesaw/show! root)))
+
+(defn- open-cues
+  "Creates, or brings to the front, a window for editing cues attached
+  to the specified track in the specified show. Returns truthy if the
+  window was newly opened."
+  [show track parent]
+  (let [show (latest-show show)
+        track (get-in show [:tracks (:signature track)])]
+    (if-let [existing (:cues-frame track)]
+      (.toFront (:frame existing))
+      (do (create-cues-window show track parent)
+          true))))
+
+;;; This next section implements the Show window and Track rows.
+
 (defn- update-playing-text
   "Formats the text describing the players that are playing a track, and
   sets it into the proper UI label."
@@ -317,26 +381,6 @@
               result))
           #{}
           player-map))
-
-(defn get-chosen-output
-  "Return the MIDI output to which messages should be sent for a given
-  track, opening it if this is the first time we are using it, or
-  reusing it if we already opened it. Returns `nil` if the output can
-  not currently be found (it was disconnected, or present in a loaded
-  file but not on this system).
-  to be reloaded."
-  [track]
-  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
-    (let [device-name (.full_name selection)]
-      (or (get @util/opened-outputs device-name)
-          (try
-            (let [new-output (midi/midi-out device-name)]
-              (swap! util/opened-outputs assoc device-name new-output)
-              new-output)
-            (catch IllegalArgumentException e  ; The chosen output is not currently available
-              (timbre/debug e "Track using nonexisting MIDI output" device-name))
-            (catch Exception e  ; Some other problem opening the device
-              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
 
 (defn- send-stopped-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
@@ -795,7 +839,7 @@
     (catch Exception e
       (timbre/error e "Problem showing Track MIDI status."))))
 
-(defn- update-gear-icon
+(defn- update-track-gear-icon
   "Determines whether the gear button for a track should be hollow or
   filled in, depending on whether any expressions have been assigned
   to it."  ; TODO: Or cues, once implemented?
@@ -804,7 +848,7 @@
                                (seesaw/icon "images/Gear-outline.png")
                                (seesaw/icon "images/Gear-icon.png"))))
 
-(defn update-global-expression-icons
+(defn update-tracks-global-expression-icons
   "Updates the icons next to expressions in the Tracks menu to
   reflect whether they have been assigned a non-empty value."
   [show]
@@ -829,7 +873,7 @@
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png"))))))))))
 
-(defn- attach-custom-editor-opener
+(defn- attach-track-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
   to Custom, if there is not already an expession of the appropriate
   kind present, an editor for that expression is automatically
@@ -848,10 +892,10 @@
                                                     (editors/show-show-editor
                                                      open-shows (keyword kind) show track panel
                                                      (if gear
-                                                       #(update-gear-icon track gear)
-                                                       #(update-global-expression-icons show))))))))))
+                                                       #(update-track-gear-icon track gear)
+                                                       #(update-tracks-global-expression-icons show))))))))))
 
-(defn- attach-message-visibility-handler
+(defn- attach-track-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
   changed, the appropriate UI elements are shown or hidden."
   [show track kind gear]
@@ -866,7 +910,7 @@
                                          (if (= "None" choice)
                                            (seesaw/hide! [note-spinner label channel-spinner])
                                            (seesaw/show! [note-spinner label channel-spinner])))))
-    (attach-custom-editor-opener show track message-menu kind gear)))
+    (attach-track-custom-editor-opener show track message-menu kind gear)))
 
 (defn- update-track-visibility
   "Determines the tracks that should be visible given the filter
@@ -1022,15 +1066,14 @@
 (defn- edit-cues-action
   "Creates the menu action which opens the track's cue editor window."
   [show track panel gear]
-  (seesaw/action :handler (fn [_]
-                            (seesaw/alert panel "Not yet implemented!" :title "Coming soon..."))
+  (seesaw/action :handler (fn [_] (open-cues show track panel))
                  :name "Edit Track Cues"
                  :tip "Set up cues that react to particular sections of the track being played."
                  :icon (if (empty? (get-in track [:contents :cues]))
                          "images/Gear-outline.png"
                          "images/Gear-icon.png")))
 
-(defn- editor-actions
+(defn- track-editor-actions
   "Creates the popup menu actions corresponding to the available
   expression editors for a given track."
   [show track panel gear]
@@ -1040,7 +1083,7 @@
                         (run-track-function show track :shutdown nil true)
                         (reset! (:expression-locals track) {})
                         (run-track-function show track :setup nil true))
-                      (update-gear-icon track gear))]
+                      (update-track-gear-icon track gear))]
       (seesaw/action :handler (fn [e] (editors/show-show-editor
                                        open-shows kind (latest-show show)
                                        (latest-track track) panel update-fn))
@@ -1050,7 +1093,7 @@
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
 
-(defn- inspect-action
+(defn- track-inspect-action
   "Creates the menu action which allows a track's local bindings to be
   inspected."
   [track]
@@ -1063,7 +1106,7 @@
 
 (declare import-track)
 
-(defn- copy-actions
+(defn- track-copy-actions
   "Returns a set of menu actions which offer to copy the track to any
   other open shows which do not already contain it."
   [show track]
@@ -1100,7 +1143,7 @@
           {}
           player-map))
 
-(defn- clean-up-deleted-track
+(defn- expunge-deleted-track
   "Removes all the items from a show that need to be cleaned up when the
   track has been deleted. This function is designed to be used in a
   single swap! call for simplicity and efficiency."
@@ -1130,7 +1173,7 @@
                                     #_(timbre/info "Exists?" (Files/isReadable path))
                                     (Files/delete path)
                                     #_(timbre/info "Still there?" (Files/isReadable path))))
-                                (swap! open-shows update (:file show) clean-up-deleted-track track panel)
+                                (swap! open-shows update (:file show) expunge-deleted-track track panel)
                                 (refresh-signatures show)
                                 (update-track-visibility show)
                                 (catch Exception e
@@ -1299,9 +1342,9 @@
                         :playing           #{}} ; The players actively playing this.
 
         popup-fn       (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
-                                       (editor-actions show track panel gear)
-                                       [(seesaw/separator) (inspect-action track) (seesaw/separator)]
-                                       (copy-actions show track)
+                                       (track-editor-actions show track panel gear)
+                                       [(seesaw/separator) (track-inspect-action track) (seesaw/separator)]
+                                       (track-copy-actions show track)
                                        [(seesaw/separator) (delete-action show track panel)]))]
 
     (swap! open-shows assoc-in [(:file show) :tracks signature] track)
@@ -1314,15 +1357,15 @@
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
-    (update-gear-icon track gear)
+    (update-track-gear-icon track gear)
 
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
     ;; Enabled Filter if "Custom" is chosen as the Message.
     (seesaw/listen (seesaw/select panel [:#outputs])
                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
-    (attach-message-visibility-handler show track "loaded" gear)
-    (attach-message-visibility-handler show track "playing" gear)
+    (attach-track-message-visibility-handler show track "loaded" gear)
+    (attach-track-message-visibility-handler show track "playing" gear)
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
@@ -1356,13 +1399,16 @@
     (swap! open-shows update-in [(:file show) :tracks signature] dissoc :creating)))
 
 (defn- close-track-editors?
-  "Tries closing all open expression editors for the track. If
+  "Tries closing all open expression and cue editors for the track. If
   `force?` is true, simply closes them even if they have unsaved
   changes. Othewise checks whether the user wants to save any unsaved
   changes. Returns truthy if there are none left open the user wants
   to deal with."
   [force? track]
-  (every? (partial editors/close-editor? force?) (vals (:expression-editors (latest-track track)))))
+  (let [track (latest-track track)]
+    (and
+     (every? (partial editors/close-editor? force?) (vals (:expression-editors track)))
+     (or (not (:cues-frame track)) ((get-in track [:cues-frame :close-fn]) force?)))))
 
 (defn- cleanup-track
   "Process the removal of a track, either via deletion, or because the
@@ -1488,7 +1534,7 @@
               data-ref (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION art-id)]
           (AlbumArt. data-ref art-file))))))
 
-(defn import-from-media
+(defn- import-from-media
   "Imports a track that has been parsed from a local media export, being
   very careful to close the underlying track analysis files no matter
   how we exit."
@@ -1683,7 +1729,7 @@
                                                                 (run-global-function show :shutdown nil true)
                                                                 (reset! (:expression-globals show) {})
                                                                 (run-global-function show :setup nil true))
-                                                              (update-global-expression-icons show))))
+                                                              (update-tracks-global-expression-icons show))))
                  :name (str "Edit " (get-in editors/global-show-editors [kind :title]))
                  :tip (get-in editors/global-show-editors [kind :tip])
                  :icon (seesaw/icon (if (empty? (get-in show [:contents :expressions kind]))
@@ -1794,6 +1840,8 @@
                              :panels      {}  ; Maps from panel object to track signature, for updating visibility.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
+                             :entered     {}  ; Map from player number to UUID of cue that has been reported entered.
+                             :active      {}  ; Map from player number to UUID of cue that has been reported active.
                              :visible     []} ; The visible (through filters) track signatures in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)
             tracks-scroll   (seesaw/scrollable tracks)
@@ -1852,7 +1900,7 @@
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
             close-fn        (fn [force? quitting?]
-                              ;; Closes the show window and performs all necessary cleanup If `force?` is true,
+                              ;; Closes the show window and performs all necessary cleanup. If `force?` is true,
                               ;; will do so even in the presence of windows with unsaved user changes. Otherwise
                               ;; prompts the user about all unsaved changes, giving them a chance to veto the
                               ;; closure. Returns truthy if the show was closed.
@@ -1895,7 +1943,7 @@
         (refresh-signatures show)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
-        (attach-custom-editor-opener show nil enabled-default :enabled nil)
+        (attach-track-custom-editor-opener show nil enabled-default :enabled nil)
         (seesaw/selection! enabled-default (:enabled contents "Always"))
         (.setSize root 900 600)  ; Our default size if there isn't a position stored in the file.
         (restore-window-position root contents)
@@ -1921,12 +1969,14 @@
                               :title "Exception during Clojure evaluation" :type :error)))))
         (run-global-function show :setup nil true)
         (swap! open-shows update file dissoc :creating)
-        (update-global-expression-icons show)
+        (update-tracks-global-expression-icons show)
         (seesaw/show! root))
       (catch Throwable t
         (swap! open-shows dissoc file)
         (.close filesystem)
         (throw t)))))
+
+;;; External API for creating, opening, reopeining, and closing shows:
 
 (defn- open-internal
   "Opens a show file. If it is already open, just brings the window to
