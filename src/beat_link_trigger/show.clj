@@ -255,30 +255,22 @@
 
 (defn- enabled?
   "Checks whether the track is enabled, given its configuration and
-  current state. If `status` is supplied, it checks whether the track
-  is enabled with respect to that specific status update (important
-  for Master and On-Air modes). `show` must be a current view of the
-  show, it will not be looked up because this function is also used
-  inside of a `swap!` that updates the show."
-  ([show track]
-   (enabled? show track nil))
-  ([show track ^CdjStatus status]
-   (let [track         (get-in show [:tracks (:signature track)])
-         track-setting (get-in track [:contents :enabled])
-         show-setting  (get-in show [:contents :enabled])
-         setting       (if (= track-setting "Default")
-                         show-setting
-                         track-setting)]
-     (case setting
-       "Always"     true
-       "On-Air"     (if status
-                      (.isOnAir status)
-                      ((set (vals (:on-air show))) (:signature track)))
-       "Master"     (if status
-                      (.isTempoMaster status)
-                      ((set (vals (:master show))) (:signature track)))
-       "Custom"     (get-in track [:expression-results :enabled])
-       false))))
+  current state. `show` must be a current view of the show, it will
+  not be looked up because this function is also used inside of a
+  `swap!` that updates the show."
+  [show track]
+  (let [track         (get-in show [:tracks (:signature track)])
+        track-setting (get-in track [:contents :enabled])
+        show-setting  (get-in show [:contents :enabled])
+        setting       (if (= track-setting "Default")
+                        show-setting
+                        track-setting)]
+    (case setting
+      "Always"     true
+      "On-Air"     ((set (vals (:on-air show))) (:signature track))
+      "Master"     ((set (vals (:master show))) (:signature track))
+      "Custom"     (get-in track [:expression-results :enabled])
+      false)))
 
 (defn- describe-disabled-reason
   "Returns a text description of why import from a player is disabled
@@ -562,7 +554,7 @@
   [show track ^CdjStatus status]
   (if track
     (assoc-in show [:tracks (:signature track) :tripped]
-              (boolean (and (enabled? show track status)
+              (boolean (and (enabled? show track)
                             (trip? show track))))
     show))
 
