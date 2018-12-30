@@ -378,33 +378,95 @@
 
 ;;; This next section implements the Cues window and Cue rows.
 
+(defn- update-cue-visibility
+  "Determines the cues that should be visible given the filter text (if
+  any) and state of the Only Entered checkbox if we are online.
+  Updates the tracks cues' `:visible` key to hold a vector of the
+  visible cue UUIDs, sorted by their start and end beats followed by
+  their comment and UUID. Then uses that to update the contents of the
+  `cues` panel appropriately."
+  [track]
+  (let [track         (latest-track track)
+        cues          (seesaw/select (get-in track [:cues-frame :frame]) [:#cues])
+        text          (get-in track [:contents :cues :filter])
+        entered-only? (get-in track [:contents :cues :entered-only])
+        visible-cues (filter (fn [cue]
+                               (and
+                                (or (clojure.string/blank? text) (clojure.string/includes? (:comment cue) text))
+                                (or (not entered-only?) (not (online?)
+                                                             ;; TODO: Check if the cue is in an entered state!
+                                                             ))))
+                             (vals (get-in track [:contents :cues :cues])))
+        sorted-cues (sort-by (juxt :start :end :comment :uuid)
+                             visible-cues)]
+    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :visible]
+           (mapv :uuid sorted-cues))
+    (doall (map (fn [cue color]
+                  (seesaw/config! (:panel cue) :background color))
+                sorted-cues (cycle ["#eee" "#ddd"])))
+    (seesaw/config! cues :items (concat (map :panel sorted-cues) [:fill-v]))))
+
+(defn- set-entered-only
+  "Update the cues UI so that all cues or only entered cues are
+  visible."
+  [track entered-only?]
+  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :entered-only] entered-only?)
+  (update-cue-visibility track))
+
+(defn- cue-filter-text-changed
+  "Update the cues UI so that only cues matching the specified filter
+  text, if any, are visible."
+  [track text]
+  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :filter]
+         (clojure.string/lower-case text))
+  (update-cue-visibility track))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
   [show track parent]
-  (let [track-root  (build-track-path show (:signature track))
-        root        (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
-                                  :on-close :nothing)
-        wave        (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root)
-                                              (read-beat-grid track-root))
-        cues        (seesaw/vertical-panel :id :cues)
-        cues-scroll (seesaw/scrollable cues)
-        layout      (seesaw/border-panel :north wave :center cues-scroll)
-        close-fn    (fn [force?]
-                      ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
-                      ;; will do so even in the presence of windows with unsaved user changes. Otherwise
-                      ;; prompts the user about all unsaved changes, giving them a chance to veto the
-                      ;; closure. Returns truthy if the window was closed.
-                      (let [show (latest-show show)]
-                        ;; TODO: Look at close-fn in create-show-window for some of what we need to do.
-                        (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :cues-frame)
-                        (.dispose root)
-                        true))]
+  (let [track-root   (build-track-path show (:signature track))
+        root         (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
+                                   :on-close :nothing)
+        wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root)
+                                               (read-beat-grid track-root))
+        zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 4
+                                    :listen [:state-changed (fn [e]
+                                                              (.setScale wave (seesaw/value e)))])
+        entered-only (seesaw/checkbox :id :loaded-only :text "Entered Only"
+                                      :selected? (boolean (get-in track [:cues :entered-only])) :visible? (online?)
+                                      :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
+        filter-field (seesaw/text (get-in track [:cues :filter] ""))
+        top-panel    (mig/mig-panel :background "#aaa"
+                                    :items [[(seesaw/label :text "Filter:")]
+                                            [filter-field "pushx, growx"]
+                                            [zoom-slider "gap unrelated"]
+                                            [(seesaw/label :text "Zoom")]
+                                            [entered-only "hidemode 3, gap unrelated, wrap"]
+                                            [wave "span, width 100%, wrap"]])
+        cues         (seesaw/vertical-panel :id :cues)
+        cues-scroll  (seesaw/scrollable cues)
+        layout       (seesaw/border-panel :north top-panel :center cues-scroll)
+        close-fn     (fn [force?]
+                       ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
+                       ;; will do so even in the presence of windows with unsaved user changes. Otherwise
+                       ;; prompts the user about all unsaved changes, giving them a chance to veto the
+                       ;; closure. Returns truthy if the window was closed.
+                       (let [show (latest-show show)]
+                         ;; TODO: Look at close-fn in create-show-window for some of what we need to do.
+                         (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :cues-frame)
+                         (.dispose root)
+                         true))]
     (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-frame {:frame    root
                                                                                              :wave     wave
                                                                                              :close-fn close-fn})
+    (.setScale wave (seesaw/value zoom-slider))
     (seesaw/config! root :content layout)
-
+    ;; TODO: create-cue-panels track
+    (update-cue-visibility track)
+    ;; TODO: Update UUIDs of entered/cues
+    (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
+                   (fn [e] (cue-filter-text-changed track (seesaw/text e))))
     (.setSize root 800 600)
     (.setLocationRelativeTo root parent)
     (seesaw/listen root :window-closing (fn [e] (close-fn false)))
@@ -1400,6 +1462,8 @@
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
 
+    ;; TODO: Parse/sort cues for the track, parse expressions for the cues.
+
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.
     (swap! open-shows update-in [(:file show) :tracks signature] dissoc :creating)))
@@ -1787,7 +1851,7 @@
   (repaint-all-states show))
 
 (defn- set-loaded-only
-  "Update the show UI so that all track or only loaded tracks are
+  "Update the show UI so that all tracks or only loaded tracks are
   visible."
   [show loaded-only?]
   (swap! open-shows assoc-in [(:file show) :contents :loaded-only] loaded-only?)
