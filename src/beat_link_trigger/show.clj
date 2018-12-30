@@ -413,6 +413,13 @@
   (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :entered-only] entered-only?)
   (update-cue-visibility track))
 
+(defn- set-auto-scroll
+  "Update the cues UI so that the waveform automatically tracks the
+  furthest position played."
+  [track auto?]
+  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :auto-scroll] auto?)
+  (.setAutoScroll (get-in (latest-track track) [:cues-editor :wave]) auto?))
+
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
   text, if any, are visible."
@@ -447,18 +454,23 @@
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 4
                                     :listen [:state-changed (fn [e]
                                                               (.setScale wave (seesaw/value e)))])
+        filter-field (seesaw/text (get-in track [:cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only"
                                       :selected? (boolean (get-in track [:cues :entered-only])) :visible? (online?)
                                       :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
-        filter-field (seesaw/text (get-in track [:cues :filter] ""))
+        auto-scroll  (seesaw/checkbox :text "Auto-Scroll" :selected? (boolean (get-in track [:cues :auto-scroll]))
+                                      :listen [:item-state-changed (fn [e]
+                                                                     (set-auto-scroll track (seesaw/value e))
+                                                                     (seesaw/scroll! track :to [:point 0 0]))])
         top-panel    (mig/mig-panel :background "#aaa"
                                     :items [[(seesaw/label :text "Filter:")]
                                             [filter-field "pushx 4, growx 4"]
-                                            [entered-only "hidemode 3, gap unrelated"]
+                                            [entered-only "hidemode 3"]
                                             [(seesaw/label :text "") "pushx1, growx1"]
-                                            [zoom-slider "gap unrelated"]
+                                            [auto-scroll]
+                                            [zoom-slider]
                                             [(seesaw/label :text "Zoom") "wrap"]
-                                            [wave "span, width 100%, wrap"]])
+                                            [(seesaw/scrollable wave) "span, width 100%, height 110, wrap"]])
         cues         (seesaw/vertical-panel :id :cues)
         cues-scroll  (seesaw/scrollable cues)
         layout       (seesaw/border-panel :north top-panel :center cues-scroll)
@@ -476,6 +488,7 @@
                                                                                               :wave     wave
                                                                                               :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
+    (.setAutoScroll wave (seesaw/value auto-scroll))
     (seesaw/config! root :content layout)
     ;; TODO: create-cue-panels track
     (update-cue-visibility track)
