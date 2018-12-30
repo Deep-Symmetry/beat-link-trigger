@@ -468,8 +468,8 @@
         auto-scroll  (seesaw/checkbox :text "Auto-Scroll" :selected?
                                       (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed (fn [e]
-                                                                     (set-auto-scroll track (seesaw/value e))
-                                                                     (seesaw/scroll! track :to [:point 0 0]))])
+                                                                     (set-auto-scroll track wave (seesaw/value e))
+                                                                     (seesaw/scroll! wave :to [:point 0 0]))])
         top-panel    (mig/mig-panel :background "#aaa"
                                     :items [[(seesaw/label :text "Filter:")]
                                             [filter-field "pushx 4, growx 4"]
