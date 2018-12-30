@@ -375,6 +375,23 @@
   (let [show (latest-show show)]
     (build-filesystem-path (:filesystem show) "tracks" signature)))
 
+(defn- restore-window-position
+  "Tries to put the window back in the position where it was saved in
+  the show `contents`. If no saved position is found, or if the saved
+  position is within 100 pixels of going off the bottom right of the
+  screen, the window is instead positioned centered on the screen, or
+  on the parent component if one was supplied."
+  ([window contents]
+   (restore-window-position window contents nil))
+  ([window contents parent]
+   (let [[x y width height] (:window contents)
+         dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
+     (if (or (nil? x)
+             (> x (- (.getWidth dm) 100))
+             (> y (- (.getHeight dm) 100)))
+       (.setLocationRelativeTo window parent)
+       (.setBounds window x y width height)))))
+
 
 ;;; This next section implements the Cues window and Cue rows.
 
@@ -434,6 +451,13 @@
   (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :filter]
          (clojure.string/lower-case text))
   (update-cue-visibility track))
+
+(defn- save-cue-window-position
+  "Update the saved dimensions of the cue editor window, so it can be
+  reopened in the same state."
+  [track window]
+  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :window]
+         [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
 
 (defn- update-cue-window-online-status
   "Called whenever we change online status, so that any open cue windows
@@ -504,8 +528,12 @@
     (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                    (fn [e] (cue-filter-text-changed track (seesaw/text e))))
     (.setSize root 800 600)
-    (.setLocationRelativeTo root parent)
-    (seesaw/listen root :window-closing (fn [e] (close-fn false)))
+    (restore-window-position root (get-in track [:contents :cues]) parent)
+    (seesaw/listen root
+                   :window-closing (fn [e] (close-fn false))
+                   #{:component-moved :component-resized}
+                   (fn [e]
+                     (save-cue-window-position track root)))
     (seesaw/show! root)))
 
 (defn- open-cues
@@ -1899,20 +1927,6 @@
   [show text]
   (swap! open-shows assoc-in [(:file show) :contents :filter] (clojure.string/lower-case text))
   (update-track-visibility show))
-
-(defn- restore-window-position
-  "Tries to put the window back in the position where it was saved in
-  the show `contents`. If no saved position is found, or if the saved
-  position is within 100 pixels of going off the bottom right of the
-  screen, the window is instead positioned centered on the screen."
-  [window contents]
-  (let [[x y width height] (:window contents)
-        dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
-    (if (or (nil? x)
-            (> x (- (.getWidth dm) 100))
-            (> y (- (.getHeight dm) 100)))
-      (.setLocationRelativeTo window nil)
-      (.setBounds window x y width height))))
 
 (defn- resize-track-panels
   "Called when the show window has resized, to put appropriate
