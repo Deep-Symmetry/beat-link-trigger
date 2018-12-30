@@ -1165,7 +1165,7 @@
   (seesaw/action :handler (fn [_] (open-cues show track panel))
                  :name "Edit Track Cues"
                  :tip "Set up cues that react to particular sections of the track being played."
-                 :icon (if (empty? (get-in track [:contents :cues]))
+                 :icon (if (empty? (get-in track [:contents :cues :cues]))
                          "images/Gear-outline.png"
                          "images/Gear-icon.png")))
 
