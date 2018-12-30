@@ -416,9 +416,16 @@
 (defn- set-auto-scroll
   "Update the cues UI so that the waveform automatically tracks the
   furthest position played."
-  [track auto?]
+  [track wave auto?]
   (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :auto-scroll] auto?)
-  (.setAutoScroll (get-in (latest-track track) [:cues-editor :wave]) auto?))
+  (.setAutoScroll wave auto?))
+
+(defn- set-zoom
+  "Updates the cues UI so that the waveform is zoomed out by the
+  specified factor."
+  [track wave zoom]
+  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :zoom] zoom)
+  (.setScale wave zoom))
 
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
@@ -451,9 +458,8 @@
                                    :on-close :nothing)
         wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root)
                                                (read-beat-grid track-root))
-        zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 4
-                                    :listen [:state-changed (fn [e]
-                                                              (.setScale wave (seesaw/value e)))])
+        zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
+                                    :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only"
                                       :selected? (boolean (get-in track [:contents :cues :entered-only]))
