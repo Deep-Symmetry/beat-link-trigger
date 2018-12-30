@@ -302,16 +302,94 @@
             (catch Exception e  ; Some other problem opening the device
               (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
 
+(defn- read-cue-list
+  "Re-creates a CueList object from an imported track. Returns `nil` if
+  none is found."
+  [track-root]
+  (if (Files/isReadable (.resolve track-root "cue-list.dbserver"))
+    (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") (make-array OpenOption 0))
+                data-stream  (java.io.DataInputStream. input-stream)]
+      (CueList. (Message/read data-stream)))
+    (loop [tag-byte-buffers []
+           idx              0]
+      (let [file-path (.resolve track-root (str "cue-list-" idx ".kaitai"))
+            next-buffer (when (Files/isReadable file-path)
+                          (with-open [file-channel (Files/newByteChannel file-path (make-array OpenOption 0))]
+                            (let [buffer (java.nio.ByteBuffer/allocate (.size file-channel))]
+                              (.read file-channel buffer)
+                              (.flip buffer))))]
+        (if next-buffer
+          (recur (conj tag-byte-buffers next-buffer) (inc idx))
+          (when (seq tag-byte-buffers) (CueList. tag-byte-buffers)))))))
+
+(def ^:private dummy-reference
+  "A meaningless data reference we can use to construct metadata items
+  from the show file."
+  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION 0))
+
+(defn read-beat-grid
+  "Re-creates a BeatGrid object from an imported track. Returns `nil` if
+  none is found."
+  [track-root]
+  (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
+    (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
+          beats (int-array (map int (nth grid-vec 0)))
+          times (long-array (nth grid-vec 1))]
+      (BeatGrid. dummy-reference beats times))))
+
+(defn read-preview
+  "Re-creates a WaveformPreview object from an imported track. Returns
+  `nil` if none is found."
+  [track-root]
+  (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
+                        [(.resolve track-root "preview-color.data") true]
+                        [(.resolve track-root "preview.data") false])]
+    (when (Files/isReadable path)
+      (let [bytes (Files/readAllBytes path)]
+        (WaveformPreview. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
+
+(defn read-detail
+  "Re-creates a WaveformDetail object from an imported track. Returns
+  `nil` if none is found."
+  [track-root]
+  (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
+                        [(.resolve track-root "detail-color.data") true]
+                        [(.resolve track-root "detail.data") false])]
+    (when (Files/isReadable path)
+      (let [bytes (Files/readAllBytes path)]
+        (WaveformDetail. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
+
+(defn read-art
+  "Loads album art for an imported track. Returns `nil` if none is
+  found."
+  [track-root]
+  (let [path (.resolve track-root "art.jpg")]
+    (when (Files/isReadable path)
+      (let [bytes (Files/readAllBytes path)]
+        (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
+
+(defn- build-track-path
+  "Creates an up-to-date path into the current show filesystem for the
+  content of the track with the given signature."
+  [show signature]
+  (let [show (latest-show show)]
+    (build-filesystem-path (:filesystem show) "tracks" signature)))
+
+
 ;;; This next section implements the Cues window and Cue rows.
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
   [show track parent]
-  (let [root        (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
+  (let [track-root  (build-track-path show (:signature track))
+        root        (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
                                   :on-close :nothing)
+        wave        (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root)
+                                              (read-beat-grid track-root))
         cues        (seesaw/vertical-panel :id :cues)
         cues-scroll (seesaw/scrollable cues)
+        layout      (seesaw/border-panel :north wave :center cues-scroll)
         close-fn    (fn [force?]
                       ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
                       ;; will do so even in the presence of windows with unsaved user changes. Otherwise
@@ -323,7 +401,10 @@
                         (.dispose root)
                         true))]
     (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-frame {:frame    root
+                                                                                             :wave     wave
                                                                                              :close-fn close-fn})
+    (seesaw/config! root :content layout)
+
     (.setSize root 800 600)
     (.setLocationRelativeTo root parent)
     (seesaw/listen root :window-closing (fn [e] (close-fn false)))
@@ -356,12 +437,15 @@
 
 (defn update-playback-position
   "Updates the position and color of the playback position bar for the
-  specified player in the track preview."
+  specified player in the track preview and, if there is an open Cues
+  editor window, in its waveform detail."
   [show signature player]
   (when-let [position (.getLatestPositionFor time-finder player)]
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
       (when-let [preview (preview-loader)]
-        (.setPlaybackState preview player (.milliseconds position) (.playing position))))))
+        (.setPlaybackState preview player (.milliseconds position) (.playing position))))
+    (when-let [cues-frame (get-in (latest-show show) [:tracks signature :cues-frame])]
+      (.setPlaybackState (:wave cues-frame) player (.milliseconds position) (.playing position)))))
 
 (defn- players-signature-set
   "Given a map from player number to signature, returns the the set of
@@ -452,7 +536,10 @@
 
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
       (when-let [preview (preview-loader)]
-        (.clearPlaybackState preview)))))
+        #_(timbre/info "clearing for player" player)
+        (.clearPlaybackState preview player)))
+    (when-let [cues-frame (get-in show [:tracks signature :cues-frame])]
+      (.clearPlaybackState (:wave cues-frame) player))))
 
 (defn- add-position-listener
   "Adds a track position listener for the specified player to the time
@@ -709,26 +796,6 @@
         (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
     (write-message-path (.rawMessage cue-list) (.resolve track-root "cue-list.dbserver"))))
 
-(defn- read-cue-list
-  "Re-creates a CueList object from an imported track. Returns `nil` if
-  none is found."
-  [track-root]
-  (if (Files/isReadable (.resolve track-root "cue-list.dbserver"))
-    (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") (make-array OpenOption 0))
-                data-stream  (java.io.DataInputStream. input-stream)]
-      (CueList. (Message/read data-stream)))
-    (loop [tag-byte-buffers []
-           idx              0]
-      (let [file-path (.resolve track-root (str "cue-list-" idx ".kaitai"))
-            next-buffer (when (Files/isReadable file-path)
-                          (with-open [file-channel (Files/newByteChannel file-path (make-array OpenOption 0))]
-                            (let [buffer (java.nio.ByteBuffer/allocate (.size file-channel))]
-                              (.read file-channel buffer)
-                              (.flip buffer))))]
-        (if next-buffer
-          (recur (conj tag-byte-buffers next-buffer) (inc idx))
-          (when (seq tag-byte-buffers) (CueList. tag-byte-buffers)))))))
-
 (defn write-beat-grid
   "Writes the beat grid for a track being imported to the show
   filesystem."
@@ -736,21 +803,6 @@
   (let [grid-vec [(mapv #(.getBeatWithinBar beat-grid (inc %)) (range (.beatCount beat-grid)))
                   (mapv #(.getTimeWithinTrack beat-grid (inc %)) (range (.beatCount beat-grid)))]]
     (write-edn-path grid-vec (.resolve track-root "beat-grid.edn"))))
-
-(def ^:private dummy-reference
-  "A meaningless data reference we can use to construct metadata items
-  from the show file."
-  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION 0))
-
-(defn read-beat-grid
-  "Re-creates a BeatGrid object from an imported track. Returns `nil` if
-  none is found."
-  [track-root]
-  (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
-    (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
-          beats (int-array (map int (nth grid-vec 0)))
-          times (long-array (nth grid-vec 1))]
-      (BeatGrid. dummy-reference beats times))))
 
 (defn write-preview
   "Writes the waveform preview for a track being imported to the show
@@ -761,17 +813,6 @@
     (.. preview getData (get bytes))
     (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
 
-(defn read-preview
-  "Re-creates a WaveformPreview object from an imported track. Returns
-  `nil` if none is found."
-  [track-root]
-  (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
-                        [(.resolve track-root "preview-color.data") true]
-                        [(.resolve track-root "preview.data") false])]
-    (when (Files/isReadable path)
-      (let [bytes (Files/readAllBytes path)]
-        (WaveformPreview. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
-
 (defn write-detail
   "Writes the waveform detail for a track being imported to the show
   filesystem."
@@ -781,32 +822,12 @@
     (.. detail getData (get bytes))
     (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
 
-(defn read-detail
-  "Re-creates a WaveformDetail object from an imported track. Returns
-  `nil` if none is found."
-  [track-root]
-  (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
-                        [(.resolve track-root "detail-color.data") true]
-                        [(.resolve track-root "detail.data") false])]
-    (when (Files/isReadable path)
-      (let [bytes (Files/readAllBytes path)]
-        (WaveformDetail. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
-
 (defn write-art
   "Writes album art for a track imported to the show filesystem."
   [track-root ^AlbumArt art]
   (let [bytes (byte-array (.. art getRawBytes remaining))]
     (.. art getRawBytes (get bytes))
     (Files/write (.resolve track-root "art.jpg") bytes (make-array OpenOption 0))))
-
-(defn read-art
-  "Loads album art for an imported track. Returns `nil` if none is
-  found."
-  [track-root]
-  (let [path (.resolve track-root "art.jpg")]
-    (when (Files/isReadable path)
-      (let [bytes (Files/readAllBytes path)]
-        (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
 
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color
@@ -958,13 +979,6 @@
             (when next-object (timbre/info "soft loaded" next-object))
             (reset! reference (SoftReference. next-object))
             next-object))))))
-
-(defn- build-track-path
-  "Creates an up-to-date path into the current show filesystem for the
-  content of the track with the given signature."
-  [show signature]
-  (let [show (latest-show show)]
-    (build-filesystem-path (:filesystem show) "tracks" signature)))
 
 (defn- create-reloadable-component
   "Creates a canvas that hosts another component using a soft reference
@@ -1881,7 +1895,6 @@
                                 (try
                                   (when (and (.isRunning signature-finder)  ; Ignore packets when not yet fully online.
                                              (instance? CdjStatus status))  ; We only want CDJ information.
-                                    #_(run-custom-enabled (latest-show show) nil status)  ; Currently not meaningful.
                                     (let [signature (.getLatestSignatureFor signature-finder status)
                                           show      (latest-show show)
                                           track     (get-in (latest-show show) [:tracks signature])]
