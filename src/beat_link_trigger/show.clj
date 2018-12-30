@@ -435,7 +435,8 @@
   furthest position played."
   [track wave auto?]
   (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :auto-scroll] auto?)
-  (.setAutoScroll wave auto?))
+  (.setAutoScroll wave (and auto? (online?)))
+  (seesaw/scroll! wave :to [:point 0 0]))
 
 (defn- set-zoom
   "Updates the cues UI so that the waveform is zoomed out by the
@@ -467,10 +468,15 @@
   (let [show (latest-show show)]
     (doseq [track (vals (:tracks show))]
       (when-let [editor (:cues-editor track)]
-        (let [checkbox (seesaw/select (:frame editor) [:#entered-only])]
+        (let [checkboxes [(seesaw/select (:frame editor) [:#entered-only])
+                          (seesaw/select (:frame editor) [:#auto-scroll])]
+              auto?      (get-in track [:contents :cues :auto-scroll])]
           (if online?
-            (seesaw/show! checkbox)
-            (seesaw/hide! checkbox)))
+            (seesaw/show! checkboxes)
+            (seesaw/hide! checkboxes))
+          (when auto?
+            (.setAutoScroll (:wave editor) (and auto? online?))
+            (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
 (defn- create-cues-window
@@ -485,21 +491,18 @@
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
                                     :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
-        entered-only (seesaw/checkbox :id :entered-only :text "Entered Only"
+        entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (online?)
                                       :selected? (boolean (get-in track [:contents :cues :entered-only]))
-                                      :visible? (online?)
                                       :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
-        auto-scroll  (seesaw/checkbox :text "Auto-Scroll" :selected?
-                                      (boolean (get-in track [:contents :cues :auto-scroll]))
-                                      :listen [:item-state-changed (fn [e]
-                                                                     (set-auto-scroll track wave (seesaw/value e))
-                                                                     (seesaw/scroll! wave :to [:point 0 0]))])
+        auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (online?)
+                                      :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
+                                      :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
         top-panel    (mig/mig-panel :background "#aaa"
                                     :items [[(seesaw/label :text "Filter:")]
                                             [filter-field "pushx 4, growx 4"]
                                             [entered-only "hidemode 3"]
                                             [(seesaw/label :text "") "pushx1, growx1"]
-                                            [auto-scroll]
+                                            [auto-scroll "hidemode 3"]
                                             [zoom-slider]
                                             [(seesaw/label :text "Zoom") "wrap"]
                                             [(seesaw/scrollable wave) "span, width 100%, height 110, wrap"]])
@@ -520,7 +523,7 @@
                                                                                               :wave     wave
                                                                                               :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
-    (.setAutoScroll wave (seesaw/value auto-scroll))
+    (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
     (seesaw/config! root :content layout)
     ;; TODO: create-cue-panels track
     (update-cue-visibility track)
