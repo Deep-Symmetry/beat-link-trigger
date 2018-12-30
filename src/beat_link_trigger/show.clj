@@ -479,6 +479,46 @@
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
+(defn- paint-beat-selection
+  "Draws the selected beat range, if any, on top of the waveform, to
+  support creation of new cues at particular locations."
+  [track wave graphics]
+  (when-let [[start end] (get-in (latest-track track) [:cues-editor :selection])]
+    (let [^java.awt.Graphics2D g2 (.create graphics)
+          x                       (.getXForBeat wave start)
+          w                       (- (.getXForBeat wave end) x)]
+      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
+      (.setPaint g2 Color/white)
+      #_(.setStroke graphics (java.awt.BasicStroke. 2.0))
+      (timbre/info x w)
+      (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))
+      (.dispose g2))))
+
+(defn- handle-wave-click
+  "Processes a mouse click in the wave detail component, used for
+  setting up beat ranges for creating cues."
+  [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
+  (let [track     (latest-track track)
+        x         (.getX e)
+        shift     (> (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK) 0)
+        beat      (.getBeatForX wave x)
+        selection (get-in track [:cues-editor :selection])]
+    (if (and shift selection)
+      ;; We are trying to adjust an existing selection. Move the end that was nearest to the click.
+      (let [[start end]    selection
+            start-distance (Math/abs (- beat start))
+            end-distance   (Math/abs (- beat end))]
+        (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
+               (if (< start-distance end-distance)
+                 [(max 1 beat) end]
+                 [start (min (.beatCount grid) (inc beat))])))
+      ;; We are starting a new selection.
+      (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
+        (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
+               [beat (inc beat)])  ; Yes, set new selection.
+        (swap! open-shows update-in [(:file track) :tracks (:signature track) :cues-editor] dissoc :selection)))
+    (.repaint wave)))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
@@ -486,8 +526,8 @@
   (let [track-root   (build-track-path show (:signature track))
         root         (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
                                    :on-close :nothing)
-        wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root)
-                                               (read-beat-grid track-root))
+        grid         (read-beat-grid track-root)
+        wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root) grid)
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
                                     :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
@@ -521,9 +561,14 @@
                          true))]
     (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-editor {:frame    root
                                                                                               :wave     wave
+                                                                                              :grid     grid
                                                                                               :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
+    (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
+                               (paintOverlay [component graphics]
+                                 (paint-beat-selection track component graphics))))
+    (seesaw/listen wave :mouse-clicked (fn [e] (handle-wave-click track wave grid e)))
     (seesaw/config! root :content layout)
     ;; TODO: create-cue-panels track
     (update-cue-visibility track)
