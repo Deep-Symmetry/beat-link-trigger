@@ -454,11 +454,13 @@
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 4
                                     :listen [:state-changed (fn [e]
                                                               (.setScale wave (seesaw/value e)))])
-        filter-field (seesaw/text (get-in track [:cues :filter] ""))
+        filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only"
-                                      :selected? (boolean (get-in track [:cues :entered-only])) :visible? (online?)
+                                      :selected? (boolean (get-in track [:contents :cues :entered-only]))
+                                      :visible? (online?)
                                       :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
-        auto-scroll  (seesaw/checkbox :text "Auto-Scroll" :selected? (boolean (get-in track [:cues :auto-scroll]))
+        auto-scroll  (seesaw/checkbox :text "Auto-Scroll" :selected?
+                                      (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed (fn [e]
                                                                      (set-auto-scroll track (seesaw/value e))
                                                                      (seesaw/scroll! track :to [:point 0 0]))])
