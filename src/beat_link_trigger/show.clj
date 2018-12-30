@@ -387,7 +387,7 @@
   `cues` panel appropriately."
   [track]
   (let [track         (latest-track track)
-        cues          (seesaw/select (get-in track [:cues-frame :frame]) [:#cues])
+        cues          (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
         text          (get-in track [:contents :cues :filter])
         entered-only? (get-in track [:contents :cues :entered-only])
         visible-cues (filter (fn [cue]
@@ -421,6 +421,20 @@
          (clojure.string/lower-case text))
   (update-cue-visibility track))
 
+(defn- update-cue-window-online-status
+  "Called whenever we change online status, so that any open cue windows
+  can update their user interface appropriately. Invoked on the Swing
+  event update thread, so it is safe to manipulate UI elements."
+  [show online?]
+  (let [show (latest-show show)]
+    (doseq [track (vals (:tracks show))]
+      (when-let [editor (:cues-editor track)]
+        (let [checkbox (seesaw/select (:frame editor) [:#entered-only])]
+          (if online?
+            (seesaw/show! checkbox)
+            (seesaw/hide! checkbox)))
+        (update-cue-visibility track)))))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
@@ -433,16 +447,17 @@
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 4
                                     :listen [:state-changed (fn [e]
                                                               (.setScale wave (seesaw/value e)))])
-        entered-only (seesaw/checkbox :id :loaded-only :text "Entered Only"
+        entered-only (seesaw/checkbox :id :entered-only :text "Entered Only"
                                       :selected? (boolean (get-in track [:cues :entered-only])) :visible? (online?)
                                       :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:cues :filter] ""))
         top-panel    (mig/mig-panel :background "#aaa"
                                     :items [[(seesaw/label :text "Filter:")]
-                                            [filter-field "pushx, growx"]
+                                            [filter-field "pushx 4, growx 4"]
+                                            [entered-only "hidemode 3, gap unrelated"]
+                                            [(seesaw/label :text "") "pushx1, growx1"]
                                             [zoom-slider "gap unrelated"]
-                                            [(seesaw/label :text "Zoom")]
-                                            [entered-only "hidemode 3, gap unrelated, wrap"]
+                                            [(seesaw/label :text "Zoom") "wrap"]
                                             [wave "span, width 100%, wrap"]])
         cues         (seesaw/vertical-panel :id :cues)
         cues-scroll  (seesaw/scrollable cues)
@@ -454,12 +469,12 @@
                        ;; closure. Returns truthy if the window was closed.
                        (let [show (latest-show show)]
                          ;; TODO: Look at close-fn in create-show-window for some of what we need to do.
-                         (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :cues-frame)
+                         (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :cues-editor)
                          (.dispose root)
                          true))]
-    (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-frame {:frame    root
-                                                                                             :wave     wave
-                                                                                             :close-fn close-fn})
+    (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-editor {:frame    root
+                                                                                              :wave     wave
+                                                                                              :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
     (seesaw/config! root :content layout)
     ;; TODO: create-cue-panels track
@@ -479,7 +494,7 @@
   [show track parent]
   (let [show (latest-show show)
         track (get-in show [:tracks (:signature track)])]
-    (if-let [existing (:cues-frame track)]
+    (if-let [existing (:cues-editor track)]
       (.toFront (:frame existing))
       (do (create-cues-window show track parent)
           true))))
@@ -506,8 +521,8 @@
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
       (when-let [preview (preview-loader)]
         (.setPlaybackState preview player (.milliseconds position) (.playing position))))
-    (when-let [cues-frame (get-in (latest-show show) [:tracks signature :cues-frame])]
-      (.setPlaybackState (:wave cues-frame) player (.milliseconds position) (.playing position)))))
+    (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
+      (.setPlaybackState (:wave cues-editor) player (.milliseconds position) (.playing position)))))
 
 (defn- players-signature-set
   "Given a map from player number to signature, returns the the set of
@@ -600,8 +615,8 @@
       (when-let [preview (preview-loader)]
         #_(timbre/info "clearing for player" player)
         (.clearPlaybackState preview player)))
-    (when-let [cues-frame (get-in show [:tracks signature :cues-frame])]
-      (.clearPlaybackState (:wave cues-frame) player))))
+    (when-let [cues-editor (get-in show [:tracks signature :cues-editor])]
+      (.clearPlaybackState (:wave cues-editor) player))))
 
 (defn- add-position-listener
   "Adds a track position listener for the specified player to the time
@@ -1478,7 +1493,7 @@
   (let [track (latest-track track)]
     (and
      (every? (partial editors/close-editor? force?) (vals (:expression-editors track)))
-     (or (not (:cues-frame track)) ((get-in track [:cues-frame :close-fn]) force?)))))
+     (or (not (:cues-editor track)) ((get-in track [:cues-editor :close-fn]) force?)))))
 
 (defn- cleanup-track
   "Process the removal of a track, either via deletion, or because the
@@ -1943,13 +1958,15 @@
                                  (seesaw/show! loaded-only)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show true))
-                                 (update-track-visibility show)))
+                                 (update-track-visibility show)
+                                 (update-cue-window-online-status show true)))
                               (stopped [this sender]
                                 (seesaw/invoke-later
                                  (seesaw/hide! loaded-only)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show false))
-                                 (update-track-visibility show))))
+                                 (update-track-visibility show)
+                                 (update-cue-window-online-status show false))))
             sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
                               (signatureChanged [this sig-update]
                                 (update-player-item-signature sig-update show)
