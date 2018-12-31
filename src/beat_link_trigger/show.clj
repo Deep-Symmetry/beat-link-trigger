@@ -456,6 +456,22 @@
                                   (seesaw/alert "Problem deleting cue:" e)))))
                  :name "Delete Cue"))
 
+(defn hue-to-color
+  "Returns a Color object of the given hue. If lightness is not
+  specified, 50 is used, giving the purest, most intense version of
+  the hue."
+  ([hue]
+   (hue-to-color hue 50))
+  ([hue lightness]
+   (let [color (colors/create-color :h hue :s 100 :l lightness)]
+     (java.awt.Color. (colors/red color) (colors/green color) (colors/blue color)))))
+
+(defn color-to-hue
+  "Extracts the hue number from a Color object. If colorless, red is the
+  default."
+  [color]
+  (colors/hue (colors/create-color color)))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -486,14 +502,24 @@
                                                   (let [new-end (seesaw/selection e)]
                                                     (assoc-cue-content track cue :end new-end)
                                                     (update-cue-spinner-models track cue start-model end-model)))])
+        swatch         (seesaw/canvas :size [18 :by 18]
+                                      :paint (fn [component graphics]
+                                               (let [track (latest-track track)
+                                                     cue (get-in track [:contents :cues :cues (:uuid cue)])]
+                                                 (.setPaint graphics (hue-to-color (:hue cue)))
+                                                 (.fill graphics (java.awt.geom.Rectangle2D$Double.
+                                                                  0.0 0.0 (double (.getWidth component))
+                                                                  (double (.getHeight component)))))))
         panel          (mig/mig-panel
                         :items [[(seesaw/label :text "Start:")]
                                 [start]
                                 [(seesaw/label :text "End:") "gap unrelated"]
                                 [end]
-                                [comment-field "gap unrelated, pushx, growx, wrap"]
+                                [comment-field "gap unrelated, pushx, growx"]
+                                [(seesaw/label :text "Hue:") "gap unrelated"]
+                                [swatch "wrap"]
                                 [gear "spanx, split"]])
-        popup-fn (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
+        popup-fn       (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -503,6 +529,15 @@
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
     (update-cue-gear-icon track cue gear)
+
+    (seesaw/listen swatch
+                   :mouse-pressed (fn [e]
+                                    (let [track (latest-track track)
+                                          cue (get-in track [:contents :cues :cues (:uuid cue)])]
+                                      (when-let [color (chooser/choose-color panel :color (hue-to-color (:hue cue))
+                                                                             :title "Choose Cue Hue")]
+                                        (assoc-cue-content track cue :hue (color-to-hue color))
+                                        (seesaw/repaint! [swatch (get-in track [:cues-editor :wave])])))))
 
     ;; Record the new panel in the show, and return it.
     (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :panels (:uuid cue)] panel)
@@ -608,9 +643,8 @@
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
     (doseq [cue (vals (get-in track [:contents :cues :cues]))]
       (let [x (.getXForBeat wave (:start cue))
-            w (- (.getXForBeat wave (:end cue)) x)
-            color (colors/create-color :h (:hue cue) :s 100 :l 50)]
-        (.setPaint g2 (java.awt.Color. (colors/red color) (colors/green color) (colors/blue color)))
+            w (- (.getXForBeat wave (:end cue)) x)]
+        (.setPaint g2 (hue-to-color (:hue cue)))
         (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
     (when-let [[start end] (get-in track [:cues-editor :selection])]
       (let [x (.getXForBeat wave start)
