@@ -401,6 +401,17 @@
   [track cue k v]
   (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :cues (:uuid cue) k] v))
 
+(defn- update-cue-gear-icon
+  "Determines whether the gear button for a cue should be hollow or
+  filled in, depending on whether any expressions have been assigned
+  to it."
+  [track cue gear]
+  (let [track (latest-track track)
+        cue   (get-in track [:contents :cues :cues (:uuid cue)])]
+    (if (every? empty? (vals (:expressions cue)))
+      (seesaw/icon "images/Gear-outline.png")
+      (seesaw/icon "images/Gear-icon.png"))))
+
 (declare build-cues)
 
 (defn- update-cue-spinner-models
@@ -414,6 +425,36 @@
     (.setMaximum start-model (dec (:end cue)))
     (.setMinimum end-model (inc (:start cue)))
     (seesaw/invoke-later (build-cues track))))
+
+(defn- expunge-deleted-cue
+  "Removes all the items from a track that need to be cleaned up when
+  the cue has been deleted. This function is designed to be used in a
+  single swap! call for simplicity and efficiency."
+  [track cue]
+  (let [uuid (:uuid cue)]
+    (-> track
+        (update-in [:contents :cues :cues] dissoc uuid)
+        (update-in [:cues-editor :panels] dissoc uuid)
+        ;; TODO: Verify and implement these:
+        #_(update :entered remove-uuid uuid)
+        #_(update :active remove-uuid uuid))))
+
+(defn- delete-cue-action
+  "Creates the menu action which deletes a cue after confirmation."
+  [track cue panel]
+  (seesaw/action :handler (fn [_]
+                            (when (seesaw/confirm panel (str "This will irreversibly remove the cue, losing any\r\n"
+                                                             "configuration and expressions created for it.")
+                                                  :type :question :title "Delete Cue?")
+                              (try
+                                (swap! open-shows update-in [(:file track) :tracks (:signature track)]
+                                       expunge-deleted-cue cue)
+                                ;; TODO: the cues equivalent of refresh-signatures?
+                                (build-cues track)
+                                (catch Exception e
+                                  (timbre/error e "Problem deleting cue")
+                                  (seesaw/alert "Problem deleting cue:" e)))))
+                 :name "Delete Cue"))
 
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
@@ -450,7 +491,20 @@
                                 [start]
                                 [(seesaw/label :text "End:") "gap unrelated"]
                                 [end]
-                                [comment-field "gap unrelated, pushx, growx, wrap"]])]
+                                [comment-field "gap unrelated, pushx, growx, wrap"]
+                                [gear "spanx, split"]])
+        popup-fn (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
+
+    ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
+    ;; or right click on the gear button. Also set the proper initial gear appearance.
+    (seesaw/config! [panel gear] :popup popup-fn)
+    (seesaw/listen gear
+                   :mouse-pressed (fn [e]
+                                    (let [popup (seesaw/popup :items (popup-fn e))]
+                                      (util/show-popup-from-button gear popup e))))
+    (update-cue-gear-icon track cue gear)
+
+    ;; Record the new panel in the show, and return it.
     (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :panels (:uuid cue)] panel)
     panel))
 
@@ -1153,12 +1207,15 @@
 
 (defn- update-track-gear-icon
   "Determines whether the gear button for a track should be hollow or
-  filled in, depending on whether any expressions have been assigned
-  to it."  ; TODO: Or cues, once implemented?
+  filled in, depending on whether any cues or expressions have been
+  assigned to it."
   [track gear]
-  (seesaw/config! gear :icon (if (every? empty? (vals (get-in (latest-track track) [:contents :expressions])))
-                               (seesaw/icon "images/Gear-outline.png")
-                               (seesaw/icon "images/Gear-icon.png"))))
+  (let [track (latest-track track)]
+    (seesaw/config! gear :icon (if (and
+                                    (empty? (get-in track [:contents :cues :cues]))
+                                    (every? empty? (vals (get-in track [:contents :expressions]))))
+                                 (seesaw/icon "images/Gear-outline.png")
+                                 (seesaw/icon "images/Gear-icon.png")))))
 
 (defn update-tracks-global-expression-icons
   "Updates the icons next to expressions in the Tracks menu to
@@ -1459,7 +1516,7 @@
       (update :loaded remove-signature (:signature track))
       (update :playing remove-signature (:signature track))))
 
-(defn- delete-action
+(defn- delete-track-action
   "Creates the menu action which deletes a track after confirmation."
   [show track panel]
   (seesaw/action :handler (fn [_]
@@ -1649,7 +1706,7 @@
                                        (track-editor-actions show track panel gear)
                                        [(seesaw/separator) (track-inspect-action track) (seesaw/separator)]
                                        (track-copy-actions show track)
-                                       [(seesaw/separator) (delete-action show track panel)]))]
+                                       [(seesaw/separator) (delete-track-action show track panel)]))]
 
     (swap! open-shows assoc-in [(:file show) :tracks signature] track)
     (swap! open-shows assoc-in [(:file show) :panels panel] signature)
