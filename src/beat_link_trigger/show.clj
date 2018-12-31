@@ -17,6 +17,7 @@
             [seesaw.chooser :as chooser]
             [seesaw.icon :as icon]
             [seesaw.mig :as mig]
+            [com.evocomputing.colors :as colors]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt Color Font RenderingHints]
@@ -420,7 +421,6 @@
   the cue. Returns the panel after updating the cue to know about it.
   `track` and `cue` must be current."
   [track cue]
-  (timbre/info "create cue panel, cue:" cue)
   (let [update-comment (fn [c]
                          (let [comment (seesaw/text c)]
                            (assoc-cue-content track cue :comment comment)))
@@ -545,18 +545,25 @@
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
-(defn- paint-beat-selection
-  "Draws the selected beat range, if any, on top of the waveform, to
-  support creation of new cues at particular locations."
+(defn- paint-cues-and-beat-selection
+  "Draws the cues and the selected beat range, if any, on top of the
+  waveform."
   [track wave graphics]
-  (when-let [[start end] (get-in (latest-track track) [:cues-editor :selection])]
-    (let [^java.awt.Graphics2D g2 (.create graphics)
-          x                       (.getXForBeat wave start)
-          w                       (- (.getXForBeat wave end) x)]
-      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
-      (.setPaint g2 Color/white)
-      (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))
-      (.dispose g2))))
+  (let [^java.awt.Graphics2D g2 (.create graphics)
+        track                   (latest-track track)]
+    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
+    (doseq [cue (vals (get-in track [:contents :cues :cues]))]
+      (let [x (.getXForBeat wave (:start cue))
+            w (- (.getXForBeat wave (:end cue)) x)
+            color (colors/create-color :h (:hue cue) :s 100 :l 50)]
+        (.setPaint g2 (java.awt.Color. (colors/red color) (colors/green color) (colors/blue color)))
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
+    (when-let [[start end] (get-in track [:cues-editor :selection])]
+      (let [x (.getXForBeat wave start)
+            w (- (.getXForBeat wave end) x)]
+        (.setPaint g2 Color/white)
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
+    (.dispose g2)))
 
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
@@ -605,7 +612,10 @@
         sorted-cues (sort-by (juxt :start :end :comment :uuid)
                              (vals (get-in track [:contents :cues :cues])))]
     (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues :sorted] (mapv :uuid sorted-cues))
-    (when (:cues-editor track) (update-cue-visibility track))))
+    ;; TODO: Update above/below/size resolution for overlapping cues
+    (when (:cues-editor track)
+      (update-cue-visibility track)
+      (.repaint (get-in track [:cues-editor :wave])))))
 
 (defn- assign-cue-hue
   [track]
@@ -628,7 +638,7 @@
                      :end   end
                      :hue   hue}]
     (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :cues uuid] cue)
-    (timbre/info cue)
+    (swap! open-shows update-in [(:file track) :tracks (:signature track) :cues-editor] dissoc :selection)
     (build-cues track)))
 
 (defn- create-cues-window
@@ -681,7 +691,7 @@
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                (paintOverlay [component graphics]
-                                 (paint-beat-selection track component graphics))))
+                                 (paint-cues-and-beat-selection track component graphics))))
     (seesaw/listen wave
                    :mouse-pressed (fn [e] (handle-wave-click track wave grid e))
                    :mouse-dragged (fn [e] (handle-wave-drag track wave grid e)))
