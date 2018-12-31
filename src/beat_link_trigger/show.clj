@@ -395,6 +395,65 @@
 
 ;;; This next section implements the Cues window and Cue rows.
 
+(defn- assoc-cue-content
+  "Establishes a new value for the specified key in the specified cue."
+  [track cue k v]
+  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :cues (:uuid cue) k] v))
+
+(declare build-cues)
+
+(defn- update-cue-spinner-models
+  "When the start or end position of a cue has changed, that affects the
+  legal values the other can take. Update the spinner models to
+  reflect the new limits. Then we rebuild the cue list in case they
+  need to change order."
+  [track cue start-model end-model]
+  (let [track (latest-track track)
+        cue   (get-in track [:contents :cues :cues (:uuid cue)])]
+    (.setMaximum start-model (dec (:end cue)))
+    (.setMinimum end-model (inc (:start cue)))
+    (seesaw/invoke-later (build-cues track))))
+
+(defn- create-cue-panel
+  "Called the first time a cue is being worked with in the context of
+  a cues editor window. Creates the UI panel that is used to configure
+  the cue. Returns the panel after updating the cue to know about it.
+  `track` and `cue` must be current."
+  [track cue]
+  (timbre/info "create cue panel, cue:" cue)
+  (let [update-comment (fn [c]
+                         (let [comment (seesaw/text c)]
+                           (assoc-cue-content track cue :comment comment)))
+        comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
+                                    :text (:comment cue) :listen [:document update-comment])
+        gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
+        end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
+                                             :to (long (.beatCount
+                                                        (get-in track [:cues-editor :grid]))))
+        start          (seesaw/spinner :id :start
+                                       :model start-model
+                                       :listen [:state-changed
+                                                (fn [e]
+                                                  (let [new-start (seesaw/selection e)]
+                                                    (assoc-cue-content track cue :start new-start)
+                                                    (update-cue-spinner-models track cue start-model end-model)))])
+        end            (seesaw/spinner :id :end
+                                       :model end-model
+                                       :listen [:state-changed
+                                                (fn [e]
+                                                  (let [new-end (seesaw/selection e)]
+                                                    (assoc-cue-content track cue :end new-end)
+                                                    (update-cue-spinner-models track cue start-model end-model)))])
+        panel          (mig/mig-panel
+                        :items [[(seesaw/label :text "Start:")]
+                                [start]
+                                [(seesaw/label :text "End:") "gap unrelated"]
+                                [end]
+                                [comment-field "gap unrelated, pushx, growx, wrap"]])]
+    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :panels (:uuid cue)] panel)
+    panel))
+
 (defn- update-cue-visibility
   "Determines the cues that should be visible given the filter text (if
   any) and state of the Only Entered checkbox if we are online.
@@ -405,23 +464,30 @@
   [track]
   (let [track         (latest-track track)
         cues          (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
+        panels        (get-in track [:cues-editor :panels])
         text          (get-in track [:contents :cues :filter])
         entered-only? (get-in track [:contents :cues :entered-only])
-        visible-cues (filter (fn [cue]
-                               (and
-                                (or (clojure.string/blank? text) (clojure.string/includes? (:comment cue) text))
-                                (or (not entered-only?) (not (online?)
-                                                             ;; TODO: Check if the cue is in an entered state!
-                                                             ))))
-                             (vals (get-in track [:contents :cues :cues])))
-        sorted-cues (sort-by (juxt :start :end :comment :uuid)
-                             visible-cues)]
-    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :visible]
-           (mapv :uuid sorted-cues))
-    (doall (map (fn [cue color]
-                  (seesaw/config! (:panel cue) :background color))
-                sorted-cues (cycle ["#eee" "#ddd"])))
-    (seesaw/config! cues :items (concat (map :panel sorted-cues) [:fill-v]))))
+        visible-cues  (filter identity
+                              (map (fn [uuid]
+                                     (let [cue (get-in track [:contents :cues :cues uuid])]
+                                       (when (and
+                                              (or (clojure.string/blank? text)
+                                                  (clojure.string/includes?
+                                                   (clojure.string/lower-case (:comment cue ""))
+                                                   (clojure.string/lower-case text)))
+                                              (or (not entered-only?) (not (online?)
+                                                                           ;; TODO: Check if cue is in an entered state!
+                                                                           )))
+                                         cue)))
+                                   (get-in track [:cues :sorted])))]
+    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues :visible]
+           (mapv :uuid visible-cues))
+    (let [visible-panels (map (fn [cue color]
+                                (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
+                                  (seesaw/config! panel :background color)
+                                  panel))
+                              visible-cues (cycle ["#eee" "#ddd"]))]
+      (seesaw/config! cues :items (concat visible-panels [:fill-v])))))
 
 (defn- set-entered-only
   "Update the cues UI so that all cues or only entered cues are
@@ -489,7 +555,6 @@
           w                       (- (.getXForBeat wave end) x)]
       (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
       (.setPaint g2 Color/white)
-      #_(.setStroke graphics (java.awt.BasicStroke. 2.0))
       (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))
       (.dispose g2))))
 
@@ -499,7 +564,7 @@
   [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
   (let [track       (latest-track track)
         x           (.getX e)
-        beat        (.getBeatForX wave x)
+        beat        (long (.getBeatForX wave x))
         [start end] (get-in track [:cues-editor :selection])]
     (when start  ; If there is no valid selection, there is nothing to extend.
       ;; We are trying to adjust an existing selection. Move the end that was nearest to the mouse.
@@ -518,7 +583,7 @@
   (let [track     (latest-track track)
         x         (.getX e)
         shift     (> (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK) 0)
-        beat      (.getBeatForX wave x)
+        beat      (long (.getBeatForX wave x))
         selection (get-in track [:cues-editor :selection])]
     (if (and shift selection)
       ;; We are trying to adjust an existing selection; we can handle it as a drag.
@@ -529,6 +594,42 @@
                [beat (inc beat)])  ; Yes, set new selection.
         (swap! open-shows update-in [(:file track) :tracks (:signature track) :cues-editor] dissoc :selection)))
     (.repaint wave)))
+
+(defn- build-cues
+  "Updates the track structures to reflect the cues that are present. If
+  there is an open cues editor window, also updates it. This will be
+  called when the show is initially loaded, and whenever the cues are
+  changed."
+  [track]
+  (let [track       (latest-track track)
+        sorted-cues (sort-by (juxt :start :end :comment :uuid)
+                             (vals (get-in track [:contents :cues :cues])))]
+    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues :sorted] (mapv :uuid sorted-cues))
+    (when (:cues-editor track) (update-cue-visibility track))))
+
+(defn- assign-cue-hue
+  [track]
+  "Picks a color for a new cue by cycling around the color wheel, and
+  recording the last one used."
+  (let [shows (swap! open-shows update-in [(:file track) :tracks (:signature track) :contents :cues :hue]
+                     (fn [old-hue] (+ (or old-hue 0.0) 62.5)))]
+    (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
+
+(defn- new-cue
+  "Handles a click on the New Cue button, which creates a cue with the
+  selected beat range, or a default range if there is no selection."
+  [track]
+  (let [track       (latest-track track)
+        [start end] (get-in track [:cues-editor :selection] [1 2])
+        hue         (assign-cue-hue track)
+        uuid        (java.util.UUID/randomUUID)
+        cue         {:uuid  uuid
+                     :start start
+                     :end   end
+                     :hue   hue}]
+    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :cues uuid] cue)
+    (timbre/info cue)
+    (build-cues track)))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
@@ -549,7 +650,9 @@
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
         top-panel    (mig/mig-panel :background "#aaa"
-                                    :items [[(seesaw/label :text "Filter:")]
+                                    :items [[(seesaw/button :text "New Cue"
+                                                            :listen [:action-performed (fn [e] (new-cue track))])]
+                                            [(seesaw/label :text "Filter:") "gap unrelated"]
                                             [filter-field "pushx 4, growx 4"]
                                             [entered-only "hidemode 3"]
                                             [(seesaw/label :text "") "pushx1, growx1"]
@@ -583,8 +686,7 @@
                    :mouse-pressed (fn [e] (handle-wave-click track wave grid e))
                    :mouse-dragged (fn [e] (handle-wave-drag track wave grid e)))
     (seesaw/config! root :content layout)
-    ;; TODO: create-cue-panels track
-    (update-cue-visibility track)
+    (build-cues track)
     ;; TODO: Update UUIDs of entered/cues
     (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                    (fn [e] (cue-filter-text-changed track (seesaw/text e))))
@@ -1420,106 +1522,105 @@
         soft-preview   (create-track-preview preview-loader)
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
-        panel          (mig/mig-panel :constraints (track-panel-constraints (.getWidth (:frame show)))
-                                      :items
-                                      [[(create-track-art show signature) "spany 4"]
-                                       [(seesaw/label :text (:title metadata)
-                                                      :font (util/get-display-font :bitter Font/ITALIC 14)
-                                                      :foreground :yellow)
-                                        "width 60:120"]
-                                       [soft-preview "spany 4, wrap"]
+        panel          (mig/mig-panel
+                        :constraints (track-panel-constraints (.getWidth (:frame show)))
+                        :items [[(create-track-art show signature) "spany 4"]
+                                [(seesaw/label :text (:title metadata)
+                                               :font (util/get-display-font :bitter Font/ITALIC 14)
+                                               :foreground :yellow)
+                                 "width 60:120"]
+                                [soft-preview "spany 4, wrap"]
 
-                                       [(seesaw/label :text (format-artist-album metadata)
-                                                      :font (util/get-display-font :bitter Font/BOLD 13)
-                                                      :foreground :green)
-                                        "width 60:120, wrap"]
+                                [(seesaw/label :text (format-artist-album metadata)
+                                               :font (util/get-display-font :bitter Font/BOLD 13)
+                                               :foreground :green)
+                                 "width 60:120, wrap"]
 
-                                       [comment-field "wrap"]
+                                [comment-field "wrap"]
 
-                                       [(seesaw/label :text "Players:") "split 4, gap unrelated"]
-                                       [(seesaw/label :id :players :text "--")]
-                                       [(seesaw/label :text "Playing:") "gap unrelated"]
-                                       [(seesaw/label :id :playing :text "--") "wrap unrelated, gapafter push"]
+                                [(seesaw/label :text "Players:") "split 4, gap unrelated"]
+                                [(seesaw/label :id :players :text "--")]
+                                [(seesaw/label :text "Playing:") "gap unrelated"]
+                                [(seesaw/label :id :playing :text "--") "wrap unrelated, gapafter push"]
 
-                                       [gear "spanx, split"]
+                                [gear "spanx, split"]
 
-                                       ["MIDI Output:" "gap unrelated"]
-                                       [(seesaw/combobox :id :outputs
-                                                         :model (concat outputs
-                                                                        (when-let [chosen (:midi-device contents)]
-                                                                          (when-not ((set outputs) chosen)
-                                                                            [chosen])))
-                                                         :selected-item nil  ; So update below saves default.
-                                                         :listen [:item-state-changed
-                                                                  #(assoc-track-content show signature :midi-device
-                                                                                        (seesaw/selection %))])]
+                                ["MIDI Output:" "gap unrelated"]
+                                [(seesaw/combobox :id :outputs
+                                                  :model (concat outputs
+                                                                 (when-let [chosen (:midi-device contents)]
+                                                                   (when-not ((set outputs) chosen)
+                                                                     [chosen])))
+                                                  :selected-item nil  ; So update below saves default.
+                                                  :listen [:item-state-changed
+                                                           #(assoc-track-content show signature :midi-device
+                                                                                 (seesaw/selection %))])]
 
-                                       ["Loaded:" "gap unrelated"]
-                                       [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
-                                                       :tip "Outer ring shows track enabled, inner light when loaded."
-                                                       :paint (partial paint-state show signature :loaded))]
-                                       ["Message:"]
-                                       [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
-                                                         :selected-item nil  ; So update below saves default.
-                                                         :listen [:item-state-changed
-                                                                  #(assoc-track-content show signature :loaded-message
-                                                                                        (seesaw/selection %))])]
-                                       [(seesaw/spinner :id :loaded-note
+                                ["Loaded:" "gap unrelated"]
+                                [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
+                                                :tip "Outer ring shows track enabled, inner light when loaded."
+                                                :paint (partial paint-state show signature :loaded))]
+                                ["Message:"]
+                                [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
+                                                  :selected-item nil  ; So update below saves default.
+                                                  :listen [:item-state-changed
+                                                           #(assoc-track-content show signature :loaded-message
+                                                                                 (seesaw/selection %))])]
+                                [(seesaw/spinner :id :loaded-note
+                                                 :model (seesaw/spinner-model (or (:loaded-note contents) 126)
+                                                                              :from 1 :to 127)
+                                                 :listen [:state-changed
+                                                          #(assoc-track-content show signature :loaded-note
+                                                                                (seesaw/value %))])
+                                 "hidemode 3"]
 
-                                                        :model (seesaw/spinner-model (or (:loaded-note contents) 126)
+                                [(seesaw/label :id :loaded-channel-label :text "Channel:")
+                                 "gap unrelated, hidemode 3"]
+                                [(seesaw/spinner :id :loaded-channel
+                                                 :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
+                                                                              :from 1 :to 16)
+                                                 :listen [:state-changed
+                                                          #(assoc-track-content show signature :loaded-channel
+                                                                                (seesaw/value %))])
+                                 "hidemode 3"]
+
+                                ["Playing:" "gap unrelated"]
+                                [(seesaw/canvas :id :playing-state :size [18 :by 18] :opaque? false
+                                                :tip "Outer ring shows track enabled, inner light when playing."
+                                                :paint (partial paint-state show signature :playing))]
+                                ["Message:"]
+                                [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
+                                                  :selected-item nil  ; So update below saves default.
+                                                  :listen [:item-state-changed
+                                                           #(assoc-track-content show signature :playing-message
+                                                                                 (seesaw/selection %))])]
+                                [(seesaw/spinner :id :playing-note
+                                                 :model (seesaw/spinner-model (or (:playing-note contents) 127)
                                                                                      :from 1 :to 127)
-                                                        :listen [:state-changed
-                                                                 #(assoc-track-content show signature :loaded-note
-                                                                                       (seesaw/value %))])
-                                        "hidemode 3"]
+                                                 :listen [:state-changed
+                                                          #(assoc-track-content show signature :playing-note
+                                                                                (seesaw/value %))])
+                                 "hidemode 3"]
 
-                                       [(seesaw/label :id :loaded-channel-label :text "Channel:")
-                                        "gap unrelated, hidemode 3"]
-                                       [(seesaw/spinner :id :loaded-channel
-                                                        :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
-                                                                                     :from 1 :to 16)
-                                                        :listen [:state-changed
-                                                                 #(assoc-track-content show signature :loaded-channel
-                                                                                       (seesaw/value %))])
-                                        "hidemode 3"]
+                                [(seesaw/label :id :playing-channel-label :text "Channel:")
+                                 "gap unrelated, hidemode 3"]
+                                [(seesaw/spinner :id :playing-channel
+                                                 :model (seesaw/spinner-model (or (:playing-channel contents) 1)
+                                                                              :from 1 :to 16)
+                                                 :listen [:state-changed
+                                                          #(assoc-track-content show signature :playing-channel
+                                                                                (seesaw/value %))])
+                                 "hidemode 3"]  ; TODO: Playing state indicator canvas.
 
-                                       ["Playing:" "gap unrelated"]
-                                       [(seesaw/canvas :id :playing-state :size [18 :by 18] :opaque? false
-                                                       :tip "Outer ring shows track enabled, inner light when playing."
-                                                       :paint (partial paint-state show signature :playing))]
-                                       ["Message:"]
-                                       [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
-                                                         :selected-item nil  ; So update below saves default.
-                                                         :listen [:item-state-changed
-                                                                  #(assoc-track-content show signature :playing-message
-                                                                                        (seesaw/selection %))])]
-                                       [(seesaw/spinner :id :playing-note
-                                                        :model (seesaw/spinner-model (or (:playing-note contents) 127)
-                                                                                     :from 1 :to 127)
-                                                        :listen [:state-changed
-                                                                 #(assoc-track-content show signature :playing-note
-                                                                                       (seesaw/value %))])
-                                        "hidemode 3"]
-
-                                       [(seesaw/label :id :playing-channel-label :text "Channel:")
-                                        "gap unrelated, hidemode 3"]
-                                       [(seesaw/spinner :id :playing-channel
-                                                        :model (seesaw/spinner-model (or (:playing-channel contents) 1)
-                                                                                     :from 1 :to 16)
-                                                        :listen [:state-changed
-                                                                 #(assoc-track-content show signature :playing-channel
-                                                                                       (seesaw/value %))])
-                                        "hidemode 3"]  ; TODO: Playing state indicator canvas.
-
-                                       [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                                       [(seesaw/combobox :id :enabled
-                                                         :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
-                                                         :selected-item nil  ; So update below saves default.
-                                                         :listen [:item-state-changed
-                                                                  #(do (assoc-track-content show signature :enabled
-                                                                                            (seesaw/value %))
-                                                                       (repaint-states show signature))])
-                                        "hidemode 3"]])
+                                [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
+                                [(seesaw/combobox :id :enabled
+                                                  :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
+                                                  :selected-item nil  ; So update below saves default.
+                                                  :listen [:item-state-changed
+                                                           #(do (assoc-track-content show signature :enabled
+                                                                                     (seesaw/value %))
+                                                                (repaint-states show signature))])
+                                 "hidemode 3"]])
 
         track          {:file              (:file show)
                         :signature         signature
