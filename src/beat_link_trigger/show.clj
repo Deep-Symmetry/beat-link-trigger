@@ -490,9 +490,26 @@
       (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
       (.setPaint g2 Color/white)
       #_(.setStroke graphics (java.awt.BasicStroke. 2.0))
-      (timbre/info x w)
       (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))
       (.dispose g2))))
+
+(defn- handle-wave-drag
+  "Processes a mouse drag in the wave detail component, used to adjust
+  beat ranges for creating cues."
+  [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
+  (let [track       (latest-track track)
+        x           (.getX e)
+        beat        (.getBeatForX wave x)
+        [start end] (get-in track [:cues-editor :selection])]
+    (when start  ; If there is no valid selection, there is nothing to extend.
+      ;; We are trying to adjust an existing selection. Move the end that was nearest to the mouse.
+      (let [start-distance (Math/abs (- beat start))
+            end-distance   (Math/abs (- beat end))]
+        (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
+               (if (< start-distance end-distance)
+                 [(max 1 beat) end]
+                 [start (min (.beatCount grid) (inc beat))])))
+      (.repaint wave))))
 
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
@@ -504,14 +521,8 @@
         beat      (.getBeatForX wave x)
         selection (get-in track [:cues-editor :selection])]
     (if (and shift selection)
-      ;; We are trying to adjust an existing selection. Move the end that was nearest to the click.
-      (let [[start end]    selection
-            start-distance (Math/abs (- beat start))
-            end-distance   (Math/abs (- beat end))]
-        (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
-               (if (< start-distance end-distance)
-                 [(max 1 beat) end]
-                 [start (min (.beatCount grid) (inc beat))])))
+      ;; We are trying to adjust an existing selection; we can handle it as a drag.
+      (handle-wave-drag track wave grid e)
       ;; We are starting a new selection.
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
         (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
@@ -568,7 +579,9 @@
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                (paintOverlay [component graphics]
                                  (paint-beat-selection track component graphics))))
-    (seesaw/listen wave :mouse-clicked (fn [e] (handle-wave-click track wave grid e)))
+    (seesaw/listen wave
+                   :mouse-pressed (fn [e] (handle-wave-click track wave grid e))
+                   :mouse-dragged (fn [e] (handle-wave-drag track wave grid e)))
     (seesaw/config! root :content layout)
     ;; TODO: create-cue-panels track
     (update-cue-visibility track)
