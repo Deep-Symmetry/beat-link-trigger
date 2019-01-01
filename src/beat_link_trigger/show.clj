@@ -136,16 +136,23 @@
   [track]
   (get-in @open-shows [(:file track) :tracks (:signature track)]))
 
-(defn- assoc-track-content
-  "Updates the show to associate the supplied key and value into the
-  specified track's contents map. Track can either be a string
-  signature or a full track map, and k-or-ks can either be a single
-  key or a sequence of keys to associate a value deeper into the
-  contents map."
-  [show track k-or-ks v]
-  (let [signature (if (string? track) track (:signature track))
-        ks (if (sequential? k-or-ks) k-or-ks [k-or-ks])]
-    (swap! open-shows assoc-in (concat [(:file show) :tracks signature :contents] ks) v)))
+(defn- swap-show!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  specified show."
+  [show f & args]
+  (swap! open-shows #(apply update % (:file show) f args)))
+
+(defn- swap-track!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  specified track. The value of `show` can either be the a file or
+  the full show map, and the value of `track` can either be a string
+  signature or full track map."
+  [show track f & args]
+  (let [show-file (if (instance? java.io.File show) show (:file show))
+        signature (if (string? track) track (:signature track))]
+    (swap! open-shows #(apply update-in % [show-file :tracks signature] f args))))
 
 (defn- flush-show
   "Closes the ZIP fileystem so that changes are written to the actual
@@ -396,10 +403,14 @@
 
 ;;; This next section implements the Cues window and Cue rows.
 
-(defn- assoc-cue-content
-  "Establishes a new value for the specified key in the specified cue."
-  [track cue k v]
-  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :cues (:uuid cue) k] v))
+(defn- swap-cue!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  specified cue. The value of `track` must be a full track map, but
+  the value of `cue` can either be a UUID or a full cue map."
+  [track cue f & args]
+  (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
+    (swap-track! (:file track) track #(apply update-in % [:contents :cues :cues uuid] f args))))
 
 (defn- update-cue-gear-icon
   "Determines whether the gear button for a cue should be hollow or
@@ -480,7 +491,7 @@
   [track cue]
   (let [update-comment (fn [c]
                          (let [comment (seesaw/text c)]
-                           (assoc-cue-content track cue :comment comment)))
+                           (swap-cue! track cue assoc :comment comment)))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment cue) :listen [:document update-comment])
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
@@ -493,14 +504,14 @@
                                        :listen [:state-changed
                                                 (fn [e]
                                                   (let [new-start (seesaw/selection e)]
-                                                    (assoc-cue-content track cue :start new-start)
+                                                    (swap-cue! track cue assoc :start new-start)
                                                     (update-cue-spinner-models track cue start-model end-model)))])
         end            (seesaw/spinner :id :end
                                        :model end-model
                                        :listen [:state-changed
                                                 (fn [e]
                                                   (let [new-end (seesaw/selection e)]
-                                                    (assoc-cue-content track cue :end new-end)
+                                                    (swap-cue! track cue assoc :end new-end)
                                                     (update-cue-spinner-models track cue start-model end-model)))])
         swatch         (seesaw/canvas :size [18 :by 18]
                                       :paint (fn [component graphics]
@@ -536,7 +547,7 @@
                                           cue (get-in track [:contents :cues :cues (:uuid cue)])]
                                       (when-let [color (chooser/choose-color panel :color (hue-to-color (:hue cue))
                                                                              :title "Choose Cue Hue")]
-                                        (assoc-cue-content track cue :hue (color-to-hue color))
+                                        (swap-cue! track cue assoc :hue (color-to-hue color))
                                         (seesaw/repaint! [swatch (get-in track [:cues-editor :wave])])))))
 
     ;; Record the new panel in the show, and return it.
@@ -1654,8 +1665,9 @@
                                                                      [chosen])))
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(assoc-track-content show signature :midi-device
-                                                                                 (seesaw/selection %))])]
+                                                           #(swap-track! show signature
+                                                                         assoc-in [:contents :midi-device]
+                                                                         (seesaw/selection %))])]
 
                                 ["Loaded:" "gap unrelated"]
                                 [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
@@ -1665,14 +1677,16 @@
                                 [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(assoc-track-content show signature :loaded-message
-                                                                                 (seesaw/selection %))])]
+                                                           #(swap-track! show signature
+                                                                         assoc-in [:contents :loaded-message]
+                                                                         (seesaw/selection %))])]
                                 [(seesaw/spinner :id :loaded-note
                                                  :model (seesaw/spinner-model (or (:loaded-note contents) 126)
                                                                               :from 1 :to 127)
                                                  :listen [:state-changed
-                                                          #(assoc-track-content show signature :loaded-note
-                                                                                (seesaw/value %))])
+                                                          #(swap-track! show signature
+                                                                        assoc-in [:contents :loaded-note]
+                                                                        (seesaw/value %))])
                                  "hidemode 3"]
 
                                 [(seesaw/label :id :loaded-channel-label :text "Channel:")
@@ -1681,8 +1695,9 @@
                                                  :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
                                                                               :from 1 :to 16)
                                                  :listen [:state-changed
-                                                          #(assoc-track-content show signature :loaded-channel
-                                                                                (seesaw/value %))])
+                                                          #(swap-track! show signature
+                                                                        assoc-in [:contents :loaded-channel]
+                                                                        (seesaw/value %))])
                                  "hidemode 3"]
 
                                 ["Playing:" "gap unrelated"]
@@ -1693,14 +1708,16 @@
                                 [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(assoc-track-content show signature :playing-message
-                                                                                 (seesaw/selection %))])]
+                                                           #(swap-track! show signature
+                                                                         assoc-in [:contents :playing-message]
+                                                                         (seesaw/selection %))])]
                                 [(seesaw/spinner :id :playing-note
                                                  :model (seesaw/spinner-model (or (:playing-note contents) 127)
                                                                                      :from 1 :to 127)
                                                  :listen [:state-changed
-                                                          #(assoc-track-content show signature :playing-note
-                                                                                (seesaw/value %))])
+                                                          #(swap-track! show signature
+                                                                        assoc-in [:contents :playing-note]
+                                                                        (seesaw/value %))])
                                  "hidemode 3"]
 
                                 [(seesaw/label :id :playing-channel-label :text "Channel:")
@@ -1709,8 +1726,9 @@
                                                  :model (seesaw/spinner-model (or (:playing-channel contents) 1)
                                                                               :from 1 :to 16)
                                                  :listen [:state-changed
-                                                          #(assoc-track-content show signature :playing-channel
-                                                                                (seesaw/value %))])
+                                                          #(swap-track! show signature
+                                                                        assoc-in [:contents :playing-channel]
+                                                                        (seesaw/value %))])
                                  "hidemode 3"]  ; TODO: Playing state indicator canvas.
 
                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
@@ -1718,8 +1736,9 @@
                                                   :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(do (assoc-track-content show signature :enabled
-                                                                                     (seesaw/value %))
+                                                           #(do (swap-track! show signature
+                                                                             assoc-in [:contents :enabled]
+                                                                             (seesaw/value %))
                                                                 (repaint-states show signature))])
                                  "hidemode 3"]])
 
@@ -1771,10 +1790,13 @@
 
     ;; In case this is the inital creation of the track, record the defaulted values of the numeric inputs too.
     ;; This will have no effect if they were loaded.
-    (assoc-track-content show signature :loaded-note (seesaw/value (seesaw/select panel [:#loaded-note])))
-    (assoc-track-content show signature :loaded-channel (seesaw/value (seesaw/select panel [:#loaded-channel])))
-    (assoc-track-content show signature :playing-note (seesaw/value (seesaw/select panel [:#playing-note])))
-    (assoc-track-content show signature :playing-channel (seesaw/value (seesaw/select panel [:#playing-channel])))
+    (swap-track! show signature assoc-in [:contents :loaded-note] (seesaw/value (seesaw/select panel [:#loaded-note])))
+    (swap-track! show signature
+                 assoc-in [:contents :loaded-channel] (seesaw/value (seesaw/select panel [:#loaded-channel])))
+    (swap-track! show signature
+                 assoc-in [:contents :playing-note] (seesaw/value (seesaw/select panel [:#playing-note])))
+    (swap-track! show signature
+                 assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
 
     (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
       (let [editor-info (get editors/show-track-editors kind)]
