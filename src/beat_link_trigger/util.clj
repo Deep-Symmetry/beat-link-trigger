@@ -276,3 +276,87 @@
     :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
     :segment (Font. "DSEG7 Classic" Font/PLAIN size)
     :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
+
+;;; "A poor man's interval tree, from http://clj-me.cgrand.net/2012/03/16/a-poor-mans-interval-tree/
+;;; turns out to offer exactly the API I need for figuring out which cues overlap a beat. I only needed
+;;; to extend it a slight amount in order to also find cues whose intervals overlap each other.
+
+(defn interval-lt
+  "A partial order on intervals and points, where an interval is defined
+  by the vector [from to) (notation I recall meaning it includes the
+  lower bound but excludes the upper bound), and either can be `nil`
+  to indicate negative or positive infinity. A single point at `n` is
+  represented by `[n n]`."
+  [[a b] [c d]]
+  (boolean (and b c
+                (if (= a b)
+                  (neg? (compare b c))
+                  (<= (compare b c) 0)))))
+
+(def empty-interval-map
+  "An interval map with no content."
+  (sorted-map-by interval-lt [nil nil] #{}))
+
+(defn- isplit-at
+  "Splits the interval map at the specified value, unless it already has
+  a boundary there."
+  [interval-map x]
+  (if x
+    (let [[[a b :as k] vs] (find interval-map [x x])]
+      (if (or (= a x) (= b x))
+        interval-map
+        (-> interval-map (dissoc k) (assoc [a x] vs [x b] vs))))
+    interval-map))
+
+(defn- matching-subsequence
+  "Extracts the sequence of key, value pairs from the interval map which
+  cover the supplied range (either end of which can be `nil`, meaning
+  from the beginning or to the end)."
+  [interval-map from to]
+  (cond
+    (and from to)
+    (subseq interval-map >= [from from] < [to to])
+    from
+    (subseq interval-map >= [from from])
+    to
+    (subseq interval-map < [to to])
+    :else
+    interval-map))
+
+(defn- ialter
+  "Applies the specified function and arguments to all intervals that
+  fall within the specified range in the interval map, splitting it at
+  each end if necessary so that the exact desired range can be
+  affected."
+  [interval-map from to f & args]
+  (let [interval-map (-> interval-map (isplit-at from) (isplit-at to))
+        kvs          (for [[r vs] (matching-subsequence interval-map from to)]
+                       [r (apply f vs args)])]
+    (into interval-map kvs)))
+
+(defn iassoc
+  "Add a value to the specified range in an interval map."
+  [interval-map from to v]
+  (ialter interval-map from to conj v))
+
+(defn idissoc
+  "Remove a value from the specified range in an interval map. If you
+  are going to be using this function much, it might be worth adding
+  code to consolidate ranges that are no longer distinct."
+  [interval-map from to v]
+  (ialter interval-map from to disj v))
+
+(defn iget
+  "Find the values that are associated with a point or interval within
+  the interval map. Calling with a single number will look up the
+  values associated with just that point; calling with two arguments,
+  or with an interval vector, will return the values associated with
+  any interval that overlaps the supplied interval."
+  ([interval-map x]
+   (if (vector? x)
+     (let [[from to] x]
+       (iget interval-map from to))
+     (get interval-map [x x])))
+  ([interval-map from to]
+   (reduce (fn [result [r vs]]
+             (clojure.set/union result vs)) #{} (matching-subsequence interval-map from to))))
