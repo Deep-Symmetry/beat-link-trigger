@@ -646,25 +646,6 @@
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
-(defn- paint-cues-and-beat-selection
-  "Draws the cues and the selected beat range, if any, on top of the
-  waveform."
-  [track wave graphics]
-  (let [^java.awt.Graphics2D g2 (.create graphics)
-        track                   (latest-track track)]
-    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
-    (doseq [cue (vals (get-in track [:contents :cues :cues]))]
-      (let [x (.getXForBeat wave (:start cue))
-            w (- (.getXForBeat wave (:end cue)) x)]
-        (.setPaint g2 (hue-to-color (:hue cue)))
-        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
-    (when-let [[start end] (get-in track [:cues-editor :selection])]
-      (let [x (.getXForBeat wave start)
-            w (- (.getXForBeat wave end) x)]
-        (.setPaint g2 Color/white)
-        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
-    (.dispose g2)))
-
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
   beat ranges for creating cues."
@@ -746,6 +727,23 @@
             {}
             cues)))
 
+(def min-lane-height
+  "The minmum height, in pixels, we will allow a lane to shrink to
+  before we start growing the waveform to accommodate all the cue
+  lanes."
+  20)
+
+(defn- cue-panel-constraints
+  "Calculates the proper layout constraints for the cue waveform panel
+  to properly fit the largest number of cue lanes required. We make
+  sure there is always room to draw the waveform even if there are few
+  lanes and a horizontal scrollbar ends up being needed."
+  [track]
+  (let [track       (latest-track track)
+        max-lanes   (get-in track [:cues :max-lanes] 1)
+        wave-height (max 92 (* max-lanes min-lane-height))]
+    ["" "" (str "[][fill, " (+ wave-height 18) "]")]))
+
 (defn- build-cues
   "Updates the track structures to reflect the cues that are present. If
   there is an open cues editor window, also updates it. This will be
@@ -758,14 +756,19 @@
         cue-intervals (reduce (fn [result cue]
                                 (util/iassoc result (:start cue) (:end cue) cue))
                               util/empty-interval-map
-                              sorted-cues)]
+                              sorted-cues)
+        cue-positions (position-cues sorted-cues cue-intervals)]
     (swap-track! track #(-> %
                             (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
                             (assoc-in [:cues :intervals] cue-intervals)
-                            (assoc-in [:cues :position] (position-cues sorted-cues cue-intervals))))
+                            (assoc-in [:cues :position] cue-positions)
+                            (assoc-in [:cues :max-lanes] (apply max 1 (map second (vals cue-positions))))))
     (when (:cues-editor track)
       (update-cue-visibility track)
-      (.repaint (get-in track [:cues-editor :wave])))))
+      (.repaint (get-in track [:cues-editor :wave]))
+      (let [panel (get-in track [:cues-editor :panel])]
+        (seesaw/config! panel :constraints (cue-panel-constraints track))
+        (.revalidate panel)))))
 
 (defn- assign-cue-hue
   [track]
@@ -791,6 +794,27 @@
     (swap-track! track update :cues-editor dissoc :selection)
     (build-cues track)))
 
+(defn- paint-cues-and-beat-selection
+  "Draws the cues and the selected beat range, if any, on top of the
+  waveform."
+  [track wave graphics]
+  (let [^java.awt.Graphics2D g2 (.create graphics)
+        track                   (latest-track track)]
+    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
+    (doseq [cue (vals (get-in track [:contents :cues :cues]))]
+      (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
+            lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
+            x                (.getXForBeat wave (:start cue))
+            w                (- (.getXForBeat wave (:end cue)) x)]
+        (.setPaint g2 (hue-to-color (:hue cue)))
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height))))
+    (when-let [[start end] (get-in track [:cues-editor :selection])]
+      (let [x (.getXForBeat wave start)
+            w (- (.getXForBeat wave end) x)]
+        (.setPaint g2 Color/white)
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
+    (.dispose g2)))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
@@ -809,7 +833,7 @@
         auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (online?)
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
-        top-panel    (mig/mig-panel :background "#aaa"
+        top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
                                     :items [[(seesaw/button :text "New Cue"
                                                             :listen [:action-performed (fn [e] (new-cue track))])]
                                             [(seesaw/label :text "Filter:") "gap unrelated"]
@@ -819,7 +843,7 @@
                                             [auto-scroll "hidemode 3"]
                                             [zoom-slider]
                                             [(seesaw/label :text "Zoom") "wrap"]
-                                            [(seesaw/scrollable wave) "span, width 100%, height 110, wrap"]])
+                                            [(seesaw/scrollable wave) "span, width 100%"]])
         cues         (seesaw/vertical-panel :id :cues)
         cues-scroll  (seesaw/scrollable cues)
         layout       (seesaw/border-panel :north top-panel :center cues-scroll)
@@ -834,6 +858,7 @@
                          (.dispose root)
                          true))]
     (swap-track! track assoc :cues-editor {:frame    root
+                                           :panel    top-panel
                                            :wave     wave
                                            :grid     grid
                                            :close-fn close-fn})
