@@ -486,6 +486,13 @@
   [color]
   (colors/hue (colors/create-color color)))
 
+(defn- repaint-preview
+  "Tells the track's preview component to repaint itself because the
+  overlaid cues have been edited in the cue window."
+  [track]
+  (when-let [preview-canvas (:preview-canvas track)]
+    (.repaint preview-canvas)))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -500,8 +507,7 @@
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
-                                             :to (long (.beatCount
-                                                        (get-in track [:cues-editor :grid]))))
+                                             :to (long (.beatCount (:grid track))))
         start          (seesaw/spinner :id :start
                                        :model start-model
                                        :listen [:state-changed
@@ -551,7 +557,8 @@
                                       (when-let [color (chooser/choose-color panel :color (hue-to-color (:hue cue))
                                                                              :title "Choose Cue Hue")]
                                         (swap-cue! track cue assoc :hue (color-to-hue color))
-                                        (seesaw/repaint! [swatch (get-in track [:cues-editor :wave])])))))
+                                        (seesaw/repaint! [swatch (get-in track [:cues-editor :wave])])
+                                        (repaint-preview track)))))
 
     ;; Record the new panel in the show, and return it.
     (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
@@ -763,6 +770,7 @@
                             (assoc-in [:cues :intervals] cue-intervals)
                             (assoc-in [:cues :position] cue-positions)
                             (assoc-in [:cues :max-lanes] (apply max 1 (map second (vals cue-positions))))))
+    (repaint-preview track)
     (when (:cues-editor track)
       (update-cue-visibility track)
       (.repaint (get-in track [:cues-editor :wave]))
@@ -822,8 +830,7 @@
   (let [track-root   (build-track-path show (:signature track))
         root         (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
                                    :on-close :nothing)
-        grid         (read-beat-grid track-root)
-        wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root) grid)
+        wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root) (:grid track))
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
                                     :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
@@ -860,7 +867,6 @@
     (swap-track! track assoc :cues-editor {:frame    root
                                            :panel    top-panel
                                            :wave     wave
-                                           :grid     grid
                                            :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
@@ -868,8 +874,8 @@
                                (paintOverlay [component graphics]
                                  (paint-cues-and-beat-selection track component graphics))))
     (seesaw/listen wave
-                   :mouse-pressed (fn [e] (handle-wave-click track wave grid e))
-                   :mouse-dragged (fn [e] (handle-wave-drag track wave grid e)))
+                   :mouse-pressed (fn [e] (handle-wave-click track wave (:grid track) e))
+                   :mouse-dragged (fn [e] (handle-wave-drag track wave (:grid track) e)))
     (seesaw/config! root :content layout)
     (build-cues track)
     ;; TODO: Update UUIDs of entered/cues
@@ -909,7 +915,7 @@
     (seesaw/invoke-later
      (seesaw/config! playing-label :text text))))
 
-(defn update-playback-position
+(defn- update-playback-position
   "Updates the position and color of the playback position bar for the
   specified player in the track preview and, if there is an open Cues
   editor window, in its waveform detail."
@@ -1504,6 +1510,23 @@
                               (when-let [image (.getImage art)]
                                 (.drawImage graphics image 0 0 nil)))))))
 
+(defn- paint-preview-cues
+  "Draws the cues, if any, on top of the preview waveform."
+  [show signature preview graphics]
+  (let [show                    (latest-show show)
+        ^java.awt.Graphics2D g2 (.create graphics)
+        track                   (get-in show [:tracks signature])
+        x-for-beat              (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack (:grid track) beat)))]
+    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
+    (doseq [cue (vals (get-in track [:contents :cues :cues]))]
+      (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
+            lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
+            x                (x-for-beat (:start cue))
+            w                (- (x-for-beat (:end cue)) x)
+            y                (double (* lane (/ (.getHeight preview) num-lanes)))]
+        (.setPaint g2 (hue-to-color (:hue cue)))
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) y (double w) lane-height))))))
+
 (defn- create-preview-loader
   "Creates the loader function that can (re)create a track preview
   component as needed."
@@ -1512,10 +1535,12 @@
    (fn []
      (let [track-root (build-track-path show signature)
            preview    (read-preview track-root)
-           cue-list   (read-cue-list track-root)]
-       #_(timbre/info "Created" (:title metadata) "maxHeight:" (.maxHeight preview)
-                      "segmentCount:" (.segmentCount preview))
-       (WaveformPreviewComponent. preview (:duration metadata) cue-list)))))
+           cue-list   (read-cue-list track-root)
+           component  (WaveformPreviewComponent. preview (:duration metadata) cue-list)]
+       (.setOverlayPainter component (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
+                                       (paintOverlay [component graphics]
+                                         (paint-preview-cues show signature component graphics))))
+       component))))
 
 (defn- create-track-preview
   "Creates the softly-held widget that draws the track's waveform
@@ -1789,7 +1814,7 @@
                                                                              (seesaw/selection %))])]
                                 [(seesaw/spinner :id :playing-note
                                                  :model (seesaw/spinner-model (or (:playing-note contents) 127)
-                                                                                     :from 1 :to 127)
+                                                                              :from 1 :to 127)
                                                  :listen [:state-changed
                                                           #(swap-signature! show signature
                                                                             assoc-in [:contents :playing-note]
@@ -1818,24 +1843,26 @@
                                                                 (repaint-states show signature))])
                                  "hidemode 3"]])
 
-        track          {:file              (:file show)
-                        :signature         signature
-                        :metadata          metadata
-                        :contents          contents
-                        :original-contents contents
-                        :panel             panel
-                        :filter            (build-filter-target metadata comment)
-                        :preview           preview-loader
-                        :expression-locals (atom {})
-                        :creating          true ; Suppress popup expression editors when reopening a show.
-                        :loaded            #{}  ; The players that have this loaded.
-                        :playing           #{}} ; The players actively playing this.
+        track {:file              (:file show)
+               :signature         signature
+               :metadata          metadata
+               :contents          contents
+               :original-contents contents
+               :grid              (read-beat-grid track-root)
+               :panel             panel
+               :filter            (build-filter-target metadata comment)
+               :preview           preview-loader
+               :preview-canvas    soft-preview
+               :expression-locals (atom {})
+               :creating          true ; Suppress popup expression editors when reopening a show.
+               :loaded            #{}  ; The players that have this loaded.
+               :playing           #{}} ; The players actively playing this.
 
-        popup-fn       (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
-                                       (track-editor-actions show track panel gear)
-                                       [(seesaw/separator) (track-inspect-action track) (seesaw/separator)]
-                                       (track-copy-actions show track)
-                                       [(seesaw/separator) (delete-track-action show track panel)]))]
+        popup-fn (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
+                                 (track-editor-actions show track panel gear)
+                                 [(seesaw/separator) (track-inspect-action track) (seesaw/separator)]
+                                 (track-copy-actions show track)
+                                 [(seesaw/separator) (delete-track-action show track panel)]))]
 
     (swap-show! show assoc-in [:tracks signature] track)
     (swap-show! show assoc-in [:panels panel] signature)
@@ -1875,6 +1902,7 @@
     (swap-signature! show signature
                      assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
 
+    ;; Parse any custom expressions defined for the track.
     (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
       (let [editor-info (get editors/show-track-editors kind)]
         (try
@@ -1888,7 +1916,8 @@
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
 
-    ;; TODO: Build cues for the track, parse expressions for the cues.
+    (build-cues track)
+    ;; TODO: Parse expressions for the cues.
 
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.
