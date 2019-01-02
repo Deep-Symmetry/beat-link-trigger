@@ -702,17 +702,67 @@
         (swap-track! track update-in [:cues-editor] dissoc :selection)))  ; No, clear selection.
     (.repaint wave)))
 
+(defn- assign-cue-lanes
+  [cues cue-intervals]
+  "Given a sorted list of the cues for a track, assigns each a
+  non-overlapping lane number, choosing the smallest value that no
+  overlapping neighbor has already been assigned. Returns a map from
+  cue UUID to its assigned lane."
+  (reduce (fn [result cue]
+            (let [neighbors (util/iget cue-intervals (:start cue) (:end cue))
+                  used      (set (filter identity (map #(result (:uuid %)) neighbors)))]
+              (assoc result (:uuid cue) (first (remove used (range))))))
+          {}
+          cues))
+
+(defn- gather-cluster
+  "Given a cue, returns the set of cues that overlap with it (including
+  itself), and transitively any cues which overlap with them."
+  [cue cue-intervals]
+  (let [neighbors (util/iget cue-intervals (:start cue) (:end cue))]
+    (loop [current   cue
+           result    #{cue}
+           remaining (clojure.set/difference neighbors result)]
+      (if (empty? remaining)
+        result
+        (let [current   (first remaining)
+              result    (conj result current)
+              neighbors (util/iget cue-intervals (:start current) (:end current))]
+          (recur current result (clojure.set/difference (clojure.set/union neighbors remaining) result)))))))
+
+(defn- position-cues
+  "Given a sorted list of the cues for a track, assigns each a
+  non-overlapping lane, and determines how many lanes are needed to
+  draw each overlapping cluster of cues. Returns a map from cue uuid
+  to a tuple of the cue's lane assignment and cluster lane count."
+  [cues cue-intervals]
+  (let [lanes (assign-cue-lanes cues cue-intervals)]
+    (reduce (fn [result cue]
+              (if (result (:uuid cue))
+                result
+                (let [cluster   (set (map :uuid (gather-cluster cue cue-intervals)))
+                      max-lanes (inc (apply max (map lanes cluster)))]
+                  (apply merge result (map (fn [uuid] {uuid [(lanes uuid) max-lanes]}) cluster)))))
+            {}
+            cues)))
+
 (defn- build-cues
   "Updates the track structures to reflect the cues that are present. If
   there is an open cues editor window, also updates it. This will be
   called when the show is initially loaded, and whenever the cues are
   changed."
   [track]
-  (let [track       (latest-track track)
-        sorted-cues (sort-by (juxt :start :end :comment :uuid)
-                             (vals (get-in track [:contents :cues :cues])))]
-    (swap-track! track assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
-    ;; TODO: Update above/below/size resolution for overlapping cues
+  (let [track         (latest-track track)
+        sorted-cues   (sort-by (juxt :start :end :comment :uuid)
+                               (vals (get-in track [:contents :cues :cues])))
+        cue-intervals (reduce (fn [result cue]
+                                (util/iassoc result (:start cue) (:end cue) cue))
+                              util/empty-interval-map
+                              sorted-cues)]
+    (swap-track! track #(-> %
+                            (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
+                            (assoc-in [:cues :intervals] cue-intervals)
+                            (assoc-in [:cues :position] (position-cues sorted-cues cue-intervals))))
     (when (:cues-editor track)
       (update-cue-visibility track)
       (.repaint (get-in track [:cues-editor :wave])))))
