@@ -146,12 +146,17 @@
 (defn- swap-track!
   "Atomically updates the map of open shows by calling the specified
   function with the supplied arguments on the current contents of the
-  specified track. The value of `show` can either be the a file or
-  the full show map, and the value of `track` can either be a string
-  signature or full track map."
-  [show track f & args]
-  (let [show-file (if (instance? java.io.File show) show (:file show))
-        signature (if (string? track) track (:signature track))]
+  specified track, which must be a full track map."
+  [track f & args]
+  (swap! open-shows #(apply update-in % [(:file track) :tracks (:signature track)] f args)))
+
+(defn- swap-signature!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  track with the specified signature. The value of `show` can either
+  be the a file or the full show map."
+  [show signature f & args]
+  (let [show-file (if (instance? java.io.File show) show (:file show))]
     (swap! open-shows #(apply update-in % [show-file :tracks signature] f args))))
 
 (defn- flush-show
@@ -242,11 +247,10 @@
   someday shows themselves will be enabled/disabled too."
   [show track enabled?]
   (let [ks    [:tracks (:signature track) :expression-results :enabled]
-        shows (swap! open-shows update (:file show)
-                     (fn [show]
-                       (-> show
-                           (assoc-in [:last :enabled] (get-in show ks))
-                           (assoc-in ks enabled?))))]
+        shows (swap-show! show (fn [show]
+                                 (-> show
+                                     (assoc-in [:last :enabled] (get-in show ks))
+                                     (assoc-in ks enabled?))))]
     (when (not= enabled? (get-in shows [(:file show) :last :enabled]))
       (repaint-states show (:signature track)))))
 
@@ -410,7 +414,7 @@
   the value of `cue` can either be a UUID or a full cue map."
   [track cue f & args]
   (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
-    (swap-track! (:file track) track #(apply update-in % [:contents :cues :cues uuid] f args))))
+    (swap-track! track #(apply update-in % [:contents :cues :cues uuid] f args))))
 
 (defn- update-cue-gear-icon
   "Determines whether the gear button for a cue should be hollow or
@@ -458,8 +462,7 @@
                                                              "configuration and expressions created for it.")
                                                   :type :question :title "Delete Cue?")
                               (try
-                                (swap! open-shows update-in [(:file track) :tracks (:signature track)]
-                                       expunge-deleted-cue cue)
+                                (swap-track! track expunge-deleted-cue cue)
                                 ;; TODO: the cues equivalent of refresh-signatures?
                                 (build-cues track)
                                 (catch Exception e
@@ -551,7 +554,7 @@
                                         (seesaw/repaint! [swatch (get-in track [:cues-editor :wave])])))))
 
     ;; Record the new panel in the show, and return it.
-    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :panels (:uuid cue)] panel)
+    (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
     panel))
 
 (defn- update-cue-visibility
@@ -580,8 +583,7 @@
                                                                            )))
                                          cue)))
                                    (get-in track [:cues :sorted])))]
-    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues :visible]
-           (mapv :uuid visible-cues))
+    (swap-track! track assoc-in [:cues :visible] (mapv :uuid visible-cues))
     (let [visible-panels (map (fn [cue color]
                                 (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
                                   (seesaw/config! panel :background color)
@@ -593,14 +595,14 @@
   "Update the cues UI so that all cues or only entered cues are
   visible."
   [track entered-only?]
-  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :entered-only] entered-only?)
+  (swap-track! track assoc-in [:contents :cues :entered-only] entered-only?)
   (update-cue-visibility track))
 
 (defn- set-auto-scroll
   "Update the cues UI so that the waveform automatically tracks the
   furthest position played."
   [track wave auto?]
-  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :auto-scroll] auto?)
+  (swap-track! track assoc-in [:contents :cues :auto-scroll] auto?)
   (.setAutoScroll wave (and auto? (online?)))
   (seesaw/scroll! wave :to [:point 0 0]))
 
@@ -608,23 +610,22 @@
   "Updates the cues UI so that the waveform is zoomed out by the
   specified factor."
   [track wave zoom]
-  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :zoom] zoom)
+  (swap-track! track assoc-in [:contents :cues :zoom] zoom)
   (.setScale wave zoom))
 
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
   text, if any, are visible."
   [track text]
-  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :filter]
-         (clojure.string/lower-case text))
+  (swap-track! track assoc-in [:contents :cues :filter] (clojure.string/lower-case text))
   (update-cue-visibility track))
 
 (defn- save-cue-window-position
   "Update the saved dimensions of the cue editor window, so it can be
   reopened in the same state."
   [track window]
-  (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :window]
-         [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
+  (swap-track! track assoc-in [:contents :cues :window]
+               [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
 
 (defn- update-cue-window-online-status
   "Called whenever we change online status, so that any open cue windows
@@ -676,10 +677,10 @@
       ;; We are trying to adjust an existing selection. Move the end that was nearest to the mouse.
       (let [start-distance (Math/abs (- beat start))
             end-distance   (Math/abs (- beat end))]
-        (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
-               (if (< start-distance end-distance)
-                 [(max 1 beat) end]
-                 [start (min (.beatCount grid) (inc beat))])))
+        (swap-track! track assoc-in [:cues-editor :selection]
+                     (if (< start-distance end-distance)
+                       [(max 1 beat) end]
+                       [start (min (.beatCount grid) (inc beat))])))
       (.repaint wave))))
 
 (defn- handle-wave-click
@@ -692,13 +693,13 @@
         beat      (long (.getBeatForX wave x))
         selection (get-in track [:cues-editor :selection])]
     (if (and shift selection)
+      ;; TODO: If shift-clicked on single-beat selection, remove the selection.
       ;; We are trying to adjust an existing selection; we can handle it as a drag.
       (handle-wave-drag track wave grid e)
       ;; We are starting a new selection.
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
-        (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues-editor :selection]
-               [beat (inc beat)])  ; Yes, set new selection.
-        (swap! open-shows update-in [(:file track) :tracks (:signature track) :cues-editor] dissoc :selection)))
+        (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])  ; Yes, set new selection.
+        (swap-track! track update-in [:cues-editor] dissoc :selection)))  ; No, clear selection.
     (.repaint wave)))
 
 (defn- build-cues
@@ -710,7 +711,7 @@
   (let [track       (latest-track track)
         sorted-cues (sort-by (juxt :start :end :comment :uuid)
                              (vals (get-in track [:contents :cues :cues])))]
-    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :cues :sorted] (mapv :uuid sorted-cues))
+    (swap-track! track assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
     ;; TODO: Update above/below/size resolution for overlapping cues
     (when (:cues-editor track)
       (update-cue-visibility track)
@@ -720,8 +721,8 @@
   [track]
   "Picks a color for a new cue by cycling around the color wheel, and
   recording the last one used."
-  (let [shows (swap! open-shows update-in [(:file track) :tracks (:signature track) :contents :cues :hue]
-                     (fn [old-hue] (+ (or old-hue 0.0) 62.5)))]
+  (let [shows (swap-track! track update-in [:contents :cues :hue]
+                           (fn [old-hue] (+ (or old-hue 0.0) 62.5)))]
     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
 
 (defn- new-cue
@@ -736,8 +737,8 @@
                      :start start
                      :end   end
                      :hue   hue}]
-    (swap! open-shows assoc-in [(:file track) :tracks (:signature track) :contents :cues :cues uuid] cue)
-    (swap! open-shows update-in [(:file track) :tracks (:signature track) :cues-editor] dissoc :selection)
+    (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
+    (swap-track! track update :cues-editor dissoc :selection)
     (build-cues track)))
 
 (defn- create-cues-window
@@ -779,13 +780,13 @@
                        ;; closure. Returns truthy if the window was closed.
                        (let [show (latest-show show)]
                          ;; TODO: Look at close-fn in create-show-window for some of what we need to do.
-                         (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :cues-editor)
+                         (swap-track! track dissoc :cues-editor)
                          (.dispose root)
                          true))]
-    (swap! open-shows update-in [(:file show) :tracks (:signature track)] assoc :cues-editor {:frame    root
-                                                                                              :wave     wave
-                                                                                              :grid     grid
-                                                                                              :close-fn close-fn})
+    (swap-track! track assoc :cues-editor {:frame    root
+                                           :wave     wave
+                                           :grid     grid
+                                           :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
@@ -922,7 +923,7 @@
   [show player track tripped-changed]
   (when-let [listener (get-in track [:listeners player])]
     (.removeTrackPositionListener time-finder listener)
-    (swap! open-shows update-in [(:file show) :tracks (:signature track) :listeners] dissoc player))
+    (swap-track! track update :listeners dissoc player))
   (let [signature  (:signature track)
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (empty? now-loaded))
@@ -946,21 +947,21 @@
   beat, so we can use it to determine which cues to activate and
   deactivate, and make it available to the track's Beat expression."
   [show player track]
-  (let [shows (swap! open-shows update-in [(:file show) :tracks (:signature track) :listeners player]
-                     (fn [listener]
-                       (or listener
-                           (proxy [org.deepsymmetry.beatlink.data.TrackPositionBeatListener] []
-                             (movementChanged [position])
-                             (newBeat [^Beat beat ^TrackPositionUpdate position]
-                               (let [show (latest-show show)
-                                     track (get-in show [:tracks (:signature track)])]
-                                 ;; TODO: Enter/exit any affected cues.
-                                 (future
-                                   (try
-                                     (when (enabled? show track)
-                                       (run-track-function show track :beat position false))
-                                     (catch Exception e
-                                       (timbre/error e "Problem reporting track beat."))))))))))
+  (let [shows (swap-track! track update-in [:listeners player]
+                           (fn [listener]
+                             (or listener
+                                 (proxy [org.deepsymmetry.beatlink.data.TrackPositionBeatListener] []
+                                   (movementChanged [position])
+                                   (newBeat [^Beat beat ^TrackPositionUpdate position]
+                                     (let [show (latest-show show)
+                                           track (get-in show [:tracks (:signature track)])]
+                                       ;; TODO: Enter/exit any affected cues.
+                                       (future
+                                         (try
+                                           (when (enabled? show track)
+                                             (run-track-function show track :beat position false))
+                                           (catch Exception e
+                                             (timbre/error e "Problem reporting track beat."))))))))))
         listener (get-in shows [(:file show) :tracks (:signature track) :listeners player])]
     (.addTrackPositionListener time-finder player listener)))
 
@@ -1105,14 +1106,14 @@
   (let [player    (.getDeviceNumber status)
         signature (:signature track)
         track     (when track (latest-track track))
-        shows     (swap! open-shows update (:file show)
-                         (fn [show]
-                           (-> show
-                               capture-current-state
-                               (assoc-in [:playing player] (when (.isPlaying status) signature))
-                               (assoc-in [:on-air player] (when (.isOnAir status) signature))
-                               (assoc-in [:master player] (when (.isTempoMaster status) signature))
-                               (update-track-status track status))))
+        shows     (swap-show! show
+                              (fn [show]
+                                (-> show
+                                    capture-current-state
+                                    (assoc-in [:playing player] (when (.isPlaying status) signature))
+                                    (assoc-in [:on-air player] (when (.isOnAir status) signature))
+                                    (assoc-in [:master player] (when (.isTempoMaster status) signature))
+                                    (update-track-status track status))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show signature track player status)))
@@ -1135,14 +1136,14 @@
         ^javax.swing.JMenuItem item    (.getItem import-menu (dec player))]
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " player disabled-reason))
-    (let [shows (swap! open-shows update (:file show)
-                       (fn [show]
-                         (-> show
-                             capture-current-state
-                             (assoc-in [:loaded player] signature)
-                             (update :playing dissoc player)
-                             (update :on-air dissoc player)
-                             (update :master dissoc player))))
+    (let [shows (swap-show! show
+                            (fn [show]
+                              (-> show
+                                  capture-current-state
+                                  (assoc-in [:loaded player] signature)
+                                  (update :playing dissoc player)
+                                  (update :on-air dissoc player)
+                                  (update :master dissoc player))))
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))))
@@ -1348,7 +1349,7 @@
                                       #(clojure.string/lower-case (get-in % [:metadata :artist] ""))
                                       :signature)
                                 visible-tracks)]
-    (swap! open-shows assoc-in [(:file show) :visible] (mapv :signature sorted-tracks))
+    (swap-show! show assoc :visible (mapv :signature sorted-tracks))
     (doall (map (fn [track color]
                   (seesaw/config! (:panel track) :background color))
                 sorted-tracks (cycle ["#eee" "#ddd"])))
@@ -1456,7 +1457,7 @@
     (let [contents (:contents track)]
       (when (not= contents (:original-contents track))
         (write-edn-path contents (.resolve (build-track-path show (:signature track)) "contents.edn"))
-        (swap! open-shows assoc-in [(:file show) :tracks (:signature track) :original-contents] contents)))))
+        (swap-track! track assoc :original-contents contents)))))
 
 (defn- format-artist-album
   [metadata]
@@ -1580,7 +1581,7 @@
                                     #_(timbre/info "Exists?" (Files/isReadable path))
                                     (Files/delete path)
                                     #_(timbre/info "Still there?" (Files/isReadable path))))
-                                (swap! open-shows update (:file show) expunge-deleted-track track panel)
+                                (swap-show! show expunge-deleted-track track panel)
                                 (refresh-signatures show)
                                 (update-track-visibility show)
                                 (catch Exception e
@@ -1625,9 +1626,9 @@
         comment        (or (:comment contents) (:comment metadata))
         update-comment (fn [c]
                          (let [comment (seesaw/text c)]
-                           (swap! open-shows assoc-in [(:file show) :tracks signature :contents :comment] comment)
-                           (swap! open-shows assoc-in [(:file show) :tracks signature :filter]
-                                  (build-filter-target metadata comment))))
+                           (swap-signature! show signature assoc-in [:contents :comment] comment)
+                           (swap-signature! show signature assoc :filter
+                                            (build-filter-target metadata comment))))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text comment :listen [:document update-comment])
         preview-loader (create-preview-loader show signature metadata)
@@ -1665,9 +1666,9 @@
                                                                      [chosen])))
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(swap-track! show signature
-                                                                         assoc-in [:contents :midi-device]
-                                                                         (seesaw/selection %))])]
+                                                           #(swap-signature! show signature
+                                                                             assoc-in [:contents :midi-device]
+                                                                             (seesaw/selection %))])]
 
                                 ["Loaded:" "gap unrelated"]
                                 [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
@@ -1677,16 +1678,16 @@
                                 [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(swap-track! show signature
-                                                                         assoc-in [:contents :loaded-message]
-                                                                         (seesaw/selection %))])]
+                                                           #(swap-signature! show signature
+                                                                             assoc-in [:contents :loaded-message]
+                                                                             (seesaw/selection %))])]
                                 [(seesaw/spinner :id :loaded-note
                                                  :model (seesaw/spinner-model (or (:loaded-note contents) 126)
                                                                               :from 1 :to 127)
                                                  :listen [:state-changed
-                                                          #(swap-track! show signature
-                                                                        assoc-in [:contents :loaded-note]
-                                                                        (seesaw/value %))])
+                                                          #(swap-signature! show signature
+                                                                            assoc-in [:contents :loaded-note]
+                                                                            (seesaw/value %))])
                                  "hidemode 3"]
 
                                 [(seesaw/label :id :loaded-channel-label :text "Channel:")
@@ -1695,9 +1696,9 @@
                                                  :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
                                                                               :from 1 :to 16)
                                                  :listen [:state-changed
-                                                          #(swap-track! show signature
-                                                                        assoc-in [:contents :loaded-channel]
-                                                                        (seesaw/value %))])
+                                                          #(swap-signature! show signature
+                                                                            assoc-in [:contents :loaded-channel]
+                                                                            (seesaw/value %))])
                                  "hidemode 3"]
 
                                 ["Playing:" "gap unrelated"]
@@ -1708,16 +1709,16 @@
                                 [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(swap-track! show signature
-                                                                         assoc-in [:contents :playing-message]
-                                                                         (seesaw/selection %))])]
+                                                           #(swap-signature! show signature
+                                                                             assoc-in [:contents :playing-message]
+                                                                             (seesaw/selection %))])]
                                 [(seesaw/spinner :id :playing-note
                                                  :model (seesaw/spinner-model (or (:playing-note contents) 127)
                                                                                      :from 1 :to 127)
                                                  :listen [:state-changed
-                                                          #(swap-track! show signature
-                                                                        assoc-in [:contents :playing-note]
-                                                                        (seesaw/value %))])
+                                                          #(swap-signature! show signature
+                                                                            assoc-in [:contents :playing-note]
+                                                                            (seesaw/value %))])
                                  "hidemode 3"]
 
                                 [(seesaw/label :id :playing-channel-label :text "Channel:")
@@ -1726,9 +1727,9 @@
                                                  :model (seesaw/spinner-model (or (:playing-channel contents) 1)
                                                                               :from 1 :to 16)
                                                  :listen [:state-changed
-                                                          #(swap-track! show signature
-                                                                        assoc-in [:contents :playing-channel]
-                                                                        (seesaw/value %))])
+                                                          #(swap-signature! show signature
+                                                                            assoc-in [:contents :playing-channel]
+                                                                            (seesaw/value %))])
                                  "hidemode 3"]  ; TODO: Playing state indicator canvas.
 
                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
@@ -1736,9 +1737,9 @@
                                                   :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(do (swap-track! show signature
-                                                                             assoc-in [:contents :enabled]
-                                                                             (seesaw/value %))
+                                                           #(do (swap-signature! show signature
+                                                                                 assoc-in [:contents :enabled]
+                                                                                 (seesaw/value %))
                                                                 (repaint-states show signature))])
                                  "hidemode 3"]])
 
@@ -1761,8 +1762,8 @@
                                        (track-copy-actions show track)
                                        [(seesaw/separator) (delete-track-action show track panel)]))]
 
-    (swap! open-shows assoc-in [(:file show) :tracks signature] track)
-    (swap! open-shows assoc-in [(:file show) :panels panel] signature)
+    (swap-show! show assoc-in [:tracks signature] track)
+    (swap-show! show assoc-in [:panels panel] signature)
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -1790,20 +1791,21 @@
 
     ;; In case this is the inital creation of the track, record the defaulted values of the numeric inputs too.
     ;; This will have no effect if they were loaded.
-    (swap-track! show signature assoc-in [:contents :loaded-note] (seesaw/value (seesaw/select panel [:#loaded-note])))
-    (swap-track! show signature
-                 assoc-in [:contents :loaded-channel] (seesaw/value (seesaw/select panel [:#loaded-channel])))
-    (swap-track! show signature
-                 assoc-in [:contents :playing-note] (seesaw/value (seesaw/select panel [:#playing-note])))
-    (swap-track! show signature
-                 assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
+    (swap-signature! show signature
+                     assoc-in [:contents :loaded-note] (seesaw/value (seesaw/select panel [:#loaded-note])))
+    (swap-signature! show signature
+                     assoc-in [:contents :loaded-channel] (seesaw/value (seesaw/select panel [:#loaded-channel])))
+    (swap-signature! show signature
+                     assoc-in [:contents :playing-note] (seesaw/value (seesaw/select panel [:#playing-note])))
+    (swap-signature! show signature
+                     assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
 
     (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
       (let [editor-info (get editors/show-track-editors kind)]
         (try
-          (swap! open-shows assoc-in [(:file show) :tracks signature :expression-fns kind]
-                 (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                    (editors/show-editor-title kind show track)))
+          (swap-signature! show signature assoc-in [:expression-fns kind]
+                           (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                              (editors/show-editor-title kind show track)))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
                                      " when loading Show. Expression:\n" expr "\n"))
@@ -1815,7 +1817,7 @@
 
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.
-    (swap! open-shows update-in [(:file show) :tracks signature] dissoc :creating)))
+    (swap-signature! show signature dissoc :creating)))
 
 (defn- close-track-editors?
   "Tries closing all open expression and cue editors for the track. If
@@ -1847,7 +1849,7 @@
           (send-unloaded-messages show track)))
       (doseq [listener (vals (:listeners track))]
         (.removeTrackPositionListener time-finder listener))
-      (swap! open-shows update-in [(:file show) :tracks (:signature track)] dissoc :listeners)
+      (swap-track! track dissoc :listeners)
       (run-track-function show track :shutdown nil (not force?)))
     true))
 
@@ -2004,8 +2006,8 @@
   continued use."
   [show reopen?]
   (let [window (:frame show)]
-    (swap! open-shows update-in [(:file show) :contents]
-           merge {:window   [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]}))
+    (swap-show! show assoc-in [:contents :window]
+                [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
   (let [show                               (latest-show show)
         {:keys [contents file filesystem]} show]
     (try
@@ -2018,7 +2020,7 @@
       (finally
         (when reopen?
           (let [[reopened-filesystem] (open-show-filesystem file)]
-            (swap! open-shows assoc-in [file :filesystem] reopened-filesystem)))))))
+            (swap-show! show assoc :filesystem reopened-filesystem)))))))
 
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
@@ -2034,7 +2036,7 @@
         (throw t))
       (finally
         (let [[reopened-filesystem] (open-show-filesystem file)]
-          (swap! open-shows assoc-in [file :filesystem] reopened-filesystem))))))
+          (swap-show! show assoc :filesystem reopened-filesystem))))))
 
 (defn- build-save-action
   "Creates the menu action to save a show window, making sure the file
@@ -2087,10 +2089,10 @@
                                       (.close (:import-database show))
                                       (catch Throwable t
                                         (timbre/error t "Problem closing offline media database.")))
-                                    (swap! open-shows update-in [(:file show)] dissoc :import-database)
+                                    (swap-show! show dissoc :import-database)
                                     (recur (latest-show show)))
                                   (when-let [[database track-row] result]
-                                    (swap! open-shows assoc-in [(:file show) :import-database] database)
+                                    (swap-show! show assoc :import-database database)
                                     (try
                                       (import-from-media (latest-show show) database track-row)
                                       (catch Throwable t
@@ -2196,21 +2198,21 @@
   "Update the show's default enabled state for tracks that do not set
   their own."
   [show enabled]
-  (swap! open-shows assoc-in [(:file show) :contents :enabled] enabled)
+  (swap-show! show assoc-in [:contents :enabled] enabled)
   (repaint-all-states show))
 
 (defn- set-loaded-only
   "Update the show UI so that all tracks or only loaded tracks are
   visible."
   [show loaded-only?]
-  (swap! open-shows assoc-in [(:file show) :contents :loaded-only] loaded-only?)
+  (swap-show! show assoc-in [:contents :loaded-only] loaded-only?)
   (update-track-visibility show))
 
 (defn- filter-text-changed
   "Update the show UI so that only tracks matching the specified filter
   text, if any, are visible."
   [show text]
-  (swap! open-shows assoc-in [(:file show) :contents :filter] (clojure.string/lower-case text))
+  (swap-show! show assoc-in [:contents :filter] (clojure.string/lower-case text))
   (update-track-visibility show))
 
 (defn- resize-track-panels
@@ -2364,7 +2366,7 @@
         (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
           (let [editor-info (get editors/global-show-editors kind)]
             (try
-              (swap! open-shows assoc-in [file :expression-fns kind]
+              (swap-show! show assoc-in [:expression-fns kind]
                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
                                                         (editors/show-editor-title kind show nil)))
               (catch Exception e
@@ -2374,7 +2376,7 @@
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
         (run-global-function show :setup nil true)
-        (swap! open-shows update file dissoc :creating)
+        (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
         (seesaw/show! root))
       (catch Throwable t
