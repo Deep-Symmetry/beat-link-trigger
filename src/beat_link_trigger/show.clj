@@ -674,13 +674,13 @@
         beat      (long (.getBeatForX wave x))
         selection (get-in track [:cues-editor :selection])]
     (if (and shift selection)
-      ;; TODO: If shift-clicked on single-beat selection, remove the selection.
-      ;; We are trying to adjust an existing selection; we can handle it as a drag.
-      (handle-wave-drag track wave grid e)
+      (if (= selection [beat (inc beat)])
+        (swap-track! track update :cues-editor dissoc :selection)  ; Shift-click on single-beat selection clears it.
+        (handle-wave-drag track wave grid e))  ; Adjusting an existing selection; we can handle it as a drag.
       ;; We are starting a new selection.
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
         (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])  ; Yes, set new selection.
-        (swap-track! track update-in [:cues-editor] dissoc :selection)))  ; No, clear selection.
+        (swap-track! track update :cues-editor dissoc :selection)))  ; No, clear selection.
     (.repaint wave)))
 
 (defn- assign-cue-lanes
@@ -1888,7 +1888,7 @@
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
 
-    ;; TODO: Parse/sort cues for the track, parse expressions for the cues.
+    ;; TODO: Build cues for the track, parse expressions for the cues.
 
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.
