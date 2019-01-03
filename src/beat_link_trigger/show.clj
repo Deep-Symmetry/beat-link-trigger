@@ -20,7 +20,7 @@
             [com.evocomputing.colors :as colors]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
-           [java.awt Color Font RenderingHints]
+           [java.awt Color Font Graphics2D Rectangle RenderingHints]
            [java.awt.event WindowEvent]
            [java.lang.ref SoftReference]
            [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
@@ -806,10 +806,14 @@
   "Draws the cues and the selected beat range, if any, on top of the
   waveform."
   [track wave graphics]
-  (let [^java.awt.Graphics2D g2 (.create graphics)
-        track                   (latest-track track)]
+  (let [^Graphics2D g2      (.create graphics)
+        ^Rectangle cliprect (.getClipBounds g2)
+        track               (latest-track track)
+        from                (.getBeatForX wave (.x cliprect))
+        to                  (inc (.getBeatForX wave (+ (.x cliprect) (.width cliprect))))
+        cue-intervals       (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
-    (doseq [cue (vals (get-in track [:contents :cues :cues]))]
+    (doseq [cue (util/iget cue-intervals from to)]
       (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
             lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
             x                (.getXForBeat wave (:start cue))
