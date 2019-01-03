@@ -359,4 +359,6 @@
      (get interval-map [x x])))
   ([interval-map from to]
    (reduce (fn [result [r vs]]
-             (clojure.set/union result vs)) #{} (matching-subsequence interval-map from to))))
+             (clojure.set/union result vs))
+           #{}
+           (take-while (fn [[[start]]] (< (or start (dec to)) to)) (matching-subsequence interval-map from nil)))))
