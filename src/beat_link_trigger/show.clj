@@ -1517,12 +1517,17 @@
 (defn- paint-preview-cues
   "Draws the cues, if any, on top of the preview waveform."
   [show signature preview graphics]
-  (let [show                    (latest-show show)
-        ^java.awt.Graphics2D g2 (.create graphics)
-        track                   (get-in show [:tracks signature])
-        x-for-beat              (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack (:grid track) beat)))]
+  (let [show                (latest-show show)
+        ^Graphics2D g2      (.create graphics)
+        ^Rectangle cliprect (.getClipBounds g2)
+        track               (get-in show [:tracks signature])
+        x-for-beat          (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack (:grid track) beat)))
+        beat-for-x          (fn [x] (.findBeatAtTime (:grid track) (.getTimeForX preview x)))
+        from                (beat-for-x (.x cliprect))
+        to                  (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
+        cue-intervals       (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
-    (doseq [cue (vals (get-in track [:contents :cues :cues]))]
+    (doseq [cue (util/iget cue-intervals from to)]
       (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
             lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
             x                (x-for-beat (:start cue))
