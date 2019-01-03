@@ -783,7 +783,7 @@
   "Picks a color for a new cue by cycling around the color wheel, and
   recording the last one used."
   (let [shows (swap-track! track update-in [:contents :cues :hue]
-                           (fn [old-hue] (+ (or old-hue 0.0) 62.5)))]
+                           (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
 
 (defn- new-cue
