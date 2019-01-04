@@ -550,7 +550,7 @@
         to                  (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
         cue-intervals       (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
-    (doseq [cue (util/iget cue-intervals from to)]
+    (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
       (.setPaint g2 (hue-to-color (:hue cue)))
       (.fill g2 (cue-preview-rectangle track cue preview)))))
 
@@ -588,7 +588,7 @@
         to                  (inc (.getBeatForX wave (+ (.x cliprect) (.width cliprect))))
         cue-intervals       (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
-    (doseq [cue (util/iget cue-intervals from to)]
+    (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-rectangle track cue wave)))
     (when-let [[start end] (get-in track [:cues-editor :selection])]
@@ -679,7 +679,7 @@
                                                                              :title "Choose Cue Hue")]
                                         (swap-cue! track cue assoc :hue (color-to-hue color))
                                         (seesaw/repaint! [swatch])
-                                        (build-cues track)))))
+                                        (repaint-cue track cue)))))
 
     ;; Record the new panel in the show, and return it.
     (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
@@ -812,13 +812,13 @@
     (.repaint wave)))
 
 (defn- assign-cue-lanes
-  [cues cue-intervals]
+  [track cues cue-intervals]
   "Given a sorted list of the cues for a track, assigns each a
   non-overlapping lane number, choosing the smallest value that no
   overlapping neighbor has already been assigned. Returns a map from
   cue UUID to its assigned lane."
   (reduce (fn [result cue]
-            (let [neighbors (util/iget cue-intervals (:start cue) (:end cue))
+            (let [neighbors (map (partial find-cue track) (util/iget cue-intervals (:start cue) (:end cue)))
                   used      (set (filter identity (map #(result (:uuid %)) neighbors)))]
               (assoc result (:uuid cue) (first (remove used (range))))))
           {}
@@ -827,8 +827,8 @@
 (defn- gather-cluster
   "Given a cue, returns the set of cues that overlap with it (including
   itself), and transitively any cues which overlap with them."
-  [cue cue-intervals]
-  (let [neighbors (util/iget cue-intervals (:start cue) (:end cue))]
+  [track cue cue-intervals]
+  (let [neighbors (set (map (partial find-cue track) (util/iget cue-intervals (:start cue) (:end cue))))]
     (loop [current   cue
            result    #{cue}
            remaining (clojure.set/difference neighbors result)]
@@ -836,7 +836,7 @@
         result
         (let [current   (first remaining)
               result    (conj result current)
-              neighbors (util/iget cue-intervals (:start current) (:end current))]
+              neighbors (set (map (partial find-cue track) (util/iget cue-intervals (:start current) (:end current))))]
           (recur current result (clojure.set/difference (clojure.set/union neighbors remaining) result)))))))
 
 (defn- position-cues
@@ -844,12 +844,12 @@
   non-overlapping lane, and determines how many lanes are needed to
   draw each overlapping cluster of cues. Returns a map from cue uuid
   to a tuple of the cue's lane assignment and cluster lane count."
-  [cues cue-intervals]
-  (let [lanes (assign-cue-lanes cues cue-intervals)]
+  [track cues cue-intervals]
+  (let [lanes (assign-cue-lanes track cues cue-intervals)]
     (reduce (fn [result cue]
               (if (result (:uuid cue))
                 result
-                (let [cluster   (set (map :uuid (gather-cluster cue cue-intervals)))
+                (let [cluster   (set (map :uuid (gather-cluster track cue cue-intervals)))
                       max-lanes (inc (apply max (map lanes cluster)))]
                   (apply merge result (map (fn [uuid] {uuid [(lanes uuid) max-lanes]}) cluster)))))
             {}
@@ -876,10 +876,10 @@
         sorted-cues   (sort-by (juxt :start :end :comment :uuid)
                                (vals (get-in track [:contents :cues :cues])))
         cue-intervals (reduce (fn [result cue]
-                                (util/iassoc result (:start cue) (:end cue) cue))
+                                (util/iassoc result (:start cue) (:end cue) (:uuid cue)))
                               util/empty-interval-map
                               sorted-cues)
-        cue-positions (position-cues sorted-cues cue-intervals)]
+        cue-positions (position-cues track sorted-cues cue-intervals)]
     (swap-track! track #(-> %
                             (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
                             (assoc-in [:cues :intervals] cue-intervals)
@@ -1265,7 +1265,7 @@
   [show track player beat]
   (if track
     (assoc-in show [:tracks (:signature track) :entered player]
-              (set (map :uuid (util/iget (get-in track [:cues :intervals]) beat))))
+              (util/iget (get-in track [:cues :intervals]) beat))
     show))
 
 (defn- send-beat-changes
