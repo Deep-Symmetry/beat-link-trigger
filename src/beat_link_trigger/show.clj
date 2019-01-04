@@ -416,13 +416,21 @@
   (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
     (swap-track! track #(apply update-in % [:contents :cues :cues uuid] f args))))
 
+(defn- find-cue
+  "Accepts either a UUID or a cue, and if the former, looks up the cue
+  in the latest version of the track."
+  [track uuid-or-cue]
+  (let [track (latest-track track)]
+    (get-in track [:contents :cues :cues (if (instance? java.util.UUID uuid-or-cue)
+                                           uuid-or-cue
+                                           (:uuid uuid-or-cue))])))
+
 (defn- update-cue-gear-icon
   "Determines whether the gear button for a cue should be hollow or
   filled in, depending on whether any expressions have been assigned
   to it."
   [track cue gear]
-  (let [track (latest-track track)
-        cue   (get-in track [:contents :cues :cues (:uuid cue)])]
+  (let [cue (find-cue track cue)]
     (if (every? empty? (vals (:expressions cue)))
       (seesaw/icon "images/Gear-outline.png")
       (seesaw/icon "images/Gear-icon.png"))))
@@ -435,8 +443,7 @@
   reflect the new limits. Then we rebuild the cue list in case they
   need to change order."
   [track cue start-model end-model]
-  (let [track (latest-track track)
-        cue   (get-in track [:contents :cues :cues (:uuid cue)])]
+  (let [cue (find-cue track cue)]
     (.setMaximum start-model (dec (:end cue)))
     (.setMinimum end-model (inc (:start cue)))
     (seesaw/invoke-later (build-cues track))))
@@ -449,10 +456,7 @@
   (let [uuid (:uuid cue)]
     (-> track
         (update-in [:contents :cues :cues] dissoc uuid)
-        (update-in [:cues-editor :panels] dissoc uuid)
-        ;; TODO: Verify and implement these:
-        #_(update :entered remove-uuid uuid)
-        #_(update :active remove-uuid uuid))))
+        (update-in [:cues-editor :panels] dissoc uuid))))
 
 (defn- delete-cue-action
   "Creates the menu action which deletes a cue after confirmation."
@@ -486,12 +490,131 @@
   [color]
   (colors/hue (colors/create-color color)))
 
+(def cue-opacity
+  "The degree to which cues replace the underlying waveform colors when
+  overlaid on top of them."
+  (float 0.65))
+
+(defn players-playing-cue
+  "Returns the set of players that are currently playing the specified
+  cue. `track` and `cue` must be current."
+  [track cue]
+  (reduce (fn [result player]
+            (if ((get-in track [:entered player]) (:uuid cue))
+              (conj result player)
+              result))
+          #{}
+          (:playing track)))
+
+(defn cue-lightness
+  "Calculates the lightness with which a cue should be painted, based on
+  the track's tripped state and whether the cue is entered and
+  playing. `track` must be current."
+  [track cue]
+  (if (and (:tripped track) ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
+    (if (seq (players-playing-cue track cue))
+      80
+      65)
+    50))
+
 (defn- repaint-preview
   "Tells the track's preview component to repaint itself because the
   overlaid cues have been edited in the cue window."
   [track]
   (when-let [preview-canvas (:preview-canvas track)]
     (.repaint preview-canvas)))
+
+(defn- cue-preview-rectangle
+  "Calculates the outline of a cue within the coordinate system of the
+  waveform preview component in a track row of a show window, taking
+  into account its lane assignment and cluster of neighbors. `track`
+  and `cue` must be current."
+  [track cue preview]
+  (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
+        lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
+        x-for-beat       (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack (:grid track) beat)))
+        x                (x-for-beat (:start cue))
+        w                (- (x-for-beat (:end cue)) x)
+        y                (double (* lane (/ (.getHeight preview) num-lanes)))]
+    (java.awt.geom.Rectangle2D$Double. (double x) y (double w) lane-height)))
+
+(defn- paint-preview-cues
+  "Draws the cues, if any, on top of the preview waveform."
+  [show signature preview graphics]
+  (let [show                (latest-show show)
+        ^Graphics2D g2      (.create graphics)
+        ^Rectangle cliprect (.getClipBounds g2)
+        track               (get-in show [:tracks signature])
+        beat-for-x          (fn [x] (.findBeatAtTime (:grid track) (.getTimeForX preview x)))
+        from                (beat-for-x (.x cliprect))
+        to                  (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
+        cue-intervals       (get-in track [:cues :intervals])]
+    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
+    (doseq [cue (util/iget cue-intervals from to)]
+      (.setPaint g2 (hue-to-color (:hue cue)))
+      (.fill g2 (cue-preview-rectangle track cue preview)))))
+
+(def min-lane-height
+  "The minmum height, in pixels, we will allow a lane to shrink to
+  before we start growing the cues editor waveform to accommodate all
+  the cue lanes."
+  20)
+
+(def selection-opacity
+  "The degree to which the active selection replaces the underlying
+  waveform colors."
+  (float 0.5))
+
+(defn- cue-rectangle
+  "Calculates the outline of a cue within the coordinate system of the
+  waveform detail component at the top of the cues editor window,
+  taking into account its lane assignment and cluster of neighbors.
+  `track` and `cue` must be current."
+  [track cue wave]
+  (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
+        lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
+        x                (.getXForBeat wave (:start cue))
+        w                (- (.getXForBeat wave (:end cue)) x)]
+    (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height)))
+
+(defn- paint-cues-and-beat-selection
+  "Draws the cues and the selected beat range, if any, on top of the
+  waveform."
+  [track wave graphics]
+  (let [^Graphics2D g2      (.create graphics)
+        ^Rectangle cliprect (.getClipBounds g2)
+        track               (latest-track track)
+        from                (.getBeatForX wave (.x cliprect))
+        to                  (inc (.getBeatForX wave (+ (.x cliprect) (.width cliprect))))
+        cue-intervals       (get-in track [:cues :intervals])]
+    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
+    (doseq [cue (util/iget cue-intervals from to)]
+      (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
+      (.fill g2 (cue-rectangle track cue wave)))
+    (when-let [[start end] (get-in track [:cues-editor :selection])]
+      (let [x (.getXForBeat wave start)
+            w (- (.getXForBeat wave end) x)]
+        (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
+        (.setPaint g2 Color/white)
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
+    (.dispose g2)))
+
+(defn- repaint-cue
+  "Causes a single cue to be repainted in the track preview and (if one
+  is open) the cues editor, because it has changed entered or active
+  state. `cue` can either be the cue object or its uuid."
+  [track cue]
+  (let [track (latest-track track)
+        cue   (find-cue track cue)]
+    (when-let [preview-loader (:preview track)]
+      (when-let [preview (preview-loader)]
+        (let [preview-rect (cue-preview-rectangle track cue preview)]
+          (.repaint (:preview-canvas track)
+                    (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
+    (when-let [wave (get-in track [:cues-editor :wave])]
+      (let [cue-rect (cue-rectangle track cue wave)]
+        (timbre/info "repainting wave" wave cue-rect)
+        (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
@@ -524,8 +647,7 @@
                                                     (update-cue-spinner-models track cue start-model end-model)))])
         swatch         (seesaw/canvas :size [18 :by 18]
                                       :paint (fn [component graphics]
-                                               (let [track (latest-track track)
-                                                     cue (get-in track [:contents :cues :cues (:uuid cue)])]
+                                               (let [cue (find-cue track cue)]
                                                  (.setPaint graphics (hue-to-color (:hue cue)))
                                                  (.fill graphics (java.awt.geom.Rectangle2D$Double.
                                                                   0.0 0.0 (double (.getWidth component))
@@ -552,13 +674,12 @@
 
     (seesaw/listen swatch
                    :mouse-pressed (fn [e]
-                                    (let [track (latest-track track)
-                                          cue (get-in track [:contents :cues :cues (:uuid cue)])]
+                                    (let [cue (find-cue track cue)]
                                       (when-let [color (chooser/choose-color panel :color (hue-to-color (:hue cue))
                                                                              :title "Choose Cue Hue")]
                                         (swap-cue! track cue assoc :hue (color-to-hue color))
-                                        (seesaw/repaint! [swatch (get-in track [:cues-editor :wave])])
-                                        (repaint-preview track)))))
+                                        (seesaw/repaint! [swatch])
+                                        (build-cues track)))))
 
     ;; Record the new panel in the show, and return it.
     (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
@@ -734,12 +855,6 @@
             {}
             cues)))
 
-(def min-lane-height
-  "The minmum height, in pixels, we will allow a lane to shrink to
-  before we start growing the waveform to accommodate all the cue
-  lanes."
-  20)
-
 (defn- cue-panel-constraints
   "Calculates the proper layout constraints for the cue waveform panel
   to properly fit the largest number of cue lanes required. We make
@@ -801,31 +916,6 @@
     (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
     (swap-track! track update :cues-editor dissoc :selection)
     (build-cues track)))
-
-(defn- paint-cues-and-beat-selection
-  "Draws the cues and the selected beat range, if any, on top of the
-  waveform."
-  [track wave graphics]
-  (let [^Graphics2D g2      (.create graphics)
-        ^Rectangle cliprect (.getClipBounds g2)
-        track               (latest-track track)
-        from                (.getBeatForX wave (.x cliprect))
-        to                  (inc (.getBeatForX wave (+ (.x cliprect) (.width cliprect))))
-        cue-intervals       (get-in track [:cues :intervals])]
-    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
-    (doseq [cue (util/iget cue-intervals from to)]
-      (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
-            lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
-            x                (.getXForBeat wave (:start cue))
-            w                (- (.getXForBeat wave (:end cue)) x)]
-        (.setPaint g2 (hue-to-color (:hue cue)))
-        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height))))
-    (when-let [[start end] (get-in track [:cues-editor :selection])]
-      (let [x (.getXForBeat wave start)
-            w (- (.getXForBeat wave end) x)]
-        (.setPaint g2 Color/white)
-        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
-    (.dispose g2)))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
@@ -957,6 +1047,29 @@
     (catch Exception e
       (timbre/error e "Problem reporting stopped track."))))
 
+(defn- send-cue-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a cue has changed state. `track` must be current, and
+  `cue` must be current as of at least the event before it ended, or a
+  uuid by which such a cue can be looked up. If it has been deleted,
+  nothing is sent. `event` is the key identifying how look up the
+  appropriate MIDI message or custom expression in the cue, and
+  `status` is the protocol message, if any, which caused the state
+  change, and `beat` is the message, if any. Only at most one of
+  `status` or `beat` will be available."
+  [show track cue event ^CdjStatus status ^Beat beat]
+  (when-let [cue (find-cue track cue)]
+    (try
+      (when-let [output (get-chosen-output track)]
+        (let [{:keys [message note channel]} (get-in cue [:midi event])]
+          (case message
+            "Note" (midi/midi-note-off output note (dec channel))
+            "CC"   (midi/midi-control output note 0 (dec channel))
+            nil)))
+      #_(run-cue-function show track cue event status beat false)  ; TODO: Implement!
+      (catch Exception e
+        (timbre/error e "Problem reporting cue event" event)))))
+
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   specified track. If this left the track with no player playing it,
@@ -969,6 +1082,9 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
+        (doseq [uuid (concat (vals (:entered track)))]  ; All cues we had been playing are now ended.
+          (send-cue-messages show track uuid :ended status nil)
+          (repaint-cue track uuid))
         (send-stopped-messages show track status))
       (repaint-states show signature))
     (update-playing-text show signature now-playing)
@@ -1013,6 +1129,9 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
+        (doseq [uuid (concat (vals (:entered track)))]  ; All cues we had been playing are now exited.
+          (send-cue-messages show track uuid :exited nil nil)
+          (repaint-cue track uuid))
         (send-unloaded-messages show track))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
@@ -1024,6 +1143,8 @@
         (.clearPlaybackState preview player)))
     (when-let [cues-editor (get-in show [:tracks signature :cues-editor])]
       (.clearPlaybackState (:wave cues-editor) player))))
+
+(declare update-show-beat)
 
 (defn- add-position-listener
   "Adds a track position listener for the specified player to the time
@@ -1040,7 +1161,7 @@
                                    (newBeat [^Beat beat ^TrackPositionUpdate position]
                                      (let [show (latest-show show)
                                            track (get-in show [:tracks (:signature track)])]
-                                       ;; TODO: Enter/exit any affected cues.
+                                       (update-show-beat show track beat)
                                        (future
                                          (try
                                            (when (enabled? show track)
@@ -1070,7 +1191,10 @@
                 nil)))
           (run-track-function show track :loaded nil false)
           (catch Exception e
-            (timbre/error e "Problem reporting loaded track."))))
+            (timbre/error e "Problem reporting loaded track.")))
+        (doseq [uuid (concat (vals (:entered track)))]  ; Report entry to all cues we've been sitting on.
+          (send-cue-messages show track uuid :entered nil nil)
+          (repaint-cue track uuid)))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playback-position show signature player)))
@@ -1095,7 +1219,11 @@
                 nil)))
           (run-track-function show track :playing status false)
           (catch Exception e
-            (timbre/error e "Problem reporting playing track."))))
+            (timbre/error e "Problem reporting playing track.")))
+        (doseq [uuid (concat (vals (:entered track)))]  ; Report late start for any cues we were sitting on.
+          ;; TODO: Need to test if we do actually get a beat first for on-beat start like I am assuming.
+          (send-cue-messages show track uuid :started-late status nil)
+          (repaint-cue track uuid)))
       (repaint-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
@@ -1117,17 +1245,70 @@
   (or ((set (vals (:loaded show))) (:signature track))
       ((set (vals (:playing show))) (:signature track))))
 
-(defn- update-track-status
+(defn- update-track-trip-state
   "As part of `update-show-status` below, set the `:tripped` state of
-  the track appropriately based on the current show configuration and
-  status packet. Called within `swap!` so simply returns the new value.
-  If `track` is `nil`, returns `show` unmodified."
-  [show track ^CdjStatus status]
+  the track appropriately based on the current show configuration.
+  Called within `swap!` so simply returns the new value. If `track` is
+  `nil`, returns `show` unmodified."
+  [show track]
   (if track
     (assoc-in show [:tracks (:signature track) :tripped]
-              (boolean (and (enabled? show track)
-                            (trip? show track))))
+              (boolean (and (enabled? show track) (trip? show track))))
     show))
+
+(defn- update-cue-entered-state
+  "As part of `update-show-status` below, update the `:entered` set of
+  the track's cues appropriately based on the current track
+  configuration, player number, and beat number. Called within `swap!`
+  so simply returns the new value. If `track` is `nil`, returns `show`
+  unmodified."
+  [show track player beat]
+  (if track
+    (assoc-in show [:tracks (:signature track) :entered player]
+              (set (map :uuid (util/iget (get-in track [:cues :intervals]) beat))))
+    show))
+
+(defn- send-beat-changes
+  "Compares the old and new sets of entered cues for the track, and
+  sends the appropriate messages and updates the UI as needed. Must be
+  called with a show containing a last-state snapshot, and the current
+  version of the track. Either `status` or `beat` will have a non-nil
+  value, and if it is `beat`, this means any cue that was entered was
+  entered right on the beat."
+  [show track ^CdjStatus status ^Beat beat]
+  (let [old-track   (get-in [show :last :tracks (:signature track)])
+        entered     (:entered track)
+        old-entered (:entered old-track)]
+    ;; Even cues we have not entered/exited may have changed playing state.
+    (doseq [uuid (clojure.set/intersection entered old-entered)]
+      (when-let [cue (find-cue track uuid)]  ; Make sure it wasn't deleted.
+        (let [is-playing  (seq (players-playing-cue track cue))
+              was-playing (seq (players-playing-cue old-track cue))
+              event       (if is-playing
+                            (if (and beat (= (:start cue) (.getBeatNumber beat)))
+                              :started-on-beat
+                              :started-late)
+                            :ended)]
+          (when (not= is-playing was-playing)
+            (send-cue-messages show track cue event status beat)
+            (repaint-cue track cue)))))
+    ;; Report cues we have newly entered, which we might also be newly playing.
+    (doseq [uuid (clojure.set/difference entered old-entered)]
+      (when-let [cue (find-cue track uuid)]
+        (send-cue-messages show track cue :entered status beat)
+        (when (seq (players-playing-cue track cue))
+          (let [event (if (and beat (= (:start cue) (.getBeatNumber beat)))
+                        :started-on-beat
+                        :started-late)]
+            (send-cue-messages show track cue event status beat)))
+        (repaint-cue track cue)))
+    ;; Report cues we have newly exited, which we might also have previously been playing.
+    (doseq [uuid (clojure.set/difference old-entered entered)]
+      (when-let [cue (find-cue track uuid)]
+        (when (seq (players-playing-cue old-track cue))
+          (send-cue-messages show track cue :ended status beat))
+        (send-cue-messages show track cue :exited status beat)
+        (repaint-cue track cue)))))
 
 (defn- deliver-change-events
   "Called when a status packet or signature change has updated the show
@@ -1180,7 +1361,11 @@
           (now-playing show player track status false))))
 
     (when track
-      (when (:tripped track) (future (run-track-function show track :tracked status false)))
+      (when (:tripped track)
+        ;; TODO: If the set of cues has changed, send the appropriate
+        ;; entered/exited and started-off-beat/ended messages, and
+        ;; update the UI.
+        (future (run-track-function show track :tracked status false)))
       (update-playback-position show signature player))))
 
 (defn- update-show-status
@@ -1198,10 +1383,59 @@
                                     (assoc-in [:playing player] (when (.isPlaying status) signature))
                                     (assoc-in [:on-air player] (when (.isOnAir status) signature))
                                     (assoc-in [:master player] (when (.isTempoMaster status) signature))
-                                    (update-track-status track status))))
+                                    (update-track-trip-state track)
+                                    (update-cue-entered-state track player (.getBeatNumber status)))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show signature track player status)))
+
+(defn- deliver-beat-events
+  "Called when a beat has been received for a loaded track and updated
+  the show status. Compares the new status with the snapshot of the
+  last status, runs any relevant expressions, and updates any needed
+  UI elements. `show` and `track` must be the just-updated values, with a
+  valid snapshot in the show's `:last` key."
+  [show track player ^Beat beat]
+  (let [old-playing (get-in show [:last :playing player])
+        is-playing  (get-in show [:playing player])]
+    (when (and is-playing (not old-playing))
+      (timbre/info "Track started playing with a beat.")
+      (now-playing show player track nil false)
+      (when (:tripped track)
+        ;; TODO: If the set of cues has changed, send the appropriate
+        ;; entered/exited and started-off-beat/ended messages, and
+        ;; update the UI.
+        (update-playback-position show (:signature track) player)))))
+
+(defn- update-show-beat
+  "Adjusts the track state to reflect a new beat packet received from a
+  player that has it loaded."
+  [show track ^Beat beat]
+  (let [player    (.getDeviceNumber beat)
+        signature (:signature track)
+        track     (latest-track track)
+        shows     (swap-show! show
+                              (fn [show]
+                                (-> show
+                                    capture-current-state
+                                    (assoc-in [:playing player] signature) ; In case beat arrives before playing status.
+                                    (update-track-trip-state track)
+                                    (update-cue-entered-state track player (.getBeatNumber beat)))))
+        show      (get shows (:file show))
+        track     (get-in show [:tracks signature])]
+    (deliver-beat-events show track player beat)))
+
+(defn- clear-player-cues
+  "When a player has changed track signatures, clear out any cues which
+  had been marked entered in a previously-loaded track. Designed to be
+  used within a swap! operation, so simply returns the value of `show`,
+  updated if necessary."
+  [show signature player]
+  (let [old-loaded  (get-in show [:last :loaded player])
+        track (when old-loaded (get-in show [:tracks old-loaded]))]
+    (if track
+      (update-in show [:tracks old-loaded :entered] dissoc player)
+      show)))
 
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
@@ -1228,7 +1462,8 @@
                                   (assoc-in [:loaded player] signature)
                                   (update :playing dissoc player)
                                   (update :on-air dissoc player)
-                                  (update :master dissoc player))))
+                                  (update :master dissoc player)
+                                  (clear-player-cues signature player))))
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))))
@@ -1513,28 +1748,6 @@
                             (when-let [art (art-loader)]
                               (when-let [image (.getImage art)]
                                 (.drawImage graphics image 0 0 nil)))))))
-
-(defn- paint-preview-cues
-  "Draws the cues, if any, on top of the preview waveform."
-  [show signature preview graphics]
-  (let [show                (latest-show show)
-        ^Graphics2D g2      (.create graphics)
-        ^Rectangle cliprect (.getClipBounds g2)
-        track               (get-in show [:tracks signature])
-        x-for-beat          (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack (:grid track) beat)))
-        beat-for-x          (fn [x] (.findBeatAtTime (:grid track) (.getTimeForX preview x)))
-        from                (beat-for-x (.x cliprect))
-        to                  (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
-        cue-intervals       (get-in track [:cues :intervals])]
-    (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER (float 0.5)))
-    (doseq [cue (util/iget cue-intervals from to)]
-      (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
-            lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
-            x                (x-for-beat (:start cue))
-            w                (- (x-for-beat (:end cue)) x)
-            y                (double (* lane (/ (.getHeight preview) num-lanes)))]
-        (.setPaint g2 (hue-to-color (:hue cue)))
-        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) y (double w) lane-height))))))
 
 (defn- create-preview-loader
   "Creates the loader function that can (re)create a track preview
@@ -1865,7 +2078,8 @@
                :expression-locals (atom {})
                :creating          true ; Suppress popup expression editors when reopening a show.
                :loaded            #{}  ; The players that have this loaded.
-               :playing           #{}} ; The players actively playing this.
+               :playing           #{}  ; The players actively playing this.
+               :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
 
         popup-fn (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
                                  (track-editor-actions show track panel gear)
@@ -2360,8 +2574,6 @@
                              :panels      {}  ; Maps from panel object to track signature, for updating visibility.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
-                             :entered     {}  ; Map from player number to UUID of cue that has been reported entered.
-                             :active      {}  ; Map from player number to UUID of cue that has been reported active.
                              :visible     []} ; The visible (through filters) track signatures in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)
             tracks-scroll   (seesaw/scrollable tracks)
