@@ -1079,7 +1079,7 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (doseq [uuid (concat (vals (:entered track)))]  ; All cues we had been playing are now ended.
+        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
           (send-cue-messages show track uuid :ended status nil)
           (repaint-cue track uuid))
         (send-stopped-messages show track status))
@@ -1126,7 +1126,7 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (doseq [uuid (concat (vals (:entered track)))]  ; All cues we had been playing are now exited.
+        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
           (send-cue-messages show track uuid :exited nil nil)
           (repaint-cue track uuid))
         (send-unloaded-messages show track))
@@ -1158,7 +1158,7 @@
                                    (newBeat [^Beat beat ^TrackPositionUpdate position]
                                      (let [show (latest-show show)
                                            track (get-in show [:tracks (:signature track)])]
-                                       (update-show-beat show track beat)
+                                       (update-show-beat show track beat position)
                                        (future
                                          (try
                                            (when (enabled? show track)
@@ -1189,7 +1189,8 @@
           (run-track-function show track :loaded nil false)
           (catch Exception e
             (timbre/error e "Problem reporting loaded track.")))
-        (doseq [uuid (concat (vals (:entered track)))]  ; Report entry to all cues we've been sitting on.
+        ;; Report entry to all cues we've been sitting on.
+        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           (send-cue-messages show track uuid :entered nil nil)
           (repaint-cue track uuid)))
       (repaint-states show signature))
@@ -1217,7 +1218,8 @@
           (run-track-function show track :playing status false)
           (catch Exception e
             (timbre/error e "Problem reporting playing track.")))
-        (doseq [uuid (concat (vals (:entered track)))]  ; Report late start for any cues we were sitting on.
+        ;; Report late start for any cues we were sitting on.
+        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           ;; TODO: Need to test if we do actually get a beat first for on-beat start like I am assuming.
           (send-cue-messages show track uuid :started-late status nil)
           (repaint-cue track uuid)))
@@ -1269,20 +1271,20 @@
   "Compares the old and new sets of entered cues for the track, and
   sends the appropriate messages and updates the UI as needed. Must be
   called with a show containing a last-state snapshot, and the current
-  version of the track. Either `status` or `beat` will have a non-nil
-  value, and if it is `beat`, this means any cue that was entered was
-  entered right on the beat."
-  [show track ^CdjStatus status ^Beat beat]
+  version of the track. Either `status` or `beat` and `position` will
+  have non-nil values, and if it is `beat` and `position`, this means
+  any cue that was entered was entered right on the beat."
+  [show track ^CdjStatus status ^Beat beat ^TrackPositionUpdate position]
   (let [old-track   (get-in [show :last :tracks (:signature track)])
-        entered     (:entered track)
-        old-entered (:entered old-track)]
+        entered     (reduce clojure.set/union (vals (:entered track)))
+        old-entered (reduce clojure.set/union (vals (:entered old-track)))]
     ;; Even cues we have not entered/exited may have changed playing state.
     (doseq [uuid (clojure.set/intersection entered old-entered)]
       (when-let [cue (find-cue track uuid)]  ; Make sure it wasn't deleted.
         (let [is-playing  (seq (players-playing-cue track cue))
               was-playing (seq (players-playing-cue old-track cue))
               event       (if is-playing
-                            (if (and beat (= (:start cue) (.getBeatNumber beat)))
+                            (if (and beat (= (:start cue) (.beatNumber position)))
                               :started-on-beat
                               :started-late)
                             :ended)]
@@ -1406,20 +1408,20 @@
   last status, runs any relevant expressions, and updates any needed
   UI elements. `show` and `track` must be the just-updated values, with a
   valid snapshot in the show's `:last` key."
-  [show track player ^Beat beat]
+  [show track player ^Beat beat ^TrackPositionUpdate position]
   (let [old-playing (get-in show [:last :playing player])
         is-playing  (get-in show [:playing player])]
     (when (and is-playing (not old-playing))
       (timbre/info "Track started playing with a beat.")
       (now-playing show player track nil false)
       (when (:tripped track)
-        (send-beat-changes show track nil beat)
+        (send-beat-changes show track nil beat position)
         (update-playback-position show (:signature track) player)))))
 
 (defn- update-show-beat
   "Adjusts the track state to reflect a new beat packet received from a
   player that has it loaded."
-  [show track ^Beat beat]
+  [show track ^Beat beat ^TrackPositionUpdate position]
   (let [player    (.getDeviceNumber beat)
         signature (:signature track)
         track     (latest-track track)
@@ -1429,10 +1431,10 @@
                                     capture-current-state
                                     (assoc-in [:playing player] signature) ; In case beat arrives before playing status.
                                     (update-track-trip-state track)
-                                    (update-cue-entered-state track player (.getBeatNumber beat)))))
+                                    (update-cue-entered-state track player (.beatNumber position)))))
         show      (get shows (:file show))
         track     (get-in show [:tracks signature])]
-    (deliver-beat-events show track player beat)))
+    (deliver-beat-events show track player beat position)))
 
 (defn- clear-player-cues
   "When a player has changed track signatures, clear out any cues which
