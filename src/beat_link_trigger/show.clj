@@ -136,6 +136,13 @@
   [track]
   (get-in @open-shows [(:file track) :tracks (:signature track)]))
 
+(defn- latest-show-and-track
+  "Returns the latest version of the show to which the supplied track
+  belongs, and the latest version of the track itself."
+  [track]
+  (let [show (get @open-shows (:file track))]
+    [show (get-in show [:tracks (:signature track)])]))
+
 (defn- swap-show!
   "Atomically updates the map of open shows by calling the specified
   function with the supplied arguments on the current contents of the
@@ -212,8 +219,7 @@
   return value and any thrown exception. If `alert?` is `true` the
   user will be alerted when there is a problem running the function."
   [show track kind status alert?]
-  (let [show  (latest-show show)
-        track (latest-track track)]
+  (let [[show track] (latest-show-and-track track)]
     (when-let [expression-fn (get-in track [:expression-fns kind])]
       (try
         [(expression-fn status {:locals (:expression-locals track)
@@ -226,7 +232,7 @@
                                      :title "Exception in Show Track Expression" :type :error))
           [nil t])))))
 
-(defn- repaint-states
+(defn- repaint-track-states
   "Causes the two track state indicators to redraw themselves to reflect
   a change in state."
   [show signature]
@@ -234,12 +240,12 @@
     (seesaw/repaint! (seesaw/select panel [:#loaded-state]))
     (seesaw/repaint! (seesaw/select panel [:#playing-state]))))
 
-(defn repaint-all-states
+(defn repaint-all-track-states
   "Causes the track state indicators for all tracks in a show to redraw
   themselves to reflect a change in state."
   [show]
   (doseq [signature (keys (:tracks (latest-show show)))]
-    (repaint-states show signature)))
+    (repaint-track-states show signature)))
 
 (defn- update-track-enabled
   "Updates either a the track or default enabled filter stored result to the value passed in.
@@ -252,7 +258,7 @@
                                      (assoc-in [:last :enabled] (get-in show ks))
                                      (assoc-in ks enabled?))))]
     (when (not= enabled? (get-in shows [(:file show) :last :enabled]))
-      (repaint-states show (:signature track)))))
+      (repaint-track-states show (:signature track)))))
 
 (defn- run-custom-enabled
   "Invokes the custom enabled filter assigned to a track (or to the
@@ -293,6 +299,22 @@
     (nil? signature)                " (no track signature)"
     (track-present? show signature) " (already imported)"
     :else                           nil))
+
+(defn- repaint-cue-states
+  "Causes the two cue state indicators to redraw themselves to reflect a
+  change in state. `cue` can either be the cue object or a cue UUID."
+  [track cue]
+  (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
+    (when-let [panel (get-in (latest-track track) [:cues-editor :panels uuid])]
+      (seesaw/repaint! (seesaw/select panel [:#entered-state]))
+      (seesaw/repaint! (seesaw/select panel [:#started-state])))))
+
+(defn repaint-all-cue-states
+  "Causes the cue state indicators for all cues in a track to redraw
+  themselves to reflect a change in state."
+  [track]
+  (doseq [cue (get-in (latest-track track) [:cues :cues])]
+    (repaint-cue-states track cue)))
 
 (defn get-chosen-output
   "Return the MIDI output to which messages should be sent for a given
@@ -517,15 +539,25 @@
             #{}
             (players-signature-set (:playing show) (:signature track)))))
 
+(defn- entered?
+  "Checks whether any player has entered the cue. `track` must be
+  current."
+  [track cue]
+  ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
+
+(defn- started?
+  "Checks whether any players which have entered a cue is actually
+  playing. `track` must be current."
+  [track cue]
+  (seq (players-playing-cue track cue)))
+
 (defn- cue-lightness
   "Calculates the lightness with which a cue should be painted, based on
   the track's tripped state and whether the cue is entered and
   playing. `track` must be current."
   [track cue]
-  (if (and (:tripped track) ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
-    (if (seq (players-playing-cue track cue))
-      80
-      65)
+  (if (and (:tripped track) (entered? track cue))
+    (if (started? track cue) 80 65)
     50))
 
 (defn- repaint-preview
@@ -626,6 +658,31 @@
       (let [cue-rect (cue-rectangle track cue wave)]
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
+(defn- paint-cue-state
+  "Draws a representation of the state of the cue, including whether its
+  track is enabled and whether any players are positioned or playing
+  inside it (as deterimined by the function passed in `f`)."
+  [track cue f c g]
+  (let [w            (double (seesaw/width c))
+        h            (double (seesaw/height c))
+        outline      (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
+        [show track] (latest-show-and-track track)
+        enabled?     (enabled? show track)
+        active?      (f track cue)]
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+
+    (when active? ; Draw the inner filled circle showing the cue is entered or playing.
+      (.setPaint g (if enabled? Color/green Color/lightGray))
+      (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
+
+    ;; Draw the outer circle that reflects the enabled state of the track itself.
+    (.setStroke g (java.awt.BasicStroke. 2.0))
+    (.setPaint g (if enabled? Color/green Color/red))
+    (.draw g outline)
+    (when-not enabled?
+      (.clip g outline)
+      (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -670,7 +727,19 @@
                                 [comment-field "gap unrelated, pushx, growx"]
                                 [(seesaw/label :text "Hue:") "gap unrelated"]
                                 [swatch "wrap"]
-                                [gear "spanx, split"]])
+                                [gear "spanx, split"]
+
+                                ["Entered:" "gap unrelated"]
+                                [(seesaw/canvas :id :entered-state :size [18 :by 18] :opaque? false
+                                                :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
+                                                :paint (partial paint-cue-state track cue entered?))]
+
+                                ;; TODO: First of three sets of cue event controls.
+
+                                ["Started:" "gap unrelated"]
+                                [(seesaw/canvas :id :started-state :size [18 :by 18] :opaque? false
+                                                :tip "Outer ring shows track enabled, inner light when player(s) playing inside cue."
+                                                :paint (partial paint-cue-state track cue started?))]])
         popup-fn       (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
@@ -900,6 +969,7 @@
     (repaint-preview track)
     (when (:cues-editor track)
       (update-cue-visibility track)
+      (repaint-all-cue-states track)
       (.repaint (get-in track [:cues-editor :wave]))
       (let [panel (get-in track [:cues-editor :panel])]
         (seesaw/config! panel :constraints (cue-panel-constraints track))
@@ -1020,8 +1090,7 @@
   to the specified track in the specified show. Returns truthy if the
   window was newly opened."
   [show track parent]
-  (let [show (latest-show show)
-        track (get-in show [:tracks (:signature track)])]
+  (let [[show track] (latest-show-and-track track)]
     (if-let [existing (:cues-editor track)]
       (.toFront (:frame existing))
       (do (create-cues-window show track parent)
@@ -1104,9 +1173,10 @@
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
           (send-cue-messages show track uuid :ended status nil)
-          (repaint-cue track uuid))
+          (repaint-cue track uuid)
+          (repaint-cue-states track uuid))
         (send-stopped-messages show track status))
-      (repaint-states show signature))
+      (repaint-track-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
 
@@ -1151,10 +1221,11 @@
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
           (send-cue-messages show track uuid :exited nil nil)
-          (repaint-cue track uuid))
+          (repaint-cue track uuid)
+          (repaint-cue-states track uuid))
         (seesaw/invoke-later (update-cue-visibility track))
         (send-unloaded-messages show track))
-      (repaint-states show signature))
+      (repaint-track-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playing-text show signature (players-signature-set (:playing show) signature))
 
@@ -1180,8 +1251,7 @@
                                  (proxy [org.deepsymmetry.beatlink.data.TrackPositionBeatListener] []
                                    (movementChanged [position])
                                    (newBeat [^Beat beat ^TrackPositionUpdate position]
-                                     (let [show (latest-show show)
-                                           track (get-in show [:tracks (:signature track)])]
+                                     (let [[show track] (latest-show-and-track track)]
                                        (update-show-beat show track beat position)
                                        (future
                                          (try
@@ -1216,9 +1286,10 @@
         ;; Report entry to all cues we've been sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           (send-cue-messages show track uuid :entered nil nil)
-          (repaint-cue track uuid))
+          (repaint-cue track uuid)
+          (repaint-cue-states track uuid))
         (seesaw/invoke-later (update-cue-visibility track)))
-      (repaint-states show signature))
+      (repaint-track-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playback-position show signature player)))
 
@@ -1247,8 +1318,9 @@
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           ;; TODO: Need to test if we do actually get a beat first for on-beat start like I am assuming.
           (send-cue-messages show track uuid :started-late status nil)
-          (repaint-cue track uuid)))
-      (repaint-states show signature))
+          (repaint-cue track uuid)
+          (repaint-cue-states track uuid)))
+      (repaint-track-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
 
@@ -1315,7 +1387,8 @@
                             :ended)]
           (when (not= is-playing was-playing)
             (send-cue-messages show track cue event status beat)
-            (repaint-cue track cue)))))
+            (repaint-cue track cue)
+            (repaint-cue-states track cue)))))
     ;; Report cues we have newly entered, which we might also be newly playing.
     (doseq [uuid (clojure.set/difference entered old-entered)]
       (when-let [cue (find-cue track uuid)]
@@ -1325,19 +1398,22 @@
                         :started-on-beat
                         :started-late)]
             (send-cue-messages show track cue event status beat)))
-        (repaint-cue track cue)))
+        (repaint-cue track cue)
+        (repaint-cue-states track cue)))
     ;; Report cues we have newly exited, which we might also have previously been playing.
     (doseq [uuid (clojure.set/difference old-entered entered)]
       (when-let [cue (find-cue track uuid)]
         (when (seq (players-playing-cue old-track cue))
           (send-cue-messages show track cue :ended status beat))
         (send-cue-messages show track cue :exited status beat)
-        (repaint-cue track cue)))
-    ;; If the set of entered cues has changed, and we are showing only
-    ;; entered cues, update the cue visibility.
-    (when (and (get-in track [:contents :cues :entered-only])
-               (not= entered old-entered))
-      (seesaw/invoke-later (update-cue-visibility track)))))
+        (repaint-cue track cue)
+        (repaint-cue-states track cue)))
+    ;; If the set of entered cues has changed, update the UI appropriately.
+    (when (not= entered old-entered)
+      (repaint-all-cue-states track)
+      ;; If we are showing only entered cues, update cue row visibility.
+      (when (get-in track [:contents :cues :entered-only])
+        (seesaw/invoke-later (update-cue-visibility track))))))
 
 (defn- deliver-change-events
   "Called when a status packet or signature change has updated the show
@@ -1399,22 +1475,25 @@
               (send-cue-messages show track cue :entered status nil)
               (when (seq (players-playing-cue track cue))
                 (send-cue-messages show track cue :started-late status nil))
-              (repaint-cue track cue)))
+              (repaint-cue track cue)
+              (repaint-cue-states track cue)))
           ;; Report cues we have newly exited, which we might also have previously been playing.
           (doseq [uuid (clojure.set/difference old-entered entered)]
             (when-let [cue (find-cue track uuid)]
               (when (seq (players-playing-cue old-track cue))
                 (send-cue-messages show track cue :ended status nil))
               (send-cue-messages show track cue :exited status nil)
-              (repaint-cue track cue)))
+              (repaint-cue track cue)
+              (repaint-cue-states track cue)))
           ;; Finaly, run the tracked update expression for the track, if it has one.
           (future (run-track-function show track :tracked status false)))
         (update-playback-position show signature player)
-        ;; If the set of entered cues has changed, and we are showing only
-        ;; entered cues, update the cue visibility.
-        (when (and (get-in track [:contents :cues :entered-only])
-                   (not= entered old-entered))
-          (seesaw/invoke-later (update-cue-visibility track)))))))
+        ;; If the set of entered cues has changed, update the UI appropriately.
+        (when (not= entered old-entered)
+          (repaint-all-cue-states track)
+          ;; If we are showing only entered cues, update cue row visibility.
+          (when (get-in track [:contents :cues :entered-only])
+            (seesaw/invoke-later (update-cue-visibility track))))))))
 
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
@@ -1886,9 +1965,8 @@
   "Returns a set of menu actions which offer to copy the track to any
   other open shows which do not already contain it."
   [show track]
-  (let [show       (latest-show show)
-        track      (latest-track track)
-        track-root (build-track-path show (:signature track))]
+  (let [[show track] (latest-show-and-track track)
+        track-root   (build-track-path show (:signature track))]
     (filter identity
             (map (fn [other-show]
                    (when (and (not= (:file show) (:file other-show))
@@ -1957,7 +2035,7 @@
                                   (seesaw/alert "Problem deleting track:" e)))))
                  :name "Delete Track"))
 
-(defn- paint-state
+(defn- paint-track-state
   "Draws a representation of the state of the track, including whether
   it is enabled and whether any players have it loaded or playing (as
   deterimined by the keyword passed in `k`)."
@@ -1971,11 +2049,11 @@
         active?  (seq (players-signature-set (k show) signature))]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
-    (when active? ; Draw the inner filled circle showing the track is loaded or playing
+    (when active? ; Draw the inner filled circle showing the track is loaded or playing.
       (.setPaint g (if enabled? Color/green Color/lightGray))
       (.fill g (java.awt.geom.Ellipse2D$Double. 4.0 4.0 (- w 8.0) (- h 8.0))))
 
-    ;; Draw the outer circle that reflects the enabled state
+    ;; Draw the outer circle that reflects the enabled state.
     (.setStroke g (java.awt.BasicStroke. 2.0))
     (.setPaint g (if enabled? Color/green Color/red))
     (.draw g outline)
@@ -2041,7 +2119,7 @@
                                 ["Loaded:" "gap unrelated"]
                                 [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
                                                 :tip "Outer ring shows track enabled, inner light when loaded."
-                                                :paint (partial paint-state show signature :loaded))]
+                                                :paint (partial paint-track-state show signature :loaded))]
                                 ["Message:"]
                                 [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
@@ -2072,7 +2150,7 @@
                                 ["Playing:" "gap unrelated"]
                                 [(seesaw/canvas :id :playing-state :size [18 :by 18] :opaque? false
                                                 :tip "Outer ring shows track enabled, inner light when playing."
-                                                :paint (partial paint-state show signature :playing))]
+                                                :paint (partial paint-track-state show signature :playing))]
                                 ["Message:"]
                                 [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
@@ -2108,7 +2186,7 @@
                                                            #(do (swap-signature! show signature
                                                                                  assoc-in [:contents :enabled]
                                                                                  (seesaw/value %))
-                                                                (repaint-states show signature))])
+                                                                (repaint-track-states show signature))])
                                  "hidemode 3"]])
 
         track {:file              (:file show)
@@ -2213,8 +2291,7 @@
   reflect the departure of the track."
   [force? show track]
   (when (close-track-editors? force? track)
-    (let [show  (latest-show show)
-          track (get-in show [:tracks (:signature track)])]
+    (let [[show track] (latest-show-and-track track)]
       (when (:tripped track)
         (when ((set (vals (:playing show))) (:signature track))
           (send-stopped-messages show track nil))
@@ -2572,7 +2649,7 @@
   their own."
   [show enabled]
   (swap-show! show assoc-in [:contents :enabled] enabled)
-  (repaint-all-states show))
+  (repaint-all-track-states show))
 
 (defn- set-loaded-only
   "Update the show UI so that all tracks or only loaded tracks are
