@@ -612,7 +612,6 @@
                     (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
     (when-let [wave (get-in track [:cues-editor :wave])]
       (let [cue-rect (cue-rectangle track cue wave)]
-        (timbre/info "repainting wave" wave cue-rect)
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
 (defn- create-cue-panel
@@ -690,32 +689,35 @@
   Updates the tracks cues' `:visible` key to hold a vector of the
   visible cue UUIDs, sorted by their start and end beats followed by
   their comment and UUID. Then uses that to update the contents of the
-  `cues` panel appropriately."
+  `cues` panel appropriately. Safely does nothing if the track has no
+  cues editor window."
   [track]
-  (let [track         (latest-track track)
-        cues          (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
-        panels        (get-in track [:cues-editor :panels])
-        text          (get-in track [:contents :cues :filter])
-        entered-only? (and (online?) (get-in track [:contents :cues :entered-only]))
-        entered       (when entered-only? (reduce clojure.set/union (vals (:entered track))))
-        visible-cues  (filter identity
-                              (map (fn [uuid]
-                                     (let [cue (get-in track [:contents :cues :cues uuid])]
-                                       (when (and
-                                              (or (clojure.string/blank? text)
-                                                  (clojure.string/includes?
-                                                   (clojure.string/lower-case (:comment cue ""))
-                                                   (clojure.string/lower-case text)))
-                                              (or (not entered-only?) (entered (:uuid cue))))
-                                         cue)))
-                                   (get-in track [:cues :sorted])))]
-    (swap-track! track assoc-in [:cues :visible] (mapv :uuid visible-cues))
-    (let [visible-panels (map (fn [cue color]
-                                (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
-                                  (seesaw/config! panel :background color)
-                                  panel))
-                              visible-cues (cycle ["#eee" "#ddd"]))]
-      (seesaw/config! cues :items (concat visible-panels [:fill-v])))))
+  #_(timbre/info "update-cue-visibility" (some? track))
+  (let [track (latest-track track)]
+    (when-let [editor (:cues-editor track)]
+      (let [cues          (seesaw/select (:frame editor) [:#cues])
+            panels        (get-in track [:cues-editor :panels])
+            text          (get-in track [:contents :cues :filter])
+            entered-only? (and (online?) (get-in track [:contents :cues :entered-only]))
+            entered       (when entered-only? (reduce clojure.set/union (vals (:entered track))))
+            visible-cues  (filter identity
+                                  (map (fn [uuid]
+                                         (let [cue (get-in track [:contents :cues :cues uuid])]
+                                           (when (and
+                                                  (or (clojure.string/blank? text)
+                                                      (clojure.string/includes?
+                                                       (clojure.string/lower-case (:comment cue ""))
+                                                       (clojure.string/lower-case text)))
+                                                  (or (not entered-only?) (entered (:uuid cue))))
+                                             cue)))
+                                       (get-in track [:cues :sorted])))]
+        (swap-track! track assoc-in [:cues :visible] (mapv :uuid visible-cues))
+        (let [visible-panels (map (fn [cue color]
+                                    (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
+                                      (seesaw/config! panel :background color)
+                                      panel))
+                                  visible-cues (cycle ["#eee" "#ddd"]))]
+          (seesaw/config! cues :items (concat visible-panels [:fill-v])))))))
 
 (defn- set-entered-only
   "Update the cues UI so that all cues or only entered cues are
@@ -1129,6 +1131,7 @@
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
           (send-cue-messages show track uuid :exited nil nil)
           (repaint-cue track uuid))
+        (seesaw/invoke-later (update-cue-visibility track))
         (send-unloaded-messages show track))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
@@ -1192,7 +1195,8 @@
         ;; Report entry to all cues we've been sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           (send-cue-messages show track uuid :entered nil nil)
-          (repaint-cue track uuid)))
+          (repaint-cue track uuid))
+        (seesaw/invoke-later (update-cue-visibility track)))
       (repaint-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playback-position show signature player)))
@@ -1275,7 +1279,7 @@
   have non-nil values, and if it is `beat` and `position`, this means
   any cue that was entered was entered right on the beat."
   [show track ^CdjStatus status ^Beat beat ^TrackPositionUpdate position]
-  (let [old-track   (get-in [show :last :tracks (:signature track)])
+  (let [old-track   (get-in show [:last :tracks (:signature track)])
         entered     (reduce clojure.set/union (vals (:entered track)))
         old-entered (reduce clojure.set/union (vals (:entered old-track)))]
     ;; Even cues we have not entered/exited may have changed playing state.
@@ -1307,7 +1311,12 @@
         (when (seq (players-playing-cue old-track cue))
           (send-cue-messages show track cue :ended status beat))
         (send-cue-messages show track cue :exited status beat)
-        (repaint-cue track cue)))))
+        (repaint-cue track cue)))
+    ;; If the set of entered cues has changed, and we are showing only
+    ;; entered cues, update the cue visibility.
+    (when (and (get-in track [:contents :cues :entered-only])
+               (not= entered old-entered))
+      (seesaw/invoke-later (update-cue-visibility track)))))
 
 (defn- deliver-change-events
   "Called when a status packet or signature change has updated the show
@@ -1360,9 +1369,9 @@
           (now-playing show player track status false))))
 
     (when track
-      (when (:tripped track)
-        (let [entered     (reduce clojure.set/union (vals (:entered track)))
-              old-entered (reduce clojure.set/union (vals (:entered old-track)))]
+      (let [entered     (reduce clojure.set/union (vals (:entered track)))
+            old-entered (reduce clojure.set/union (vals (:entered old-track)))]
+        (when (:tripped track)
           ;; Report cues we have newly entered, which we might also be newly playing.
           (doseq [uuid (clojure.set/difference entered old-entered)]
             (when-let [cue (find-cue track uuid)]
@@ -1376,10 +1385,15 @@
               (when (seq (players-playing-cue old-track cue))
                 (send-cue-messages show track cue :ended status nil))
               (send-cue-messages show track cue :exited status nil)
-              (repaint-cue track cue))))
-        ;; Finaly, run the tracked update expression for the track, if it has one.
-        (future (run-track-function show track :tracked status false)))
-      (update-playback-position show signature player))))
+              (repaint-cue track cue)))
+          ;; Finaly, run the tracked update expression for the track, if it has one.
+          (future (run-track-function show track :tracked status false)))
+        (update-playback-position show signature player)
+        ;; If the set of entered cues has changed, and we are showing only
+        ;; entered cues, update the cue visibility.
+        (when (and (get-in track [:contents :cues :entered-only])
+                   (not= entered old-entered))
+          (seesaw/invoke-later (update-cue-visibility track)))))))
 
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
@@ -1413,10 +1427,10 @@
         is-playing  (get-in show [:playing player])]
     (when (and is-playing (not old-playing))
       (timbre/info "Track started playing with a beat.")
-      (now-playing show player track nil false)
-      (when (:tripped track)
-        (send-beat-changes show track nil beat position)
-        (update-playback-position show (:signature track) player)))))
+      (now-playing show player track nil false))
+    (when (:tripped track)
+      (send-beat-changes show track nil beat position)
+      (update-playback-position show (:signature track) player))))
 
 (defn- update-show-beat
   "Adjusts the track state to reflect a new beat packet received from a
