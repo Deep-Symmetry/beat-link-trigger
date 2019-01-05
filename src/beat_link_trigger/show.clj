@@ -970,7 +970,6 @@
                    :mouse-dragged (fn [e] (handle-wave-drag track wave (:grid track) e)))
     (seesaw/config! root :content layout)
     (build-cues track)
-    ;; TODO: Update UUIDs of entered/cues
     (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                    (fn [e] (cue-filter-text-changed track (seesaw/text e))))
     (.setSize root 800 600)
@@ -1360,9 +1359,23 @@
 
     (when track
       (when (:tripped track)
-        ;; TODO: If the set of cues has changed, send the appropriate
-        ;; entered/exited and started-off-beat/ended messages, and
-        ;; update the UI.
+        (let [entered     (:entered track)
+              old-entered (:entered old-track)]
+          ;; Report cues we have newly entered, which we might also be newly playing.
+          (doseq [uuid (clojure.set/difference entered old-entered)]
+            (when-let [cue (find-cue track uuid)]
+              (send-cue-messages show track cue :entered status nil)
+              (when (seq (players-playing-cue track cue))
+                (send-cue-messages show track cue :started-late status nil))
+              (repaint-cue track cue)))
+          ;; Report cues we have newly exited, which we might also have previously been playing.
+          (doseq [uuid (clojure.set/difference old-entered entered)]
+            (when-let [cue (find-cue track uuid)]
+              (when (seq (players-playing-cue old-track cue))
+                (send-cue-messages show track cue :ended status nil))
+              (send-cue-messages show track cue :exited status nil)
+              (repaint-cue track cue))))
+        ;; Finaly, run the tracked update expression for the track, if it has one.
         (future (run-track-function show track :tracked status false)))
       (update-playback-position show signature player))))
 
@@ -1400,9 +1413,7 @@
       (timbre/info "Track started playing with a beat.")
       (now-playing show player track nil false)
       (when (:tripped track)
-        ;; TODO: If the set of cues has changed, send the appropriate
-        ;; entered/exited and started-off-beat/ended messages, and
-        ;; update the UI.
+        (send-beat-changes show track nil beat)
         (update-playback-position show (:signature track) player)))))
 
 (defn- update-show-beat
