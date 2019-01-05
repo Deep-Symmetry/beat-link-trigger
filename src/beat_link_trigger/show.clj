@@ -494,18 +494,19 @@
   overlaid on top of them."
   (float 0.65))
 
-(defn players-playing-cue
+(defn- players-playing-cue
   "Returns the set of players that are currently playing the specified
-  cue. `track` and `cue` must be current."
+  cue. `track` must be current."
   [track cue]
-  (reduce (fn [result player]
-            (if ((get-in track [:entered player]) (:uuid cue))
-              (conj result player)
-              result))
-          #{}
-          (:playing track)))
+  (let [show (get @open-shows (:file track))]
+    (reduce (fn [result player]
+              (if ((get-in track [:entered player]) (:uuid cue))
+                (conj result player)
+                result))
+            #{}
+            (players-signature-set (:playing show) (:signature track)))))
 
-(defn cue-lightness
+(defn- cue-lightness
   "Calculates the lightness with which a cue should be painted, based on
   the track's tripped state and whether the cue is entered and
   playing. `track` must be current."
@@ -550,7 +551,7 @@
         cue-intervals       (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
-      (.setPaint g2 (hue-to-color (:hue cue)))
+      (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-preview-rectangle track cue preview)))))
 
 (def min-lane-height
