@@ -1301,7 +1301,7 @@
       (when-let [cue (find-cue track uuid)]
         (send-cue-messages show track cue :entered status beat)
         (when (seq (players-playing-cue track cue))
-          (let [event (if (and beat (= (:start cue) (.getBeatNumber beat)))
+          (let [event (if (and beat (= (:start cue) (.beatNumber position)))
                         :started-on-beat
                         :started-late)]
             (send-cue-messages show track cue event status beat)))
