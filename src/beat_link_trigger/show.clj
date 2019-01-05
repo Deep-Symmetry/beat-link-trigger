@@ -1359,8 +1359,8 @@
 
     (when track
       (when (:tripped track)
-        (let [entered     (:entered track)
-              old-entered (:entered old-track)]
+        (let [entered     (reduce clojure.set/union (vals (:entered track)))
+              old-entered (reduce clojure.set/union (vals (:entered old-track)))]
           ;; Report cues we have newly entered, which we might also be newly playing.
           (doseq [uuid (clojure.set/difference entered old-entered)]
             (when-let [cue (find-cue track uuid)]
