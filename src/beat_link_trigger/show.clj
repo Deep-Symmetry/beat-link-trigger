@@ -494,6 +494,17 @@
   overlaid on top of them."
   (float 0.65))
 
+(defn- players-signature-set
+  "Given a map from player number to signature, returns the the set of
+  player numbers whose value matched a particular signature."
+  [player-map signature]
+  (reduce (fn [result [k v]]
+            (if (= v signature)
+              (conj result k)
+              result))
+          #{}
+          player-map))
+
 (defn- players-playing-cue
   "Returns the set of players that are currently playing the specified
   cue. `track` must be current."
@@ -1040,17 +1051,6 @@
         (.setPlaybackState preview player (.milliseconds position) (.playing position))))
     (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
       (.setPlaybackState (:wave cues-editor) player (.milliseconds position) (.playing position)))))
-
-(defn- players-signature-set
-  "Given a map from player number to signature, returns the the set of
-  player numbers whose value matched a particular signature."
-  [player-map signature]
-  (reduce (fn [result [k v]]
-            (if (= v signature)
-              (conj result k)
-              result))
-          #{}
-          player-map))
 
 (defn- send-stopped-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
