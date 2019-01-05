@@ -918,6 +918,25 @@
     (swap-track! track update :cues-editor dissoc :selection)
     (build-cues track)))
 
+(defn- start-animation-thread
+  "Creates a background thread that updates the positions of any playing
+  players 30 times a second so that the wave moves smoothly. The
+  thread will exit whenever the cues window closes."
+  [show track]
+  (future
+    (loop [editor (:cues-editor (latest-track track))]
+      (when editor
+        (try
+          (Thread/sleep 33)
+          (let [show (latest-show show)]
+            (doseq [player (players-signature-set (:playing show) (:signature track))]
+              (when-let [position (.getLatestPositionFor time-finder player)]
+                (.setPlaybackState (:wave editor) player (.milliseconds position) (.playing position)))))
+          (catch Throwable t
+            (timbre/warn "Problem animating cues editor waveform" t)))
+        (recur (:cues-editor (latest-track track)))))
+    #_(timbre/info "Cues editor animation thread ending.")))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
@@ -982,6 +1001,7 @@
                    #{:component-moved :component-resized}
                    (fn [e]
                      (save-cue-window-position track root)))
+    (start-animation-thread show track)
     (seesaw/show! root)))
 
 (defn- open-cues
