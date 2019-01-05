@@ -467,7 +467,6 @@
                                                   :type :question :title "Delete Cue?")
                               (try
                                 (swap-track! track expunge-deleted-cue cue)
-                                ;; TODO: the cues equivalent of refresh-signatures?
                                 (build-cues track)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting cue")
@@ -697,7 +696,8 @@
         cues          (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
         panels        (get-in track [:cues-editor :panels])
         text          (get-in track [:contents :cues :filter])
-        entered-only? (get-in track [:contents :cues :entered-only])
+        entered-only? (and (online?) (get-in track [:contents :cues :entered-only]))
+        entered       (when entered-only? (reduce clojure.set/union (vals (:entered track))))
         visible-cues  (filter identity
                               (map (fn [uuid]
                                      (let [cue (get-in track [:contents :cues :cues uuid])]
@@ -706,9 +706,7 @@
                                                   (clojure.string/includes?
                                                    (clojure.string/lower-case (:comment cue ""))
                                                    (clojure.string/lower-case text)))
-                                              (or (not entered-only?) (not (online?)
-                                                                           ;; TODO: Check if cue is in an entered state!
-                                                                           )))
+                                              (or (not entered-only?) (entered (:uuid cue))))
                                          cue)))
                                    (get-in track [:cues :sorted])))]
     (swap-track! track assoc-in [:cues :visible] (mapv :uuid visible-cues))
