@@ -895,11 +895,11 @@
 (defn- update-cue-visibility
   "Determines the cues that should be visible given the filter text (if
   any) and state of the Only Entered checkbox if we are online.
-  Updates the tracks cues' `:visible` key to hold a vector of the
-  visible cue UUIDs, sorted by their start and end beats followed by
-  their comment and UUID. Then uses that to update the contents of the
-  `cues` panel appropriately. Safely does nothing if the track has no
-  cues editor window."
+  Updates the tracks cues editor's `:visible` key to hold a vector of
+  the visible cue UUIDs, sorted by their start and end beats followed
+  by their comment and UUID. Then uses that to update the contents of
+  the `cues` panel appropriately. Safely does nothing if the track has
+  no cues editor window."
   [track]
   (let [track (latest-track track)]
     (when-let [editor (:cues-editor track)]
@@ -908,7 +908,7 @@
             text          (get-in track [:contents :cues :filter])
             entered-only? (and (online?) (get-in track [:contents :cues :entered-only]))
             entered       (when entered-only? (reduce clojure.set/union (vals (:entered track))))
-            old-visible   (get-in track [:cues :visible])
+            old-visible   (get-in track [:cues-editor :visible])
             visible-cues  (filter identity
                                   (map (fn [uuid]
                                          (let [cue (get-in track [:contents :cues :cues uuid])]
@@ -922,7 +922,7 @@
                                        (get-in track [:cues :sorted])))
             visible-uuids (mapv :uuid visible-cues)]
         (when (not= visible-uuids old-visible)
-          (swap-track! track assoc-in [:cues :visible] visible-uuids)
+          (swap-track! track assoc-in [:cues-editor :visible] visible-uuids)
           (let [visible-panels (mapv (fn [cue color]
                                        (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
                                          (seesaw/config! panel :background color)
