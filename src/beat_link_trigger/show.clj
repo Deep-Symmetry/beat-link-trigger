@@ -683,6 +683,55 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
+(def cue-events
+  "The three kind of events that get clusters of UI components in a
+  cue row for configuring MIDI messages."
+  [:entered :started-on-beat :started-late])
+
+(defn- cue-event-component-id
+  "Builds the keyword used to uniquely identify an component for
+  configuring one of the cue event MIDI parameters. `event` will be
+  one of `cue-events` above, and `suffix` will be \"message\",
+  \"note\", or \"channel\". If `hash` is truthy, the keyword will
+  start with the ugly, unidiomatic `#` that seesaw uses to look up a
+  widget by unique ID keyword."
+  ([event suffix]
+   (cue-event-component-id event suffix false))
+  ([event suffix hash]
+   (keyword (str (when hash "#") (name event) "-" suffix))))
+
+(defn- create-cue-event-components
+  "Builds and returns the combo box and spinners needed to configure one
+  of the three events that can be reported about a cue. `event` will
+  be one of `cue-events`, above."
+  [track cue event default-note]
+  (let [message       (seesaw/combobox :id (cue-event-component-id event "message")
+                                       :model ["None" "Note" "CC" "Custom"]
+                                       :selected-item nil  ; So update in create-cue-panel saves default.
+                                       :listen [:item-state-changed
+                                                #(swap-cue! track cue
+                                                            assoc-in [:events event :message]
+                                                            (seesaw/selection %))])
+        note          (seesaw/spinner :id (cue-event-component-id event "note")
+                                      :model (seesaw/spinner-model (or (get-in cue [:events event :note]) default-note)
+                                                                   :from 1 :to 127)
+                                      :listen [:state-changed
+                                               #(swap-cue! track cue
+                                                           assoc-in [:events event :note]
+                                                           (seesaw/value %))])
+        channel       (seesaw/spinner :id (cue-event-component-id event "channel")
+                                      :model (seesaw/spinner-model (or (get-in cue [:events event :channel]) 1)
+                                                                   :from 1 :to 16)
+                                      :listen [:state-changed
+                                               #(swap-cue! track cue
+                                                           assoc-in [:events event :channel]
+                                                           (seesaw/value %))])
+        channel-label (seesaw/label :id (cue-event-component-id event "channel-label") :text "Channel:")]
+    {:message       message
+     :note          note
+     :channel       channel
+     :channel-label channel-label}))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -698,49 +747,72 @@
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
                                              :to (long (.beatCount (:grid track))))
-        start          (seesaw/spinner :id :start
-                                       :model start-model
-                                       :listen [:state-changed
-                                                (fn [e]
-                                                  (let [new-start (seesaw/selection e)]
-                                                    (swap-cue! track cue assoc :start new-start)
-                                                    (update-cue-spinner-models track cue start-model end-model)))])
-        end            (seesaw/spinner :id :end
-                                       :model end-model
-                                       :listen [:state-changed
-                                                (fn [e]
-                                                  (let [new-end (seesaw/selection e)]
-                                                    (swap-cue! track cue assoc :end new-end)
-                                                    (update-cue-spinner-models track cue start-model end-model)))])
-        swatch         (seesaw/canvas :size [18 :by 18]
-                                      :paint (fn [component graphics]
-                                               (let [cue (find-cue track cue)]
-                                                 (.setPaint graphics (hue-to-color (:hue cue)))
-                                                 (.fill graphics (java.awt.geom.Rectangle2D$Double.
-                                                                  0.0 0.0 (double (.getWidth component))
-                                                                  (double (.getHeight component)))))))
-        panel          (mig/mig-panel
-                        :items [[(seesaw/label :text "Start:")]
-                                [start]
-                                [(seesaw/label :text "End:") "gap unrelated"]
-                                [end]
-                                [comment-field "gap unrelated, pushx, growx"]
-                                [(seesaw/label :text "Hue:") "gap unrelated"]
-                                [swatch "wrap"]
-                                [gear "spanx, split"]
 
-                                ["Entered:" "gap unrelated"]
-                                [(seesaw/canvas :id :entered-state :size [18 :by 18] :opaque? false
-                                                :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
-                                                :paint (partial paint-cue-state track cue entered?))]
+        start  (seesaw/spinner :id :start
+                               :model start-model
+                               :listen [:state-changed
+                                        (fn [e]
+                                          (let [new-start (seesaw/selection e)]
+                                            (swap-cue! track cue assoc :start new-start)
+                                            (update-cue-spinner-models track cue start-model end-model)))])
+        end    (seesaw/spinner :id :end
+                               :model end-model
+                               :listen [:state-changed
+                                        (fn [e]
+                                          (let [new-end (seesaw/selection e)]
+                                            (swap-cue! track cue assoc :end new-end)
+                                            (update-cue-spinner-models track cue start-model end-model)))])
+        swatch (seesaw/canvas :size [18 :by 18]
+                              :paint (fn [component graphics]
+                                       (let [cue (find-cue track cue)]
+                                         (.setPaint graphics (hue-to-color (:hue cue)))
+                                         (.fill graphics (java.awt.geom.Rectangle2D$Double.
+                                                          0.0 0.0 (double (.getWidth component))
+                                                          (double (.getHeight component)))))))
 
-                                ;; TODO: First of three sets of cue event controls.
+        event-components (apply merge (map-indexed (fn [index event]
+                                                     {event (create-cue-event-components track cue event (inc index))})
+                                                   cue-events))
 
-                                ["Started:" "gap unrelated"]
-                                [(seesaw/canvas :id :started-state :size [18 :by 18] :opaque? false
-                                                :tip "Outer ring shows track enabled, inner light when player(s) playing inside cue."
-                                                :paint (partial paint-cue-state track cue started?))]])
-        popup-fn       (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
+        panel (mig/mig-panel
+               :items [[(seesaw/label :text "Start:")]
+                       [start]
+                       [(seesaw/label :text "End:") "gap unrelated"]
+                       [end]
+                       [comment-field "gap unrelated, pushx, growx"]
+                       [(seesaw/label :text "Hue:") "gap unrelated"]
+                       [swatch "wrap"]
+
+                       [gear]
+                       ["Entered:" "gap unrelated, align right"]
+                       [(seesaw/canvas :id :entered-state :size [18 :by 18] :opaque? false
+                                       :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
+                                       :paint (partial paint-cue-state track cue entered?))
+                        "spanx, split"]
+                       [(seesaw/label :text "Message:" :halign :right) "sizegroup first-message"]
+                       [(get-in event-components [:entered :message])]
+                       [(get-in event-components [:entered :note]) "hidemode 3"]
+                       [(get-in event-components [:entered :channel-label]) "gap unrelated, hidemode 3"]
+                       [(get-in event-components [:entered :channel]) "hidemode 3, wrap"]
+
+                       [""]
+                       ["Started:" "gap unrelated, align right"]
+                       [(seesaw/canvas :id :started-state :size [18 :by 18] :opaque? false
+                                       :tip "Outer ring shows track enabled, inner light when player(s) playing inside cue."
+                                       :paint (partial paint-cue-state track cue started?))
+                        "spanx, split"]
+                       ["On-Beat Message:" "sizegroup first-message"]
+                       [(get-in event-components [:started-on-beat :message])]
+                       [(get-in event-components [:started-on-beat :note]) "hidemode 3"]
+                       [(get-in event-components [:started-on-beat :channel-label]) "gap unrelated, hidemode 3"]
+                       [(get-in event-components [:started-on-beat :channel]) "hidemode 3"]
+
+                       ["Late Message:" "gap 30"]
+                       [(get-in event-components [:started-late :message])]
+                       [(get-in event-components [:started-late :note]) "hidemode 3"]
+                       [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
+                       [(get-in event-components [:started-late :channel]) "hidemode 3"]])
+        popup-fn (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -760,6 +832,18 @@
                                         (seesaw/repaint! [swatch])
                                         (repaint-cue track cue)))))
 
+    ;; Establish the saved or initial settings of the UI elements, which will also record them for the
+    ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
+    (doseq [event cue-events]
+      (seesaw/selection! (seesaw/select panel [(cue-event-component-id event "message" true)])
+                         (or (get-in cue [:events event :message]) "None"))
+      ;; In case this is the initial creation of the cue, record the defaulted values of the numeric inputs too.
+      ;; This will have no effect if they were loaded.
+      (swap-cue! track cue assoc-in [:events event :note]
+                 (seesaw/value (seesaw/select panel [(cue-event-component-id event "note" true)])))
+      (swap-cue! track cue assoc-in [:events event :channel]
+                 (seesaw/value (seesaw/select panel [(cue-event-component-id event "channel" true)]))))
+
     ;; Record the new panel in the show, and return it.
     (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
     panel))
@@ -773,7 +857,6 @@
   `cues` panel appropriately. Safely does nothing if the track has no
   cues editor window."
   [track]
-  #_(timbre/info "update-cue-visibility" (some? track))
   (let [track (latest-track track)]
     (when-let [editor (:cues-editor track)]
       (let [cues          (seesaw/select (:frame editor) [:#cues])
@@ -781,6 +864,7 @@
             text          (get-in track [:contents :cues :filter])
             entered-only? (and (online?) (get-in track [:contents :cues :entered-only]))
             entered       (when entered-only? (reduce clojure.set/union (vals (:entered track))))
+            old-visible   (get-in track [:cues :visible])
             visible-cues  (filter identity
                                   (map (fn [uuid]
                                          (let [cue (get-in track [:contents :cues :cues uuid])]
@@ -791,14 +875,16 @@
                                                        (clojure.string/lower-case text)))
                                                   (or (not entered-only?) (entered (:uuid cue))))
                                              cue)))
-                                       (get-in track [:cues :sorted])))]
-        (swap-track! track assoc-in [:cues :visible] (mapv :uuid visible-cues))
-        (let [visible-panels (map (fn [cue color]
-                                    (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
-                                      (seesaw/config! panel :background color)
-                                      panel))
-                                  visible-cues (cycle ["#eee" "#ddd"]))]
-          (seesaw/config! cues :items (concat visible-panels [:fill-v])))))))
+                                       (get-in track [:cues :sorted])))
+            visible-uuids (mapv :uuid visible-cues)]
+        (when (not= visible-uuids old-visible)
+          (swap-track! track assoc-in [:cues :visible] visible-uuids)
+          (let [visible-panels (mapv (fn [cue color]
+                                       (let [panel (or (get panels (:uuid cue)) (create-cue-panel track cue))]
+                                         (seesaw/config! panel :background color)
+                                         panel))
+                                     visible-cues (cycle ["#eee" "#ddd"]))]
+            (seesaw/config! cues :items (concat visible-panels [:fill-v]))))))))
 
 (defn- set-entered-only
   "Update the cues UI so that all cues or only entered cues are
@@ -1090,11 +1176,16 @@
   to the specified track in the specified show. Returns truthy if the
   window was newly opened."
   [show track parent]
-  (let [[show track] (latest-show-and-track track)]
-    (if-let [existing (:cues-editor track)]
-      (.toFront (:frame existing))
-      (do (create-cues-window show track parent)
-          true))))
+  (try
+    (let [[show track] (latest-show-and-track track)]
+      (if-let [existing (:cues-editor track)]
+        (.toFront (:frame existing))
+        (do (create-cues-window show track parent)
+            true)))
+    (catch Throwable t
+      (swap-track! track dissoc :cues-editor)
+      (timbre/error t "Problem creating cues editor.")
+      (throw t))))
 
 ;;; This next section implements the Show window and Track rows.
 
@@ -2176,7 +2267,7 @@
                                                           #(swap-signature! show signature
                                                                             assoc-in [:contents :playing-channel]
                                                                             (seesaw/value %))])
-                                 "hidemode 3"]  ; TODO: Playing state indicator canvas.
+                                 "hidemode 3"]
 
                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                                 [(seesaw/combobox :id :enabled
