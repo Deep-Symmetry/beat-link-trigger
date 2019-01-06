@@ -453,7 +453,7 @@
   to it."
   [track cue gear]
   (let [cue (find-cue track cue)]
-    (if (every? empty? (vals (:expressions cue)))
+    (if (every? clojure.string/blank? (vals (:expressions cue)))
       (seesaw/icon "images/Gear-outline.png")
       (seesaw/icon "images/Gear-icon.png"))))
 
@@ -700,6 +700,42 @@
   ([event suffix hash]
    (keyword (str (when hash "#") (name event) "-" suffix))))
 
+(defn- attach-cue-custom-editor-opener
+  "Sets up an action handler so that when one of the popup menus is set
+  to Custom, if there is not already an expession of the appropriate
+  kind present, an editor for that expression is automatically
+  opened."
+  [track cue menu event panel gear]
+  (seesaw/listen menu
+                 :action-performed (fn [_]
+                                     (let [choice (seesaw/selection menu)
+                                           cue    (find-cue track cue)]
+                                       (when (and (= "Custom" choice)
+                                                  (not (:creating cue))
+                                                  (clojure.string/blank? (get-in cue [:expressions event]))
+                                                  ;; TODO: Implement this!
+                                                  #_(editors/show-cue-editor track cue event panel
+                                                                           #(update-cue-gear-icon cue gear))))))))
+
+(defn- attach-cue-message-visibility-handler
+  "Sets up an action handler so that when one of the message menus is
+  changed, the appropriate UI elements are shown or hidden. Also
+  arranges for the proper expression editor to be opened if Custom is
+  chosen for the message type and that expression is currently empty."
+  [track cue event gear]
+  (let [panel           (get-in (latest-track track) [:cues-editor :panels (:uuid cue)])
+        message-menu    (seesaw/select panel [(cue-event-component-id event "message" true)])
+        note-spinner    (seesaw/select panel [(cue-event-component-id event "note" true)])
+        label           (seesaw/select panel [(cue-event-component-id event "channel-label" true)])
+        channel-spinner (seesaw/select panel [(cue-event-component-id event "channel" true)])]
+    (seesaw/listen message-menu
+                   :action-performed (fn [_]
+                                       (let [choice (seesaw/selection message-menu)]
+                                         (if (= "None" choice)
+                                           (seesaw/hide! [note-spinner label channel-spinner])
+                                           (seesaw/show! [note-spinner label channel-spinner])))))
+    (attach-cue-custom-editor-opener track cue message-menu event panel gear)))
+
 (defn- create-cue-event-components
   "Builds and returns the combo box and spinners needed to configure one
   of the three events that can be reported about a cue. `event` will
@@ -793,7 +829,7 @@
                        [(get-in event-components [:entered :message])]
                        [(get-in event-components [:entered :note]) "hidemode 3"]
                        [(get-in event-components [:entered :channel-label]) "gap unrelated, hidemode 3"]
-                       [(get-in event-components [:entered :channel]) "hidemode 3, wrap"]
+                       [(get-in event-components [:entered :channel]) "hidemode 2, wrap"]
 
                        [""]
                        ["Started:" "gap unrelated, align right"]
@@ -832,11 +868,21 @@
                                         (seesaw/repaint! [swatch])
                                         (repaint-cue track cue)))))
 
+
+    ;; Record the new panel in the show, in preparation for final configuration.
+    (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
+
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
     (doseq [event cue-events]
+      ;; Update visibility when a Message selection changes. Also sets them up to automagically open the
+      ;; expression editor for the Custom Enabled Filter if "Custom" is chosen as the Message.
+      (attach-cue-message-visibility-handler track cue event gear)
+
+      ;; Set the initial state of the Message menu which will, thanks to the above, set the initial visibilty.
       (seesaw/selection! (seesaw/select panel [(cue-event-component-id event "message" true)])
                          (or (get-in cue [:events event :message]) "None"))
+
       ;; In case this is the initial creation of the cue, record the defaulted values of the numeric inputs too.
       ;; This will have no effect if they were loaded.
       (swap-cue! track cue assoc-in [:events event :note]
@@ -844,9 +890,7 @@
       (swap-cue! track cue assoc-in [:events event :channel]
                  (seesaw/value (seesaw/select panel [(cue-event-component-id event "channel" true)]))))
 
-    ;; Record the new panel in the show, and return it.
-    (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
-    panel))
+    panel))  ; Return the newly-created and configured panel.
 
 (defn- update-cue-visibility
   "Determines the cues that should be visible given the filter text (if
@@ -1795,7 +1839,7 @@
   (let [track (latest-track track)]
     (seesaw/config! gear :icon (if (and
                                     (empty? (get-in track [:contents :cues :cues]))
-                                    (every? empty? (vals (get-in track [:contents :expressions]))))
+                                    (every? clojure.string/blank? (vals (get-in track [:contents :expressions]))))
                                  (seesaw/icon "images/Gear-outline.png")
                                  (seesaw/icon "images/Gear-icon.png")))))
 
@@ -1810,17 +1854,19 @@
         (when item
           (let [label (.getText item)]
             (cond (= label "Edit Global Setup Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :setup]))
+                  (.setIcon item (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions :setup]))
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png")))
 
                   (= label "Edit Default Enabled Filter Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :enabled]))
+                  (.setIcon item (seesaw/icon (if (clojure.string/blank?
+                                                   (get-in show [:contents :expressions :enabled]))
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png")))
 
                   (= label "Edit Global Shutdown Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions :shutdown]))
+                  (.setIcon item (seesaw/icon (if (clojure.string/blank?
+                                                   (get-in show [:contents :expressions :shutdown]))
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png"))))))))))
 
@@ -1838,8 +1884,8 @@
                                              track  (when track (get-in show [:tracks (:signature track)]))]
                                          (when (and (= "Custom" choice)
                                                     (not (if track (:creating track) (:creating show)))
-                                                    (empty? (get-in (or track show)
-                                                                    [:contents :expressions (keyword kind)]))
+                                                    (clojure.string/blank?
+                                                     (get-in (or track show) [:contents :expressions (keyword kind)]))
                                                     (editors/show-show-editor
                                                      open-shows (keyword kind) show track panel
                                                      (if gear
@@ -1848,7 +1894,9 @@
 
 (defn- attach-track-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
-  changed, the appropriate UI elements are shown or hidden."
+  changed, the appropriate UI elements are shown or hidden. Also
+  arranges for the proper expression editor to be opened if Custom is
+  chosen for the message type and that expression is currently empty."
   [show track kind gear]
   (let [panel           (:panel track)
         message-menu    (seesaw/select panel [(keyword (str "#" kind "-message"))])
@@ -2035,7 +2083,7 @@
                                        (latest-track track) panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
-                     :icon (if (empty? (get-in (latest-track track) [:contents :expressions kind]))
+                     :icon (if (clojure.string/blank? (get-in (latest-track track) [:contents :expressions kind]))
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
 
@@ -2694,7 +2742,7 @@
                                                               (update-tracks-global-expression-icons show))))
                  :name (str "Edit " (get-in editors/global-show-editors [kind :title]))
                  :tip (get-in editors/global-show-editors [kind :tip])
-                 :icon (seesaw/icon (if (empty? (get-in show [:contents :expressions kind]))
+                 :icon (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions kind]))
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))
 
