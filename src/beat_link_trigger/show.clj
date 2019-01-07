@@ -232,30 +232,6 @@
                                      :title "Exception in Show Track Expression" :type :error))
           [nil t])))))
 
-(defn- run-cue-function
-  "Checks whether the cue has a custom function of the specified kind
-  installed and if so runs it with the supplied status or beat
-  argument, the cue, and the track local and global atoms. Returns a
-  tuple of the function return value and any thrown exception. If
-  `alert?` is `true` the user will be alerted when there is a problem
-  running the function."
-  [track cue kind status-or-beat alert?]
-  (let [[show track] (latest-show-and-track track)
-        cue          (find-cue track cue)]
-    (when-let [expression-fn (get-in track [:cues :expression-fns (:uuid cue) kind])]
-      (try
-        [(expression-fn status-or-beat {:locals (:expression-locals track)
-                                        :show   show
-                                        :track  track
-                                        :cue    cue}
-                        (:expression-globals show)) nil]
-        (catch Throwable t
-          (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
-                               (get-in track [:contents :expressions kind])))
-          (when alert? (seesaw/alert (str "<html>Problem running track " (name kind) " expression.<br><br>" t)
-                                     :title "Exception in Show Track Expression" :type :error))
-          [nil t])))))
-
 (defn- repaint-track-states
   "Causes the two track state indicators to redraw themselves to reflect
   a change in state."
@@ -470,6 +446,30 @@
     (get-in track [:contents :cues :cues (if (instance? java.util.UUID uuid-or-cue)
                                            uuid-or-cue
                                            (:uuid uuid-or-cue))])))
+
+(defn- run-cue-function
+  "Checks whether the cue has a custom function of the specified kind
+  installed and if so runs it with the supplied status or beat
+  argument, the cue, and the track local and global atoms. Returns a
+  tuple of the function return value and any thrown exception. If
+  `alert?` is `true` the user will be alerted when there is a problem
+  running the function."
+  [track cue kind status-or-beat alert?]
+  (let [[show track] (latest-show-and-track track)
+        cue          (find-cue track cue)]
+    (when-let [expression-fn (get-in track [:cues :expression-fns (:uuid cue) kind])]
+      (try
+        [(expression-fn status-or-beat {:locals (:expression-locals track)
+                                        :show   show
+                                        :track  track
+                                        :cue    cue}
+                        (:expression-globals show)) nil]
+        (catch Throwable t
+          (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
+                               (get-in track [:contents :expressions kind])))
+          (when alert? (seesaw/alert (str "<html>Problem running track " (name kind) " expression.<br><br>" t)
+                                     :title "Exception in Show Track Expression" :type :error))
+          [nil t])))))
 
 (defn- update-cue-gear-icon
   "Determines whether the gear button for a cue should be hollow or
@@ -1393,7 +1393,7 @@
       (let [base-event                     ({:entered         :entered
                                              :exited          :entered
                                              :started-on-beat :started-on-beat
-                                             :ended           :started-on-beat ; TODO: Conditionalize on how started.
+                                             :ended           (get-in track [:cues (:uuid cue) :last-entry-event])
                                              :started-late    :started-late} event)
             {:keys [message note channel]} (get-in cue [:events base-event])]
         #_(timbre/info "send-cue-messages" event base-event message note channel)
@@ -1407,6 +1407,9 @@
                 "Note" (midi/midi-note-on output note 127 (dec channel))
                 "CC"   (midi/midi-control output note 127 (dec channel))))))
         (when (= "Custom" message) (run-cue-function track cue event status-or-beat false)))
+      (when (#{:started-on-beat :started-late} event)
+        ;; Record how we started this cue so we know which event to send upon ending it.
+        (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
       (catch Exception e
         (timbre/error e "Problem reporting cue event" event)))))
 
