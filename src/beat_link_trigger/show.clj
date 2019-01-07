@@ -560,6 +560,87 @@
     (every? (partial editors/close-editor? force?)
             (vals (get-in track [:cues-editor :expression-editors (:uuid cue)])))))
 
+(defn- players-signature-set
+  "Given a map from player number to signature, returns the the set of
+  player numbers whose value matched a particular signature."
+  [player-map signature]
+  (reduce (fn [result [k v]]
+            (if (= v signature)
+              (conj result k)
+              result))
+          #{}
+          player-map))
+
+(defn- players-playing-cue
+  "Returns the set of players that are currently playing the specified
+  cue. `track` must be current."
+  [track cue]
+  (let [show (get @open-shows (:file track))]
+    (reduce (fn [result player]
+              (if ((get-in track [:entered player]) (:uuid cue))
+                (conj result player)
+                result))
+            #{}
+            (players-signature-set (:playing show) (:signature track)))))
+
+(defn- entered?
+  "Checks whether any player has entered the cue. `track` must be
+  current."
+  [track cue]
+  ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
+
+(defn- players-inside-cue
+  "Returns the set of players that are currently positioned inside the
+  specified cue. `track` must be current."
+  [track cue]
+  (let [show (get @open-shows (:file track))]
+    (reduce (fn [result player]
+              (if ((get-in track [:entered player]) (:uuid cue))
+                (conj result player)
+                result))
+            #{}
+            (players-signature-set (:loaded show) (:signature track)))))
+
+(defn- started?
+  "Checks whether any players which have entered a cue is actually
+  playing. `track` must be current."
+  [track cue]
+  (seq (players-playing-cue track cue)))
+
+(defn- send-cue-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a cue has changed state. `track` must be current, and
+  `cue` can either be a cue map, or a uuid by which such a cue can be
+  looked up. If it has been deleted, nothing is sent. `event` is the
+  key identifying how look up the appropriate MIDI message or custom
+  expression in the cue, and `status-or-beat` is the protocol message,
+  if any, which caused the state change, if any."
+  [show track cue event status-or-beat]
+  (when-let [cue (find-cue track cue)]
+    (try
+      (let [base-event                     ({:entered         :entered
+                                             :exited          :entered
+                                             :started-on-beat :started-on-beat
+                                             :ended           (get-in track [:cues (:uuid cue) :last-entry-event])
+                                             :started-late    :started-late} event)
+            {:keys [message note channel]} (get-in cue [:events base-event])]
+        #_(timbre/info "send-cue-messages" event base-event message note channel)
+        (when (#{"Note" "CC"} message)
+          (when-let [output (get-chosen-output track)]
+            (if (#{:exited :ended} event)
+              (case message
+                "Note" (midi/midi-note-off output note (dec channel))
+                "CC"   (midi/midi-control output note 0 (dec channel)))
+              (case message
+                "Note" (midi/midi-note-on output note 127 (dec channel))
+                "CC"   (midi/midi-control output note 127 (dec channel))))))
+        (when (= "Custom" message) (run-cue-function track cue event status-or-beat false)))
+      (when (#{:started-on-beat :started-late} event)
+        ;; Record how we started this cue so we know which event to send upon ending it.
+        (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
+      (catch Exception e
+        (timbre/error e "Problem reporting cue event" event)))))
+
 (defn- cleanup-cue
   "Process the removal of a cue, either via deletion, or because the
   show is closing. If `force?` is true, any unsaved expression editors
@@ -613,53 +694,6 @@
   "The degree to which cues replace the underlying waveform colors when
   overlaid on top of them."
   (float 0.65))
-
-(defn- players-signature-set
-  "Given a map from player number to signature, returns the the set of
-  player numbers whose value matched a particular signature."
-  [player-map signature]
-  (reduce (fn [result [k v]]
-            (if (= v signature)
-              (conj result k)
-              result))
-          #{}
-          player-map))
-
-(defn players-playing-cue
-  "Returns the set of players that are currently playing the specified
-  cue. `track` must be current."
-  [track cue]
-  (let [show (get @open-shows (:file track))]
-    (reduce (fn [result player]
-              (if ((get-in track [:entered player]) (:uuid cue))
-                (conj result player)
-                result))
-            #{}
-            (players-signature-set (:playing show) (:signature track)))))
-
-(defn- entered?
-  "Checks whether any player has entered the cue. `track` must be
-  current."
-  [track cue]
-  ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
-
-(defn players-inside-cue
-  "Returns the set of players that are currently positioned inside the
-  specified cue. `track` must be current."
-  [track cue]
-  (let [show (get @open-shows (:file track))]
-    (reduce (fn [result player]
-              (if ((get-in track [:entered player]) (:uuid cue))
-                (conj result player)
-                result))
-            #{}
-            (players-signature-set (:loaded show) (:signature track)))))
-
-(defn- started?
-  "Checks whether any players which have entered a cue is actually
-  playing. `track` must be current."
-  [track cue]
-  (seq (players-playing-cue track cue)))
 
 (defn- cue-lightness
   "Calculates the lightness with which a cue should be painted, based on
@@ -1381,39 +1415,6 @@
     (catch Exception e
       (timbre/error e "Problem reporting stopped track."))))
 
-(defn- send-cue-messages
-  "Sends the appropriate MIDI messages and runs the custom expression to
-  indicate that a cue has changed state. `track` must be current, and
-  `cue` can either be a cue map, or a uuid by which such a cue can be
-  looked up. If it has been deleted, nothing is sent. `event` is the
-  key identifying how look up the appropriate MIDI message or custom
-  expression in the cue, and `status-or-beat` is the protocol message,
-  if any, which caused the state change, if any."
-  [show track cue event status-or-beat]
-  (when-let [cue (find-cue track cue)]
-    (try
-      (let [base-event                     ({:entered         :entered
-                                             :exited          :entered
-                                             :started-on-beat :started-on-beat
-                                             :ended           (get-in track [:cues (:uuid cue) :last-entry-event])
-                                             :started-late    :started-late} event)
-            {:keys [message note channel]} (get-in cue [:events base-event])]
-        #_(timbre/info "send-cue-messages" event base-event message note channel)
-        (when (#{"Note" "CC"} message)
-          (when-let [output (get-chosen-output track)]
-            (if (#{:exited :ended} event)
-              (case message
-                "Note" (midi/midi-note-off output note (dec channel))
-                "CC"   (midi/midi-control output note 0 (dec channel)))
-              (case message
-                "Note" (midi/midi-note-on output note 127 (dec channel))
-                "CC"   (midi/midi-control output note 127 (dec channel))))))
-        (when (= "Custom" message) (run-cue-function track cue event status-or-beat false)))
-      (when (#{:started-on-beat :started-late} event)
-        ;; Record how we started this cue so we know which event to send upon ending it.
-        (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
-      (catch Exception e
-        (timbre/error e "Problem reporting cue event" event)))))
 
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
