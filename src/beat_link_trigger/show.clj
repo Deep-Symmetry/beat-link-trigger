@@ -571,8 +571,10 @@
   (when (close-cue-editors? force? track cue)
     (let [[show track] (latest-show-and-track track)]
       (when (:tripped track)
-        ;; TODO: Run relevant cue stopped/exited expressions here
-        ))
+        (when (seq (players-playing-cue track cue))
+          (send-cue-messages show track cue :ended nil))
+        (when (entered? track cue)
+          (send-cue-messages show track cue :exited nil))))
     true))
 
 (defn- delete-cue-action
