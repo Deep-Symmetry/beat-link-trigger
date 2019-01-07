@@ -8,9 +8,16 @@ This change log follows the conventions of
 
 ### Added
 
-- Take advantage of Beat Link's new Crate Digger library, which allows
-  us to get rekordbox metadata even when there are four CDJs in use.
-  Because this is now so much more flexible, and metadata is so
+- The new Show interface, which is the most significant new collection
+  of user interface and capabilities ever added, allowing people to
+  paint cues onto track waveforms to send events when those regions
+  are played, without writing any code at all. You can create shows,
+  import tracks, and edit cues on them while offline, by reading the
+  tracks from your USB or SD media when you don't have any CDJs
+  available to work with.
+- Takes advantage of Beat Link's new Crate Digger library, which
+  allows us to get rekordbox metadata even when there are four CDJs in
+  use. Because this is now so much more flexible, and metadata is so
   important, we no longer even ask the user if they want metadata. We
   always try to get it with Crate Digger and, optionally, if you are
   using a standard player number, with the older dbserver protocol.
