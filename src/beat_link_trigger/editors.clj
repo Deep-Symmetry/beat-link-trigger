@@ -45,6 +45,13 @@
   [exprs]
   (concat (filter #(= :setup (first %)) exprs) (filter #(not= :setup (first %)) exprs)))
 
+(defmacro ^:private show-call
+  "Calls a function in the show namespace, without a compile-time
+  dependency on it. We can rely on the fact that the namespace will
+  have been compiled by the time this function is invoked."
+  [f & args]
+  `((ns-resolve 'beat-link-trigger.show '~f) ~@args))
+
 (def trigger-bindings
   "Identifies symbols which can be used inside any trigger expression,
   along with the expression that will be used to automatically bind
@@ -256,7 +263,7 @@
   the documentation to show the user what the binding is for."
   {'track {:code '(:track trigger-data)
            :doc "All the details known about the track. Copy to an
-  Expression Global if you want to use the Inspector to
+  Expression Local if you want to use the Inspector to
   explore them."}
 
    'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
@@ -507,6 +514,123 @@
   the Setup expression."
               :bindings (show-bindings-for-track-and-class nil)}))
 
+(def show-track-cue-bindings
+  "Identifies symbols which can be used inside any show track cue
+  expression, along with the expression that will be used to
+  automatically bind that symbol if it is used in the expression, and
+  the documentation to show the user what the binding is for."
+  {'cue {:code '(:cue trigger-data)
+         :doc  "All the details known about the cue. Copy to an
+  Expression Local if you want to use the Inspector to explore
+  them."}
+
+   'track {:code '(:track trigger-data)
+           :doc  "All the details known about the track. Copy to an
+  Expression Local if you want to use the Inspector to
+  explore them."}
+
+   'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
+                         (:track trigger-data))
+                 :doc  "The MIDI output object chosen for this
+  track. May be <code>nil</code> if the output device cannot be
+  found in the current MIDI environment."}
+
+   'entered-message {:code '(get-in trigger-data [:cue :events :entered :message])
+                     :doc  "The type of MIDI message to be sent when
+  at least one player moves inside the cue; one of <code>\"None\"</code>,
+  <code>\"Note\"</code>, <code>\"CC\"</code>, or
+  <code>\"Custom\"</code>."}
+
+   'entered-note {:code '(get-in trigger-data [:cue :events :entered :note])
+                  :doc  "The MIDI note or CC number sent when the cue is entered or exited."}
+
+   'entered-channel {:code '(get-in trigger-data [:cue :events :entered :channel])
+                     :doc  "The MIDI channel on which cue enter and exit messages are sent."}
+
+   'entered-players {:code '((resolve 'beat-link-trigger.show/players-inside-cue)
+                             (:track trigger-data) (:cue trigger-data))
+                    :doc  "The set of player numbers that are currently
+  positioned inside this cue, if any."}
+
+   'started-on-beat-message {:code '(get-in trigger-data [:cue :events :started-on-beat :message])
+                             :doc  "The type of MIDI message to be sent when
+  a player starts playing the cue on its first beat; one of <code>\"None\"</code>,
+  <code>\"Note\"</code>, <code>\"CC\"</code>, or <code>\"Custom\"</code>."}
+
+   'started-on-beat-note {:code '(get-in trigger-data [:cue :events :started-on-beat :note])
+                          :doc  "The MIDI note or CC number sent when the cue
+  is started on its first beat, or ended after that has occurred."}
+
+   'started-on-beat-channel {:code '(get-in trigger-data [:cue :events :started-on-beat :channel])
+                             :doc  "The MIDI channel on which on-beat cue start and end messages are sent."}
+
+   'started-late-message {:code '(get-in trigger-data [:cue :events :started-late :message])
+                          :doc  "The type of MIDI message to be sent when
+  a player starts playing the cue past its first beat; one of <code>\"None\"</code>,
+  <code>\"Note\"</code>, <code>\"CC\"</code>, or <code>\"Custom\"</code>."}
+
+   'started-late-note {:code '(get-in trigger-data [:cue :events :started-late :note])
+                       :doc  "The MIDI note or CC number sent when the cue
+  is started past its first beat, or ended after that has occurred."}
+
+   'started-late-channel {:code '(get-in trigger-data [:cue :events :started-late :channel])
+                          :doc  "The MIDI channel on which late cue start and end messages are sent."}
+
+   'playing-players {:code '((resolve 'beat-link-trigger.show/players-playing-cue)
+                             (:track trigger-data) (:cue trigger-data))
+                     :doc  "The set of player numbers currently playing this cue, if any."}
+
+   ;; TODO: Copy in lots of other status and/or beat information with safe finders?
+   })
+
+(def show-track-cue-editors
+  "Specifies the kinds of editor which can be opened for a show track cue,
+  along with the kinds of details needed to compile the expressions
+  they edit. Created as an explicit array map to keep the keys in the
+  order they are found here."
+  (array-map
+   :entered {:title "Entered Expression"
+             :tip "Called when a player moves inside this cue, if the track is enabled."
+             :description
+             "Called when the track is enabled and the first player
+  moves inside this cue. You can use this to trigger systems that do
+  not respond to MIDI, or to send more detailed information than MIDI
+  allows."
+            :bindings show-track-cue-bindings}
+   :started-on-beat {:title "Started On-Beat Expression"
+            :tip "Called when a player starts playing this cue from its first beat, if the track is enabled."
+            :description
+            "Called when the track is enabled and the first player
+  starts playing the cue from the beginning of its first beat. You can
+  use this to trigger systems that do not respond to MIDI, or to send
+  more detailed information than MIDI allows."
+                     :bindings show-track-cue-bindings}
+   :started-late {:title "Started Late Expression"
+            :tip "Called when a player starts playing this cue later than its first beat, if the track is enabled."
+            :description
+            "Called when the track is enabled and the first player
+  starts playing the cue from somewhere other than the beginning of
+  its first beat. You can use this to trigger systems that do not
+  respond to MIDI, or to send more detailed information than MIDI
+  allows."
+                  :bindings show-track-cue-bindings}
+   :ended {:title "Ended Expression"
+            :tip "Called when all players stop playing this cue, if the track is enabled."
+            :description
+            "Called when the track is enabled and the last player that
+  had been playing this cue leaves it or stops playing. You can use
+  this to trigger systems that do not respond to MIDI, or to send more
+  detailed information than MIDI allows."
+            :bindings show-track-cue-bindings}
+   :exited {:title "Exited Expression"
+            :tip "Called when all players move outside this cue, if the track is enabled."
+            :description
+            "Called when the track is enabled and the last player that
+  had been inside this cue moves back out of it. You can use this to
+  trigger systems that do not respond to MIDI, or to send more
+  detailed information than MIDI allows."
+            :bindings show-track-cue-bindings}))
+
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
   overall application look."
@@ -560,38 +684,23 @@
       (catch Throwable t
         (timbre/error t "Problem running expression editor update function.")))))
 
-(defn latest-show
-  "Returns the current version of a show given a potentially stale
-  copy."
-  [open-shows show]
-  (get @open-shows (:file show)))
-
 (defn- find-show-expression-text
   "Returns the source code, if any, of the specified show expression
   type for the specified show and track. If `track` is `nil`, `kind`
   refers to a global expression."
-  [kind open-shows show track]
-  (get-in (latest-show open-shows show) (if track
-                                          [:tracks (:signature track) :contents :expressions kind]
-                                          [:contents :expressions kind])))
-
-#_(defn find-show-expression-fn
-  "Returns the compiled function, if any, for the specified show
-  expression type for the specified show and track. If `track` is
-  `nil`, `kind` refers to a global expression."
-  [kind open-shows show track]
-  (get-in (latest-show open-shows show) (if track
-                                          [:tracks (:signature track) :expression-fns kind]
-                                          [:expression-fns kind])))
+  [kind show track]
+  (get-in (show-call latest-show show) (if track
+                                         [:tracks (:signature track) :contents :expressions kind]
+                                         [:contents :expressions kind])))
 
 (defn- find-show-expression-editor
   "Returns the open editor window, if any, for the specified show
   expression type for the specified show and track. If `track` is
   `nil`, `kind` refers to a global expression."
-  [kind open-shows show track]
-  (get-in (latest-show open-shows show) (if track
-                                          [:tracks (:signature track) :expression-editors kind]
-                                          [:expression-editors kind])))
+  [kind show track]
+  (get-in (show-call latest-show show) (if track
+                                         [:tracks (:signature track) :expression-editors kind]
+                                         [:expression-editors kind])))
 
 (defn show-editor-title
   "Determines the title for a show expression editor window. If it is
@@ -599,38 +708,82 @@
   [kind show track]
   (let [title (get-in (if track show-track-editors global-show-editors) [kind :title])]
     (if track
-      (str title " for Track \"" (get-in show [:tracks (:signature track) :metadata :title]) "\"")
+      (str title " for Track \"" (get-in track [:metadata :title]) "\"")
       (str "Show \"" (fs/base-name (:file show) true) "\" " title))))
 
-(defn update-show-expression
+(defn- update-show-expression
   "Called when an show window expression's editor is ending and the user
   has asked to update the expression with the value they have edited.
   If `update-fn` is not nil, it will be called with no arguments."
-  [open-shows kind show track text update-fn]
-  (swap! open-shows update-in (if track
-                                [(:file show) :tracks (:signature track) :expression-fns]
-                                [(:file show) :expression-fns])
-         dissoc kind) ; In case parse fails, leave nothing there
-  (let [text        (clojure.string/trim text) ; Remove whitespace on either end
+  [kind show track text update-fn]
+  (if track
+    (show-call swap-track! track update :expression-fns dissoc kind) ; In case parse fails, leave nothing there.
+    (show-call swap-show! show update :expression-fns dissoc kind))
+  (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
         editor-info (get (if track show-track-editors global-show-editors) kind)]
     (try
-      (when (seq text)  ; If we got a new expression, try to compile it
-        (swap! open-shows assoc-in (if track
-                                     [(:file show) :tracks (:signature track) :expression-fns kind]
-                                     [(:file show) :expression-fns kind])
-               (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                  (show-editor-title kind show track))))
-      (when-let [editor (find-show-expression-editor kind open-shows show track)]
+      (when (seq text)  ; If we got a new expression, try to compile it.
+        (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
+                                                          (show-editor-title kind show track))]
+          (if track
+            (show-call swap-track! track assoc-in [:expression-fns kind] compiled)
+            (show-call swap-show! show assoc-in [:expression-fns kind] compiled))))
+      (when-let [editor (find-show-expression-editor kind show track)]
         (dispose editor)  ; Close the editor
-        (swap! open-shows update-in (if track
-                                      [(:file show) :tracks (:signature track) :expression-editors]
-                                      [(:file show) :expression-editors])
-               dissoc kind))
+        (if track
+          (show-call swap-track! track update :expression-editors dissoc kind)
+          (show-call swap-show! show update :expression-editors dissoc kind)))
+      (if track
+        (show-call swap-track! track assoc-in [:contents :expressions kind] text)
+        (show-call swap-show! show assoc-in [:contents :expression kind] text))  ; Save the new text.
+      (catch Throwable e
+        (timbre/error e "Problem parsing" (:title editor-info))
+        (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                           ".<br><br>" e "<br><br>You may wish to check the log file for the detailed stack trace.")
+                      :title "Exception during Clojure evaluation" :type :error))))
+  (when update-fn
+    (try
+      (update-fn)
+      (catch Throwable t
+        (timbre/error t "Problem running expression editor update function.")))))
 
-      (swap! open-shows assoc-in (if track
-                                   [(:file show) :tracks (:signature track) :contents :expressions kind]
-                                   [(:file show) :contents :expressions kind])
-             text)  ; Save the new text
+(defn- find-cue-expression-text
+  "Returns the source code, if any, of the specified cue expression
+  type for the specified track and cue."
+  [kind track cue]
+  (get-in (show-call find-cue track cue) [:expressions kind]))
+
+(defn- find-cue-expression-editor
+  "Returns the open editor window, if any, for the specified show
+  expression type for the specified track and cue."
+  [kind track cue]
+  (get-in (show-call latest-track track) [:cues-editor :expression-editors (:uuid cue) kind]))
+
+(defn cue-editor-title
+  "Determines the title for a cue expression editor window."
+  [kind track cue]
+  (let [title (get-in show-track-cue-editors [kind :title])]
+    (str title " for Cue in Track \"" (get-in track [:metadata :title]) "\"")))
+
+(defn update-cue-expression
+  "Called when an cues editor window expression's editor is ending and
+  the user has asked to update the expression with the value they have
+  edited. If `update-fn` is not nil, it will be called with no
+  arguments."
+  [kind track cue text update-fn]
+  (show-call swap-track! track update-in [:cues :expression-fns (:uuid cue)]
+             dissoc kind)  ; Clean up any old value first in case the parse fails.
+  (let [text        (clojure.string/trim text) ; Remove whitespace on either end
+        editor-info (get show-track-cue-editors kind)]
+    (try
+      (when (seq text)  ; If we got a new expression, try to compile it
+        (show-call swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
+                   (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
+                                                      (cue-editor-title kind track cue))))
+      (when-let [editor (find-cue-expression-editor kind track cue)]
+        (dispose editor)  ; Close the editor
+        (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)] dissoc kind))
+      (show-call swap-cue! track cue assoc-in [:expressions kind] text)  ; Save the new text
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
@@ -672,7 +825,7 @@ a {
                                   (when-not global? "atom
   <code>locals</code> is available for use by all expressions on this
   trigger, and the ")
-                                  "atom <code>globals</code> is shared across all expressions everywhere."]
+                                  "atom <code>globals</code> is shared across all expressions in any trigger."]
                                  (when (seq (:bindings editor-info))
                                       (concat ["
 
@@ -774,8 +927,7 @@ a {
     (catch Exception e
       (timbre/error e "Problem showing trigger" kind "editor"))))
 
-;; TODO: Provide access to trigger-globals from show expressions and document that here, or
-;;       reword build-trigger-help.
+;; TODO: Provide access to trigger-globals from show expressions too and document that here?
 (defn- build-show-help
   "Create the help information for a show window editor with the
   specified kind."
@@ -802,25 +954,24 @@ a {
   "Create and show a window for editing the Clojure code of a particular
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
-  [open-shows kind show track parent-frame update-fn]
-  (let [text        (find-show-expression-text kind open-shows show track)
-        save-fn     (fn [text] (update-show-expression open-shows kind show track text update-fn))
+  [kind show track parent-frame update-fn]
+  (let [text        (find-show-expression-text kind show track)
+        save-fn     (fn [text] (update-show-expression kind show track text update-fn))
         root        (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
         editor      (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
         save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
                                    :enabled? false)
         help        (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn    (fn [] (swap! open-shows update-in (if track
-                                                         [(:file show) :tracks (:signature track) :expression-editors]
-                                                         [(:file show) :expression-editors])
-                                  dissoc kind))]
+        close-fn    (fn [] (if track
+                             (show-call swap-track! track update :expression-editors dissoc kind)
+                             (show-call swap-show! show update :expression-editors dissoc kind)))]
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.apply editor-theme editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! save-button :enabled?
-                                     (not= (util/remove-blanks (find-show-expression-text kind open-shows show track))
+                                     (not= (util/remove-blanks (find-show-expression-text kind show track))
                                            (util/remove-blanks (seesaw/text e))))))
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
@@ -854,10 +1005,9 @@ a {
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
-      (swap! open-shows assoc-in  (if track
-                                    [(:file show) :tracks (:signature track) :expression-editors kind]
-                                    [(:file show) :expression-editors kind])
-             result)
+      (if track
+        (show-call swap-track! track assoc-in [:expression-editors kind] result)
+        (show-call swap-show! show assoc-in [:expression-editors kind] result))
       result)))
 
 (defn show-show-editor
@@ -867,14 +1017,85 @@ a {
   an update function to be invoked with no arguments when the user has
   successfully updated the expression. If `track` is nil we are
   editing global expressions."
-  [open-shows kind show-map track parent-frame update-fn]
+  [kind show-map track parent-frame update-fn]
   ;; We need to use `show-map` instead of `show` as the argument name so we can call the show function
   ;; defined in the editor's `IExpressionEditor` implemntation. D'ohh!
   (try
     (let [editor (or (get-in show-map (if track
                                         [:tracks (:signature track) :expression-editors kind]
                                         [:expression-editors kind]))
-                     (create-show-editor-window open-shows kind show-map track parent-frame update-fn))]
+                     (create-show-editor-window kind show-map track parent-frame update-fn))]
+      (show editor))
+    (catch Throwable t
+      (timbre/error t "Problem showing show" kind "editor"))))
+
+(defn- create-cue-editor-window
+  "Create and show a window for editing the Clojure code of a particular
+  kind of Cues Editor window expression, with an update function to be
+  called when the editor successfully updates the expression."
+  [kind track cue parent-frame update-fn]
+  (let [text        (find-cue-expression-text kind track cue)
+        save-fn     (fn [text] (update-cue-expression kind track cue text update-fn))
+        root        (seesaw/frame :title (cue-editor-title kind track cue) :on-close :nothing :size [800 :by 600])
+        editor      (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
+                                   :enabled? false)
+        help        (seesaw/styled-text :id :help :wrap-lines? true)
+        close-fn    (fn [] (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
+                                      dissoc kind))]
+    (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
+    (.apply editor-theme editor)
+    (seesaw/listen editor #{:remove-update :insert-update :changed-update}
+                   (fn [e]
+                     (seesaw/config! save-button :enabled?
+                                     (not= (util/remove-blanks (find-cue-expression-text kind track cue))
+                                           (util/remove-blanks (seesaw/text e))))))
+    (seesaw/config! help :editable? false)
+    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
+                                                         [save-button "push, align center, wrap"]
+                                                         [(seesaw/scrollable help :hscroll :never)
+                                                          "sizegroup a, gapy unrelated, width 100%"]]))
+    (seesaw/config! editor :id :source)
+    (seesaw/value! root {:source text})
+    (.setContentType help "text/html")
+    (.setText help (build-show-help kind false show-track-cue-editors))
+    (seesaw/scroll! help :to :top)
+    (seesaw/config! help :background :black)
+    (seesaw/listen help :hyperlink-update
+                   (fn [e]
+                     (let [type (.getEventType e)
+                           url  (.getURL e)]
+                       (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
+                         (clojure.java.browse/browse-url url)))))
+    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root save-button)
+                                                  (close-fn)
+                                                  (.dispose root))))
+    (let [result
+          (reify IExpressionEditor
+            (retitle [_]
+              (seesaw/config! root :title (cue-editor-title kind track cue)))
+            (show [_]
+              (.setLocationRelativeTo root parent-frame)
+              (seesaw/show! root)
+              (.toFront root))
+            (can-close? [_] (confirm-close-if-dirty root save-button))
+            (dispose [_]
+              (close-fn)
+              (seesaw/dispose! root)))]
+      (show-call swap-track! track assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
+      result)))
+
+(defn show-cue-editor
+  "Find or create the editor for the specified kind of expression
+  associated with the specified cue (belonging to the specified show
+  track), make it visible, and add it to the track's list of active
+  editors. Register an update function to be invoked with no arguments
+  when the user has successfully updated the expression."
+  [kind track cue parent-frame update-fn]
+  (try
+    (let [editor (or (get-in track [:cues-editor :expression-editors (:uuid cue) kind])
+                     (create-cue-editor-window kind track cue parent-frame update-fn))]
       (show editor))
     (catch Throwable t
       (timbre/error t "Problem showing show" kind "editor"))))

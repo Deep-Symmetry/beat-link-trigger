@@ -316,7 +316,7 @@
   (doseq [cue (get-in (latest-track track) [:cues :cues])]
     (repaint-cue-states track cue)))
 
-(defn get-chosen-output
+(defn- get-chosen-output
   "Return the MIDI output to which messages should be sent for a given
   track, opening it if this is the first time we are using it, or
   reusing it if we already opened it. Returns `nil` if the output can
@@ -439,8 +439,8 @@
     (swap-track! track #(apply update-in % [:contents :cues :cues uuid] f args))))
 
 (defn- find-cue
-  "Accepts either a UUID or a cue, and if the former, looks up the cue
-  in the latest version of the track."
+  "Accepts either a UUID or a cue, and looks up the cue in the latest
+  version of the track."
   [track uuid-or-cue]
   (let [track (latest-track track)]
     (get-in track [:contents :cues :cues (if (instance? java.util.UUID uuid-or-cue)
@@ -452,10 +452,10 @@
   filled in, depending on whether any expressions have been assigned
   to it."
   [track cue gear]
-  (let [cue (find-cue track cue)]
-    (if (every? clojure.string/blank? (vals (:expressions cue)))
-      (seesaw/icon "images/Gear-outline.png")
-      (seesaw/icon "images/Gear-icon.png"))))
+  (seesaw/config! gear :icon (let [cue (find-cue track cue)]
+                               (if (every? clojure.string/blank? (vals (:expressions cue)))
+                                 (seesaw/icon "images/Gear-outline.png")
+                                 (seesaw/icon "images/Gear-icon.png")))))
 
 (declare build-cues)
 
@@ -470,6 +470,52 @@
     (.setMinimum end-model (inc (:start cue)))
     (seesaw/invoke-later (build-cues track))))
 
+(defn- track-inspect-action
+  "Creates the menu action which allows a track's local bindings to be
+  inspected. Offered in the popups of both track rows and cue rows."
+  [track]
+  (seesaw/action :handler (fn [_]
+                            (inspector/inspect @(:expression-locals track)
+                                               :window-name (str "Expression Locals for "
+                                                                 (:title (:metadata track)))))
+                 :name "Inspect Expression Locals"
+                 :tip "Examine any values set as Track locals by its Expressions."))
+
+(defn- cue-editor-actions
+  "Creates the popup menu actions corresponding to the available
+  expression editors for a given cue."
+  [track cue panel gear]
+  (for [[kind spec] editors/show-track-cue-editors]
+    (let [update-fn (fn [] (update-cue-gear-icon track cue gear))]
+      (seesaw/action :handler (fn [e] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
+                     :name (str "Edit " (:title spec))
+                     :tip (:tip spec)
+                     :icon (if (clojure.string/blank? (get-in (find-cue track cue) [:expressions kind]))
+                             "images/Gear-outline.png"
+                             "images/Gear-icon.png")))))
+
+(defn- assign-cue-hue
+  [track]
+  "Picks a color for a new cue by cycling around the color wheel, and
+  recording the last one used."
+  (let [shows (swap-track! track update-in [:contents :cues :hue]
+                           (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
+    (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
+
+(defn- duplicate-cue-action
+  "Creates the menu action which duplicates an existing cue."
+  [track cue]
+  (seesaw/action :handler (fn [_]
+                            (try
+                              (let [uuid (java.util.UUID/randomUUID)]
+                                (swap-track! track assoc-in [:contents :cues :cues uuid]
+                                             (assoc cue :uuid uuid :hue (assign-cue-hue track))))
+                              (build-cues track)
+                              (catch Exception e
+                                (timbre/error e "Problem duplicating cue")
+                                (seesaw/alert "Problem duplicating cue:" e))))
+                 :name "Duplicate Cue"))
+
 (defn- expunge-deleted-cue
   "Removes all the items from a track that need to be cleaned up when
   the cue has been deleted. This function is designed to be used in a
@@ -480,6 +526,31 @@
         (update-in [:contents :cues :cues] dissoc uuid)
         (update-in [:cues-editor :panels] dissoc uuid))))
 
+(defn- close-cue-editors?
+  "Tries closing all open expression for the cue. If `force?` is true,
+  simply closes them even if they have unsaved changes. Otherwise
+  checks whether the user wants to save any unsaved changes. Returns
+  truthy if there are none left open the user wants to deal with."
+  [force? track cue]
+  (let [track (latest-track track)]
+    (every? (partial editors/close-editor? force?)
+            (vals (get-in track [:cues-editor :expression-editors (:uuid cue)])))))
+
+(defn- cleanup-cue
+  "Process the removal of a cue, either via deletion, or because the
+  show is closing. If `force?` is true, any unsaved expression editors
+  will simply be closed. Otherwise, they will block the cue removal,
+  which will be indicated by this function returning falsey. Run any
+  appropriate custom expressions and send configured MIDI messages to
+  reflect the departure of the cue."
+  [force? track cue]
+  (when (close-cue-editors? force? track cue)
+    (let [[show track] (latest-show-and-track track)]
+      (when (:tripped track)
+        ;; TODO: Run relevant cue stopped/exited expressions here
+        ))
+    true))
+
 (defn- delete-cue-action
   "Creates the menu action which deletes a cue after confirmation."
   [track cue panel]
@@ -488,6 +559,7 @@
                                                              "configuration and expressions created for it.")
                                                   :type :question :title "Delete Cue?")
                               (try
+                                (cleanup-cue true track cue)
                                 (swap-track! track expunge-deleted-cue cue)
                                 (build-cues track)
                                 (catch Exception e
@@ -527,7 +599,7 @@
           #{}
           player-map))
 
-(defn- players-playing-cue
+(defn players-playing-cue
   "Returns the set of players that are currently playing the specified
   cue. `track` must be current."
   [track cue]
@@ -544,6 +616,18 @@
   current."
   [track cue]
   ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
+
+(defn players-inside-cue
+  "Returns the set of players that are currently positioned inside the
+  specified cue. `track` must be current."
+  [track cue]
+  (let [show (get @open-shows (:file track))]
+    (reduce (fn [result player]
+              (if ((get-in track [:entered player]) (:uuid cue))
+                (conj result player)
+                result))
+            #{}
+            (players-signature-set (:loaded show) (:signature track)))))
 
 (defn- started?
   "Checks whether any players which have entered a cue is actually
@@ -713,9 +797,8 @@
                                        (when (and (= "Custom" choice)
                                                   (not (:creating cue))
                                                   (clojure.string/blank? (get-in cue [:expressions event]))
-                                                  ;; TODO: Implement this!
-                                                  #_(editors/show-cue-editor track cue event panel
-                                                                           #(update-cue-gear-icon cue gear))))))))
+                                                  (editors/show-cue-editor event track cue panel
+                                                                           #(update-cue-gear-icon track cue gear))))))))
 
 (defn- attach-cue-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
@@ -825,7 +908,7 @@
                                        :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
                                        :paint (partial paint-cue-state track cue entered?))
                         "spanx, split"]
-                       [(seesaw/label :text "Message:" :halign :right) "sizegroup first-message"]
+                       [(seesaw/label :text "Message:" :halign :right) "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:entered :message])]
                        [(get-in event-components [:entered :note]) "hidemode 3"]
                        [(get-in event-components [:entered :channel-label]) "gap unrelated, hidemode 3"]
@@ -837,7 +920,7 @@
                                        :tip "Outer ring shows track enabled, inner light when player(s) playing inside cue."
                                        :paint (partial paint-cue-state track cue started?))
                         "spanx, split"]
-                       ["On-Beat Message:" "sizegroup first-message"]
+                       ["On-Beat Message:" "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:started-on-beat :message])]
                        [(get-in event-components [:started-on-beat :note]) "hidemode 3"]
                        [(get-in event-components [:started-on-beat :channel-label]) "gap unrelated, hidemode 3"]
@@ -848,7 +931,9 @@
                        [(get-in event-components [:started-late :note]) "hidemode 3"]
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
-        popup-fn (fn [e] (concat [(seesaw/separator) (delete-cue-action track cue panel)]))]
+        popup-fn (fn [e] (concat (cue-editor-actions track cue panel gear)
+                                 [(seesaw/separator) (track-inspect-action track) (seesaw/separator)
+                                  (duplicate-cue-action track cue) (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -1105,14 +1190,6 @@
         (seesaw/config! panel :constraints (cue-panel-constraints track))
         (.revalidate panel)))))
 
-(defn- assign-cue-hue
-  [track]
-  "Picks a color for a new cue by cycling around the color wheel, and
-  recording the last one used."
-  (let [shows (swap-track! track update-in [:contents :cues :hue]
-                           (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
-    (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
-
 (defn- new-cue
   "Handles a click on the New Cue button, which creates a cue with the
   selected beat range, or a default range if there is no selection."
@@ -1184,11 +1261,16 @@
                        ;; will do so even in the presence of windows with unsaved user changes. Otherwise
                        ;; prompts the user about all unsaved changes, giving them a chance to veto the
                        ;; closure. Returns truthy if the window was closed.
-                       (let [show (latest-show show)]
-                         ;; TODO: Look at close-fn in create-show-window for some of what we need to do.
-                         (swap-track! track dissoc :cues-editor)
-                         (.dispose root)
-                         true))]
+                       (let [track   (latest-track track)
+                             cues (vals (get-in track [:contents :cues :cues]))]
+                         (when (every? (partial close-cue-editors? force? track) cues)
+                           (doseq [cue cues]
+                             (cleanup-cue true track cue))
+                           (seesaw/invoke-later
+                            ;; Gives windows time to close first, so they don't recreate a broken editor.
+                            (swap-track! track dissoc :cues-editor))
+                           (.dispose root)
+                           true)))]
     (swap-track! track assoc :cues-editor {:frame    root
                                            :panel    top-panel
                                            :wave     wave
@@ -1391,6 +1473,7 @@
                                        (future
                                          (try
                                            (when (enabled? show track)
+                                             ;; TODO: Allow cues to have beat functions too, and run for entered cues.
                                              (run-track-function show track :beat position false))
                                            (catch Exception e
                                              (timbre/error e "Problem reporting track beat."))))))))))
@@ -1621,6 +1704,7 @@
               (repaint-cue track cue)
               (repaint-cue-states track cue)))
           ;; Finaly, run the tracked update expression for the track, if it has one.
+          ;; TODO: Let cues have tracked update expressions too, and run them for any entered cues here.
           (future (run-track-function show track :tracked status false)))
         (update-playback-position show signature player)
         ;; If the set of entered cues has changed, update the UI appropriately.
@@ -1886,8 +1970,7 @@
                                                     (not (if track (:creating track) (:creating show)))
                                                     (clojure.string/blank?
                                                      (get-in (or track show) [:contents :expressions (keyword kind)]))
-                                                    (editors/show-show-editor
-                                                     open-shows (keyword kind) show track panel
+                                                    (editors/show-show-editor (keyword kind) show track panel
                                                      (if gear
                                                        #(update-track-gear-icon track gear)
                                                        #(update-tracks-global-expression-icons show))))))))))
@@ -2078,25 +2161,13 @@
                         (reset! (:expression-locals track) {})
                         (run-track-function show track :setup nil true))
                       (update-track-gear-icon track gear))]
-      (seesaw/action :handler (fn [e] (editors/show-show-editor
-                                       open-shows kind (latest-show show)
+      (seesaw/action :handler (fn [e] (editors/show-show-editor kind (latest-show show)
                                        (latest-track track) panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
                      :icon (if (clojure.string/blank? (get-in (latest-track track) [:contents :expressions kind]))
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
-
-(defn- track-inspect-action
-  "Creates the menu action which allows a track's local bindings to be
-  inspected."
-  [track]
-  (seesaw/action :handler (fn [_]
-                            (inspector/inspect @(:expression-locals track)
-                                               :window-name (str "Expression Locals for "
-                                                                 (:title (:metadata track)))))
-                 :name "Inspect Expression Locals"
-                 :tip "Examine any values set as Track locals by its Expressions."))
 
 (declare import-track)
 
@@ -2147,6 +2218,41 @@
       (update :loaded remove-signature (:signature track))
       (update :playing remove-signature (:signature track))))
 
+(defn- close-track-editors?
+  "Tries closing all open expression and cue editors for the track. If
+  `force?` is true, simply closes them even if they have unsaved
+  changes. Otherwise checks whether the user wants to save any unsaved
+  changes. Returns truthy if there are none left open the user wants
+  to deal with."
+  [force? track]
+  (let [track (latest-track track)]
+    (and
+     (every? (partial editors/close-editor? force?) (vals (:expression-editors track)))
+     (or (not (:cues-editor track)) ((get-in track [:cues-editor :close-fn]) force?)))))
+
+(defn- cleanup-track
+  "Process the removal of a track, either via deletion, or because the
+  show is closing. If `force?` is true, any unsaved expression editors
+  will simply be closed. Otherwise, they will block the track removal,
+  which will be indicated by this function returning falsey. Run any
+  appropriate custom expressions and send configured MIDI messages to
+  reflect the departure of the track."
+  [force? show track]
+  (when (close-track-editors? force? track)
+    (let [[show track] (latest-show-and-track track)]
+      (when (:tripped track)
+        (doseq [cue (get-in track [:contents :cues :cues])]
+          (cleanup-cue true track cue))
+        (when ((set (vals (:playing show))) (:signature track))
+          (send-stopped-messages show track nil))
+        (when ((set (vals (:loaded show))) (:signature track))
+          (send-unloaded-messages show track)))
+      (doseq [listener (vals (:listeners track))]
+        (.removeTrackPositionListener time-finder listener))
+      (swap-track! track dissoc :listeners)
+      (run-track-function show track :shutdown nil (not force?)))
+    true))
+
 (defn- delete-track-action
   "Creates the menu action which deletes a track after confirmation."
   [show track panel]
@@ -2166,6 +2272,7 @@
                                     #_(timbre/info "Exists?" (Files/isReadable path))
                                     (Files/delete path)
                                     #_(timbre/info "Still there?" (Files/isReadable path))))
+                                (cleanup-track true show track)
                                 (swap-show! show expunge-deleted-track track panel)
                                 (refresh-signatures show)
                                 (update-track-visibility show)
@@ -2408,39 +2515,6 @@
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.
     (swap-signature! show signature dissoc :creating)))
-
-(defn- close-track-editors?
-  "Tries closing all open expression and cue editors for the track. If
-  `force?` is true, simply closes them even if they have unsaved
-  changes. Othewise checks whether the user wants to save any unsaved
-  changes. Returns truthy if there are none left open the user wants
-  to deal with."
-  [force? track]
-  (let [track (latest-track track)]
-    (and
-     (every? (partial editors/close-editor? force?) (vals (:expression-editors track)))
-     (or (not (:cues-editor track)) ((get-in track [:cues-editor :close-fn]) force?)))))
-
-(defn- cleanup-track
-  "Process the removal of a track, either via deletion, or because the
-  show is closing. If `force?` is true, any unsaved expression editors
-  will simply be closed. Otherwise, they will block the track removal,
-  which will be indicated by this function returning falsey. Run any
-  appropriate custom expressions and send configured MIDI messages to
-  reflect the departure of the track."
-  [force? show track]
-  (when (close-track-editors? force? track)
-    (let [[show track] (latest-show-and-track track)]
-      (when (:tripped track)
-        (when ((set (vals (:playing show))) (:signature track))
-          (send-stopped-messages show track nil))
-        (when ((set (vals (:loaded show))) (:signature track))
-          (send-unloaded-messages show track)))
-      (doseq [listener (vals (:listeners track))]
-        (.removeTrackPositionListener time-finder listener))
-      (swap-track! track dissoc :listeners)
-      (run-track-function show track :shutdown nil (not force?)))
-    true))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
@@ -2733,7 +2807,7 @@
 (defn build-global-editor-action
   "Creates an action which edits one of a show's global expressions."
   [show kind]
-  (seesaw/action :handler (fn [e] (editors/show-show-editor open-shows kind (latest-show show) nil (:frame show)
+  (seesaw/action :handler (fn [e] (editors/show-show-editor kind (latest-show show) nil (:frame show)
                                                             (fn []
                                                               (when (= :setup kind)
                                                                 (run-global-function show :shutdown nil true)
@@ -2900,8 +2974,8 @@
                               ;; prompts the user about all unsaved changes, giving them a chance to veto the
                               ;; closure. Returns truthy if the show was closed.
                               (let [show (latest-show show)]
-                                (when (and (every? (partial close-track-editors? false) (vals (:tracks show)))
-                                           (every? (partial editors/close-editor? false)
+                                (when (and (every? (partial close-track-editors? force?) (vals (:tracks show)))
+                                           (every? (partial editors/close-editor? force?)
                                                    (vals (:expression-editors show))))
                                   (.removeUpdateListener virtual-cdj update-listener)
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
