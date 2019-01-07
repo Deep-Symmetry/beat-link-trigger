@@ -547,7 +547,7 @@
    'entered-channel {:code '(get-in trigger-data [:cue :events :entered :channel])
                      :doc  "The MIDI channel on which cue enter and exit messages are sent."}
 
-   'entered-players {:code '((resolve 'beat-link-trigger.show/players-inside-cue)
+   'players-inside {:code '((resolve 'beat-link-trigger.show/players-inside-cue)
                              (:track trigger-data) (:cue trigger-data))
                     :doc  "The set of player numbers that are currently
   positioned inside this cue, if any."}
@@ -576,7 +576,7 @@
    'started-late-channel {:code '(get-in trigger-data [:cue :events :started-late :channel])
                           :doc  "The MIDI channel on which late cue start and end messages are sent."}
 
-   'playing-players {:code '((resolve 'beat-link-trigger.show/players-playing-cue)
+   'players-playing {:code '((resolve 'beat-link-trigger.show/players-playing-cue)
                              (:track trigger-data) (:cue trigger-data))
                      :doc  "The set of player numbers currently playing this cue, if any."}
 
@@ -765,7 +765,7 @@
   (let [title (get-in show-track-cue-editors [kind :title])]
     (str title " for Cue in Track \"" (get-in track [:metadata :title]) "\"")))
 
-(defn update-cue-expression
+(defn- update-cue-expression
   "Called when an cues editor window expression's editor is ending and
   the user has asked to update the expression with the value they have
   edited. If `update-fn` is not nil, it will be called with no
