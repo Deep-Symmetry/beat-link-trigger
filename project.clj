@@ -47,9 +47,11 @@
              "Specification-Version" ~#(:version %)
              "Build-Timestamp"       ~(str (java.util.Date.))}
 
-  :plugins [[lein-asciidoctor "0.1.16"]
+  :plugins [[lein-asciidoctor "0.1.17"]
             [lein-resource "16.9.1"]
-            [com.roomkey/lein-v "6.4.0"]]
+            [com.roomkey/lein-v "7.0.0"]]
+
+  :middleware [lein-v.plugin/middleware]
 
   ;; Enable the creation of an embedded, offline copy of the User Guide.
   :asciidoctor [{:sources          ["doc/*.adoc"]
