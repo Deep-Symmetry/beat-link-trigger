@@ -483,16 +483,45 @@
 
 (declare build-cues)
 
+(defn- scroll-to-cue
+  "Makes sure the specified cue is visible (it has just been created or
+  edited), or give the user a warning that the current cue filters
+  have hidden it. If `select-comment` is true, this is a newly-created
+  cue, so focus on the comment field and select its entire content,
+  for easy editing."
+  ([track cue]
+   (scroll-to-cue false))
+  ([track cue select-comment]
+   (let [track (latest-track track)
+         cues  (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
+         cue   (find-cue track cue)
+         uuid  (:uuid cue)]
+     (if (some #(= uuid %) (get-in track [:cues-editor :visible]))
+       (let [panel   (get-in track [:cues-editor :panels (:uuid cue)])
+             comment (seesaw/select panel [:#comment])]
+         (seesaw/invoke-later
+          (seesaw/scroll! cues :to (.getBounds panel))
+          (when select-comment
+            (.requestFocusInWindow comment)
+            (.selectAll comment))))
+       (seesaw/alert (get-in track [:cues-editor :frame])
+                     (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
+                          "To continue working with it, you will need to adjust the filters.")
+                     :title "Can't Scroll to Hidden Cue" :type :info)))))
+
 (defn- update-cue-spinner-models
   "When the start or end position of a cue has changed, that affects the
   legal values the other can take. Update the spinner models to
   reflect the new limits. Then we rebuild the cue list in case they
-  need to change order."
+  need to change order. Also scroll so the cue is still visible, or if
+  it has been filtered out warn the user that has happened."
   [track cue start-model end-model]
   (let [cue (find-cue track cue)]
     (.setMaximum start-model (dec (:end cue)))
     (.setMinimum end-model (inc (:start cue)))
-    (seesaw/invoke-later (build-cues track))))
+    (seesaw/invoke-later
+     (build-cues track)
+     (seesaw/invoke-later scroll-to-cue track cue))))
 
 (defn- track-inspect-action
   "Creates the menu action which allows a track's local bindings to be
@@ -525,32 +554,6 @@
   (let [shows (swap-track! track update-in [:contents :cues :hue]
                            (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
-
-(defn- scroll-to-cue
-  "Makes sure the specified cue is visible (it has just been created or
-  edited), or give the user a warning that the current cue filters
-  have hidden it. If `select-comment` is true, this is a newly-created
-  cue, so focus on the comment field and select its entire content,
-  for easy editing."
-  ([track cue]
-   (scroll-to-cue false))
-  ([track cue select-comment]
-   (let [track (latest-track track)
-         cues  (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
-         cue   (find-cue track cue)
-         uuid  (:uuid cue)]
-     (if (some #(= uuid %) (get-in track [:cues-editor :visible]))
-       (let [panel   (get-in track [:cues-editor :panels (:uuid cue)])
-             comment (seesaw/select panel [:#comment])]
-         (seesaw/invoke-later
-          (seesaw/scroll! cues :to (.getBounds panel))
-          (when select-comment
-            (.requestFocusInWindow comment)
-            (.selectAll comment))))
-       (seesaw/alert (get-in track [:cues-editor :frame])
-                     (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
-                          "To continue working with it, you will need to adjust the filters.")
-                     :title "Can't Scroll to Hidden Cue" :type :info)))))
 
 (defn- duplicate-cue-action
   "Creates the menu action which duplicates an existing cue."
