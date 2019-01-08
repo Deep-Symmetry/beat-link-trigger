@@ -526,6 +526,32 @@
                            (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
 
+(defn- scroll-to-cue
+  "Makes sure the specified cue is visible (it has just been created or
+  edited), or give the user a warning that the current cue filters
+  have hidden it. If `select-comment` is true, this is a newly-created
+  cue, so focus on the comment field and select its entire content,
+  for easy editing."
+  ([track cue]
+   (scroll-to-cue false))
+  ([track cue select-comment]
+   (let [track (latest-track track)
+         cues  (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
+         cue   (find-cue track cue)
+         uuid  (:uuid cue)]
+     (if (some #(= uuid %) (get-in track [:cues-editor :visible]))
+       (let [panel   (get-in track [:cues-editor :panels (:uuid cue)])
+             comment (seesaw/select panel [:#comment])]
+         (seesaw/invoke-later
+          (seesaw/scroll! cues :to (.getBounds panel))
+          (when select-comment
+            (.requestFocusInWindow comment)
+            (.selectAll comment))))
+       (seesaw/alert (get-in track [:cues-editor :frame])
+                     (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
+                          "To continue working with it, you will need to adjust the filters.")
+                     :title "Can't Scroll to Hidden Cue" :type :info)))))
+
 (defn- duplicate-cue-action
   "Creates the menu action which duplicates an existing cue."
   [track cue]
@@ -536,12 +562,13 @@
                                     cue     (find-cue track cue)
                                     comment (util/assign-unique-name
                                              (map :comment (vals (get-in track [:contents :cues :cues])))
-                                             (:comment cue))]
-                                (swap-track! track assoc-in [:contents :cues :cues uuid]
-                                             (merge cue {:uuid    uuid
-                                                         :hue     (assign-cue-hue track)
-                                                         :comment comment})))
-                              (build-cues track)
+                                             (:comment cue))
+                                    new-cue (merge cue {:uuid    uuid
+                                                        :hue     (assign-cue-hue track)
+                                                        :comment comment})]
+                                (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
+                                (build-cues track)
+                                (scroll-to-cue track new-cue true))
                               (catch Exception e
                                 (timbre/error e "Problem duplicating cue")
                                 (seesaw/alert "Problem duplicating cue:" e))))
@@ -1277,7 +1304,8 @@
     (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
     (swap-track! track update :cues-editor dissoc :selection)
     (update-track-gear-icon track)
-    (build-cues track)))
+    (build-cues track)
+    (scroll-to-cue track cue true)))
 
 (defn- start-animation-thread
   "Creates a background thread that updates the positions of any playing
