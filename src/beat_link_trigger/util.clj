@@ -127,6 +127,37 @@
     nil
     s))
 
+(defn assign-unique-name
+  "Picks a name for an element in a list (for example a cue in a track),
+  given the names of all the other cues. If no base name is supplied,
+  picks Untitled or Untitled <n>; if a base name is given, appends \"
+  copy\" and a number if necessary to make it unique (although if the
+  name already ends with copy it is not added again)."
+  ([existing-names]
+   (assign-unique-name existing-names ""))
+  ([existing-names base-name]
+   (let [base-name      (clojure.string/trim base-name)
+         without-number (if (clojure.string/blank? base-name)
+                          "Untitled"
+                          (clojure.string/replace base-name #"\s+\d*$" ""))
+         with-copy      (if (clojure.string/blank? base-name)
+                          without-number
+                          (or (re-matches #"(?i).*\s+copy$" without-number)
+                              (str base-name " Copy")))
+         template       (clojure.string/lower-case with-copy)
+         quoted         (java.util.regex.Pattern/quote template)
+         largest-number (reduce (fn [result name]
+                                  (if (= template name)
+                                    (max result 1)
+                                    (if-let [[_ n] (re-matches (re-pattern (str quoted "\\s+(\\d+)")) name)]
+                                      (max result (Long/valueOf n))
+                                      result)))
+                                0
+                                (map (comp clojure.string/trim clojure.string/lower-case #(or % "")) existing-names))]
+     (if (zero? largest-number)
+       with-copy
+       (str with-copy " " (inc largest-number))))))
+
 (defn paint-placeholder
   "A function which will paint placeholder text in a text field if the
   user has not added any text of their own, since Swing does not have

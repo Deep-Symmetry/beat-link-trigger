@@ -531,9 +531,16 @@
   [track cue]
   (seesaw/action :handler (fn [_]
                             (try
-                              (let [uuid (java.util.UUID/randomUUID)]
+                              (let [uuid    (java.util.UUID/randomUUID)
+                                    track   (latest-track track)
+                                    cue     (find-cue track cue)
+                                    comment (util/assign-unique-name
+                                             (map :comment (vals (get-in track [:contents :cues :cues])))
+                                             (:comment cue))]
                                 (swap-track! track assoc-in [:contents :cues :cues uuid]
-                                             (assoc cue :uuid uuid :hue (assign-cue-hue track))))
+                                             (merge cue {:uuid    uuid
+                                                         :hue     (assign-cue-hue track)
+                                                         :comment comment})))
                               (build-cues track)
                               (catch Exception e
                                 (timbre/error e "Problem duplicating cue")
@@ -1258,12 +1265,12 @@
   [track]
   (let [track       (latest-track track)
         [start end] (get-in track [:cues-editor :selection] [1 2])
-        hue         (assign-cue-hue track)
         uuid        (java.util.UUID/randomUUID)
         cue         {:uuid  uuid
                      :start start
                      :end   end
-                     :hue   hue}]
+                     :hue   (assign-cue-hue track)
+                     :comment (util/assign-unique-name (map :comment (vals (get-in track [:contents :cues :cues]))))}]
     (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
     (swap-track! track update :cues-editor dissoc :selection)
     (build-cues track)))
