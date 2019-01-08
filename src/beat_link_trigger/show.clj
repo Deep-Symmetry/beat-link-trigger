@@ -1172,6 +1172,19 @@
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
+(defn- handle-wave-move
+  "Processes a mouse move over the wave detail component, setting the
+  tooltip and mouse pointer appropriately depending on the location of
+  cues."
+  [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
+  (let [point (.getPoint e)
+        track (latest-track track)
+        cue (first (filter (fn [cue] (.contains (cue-rectangle track cue wave) point))
+                           (vals (get-in track [:contents :cues :cues]))))]
+    (.setToolTipText wave (if cue
+                            (or (:comment cue) "Unnamed Cue")
+                            "Click and drag to select a beat range for the New Cue button."))))
+
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
   beat ranges for creating cues."
@@ -1365,8 +1378,8 @@
                        ;; will do so even in the presence of windows with unsaved user changes. Otherwise
                        ;; prompts the user about all unsaved changes, giving them a chance to veto the
                        ;; closure. Returns truthy if the window was closed.
-                       (let [track   (latest-track track)
-                             cues (vals (get-in track [:contents :cues :cues]))]
+                       (let [track (latest-track track)
+                             cues  (vals (get-in track [:contents :cues :cues]))]
                          (when (every? (partial close-cue-editors? force? track) cues)
                            (doseq [cue cues]
                              (cleanup-cue true track cue))
@@ -1380,11 +1393,13 @@
                                            :wave     wave
                                            :close-fn close-fn})
     (.setScale wave (seesaw/value zoom-slider))
+    (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR)))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                (paintOverlay [component graphics]
                                  (paint-cues-and-beat-selection track component graphics))))
     (seesaw/listen wave
+                   :mouse-moved (fn [e] (handle-wave-move track wave e))
                    :mouse-pressed (fn [e] (handle-wave-click track wave (:grid track) e))
                    :mouse-dragged (fn [e] (handle-wave-drag track wave (:grid track) e)))
     (seesaw/config! root :content layout)
