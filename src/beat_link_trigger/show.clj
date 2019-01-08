@@ -2623,6 +2623,25 @@
       (doseq [track-path (Files/newDirectoryStream tracks-path)]
         (create-track-panel show track-path)))))
 
+(defn- scroll-to-track
+  "Makes sure the specified track is visible (it has just been imported
+  or copied), or give the user a warning that the current track
+  filters have hidden it. `track` is likely to be shockingly
+  incomplete since it was just imported, so it must be refreshed from
+  `show` rather than via `latest-track`."
+  [show track]
+  (let [signature (:signature track)
+        show      (latest-show show)
+        track     (get-in show [:tracks signature])
+        tracks    (seesaw/select (:frame show) [:#tracks])]
+    (if (some #(= signature %) (:visible show))
+      (seesaw/invoke-later (seesaw/scroll! tracks :to (.getBounds (:panel track))))
+      (seesaw/alert (:frame show)
+                    (str "The track \"" (get-in track [:metadata :title])
+                         "\" is currently hidden by your filters.\r\n"
+                          "To continue working with it, you will need to adjust the filters.")
+                     :title "Can't Scroll to Hidden Track" :type :info))))
+
 (defn- import-track
   "Imports the supplied track map into the show, after validating that
   all required parts are present."
@@ -2650,6 +2669,7 @@
           (write-edn-path track-contents (.resolve track-root "contents.edn")))
         (create-track-panel show track-root)
         (update-track-visibility show)
+        (scroll-to-track show track)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
         ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.
