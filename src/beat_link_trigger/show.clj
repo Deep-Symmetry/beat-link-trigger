@@ -665,6 +665,8 @@
           (send-cue-messages show track cue :exited nil))))
     true))
 
+(declare update-track-gear-icon)
+
 (defn- delete-cue-action
   "Creates the menu action which deletes a cue after confirmation."
   [track cue panel]
@@ -675,6 +677,7 @@
                               (try
                                 (cleanup-cue true track cue)
                                 (swap-track! track expunge-deleted-cue cue)
+                                (update-track-gear-icon track)
                                 (build-cues track)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting cue")
@@ -1273,6 +1276,7 @@
                      :comment (util/assign-unique-name (map :comment (vals (get-in track [:contents :cues :cues]))))}]
     (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
     (swap-track! track update :cues-editor dissoc :selection)
+    (update-track-gear-icon track)
     (build-cues track)))
 
 (defn- start-animation-thread
@@ -1967,13 +1971,15 @@
   "Determines whether the gear button for a track should be hollow or
   filled in, depending on whether any cues or expressions have been
   assigned to it."
-  [track gear]
-  (let [track (latest-track track)]
-    (seesaw/config! gear :icon (if (and
-                                    (empty? (get-in track [:contents :cues :cues]))
-                                    (every? clojure.string/blank? (vals (get-in track [:contents :expressions]))))
-                                 (seesaw/icon "images/Gear-outline.png")
-                                 (seesaw/icon "images/Gear-icon.png")))))
+  ([track]
+   (update-track-gear-icon track (seesaw/select (:panel track) [:#gear])))
+  ([track gear]
+   (let [track (latest-track track)]
+     (seesaw/config! gear :icon (if (and
+                                     (empty? (get-in track [:contents :cues :cues]))
+                                     (every? clojure.string/blank? (vals (get-in track [:contents :expressions]))))
+                                  (seesaw/icon "images/Gear-outline.png")
+                                  (seesaw/icon "images/Gear-icon.png"))))))
 
 (defn update-tracks-global-expression-icons
   "Updates the icons next to expressions in the Tracks menu to
