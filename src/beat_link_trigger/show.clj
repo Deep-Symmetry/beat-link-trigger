@@ -1172,6 +1172,17 @@
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
+(defn- handle-preview-move
+  "Processes a mouse move over the softly-held waveform preview
+  component, setting the tooltip appropriately depending on the
+  location of cues."
+  [track soft-preview preview-loader ^java.awt.event.MouseEvent e]
+  (let [point (.getPoint e)
+        track (latest-track track)
+        cue (first (filter (fn [cue] (.contains (cue-preview-rectangle track cue (preview-loader)) point))
+                           (vals (get-in track [:contents :cues :cues]))))]
+    (.setToolTipText soft-preview (when cue (or (:comment cue) "Unnamed Cue")))))
+
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
@@ -2568,6 +2579,8 @@
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
     (update-track-gear-icon track gear)
+
+    (seesaw/listen soft-preview :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e)))
 
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
