@@ -493,8 +493,10 @@
   cue, so focus on the comment field and select its entire content,
   for easy editing."
   ([track cue]
-   (scroll-to-cue false))
+   (scroll-to-cue track cue false false))
   ([track cue select-comment]
+   (scroll-to-cue track cue select-comment false))
+  ([track cue select-comment silent]
    (let [track (latest-track track)
          cues  (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
          cue   (find-cue track cue)
@@ -507,10 +509,11 @@
           (when select-comment
             (.requestFocusInWindow comment)
             (.selectAll comment))))
-       (seesaw/alert (get-in track [:cues-editor :frame])
-                     (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
-                          "To continue working with it, you will need to adjust the filters.")
-                     :title "Can't Scroll to Hidden Cue" :type :info)))))
+       (when-not silent
+         (seesaw/alert (get-in track [:cues-editor :frame])
+                       (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
+                            "To continue working with it, you will need to adjust the filters.")
+                       :title "Can't Scroll to Hidden Cue" :type :info))))))
 
 (defn- update-cue-spinner-models
   "When the start or end position of a cue has changed, that affects the
@@ -1186,15 +1189,23 @@
                            (vals (get-in track [:contents :cues :cues]))))]
     (.setToolTipText soft-preview (when cue (or (:comment cue) "Unnamed Cue")))))
 
-(defn- handle-wave-move
-  "Processes a mouse move over the wave detail component, setting the
-  tooltip and mouse pointer appropriately depending on the location of
-  cues."
+(defn- find-cue-under-mouse
+  "Checks whether the mouse is currently over any cue, and if so returns
+  it as the first element of a tuple. Always returns the latest
+  version of the supplied track as the second element of the tuple."
   [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
   (let [point (.getPoint e)
         track (latest-track track)
         cue (first (filter (fn [cue] (.contains (cue-rectangle track cue wave) point))
                            (vals (get-in track [:contents :cues :cues]))))]
+    [cue track]))
+
+(defn- handle-wave-move
+  "Processes a mouse move over the wave detail component, setting the
+  tooltip and mouse pointer appropriately depending on the location of
+  cues."
+  [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
+  (let [[cue] (find-cue-under-mouse track wave e)]
     (.setToolTipText wave (if cue
                             (or (:comment cue) "Unnamed Cue")
                             "Click and drag to select a beat range for the New Cue button."))))
@@ -1219,13 +1230,14 @@
 
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
-  setting up beat ranges for creating cues."
+  setting up beat ranges for creating cues, and scrolling the lower
+  pane to cues."
   [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
-  (let [track     (latest-track track)
-        x         (.getX e)
-        shift     (> (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK) 0)
-        beat      (long (.getBeatForX wave x))
-        selection (get-in track [:cues-editor :selection])]
+  (let [[cue track] (find-cue-under-mouse track wave e)
+        x           (.getX e)
+        shift       (> (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK) 0)
+        beat        (long (.getBeatForX wave x))
+        selection   (get-in track [:cues-editor :selection])]
     (if (and shift selection)
       (if (= selection [beat (inc beat)])
         (swap-track! track update :cues-editor dissoc :selection)  ; Shift-click on single-beat selection clears it.
@@ -1234,7 +1246,8 @@
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
         (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])  ; Yes, set new selection.
         (swap-track! track update :cues-editor dissoc :selection)))  ; No, clear selection.
-    (.repaint wave)))
+    (.repaint wave)
+    (when cue (scroll-to-cue track cue false true))))
 
 (defn- assign-cue-lanes
   [track cues cue-intervals]
