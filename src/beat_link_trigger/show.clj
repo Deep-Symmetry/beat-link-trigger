@@ -126,9 +126,12 @@
 
 (defn- latest-show
   "Returns the current version of the show given a potentially stale
-  copy."
-  [show]
-  (get @open-shows (:file show)))
+  copy. `show-or-file` can either be a show map or the File from which one was
+  loaded."
+  [show-or-file]
+  (if (instance? java.io.File show-or-file)
+    (get @open-shows show-or-file)
+    (get @open-shows (:file show-or-file))))
 
 (defn- latest-track
   "Returns the current version of a track given a potentially stale
@@ -161,7 +164,7 @@
   "Atomically updates the map of open shows by calling the specified
   function with the supplied arguments on the current contents of the
   track with the specified signature. The value of `show` can either
-  be the a file or the full show map."
+  be a full show map, or the File from which one was loaded."
   [show signature f & args]
   (let [show-file (if (instance? java.io.File show) show (:file show))]
     (swap! open-shows #(apply update-in % [show-file :tracks signature] f args))))
@@ -612,7 +615,7 @@
   "Returns the set of players that are currently playing the specified
   cue. `track` must be current."
   [track cue]
-  (let [show (get @open-shows (:file track))]
+  (let [show (latest-show (:file track))]
     (reduce (fn [result player]
               (if ((get-in track [:entered player]) (:uuid cue))
                 (conj result player)
@@ -630,7 +633,7 @@
   "Returns the set of players that are currently positioned inside the
   specified cue. `track` must be current."
   [track cue]
-  (let [show (get @open-shows (:file track))]
+  (let [show (latest-show (:file track))]
     (reduce (fn [result player]
               (if ((get-in track [:entered player]) (:uuid cue))
                 (conj result player)
@@ -3200,7 +3203,7 @@
   [parent file]
   (let [file (.getCanonicalFile file)]
     (try
-      (if-let [existing (get @open-shows file)]
+      (if-let [existing (latest-show file)]
         (.toFront (:frame existing))
         (do (create-show-window file)
             true))
@@ -3237,7 +3240,7 @@
                                          :filters [["BeatLinkTrigger Show files"
                                                     [extension]]])]
       (let [file (.getCanonicalFile file)]
-        (if (get @open-shows file)
+        (if (latest-show file)
           (seesaw/alert parent "Cannot Replace an Open Show."
                         :title "Show is Already Open" :type :error)
           (when-let [file (util/confirm-overwrite-file file extension parent)]
