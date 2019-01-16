@@ -221,7 +221,7 @@
   the track local and global atoms. Returns a tuple of the function
   return value and any thrown exception. If `alert?` is `true` the
   user will be alerted when there is a problem running the function."
-  [show track kind status alert?]
+  [track kind status alert?]
   (let [[show track] (latest-show-and-track track)]
     (when-let [expression-fn (get-in track [:expression-fns kind])]
       (try
@@ -270,7 +270,7 @@
   must be up-to-date."
   [show track status]
   (if (= "Custom" (get-in track [:contents :enabled]))
-    (update-track-enabled show track (boolean (first (run-track-function show track :enabled status false))))
+    (update-track-enabled show track (boolean (first (run-track-function track :enabled status false))))
     (when (and (= "Default" (get-in track [:contents :enabled])) (= "Custom" (get-in show [:contents :enabled])))
       (update-track-enabled show track (boolean (first (run-global-function show :enabled status false)))))))
 
@@ -655,7 +655,7 @@
   key identifying how look up the appropriate MIDI message or custom
   expression in the cue, and `status-or-beat` is the protocol message,
   if any, which caused the state change, if any."
-  [show track cue event status-or-beat]
+  [track cue event status-or-beat]
   (when-let [cue (find-cue track cue)]
     (try
       (let [base-event                     ({:entered         :entered
@@ -693,9 +693,9 @@
     (let [[show track] (latest-show-and-track track)]
       (when (:tripped track)
         (when (seq (players-playing-cue track cue))
-          (send-cue-messages show track cue :ended nil))
+          (send-cue-messages track cue :ended nil))
         (when (entered? track cue)
-          (send-cue-messages show track cue :exited nil))))
+          (send-cue-messages track cue :exited nil))))
     true))
 
 (declare update-track-gear-icon)
@@ -1434,7 +1434,7 @@
   "Creates, or brings to the front, a window for editing cues attached
   to the specified track in the specified show. Returns truthy if the
   window was newly opened."
-  [show track parent]
+  [track parent]
   (try
     (let [[show track] (latest-show-and-track track)]
       (if-let [existing (:cues-editor track)]
@@ -1474,7 +1474,7 @@
 (defn- send-stopped-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a track is no longer playing. `track` must be current."
-  [show track status]
+  [track status]
   (try
     (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
       (when (#{"Note" "CC"} playing-message)
@@ -1482,7 +1482,7 @@
           (case playing-message
             "Note" (midi/midi-note-off output playing-note (dec playing-channel))
             "CC"   (midi/midi-control output playing-note 0 (dec playing-channel)))))
-      (when (= "Custom" playing-message) (run-track-function show track :stopped status false)))
+      (when (= "Custom" playing-message) (run-track-function track :stopped status false)))
     (catch Exception e
       (timbre/error e "Problem reporting stopped track."))))
 
@@ -1500,10 +1500,10 @@
     (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
-          (send-cue-messages show track uuid :ended status)
+          (send-cue-messages track uuid :ended status)
           (repaint-cue track uuid)
           (repaint-cue-states track uuid))
-        (send-stopped-messages show track status))
+        (send-stopped-messages track status))
       (repaint-track-states show signature))
     (update-playing-text show signature now-playing)
     (update-playback-position show signature player)))
@@ -1522,7 +1522,7 @@
 (defn- send-unloaded-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a track is no longer loaded. `track` must be current."
-  [show track]
+  [track]
   (try
     (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
       (when (#{"Note" "CC"} loaded-message)
@@ -1530,7 +1530,7 @@
           (case loaded-message
             "Note" (midi/midi-note-off output loaded-note (dec loaded-channel))
             "CC"   (midi/midi-control output loaded-note 0 (dec loaded-channel)))))
-      (when (= "Custom" loaded-message) (run-track-function show track :unloaded nil false)))
+      (when (= "Custom" loaded-message) (run-track-function track :unloaded nil false)))
     (catch Exception e
       (timbre/error e "Problem reporting unloaded track."))))
 
@@ -1548,11 +1548,11 @@
     (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
-          (send-cue-messages show track uuid :exited nil)
+          (send-cue-messages track uuid :exited nil)
           (repaint-cue track uuid)
           (repaint-cue-states track uuid))
         (seesaw/invoke-later (update-cue-visibility track))
-        (send-unloaded-messages show track))
+        (send-unloaded-messages track))
       (repaint-track-states show signature))
     (update-loaded-text show signature now-loaded)
     (update-playing-text show signature (players-signature-set (:playing show) signature))
@@ -1585,7 +1585,7 @@
                                          (try
                                            (when (enabled? show track)
                                              ;; TODO: Allow cues to have beat functions too, and run for entered cues.
-                                             (run-track-function show track :beat position false))
+                                             (run-track-function track :beat position false))
                                            (catch Exception e
                                              (timbre/error e "Problem reporting track beat."))))))))))
         listener (get-in shows [(:file show) :tracks (:signature track) :listeners player])]
@@ -1609,12 +1609,12 @@
                 (case loaded-message
                   "Note" (midi/midi-note-on output loaded-note 127 (dec loaded-channel))
                   "CC"   (midi/midi-control output loaded-note 127 (dec loaded-channel)))))
-            (when (= "Custom" loaded-message) (run-track-function show track :loaded nil false)))
+            (when (= "Custom" loaded-message) (run-track-function track :loaded nil false)))
           (catch Exception e
             (timbre/error e "Problem reporting loaded track.")))
         ;; Report entry to all cues we've been sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
-          (send-cue-messages show track uuid :entered nil)
+          (send-cue-messages track uuid :entered nil)
           (repaint-cue track uuid)
           (repaint-cue-states track uuid))
         (seesaw/invoke-later (update-cue-visibility track)))
@@ -1640,13 +1640,13 @@
                 (case playing-message
                   "Note" (midi/midi-note-on output playing-note 127 (dec playing-channel))
                   "CC"   (midi/midi-control output playing-note 127 (dec playing-channel)))))
-            (when (= "Custom" playing-message) (run-track-function show track :playing status false)))
+            (when (= "Custom" playing-message) (run-track-function track :playing status false)))
           (catch Exception e
             (timbre/error e "Problem reporting playing track.")))
         ;; Report late start for any cues we were sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           ;; TODO: Need to test if we do actually get a beat first for on-beat start like I am assuming.
-          (send-cue-messages show track uuid :started-late status)
+          (send-cue-messages track uuid :started-late status)
           (repaint-cue track uuid)
           (repaint-cue-states track uuid)))
       (repaint-track-states show signature))
@@ -1715,18 +1715,18 @@
                               :started-late)
                             :ended)]
           (when (not= is-playing was-playing)
-            (send-cue-messages show track cue event (or status beat))
+            (send-cue-messages track cue event (or status beat))
             (repaint-cue track cue)
             (repaint-cue-states track cue)))))
     ;; Report cues we have newly entered, which we might also be newly playing.
     (doseq [uuid (clojure.set/difference entered old-entered)]
       (when-let [cue (find-cue track uuid)]
-        (send-cue-messages show track cue :entered (or status beat))
+        (send-cue-messages track cue :entered (or status beat))
         (when (seq (players-playing-cue track cue))
           (let [event (if (and beat (= (:start cue) (.beatNumber position)))
                         :started-on-beat
                         :started-late)]
-            (send-cue-messages show track cue event (or status beat))))
+            (send-cue-messages track cue event (or status beat))))
         (repaint-cue track cue)
         (repaint-cue-states track cue)))
     ;; Report cues we have newly exited, which we might also have previously been playing.
@@ -1734,8 +1734,8 @@
       (when-let [cue (find-cue track uuid)]
         (when (seq (players-playing-cue old-track cue))
           #_(timbre/info "detected end..." (:uuid cue))
-          (send-cue-messages show old-track cue :ended (or status beat)))
-        (send-cue-messages show old-track cue :exited (or status beat))
+          (send-cue-messages old-track cue :ended (or status beat)))
+        (send-cue-messages old-track cue :exited (or status beat))
         (repaint-cue track cue)
         (repaint-cue-states track cue)))
     ;; If the set of entered cues has changed, update the UI appropriately.
@@ -1802,22 +1802,22 @@
           ;; Report cues we have newly entered, which we might also be newly playing.
           (doseq [uuid (clojure.set/difference entered old-entered)]
             (when-let [cue (find-cue track uuid)]
-              (send-cue-messages show track cue :entered status)
+              (send-cue-messages track cue :entered status)
               (when (seq (players-playing-cue track cue))
-                (send-cue-messages show track cue :started-late status))
+                (send-cue-messages track cue :started-late status))
               (repaint-cue track cue)
               (repaint-cue-states track cue)))
           ;; Report cues we have newly exited, which we might also have previously been playing.
           (doseq [uuid (clojure.set/difference old-entered entered)]
             (when-let [cue (find-cue track uuid)]
               (when (seq (players-playing-cue old-track cue))
-                (send-cue-messages show track cue :ended status))
-              (send-cue-messages show track cue :exited status)
+                (send-cue-messages track cue :ended status))
+              (send-cue-messages track cue :exited status)
               (repaint-cue track cue)
               (repaint-cue-states track cue)))
           ;; Finaly, run the tracked update expression for the track, if it has one.
           ;; TODO: Let cues have tracked update expressions too, and run them for any entered cues here.
-          (future (run-track-function show track :tracked status false)))
+          (future (run-track-function track :tracked status false)))
         (update-playback-position show signature player)
         ;; If the set of entered cues has changed, update the UI appropriately.
         (when (not= entered old-entered)
@@ -2256,8 +2256,8 @@
 
 (defn- edit-cues-action
   "Creates the menu action which opens the track's cue editor window."
-  [show track panel gear]
-  (seesaw/action :handler (fn [_] (open-cues show track panel))
+  [track panel gear]
+  (seesaw/action :handler (fn [_] (open-cues track panel))
                  :name "Edit Track Cues"
                  :tip "Set up cues that react to particular sections of the track being played."
                  :icon (if (empty? (get-in track [:contents :cues :cues]))
@@ -2271,9 +2271,9 @@
   (for [[kind spec] editors/show-track-editors]
     (let [update-fn (fn []
                       (when (= kind :setup)  ; Clean up then run the new setup function
-                        (run-track-function show track :shutdown nil true)
+                        (run-track-function track :shutdown nil true)
                         (reset! (:expression-locals track) {})
-                        (run-track-function show track :setup nil true))
+                        (run-track-function track :setup nil true))
                       (update-track-gear-icon track gear))]
       (seesaw/action :handler (fn [e] (editors/show-show-editor kind (latest-show show)
                                        (latest-track track) panel update-fn))
@@ -2288,7 +2288,7 @@
 (defn- track-copy-actions
   "Returns a set of menu actions which offer to copy the track to any
   other open shows which do not already contain it."
-  [show track]
+  [track]
   (let [[show track] (latest-show-and-track track)
         track-root   (build-track-path show (:signature track))]
     (filter identity
@@ -2351,20 +2351,20 @@
   which will be indicated by this function returning falsey. Run any
   appropriate custom expressions and send configured MIDI messages to
   reflect the departure of the track."
-  [force? show track]
+  [force? track]
   (when (close-track-editors? force? track)
     (let [[show track] (latest-show-and-track track)]
       (when (:tripped track)
         (doseq [cue (get-in track [:contents :cues :cues])]
           (cleanup-cue true track cue))
         (when ((set (vals (:playing show))) (:signature track))
-          (send-stopped-messages show track nil))
+          (send-stopped-messages track nil))
         (when ((set (vals (:loaded show))) (:signature track))
-          (send-unloaded-messages show track)))
+          (send-unloaded-messages track)))
       (doseq [listener (vals (:listeners track))]
         (.removeTrackPositionListener time-finder listener))
       (swap-track! track dissoc :listeners)
-      (run-track-function show track :shutdown nil (not force?)))
+      (run-track-function track :shutdown nil (not force?)))
     true))
 
 (defn- delete-track-action
@@ -2386,7 +2386,7 @@
                                     #_(timbre/info "Exists?" (Files/isReadable path))
                                     (Files/delete path)
                                     #_(timbre/info "Still there?" (Files/isReadable path))))
-                                (cleanup-track true show track)
+                                (cleanup-track true track)
                                 (swap-show! show expunge-deleted-track track panel)
                                 (refresh-signatures show)
                                 (update-track-visibility show)
@@ -2565,10 +2565,10 @@
                :playing           #{}  ; The players actively playing this.
                :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
 
-        popup-fn (fn [e] (concat [(edit-cues-action show track panel gear) (seesaw/separator)]
+        popup-fn (fn [e] (concat [(edit-cues-action track panel gear) (seesaw/separator)]
                                  (track-editor-actions show track panel gear)
                                  [(seesaw/separator) (track-inspect-action track) (seesaw/separator)]
-                                 (track-copy-actions show track)
+                                 (track-copy-actions track)
                                  [(seesaw/separator) (delete-track-action show track panel)]))]
 
     (swap-show! show assoc-in [:tracks signature] track)
@@ -3132,7 +3132,7 @@
                                   (.removeLifecycleListener metadata-finder mf-listener)
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (doseq [track (vals (:tracks show))]
-                                    (cleanup-track true show track))
+                                    (cleanup-track true track))
                                   (run-global-function show :shutdown nil (not force?))
                                   (try
                                     (save-show show false)
