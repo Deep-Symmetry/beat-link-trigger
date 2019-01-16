@@ -487,11 +487,11 @@
 (declare build-cues)
 
 (defn- scroll-to-cue
-  "Makes sure the specified cue is visible (it has just been created or
-  edited), or give the user a warning that the current cue filters
-  have hidden it. If `select-comment` is true, this is a newly-created
-  cue, so focus on the comment field and select its entire content,
-  for easy editing."
+  "Makes sure the specified cue editor is visible (it has just been
+  created or edited), or give the user a warning that the current cue
+  filters have hidden it. If `select-comment` is true, this is a
+  newly-created cue, so focus on the comment field and select its
+  entire content, for easy editing."
   ([track cue]
    (scroll-to-cue track cue false false))
   ([track cue select-comment]
@@ -514,6 +514,37 @@
                        (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
                             "To continue working with it, you will need to adjust the filters.")
                        :title "Can't Scroll to Hidden Cue" :type :info))))))
+
+(def min-lane-height
+  "The minmum height, in pixels, we will allow a lane to shrink to
+  before we start growing the cues editor waveform to accommodate all
+  the cue lanes."
+  20)
+
+(defn- cue-rectangle
+  "Calculates the outline of a cue within the coordinate system of the
+  waveform detail component at the top of the cues editor window,
+  taking into account its lane assignment and cluster of neighbors.
+  `track` and `cue` must be current."
+  [track cue wave]
+  (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
+        lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
+        x                (.getXForBeat wave (:start cue))
+        w                (- (.getXForBeat wave (:end cue)) x)]
+    (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height)))
+
+(defn- scroll-wave-to-cue
+  "Makes sure the specified cue is visible in the waveform detail pane
+  of the cues editor window."
+  [track cue]
+  (let [track (latest-track track)
+        cue   (find-cue track cue)]
+    (when-let [editor (:cues-editor track)]
+      (let [auto-scroll (seesaw/select (:panel editor) [:#auto-scroll])
+            wave        (:wave editor)]
+        (seesaw/config! auto-scroll :selected? false)  ; Make sure auto-scroll is turned off.
+        (seesaw/invoke-later  ; Wait for re-layout if necessary.
+         (seesaw/scroll! wave :to (.getBounds (cue-rectangle track cue wave))))))))
 
 (defn- update-cue-spinner-models
   "When the start or end position of a cue has changed, that affects the
@@ -560,6 +591,13 @@
   (let [shows (swap-track! track update-in [:contents :cues :hue]
                            (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
+
+(defn- scroll-wave-to-cue-action
+  "Creates the menu action which scrolls the waveform detail to ensure
+  the specified cue is visible."
+  [track cue]
+  (seesaw/action :handler (fn [_] (scroll-wave-to-cue track cue))
+                 :name "Scroll Waveform to This Cue"))
 
 (defn- duplicate-cue-action
   "Creates the menu action which duplicates an existing cue."
@@ -787,28 +825,10 @@
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-preview-rectangle track cue preview)))))
 
-(def min-lane-height
-  "The minmum height, in pixels, we will allow a lane to shrink to
-  before we start growing the cues editor waveform to accommodate all
-  the cue lanes."
-  20)
-
 (def selection-opacity
   "The degree to which the active selection replaces the underlying
   waveform colors."
   (float 0.5))
-
-(defn- cue-rectangle
-  "Calculates the outline of a cue within the coordinate system of the
-  waveform detail component at the top of the cues editor window,
-  taking into account its lane assignment and cluster of neighbors.
-  `track` and `cue` must be current."
-  [track cue wave]
-  (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
-        lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
-        x                (.getXForBeat wave (:start cue))
-        w                (- (.getXForBeat wave (:end cue)) x)]
-    (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height)))
 
 (defn- paint-cues-and-beat-selection
   "Draws the cues and the selected beat range, if any, on top of the
@@ -1039,6 +1059,7 @@
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
         popup-fn (fn [e] (concat (cue-editor-actions track cue panel gear)
                                  [(seesaw/separator) (track-inspect-action track) (seesaw/separator)
+                                  (scroll-wave-to-cue-action track cue) (seesaw/separator)
                                   (duplicate-cue-action track cue) (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
