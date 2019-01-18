@@ -1221,15 +1221,47 @@
                            (vals (get-in track [:contents :cues :cues]))))]
     [cue track]))
 
+(def delete-cursor
+  "A custom cursor that indicates a selection will be canceled."
+  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                       (.getImage (seesaw/icon "images/Delete-cursor.png"))
+                       (java.awt.Point. 7 7)
+                       "Deselect"))
+
+(defn- shift-down?
+  "Checks whether the shift key was pressed when an event occured."
+  [^java.awt.event.InputEvent e]
+  (pos? (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK)))
+
+(defn- handle-wave-key
+  "Processes a key event while a cue waveform is being displayed, in
+  case it requires a cursor change."
+  [track ^WaveformDetail wave ^java.awt.event.InputEvent e]
+  (let [track (latest-track track)
+        [unshifted shifted] (get-in track [:cues-editor :cursors])]
+    (when unshifted  ; We have cursors defined, so apply the appropriate one
+      (.setCursor wave (if (shift-down? e) shifted unshifted)))))
+
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
   cues."
   [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
-  (let [[cue] (find-cue-under-mouse track wave e)]
+  (let [[cue track] (find-cue-under-mouse track wave e)
+        x           (.getX e)
+        beat        (long (.getBeatForX wave x))
+        selection   (get-in track [:cues-editor :selection])]
     (.setToolTipText wave (if cue
                             (or (:comment cue) "Unnamed Cue")
-                            "Click and drag to select a beat range for the New Cue button."))))
+                            "Click and drag to select a beat range for the New Cue button."))
+    (if (and selection (= selection [beat (inc beat)]))
+      (let [shifted   delete-cursor
+            unshifted (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR))]
+        (.setCursor wave (if (shift-down? e) shifted unshifted))
+        (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted]))
+      (do
+        (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR)))
+        (swap-track! track update :cues-editor dissoc :cursors)))))
 
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
@@ -1256,16 +1288,19 @@
   [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
   (let [[cue track] (find-cue-under-mouse track wave e)
         x           (.getX e)
-        shift       (> (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK) 0)
         beat        (long (.getBeatForX wave x))
         selection   (get-in track [:cues-editor :selection])]
-    (if (and shift selection)
+    (if (and (shift-down? e) selection)
       (if (= selection [beat (inc beat)])
-        (swap-track! track update :cues-editor dissoc :selection)  ; Shift-click on single-beat selection clears it.
+        (do  ; Shift-click on single-beat selection clears it.
+          (swap-track! track update :cues-editor dissoc :selection :cursors)
+          (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR))))
         (handle-wave-drag track wave grid e))  ; Adjusting an existing selection; we can handle it as a drag.
       ;; We are starting a new selection.
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
-        (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])  ; Yes, set new selection.
+        (do  ; Yes, set new selection.
+          (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])
+          (handle-wave-move track wave e))  ; Update the cursors.
         (swap-track! track update :cues-editor dissoc :selection)))  ; No, clear selection.
     (.repaint wave)
     (when cue (scroll-to-cue track cue false true))))
@@ -1421,6 +1456,10 @@
         cues         (seesaw/vertical-panel :id :cues)
         cues-scroll  (seesaw/scrollable cues)
         layout       (seesaw/border-panel :north top-panel :center cues-scroll)
+        key-spy      (proxy [java.awt.KeyEventDispatcher] []
+                       (dispatchKeyEvent [^java.awt.event.KeyEvent e]
+                         (handle-wave-key track wave e)
+                         false))
         close-fn     (fn [force?]
                        ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
                        ;; will do so even in the presence of windows with unsaved user changes. Otherwise
@@ -1434,12 +1473,15 @@
                            (seesaw/invoke-later
                             ;; Gives windows time to close first, so they don't recreate a broken editor.
                             (swap-track! track dissoc :cues-editor))
+                           (.removeKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)
+                                                      key-spy)
                            (.dispose root)
                            true)))]
     (swap-track! track assoc :cues-editor {:frame    root
                                            :panel    top-panel
                                            :wave     wave
                                            :close-fn close-fn})
+    (.addKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager) key-spy)
     (.setScale wave (seesaw/value zoom-slider))
     (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR)))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
