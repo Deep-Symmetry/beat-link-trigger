@@ -20,7 +20,7 @@
             [com.evocomputing.colors :as colors]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
-           [java.awt Color Font Graphics2D Rectangle RenderingHints]
+           [java.awt Color Cursor Font Graphics2D Rectangle RenderingHints]
            [java.awt.event WindowEvent]
            [java.lang.ref SoftReference]
            [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
@@ -1228,6 +1228,20 @@
                        (java.awt.Point. 7 7)
                        "Deselect"))
 
+(def move-w-cursor
+  "A custom cursor that indicates the left edge of something will be moved."
+  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                       (.getImage (seesaw/icon "images/Move-W-cursor.png"))
+                       (java.awt.Point. 7 7)
+                       "Move Left Edge"))
+
+(def move-e-cursor
+  "A custom cursor that indicates the right edge of something will be moved."
+  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                       (.getImage (seesaw/icon "images/Move-E-cursor.png"))
+                       (java.awt.Point. 7 7)
+                       "Move Right Edge"))
+
 (defn- shift-down?
   "Checks whether the shift key was pressed when an event occured."
   [^java.awt.event.InputEvent e]
@@ -1242,10 +1256,19 @@
     (when unshifted  ; We have cursors defined, so apply the appropriate one
       (.setCursor wave (if (shift-down? e) shifted unshifted)))))
 
+(defn- drag-cursor
+  "Determines the proper cursor that will reflect the nearest edge of
+  the selection that will be dragged, given the beat under the mouse."
+  [track beat]
+  (let [[start end]    (get-in (latest-track track) [:cues-editor :selection])
+        start-distance (Math/abs (- beat start))
+        end-distance   (Math/abs (- beat end))]
+    (if (< start-distance end-distance) move-w-cursor move-e-cursor)))
+
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
-  cues."
+  cues and selection."
   [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
   (let [[cue track] (find-cue-under-mouse track wave e)
         x           (.getX e)
@@ -1254,13 +1277,18 @@
     (.setToolTipText wave (if cue
                             (or (:comment cue) "Unnamed Cue")
                             "Click and drag to select a beat range for the New Cue button."))
-    (if (and selection (= selection [beat (inc beat)]))
-      (let [shifted   delete-cursor
-            unshifted (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR))]
-        (.setCursor wave (if (shift-down? e) shifted unshifted))
-        (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted]))
+    (if selection
+      (if (= selection [beat (inc beat)])
+        (let [shifted   delete-cursor ; We are hovering over a single-beat selection, and can delete it.
+              unshifted (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)]
+          (.setCursor wave (if (shift-down? e) shifted unshifted))
+          (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted]))
+        (let [shifted   (drag-cursor track beat)
+              unshifted (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)]
+          (.setCursor wave (if (shift-down? e) shifted unshifted))
+          (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted])))
       (do
-        (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR)))
+        (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
         (swap-track! track update :cues-editor dissoc :cursors)))))
 
 (defn- handle-wave-drag
@@ -1278,7 +1306,9 @@
         (swap-track! track assoc-in [:cues-editor :selection]
                      (if (< start-distance end-distance)
                        [(max 1 beat) end]
-                       [start (min (.beatCount grid) (inc beat))])))
+                       [start (min (.beatCount grid) (inc beat))]))
+        (.setCursor wave (drag-cursor track beat))  ; Update cursor to reflect new selection state.
+        (swap-track! track update :cues-editor dissoc :cursors))  ; Cursor no longer depends on Shift key state.
       (.repaint wave))))
 
 (defn- handle-wave-click
@@ -1294,7 +1324,7 @@
       (if (= selection [beat (inc beat)])
         (do  ; Shift-click on single-beat selection clears it.
           (swap-track! track update :cues-editor dissoc :selection :cursors)
-          (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR))))
+          (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
         (handle-wave-drag track wave grid e))  ; Adjusting an existing selection; we can handle it as a drag.
       ;; We are starting a new selection.
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
@@ -1483,7 +1513,7 @@
                                            :close-fn close-fn})
     (.addKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager) key-spy)
     (.setScale wave (seesaw/value zoom-slider))
-    (.setCursor wave (java.awt.Cursor/getPredefinedCursor (java.awt.Cursor/CROSSHAIR_CURSOR)))
+    (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                (paintOverlay [component graphics]
@@ -1491,7 +1521,9 @@
     (seesaw/listen wave
                    :mouse-moved (fn [e] (handle-wave-move track wave e))
                    :mouse-pressed (fn [e] (handle-wave-click track wave (:grid track) e))
-                   :mouse-dragged (fn [e] (handle-wave-drag track wave (:grid track) e)))
+                   :mouse-dragged (fn [e] (handle-wave-drag track wave (:grid track) e))
+                   :mouse-released (fn [e] (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))))
+
     (seesaw/config! root :content layout)
     (build-cues track)
     (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
