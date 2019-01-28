@@ -1273,30 +1273,52 @@
         end-distance   (Math/abs (- beat end))]
     (if (< start-distance end-distance) move-w-cursor move-e-cursor)))
 
+(def click-edge-tolerance
+  "The number of pixels we can click away from an edge but still count
+  as dragging it."
+  3)
+
+(defn find-click-edge-target
+  "Sees if the cursor is within a few pixels of an edge of the selection
+  or a cue, and if so returns that as the drag darget should a click
+  occur. If there is an active selection, its `start` and `end` will be
+  supplied."
+  [track ^WaveformDetail wave ^MouseEvent e [start end]]
+  (cond
+    (and start (<= (Math/abs (- (.getX e) (.getXForBeat wave start))) click-edge-tolerance))
+    [nil :start]
+    (and end (<= (Math/abs (- (.getX e) (.getXForBeat wave end))) click-edge-tolerance))
+    [nil :end]))
+
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
   cues and selection."
   [track ^WaveformDetail wave ^MouseEvent e]
-  (let [[cue track] (find-cue-under-mouse track wave e)
-        x           (.getX e)
-        beat        (long (.getBeatForX wave x))
-        selection   (get-in track [:cues-editor :selection])]
+  (let [[cue track]     (find-cue-under-mouse track wave e)
+        x               (.getX e)
+        beat            (long (.getBeatForX wave x))
+        selection       (get-in track [:cues-editor :selection])
+        [near-cue edge] (find-click-edge-target track wave e selection)
+        default-cursor  (case edge
+                          :start move-w-cursor
+                          :end   move-e-cursor
+                          (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
     (.setToolTipText wave (if cue
                             (or (:comment cue) "Unnamed Cue")
                             "Click and drag to select a beat range for the New Cue button."))
     (if selection
       (if (= selection [beat (inc beat)])
         (let [shifted   delete-cursor ; We are hovering over a single-beat selection, and can delete it.
-              unshifted (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)]
+              unshifted default-cursor]
           (.setCursor wave (if (shift-down? e) shifted unshifted))
           (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted]))
         (let [shifted   (drag-cursor track beat)
-              unshifted (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)]
+              unshifted default-cursor]
           (.setCursor wave (if (shift-down? e) shifted unshifted))
           (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted])))
       (do
-        (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
+        (.setCursor wave default-cursor)
         (swap-track! track update :cues-editor dissoc :cursors)))))
 
 (defn- find-selection-drag-target
@@ -1351,12 +1373,16 @@
           (swap-track! track update :cues-editor dissoc :selection :cursors)
           (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
         (handle-wave-drag track wave e))  ; Adjusting an existing selection; we can handle it as a drag.
-      ;; We are starting a new selection.
-      (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
-        (do  ; Yes, set new selection.
-          (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])
-          (handle-wave-move track wave e))  ; Update the cursors.
-        (swap-track! track update :cues-editor dissoc :selection)))  ; No, clear selection.
+      (if-let [target (find-click-edge-target track wave e selection)]
+        (do ; We are dragging the edge of the selection or a cue.
+          (swap-track! track assoc-in [:cues-editor :drag-target] target)
+          (handle-wave-drag track wave e))
+        ;; We are starting a new selection.
+        (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
+          (do  ; Yes, set new selection.
+            (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])
+            (handle-wave-move track wave e))  ; Update the cursors.
+          (swap-track! track update :cues-editor dissoc :selection))))  ; No, clear selection.
     (.repaint wave)
     (when cue (scroll-to-cue track cue false true))))
 
