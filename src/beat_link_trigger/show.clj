@@ -21,7 +21,7 @@
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt Color Cursor Font Graphics2D Rectangle RenderingHints]
-           [java.awt.event WindowEvent]
+           [java.awt.event InputEvent MouseEvent WindowEvent]
            [java.lang.ref SoftReference]
            [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
@@ -830,6 +830,14 @@
   waveform colors."
   (float 0.5))
 
+(defn- get-current-selection
+  "Returns the starting and ending beat of the current selection in the
+  track, ignoring selections that have been dragged to zero size."
+  [track]
+  (when-let [selection (get-in (latest-track track) [:cues-editor :selection])]
+    (when (> (second selection) (first selection))
+      selection)))
+
 (defn- paint-cues-and-beat-selection
   "Draws the cues and the selected beat range, if any, on top of the
   waveform."
@@ -844,7 +852,7 @@
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-rectangle track cue wave)))
-    (when-let [[start end] (get-in track [:cues-editor :selection])]
+    (when-let [[start end] (get-current-selection track)]
       (let [x (.getXForBeat wave start)
             w (- (.getXForBeat wave end) x)]
         (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
@@ -1203,7 +1211,7 @@
   "Processes a mouse move over the softly-held waveform preview
   component, setting the tooltip appropriately depending on the
   location of cues."
-  [track soft-preview preview-loader ^java.awt.event.MouseEvent e]
+  [track soft-preview preview-loader ^MouseEvent e]
   (let [point (.getPoint e)
         track (latest-track track)
         cue (first (filter (fn [cue] (.contains (cue-preview-rectangle track cue (preview-loader)) point))
@@ -1214,7 +1222,7 @@
   "Checks whether the mouse is currently over any cue, and if so returns
   it as the first element of a tuple. Always returns the latest
   version of the supplied track as the second element of the tuple."
-  [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
+  [track ^WaveformDetail wave ^MouseEvent e]
   (let [point (.getPoint e)
         track (latest-track track)
         cue (first (filter (fn [cue] (.contains (cue-rectangle track cue wave) point))
@@ -1244,13 +1252,13 @@
 
 (defn- shift-down?
   "Checks whether the shift key was pressed when an event occured."
-  [^java.awt.event.InputEvent e]
-  (pos? (bit-and (.getModifiersEx e) java.awt.event.MouseEvent/SHIFT_DOWN_MASK)))
+  [^InputEvent e]
+  (pos? (bit-and (.getModifiersEx e) MouseEvent/SHIFT_DOWN_MASK)))
 
 (defn- handle-wave-key
   "Processes a key event while a cue waveform is being displayed, in
   case it requires a cursor change."
-  [track ^WaveformDetail wave ^java.awt.event.InputEvent e]
+  [track ^WaveformDetail wave ^InputEvent e]
   (let [track (latest-track track)
         [unshifted shifted] (get-in track [:cues-editor :cursors])]
     (when unshifted  ; We have cursors defined, so apply the appropriate one
@@ -1269,7 +1277,7 @@
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
   cues and selection."
-  [track ^WaveformDetail wave ^java.awt.event.MouseEvent e]
+  [track ^WaveformDetail wave ^MouseEvent e]
   (let [[cue track] (find-cue-under-mouse track wave e)
         x           (.getX e)
         beat        (long (.getBeatForX wave x))
@@ -1291,23 +1299,39 @@
         (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
         (swap-track! track update :cues-editor dissoc :cursors)))))
 
+(defn- find-selection-drag-target
+  "Checks if a drag target for a general selection has already been
+  established; if so, returns it, otherwise sets one up, unless we are
+  still sitting on the initial beat of a just-created selection."
+  [track start end beat]
+  (or (get-in track [:cues-editor :drag-target])
+      (timbre/info start end beat)
+      (when (not= start (dec end) beat)
+        (let [start-distance (Math/abs (- beat start))
+              end-distance   (Math/abs (- beat (dec end)))
+              target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))]]
+          (timbre/info start-distance end-distance)
+          (swap-track! track assoc-in [:cues-editor :drag-target] target)
+          target))))
+
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
   beat ranges for creating cues."
-  [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
-  (let [track       (latest-track track)
-        x           (.getX e)
-        beat        (long (.getBeatForX wave x))
-        [start end] (get-in track [:cues-editor :selection])]
+  [track ^WaveformDetail wave ^MouseEvent e]
+  (let [track          (latest-track track)
+        ^BeatGrid grid (:grid track)
+        x              (.getX e)
+        beat           (long (.getBeatForX wave x))
+        [start end]    (get-in track [:cues-editor :selection])]
     (when start  ; If there is no valid selection, there is nothing to extend.
       ;; We are trying to adjust an existing selection. Move the end that was nearest to the mouse.
-      (let [start-distance (Math/abs (- beat start))
-            end-distance   (Math/abs (- beat end))]
-        (swap-track! track assoc-in [:cues-editor :selection]
-                     (if (< start-distance end-distance)
-                       [(max 1 beat) end]
-                       [start (min (.beatCount grid) (inc beat))]))
-        (.setCursor wave (drag-cursor track beat))  ; Update cursor to reflect new selection state.
+      (let [[_ edge] (find-selection-drag-target track start end beat)]
+        (when edge
+          (swap-track! track assoc-in [:cues-editor :selection]
+                       (if (= :start edge)
+                         [(min end (max 1 beat)) end]
+                         [start (max start (min (.beatCount grid) (inc beat)))]))
+          (.setCursor wave (if (= :start edge) move-w-cursor move-e-cursor)))
         (swap-track! track update :cues-editor dissoc :cursors))  ; Cursor no longer depends on Shift key state.
       (.repaint wave))))
 
@@ -1315,17 +1339,18 @@
   "Processes a mouse click in the wave detail component, used for
   setting up beat ranges for creating cues, and scrolling the lower
   pane to cues."
-  [track ^WaveformDetail wave ^BeatGrid grid ^java.awt.event.MouseEvent e]
-  (let [[cue track] (find-cue-under-mouse track wave e)
-        x           (.getX e)
-        beat        (long (.getBeatForX wave x))
-        selection   (get-in track [:cues-editor :selection])]
+  [track ^WaveformDetail wave ^MouseEvent e]
+  (let [[cue track]     (find-cue-under-mouse track wave e)
+        ^BeatGrid grid (:grid track)
+        x               (.getX e)
+        beat            (long (.getBeatForX wave x))
+        selection       (get-in track [:cues-editor :selection])]
     (if (and (shift-down? e) selection)
       (if (= selection [beat (inc beat)])
         (do  ; Shift-click on single-beat selection clears it.
           (swap-track! track update :cues-editor dissoc :selection :cursors)
           (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
-        (handle-wave-drag track wave grid e))  ; Adjusting an existing selection; we can handle it as a drag.
+        (handle-wave-drag track wave e))  ; Adjusting an existing selection; we can handle it as a drag.
       ;; We are starting a new selection.
       (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
         (do  ; Yes, set new selection.
@@ -1334,6 +1359,18 @@
         (swap-track! track update :cues-editor dissoc :selection)))  ; No, clear selection.
     (.repaint wave)
     (when cue (scroll-to-cue track cue false true))))
+
+(defn- handle-wave-release
+  "Processes a mouse-released event in the wave detail component,
+  cleaning up any drag-tracking structures and cursors that were in
+  effect."
+  [track ^WaveformDetail wave ^MouseEvent e]
+  ;; TODO: Clean up drag state, eventually resize cue if we were dragging one.
+  (when-let [[start end] (get-in (latest-track track) [:cues-editor :selection])]
+    (when (>= start end)  ; If the selection has shrunk to zero size, remove it.
+      (swap-track! track update :cues-editor dissoc :selection)))
+  (swap-track! track update :cues-editor dissoc :drag-target)
+  (handle-wave-move track wave e))  ; This will restore the normal cursor.
 
 (defn- assign-cue-lanes
   [track cues cue-intervals]
@@ -1520,9 +1557,9 @@
                                  (paint-cues-and-beat-selection track component graphics))))
     (seesaw/listen wave
                    :mouse-moved (fn [e] (handle-wave-move track wave e))
-                   :mouse-pressed (fn [e] (handle-wave-click track wave (:grid track) e))
-                   :mouse-dragged (fn [e] (handle-wave-drag track wave (:grid track) e))
-                   :mouse-released (fn [e] (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))))
+                   :mouse-pressed (fn [e] (handle-wave-click track wave e))
+                   :mouse-dragged (fn [e] (handle-wave-drag track wave e))
+                   :mouse-released (fn [e] (handle-wave-release track wave e)))
 
     (seesaw/config! root :content layout)
     (build-cues track)
