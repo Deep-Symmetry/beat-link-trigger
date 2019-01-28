@@ -1281,14 +1281,23 @@
 (defn find-click-edge-target
   "Sees if the cursor is within a few pixels of an edge of the selection
   or a cue, and if so returns that as the drag darget should a click
-  occur. If there is an active selection, its `start` and `end` will be
+  occur. If there is an active selection, its `start` and `end` will
+  be supplied; similarly, if the mouse is over a `cue` that will be
   supplied."
-  [track ^WaveformDetail wave ^MouseEvent e [start end]]
+  [track ^WaveformDetail wave ^MouseEvent e [start end] cue]
   (cond
     (and start (<= (Math/abs (- (.getX e) (.getXForBeat wave start))) click-edge-tolerance))
     [nil :start]
+
     (and end (<= (Math/abs (- (.getX e) (.getXForBeat wave end))) click-edge-tolerance))
-    [nil :end]))
+    [nil :end]
+
+    cue
+    (let [r (cue-rectangle track cue wave)]
+      (if (<= (Math/abs (- (.getX e) (.getX r))) click-edge-tolerance)
+        [cue :start]
+        (when (<= (Math/abs (- (.getX e) (+ (.getX r) (.getWidth r)))) click-edge-tolerance)
+          [cue :end])))))
 
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
@@ -1299,7 +1308,7 @@
         x               (.getX e)
         beat            (long (.getBeatForX wave x))
         selection       (get-in track [:cues-editor :selection])
-        [near-cue edge] (find-click-edge-target track wave e selection)
+        [near-cue edge] (find-click-edge-target track wave e selection cue)
         default-cursor  (case edge
                           :start move-w-cursor
                           :end   move-e-cursor
@@ -1327,12 +1336,10 @@
   still sitting on the initial beat of a just-created selection."
   [track start end beat]
   (or (get-in track [:cues-editor :drag-target])
-      (timbre/info start end beat)
       (when (not= start (dec end) beat)
         (let [start-distance (Math/abs (- beat start))
               end-distance   (Math/abs (- beat (dec end)))
               target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))]]
-          (timbre/info start-distance end-distance)
           (swap-track! track assoc-in [:cues-editor :drag-target] target)
           target))))
 
@@ -1345,17 +1352,23 @@
         x              (.getX e)
         beat           (long (.getBeatForX wave x))
         [start end]    (get-in track [:cues-editor :selection])]
-    (when start  ; If there is no valid selection, there is nothing to extend.
-      ;; We are trying to adjust an existing selection. Move the end that was nearest to the mouse.
-      (let [[_ edge] (find-selection-drag-target track start end beat)]
-        (when edge
-          (swap-track! track assoc-in [:cues-editor :selection]
+    ;; We are trying to adjust an existing cue or selection. Move the end that was nearest to the mouse.
+    (let [[cue edge] (find-selection-drag-target track start end beat)]
+      (when edge
+        (if cue
+          (do  ; We are dragging the edge of a cue.
+            (if (= :start edge)
+              (swap-cue! track cue assoc :start (min (dec (:end cue)) (max 1 beat)))
+              (swap-cue! track cue assoc :end (max (inc (:start cue)) (min (.beatCount grid) (inc beat)))))
+            (build-cues track))
+          (swap-track! track assoc-in [:cues-editor :selection]  ; We are dragging the beat selection.
                        (if (= :start edge)
                          [(min end (max 1 beat)) end]
-                         [start (max start (min (.beatCount grid) (inc beat)))]))
-          (.setCursor wave (if (= :start edge) move-w-cursor move-e-cursor)))
-        (swap-track! track update :cues-editor dissoc :cursors))  ; Cursor no longer depends on Shift key state.
-      (.repaint wave))))
+                         [start (max start (min (.beatCount grid) (inc beat)))])))
+
+        (.setCursor wave (if (= :start edge) move-w-cursor move-e-cursor))
+        (.repaint wave))
+      (swap-track! track update :cues-editor dissoc :cursors))))  ; Cursor no longer depends on Shift key state.
 
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
@@ -1373,7 +1386,7 @@
           (swap-track! track update :cues-editor dissoc :selection :cursors)
           (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
         (handle-wave-drag track wave e))  ; Adjusting an existing selection; we can handle it as a drag.
-      (if-let [target (find-click-edge-target track wave e selection)]
+      (if-let [target (find-click-edge-target track wave e selection cue)]
         (do ; We are dragging the edge of the selection or a cue.
           (swap-track! track assoc-in [:cues-editor :drag-target] target)
           (handle-wave-drag track wave e))
@@ -1391,10 +1404,16 @@
   cleaning up any drag-tracking structures and cursors that were in
   effect."
   [track ^WaveformDetail wave ^MouseEvent e]
-  ;; TODO: Clean up drag state, eventually resize cue if we were dragging one.
-  (when-let [[start end] (get-in (latest-track track) [:cues-editor :selection])]
-    (when (>= start end)  ; If the selection has shrunk to zero size, remove it.
-      (swap-track! track update :cues-editor dissoc :selection)))
+  (let [track (latest-track track)
+        [cue-dragged] (get-in track [:cues-editor :drag-target])]
+    (when cue-dragged
+      (let [cue (find-cue track cue-dragged)]
+        (let [panel (get-in track [:cues-editor :panels (:uuid cue)])]
+          (seesaw/value! (seesaw/select panel [:#start]) (:start cue))
+          (seesaw/value! (seesaw/select panel [:#end]) (:end cue)))))
+    (when-let [[start end] (get-in track [:cues-editor :selection])]
+      (when (>= start end)  ; If the selection has shrunk to zero size, remove it.
+        (swap-track! track update :cues-editor dissoc :selection))))
   (swap-track! track update :cues-editor dissoc :drag-target)
   (handle-wave-move track wave e))  ; This will restore the normal cursor.
 
