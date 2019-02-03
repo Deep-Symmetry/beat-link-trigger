@@ -63,7 +63,7 @@
                          "it needs to use number 1, 2, 3, or 4.<br>"
                          "Please use the <strong>Network</strong> menu in the "
                          "<strong>Triggers</strong> window to go offline,<br>"
-                         "make sure the <strong>Request Track Metadata?</strong> option is checked,<br>"
+                         "make sure the <strong>Use Real Player Number?</strong> option is checked,<br>"
                          "then go back online and try again."
                          (when (>= (count (util/visible-player-numbers)) 4)
                            (str
