@@ -769,6 +769,75 @@
                                     slot-reference))))
    true))
 
+;; Creates a menu item node for the Year menu.
+(defmethod menu-item-node Message$MenuItemType/YEAR_MENU year-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestYearMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
+;; Creates a menu item node for all tracks created in a given
+;; decade. Invoked as a contextual handler for the ALL item.
+(defn- create-all-years-decade-node
+  "Handles the ALL menu item when listing genre artist albums. Creates
+  an appropriate node to implement it."
+  [decade ^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "[ALL YEARS]")
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByDecadeAndYear menu-loader slot-reference 0 decade -1)
+                               slot-reference))))
+   true))
+
+;; Creates a menu item node for all tracks created in a given
+;; decade and year. Invoked as a contextual handler for the YEAR item.
+(defn- create-year-node
+  "Handles the ALL menu item when listing genre artist albums. Creates
+  an appropriate node to implement it."
+  [decade ^Message item ^SlotReference slot-reference]
+  (let [year (menu-item-id item)]
+    (DefaultMutableTreeNode.
+     (proxy [Object IMenuEntry] []
+       (toString [] (str year))
+       (getId [] (int 0))
+       (getSlot [] slot-reference)
+       (getTrackType [] nil)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (attach-menu-node-children node (.requestTracksByDecadeAndYear menu-loader slot-reference 0 decade year)
+                                      slot-reference))))
+     true)))
+
+;; Creates a menu item node for a decade within the Time menu.
+(defmethod menu-item-node Message$MenuItemType/YEAR decade-node
+  [^Message item ^SlotReference slot-reference]
+  (let [decade (menu-item-id item)]
+    (DefaultMutableTreeNode.
+     (proxy [Object IMenuEntry] []
+       (toString [] (str decade "s"))
+       (getId [] (int 0))
+       (getSlot [] slot-reference)
+       (getTrackType [] nil)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (attach-menu-node-children node (.requestYearsByDecadeFrom menu-loader slot-reference 0 decade)
+                                      slot-reference
+                                      {Message$MenuItemType/ALL (partial create-all-years-decade-node decade)
+                                       Message$MenuItemType/YEAR (partial create-year-node decade)}))))
+     true)))
+
 ;; Creates a menu item node for the Genre menu.
 (defmethod menu-item-node Message$MenuItemType/GENRE_MENU genre-menu-node
   [^Message item ^SlotReference slot-reference]
