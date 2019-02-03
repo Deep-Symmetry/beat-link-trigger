@@ -46,6 +46,9 @@ This change log follows the conventions of
   windows, even between runs of the program, so they stay where you
   like them (although if they would be off the screen, they will come
   back in a default position).
+- The Color, Filename, Time, and Year menus are supported for media
+  that has been configured to contain them when loading tracks, thanks
+  to reports from Ramon Palmieri and J C.
 - You can use the command-line argument `-o` or `--offline` to start
   immediately in offline mode, without spending time searching for a
   DJ Link network. This will not even start the Beat Link DeviceFinder
