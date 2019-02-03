@@ -614,6 +614,132 @@
          (attach-menu-node-children node (.requestAlbumMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
+;; Creates a menu item node for the Color menu.
+(defmethod menu-item-node Message$MenuItemType/COLOR_MENU color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestColorMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color pink. TODO: Make it actually pink?
+(defmethod menu-item-node Message$MenuItemType/COLOR_PINK color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 1) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color red. TODO: Make it actually red?
+(defmethod menu-item-node Message$MenuItemType/COLOR_RED color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 2) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color orange. TODO: Make it actually orange?
+(defmethod menu-item-node Message$MenuItemType/COLOR_ORANGE color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 3) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color yellow. TODO: Make it actually yellow?
+(defmethod menu-item-node Message$MenuItemType/COLOR_YELLOW color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 4) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color green. TODO: Make it actually green?
+(defmethod menu-item-node Message$MenuItemType/COLOR_GREEN color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 5) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color aqua. TODO: Make it actually aqua?
+(defmethod menu-item-node Message$MenuItemType/COLOR_AQUA color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 6) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color blue. TODO: Make it actually blue?
+(defmethod menu-item-node Message$MenuItemType/COLOR_BLUE color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 7) slot-reference))))
+   true))
+
+;; Creates a menu item node for the color purple. TODO: Make it actually purple?
+(defmethod menu-item-node Message$MenuItemType/COLOR_PURPLE color-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 8) slot-reference))))
+   true))
+
 ;; Creates a menu item node for the Genre menu.
 (defmethod menu-item-node Message$MenuItemType/GENRE_MENU genre-menu-node
   [^Message item ^SlotReference slot-reference]
