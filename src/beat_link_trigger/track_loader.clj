@@ -629,7 +629,7 @@
    true))
 
 ;; Creates a menu item node for the color pink. TODO: Make it actually pink?
-(defmethod menu-item-node Message$MenuItemType/COLOR_PINK color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_PINK color-pink-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -643,7 +643,7 @@
    true))
 
 ;; Creates a menu item node for the color red. TODO: Make it actually red?
-(defmethod menu-item-node Message$MenuItemType/COLOR_RED color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_RED color-red-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -657,7 +657,7 @@
    true))
 
 ;; Creates a menu item node for the color orange. TODO: Make it actually orange?
-(defmethod menu-item-node Message$MenuItemType/COLOR_ORANGE color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_ORANGE color-orange-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -671,7 +671,7 @@
    true))
 
 ;; Creates a menu item node for the color yellow. TODO: Make it actually yellow?
-(defmethod menu-item-node Message$MenuItemType/COLOR_YELLOW color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_YELLOW color-yellow-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -685,7 +685,7 @@
    true))
 
 ;; Creates a menu item node for the color green. TODO: Make it actually green?
-(defmethod menu-item-node Message$MenuItemType/COLOR_GREEN color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_GREEN color-green-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -699,7 +699,7 @@
    true))
 
 ;; Creates a menu item node for the color aqua. TODO: Make it actually aqua?
-(defmethod menu-item-node Message$MenuItemType/COLOR_AQUA color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_AQUA color-aqua-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -713,7 +713,7 @@
    true))
 
 ;; Creates a menu item node for the color blue. TODO: Make it actually blue?
-(defmethod menu-item-node Message$MenuItemType/COLOR_BLUE color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_BLUE color-blue-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -727,7 +727,7 @@
    true))
 
 ;; Creates a menu item node for the color purple. TODO: Make it actually purple?
-(defmethod menu-item-node Message$MenuItemType/COLOR_PURPLE color-menu-node
+(defmethod menu-item-node Message$MenuItemType/COLOR_PURPLE color-purple-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
