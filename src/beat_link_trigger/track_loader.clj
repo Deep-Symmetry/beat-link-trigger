@@ -1146,15 +1146,16 @@
   the slot reference."
   [^SlotReference slot-reference]
   (let [raw    (.player slot-reference)
-        number (cond (zero? raw)  ""
-                     (< raw 0x10) raw
-                     (< raw 41)   (- raw 0x20)
-                     :else        (- raw 40))
+        number (cond
+                 (zero? raw) ""
+                 (< raw 41)  (bit-and raw 0x0f)
+                 :else       (- raw 40))
         kind   (cond
                  (zero? raw)  "File"
                  (< raw 0x10) "Player "
-                 (< raw 41)   "Mixer "
-                 :else        "Computer ")
+                 (< raw 0x20) "Computer "
+                 (> raw 40)   "Mobile "
+                 :else        "Mixer ")
         base   (str kind number
                     (util/case-enum (.slot slot-reference)
                       CdjStatus$TrackSourceSlot/SD_SLOT " SD"
