@@ -740,6 +740,35 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 8) slot-reference))))
    true))
 
+;; Creates a menu item node for the Time menu.
+(defmethod menu-item-node Message$MenuItemType/TIME_MENU time-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTimeMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
+;; Creates a menu item node for a track duration from Time menu.
+(defmethod menu-item-node Message$MenuItemType/DURATION duration-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-id item) " minutes"))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestTracksByTimeFrom menu-loader slot-reference 0 (menu-item-id item))
+                                    slot-reference))))
+   true))
+
 ;; Creates a menu item node for the Genre menu.
 (defmethod menu-item-node Message$MenuItemType/GENRE_MENU genre-menu-node
   [^Message item ^SlotReference slot-reference]
