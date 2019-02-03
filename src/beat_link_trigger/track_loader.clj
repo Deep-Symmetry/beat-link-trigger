@@ -1069,6 +1069,21 @@
                                 Message$MenuItemType/TRACK_TITLE create-filesystem-track-node}))))
    true))
 
+;; Creates a menu item node for the Filename menu.
+(defmethod menu-item-node Message$MenuItemType/FILENAME_MENU filename-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestFilenameMenuFrom menu-loader slot-reference 0)
+                                    slot-reference))))
+   true))
+
 ;; Creates a menu item node for an album.
 (defmethod menu-item-node Message$MenuItemType/ALBUM_TITLE album-node
   [^Message item ^SlotReference slot-reference]
