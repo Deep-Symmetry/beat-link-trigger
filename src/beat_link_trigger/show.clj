@@ -1531,7 +1531,7 @@
           (let [show (latest-show show)]
             (doseq [player (players-signature-set (:playing show) (:signature track))]
               (when-let [position (.getLatestPositionFor time-finder player)]
-                (.setPlaybackState (:wave editor) player (.milliseconds position) (.playing position)))))
+                (.setPlaybackState (:wave editor) player (.getTimeFor time-finder player) (.playing position)))))
           (catch Throwable t
             (timbre/warn "Problem animating cues editor waveform" t)))
         (recur (:cues-editor (latest-track track)))))
