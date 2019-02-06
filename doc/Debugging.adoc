@@ -87,6 +87,34 @@ Suddenly your logs will be growing steadily, filling with lines like these:
   track BPM: 126.0, effective BPM: 126.0, beat within bar: 1 master? false
 ```
 
+=== Reporting Issues
+
+If you run into trouble and it seems likely the problem is in Beat
+Link Trigger itself rather than one of your own expressions, you can
+use menu:Help[Report Issue (email)] to send an email to Deep Symmetry
+asking for help. The message will start out populated with some
+information about the version of Beat Link Trigger you are running,
+along with the Java version and operating system, but the more details
+you can provide in the initial report (along with relevant logs), the
+more likely we will be able to figure out what is going on.
+
+The program may also offer to compose an issue pre-filled with details
+when it encounters unexpected messages sent by CDJs it is talking to.
+
+If the problem turns out to be trickier than can be understood from
+just logs, follow-up questions and experimentation may be needed. In
+such cases
+https://helpx.adobe.com/experience-manager/kb/TakeThreadDump.html[thread
+dumps] are often a valuable next step.
+
+You can also skip the email and open an
+https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue]
+directly on the project's GitHub page.
+
+In any case, even if Deep Symmetry is unable to investigate your
+report immediately (since this is free software developed during our
+spare time), we very much appreciate you taking the effort to send it.
+
 == Inspecting Locals and Globals
 
 In addition to logging values to the log file, you can get a glimpse
