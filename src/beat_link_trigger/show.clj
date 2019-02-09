@@ -1655,11 +1655,12 @@
   editor window, in its waveform detail."
   [show signature player]
   (when-let [position (.getLatestPositionFor time-finder player)]
-    (when-let [preview-loader (get-in show [:tracks signature :preview])]
-      (when-let [preview (preview-loader)]
-        (.setPlaybackState preview player (.milliseconds position) (.playing position))))
-    (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
-      (.setPlaybackState (:wave cues-editor) player (.milliseconds position) (.playing position)))))
+    (let [interpolated-time (.getTimeFor time-finder player)]
+      (when-let [preview-loader (get-in show [:tracks signature :preview])]
+        (when-let [preview (preview-loader)]
+          (.setPlaybackState preview player interpolated-time (.playing position))))
+      (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
+        (.setPlaybackState (:wave cues-editor) player interpolated-time (.playing position))))))
 
 (defn- send-stopped-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
