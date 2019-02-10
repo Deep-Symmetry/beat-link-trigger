@@ -708,7 +708,7 @@
   [kind show track]
   (let [title (get-in (if track show-track-editors global-show-editors) [kind :title])]
     (if track
-      (str title " for Track \"" (get-in track [:metadata :title]) "\"")
+      (str (or title kind) " for Track \"" (get-in track [:metadata :title]) "\"")
       (str "Show \"" (fs/base-name (:file show) true) "\" " title))))
 
 (defn- update-show-expression
