@@ -2350,7 +2350,7 @@
         (if (some? result)
           result  ; Yes, we can return same instance we last created.
           (let [next-object (loader)]
-            (when next-object (timbre/info "soft loaded" next-object))
+            #_(when next-object (timbre/info "soft loaded" next-object))
             (reset! reference (SoftReference. next-object))
             next-object))))))
 
