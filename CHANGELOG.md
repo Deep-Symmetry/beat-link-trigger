@@ -58,6 +58,13 @@ This change log follows the conventions of
 
 ### Fixed
 
+- A longstanding issue in the Beat Link library could cause events
+  from players to stop being delivered (the most obvious symptom would
+  be the Player Status window locking up) until BLT was taken offline
+  and back online. Even then, there would be a thread stuck in an
+  infinite loop which would be wasting a core of a CPU until the
+  program was quit and restarted. This was finally tracked down thanks
+  to some thread dumps supplied by @Kevinnns.
 - When a track is loaded, even if it has no artwork and we are
   transitioning from no track or another track with no artwork, update
   the generic image to better reflect that there is a track and where
@@ -71,6 +78,14 @@ This change log follows the conventions of
 - The Beat Link library previously could be tricked when a player was
   powered off and back on into reporting stale metadata and waveform
   information.
+- The memory point and hot cue markers disappeared from the waveform
+  previews in the Player Status window at some point between adding
+  color waveform support and support for multiple simultaneous player
+  playback positions (for the show interface). They have been
+  restored.
+- Some spurious warnings that could pollute the log file were
+  eliminated with the help of some more logs and Wireshark captures
+  supplied by @Kevinnns.
 - The preferences writing code takes measures to ensure that Clojure's
   `*print-level*` and `*print-depth*` variables do not inadvertently
   truncate large trigger lists.

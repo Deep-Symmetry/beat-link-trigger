@@ -34,7 +34,7 @@ There is also an interface for monitoring
 the status of each player found on the network, which you can access
 by choosing `Show Player Status` in the `Network` menu:
 
-<img src="doc/assets/PlayerStatus.png" alt="Player Status window" width="538" height="678">
+<img src="doc/assets/PlayerStatus.png" alt="Player Status window" width="599" height="842">
 
 ### Going Further
 
