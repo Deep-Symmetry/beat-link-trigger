@@ -36,7 +36,7 @@ happening right now on all the decks. As shown in the example view
 below, this can be an invaluable resoure on its own for running
 visuals for a show, even if you don't have any triggers set up:
 
-image:assets/PlayerStatus.png[Player Status Window,538,678]
+image:assets/PlayerStatus.png[Player Status Window,599,842]
 
 Only players currently visible on the network will appear in this
 window. The player number will be bright green if it is currently
