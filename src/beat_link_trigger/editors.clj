@@ -434,9 +434,9 @@
 
    :beat {:title "Beat Expression"
           :tip "Called on each beat from devices with the track loaded."
-          :description "Called whenever a beat packet is received from a
-  player. You can use this for beat-driven integrations with other
-  systems.<p>
+          :description "Called whenever a beat packet is received from
+  a player that is playing this track. You can use this for
+  beat-driven integrations with other systems.<p>
 
   The player track position inferred from the beat object that was received, a beat-link <a
   href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>

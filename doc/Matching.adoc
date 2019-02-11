@@ -39,11 +39,21 @@ Summary>> discussion, the most convenient way to match a track is
 using metadata obtained from the players, so Beat Link Trigger asks
 the player hosting the track for details like its title, artist, and
 so on. This section describes how to work with that metadata in your
-triggers. If you are unable to get metadata (although as of version
-0.5.0 we can't think of any situations where this might apply), you
-can prepare ahead of time by hard-coding the rekordbox ID numbers in
-your triggers, or you can set up a <<Players#caching-metadata,Metadata
-Cache>>.
+triggers.
+
+TIP: Rather than using the low-level approach described in this
+section, you will almost always want to use the new, convenient
+<<Shows#shows,Show interface>> introduced in version 0.5. It gives you
+an incredibly powerful graphical interface for matching tracks and
+defining cues on beat ranges within those tracks.
+
+If, for some reason, you don't want to use the Show interface, and you
+are unable to get metadata (although as of version 0.5.0 we can't
+think of any situations where this might apply), you can prepare ahead
+of time by hard-coding the rekordbox ID numbers in your triggers, or
+you can set up a <<Players#caching-metadata,Metadata Cache>>.
+
+== Manual Track Matching
 
 The simplest approach is to configure your triggers to Watch Any
 Player, and use a custom Enabled Filter expression to activate them
@@ -115,11 +125,11 @@ from beat 65 to 192, inclusive.
 [[writing-a-playlist]]
 == Writing a Playlist
 
-Another way to take advantage of the new metadata support is to write
-out a file that logs all the tracks that were played during a DJ set.
-Here is a simple example of how to do that, although you can certainly
-get fancier in terms of how you format the timestamps and what
-information you log.
+Another way to take advantage of metadata support is to write out a
+file that logs all the tracks that were played during a DJ set. Here
+is a simple example of how to do that, although you can certainly get
+fancier in terms of how you format the timestamps and what information
+you log.
 
 TIP: Starting with version 0.4.0, Beat Link Trigger has a built-in
 <<Debugging#writing-playlists,Playlist Writer window>> that does all
@@ -198,7 +208,7 @@ Timestamp: 2017-03-18T18:22:07.713
 == License
 
 +++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
-Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © 2016&ndash;2019 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
 http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License

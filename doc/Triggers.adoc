@@ -49,6 +49,12 @@ choosing menu:Triggers[Clear Triggers].
 
 image:assets/TriggersMenu.png[Triggers Menu,392,206]
 
+TIP: Triggers allow you to build all kinds of integrations with your
+players, at a very low level. For the common case of wanting to make
+something happen when a particular part of a specific track is played,
+the new <<Shows#shows,Show Interface>> added in version 0.5 is much
+easier and more convenient to use, so you may want to start with that!
+
 == Trigger Elements
 
 Here are the sections of a trigger, and how they work:
@@ -343,7 +349,7 @@ trigger, unless it is the only remaining trigger in the window.
 == License
 
 +++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
-Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © 2016&ndash;2019 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
 http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License

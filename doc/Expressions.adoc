@@ -100,16 +100,16 @@ for help in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
 [[global-expressions]]
-== Global Expressions
+== Triggers Global Expressions
 
 The Triggers menu at the top of the window lets you define two
 expressions that can manage values you want to make available to all
-your other expressions.
+your other Trigger expressions.
 
-To support that, all expressions have access to a Clojure
+To support that, all Trigger expressions have access to a Clojure
 http://clojure.org/reference/atoms[atom] named `globals` that is
-shared with all other expressions, so that's a great place to put
-things for them to find. The atom starts out holding an empty
+shared with all other Trigger expressions, so that's a great place to
+put things for them to find. The atom starts out holding an empty
 http://clojure.org/reference/data_structures#Maps[map], which allows
 you to add key/value pairs to organize the information you want to
 share across expressions.
@@ -172,6 +172,7 @@ address and port, in `:chamsys-on` and `:chamsys-off`.
 
 The Beat Expression below shows how these globals are actually used.
 
+[[global-shutdown-expression]]
 === Global Shutdown Expression
 
 This is run when Beat Link Trigger is
@@ -491,6 +492,261 @@ message that tells MagicQ the remote trigger is off again. So, by
 cycling those messages once per beat, the lighting console can be
 driven at the same BPM as the CDJs.
 
+[[show-global-expressions]]
+== Show Global Expressions
+
+Starting with version 0.5 you can use <<Shows#shows,Show files>> to
+more conveniently perform actions when specific sections of particular
+tracks are played. Shows have their own sets of expressions, which we
+cover next.
+
+The Tracks menu at the top of a Show window lets you define three
+expressions that can manage values you want to make available to all
+your other expressions within the Show.
+
+To support that, all Show expressions have access to a Clojure
+http://clojure.org/reference/atoms[atom] named `globals` that is
+shared with all other Show expressions, so that's a great place to put
+things for them to find. The atom starts out holding an empty
+http://clojure.org/reference/data_structures#Maps[map], which allows
+you to add key/value pairs to organize the information you want to
+share across expressions.
+
+[show-global-setup-expression]
+=== Global Setup Expression
+
+This is run when the Show file is opened, either because you
+explicitly opened it using the Triggers window menu:File[] menu, or
+because Beat Link Trigger automatically reopened it at launch because
+you had it open the last time you used the program. You can use it to
+open network connections or set up other values for your Track and Cue
+expressions to use.
+
+[[show-default-enabled-filter-expression]]
+=== Default Enabled Filter Expression
+
+The basic concept of an Enabled Filter is described in the
+<<overview,introduction>> to this section; shows use them in a similar
+way. Each Track that you are watching in the Show can be enabled
+separately. If the track's menu:Enabled[] menu is set to Default, that
+track will look to the show itself to decide whether it should be
+enabled. There is an Enabled Default menu at the top of the Show
+window that is used by all tracks whose Enabled mode is Default. If
+the Show's Enabled Default is set to Custom, it will run your Default
+Enabled Filter Expression to decide what to do. If your expression
+returns a `true` value, all these tracks will be enabled; otherwise
+they will be disabled.
+
+Disabled Tracks do not respond to being played, and all of their
+configured cues are disabled.
+
+
+[[show-global-shutdown-expression]]
+=== Global Shutdown Expression
+
+This is run when the Show file is closed, either because you closed
+the window, or because Beat Link Trigger is shutting down. You can use
+it to close any network connections or clean up any other resources
+your Global Setup Expression allocated.
+
+[[show-track-expressions]]
+== Show Track Expressions
+
+Each track you add to a show can have its own set of expressions which
+apply to that track, allowing you to take actions when the track is
+loaded on a player, starts or stops playing, and so on. To react to
+more specific regions of the track, see the
+<<Shows#show-cue-expressions,Cue Expressions, below>>.
+
+The track expressions can be accessed from the track's context menu.
+In addition to the `globals` atom described above, these have access
+to a very similar `locals` atom which can be used to share values
+across expressions within the track itself (but not other tracks; each
+gets its own `locals` map), and individual kinds of expressions will
+automatically have other values available to them which make sense in
+the context in which the expression is used.
+
+TIP: The help text below the expression editor will list and explain
+the values that are automatically available for use in that kind of
+expression.
+
+[track-setup-expression]
+=== Setup Expression
+
+This is run when the Show file is opened, either because you
+explicitly opened it using the Triggers window menu:File[] menu, or
+because Beat Link Trigger automatically reopened it at launch because
+you had it open the last time you used the program. You can use it to
+open network connections or set up other values for this Track and its
+Cue expressions to use.
+
+[[track-enabled-filter-expression]]
+=== Enabled Filter Expression
+
+The basic concept of an Enabled Filter is described in the
+<<overview,introduction>> to this section; tracks use them in a
+similar way. If the track's menu:Enabled[] menu is set to Custom, it
+will run its Enabled Filter Expression to decide what to do. If your
+expression returns a `true` value, this tracks will be enabled;
+otherwise it will be disabled.
+
+Disabled Tracks do not respond to being played, and all of their
+configured cues are disabled.
+
+Note that you can also set the menu:Enabled[] menu to Default in order
+to run the Show-level Default Enabled Filter as described
+<<Shows#show-default-enable-filter-expression,above>>.
+
+[[track-loaded-expression]]
+=== Loaded Expression
+
+This is called when the track is first loaded into any player. (The
+same track might be loaded into multiple players at the same time;
+this expression is called only when the first player loads it. The
+track will continue to be considered loaded until the final player
+unloads it.)
+
+This expression is only called when the track is enabled (disabled
+tracks are not considered loaded).
+
+[[track-playing-expression]]
+=== Playing Expression
+
+This is called when some player begins to play the track. (The same
+track might be playing on multiple players at the same time; this
+expression is called only when the first player starts playing it. The
+track will continue to be considered playing until the final player
+stops playing it.)
+
+This expression is only called when the track is enabled (disabled
+tracks are not considered to be playing).
+
+[[track-beat-expression]]
+=== Beat Expression
+
+Called whenever a beat packet is received from a player that is
+playing this track, as long as the track is enabled.
+
+[[track-tracked-update-expression]]
+=== Tracked Update Expression
+
+Called whenever a status update packet is received from a player that
+has this track loaded, after the Enabled Filter Expression, if any,
+has had a chance to decide if the track is enabled, and after the
+Loaded, Playing, Stopped, or Unloaded expression, if appropriate.
+
+If the track is not enabled, this expression is not called.
+
+[[track-stopped-expression]]
+=== Stopped Expression
+
+This is called when the last player that had been playing the track
+stops. (The same track might be playing on multiple players at the
+same time; this expression is called only when the final player stops
+playing it, so it is no longer playing on any player.)
+
+A track will also report stopping if it becomes disabled while it was
+playing.
+
+[[track-unloaded-expression]]
+=== Unloaded Expression
+
+This is called when the track is unloaded from the last player that
+had loaded it. (The same track might be loaded into multiple players
+at the same time; this expression is called only when the final player
+unloads it, so it is no longer loaded in any player.)
+
+A track will also report unloading if it becomes disabled while it was
+loaded.
+
+[[track-shutdown-expression]]
+=== Shutdown Expression
+
+This is run when the Show file is closed, either because you closed
+the window, or because Beat Link Trigger is shutting down. You can use
+it to close any network connections or clean up any other resources
+your Setup Expression allocated.
+
+[[show-cue-expressions]]
+== Show Cue Expressions
+
+Each Cue you add to a show track can have its own set of expressions
+which apply to that cue, allowing you to take actions when some player
+moves into or out of that cue, if the cue starts playing on its first
+beat or from some point later within the cue, or if it stops playing.
+
+The cue expressions can be accessed from the cue's context menu. Cues
+have access to the same `globals` and `locals` atoms that track
+expressions in the cue's track do, and individual kinds of expressions
+will automatically have other values available to them which make
+sense in the context in which the expression is used.
+
+TIP: The help text below the expression editor will list and explain
+the values that are automatically available for use in that kind of
+expression.
+
+[[cue-entered-expression]]
+=== Entered Expression
+
+Called when the cue's track is enabled, and the first player moves
+inside the cue (in other words, the playback position of at least one
+player that has the cue's track loaded is within the beat range that
+defines the cue).
+
+There can be multiple players inside the cue at any given moment, but
+this expression will be called only when the first one enters it.
+
+If the track is disabled, no players will be considered to be inside
+any of its cues.
+
+[[cue-started-on-beat-expression]]
+=== Started On-Beat Expression
+
+Called when the first player that is playing the track moves into the
+cue, as long as it does so right at the beginning of the cue, and hits
+the start of the first beat that defines the cue.
+
+There can be multiple players playing the cue at any given moment, but
+this expression will be called only when the first one enters it.
+
+If the track is disabled, no players will be considered to be playing
+any of its cues.
+
+[[cue-started-late-expression]]
+=== Started Late Expression
+
+Called when the first player that is playing the track moves into the
+cue, but misses the beginning of the cue, either because the DJ jumped
+into the middle of the cue, or because the player was paused somewhere
+in the middle of cue and then started playing.
+
+There can be multiple players playing the cue at any given moment, but
+this expression will be called only when the first one enters it.
+
+If the track is disabled, no players will be considered to be playing
+any of its cues.
+
+[[cue-ended-expression]]
+=== Ended Expression
+
+Called when the last player that was playing the cue either leaves it
+or stops playing. There can be multiple players playing the cue at any
+given moment, and this expression will be called as soon as there are
+none left.
+
+If the track becomes disabled while it was playing this cue, this
+expression will be called at that point as well.
+
+[[cue-exited-expression]]
+=== Exited Expression
+
+Called when the last player that was inside the cue leaves it. There
+can be multiple players positioned in the cue at any given moment, and
+this expression will be called as soon as there are none left.
+
+If the track becomes disabled while there were players positioned
+inside this cue, this expression will be called at that point as well.
+
 == Learning More
 
 ****
@@ -504,7 +760,7 @@ driven at the same BPM as the CDJs.
 == License
 
 +++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
-Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © 2016&ndash;2019 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
 http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License

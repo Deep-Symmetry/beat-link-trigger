@@ -404,7 +404,7 @@ the window:
 
 ****
 
-* Continue to <<Link#working-with-ableton-link,Working with Ableton Link>>
+* Continue to <<Shows#shows,Shows>>
 * Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
 
 ****
@@ -413,7 +413,7 @@ the window:
 == License
 
 +++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
-Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © 2016&ndash;2019 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
 http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License

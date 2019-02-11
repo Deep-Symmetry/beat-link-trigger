@@ -60,6 +60,10 @@ being played.
 Get a detailed view of what is happening on each player, what is
 coming up next, and even load and play tracks during pre-show.
 
+<<Shows#shows,Shows>>::
+Watch for beat ranges of specific tracks to be played, and send
+things like MIDI or OSC messages in response.
+
 <<Link#working-with-ableton-link,Working with Ableton Link>>::
 With the help of
 https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Triggers
@@ -193,7 +197,7 @@ efforts, tools, toys, and time to explore.
 == License
 
 +++<a href="http://deepsymmetry.org"><img src="assets/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
-Copyright © 2016&ndash;2018 http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © 2016&ndash;2019 http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the
 http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
