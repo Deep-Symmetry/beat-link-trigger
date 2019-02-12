@@ -726,6 +726,21 @@ this expression will be called only when the first one enters it.
 If the track is disabled, no players will be considered to be playing
 any of its cues.
 
+[[cue-beat-expression]]
+=== Beat Expression
+
+Called whenever a beat packet is received from a player that is
+playing inside this cue, as long as the track is enabled. (This
+is not called for the first beat of the cue; when that is played,
+the Started on-Beat expression is called instead.)
+
+[[cue-tracked-update-expression]]
+=== Tracked Update Expression
+
+Called whenever a status update packet is received from a player
+whose playback position is inside this cue (as long as the track
+is enabled), after the Entered or Started expression, if appropriate.
+
 [[cue-ended-expression]]
 === Ended Expression
 

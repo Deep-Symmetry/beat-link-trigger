@@ -438,17 +438,19 @@
   a player that is playing this track. You can use this for
   beat-driven integrations with other systems.<p>
 
-  The player track position inferred from the beat object that was received, a beat-link <a
+  A tuple containing the raw beat object that was received and the
+  player track position inferred from it (a beat-link <a
   href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
-  object, is available as <code>status</code>, and you can use normal
-  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
-  interop syntax</a> to access its fields and methods, but it is
-  generally easier to use the convenience variables described below.<p>
+  object), is available as <code>status</code>, and you can use normal
+  Clojure destructuring and <a
+  href=\"http://clojure.org/reference/java_interop\">Java interop
+  syntax</a> to access its fields and methods, but it is generally
+  easier to use the convenience variables described below.<p>
 
   This expression is called on its own thread, so it is free to
   perform-long running operations, such as network communication,
   without concern for tying up other Beat Link Trigger activities."
-          :bindings (show-bindings-for-track-and-class TrackPositionUpdate)}
+          :bindings (show-bindings-for-track-and-class :beat-tpu)}
 
    :tracked {:title "Tracked Update Expression"
              :tip "Called for each update from a player with this track loaded, when enabled."
@@ -514,7 +516,7 @@
   the Setup expression."
               :bindings (show-bindings-for-track-and-class nil)}))
 
-(def show-track-cue-bindings
+(def show-bindings-for-track-and-cue
   "Identifies symbols which can be used inside any show track cue
   expression, along with the expression that will be used to
   automatically bind that symbol if it is used in the expression, and
@@ -523,17 +525,6 @@
          :doc  "All the details known about the cue. Copy to an
   Expression Local if you want to use the Inspector to explore
   them."}
-
-   'track {:code '(:track trigger-data)
-           :doc  "All the details known about the track. Copy to an
-  Expression Local if you want to use the Inspector to
-  explore them."}
-
-   'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
-                         (:track trigger-data))
-                 :doc  "The MIDI output object chosen for this
-  track. May be <code>nil</code> if the output device cannot be
-  found in the current MIDI environment."}
 
    'entered-message {:code '(get-in trigger-data [:cue :events :entered :message])
                      :doc  "The type of MIDI message to be sent when
@@ -583,53 +574,145 @@
    ;; TODO: Copy in lots of other status and/or beat information with safe finders?
    })
 
+(defn- show-bindings-for-cue-and-class
+  "Collects the set of bindings for a show cue editor which is called
+  with a particular class of status object. Merges the standard show,
+  track, and cue convenience bindings with those associated with the
+  specified class, which may be `nil`."
+  [update-class]
+  (merge show-bindings
+         show-bindings-for-track
+         show-bindings-for-track-and-cue
+         (when update-class (expressions/bindings-for-update-class update-class))))
+
 (def show-track-cue-editors
   "Specifies the kinds of editor which can be opened for a show track cue,
   along with the kinds of details needed to compile the expressions
   they edit. Created as an explicit array map to keep the keys in the
   order they are found here."
   (array-map
-   :entered {:title "Entered Expression"
-             :tip "Called when a player moves inside this cue, if the track is enabled."
+   :entered {:title    "Entered Expression"
+             :tip      "Called when a player moves inside this cue, if the track is enabled."
              :description
              "Called when the track is enabled and the first player
   moves inside this cue. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-            :bindings show-track-cue-bindings}
-   :started-on-beat {:title "Started On-Beat Expression"
-            :tip "Called when a player starts playing this cue from its first beat, if the track is enabled."
-            :description
-            "Called when the track is enabled and the first player
-  starts playing the cue from the beginning of its first beat. You can
-  use this to trigger systems that do not respond to MIDI, or to send
-  more detailed information than MIDI allows."
-                     :bindings show-track-cue-bindings}
-   :started-late {:title "Started Late Expression"
-            :tip "Called when a player starts playing this cue later than its first beat, if the track is enabled."
-            :description
-            "Called when the track is enabled and the first player
+             :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
+
+   :started-on-beat {:title    "Started On-Beat Expression"
+                     :tip
+                     "Called when a player starts playing this cue from its first beat, if the track is enabled."
+                     :description
+                     "Called when the track is enabled and the first
+  player starts playing the cue from the beginning of its first beat.
+  You can use this to trigger systems that do not respond to MIDI, or
+  to send more detailed information than MIDI allows.<p>
+
+  A tuple containing the raw beat object that was received and the
+  player track position inferred from it (a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
+  object), is available as <code>status</code>, and you can use normal
+  Clojure destructuring and <a
+  href=\"http://clojure.org/reference/java_interop\">Java interop
+  syntax</a> to access its fields and methods, but it is generally
+  easier to use the convenience variables described below.<p>
+
+  This expression is called on its own thread, so it is free to
+  perform-long running operations, such as network communication,
+  without concern for tying up other Beat Link Trigger activities."
+                     :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
+   :started-late {:title    "Started Late Expression"
+                  :tip
+                  "Called when a player starts playing this cue later than its first beat, if the track is enabled."
+                  :description
+                  "Called when the track is enabled and the first player
   starts playing the cue from somewhere other than the beginning of
   its first beat. You can use this to trigger systems that do not
   respond to MIDI, or to send more detailed information than MIDI
-  allows."
-                  :bindings show-track-cue-bindings}
-   :ended {:title "Ended Expression"
-            :tip "Called when all players stop playing this cue, if the track is enabled."
+  allows.
+
+  This expression is called on its own thread, so it is free to
+  perform-long running operations, such as network communication,
+  without concern for tying up other Beat Link Trigger activities."
+                  :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
+
+   :beat   {:title "Beat Expression"
+            :tip   "Called on each beat from devices playing inside the cue."
             :description
-            "Called when the track is enabled and the last player that
+            "Called whenever a beat packet is received from a player
+  that is playing this cue (other than for the beat that started the
+  cue, if any, which will have called the started-on-beat or
+  started-late expression). You can use this for beat-driven
+  integrations with other systems.<p>
+
+  A tuple containing the raw beat object that was received and the
+  player track position inferred from it (a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
+  object), is available as <code>status</code>, and you can use normal
+  Clojure destructuring and <a
+  href=\"http://clojure.org/reference/java_interop\">Java interop
+  syntax</a> to access its fields and methods, but it is generally
+  easier to use the convenience variables described below.<p>
+
+  This expression is called on its own thread, so it is free to
+  perform-long running operations, such as network communication,
+  without concern for tying up other Beat Link Trigger activities."
+            :bindings (show-bindings-for-cue-and-class :beat-tpu)}
+
+   :tracked {:title "Tracked Update Expression"
+             :tip "Called for each update from a player that is positioned inside the cue, when the track is enabled."
+             :description
+             "Called whenever a status update packet is received from
+  a player whose playback position is inside the cue (as long as the
+  track is enabled), and after calling the entered or started
+  expression, if appropriate. The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below.
+  If you want to only relay updates when the cue is active (at least
+  one player is playing it), wrap your code inside a <code>when</code>
+  expression conditioned on the <code>players-playing</code>
+  convenience variable.<p>
+
+  This expression is called on its own thread, so it is free to
+  perform long-running operations, such as network communication,
+  without concern for tying up other Beat Link Trigger activities."
+          :bindings (show-bindings-for-cue-and-class CdjStatus)}
+
+:ended {:title "Ended Expression"
+           :tip   "Called when all players stop playing this cue, if the track is enabled."
+           :description
+           "Called when the track is enabled and the last player that
   had been playing this cue leaves it or stops playing. You can use
   this to trigger systems that do not respond to MIDI, or to send more
-  detailed information than MIDI allows."
-            :bindings show-track-cue-bindings}
+  detailed information than MIDI allows.<p>
+
+  Note that sometimes <code>status</code> will be <code>nil</code>,
+  such as when the track becomes disabled or the cue settings have
+  been changed, so your expression must be able to cope with
+  <code>nil</code> values for all the convenience variables that it
+  uses."
+           :bindings    (show-bindings-for-cue-and-class DeviceUpdate)
+           :nil-status? true}
+
    :exited {:title "Exited Expression"
-            :tip "Called when all players move outside this cue, if the track is enabled."
+            :tip   "Called when all players move outside this cue, if the track is enabled."
             :description
             "Called when the track is enabled and the last player that
   had been inside this cue moves back out of it. You can use this to
   trigger systems that do not respond to MIDI, or to send more
-  detailed information than MIDI allows."
-            :bindings show-track-cue-bindings}))
+  detailed information than MIDI allows.<p>
+
+  Note that sometimes <code>status</code> will be <code>nil</code>,
+  such as when the track becomes disabled or the cue settings have
+  been changed, so your expression must be able to cope with
+  <code>nil</code> values for all the convenience variables that it
+  uses."
+            :bindings    (show-bindings-for-cue-and-class DeviceUpdate)
+            :nil-status? true}))
 
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the

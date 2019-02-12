@@ -468,10 +468,10 @@
                                         :cue    cue}
                         (:expression-globals show)) nil]
         (catch Throwable t
-          (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
+          (timbre/error t (str "Problem running " (editors/cue-editor-title kind track cue) ":\n"
                                (get-in track [:contents :expressions kind])))
-          (when alert? (seesaw/alert (str "<html>Problem running track " (name kind) " expression.<br><br>" t)
-                                     :title "Exception in Show Track Expression" :type :error))
+          (when alert? (seesaw/alert (str "<html>Problem running cue " (name kind) " expression.<br><br>" t)
+                                     :title "Exception in Show Cue Expression" :type :error))
           [nil t])))))
 
 (defn- update-cue-gear-icon
@@ -715,7 +715,7 @@
               (case message
                 "Note" (midi/midi-note-on output note 127 (dec channel))
                 "CC"   (midi/midi-control output note 127 (dec channel))))))
-        (when (= "Custom" message) (run-cue-function track cue event status-or-beat false)))
+        (when (= "Custom" message) (future (run-cue-function track cue event status-or-beat false))))
       (when (#{:started-on-beat :started-late} event)
         ;; Record how we started this cue so we know which event to send upon ending it.
         (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
@@ -1775,8 +1775,7 @@
                                        (future
                                          (try
                                            (when (enabled? show track)
-                                             ;; TODO: Allow cues to have beat functions too, and run for entered cues.
-                                             (run-track-function track :beat position false))
+                                             (run-track-function track :beat [beat position] false))
                                            (catch Exception e
                                              (timbre/error e "Problem reporting track beat."))))))))))
         listener (get-in shows [(:file show) :tracks (:signature track) :listeners player])]
@@ -1895,6 +1894,7 @@
   (let [old-track   (get-in show [:last :tracks (:signature track)])
         entered     (reduce clojure.set/union (vals (:entered track)))
         old-entered (reduce clojure.set/union (vals (:entered old-track)))]
+
     ;; Even cues we have not entered/exited may have changed playing state.
     (doseq [uuid (clojure.set/intersection entered old-entered)]
       (when-let [cue (find-cue track uuid)]  ; Make sure it wasn't deleted.
@@ -1909,17 +1909,22 @@
             (send-cue-messages track cue event (or status beat))
             (repaint-cue track cue)
             (repaint-cue-states track cue)))))
+
     ;; Report cues we have newly entered, which we might also be newly playing.
     (doseq [uuid (clojure.set/difference entered old-entered)]
       (when-let [cue (find-cue track uuid)]
         (send-cue-messages track cue :entered (or status beat))
         (when (seq (players-playing-cue track cue))
-          (let [event (if (and beat (= (:start cue) (.beatNumber position)))
-                        :started-on-beat
-                        :started-late)]
-            (send-cue-messages track cue event (or status beat))))
+          (let [event          (if (and beat (= (:start cue) (.beatNumber position)))
+                                 :started-on-beat
+                                 :started-late)
+                status-or-beat (if (= event :started-on-beat)
+                                 [beat position]
+                                 (or status beat))]
+            (send-cue-messages track cue event status-or-beat)))
         (repaint-cue track cue)
         (repaint-cue-states track cue)))
+
     ;; Report cues we have newly exited, which we might also have previously been playing.
     (doseq [uuid (clojure.set/difference old-entered entered)]
       (when-let [cue (find-cue track uuid)]
@@ -1929,6 +1934,13 @@
         (send-cue-messages old-track cue :exited (or status beat))
         (repaint-cue track cue)
         (repaint-cue-states track cue)))
+
+    ;; If we received a beat, run the basic beat expression for cues that we were already inside.
+    (when beat
+      (doseq [uuid (clojure.set/intersection old-entered entered)]
+        (when-let [cue (find-cue track uuid)]
+          (future (run-cue-function track cue :beat [beat position] false)))))
+
     ;; If the set of entered cues has changed, update the UI appropriately.
     (when (not= entered old-entered)
       (repaint-all-cue-states track)
@@ -1990,6 +2002,7 @@
       (let [entered     (reduce clojure.set/union (vals (:entered track)))
             old-entered (reduce clojure.set/union (vals (:entered old-track)))]
         (when (:tripped track)
+
           ;; Report cues we have newly entered, which we might also be newly playing.
           (doseq [uuid (clojure.set/difference entered old-entered)]
             (when-let [cue (find-cue track uuid)]
@@ -1998,6 +2011,7 @@
                 (send-cue-messages track cue :started-late status))
               (repaint-cue track cue)
               (repaint-cue-states track cue)))
+
           ;; Report cues we have newly exited, which we might also have previously been playing.
           (doseq [uuid (clojure.set/difference old-entered entered)]
             (when-let [cue (find-cue track uuid)]
@@ -2006,9 +2020,13 @@
               (send-cue-messages track cue :exited status)
               (repaint-cue track cue)
               (repaint-cue-states track cue)))
+
           ;; Finaly, run the tracked update expression for the track, if it has one.
-          ;; TODO: Let cues have tracked update expressions too, and run them for any entered cues here.
-          (future (run-track-function track :tracked status false)))
+          (future (run-track-function track :tracked status false))
+          (doseq [uuid entered]  ; And do the same for any cues we are inside of.
+            (when-let [cue (find-cue track uuid)]
+              (future (run-cue-function track cue :tracked status false)))))
+
         (update-playback-position show signature player)
         ;; If the set of entered cues has changed, update the UI appropriately.
         (when (not= entered old-entered)
