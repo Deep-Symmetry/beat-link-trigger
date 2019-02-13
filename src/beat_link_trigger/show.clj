@@ -1969,7 +1969,7 @@
     (cond
       (not= old-loaded signature)
       (do  ; This is a switch between two different tracks.
-        (timbre/info "Switching between two tracks." old-loaded signature)
+        #_(timbre/info "Switching between two tracks." old-loaded signature)
         (when old-track
           (when old-playing (no-longer-playing show player old-track status false))
           (no-longer-loaded show player old-track false))
@@ -1979,7 +1979,7 @@
 
       (and (not= (:tripped old-track) (:tripped track)))
       (do  ; This is an overall activation/deactivation.
-        (timbre/info "Track changing tripped to " (:tripped track))
+        #_(timbre/info "Track changing tripped to " (:tripped track))
         (if (:tripped track)
           (do  ; Track is now active.
             (when (seq (players-signature-set (:loaded show) signature))
@@ -1992,10 +1992,10 @@
       :else
       (when track  ; Track is not changing tripped state, but we may be reporting a new playing state.
         (when (and old-playing (not is-playing))
-          (timbre/info "Track stopped playing naturally.")
+          #_(timbre/info "Track stopped playing naturally.")
           (no-longer-playing show player old-track status false))
         (when (and is-playing (not old-playing))
-          (timbre/info "Track started playing naturally.")
+          #_(timbre/info "Track started playing naturally.")
           (now-playing show player track status false))))
 
     (when track
