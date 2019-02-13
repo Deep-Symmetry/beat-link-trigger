@@ -1906,7 +1906,7 @@
                               :started-late)
                             :ended)]
           (when (not= is-playing was-playing)
-            (send-cue-messages track cue event (or status beat))
+            (send-cue-messages track cue event (if (= event :started-late) (or status beat) [beat position]))
             (repaint-cue track cue)
             (repaint-cue-states track cue)))))
 
