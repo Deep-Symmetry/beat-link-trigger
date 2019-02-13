@@ -445,11 +445,7 @@
   Clojure destructuring and <a
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
-  easier to use the convenience variables described below.<p>
-
-  This expression is called on its own thread, so it is free to
-  perform-long running operations, such as network communication,
-  without concern for tying up other Beat Link Trigger activities."
+  easier to use the convenience variables described below."
           :bindings (show-bindings-for-track-and-class :beat-tpu)}
 
    :tracked {:title "Tracked Update Expression"
@@ -468,11 +464,7 @@
   If you want to only relay updates when the track is active (is
   enabled, and at least one player is playing), wrap your code inside a
   <code>when</code> expression conditioned on the
-  <code>playing-players</code> convenience variable.<p>
-
-  This expression is called on its own thread, so it is free to
-  perform long-running operations, such as network communication,
-  without concern for tying up other Beat Link Trigger activities."
+  <code>playing-players</code> convenience variable."
              :bindings (show-bindings-for-track-and-class CdjStatus)}
 
    :stopped {:title "Stopped Expression"
@@ -616,12 +608,8 @@
   Clojure destructuring and <a
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
-  easier to use the convenience variables described below.<p>
-
-  This expression is called on its own thread, so it is free to
-  perform-long running operations, such as network communication,
-  without concern for tying up other Beat Link Trigger activities."
-                     :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
+  easier to use the convenience variables described below."
+                     :bindings (show-bindings-for-cue-and-class :beat-tpu)}
    :started-late {:title    "Started Late Expression"
                   :tip
                   "Called when a player starts playing this cue later than its first beat, if the track is enabled."
@@ -630,11 +618,7 @@
   starts playing the cue from somewhere other than the beginning of
   its first beat. You can use this to trigger systems that do not
   respond to MIDI, or to send more detailed information than MIDI
-  allows.
-
-  This expression is called on its own thread, so it is free to
-  perform-long running operations, such as network communication,
-  without concern for tying up other Beat Link Trigger activities."
+  allows."
                   :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
 
    :beat   {:title "Beat Expression"
@@ -653,11 +637,7 @@
   Clojure destructuring and <a
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
-  easier to use the convenience variables described below.<p>
-
-  This expression is called on its own thread, so it is free to
-  perform-long running operations, such as network communication,
-  without concern for tying up other Beat Link Trigger activities."
+  easier to use the convenience variables described below."
             :bindings (show-bindings-for-cue-and-class :beat-tpu)}
 
    :tracked {:title "Tracked Update Expression"
@@ -675,11 +655,7 @@
   If you want to only relay updates when the cue is active (at least
   one player is playing it), wrap your code inside a <code>when</code>
   expression conditioned on the <code>players-playing</code>
-  convenience variable.<p>
-
-  This expression is called on its own thread, so it is free to
-  perform long-running operations, such as network communication,
-  without concern for tying up other Beat Link Trigger activities."
+  convenience variable."
           :bindings (show-bindings-for-cue-and-class CdjStatus)}
 
 :ended {:title "Ended Expression"
