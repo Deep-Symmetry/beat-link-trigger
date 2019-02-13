@@ -59,6 +59,73 @@ workbook that progressively introduces the language through exercises
 with instant feedback—and better support and guidance when errors
 happen than the language itself provides. It’s worth checking out.
 
+If you are working with the new Show interface, rather than low-level
+Triggers, then the expressions you'll be using are at the
+<<Expressions#show-global-expressions,end of this section>>, but you
+should at least skim the Triggers expression explanations too, because
+they introduce some important concepts that are useful everywhere.
+
+=== With Great Power comes Great Responsibility
+
+WARNING: The code you write in expressions gets compiled into Beat
+Link Trigger in the same way as the program itself was written. This
+gives you great power, but it also means you can completely lock up
+the program if you change the wrong things or get stuck in an infinite
+loop. It's important to start simple, and to keep in mind that your
+expressions run as part of processing network updates from players and
+mixers, so they need to finish fast.
+
+Beat Link Trigger tries to protect against many kinds of things that
+can go wrong in your expressions. If one throws an exception, it will
+be logged so you can view it in the log file, and that instance of
+calling your expression will be abruptly cancelled, but the next
+expression or activity will get a chance to run.
+
+The real problem is when your code does something that takes a long
+time, or even worse, gets stuck in an infinite loop. If that happens,
+nothing else that is supposed to respond to the event that caused your
+expression to run will get a chance to, and events can pile up behind
+your stuck expression, freezing user interface updates, and blocking
+the MIDI or other messages you are supposed to be sending. So watch
+for that, and remember which expressions you have changed recently if
+things go badly wrong.
+
+If you legitimately need to do something in an expression that could
+take a long time, such as an HTTP request, or any other sort of
+round-trip network communication, you need to make it asynchronous by
+wrapping the potentially-slow operation in a Clojure `(future …)`
+block. This will run in a separate thread, so it will not slow down
+the expression, or the delivery of events to other triggers, shows,
+cues, or the user interface.
+
+The tricky part about using `future` to run your code asynchronously
+is when you need to do something with whatever answer you got back
+from your long-running operation. You can't just return it, like you
+would in a simple, direct expression, because the expression has
+already moved on, it did not wait for the answer. The easiest solution
+is to have your asynchronous code inside the `future` block record the
+answer into an expression local or global, and then other expressions
+(or even future invocations of this expression) can check the local or
+global to see if the answer is ready, and use it when it is. That is a
+quick operation. So as long as your code works (even if it doesn't yet
+do anything) while the answer is still missing, it can use it without
+blocking other activity as soon as it becomes available in the
+expression local or global.
+
+TIP: There aren't any examples of this kind of asynchronous code in
+the user guide yet, but if you have a situation where you need one,
+ask in the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat],
+and perhaps we can turn your needs into a new example for future
+releases.
+
+Also, note that it is only sending two-way network communications that
+you need to worry about. Sending MIDI messages and short one-way UDP
+messages (like OSC and some lighting controllers use) should be no
+problem without resorting to asynchronous code, and you will find
+examples of doing just that throughout this guide.
+
+=== Editing Expressions
+
 The expression you are first likely to want to use is the Enabled
 Filter, which is found in each trigger's context menu. In fact, as
 soon as you set a trigger's menu:Enabled[] menu to Custom, Beat Link
