@@ -1835,7 +1835,6 @@
             (timbre/error e "Problem reporting playing track.")))
         ;; Report late start for any cues we were sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
-          ;; TODO: Need to test if we do actually get a beat first for on-beat start like I am assuming.
           (send-cue-messages track uuid :started-late status)
           (repaint-cue track uuid)
           (repaint-cue-states track uuid)))
