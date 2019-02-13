@@ -673,6 +673,9 @@ this expression is called only when the first player loads it. The
 track will continue to be considered loaded until the final player
 unloads it.)
 
+NOTE: If you want this expression to run, make sure the track's
+menu:Loaded Message[] menu is set to `Custom`.
+
 This expression is only called when the track is enabled (disabled
 tracks are not considered loaded).
 
@@ -684,6 +687,9 @@ track might be playing on multiple players at the same time; this
 expression is called only when the first player starts playing it. The
 track will continue to be considered playing until the final player
 stops playing it.)
+
+NOTE: If you want this expression to run, make sure the track's
+menu:Playing Message[] menu is set to `Custom`.
 
 This expression is only called when the track is enabled (disabled
 tracks are not considered to be playing).
@@ -712,6 +718,9 @@ stops. (The same track might be playing on multiple players at the
 same time; this expression is called only when the final player stops
 playing it, so it is no longer playing on any player.)
 
+NOTE: If you want this expression to run, make sure the track's Playing
+Message menu is set to `Custom`.
+
 A track will also report stopping if it becomes disabled while it was
 playing.
 
@@ -722,6 +731,9 @@ This is called when the track is unloaded from the last player that
 had loaded it. (The same track might be loaded into multiple players
 at the same time; this expression is called only when the final player
 unloads it, so it is no longer loaded in any player.)
+
+NOTE: If you want this expression to run, make sure the track's
+menu:Loaded Message[] menu is set to `Custom`.
 
 A track will also report unloading if it becomes disabled while it was
 loaded.
@@ -760,6 +772,9 @@ inside the cue (in other words, the playback position of at least one
 player that has the cue's track loaded is within the beat range that
 defines the cue).
 
+NOTE: If you want this expression to run, make sure the cue's
+menu:Entered Message[] menu is set to `Custom`.
+
 There can be multiple players inside the cue at any given moment, but
 this expression will be called only when the first one enters it.
 
@@ -772,6 +787,9 @@ any of its cues.
 Called when the first player that is playing the track moves into the
 cue, as long as it does so right at the beginning of the cue, and hits
 the start of the first beat that defines the cue.
+
+NOTE: If you want this expression to run, make sure the cue's
+menu:On-Beat Message[] menu is set to `Custom`.
 
 There can be multiple players playing the cue at any given moment, but
 this expression will be called only when the first one enters it.
@@ -786,6 +804,9 @@ Called when the first player that is playing the track moves into the
 cue, but misses the beginning of the cue, either because the DJ jumped
 into the middle of the cue, or because the player was paused somewhere
 in the middle of cue and then started playing.
+
+NOTE: If you want this expression to run, make sure the cue's
+menu:Late Message[] menu is set to `Custom`.
 
 There can be multiple players playing the cue at any given moment, but
 this expression will be called only when the first one enters it.
@@ -816,6 +837,14 @@ or stops playing. There can be multiple players playing the cue at any
 given moment, and this expression will be called as soon as there are
 none left.
 
+NOTE: For this expression to run for cues that started on time, the
+menu:On-Beat Message[] menu needs to be set to `Custom`. Similarly, if
+you want it to run for cues that started late, the Late Message menu
+must be set to `Custom`. If you are using custom messages for both
+situations and you need to be able to tell them apart, have the
+Started On-Beat and Started Late expressions each set a different
+value in an expression local to let you know which ran.
+
 If the track becomes disabled while it was playing this cue, this
 expression will be called at that point as well.
 
@@ -825,6 +854,9 @@ expression will be called at that point as well.
 Called when the last player that was inside the cue leaves it. There
 can be multiple players positioned in the cue at any given moment, and
 this expression will be called as soon as there are none left.
+
+NOTE: If you want this expression to run, make sure the cue's
+menu:Entered Message[] menu is set to `Custom`.
 
 If the track becomes disabled while there were players positioned
 inside this cue, this expression will be called at that point as well.
