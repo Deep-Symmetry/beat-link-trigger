@@ -623,7 +623,7 @@ Each track you add to a show can have its own set of expressions which
 apply to that track, allowing you to take actions when the track is
 loaded on a player, starts or stops playing, and so on. To react to
 more specific regions of the track, see the
-<<Shows#show-cue-expressions,Cue Expressions, below>>.
+<<Expressions#show-cue-expressions,Cue Expressions, below>>.
 
 The track expressions can be accessed from the track's context menu.
 In addition to the `globals` atom described above, these have access
