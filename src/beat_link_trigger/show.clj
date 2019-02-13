@@ -715,7 +715,7 @@
               (case message
                 "Note" (midi/midi-note-on output note 127 (dec channel))
                 "CC"   (midi/midi-control output note 127 (dec channel))))))
-        (when (= "Custom" message) (future (run-cue-function track cue event status-or-beat false))))
+        (when (= "Custom" message) (run-cue-function track cue event status-or-beat false)))
       (when (#{:started-on-beat :started-late} event)
         ;; Record how we started this cue so we know which event to send upon ending it.
         (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
@@ -1939,7 +1939,7 @@
     (when beat
       (doseq [uuid (clojure.set/intersection old-entered entered)]
         (when-let [cue (find-cue track uuid)]
-          (future (run-cue-function track cue :beat [beat position] false)))))
+          (run-cue-function track cue :beat [beat position] false))))
 
     ;; If the set of entered cues has changed, update the UI appropriately.
     (when (not= entered old-entered)
@@ -2022,10 +2022,10 @@
               (repaint-cue-states track cue)))
 
           ;; Finaly, run the tracked update expression for the track, if it has one.
-          (future (run-track-function track :tracked status false))
+          (run-track-function track :tracked status false)
           (doseq [uuid entered]  ; And do the same for any cues we are inside of.
             (when-let [cue (find-cue track uuid)]
-              (future (run-cue-function track cue :tracked status false)))))
+              (run-cue-function track cue :tracked status false))))
 
         (update-playback-position show signature player)
         ;; If the set of entered cues has changed, update the UI appropriately.
