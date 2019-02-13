@@ -735,7 +735,9 @@
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
-                           ".<br><br>" e "<br><br>You may wish to check the log file for the detailed stack trace.")
+                           ".<br><br>" e
+                           (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
+                           "<br><br>You may wish to check the log file for the detailed stack trace.")
                       :title "Exception during Clojure evaluation" :type :error))))
   (when update-fn
     (try
@@ -798,7 +800,9 @@
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
-                           ".<br><br>" e "<br><br>You may wish to check the log file for the detailed stack trace.")
+                           ".<br><br>" e
+                           (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
+                           "<br><br>You may wish to check the log file for the detailed stack trace.")
                       :title "Exception during Clojure evaluation" :type :error))))
   (when update-fn
     (try
@@ -846,7 +850,9 @@
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
-                           ".<br><br>" e "<br><br>You may wish to check the log file for the detailed stack trace.")
+                           ".<br><br>" e
+                           (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
+                           "<br><br>You may wish to check the log file for the detailed stack trace.")
                       :title "Exception during Clojure evaluation" :type :error))))
   (when update-fn
     (try
