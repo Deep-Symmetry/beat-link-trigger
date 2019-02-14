@@ -38,10 +38,17 @@ As described in the <<Triggers#player-status-summary,Player Status
 Summary>> discussion, the most convenient way to match a track is
 using metadata obtained from the players, so Beat Link Trigger asks
 the player hosting the track for details like its title, artist, and
-so on. This section describes how to work with that metadata in your
-triggers.
+so on. You can use this information to automatically write out a
+playlist during a performance, as described
+<<Matching#writing-a-playlist,below>>.
 
-TIP: Rather than using the low-level approach described in this
+In earlier releases of Beat Link Trigger, automatically matching
+tracks was not nearly so easy or reliable, and required more tricky
+and elaborate efforts. This section describes them, for historical
+reference, and in case you want to understand more about what BLT
+is doing for you automatically.
+
+TIP: Rather than using the low-level approaches described in this
 section, you will almost always want to use the new, convenient
 <<Shows#shows,Show interface>> introduced in version 0.5. It gives you
 an incredibly powerful graphical interface for matching tracks and

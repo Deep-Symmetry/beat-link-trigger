@@ -31,7 +31,30 @@ like MIDI or OSC messages in response.
 
 == Overview
 
-This section needs to be written, and a lot of new screen shots taken!
+Version 0.5 of Beat Link Trigger introduced a major new set of user
+interface features called the Show interface, which make it far easier
+to match tracks, and cause things to happen when particular beat
+ranges in those tracks are played.
+
+All of these things could be done before the Show interface, using
+basic Triggers, but they would involve writing a great many custom
+Expressions to match the tracks and watch for the right beats, and
+would be very tedious to figure out.
+
+Also, there is a practical limit to how many Triggers you can have in
+your file, because each one gets considered in sequence whenever a
+packet is received from a player. The limit may be a few dozen, or
+many more, but eventually your CPU will be get busy just evaluating
+triggers. The Show interface doesn't have this limitation--it uses a
+sophisticated and efficient mechanism for recognizing tracks, and
+allows you to add thousands of tracks to your shows. Tracks in a show
+will not put any load on your CPU until they are actually loaded in a
+player.
+
+== Creating a Show
+
+_This section needs to be written, and a lot of new screen shots
+taken!_
 
 == Learning More
 
