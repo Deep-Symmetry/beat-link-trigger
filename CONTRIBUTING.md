@@ -18,7 +18,10 @@ Before you can start contributing to Beat Link Trigger, you'll need to
 set up your environment first. Fork and clone the repo and install
 [Clojure][clojure] (for compiling and running the code) and
 [Leiningen](https://leiningen.org) (to manage the project dependencies
-and builds).
+and builds). Both of these rely on having a working Java runtime;
+if the mechanism you used to install them did not automatically
+include one, I recommend installing a current version of the
+[OpenJDK](http://openjdk.java.net).
 
 Once you have those in place, you can run BLT from source by opening a
 terminal window inside your clone of the project, and typing `lein
