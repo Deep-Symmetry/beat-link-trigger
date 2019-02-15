@@ -160,7 +160,7 @@ to do this, and you might lose work. If you are concerned about that
 happening, you can periodically manually save your current trigger
 configuration by choosing menu:File[Save].
 
-image:assets/Save.png[Auto-Attach option,314,210]
+image:assets/Save.png[Save option,314,210]
 
 ====
 
