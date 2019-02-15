@@ -109,7 +109,84 @@ as loaded.
 === Adding Tracks to a Show
 
 Shows don't do anything until they include at least one Track. There
-are a number of different ways you can add Tracks to your Show.
+are a number of different ways you can add Tracks to your Show. Most
+of them can be found by choosing menu:Tracks[Import Track] in the Show
+window menu bar:
+
+image:assets/ImportTrack.png[Import Track menu,793,418]
+
+If you are currently Online, and there are any players on the network
+that have rekordbox tracks loaded that are not already part of the
+Show, you will see them as options in the menu. Choosing
+menu:Tracks[Import Track>from Player 2] (for example) will download
+that track from the player, and add everthing needed to work with the
+it to the Show file (the details of a Track row are explained below,
+after the other ways of adding them to a show).
+
+image:assets/FirstTrackLoaded.png[First track loaded into show,1009,466]
+
+To help avoid confusion, rather than simply having the player
+disappear from the list of import choices if the track it has loaded
+is already part of the show, the menu option is disabled and an
+explanation is added:
+
+image:assets/ImportTrackAlready.png[Track already in Show,1009,466]
+
+To make it possible to set up your Show even when you don't have
+access to your player network, you can also import Tracks directly
+from rekordbod USB or SD media. To do that, mount the media on your
+computer, and choose menu:Tracks[Import Track>from Offline Media]. An
+Choose Media dialog will appear, from which you can navigate to the
+media:
+
+image:assets/ChooseMedia.png[Choose Media dialog,526,369]
+
+Once you click kbd:[Choose Media], the exported database is parsed,
+and a Choose Track window is presented, which is very similar to the
+<<Players#loading-playing,Loading and Playing Tracks>> interface
+offered by the Player Status window (see that section for details
+about how to navigate the interface and use the Search feature):
+
+image:assets/ShowChooseTrack.png[Choose Track dialog,720,518]
+
+Once you have found the Track you are looking for, click kbd:[Choose
+Track] to add it to the Show.
+
+image:assets/SecondTrackLoaded.png[Second track loaded into show,1005,589]
+
+The final way to add a Track to a Show is to copy it from another
+Show. When you have multiple Show windows open, you can copy Tracks
+from one to another by finding the Track in the open Show that already
+contains it, then choosing menu:Copy to Show “<name>”[] in the Track's
+context menu:
+
+image:assets/CopyTrack.png[Copy Track to show,1005,625]
+
+TIP: If you don't see an open Show in the `Copy to` list, that means
+the Track is already present in the other Show.
+
+=== Track Row Elements
+
+Tracks are kept sorted alpahabetically by title and artist in the Show
+window (and remember that you can narrow the display to show only
+those matching a string you time in the `Filter` field). If there is
+album art available, it is shown at the top left. To the right of that
+is a column that shows the track title, artist, a comment field, and
+information about which players have the track loaded, and which are
+currently playing it.
+
+The comment field starts out holding whatever comment the DJ entered
+about the track in rekordbox, but you are free to edit it however you
+like, to help you remember things about the track or to make it easy
+to find using the `Filter` field.
+
+The waveform preview section shows the overall intensity and dominant
+frequencies of the track from beginning to end. As in the Player
+Status window, you can see the locations of hot cues and memory points
+in the waveform preview, and if any players have the track loaded, you
+can see their playback position markers. (Unlike in the Player Status
+window, you may see more than one player position on a single track,
+because the same track might be loaded in more than one player.)
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_
