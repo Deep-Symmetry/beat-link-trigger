@@ -65,7 +65,53 @@ and convenient workflow.
 
 == Creating a Show
 
-_This section needs to be written, and a lot of new screen shots
+To use the Show interface, you start by choosing menu:File[New Show]
+in the Beat Link Triggers window.
+
+image:assets/NewShow.png[New Show option,314,210]
+
+This opens a Save dialog where you choose the location and name of
+your new show file. Navigate to where you would like to keep it, type
+a name, and click kbd:[Save].
+
+image:assets/NewShow2.png[New Show Save dialog,660,460]
+
+Beat Link Trigger will create a new, empty Show file for you with your
+chosen name, and open its window. If you quit with a show window open,
+it will automatically be reopened the next time you start the program.
+You can have multiple Show windows open at the same time, in case you
+want to organize your cues into separate groups for controlling
+different kinds of integrations (such as perhaps laser cues in one
+show, and video cues in another) and each one will be reopened
+automatically and run independently. You can tailor which shows you
+open based on which hardware is being used for a given performance.
+
+image:assets/NewShowWindow.png[Empty Show window,793,418]
+
+=== Show Window Header Elements
+
+At the top of the Show window, above any Tracks that you have added to
+it, is a header that allows you to configure the default Enabled
+filter (explained below), and to filter which Tracks are currently
+visible, which is helpful when you have added a lot of them to the
+show.
+
+If you type any text in the `Filter` box, only tracks that match that
+text will be visible. Similarly, if you check the `Loaded Only`
+checkbox, only tracks that are currently loaded on a player on the
+network will be visible. This is a great way to narrow down your focus
+to watch what is going on with tracks the DJ is currently playing.
+
+TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
+is Online, because otherwise there is no way track could be identified
+as loaded.
+
+=== Adding Tracks to a Show
+
+Shows don't do anything until they include at least one Track. There
+are a number of different ways you can add Tracks to your Show.
+
+_This section needs to be finished, and a lot of new screen shots
 taken!_
 
 == Learning More
