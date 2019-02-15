@@ -144,20 +144,24 @@ image:assets/ExpressionLocals.png[Expression Locals,789,626]
 == Saving and Loading
 
 The entire trigger configuration can be saved to a text file by
-choosing menu:File[Save]. That file can be sent to another machine,
-shared with a colleague, or just kept around for future use after you
-are done with a different project. As you would expect, the Load
-option replaces the current trigger configuration with one loaded from
-a save file.
+choosing menu:File[Save to File]. That file can be sent to another
+machine, shared with a colleague, or just kept around for future use
+after you are done with a different project. As you would expect,
+menu:File[Load from File] replaces the current trigger configuration
+with one loaded from a save file.
 
 [CAUTION]
 ====
+
 Beat Link Trigger automatically saves your triggers when you exit the
 program normally. If you shut down your computer, or otherwise
 force-quit the Beat Link Trigger process, it may not have the chance
 to do this, and you might lose work. If you are concerned about that
-happening, periodically save your triggers to another file. This will
-also save them as the default triggers.
+happening, you can periodically manually save your current trigger
+configuration by choosing menu:File[Save].
+
+image:assets/Save.png[Auto-Attach option,314,210]
+
 ====
 
 === Exporting and Importing Triggers
