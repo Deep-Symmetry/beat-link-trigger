@@ -49,13 +49,13 @@ packet is received from a player. The limit may be a few dozen, or
 many more, but eventually your CPU will be get busy just evaluating
 triggers. The Show interface doesn't have this limitation--it uses a
 sophisticated and efficient mechanism for recognizing tracks, and
-allows you to add thousands of tracks to your shows. Tracks in a show
+allows you to add thousands of tracks to your Shows. Tracks in a Show
 will not put any load on your CPU until they are actually loaded in a
 player.
 
-Finally, because tracks can be added to a show either from players on
+Finally, because tracks can be added to a Show either from players on
 the network, or by reading them directly from your rekordbox USB or SD
-media, you can set up your shows, draw cues on the tracks' beat grids,
+media, you can set up your Shows, draw cues on the tracks' beat grids,
 with reference to their waveforms, and configure the messages you want
 the cues to send, even in situations where you don't have access to
 CDJs. Almost all of the Show interface features are fully functional
@@ -71,19 +71,19 @@ in the Beat Link Triggers window.
 image:assets/NewShow.png[New Show option,314,210]
 
 This opens a Save dialog where you choose the location and name of
-your new show file. Navigate to where you would like to keep it, type
+your new Show file. Navigate to where you would like to keep it, type
 a name, and click kbd:[Save].
 
 image:assets/NewShow2.png[New Show Save dialog,660,460]
 
 Beat Link Trigger will create a new, empty Show file for you with your
-chosen name, and open its window. If you quit with a show window open,
+chosen name, and open its window. If you quit with a Show window open,
 it will automatically be reopened the next time you start the program.
 You can have multiple Show windows open at the same time, in case you
 want to organize your cues into separate groups for controlling
 different kinds of integrations (such as perhaps laser cues in one
-show, and video cues in another) and each one will be reopened
-automatically and run independently. You can tailor which shows you
+Show, and video cues in another) and each one will be reopened
+automatically and run independently. You can tailor which Shows you
 open based on which hardware is being used for a given performance.
 
 image:assets/NewShowWindow.png[Empty Show window,793,418]
@@ -94,7 +94,7 @@ At the top of the Show window, above any Tracks that you have added to
 it, is a header that allows you to configure the default Enabled
 filter (explained below), and to filter which Tracks are currently
 visible, which is helpful when you have added a lot of them to the
-show.
+Show.
 
 If you type any text in the `Filter` box, only tracks that match that
 text will be visible. Similarly, if you check the `Loaded Only`
@@ -103,8 +103,8 @@ network will be visible. This is a great way to narrow down your focus
 to watch what is going on with tracks the DJ is currently playing.
 
 TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
-is Online, because otherwise there is no way track could be identified
-as loaded.
+is Online, because otherwise there is no way tracks could be
+identified as loaded.
 
 === Adding Tracks to a Show
 
@@ -120,14 +120,14 @@ that have rekordbox tracks loaded that are not already part of the
 Show, you will see them as options in the menu. Choosing
 menu:Tracks[Import Track>from Player 2] (for example) will download
 that track from the player, and add everthing needed to work with the
-it to the Show file (the details of a Track row are explained below,
-after the other ways of adding them to a show).
+it to the Show file (the elements of a Track row are explained below,
+after the other ways of adding them to a Show).
 
-image:assets/FirstTrackLoaded.png[First track loaded into show,1009,466]
+image:assets/FirstTrackLoaded.png[First track loaded into Show,1009,466]
 
 To help avoid confusion, rather than simply having the player
 disappear from the list of import choices if the track it has loaded
-is already part of the show, the menu option is disabled and an
+is already part of the Show, the menu option is disabled and an
 explanation is added:
 
 image:assets/ImportTrackAlready.png[Track already in Show,1009,466]
@@ -152,7 +152,20 @@ image:assets/ShowChooseTrack.png[Choose Track dialog,720,518]
 Once you have found the Track you are looking for, click kbd:[Choose
 Track] to add it to the Show.
 
-image:assets/SecondTrackLoaded.png[Second track loaded into show,1005,589]
+image:assets/SecondTrackLoaded.png[Second track loaded into Show,1005,589]
+
+TIP: To save time, once you have chosen media to load tracks from
+during a Beat Link Trigger session, your media choice is remembered
+(and the parsed database export is kept open), so the next time you
+choose to import from offline media, the media selection window is
+skipped and you are taken right to the track selection window. If you
+want to import from different media, click the kbd:[Change Media]
+button at the bottom of the window. This also means you will not be
+able to eject the media on most operating systems because BLT has it
+open; if you do need to eject it without quitting BLT, choose
+menu:Tracks[Import Track>from Offline Media], click kbd:[Change
+Media], and it will be closed so you can eject it. At that point you
+can click kbd:[Cancel] if you did not actually want to import a Track.
 
 The final way to add a Track to a Show is to copy it from another
 Show. When you have multiple Show windows open, you can copy Tracks
@@ -160,7 +173,7 @@ from one to another by finding the Track in the open Show that already
 contains it, then choosing menu:Copy to Show “<name>”[] in the Track's
 context menu:
 
-image:assets/CopyTrack.png[Copy Track to show,1005,625]
+image:assets/CopyTrack.png[Copy Track to Show,1005,625]
 
 TIP: If you don't see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
