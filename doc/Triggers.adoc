@@ -65,9 +65,9 @@ The Comment field is a free-form text area you can use to describe the
 purpose of the trigger, to remind you when you later come back to it.
 Apart from the trigger index, a number by which Beat Link Trigger
 identifies the trigger when it is reporting errors or naming related
-windows (like expression editors, described <<Expressions#expressions,below>>),
-the comment takes up the entire width of the first line of the trigger
-row.
+windows (like expression editors, described in the
+<<Expressions#expressions,Expressions section>>), the comment takes up
+the entire width of the first line of the trigger row.
 
 [[watch-menu]]
 === Watch Menu

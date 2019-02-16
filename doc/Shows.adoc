@@ -106,6 +106,7 @@ TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
 is Online, because otherwise there is no way tracks could be
 identified as loaded.
 
+[[adding-tracks]]
 === Adding Tracks to a Show
 
 Shows don't do anything until they include at least one Track. There
@@ -464,10 +465,46 @@ it.
 [[track-context-menu]]
 === Track Context Menu
 
+Each Track row has a context menu attached to it, which can be
+accessed by right-clicking (or control-clicking) anywhere on the row's
+background, but you can also open the context menu with a regular
+mouse click on the button with a gear icon in it. Most of the menu is
+devoted to editing various expressions to customize the Track, as
+described in the <<Expressions#show-track-expressions,Expressions
+section>>. The gear icon next to an expression will be filled in if
+that expression has a value, and the gear in the button will be filled
+in if any expression associated with the Track has a value, or if
+there are any Cues in the Track.
+
+image:assets/TrackContextMenu.png[Context Menu,1005,604]
+
+The first option in the menu, menu:Edit Track Cues[], opens the Cues
+window for the Track, which is how you can create Cues that respond to
+particular beat ranges in the Track, as discussed in the
+<<Shows#track-cues,next section>>.
+
+Below that come the expression-related options, allowing you to open
+editors to create or edit Clojure code that runs at well-defined
+moments to customize the behavior of the Track. These are followed by
+the menu:Inspect Expression Locals[] option, which allows you to
+explore any values that have been set up by expressions in the Track
+to re-use or share with each other.
+
+As mentioned at the end of the <<Shows#adding-tracks,Adding Tracks
+section>>, if you have more than one Show window open, and you bring
+up the context menu for a Track that does not exist in one of the
+other Shows, you will see an option to copy it to that Show.
+
+Finally, the menu:Delete Track[] option does just what it sounds like,
+after confirming that you want to discard any expressions and Cues you
+have set up for that Track.
+
+
+[[track-cues]]
+== Adding Track Cues
+
 _This section needs to be finished, and a lot of new screen shots
 taken!_
-
-== Adding Track Cues
 
 == Learning More
 
