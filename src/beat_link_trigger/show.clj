@@ -281,16 +281,19 @@
   `swap!` that updates the show."
   [show track]
   (let [track         (get-in show [:tracks (:signature track)])
+        output        (get-chosen-output track)
         track-setting (get-in track [:contents :enabled])
         show-setting  (get-in show [:contents :enabled])
         setting       (if (= track-setting "Default")
                         show-setting
                         track-setting)]
-    (case setting
-      "Always"     true
-      "On-Air"     ((set (vals (:on-air show))) (:signature track))
-      "Master"     ((set (vals (:master show))) (:signature track))
-      "Custom"     (get-in track [:expression-results :enabled])
+    (if output
+      (case setting
+        "Always" true
+        "On-Air" ((set (vals (:on-air show))) (:signature track))
+        "Master" ((set (vals (:master show))) (:signature track))
+        "Custom" (get-in track [:expression-results :enabled])
+        false)
       false)))
 
 (defn- describe-disabled-reason
@@ -2221,17 +2224,14 @@
   (try
     (let [panel (:panel track)
           enabled-label (seesaw/select panel [:#enabled-label])
-          enabled (seesaw/select panel [:#enabled])
-          #_state #_(seesaw/select track [:#state])]
+          enabled (seesaw/select panel [:#enabled])]
       (if-let [output (get-chosen-output track)]
         (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
-            (seesaw/config! enabled :visible? true)
-            #_(seesaw/config! state :visible? true))
+            (seesaw/config! enabled :visible? true))
         (do (seesaw/config! enabled-label :foreground "red")
             (seesaw/value! enabled-label "Not found.")
-            (seesaw/config! enabled :visible? false)
-            #_(seesaw/config! state :visible? false))))
+            (seesaw/config! enabled :visible? false))))
     (catch Exception e
       (timbre/error e "Problem showing Track MIDI status."))))
 
