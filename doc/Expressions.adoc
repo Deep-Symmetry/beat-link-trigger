@@ -127,10 +127,11 @@ examples of doing just that throughout this guide.
 === Editing Expressions
 
 The expression you are first likely to want to use is the Enabled
-Filter, which is found in each trigger's context menu. In fact, as
-soon as you set a trigger's menu:Enabled[] menu to Custom, Beat Link
-Trigger will pop open the editor for that expression for you, if you
-have not yet created it:
+Filter, which is found in each trigger's
+<<Triggers#context-menu,context menu>>. In fact, as soon as you set a
+trigger's menu:Enabled[] menu to Custom, Beat Link Trigger will pop
+open the editor for that expression for you, if you have not yet
+created it:
 
 image:assets/Editor.png[Enabled Filter Editor,880,756]
 
@@ -263,12 +264,13 @@ shutdown expression finishes.
 == Trigger Expressions
 
 Each trigger has its own set of expressions which can be accessed from
-its context menu. In addition to the `globals` atom described above,
-these have access to a very similar `locals` atom which can be used to
-share values across expressions within the trigger itself (but not
-other triggers; each gets its own `locals` map), and individual kinds
-of expressions will automatically have other values available to them
-which make sense in the context in which the expression is used.
+its <<Triggers#context-menu,context menu>>. In addition to the
+`globals` atom described above, these have access to a very similar
+`locals` atom which can be used to share values across expressions
+within the trigger itself (but not other triggers; each gets its own
+`locals` map), and individual kinds of expressions will automatically
+have other values available to them which make sense in the context in
+which the expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of
@@ -625,13 +627,14 @@ loaded on a player, starts or stops playing, and so on. To react to
 more specific regions of the track, see the
 <<Expressions#show-cue-expressions,Cue Expressions, below>>.
 
-The track expressions can be accessed from the track's context menu.
-In addition to the `globals` atom described above, these have access
-to a very similar `locals` atom which can be used to share values
-across expressions within the track itself (but not other tracks; each
-gets its own `locals` map), and individual kinds of expressions will
-automatically have other values available to them which make sense in
-the context in which the expression is used.
+The track expressions can be accessed from the track's
+<<Shows#track-context-menu,context menu>>. In addition to the
+`globals` atom described above, these have access to a very similar
+`locals` atom which can be used to share values across expressions
+within the track itself (but not other tracks; each gets its own
+`locals` map), and individual kinds of expressions will automatically
+have other values available to them which make sense in the context in
+which the expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of

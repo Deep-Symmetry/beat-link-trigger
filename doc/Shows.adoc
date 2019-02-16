@@ -217,7 +217,7 @@ configure how you want the Show to respond to the track.
 
 This allows you to access the track Context Menu with a regular mouse
 click. The contents of the menu itself are described
-<<Shows#context-menu,below>>.
+<<Shows#track-context-menu,below>>.
 
 === MIDI Output Menu
 
@@ -241,10 +241,10 @@ different output is chosen, the Track will become operational again.
 === Loaded Status
 
 To the right of the MIDI Output menu there is a Loaded Status
-indicator which shows whether the Track is currently enabled (a
-green circle) or disabled (a red circle with a slash). If any player
-currently has the Track loaded, there is a filled circle inside the
-enabled ring:
+indicator which has two parts. The outer ring indicates whether the
+Track is currently enabled (a green circle) or disabled (a red circle
+with a slash). If any player currently has the Track loaded, there is
+a filled circle inside the enabled indicator ring:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
@@ -280,7 +280,7 @@ Triggers, which always send something--you need to remember to pick
 the kind of message to be sent for any Show events that you want to
 respond to.
 +
-When None is chosen, there are no interface elements visible to
+When `None` is chosen, there are no interface elements visible to
 configure the event. They will appear once you choose an event type to
 send.
 
@@ -303,15 +303,22 @@ disabled.
 
 Custom:: When this option is chosen, you can send any kind of message
 you want when the Track loads and/or unloads, by writing code as
-described in the <<Expressions#track-loaded-expression,Expressions>>
+described in the <<Expressions#show-track-expressions,Expressions>>
 section. This gives you the most flexibility because in addition to
 MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
-whatever you might need.
+whatever you might need. The expression editors for the Loaded
+Expression and Unloaded Expression are accessed through the
+<<Shows#track-context-menu,track context menu>>.
++
+If you choose `Custom` and have not yet written a Loaded expression,
+the expression editor will be opened to let you do that. You can
+also open that editor using the <<Shows#track-context-menu,track
+context menu>>.
 
 ==== Loaded Note/Controller Spinner
 
 Found immediately to the right of the menu:Loaded Message[] Menu (unless
-None is chosen as the Message type), this field lets you set the MIDI
+`None` is chosen as the Message type), this field lets you set the MIDI
 note number used for Note-based  loaded and unloaded messages, or the
 controller number used for Control Change-based loaded and unloaded
 messages. The value is also available to your Track expressions if they
@@ -325,11 +332,11 @@ loaded/unloaded messages are sent for this Track.
 === Playing Status
 
 To the right of the Loaded Message section there is a Playing Status
-indicator. As with the Loaded Status indicator, it has an outer
-circle which shows whether the Track is currently enabled (a
-green circle) or disabled (a red circle with a slash). If any player
-is currently playing the Track, there is a filled circle inside the
-enabled ring:
+indicator. As with the Loaded Status indicator, it has an outer ring
+which shows whether the Track is currently enabled (a green circle) or
+disabled (a red circle with a slash). If any player is currently
+playing the Track, there is a filled circle inside the enabled
+indicator ring:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
@@ -365,7 +372,7 @@ low-level Triggers, which always send something--you need to remember
 to pick the kind of message to be sent for any Show events that you
 want to respond to.
 +
-When None is chosen, there are no interface elements visible to
+When `None` is chosen, there are no interface elements visible to
 configure the event. They will appear once you choose an event type to
 send, as shown in the screen shot above.
 
@@ -390,11 +397,16 @@ described in the <<Expressions#track-playing-expression,Expressions>>
 section. This gives you the most flexibility because in addition to
 MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
++
+If you choose `Custom` and have not yet written a Playing expression,
+the expression editor will be opened to let you do that. You can
+also open that editor using the <<Shows#track-context-menu,track
+context menu>>.
 
 ==== Playing Note/Controller Spinner
 
 Found immediately to the right of the menu:Playing Message[] Menu (unless
-None is chosen as the Message type), this field lets you set the MIDI
+`None` is chosen as the Message type), this field lets you set the MIDI
 note number used for Note-based  started and stopped messages, or the
 controller number used for Control Change-based started and stopped
 messages. The value is also available to your Track expressions if they
@@ -418,9 +430,9 @@ Show's shared menu:Enabled Default[] menu (at the top of the window)
 is used. This allows you to enable and disable most or all tracks
 using a common set of rules, while special tracks that need to be
 different can still use their own settings. All of the options in this
-list (except for Default itself) are available in the Enabled Default
-menu, and have the same meaning there, being used by any Tracks whose
-own Enabled menu is set to Default.
+list (except for `Default` itself) are available in the Enabled
+Default menu, and have the same meaning there, being used by any
+Tracks whose own Enabled menu is set to `Default`.
 
 Never:: With this setting, the Track is disabled until you re-enable
 it.
@@ -443,13 +455,14 @@ during particular times of day. Expressions are further explained in
 the <<Expressions#track-enabled-filter-expression,Expressions>>
 section. If you choose `Custom` and have not yet written an Enabled
 Filter expression, the expression editor will be opened to let you do
-that.
+that. You can always open that editor using the Track Context Menu,
+described in the next section.
 
 Always:: With this setting, the Track is enabled until you disable
 it.
 
-[[context-menu]]
-=== Context Menu
+[[track-context-menu]]
+=== Track Context Menu
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_
