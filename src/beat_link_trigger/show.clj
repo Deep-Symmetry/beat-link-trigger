@@ -274,6 +274,26 @@
     (when (and (= "Default" (get-in track [:contents :enabled])) (= "Custom" (get-in show [:contents :enabled])))
       (update-track-enabled show track (boolean (first (run-global-function show :enabled status false)))))))
 
+(defn- get-chosen-output
+  "Return the MIDI output to which messages should be sent for a given
+  track, opening it if this is the first time we are using it, or
+  reusing it if we already opened it. Returns `nil` if the output can
+  not currently be found (it was disconnected, or present in a loaded
+  file but not on this system).
+  to be reloaded."
+  [track]
+  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
+    (let [device-name (.full_name selection)]
+      (or (get @util/opened-outputs device-name)
+          (try
+            (let [new-output (midi/midi-out device-name)]
+              (swap! util/opened-outputs assoc device-name new-output)
+              new-output)
+            (catch IllegalArgumentException e  ; The chosen output is not currently available
+              (timbre/debug e "Track using nonexisting MIDI output" device-name))
+            (catch Exception e  ; Some other problem opening the device
+              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
+
 (defn- enabled?
   "Checks whether the track is enabled, given its configuration and
   current state. `show` must be a current view of the show, it will
@@ -321,26 +341,6 @@
   [track]
   (doseq [cue (get-in (latest-track track) [:cues :cues])]
     (repaint-cue-states track cue)))
-
-(defn- get-chosen-output
-  "Return the MIDI output to which messages should be sent for a given
-  track, opening it if this is the first time we are using it, or
-  reusing it if we already opened it. Returns `nil` if the output can
-  not currently be found (it was disconnected, or present in a loaded
-  file but not on this system).
-  to be reloaded."
-  [track]
-  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
-    (let [device-name (.full_name selection)]
-      (or (get @util/opened-outputs device-name)
-          (try
-            (let [new-output (midi/midi-out device-name)]
-              (swap! util/opened-outputs assoc device-name new-output)
-              new-output)
-            (catch IllegalArgumentException e  ; The chosen output is not currently available
-              (timbre/debug e "Track using nonexisting MIDI output" device-name))
-            (catch Exception e  ; Some other problem opening the device
-              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
 
 (defn- read-cue-list
   "Re-creates a CueList object from an imported track. Returns `nil` if
