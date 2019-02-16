@@ -92,9 +92,9 @@ image:assets/NewShowWindow.png[Empty Show window,793,418]
 
 At the top of the Show window, above any Tracks that you have added to
 it, is a header that allows you to configure the default Enabled
-filter (explained below), and to filter which Tracks are currently
-visible, which is helpful when you have added a lot of them to the
-Show.
+filter (explained <<Shows#enabled-menu,below>>), and to filter which
+Tracks are currently visible, which is helpful when you have added a
+lot of them to the Show.
 
 If you type any text in the `Filter` box, only tracks that match that
 text will be visible. Similarly, if you check the `Loaded Only`
@@ -120,8 +120,9 @@ that have rekordbox tracks loaded that are not already part of the
 Show, you will see them as options in the menu. Choosing
 menu:Tracks[Import Track>from Player 2] (for example) will download
 that track from the player, and add everthing needed to work with the
-it to the Show file (the elements of a Track row are explained below,
-after the other ways of adding them to a Show).
+it to the Show file (the elements of a Track row are explained
+<<Shows#track-row-elements,below>>, after the other ways of adding
+them to a Show).
 
 image:assets/FirstTrackLoaded.png[First track loaded into Show,1009,466]
 
@@ -178,20 +179,27 @@ image:assets/CopyTrack.png[Copy Track to Show,1005,625]
 TIP: If you don't see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
 
-=== Track Row Elements
+[[track-row-elements]]
+== Track Row Elements
 
 Tracks are kept sorted alpahabetically by title and artist in the Show
-window (and remember that you can narrow the display to show only
-those matching a string you time in the `Filter` field). If there is
+window (and remember that you can narrow the display to include only
+those matching a string you type in the `Filter` field). If there is
 album art available, it is shown at the top left. To the right of that
 is a column that shows the track title, artist, a comment field, and
 information about which players have the track loaded, and which are
 currently playing it.
 
+image:assets/ShowTrack.png[A Track row,900,165]
+
+=== Comment Field
+
 The comment field starts out holding whatever comment the DJ entered
 about the track in rekordbox, but you are free to edit it however you
 like, to help you remember things about the track or to make it easy
 to find using the `Filter` field.
+
+=== Waveform Preview
 
 The waveform preview section shows the overall intensity and dominant
 frequencies of the track from beginning to end. As in the Player
@@ -199,10 +207,254 @@ Status window, you can see the locations of hot cues and memory points
 in the waveform preview, and if any players have the track loaded, you
 can see their playback position markers. (Unlike in the Player Status
 window, you may see more than one player position on a single track,
-because the same track might be loaded in more than one player.)
+because the same track might be loaded in more than one player.) The
+tick marks along the bottom each represent one minute of playback time.
+
+Along the bottom of the track row you find the controls that let you
+configure how you want the Show to respond to the track.
+
+=== Context Menu Button
+
+This allows you to access the track Context Menu with a regular mouse
+click. The contents of the menu itself are described
+<<Shows#context-menu,below>>.
+
+=== MIDI Output Menu
+
+The menu:MIDI Output[] Menu lets you choose the MIDI device to which
+the trigger will send messages when you configure it to send MIDI
+messages for particular events. It will show all MIDI outputs
+currently available on your system.
+
+The chosen MIDI output will be used for all messages that the Track
+is configured to send, including those belonging to any Cues created
+in the Track. But each Track can have its own MIDI output, in case
+you have a large show with many cues.
+
+NOTE: As with the MIDI Output Menu in the
+<<Triggers#midi-output-menu,Triggers window>>, if a MIDI Output is
+chosen which is no longer available on the system, it will remain in
+that Track's menu, but the Enabled section of the Track will be
+replaced with the message “Not found.” Once the output reappears, or a
+different output is chosen, the Track will become operational again.
+
+=== Loaded Status
+
+To the right of the MIDI Output menu there is a Loaded Status
+indicator which shows whether the Track is currently enabled (a
+green circle) or disabled (a red circle with a slash). If any player
+currently has the Track loaded, there is a filled circle inside the
+enabled ring:
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, Not Loaded
+|image:assets/Disabled.png[Disabled,52,52]
+
+|Enabled, Not Loaded
+|image:assets/Enabled.png[Enabled,52,52]
+
+|Disabled, Loaded
+|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+
+|Enabled, Loaded
+|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+
+|===
+
+=== Loaded Message Menu
+
+The menu:Loaded Message[] Menu determines what kind of MIDI message is
+sent when the Track first becomes loaded by any player (as long as the
+Track is Enabled, as described below), or when the track is unloaded
+by the last player that had loaded it.
+
+image:assets/LoadedMessageMenu.png[Loaded Message Menu,1005,625]
+
+None:: With this setting, which is the default, nothing is sent when
+the Track loads or unloads. Note that this is different from low-level
+Triggers, which always send something--you need to remember to pick
+the kind of message to be sent for any Show events that you want to
+respond to.
++
+When None is chosen, there are no interface elements visible to
+configure the event. They will appear once you choose an event type to
+send.
+
+Note:: With this setting, the Show sends a Note On message, with
+velocity 127 and the note number shown to the right of the menu, when
+the Track gets loaded onto the first player (as long as the Track is
+enabled), and a Note Off message when the last player unloads the
+Track, or the Track is disabled.
++
+image:assets/LoadedNote.png[A Track row,1079,157]
++
+The Channel on which the Loaded/Unloaded messages are sent is
+configured just to the right of the note selector.
+
+CC:: With this setting, the Show sends a Control Change message,
+with value 127 and the controller number shown to the right of the
+menu, when the the Track is loaded (as long as it is enabled), and
+sends a CC with value 0 when the Track is unloaded or becomes
+disabled.
+
+Custom:: When this option is chosen, you can send any kind of message
+you want when the Track loads and/or unloads, by writing code as
+described in the <<Expressions#track-loaded-expression,Expressions>>
+section. This gives you the most flexibility because in addition to
+MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
+whatever you might need.
+
+==== Loaded Note/Controller Spinner
+
+Found immediately to the right of the menu:Loaded Message[] Menu (unless
+None is chosen as the Message type), this field lets you set the MIDI
+note number used for Note-based  loaded and unloaded messages, or the
+controller number used for Control Change-based loaded and unloaded
+messages. The value is also available to your Track expressions if they
+want to use it.
+
+==== Loaded Channel Spinner
+
+As described above, this lets you specify the MIDI channel on which
+loaded/unloaded messages are sent for this Track.
+
+=== Playing Status
+
+To the right of the Loaded Message section there is a Playing Status
+indicator. As with the Loaded Status indicator, it has an outer
+circle which shows whether the Track is currently enabled (a
+green circle) or disabled (a red circle with a slash). If any player
+is currently playing the Track, there is a filled circle inside the
+enabled ring:
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, Not Playing
+|image:assets/Disabled.png[Disabled,52,52]
+
+|Enabled, Not Playing
+|image:assets/Enabled.png[Enabled,52,52]
+
+|Disabled, Playing
+|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+
+|Enabled, Playing
+|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+
+|===
+
+=== Playing Message Menu
+
+The menu:Playing Message[] Menu determines what kind of MIDI message is
+sent when the first player starts playing the Track (as long as the
+Track is Enabled, as described below), or when the last player that
+was playing the track stops.
+
+image:assets/PlayingMessageMenu.png[Playing Message Menu,1261,230]
+
+None:: With this setting, which is the default, nothing is sent when
+the Track starts or stops playing. Note that this is different from
+low-level Triggers, which always send something--you need to remember
+to pick the kind of message to be sent for any Show events that you
+want to respond to.
++
+When None is chosen, there are no interface elements visible to
+configure the event. They will appear once you choose an event type to
+send, as shown in the screen shot above.
+
+Note:: With this setting, the Show sends a Note On message, with
+velocity 127 and the note number shown to the right of the menu, when
+some player starts playing the Track (as long as the Track is
+enabled), and a Note Off message when the last player playing it
+stops, or the Track is disabled.
++
+The Channel on which the Started/Stopped messages are sent is
+configured just to the right of the note selector.
+
+CC:: With this setting, the Show sends a Control Change message,
+with value 127 and the controller number shown to the right of the
+menu, when the the Track starts playing (as long as it is enabled), and
+sends a CC with value 0 when the Track is stopped or becomes
+disabled.
+
+Custom:: When this option is chosen, you can send any kind of message
+you want when the Track starts and/or stops, by writing code as
+described in the <<Expressions#track-playing-expression,Expressions>>
+section. This gives you the most flexibility because in addition to
+MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
+whatever you might need.
+
+==== Playing Note/Controller Spinner
+
+Found immediately to the right of the menu:Playing Message[] Menu (unless
+None is chosen as the Message type), this field lets you set the MIDI
+note number used for Note-based  started and stopped messages, or the
+controller number used for Control Change-based started and stopped
+messages. The value is also available to your Track expressions if they
+want to use it.
+
+==== Playing Channel Spinner
+
+As described above, this lets you specify the MIDI channel on which
+started/stopped messages are sent for this Track.
+
+[[enabled-menu]]
+=== Enabled Menu
+
+The menu:Enabled[] menu controls whether the Show will react to
+players doing things with the Track.
+
+image:assets/TrackEnabledMenu.png[Enabled Menu,1005,582]
+
+Default:: With this setting, which will be used by most Tracks, the
+Show's shared menu:Enabled Default[] menu (at the top of the window)
+is used. This allows you to enable and disable most or all tracks
+using a common set of rules, while special tracks that need to be
+different can still use their own settings. All of the options in this
+list (except for Default itself) are available in the Enabled Default
+menu, and have the same meaning there, being used by any Tracks whose
+own Enabled menu is set to Default.
+
+Never:: With this setting, the Track is disabled until you re-enable
+it.
+
+On-Air:: With this setting, the Track is enabled whenever it is
+loaded by at least one player that reports that it is On the Air. (For
+that to work, the player must be connected to a Nexus mixer, and must
+have the feature turned on.)
+
+Master:: With this setting, the Track is enabled whenever it is loaded
+by the player that is the current Tempo Master.
+
+Custom:: With this setting, the Track is controlled by an Enabled
+Filter, Clojure code that you write yourself. Whenever a status update
+is received from any player, your expressions are evaluated. If the
+last expression in your filter returns a `true` value, the Track will
+be enabled. This lets you apply sophisticated logic, like enabling the
+Track when another track is loaded into a different player, or only
+during particular times of day. Expressions are further explained in
+the <<Expressions#track-enabled-filter-expression,Expressions>>
+section. If you choose `Custom` and have not yet written an Enabled
+Filter expression, the expression editor will be opened to let you do
+that.
+
+Always:: With this setting, the Track is enabled until you disable
+it.
+
+[[context-menu]]
+=== Context Menu
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_
+
+== Adding Track Cues
 
 == Learning More
 

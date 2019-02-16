@@ -149,6 +149,7 @@ expressions include `track-artist`, `track-comment`, `track-genre`,
 Powerful ways to take advantage of this metadata capability are explored
 in the <<Matching#matching-tracks,Matching Tracks>> section.
 
+[[midi-output-menu]]
 === MIDI Output Menu
 
 The menu:MIDI Output[] Menu lets you choose the MIDI device to which
@@ -241,8 +242,8 @@ and control the tempo and beat sync of the CDJs using
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
-write in the trigger expressions, as described
-<<Expressions#expressions,below>>.
+write in the trigger expressions, as described in the
+<<Expressions#expressions,Expressions>> section.
 This gives you the most flexibility because in addition to MIDI
 messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
@@ -285,7 +286,8 @@ If the last expression in your filter returns a `true` value, the
 trigger will be enabled. This lets you apply sophisticated logic, like
 enabling the trigger when a particular track is loaded into the
 player, and it has reached a particular beat during playback.
-Expressions are further explained <<Expressions#expressions,below>>.
+Expressions are further explained in the
+<<Expressions#expressions,Expressions>> section.
 If you choose `Custom` and have not yet written an Enabled Filter
 expression, the expression editor will be opened to let you do that.
 
