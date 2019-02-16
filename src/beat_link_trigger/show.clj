@@ -3473,3 +3473,20 @@
   if all shows have been closed."
   [force?]
   (every? (fn [show] ((:close show) force? true)) (vals @open-shows)))
+
+(defn midi-environment-changed
+  "Called on the Swing Event Update thread by the Triggers window when
+  CoreMidi4J reports a change to the MIDI environment, so we can
+  update each track's menu of available MIDI outputs. Arguments are a
+  seq of all the outputs now available, and a set of the same outputs
+  for convenient membership checking."
+  [new-outputs output-set]
+  (doseq [show (vals @open-shows)]
+    (doseq [[signature track] (:tracks show)]
+      (let [output-menu (seesaw/select (:panel track) [:#outputs])
+            old-selection (seesaw/selection output-menu)]
+        (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
+                                                   (when-not (output-set old-selection) [old-selection])))
+        ;; Keep our original selection chosen, even if it is now missing
+        (seesaw/selection! output-menu old-selection))
+      (show-midi-status track))))

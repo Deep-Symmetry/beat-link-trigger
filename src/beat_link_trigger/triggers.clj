@@ -1054,19 +1054,21 @@
   []
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
    (try
-     (let [new-outputs (util/get-midi-outputs)]
+     (let [new-outputs (util/get-midi-outputs)
+           output-set  (set new-outputs)]
        ;; Remove any opened outputs that are no longer available in the MIDI environment
-       (swap! util/opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) (set new-outputs))))
+       (swap! util/opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) output-set)))
 
        (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
-         (let [output-menu (seesaw/select trigger [:#outputs])
+         (let [output-menu   (seesaw/select trigger [:#outputs])
                old-selection (seesaw/selection output-menu)]
            (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
-                                                      (when-not ((set new-outputs) old-selection) [old-selection])))
+                                                      (when-not (output-set old-selection) [old-selection])))
 
            ;; Keep our original selection chosen, even if it is now missing
            (seesaw/selection! output-menu old-selection))
-         (show-midi-status trigger)))
+         (show-midi-status trigger))
+       (show/midi-environment-changed new-outputs output-set))
      (catch Exception e
        (timbre/error e "Problem responding to change in MIDI environment.")))))
 
