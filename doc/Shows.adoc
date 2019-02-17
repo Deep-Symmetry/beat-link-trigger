@@ -485,7 +485,7 @@ image:assets/TrackContextMenu.png[Context Menu,1005,604]
 The first option in the menu, menu:Edit Track Cues[], opens the Cues
 window for the Track, which is how you can create Cues that respond to
 particular beat ranges in the Track, as discussed in the
-<<Shows#track-cues,next section>>.
+<<Shows#editing-cues,next section>>.
 
 Below that come the expression-related options, allowing you to open
 editors to create or edit Clojure code that runs at well-defined
