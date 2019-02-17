@@ -266,6 +266,13 @@ a filled circle inside the enabled indicator ring:
 
 |===
 
+NOTE: Tracks are recognized by their _signature_, a cryptographic hash
+calculated from their title, artist, duration, waveform, and beat
+grid. This is taken care of by the `SignatureFinder` class in Beat
+Link, which allows them to be efficiently detected and indexed within
+the Show, and means that even if you have a variety of remixes of the
+same track, they should all be recognized correctly.
+
 === Loaded Message Menu
 
 The menu:Loaded Message[] Menu determines what kind of MIDI message is
@@ -499,9 +506,136 @@ Finally, the menu:Delete Track[] option does just what it sounds like,
 after confirming that you want to discard any expressions and Cues you
 have set up for that Track.
 
+[[editing-cues]]
+== Editing Track Cues
 
-[[track-cues]]
-== Adding Track Cues
+Tracks have settings and expressions that allow you to make things
+happen when they load or start and stop playing, but you will often be
+interested in more specific _parts_ of the track being played. That's
+where Cues come in. To add Cues to a Track, choose
+menu:Edit Track Cues[] in the Track's context menu, as described in the
+previous section. That will open a new window for viewing and editing
+details about that Track's Cues:
+
+image:assets/CuesWindow.png[Cues Window,912,461]
+
+Before introducing the various ways to add Cues to the track, let's
+explore the features available at the top of the window.
+
+=== Cues Window Header Elements
+
+At the top of the Cues window, above any Cues that you have added to
+it, is a header that shows a scrollable and zoomable view of the track
+waveform and beat grid, much like the one that appears in the
+<<Players#overview,Player Status Window>>, except that you can
+manually scroll this one to the section you want to see regardless of
+whether any players are currently playing it. (If any are, you will
+see their playback position(s) marked on the waveform as illustrated
+above, but they will not cause the waveform to scroll to follow them
+unless you check the `Auto-Scroll` checkbox. Although you wont't want
+to do that when you are editing cues, it can be nice when running a
+show, as it makes it easy to follow along as Cues approach and run.)
+
+The kbd:[New Cue] button creates a new cue on the first beat of the
+Track, unless you have selected a beat range first as described below.
+
+As with the Show window, if you type any text in the `Filter` box,
+only Cues that match that text will be visible. Similarly, if you
+check the `Entered Only` checkbox, only Cues that currently have a
+player positioned inside them will be visible. This is a great way to
+narrow down your focus to watch what is going on with cues the DJ is
+currently playing.
+
+TIP: The `Entered Only` and `Auto-Scroll` checkboxes are only visible
+when Beat Link Trigger is Online, because they only make sense in the
+context of being able to detect that a player has loaded the track.
+
+[[adding-cues]]
+=== Adding Cues to a Track
+
+The Cues window doesn't do much until you add at least one Cue. As
+mentioned above, you can use the kbd:[New Cue] button to do this, and
+then edit the cue to position it where you want it, but it is easier
+to specify where you want it on the beat grid first. To do that,
+you can click and drag in the waveform view to highlight the beats
+that you want the Cue to run for. Dragging over the eight beats
+past where the player was cued in the above example sets up a
+selection like this:
+
+image:assets/DraggingCue.png[Cues Window,793,166]
+
+If your aim was slightly off, you can drag the edges of the selection
+to adjust them, as suggested by the cursor in the image above, or you
+can shift-click to grow or shrink the cue, perhaps after scrolling
+the wavform to a different section. Also remember that you can adjust
+the Zoom slider to make it easier to position your cue.
+
+Alternately, you can click to select a single beat, then shift-click
+another to specify the entire range without dragging. If you created
+a beat selection by accident and want to get rid of it, you can either
+drag it back down to nothing, or shift-click a different beat and then
+shift-click it again to deselect it.
+
+Regardless of how you do it, once you have the right beats selected,
+clicking the kbd:[New Cue] button will create a new cue covering
+the chosen beats:
+
+image:assets/FirstCue.png[First cue added,912,461]
+
+== Cue Row Elements
+
+=== Start and End Spinners
+
+You can see and adjust the beats on which the Cue starts and ends
+using these two fields, either by typing new values, or clicking the
+arrows. However, it is probably even more convenient to simply drag
+the edges of the cue in the waveform, which also works.
+
+The End must always be at least one beat past the Start, and neither
+can extend outside the beat grid of the Track.
+
+=== Cue Name
+
+To help understand the purpose of the cue, you can give it a name. The
+default is `Untitled` (with a numeric suffix if needed to keep it
+distinct), but as soon as the cue is created, the Name field is
+selected and ready for you to type something more meaningful. For this
+example, we'll type "First two measures", since we placed the cue at
+the point where this track begins playback after being loaded.
+
+The cue name also appears as a tool tip when you hover the mouse
+pointer over the cue in the waveform:
+
+image:assets/CueNamed.png[Cue named,790,278]
+
+=== Cue Hue
+
+Cues are assigned distinct hues when they are created to help you tell
+them apart (and to tie the cue in the waveform to the corresponding
+detail row below), but you can also assign each cue a specific hue if
+that helps organize your show by clicking the `Hue` swatch in the Cue
+row. That will bring up a color picker window wher you can choose the
+exact hue you want.
+
+[NOTE]
+====
+If cues overlap each other, Beat Link Trigger draws them in separate
+lanes to make it easier to tell where each begins and ends. It can
+handle even very complex sets of overlapping cues, adjusting them
+into a minimal set of lanes. Here's an example of what it would look
+like if we added a second cue called “Video Clip 1” that overlaps
+part of our first cue:
+
+image:assets/SecondCue.png[Overlapping cues,791,389]
+
+Cues are also visible, and show their names as tool tips, in the
+waveform preview drawn in Track rows in the Show window, so you don't
+even need to open the Cues Editor for a quick reminder of what cues
+are coming up:
+
+image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
+
+====
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_

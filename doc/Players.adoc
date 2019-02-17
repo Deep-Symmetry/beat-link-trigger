@@ -28,6 +28,7 @@ endif::env-github[]
 Get a detailed view of what is happening on each player, what is
 coming up next, and even load and play tracks during pre-show.
 
+[[overview]]
 == Overview
 
 Beat Link Trigger can take advantage of track metadata and related
