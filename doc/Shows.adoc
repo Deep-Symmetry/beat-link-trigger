@@ -529,12 +529,12 @@ it, is a header that shows a scrollable and zoomable view of the track
 waveform and beat grid, much like the one that appears in the
 <<Players#overview,Player Status Window>>, except that you can
 manually scroll this one to the section you want to see regardless of
-whether any players are currently playing it. (If any are, you will
+whether any players are currently playing it. If any are, you will
 see their playback position(s) marked on the waveform as illustrated
 above, but they will not cause the waveform to scroll to follow them
 unless you check the `Auto-Scroll` checkbox. Although you wont't want
 to do that when you are editing cues, it can be nice when running a
-show, as it makes it easy to follow along as Cues approach and run.)
+show, as it makes it easy to follow along as Cues approach and run.
 
 The kbd:[New Cue] button creates a new cue on the first beat of the
 Track, unless you have selected a beat range first as described below.
@@ -617,8 +617,6 @@ that helps organize your show by clicking the `Hue` swatch in the Cue
 row. That will bring up a color picker window wher you can choose the
 exact hue you want.
 
-[NOTE]
-====
 If cues overlap each other, Beat Link Trigger draws them in separate
 lanes to make it easier to tell where each begins and ends. It can
 handle even very complex sets of overlapping cues, adjusting them
@@ -635,7 +633,6 @@ are coming up:
 
 image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
 
-====
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_
