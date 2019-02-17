@@ -284,14 +284,12 @@ by the last player that had loaded it.
 image:assets/LoadedMessageMenu.png[Loaded Message Menu,1005,625]
 
 None:: With this setting, which is the default, nothing is sent when
-the Track loads or unloads. Note that this is different from low-level
-Triggers, which always send something--you need to remember to pick
-the kind of message to be sent for any Show events that you want to
-respond to.
-+
-When `None` is chosen, there are no interface elements visible to
-configure the event. They will appear once you choose an event type to
-send.
+the Track loads or unloads.footnote:none[Note that this is different
+from low-level Triggers, which always send something--you need to
+remember to pick the kind of message to be sent for any Show events
+that you want to respond to.] When `None` is chosen, there are no
+interface elements visible to configure the event. They will appear
+once you choose an event type to send.
 
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -299,7 +297,7 @@ the Track gets loaded onto the first player (as long as the Track is
 enabled), and a Note Off message when the last player unloads the
 Track, or the Track is disabled.
 +
-image:assets/LoadedNote.png[A Track row,1079,157]
+image:assets/LoadedNote.png[Loaded Note parameters,1079,157]
 +
 The Channel on which the Loaded/Unloaded messages are sent is
 configured just to the right of the note selector.
@@ -376,14 +374,10 @@ was playing the track stops.
 image:assets/PlayingMessageMenu.png[Playing Message Menu,1261,230]
 
 None:: With this setting, which is the default, nothing is sent when
-the Track starts or stops playing. Note that this is different from
-low-level Triggers, which always send something--you need to remember
-to pick the kind of message to be sent for any Show events that you
-want to respond to.
-+
-When `None` is chosen, there are no interface elements visible to
-configure the event. They will appear once you choose an event type to
-send, as shown in the screen shot above.
+the Track starts or stops playing.footnote:none[] When `None` is
+chosen, there are no interface elements visible to configure the
+event. They will appear once you choose an event type to send, as
+shown in the screen shot above.
 
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -637,18 +631,19 @@ image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
 [[cue-context-menu-button]]
 === Context Menu Button
 
-Below the first row of Cue configuration elements there is a gear
-button, like the one in the Show window, that allows you to access the
-cue Context Menu with a regular mouse click. The contents of the
-menu itself are described <<Shows#cue-context-menu,below>>.
+Below the first row of cue configuration elements there is a gear
+button that allows you to access the cue's Context Menu with a regular
+mouse click. The contents of the menu itself are described
+<<Shows#cue-context-menu,below>>.
 
 === Entered Status
 
 To the right of the context menu button there is an Entered Status
 indicator which has two parts. The outer ring indicates whether the
-Track is currently enabled (a green circle) or disabled (a red circle
-with a slash). If any player is currently positioned anywhere inside
-the Cue, there is a filled circle inside the enabled indicator ring:
+Cue's Track is currently enabled (a green circle) or disabled (a red
+circle with a slash). If any player is currently positioned anywhere
+inside the Cue, there is a filled circle inside the enabled indicator
+ring:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
@@ -670,6 +665,69 @@ the Cue, there is a filled circle inside the enabled indicator ring:
 |===
 
 === Entered Message Menu
+
+The menu:Entered Message[] Menu determines what kind of MIDI message
+is sent when the first player moves into the cue (as long as the Cue's
+Track is Enabled), or when the last player that had been positioned
+inside the cue moves out of it.
+
+NOTE: The player does not need to actually be playing for
+Entered/Exited messages to be sent: if the track loads and the player
+auto-cues within the Cue, or the DJ uses cue/loop call, needle jump,
+the jog wheel, or search to move into or out of the cue, its state
+will update and the appropriate messages will be sent.
+
+image:assets/EnteredMessageMenu.png[Entered Message Menu,912,554]
+
+None:: With this setting, which is the default, nothing is sent when
+the Track loads or unloads.footnote:none[] When `None` is chosen,
+there are no interface elements visible to configure the event. They
+will appear once you choose an event type to send.
+
+Note:: With this setting, the Show sends a Note On message, with
+velocity 127 and the note number shown to the right of the menu, when
+the first player moves inside the Cue (as long as the Cue's Track is
+enabled), and a Note Off message when the last player that had been
+inside the Cue moves back out of it, or the Track is disabled.
++
+image:assets/EnteredNote.png[Entered Note parameters,792,113]
++
+The Channel on which the Entered/Exited messages are sent is
+configured just to the right of the note selector.
+
+CC:: With this setting, the Show sends a Control Change message,
+with velocity 127 and the note number shown to the right of the menu,
+when the first player moves inside the Cue (as long as the Cue's Track
+is enabled), and a CC with value 0 when the last player that had been
+inside the Cue moves back out of it, or the Track is disabled.
+
+Custom:: When this option is chosen, you can send any kind of message
+you want when the Cue is entered and/or exited, by writing code as
+described in the <<Expressions#show-cue-expressions,Expressions>>
+section. This gives you the most flexibility because in addition to
+MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
+whatever you might need. The expression editors for the Entered
+Expression and Exited Expression are accessed through the
+<<Shows#cue-context-menu,cue context menu>>.
++
+If you choose `Custom` and have not yet written a Entered expression,
+the expression editor will be opened to let you do that. You can
+also open that editor using the <<Shows#cue-context-menu,cue
+context menu>>.
+
+==== Entered Note/Controller Spinner
+
+Found immediately to the right of the menu:Entered Message[] Menu (unless
+`None` is chosen as the Message type), this field lets you set the MIDI
+note number used for Note-based  entered and exited messages, or the
+controller number used for Control Change-based entered and exited
+messages. The value is also available to your Cue expressions if they
+want to use it.
+
+==== Entered Channel Spinner
+
+As described above, this lets you specify the MIDI channel on which
+entered/exited messages are sent for this Cue.
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_
