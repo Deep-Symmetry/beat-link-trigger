@@ -218,7 +218,9 @@ configure how you want the Show to respond to the track.
 === Context Menu Button
 
 This allows you to access the track Context Menu with a regular mouse
-click. The contents of the menu itself are described
+click. The gear inside the button will be filled in if there have been
+any Cues or Expressions added to the Track, and hollow otherwise. The
+contents of the menu itself are described
 <<Shows#track-context-menu,below>>.
 
 === MIDI Output Menu
@@ -633,8 +635,9 @@ image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
 
 Below the first row of cue configuration elements there is a gear
 button that allows you to access the cue's Context Menu with a regular
-mouse click. The contents of the menu itself are described
-<<Shows#cue-context-menu,below>>.
+mouse click. The gear will be filled in if any Expressions have been
+added to the Cue, and hollow otherwise. The contents of the menu
+itself are described <<Shows#cue-context-menu,below>>.
 
 === Entered Status
 
@@ -695,10 +698,10 @@ image:assets/EnteredNote.png[Entered Note parameters,792,113]
 The Channel on which the Entered/Exited messages are sent is
 configured just to the right of the note selector.
 
-CC:: With this setting, the Show sends a Control Change message,
-with velocity 127 and the note number shown to the right of the menu,
-when the first player moves inside the Cue (as long as the Cue's Track
-is enabled), and a CC with value 0 when the last player that had been
+CC:: With this setting, the Show sends a Control Change message, with
+value 127 and the note number shown to the right of the menu, when the
+first player moves inside the Cue (as long as the Cue's Track is
+enabled), and a CC with value 0 when the last player that had been
 inside the Cue moves back out of it, or the Track is disabled.
 
 Custom:: When this option is chosen, you can send any kind of message
@@ -728,6 +731,165 @@ want to use it.
 
 As described above, this lets you specify the MIDI channel on which
 entered/exited messages are sent for this Cue.
+
+=== Started Status
+
+Below the Entered Status indicator there is an Started Status
+indicator. Like the Entered Status indicator, it has two parts. The
+outer ring indicates whether the Cue's Track is currently enabled (a
+green circle) or disabled (a red circle with a slash). If any player
+is currently playing inside the Cue, there is a filled circle inside
+the enabled indicator ring:
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, Not Started
+|image:assets/Disabled.png[Disabled,52,52]
+
+|Enabled, Not Started
+|image:assets/Enabled.png[Enabled,52,52]
+
+|Disabled, Started
+|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+
+|Enabled, Started
+|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+
+|===
+
+=== Started On-Beat Message Menu
+
+The menu:Started On-Beat Message[] Menu determines what kind of MIDI
+message is sent when the first player begins playing the Cue, as long
+as it does so from the very first beat of the Cue (and as long as the
+Cue's Track is enabled), or when the last player that had been playing
+inside the cue moves out of it or the Track becomes disabled, if it
+was started on its first beat.
+
+image:assets/StartedOnBeatMenu.png[Started On-Beat Message Menu,912,554]
+
+None:: With this setting, which is the default, nothing is sent when
+the Cue starts on its first beat or ends after having started that
+way.footnote:none[] When `None` is chosen, there are no interface
+elements visible to configure the event. They will appear once you
+choose an event type to send.
+
+Note:: With this setting, the Show sends a Note On message, with
+velocity 127 and the note number shown to the right of the menu, when
+the first player starts playing the Cue from its first beat (as long
+as the Cue's Track is enabled), and a Note Off message when the last
+player that had been playing the Cue stops doing so, or the Track is
+disabled (as long as the Cue started playing from its first beat).
++
+image:assets/StartedOnBeatNote.png[Started On-Beat Note parameters,792,109]
++
+The Channel on which the Started On-Beat/Ended messages are sent is
+configured just to the right of the note selector.
+
+CC:: With this setting, the Show sends a Control Change message, with
+value 127 and the note number shown to the right of the menu, when the
+first player starts playing the Cue from its first beat (as long as
+the Cue's Track is enabled), and a CC with value 0 when the last
+player that had been playing the Cue stops doing so, or the Track is
+disabled (as long as the Cue started playing from its first beat).
+
+Custom:: When this option is chosen, you can send any kind of message
+you want when the Cue is started on-beat and/or ended from that state,
+by writing code as described in the
+<<Expressions#show-cue-expressions,Expressions>> section. This gives
+you the most flexibility because in addition to MIDI messages, you can
+send arbitrary UDP packets, HTTP requests, or whatever you might need.
+The expression editors for the Started Expression and Ended Expression
+are accessed through the <<Shows#cue-context-menu,cue context menu>>.
++
+If you choose `Custom` and have not yet written a Started On-Beat
+expression, the expression editor will be opened to let you do that.
+You can also open that editor using the <<Shows#cue-context-menu,cue
+context menu>>.
+
+==== Started On-Beat Note/Controller Spinner
+
+Found immediately to the right of the menu:Started On-Beat Message[]
+Menu (unless `None` is chosen as the Message type), this field lets
+you set the MIDI note number used for Note-based started on-beat and
+ended messages, or the controller number used for Control Change-based
+started on-beat and ended messages. The value is also available to
+your Cue expressions if they want to use it.
+
+==== Started On-Beat Channel Spinner
+
+As described above, this lets you specify the MIDI channel on which
+started on-beat/ended messages are sent for this Cue.
+
+=== Started Late Message Menu
+
+The menu:Started Late Message[] Menu determines what kind of MIDI
+message is sent when the first player begins playing the Cue, as long
+as it missed playing the very first beat of the Cue (and as long as the
+Cue's Track is enabled), or when the last player that had been playing
+inside the cue moves out of it or the Track becomes disabled, if it
+was started somewhere after its first beat.
+
+image:assets/StartedLateMenu.png[Started Late Message Menu,912,554]
+
+None:: With this setting, which is the default, nothing is sent when
+the Cue starts after its first beat or ends after having started that
+way.footnote:none[] When `None` is chosen, there are no interface
+elements visible to configure the event. They will appear once you
+choose an event type to send.
+
+Note:: With this setting, the Show sends a Note On message, with
+velocity 127 and the note number shown to the right of the menu, when
+the first player starts playing the Cue from somewhere past its first
+beat (as long as the Cue's Track is enabled), and a Note Off message
+when the last player that had been playing the Cue stops doing so, or
+the Track is disabled (as long as the Cue started playing after its
+first beat).
++
+image:assets/StartedLateNote.png[Started Late Note parameters,789,110]
++
+The Channel on which the Started Late/Ended messages are sent is
+configured just to the right of the note selector.
+
+CC:: With this setting, the Show sends a Control Change message, with
+value 127 and the note number shown to the right of the menu, when the
+first player starts playing the Cue from somewhere past its first beat
+(as long as the Cue's Track is enabled), and a CC with value 0 when
+the last player that had been playing the Cue stops doing so, or the
+Track is disabled (as long as the Cue started playing after its first
+beat).
+
+Custom:: When this option is chosen, you can send any kind of message
+you want when the Cue is started late and/or ended from that state,
+by writing code as described in the
+<<Expressions#show-cue-expressions,Expressions>> section. This gives
+you the most flexibility because in addition to MIDI messages, you can
+send arbitrary UDP packets, HTTP requests, or whatever you might need.
+The expression editors for the Started Expression and Ended Expression
+are accessed through the <<Shows#cue-context-menu,cue context menu>>.
++
+If you choose `Custom` and have not yet written a Started Late
+expression, the expression editor will be opened to let you do that.
+You can also open that editor using the <<Shows#cue-context-menu,cue
+context menu>>.
+
+==== Started Late Note/Controller Spinner
+
+Found immediately to the right of the menu:Started Late Message[]
+Menu (unless `None` is chosen as the Message type), this field lets
+you set the MIDI note number used for Note-based started late and
+ended messages, or the controller number used for Control Change-based
+started late and ended messages. The value is also available to
+your Cue expressions if they want to use it.
+
+==== Started Late Channel Spinner
+
+As described above, this lets you specify the MIDI channel on which
+started late/ended messages are sent for this Cue.
+
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_

@@ -806,7 +806,9 @@ any of its cues.
 Called when the first player that is playing the track moves into the
 cue, but misses the beginning of the cue, either because the DJ jumped
 into the middle of the cue, or because the player was paused somewhere
-in the middle of cue and then started playing.
+in the middle of cue and then started playing, or because the Track
+was disabled when the cue was entered from the beginning and became
+enabled somewhere in the middle of the cue.
 
 NOTE: If you want this expression to run, make sure the cue's
 menu:Late Message[] menu is set to `Custom`.
