@@ -214,6 +214,7 @@ tick marks along the bottom each represent one minute of playback time.
 Along the bottom of the track row you find the controls that let you
 configure how you want the Show to respond to the track.
 
+[[track-context-menu-button]]
 === Context Menu Button
 
 This allows you to access the track Context Menu with a regular mouse
@@ -633,6 +634,42 @@ are coming up:
 
 image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
 
+[[cue-context-menu-button]]
+=== Context Menu Button
+
+Below the first row of Cue configuration elements there is a gear
+button, like the one in the Show window, that allows you to access the
+cue Context Menu with a regular mouse click. The contents of the
+menu itself are described <<Shows#cue-context-menu,below>>.
+
+=== Entered Status
+
+To the right of the context menu button there is an Entered Status
+indicator which has two parts. The outer ring indicates whether the
+Track is currently enabled (a green circle) or disabled (a red circle
+with a slash). If any player is currently positioned anywhere inside
+the Cue, there is a filled circle inside the enabled indicator ring:
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, Not Entered
+|image:assets/Disabled.png[Disabled,52,52]
+
+|Enabled, Not Entered
+|image:assets/Enabled.png[Enabled,52,52]
+
+|Disabled, Entered
+|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+
+|Enabled, Entered
+|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+
+|===
+
+=== Entered Message Menu
 
 _This section needs to be finished, and a lot of new screen shots
 taken!_
