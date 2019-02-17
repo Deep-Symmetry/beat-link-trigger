@@ -890,9 +890,75 @@ your Cue expressions if they want to use it.
 As described above, this lets you specify the MIDI channel on which
 started late/ended messages are sent for this Cue.
 
+[[cue-context-menu]]
+=== Cue Context Menu
 
-_This section needs to be finished, and a lot of new screen shots
-taken!_
+Each Cue row has a context menu attached to it, which can be accessed
+by right-clicking (or control-clicking) anywhere on the row's
+background, but you can also open the context menu with a regular
+mouse click on the button with a gear icon in it. Most of the menu is
+devoted to editing various expressions to customize the Cue, as
+described in the <<Expressions#show-cue-expressions,Expressions
+section>>. The gear icon next to an expression will be filled in if
+that expression has a value, and the gear in the button will be filled
+in if any expression associated with the Cue has a value.
+
+image:assets/CueContextMenu.png[Context Menu,912,613]
+
+The menu starts with the expression-related options, allowing you to
+open editors to create or edit Clojure code that runs at well-defined
+moments to customize the behavior of the Cue. These are followed by
+the menu:Inspect Expression Locals[] option, which allows you to
+explore any values that have been set up by expressions in any Cue or
+the Track itself to re-use or share with each other.
+
+Choosing menu:Scroll Waveform to This Cue[] does just what it sounds
+like, ensuring that the cue is visible in the waveform display at the
+top of the window. You can zoom the waveform out if you want to be
+able to see more cues and context, or in if you want to see more
+detail. See <<Shows#navigating-cues,Navigating Cues>> below for more
+ways to find what you are looking for.
+
+The menu:Duplicate Cue[] option makes a copy of the chosen Cue,
+appending the word “Copy” (and possibly a number) to its name to keep
+it unique. You can use this if you need to create several cues that
+have common elements.
+
+Finally, the menu:Delete Cue[] option does just what it sounds like,
+after confirming that you want to discard any expressions and settings
+you have configured for that Cue.
+
+[[navigating-cues]]
+== Navigating Cues
+
+Beat Link Trigger tries to make it easy for you to find the cue you
+want to work with. Here are some of the things that it does
+automatically, and others you will likely find helpful to try when
+working with a large number of cues.
+
+* The list of cues is kept sorted by their start and end beats (and
+  then their names, if you have multiple cues starting and ending on
+  the same beat).
+
+* You can type text in the `Filter` box at the top of the window to
+  narrow the display to only cues whose name contain the text you
+  typed.
+
+* You can click the `Entered Only` check box to only show the cues
+  that currently have players posititoned in them. This can be handy
+  when you are running a show.
+
+* When you create a new Cue, the list of cues is automatically
+ scrolled to ensure the new cue is visible. (If your new cue is hidden
+ by the `Filter` or `Entered Only` settings, Beat Link Trigger will
+ pop up a dialog to remind you why you are not seeing it.)
+
+* You can also scroll a Cue's configuration row into view by clicking
+  on the cue in the waveform display at the top of the window.
+
+* Finally, as noted in the Context Menu section above, you can use a
+  Cue's context menu to scroll the waveform to reveal the cue within
+  the track beat grid.
 
 == Learning More
 
