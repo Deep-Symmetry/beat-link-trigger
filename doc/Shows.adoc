@@ -630,6 +630,10 @@ are coming up:
 
 image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
 
+In both waveforms, <<Shows#entered-status,Entered>> Cues are whitened
+slightly and <<Shows#started-status,Started>> Cues are whitened even
+more as a visual indicator of their state.
+
 [[cue-context-menu-button]]
 === Context Menu Button
 
@@ -639,6 +643,7 @@ mouse click. The gear will be filled in if any Expressions have been
 added to the Cue, and hollow otherwise. The contents of the menu
 itself are described <<Shows#cue-context-menu,below>>.
 
+[[entered-status]]
 === Entered Status
 
 To the right of the context menu button there is an Entered Status
@@ -732,6 +737,7 @@ want to use it.
 As described above, this lets you specify the MIDI channel on which
 entered/exited messages are sent for this Cue.
 
+[[started-status]]
 === Started Status
 
 Below the Entered Status indicator there is an Started Status
