@@ -563,7 +563,7 @@ manually scroll this one to the section you want to see regardless of
 whether any players are currently playing it. If any are, you will
 see their playback position(s) marked on the waveform as illustrated
 above, but they will not cause the waveform to scroll to follow them
-unless you check the `Auto-Scroll` checkbox. Although you wont’t want
+unless you check the `Auto-Scroll` checkbox. Although you won’t want
 to do that when you are editing cues, it can be nice when running a
 show, as it makes it easy to follow along as Cues approach and run.
 
