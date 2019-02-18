@@ -106,6 +106,38 @@ TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
 is Online, because otherwise there is no way tracks could be
 identified as loaded.
 
+=== Show Menu Bar
+
+The Show window has its own menu bar with commands that apply to the
+Show as a whole.
+
+Beat Link Trigger automatically saves the Show when you exit normally,
+but if you are concerned that your computer might crash and want to
+avoid the risk of losing data, you can manually save it by choosing
+menu:File[Save]. You can also save a copy to a different file at any
+time using menu:File[Save a Copy].
+
+image:assets/ShowFileMenu.png[Show File Menu,172,94]
+
+If you want to stop working with a show, and don't want Beat Link
+Trigger to automatically open it the next time you launch the program,
+choose menu:File[Close].
+
+The menu:Tracks[] Menu allows you to add tracks to the show, as
+discussed in the <<Shows#adding-tracks,next section>>, and to edit
+expressions that customize the show as a whole, as described in the
+<<Expressions#show-global-expressions,Expressions section>>.
+
+image:assets/ShowTracksMenu.png[Show Tracks Menu,319,136]
+
+The menu:Inspect Expression Locals[] option allows you to explore any
+values that have been set up by expressions to share across the entire
+Show. See <<Debugging#inspecting,Inspecting Locals and Globals>> for
+more details.
+
+The menu:Help[] Menu is the same as in the Triggers window, providing
+a variety of helpful information and shortcuts for getting support.
+
 [[adding-tracks]]
 === Adding Tracks to a Show
 
@@ -492,7 +524,9 @@ editors to create or edit Clojure code that runs at well-defined
 moments to customize the behavior of the Track. These are followed by
 the menu:Inspect Expression Locals[] option, which allows you to
 explore any values that have been set up by expressions in the Track
-to re-use or share with each other.
+to re-use or share with each other. See
+<<Debugging#inspecting,Inspecting Locals and Globals>> for more
+details.
 
 As mentioned at the end of the <<Shows#adding-tracks,Adding Tracks
 section>>, if you have more than one Show window open, and you bring
@@ -916,7 +950,9 @@ open editors to create or edit Clojure code that runs at well-defined
 moments to customize the behavior of the Cue. These are followed by
 the menu:Inspect Expression Locals[] option, which allows you to
 explore any values that have been set up by expressions in any Cue or
-the Track itself to re-use or share with each other.
+the Track itself to re-use or share with each other. See
+<<Debugging#inspecting,Inspecting Locals and Globals>> for more
+details.
 
 Choosing menu:Scroll Waveform to This Cue[] does just what it sounds
 like, ensuring that the cue is visible in the waveform display at the

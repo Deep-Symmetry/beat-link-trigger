@@ -333,10 +333,18 @@ the trigger has a value.
 
 image:assets/ContextMenu.png[Context Menu,314,297]
 
-Below the expression-related options, you can export the current
-trigger configuration to a text file which can be imported into a
-different trigger or shared with colleagues, and you can delete the
-trigger, unless it is the only remaining trigger in the window.
+Below the expression editors the menu:Inspect Expression Locals[]
+option allows you to explore any values that have been set up by
+expressions in the Trigger to re-use or share with each other. See
+<<Debugging#inspecting,Inspecting Locals and Globals>> for more
+details.
+
+After that are options with which you can import an exported trigger
+configuration into the current trigger, or export the current trigger
+configuration to a text file which can be imported into a different
+trigger or shared with colleagues. Finally, the menu:Delete Triger[]
+option allows you to delete the trigger, unless it is the only
+remaining trigger in the window.
 
 == Learning More
 

@@ -43,6 +43,12 @@ embedded copy of this User Guide, which can be used even if you are
 not connected to the Internet (although links to other sites will not
 work in that case).
 
+There's no way for the author to know how many people are using the
+the program, or where they are, unless they choose to contact him.
+Many people have (especially on the Gitter chat), but if you have
+not, and would like to say hello and share how you are using Beat
+Link Trigger, it would be greatly appreciated! You can use
+menu:Help[Send User Greeting (email)] to make it easy.
 
 [[logs]]
 == Logs
@@ -115,6 +121,7 @@ In any case, even if Deep Symmetry is unable to investigate your
 report immediately (since this is free software developed during our
 spare time), we very much appreciate you taking the effort to send it.
 
+[[inspecting]]
 == Inspecting Locals and Globals
 
 In addition to logging values to the log file, you can get a glimpse

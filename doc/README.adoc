@@ -28,10 +28,6 @@ but as an open-ended environment, the possibilities are endless. If you
 have questions or other approaches you'd like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
-IMPORTANT: This guide is being updated to reflect important changes in
-version 0.5.0. If you are using an older version, please refer to the
-built-in guide for accurate instructions.
-
 To keep page sizes manageable, this guide is split into several pages.
 It is worth reading through this whole guide once if you are new to
 Beat Link Trigger. Once you know what you are looking for, you can
