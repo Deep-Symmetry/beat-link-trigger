@@ -87,13 +87,13 @@ to take effect. That is probably no longer true, but we mention this
 as a potential trouleshooting step. You can also test connectivity
 using a tool like https://packetsender.com[Packet Sender] to send
 commands like `SetBpm 123.4\r\n` as UDP packets to the broadcast
-address and port you determined above, verifying that BEYOND's BPM
+address and port you determined above, verifying that BEYOND’s BPM
 updates to the value that you sent. Packet Sender also has a Subnet
 Calculator found at menu:Tools[Subnet Calculator] that can help you
 determine the broadcast address.
 
 Once you have the UDP Talk server up and working, edit Beat Link
-Trigger's Global Setup expression to use the broadcast address and
+Trigger’s Global Setup expression to use the broadcast address and
 port to define a new function, `beyond-command`, that your other
 expressions will be able to use to send PangoScript commands to it:
 
@@ -112,7 +112,7 @@ TIP: Of course, replace the address and port in the first line with
 the correct values to use for your BEYOND UDP Talk server.
 
 With that in place, we are ready to integrate laser shows. First,
-let's see how to have the tempo within BEYOND always precisely match
+let’s see how to have the tempo within BEYOND always precisely match
 the tempo of your master player.
 
 === Laser Show Tempo Synchronization
@@ -155,8 +155,8 @@ tempo. Either way, we record the current effective tempo in the
 Finally, the expression always returns `nil`, because there is never
 any reason for it to be enabled. It is not actually triggering
 anything in response to a particular track playing, it is simply
-always keeping BEYOND's tempo tied to the master player. (For the same
-reason, it doesn't matter what you choose in the MIDI Output, Message,
+always keeping BEYOND’s tempo tied to the master player. (For the same
+reason, it doesn’t matter what you choose in the MIDI Output, Message,
 and Channel menus; they will never be sent.)
 
 Once you have this expression saved, try playing a track on the Master
@@ -171,7 +171,7 @@ describe the cue you want it to control, and set it up to be activated
 when an interesting track reaches an interesting beat, using the
 techniques described above. The only thing you need to do different is
 set the Message menu to Custom, so it will send its Activation message
-to Beyond's Talk server rather than a MIDI message.
+to Beyond’s Talk server rather than a MIDI message.
 
 > Actually, you can map MIDI and OSC messages to BEYOND cues, so once
 > you have the BPM sync working, feel free to go that route if you
@@ -195,7 +195,7 @@ you the equivalent PangoScript command for what you just did:
 image:assets/BeyondPreview.png[Beyond Laser Preview,336,282]
 
 In this case, I just activated cue 16, 20 (cue 20 on page 16). So in
-the trigger's Activation Expression editor, I would use the following:
+the trigger’s Activation Expression editor, I would use the following:
 
 ```clojure
 (beyond-command "StartCue 16,20")
@@ -262,7 +262,7 @@ messages.
 
 === Tempo to BEYOND via MIDI
 
-To enable Beat Link Trigger to adjust BEYOND's tempo using MIDI Clock
+To enable Beat Link Trigger to adjust BEYOND’s tempo using MIDI Clock
 messages, right-click on the metronome at the top of the BEYOND
 window, and click the btn:[Enable MIDI input to set BPM] button in the
 contextual menu that appears:
@@ -283,7 +283,7 @@ yellow and will track the tempo of the track that activated the
 trigger, although not quite as precisely as it can using the PangoTalk
 server, since MIDI clock is a less direct way of communicating it.
 
-If you don't want Beat Link Trigger to send Start or Stop messages
+If you don’t want Beat Link Trigger to send Start or Stop messages
 when the trigger activates and deactivates, you can uncheck the
 corresponding check boxes in the trigger row. You may want to
 experiment to see how BEYOND responds to them, or ask an expert in
@@ -315,7 +315,7 @@ That will open a window that gives you access to a great many MIDI
 mapping options, allowing you to cause BEYOND to react to incoming
 MIDI events in different ways. For much more information about it, see
 the BEYOND MIDI Settings manual section, accessible through
-menu:Help[Documentation>Settings>MIDI settings]. In this example we'll
+menu:Help[Documentation>Settings>MIDI settings]. In this example we’ll
 just take a quick look at mapping the first cue cell to respond to the
 Beat Link Trigger we have just created. To do that, click the
 btn:[Configure...] button for the Main Grid MIDI surface:
@@ -373,7 +373,7 @@ initially opened it.
 
 image:assets/LiveExternalControl.png[ShowXpress Live Preferences,700,540]
 
-Then paste this block of code into Beat Link Trigger's Global Setup
+Then paste this block of code into Beat Link Trigger’s Global Setup
 Expression:
 
 ```clojure
@@ -424,7 +424,7 @@ Expression:
   value we last reported. Rounds to the nearest beat per minute
   because the protocol does not seem to accept any fractional values.
   The expected way to use this is to include the following in a
-  trigger's Tracked Update Expression:
+  trigger’s Tracked Update Expression:
 
   `(when trigger-active? (set-live-tempo effective-tempo))`"
   [bpm]
@@ -437,7 +437,7 @@ Expression:
 (defn send-live-beat
   "Sends a beat command to ShowXpress Live if we have received a
   request to do so. The expected way to use this is to include the
-  following in a trigger's Beat Expresssion:
+  following in a trigger’s Beat Expresssion:
 
   `(when trigger-active? (send-live-beat))`"
   []
@@ -508,7 +508,7 @@ Tracked Update Expression to:
 Whenever you have this trigger enabled, it will slave the tempo in
 ShowXpress Live to the tempo of the Master Player.
 
-You may also want to set this trigger's Beat Expression to:
+You may also want to set this trigger’s Beat Expression to:
 
 ```clojure
 (when trigger-active? (send-live-beat))
@@ -579,13 +579,13 @@ keep, be sure to save your configuration before opening another one!
 In that case you may want to export your triggers, or manually cut and
 paste the relevant pieces of code into your global expressions.
 
-To begin with, paste this block of code into Beat Link Trigger's
+To begin with, paste this block of code into Beat Link Trigger’s
 Global Setup Expression:
 
 ```clojure
 (defn gm-response-handler
   "A loop that reads messages from grandMA2 and responds
-  appropriately. (Currently we don't respond in any way, but simply
+  appropriately. (Currently we don’t respond in any way, but simply
   consume responses as they arrive.)"
   []
   (try
@@ -617,7 +617,7 @@ Global Setup Expression:
   value we last reported. Rounds to the nearest beat per minute
   because the protocol does not accept any fractional values.
   The expected way to use this is to include the following in a
-  trigger's Tracked Update Expression:
+  trigger’s Tracked Update Expression:
 
   `(when trigger-active? (set-gm-tempo effective-tempo))`"
   [bpm]
@@ -633,7 +633,7 @@ Global Setup Expression:
 
 (defn send-gm-beat
   "Sends a learn command to grandMA2. The expected way to use this is
-  to include the following in a trigger's Beat Expresssion:
+  to include the following in a trigger’s Beat Expresssion:
 
   `(when trigger-active? (send-gm-beat))`"
   []
@@ -696,7 +696,7 @@ Watch the Master Player, and set its Tracked Update Expression to:
 
 Whenever you have this trigger enabled, it will slave the value of the
 configured grandMA2 SpecialMaster to the tempo of the Master Player.
-To have the speed set to zero when playback stops, set the trigger's
+To have the speed set to zero when playback stops, set the trigger’s
 Deactivation Expression to:
 
 ```clojure
@@ -781,7 +781,7 @@ needs the Beat Link `TimeFinder` object to be running. The easiest way
 to make sure of that is to have no more than three physical CDJs on
 your network, and open the Player Status window, menu:Network[Show
 Player Status]. The trigger uses an Enabled Filter to make sure it
-does not try to generate timecode when the `TimeFinder` isn't running:
+does not try to generate timecode when the `TimeFinder` isn’t running:
 
 ```clojure
 (.isRunning (org.deepsymmetry.beatlink.data.TimeFinder/getInstance))
@@ -814,7 +814,7 @@ documentation] for more information on audio configuration.
 
 If you need to change the port number that the daemon uses, you can do
 so at the top left of the window, but you will also need to edit the
-trigger's Setup Expression to match (the port number appears at the
+trigger’s Setup Expression to match (the port number appears at the
 end of the first line):
 
 ```clojure
@@ -894,7 +894,7 @@ is what it looks like in patcher mode, unlocked):
 image:assets/SMPTEdualPatch.png[Dual SMPTE patcher,1290,840]
 
 Again, I hope this is useful to intrepid explorers who want to try
-working with SMPTE, but please don't expect me to be able to offer
+working with SMPTE, but please don’t expect me to be able to offer
 intensive or detailed support: I don't use SMPTE myself, created these
 experimental daemons to prove that it is possible, and we are all
 waiting for someone to create a more robust and permanent solution. If

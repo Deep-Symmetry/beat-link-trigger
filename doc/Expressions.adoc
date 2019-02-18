@@ -60,7 +60,7 @@ with instant feedback—and better support and guidance when errors
 happen than the language itself provides. It’s worth checking out.
 
 If you are working with the new Show interface, rather than low-level
-Triggers, then the expressions you'll be using are at the
+Triggers, then the expressions you’ll be using are at the
 <<Expressions#show-global-expressions,end of this section>>, but you
 should at least skim the Triggers expression explanations too, because
 they introduce some important concepts that are useful everywhere.
@@ -71,7 +71,7 @@ WARNING: The code you write in expressions gets compiled into Beat
 Link Trigger in the same way as the program itself was written. This
 gives you great power, but it also means you can completely lock up
 the program if you change the wrong things or get stuck in an infinite
-loop. It's important to start simple, and to keep in mind that your
+loop. It’s important to start simple, and to keep in mind that your
 expressions run as part of processing network updates from players and
 mixers, so they need to finish fast.
 
@@ -100,19 +100,19 @@ cues, or the user interface.
 
 The tricky part about using `future` to run your code asynchronously
 is when you need to do something with whatever answer you got back
-from your long-running operation. You can't just return it, like you
+from your long-running operation. You can’t just return it, like you
 would in a simple, direct expression, because the expression has
 already moved on, it did not wait for the answer. The easiest solution
 is to have your asynchronous code inside the `future` block record the
 answer into an expression local or global, and then other expressions
 (or even future invocations of this expression) can check the local or
 global to see if the answer is ready, and use it when it is. That is a
-quick operation. So as long as your code works (even if it doesn't yet
+quick operation. So as long as your code works (even if it doesn’t yet
 do anything) while the answer is still missing, it can use it without
 blocking other activity as soon as it becomes available in the
 expression local or global.
 
-TIP: There aren't any examples of this kind of asynchronous code in
+TIP: There aren’t any examples of this kind of asynchronous code in
 the user guide yet, but if you have a situation where you need one,
 ask in the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat],
 and perhaps we can turn your needs into a new example for future
@@ -127,9 +127,9 @@ examples of doing just that throughout this guide.
 === Editing Expressions
 
 The expression you are first likely to want to use is the Enabled
-Filter, which is found in each trigger's
+Filter, which is found in each trigger’s
 <<Triggers#context-menu,context menu>>. In fact, as soon as you set a
-trigger's menu:Enabled[] menu to Custom, Beat Link Trigger will pop
+trigger’s menu:Enabled[] menu to Custom, Beat Link Trigger will pop
 open the editor for that expression for you, if you have not yet
 created it:
 
@@ -176,7 +176,7 @@ your other Trigger expressions.
 
 To support that, all Trigger expressions have access to a Clojure
 http://clojure.org/reference/atoms[atom] named `globals` that is
-shared with all other Trigger expressions, so that's a great place to
+shared with all other Trigger expressions, so that’s a great place to
 put things for them to find. The atom starts out holding an empty
 http://clojure.org/reference/data_structures#Maps[map], which allows
 you to add key/value pairs to organize the information you want to
@@ -288,7 +288,7 @@ To illustrate how different expressions in a trigger can work together
 using `locals`, suppose you have a single trigger that wants to send
 pitch information to https://resolume.com[Resolume] Arena 5 so that a
 clip you are triggering runs at the same speed as the track playing on
-the CDJ. Beat Link Trigger embeds Project Overtone's
+the CDJ. Beat Link Trigger embeds Project Overtone’s
 https://github.com/rosejn/osc-clj[osc-clj] library and aliases it to
 `osc` within the context of expressions to make it easy to send Open
 Sound Control messages. Assuming your copy of Arena 5 is running on
@@ -328,7 +328,7 @@ we created to talk to Resolume when the trigger is going away:
 === Enabled Filter Expression
 
 As described in the <<overview,introduction>> to this section, this is
-used when you set a trigger's menu:Enabled[] menu to Custom. It is
+used when you set a trigger’s menu:Enabled[] menu to Custom. It is
 called whenever a status update packet is received from a watched
 player, and tells Beat Link Trigger if the trigger should be enabled
 or not. Often you will want a trigger to be enabled when a DJ has
@@ -344,7 +344,7 @@ custom Enabled Filter along the lines of:
 
 TIP: Since this expression is called every time we get a status update from
 a watched player, you might think it could be useful even when you
-don't need a custom Enabled state for the trigger, to relay ongoing
+don’t need a custom Enabled state for the trigger, to relay ongoing
 state information to other systems like Resolume. But because it is
 called to decide which player to track when your trigger is set to
 watch Any Player, it will be called more times than you might expect,
@@ -359,7 +359,7 @@ trigger is configured to potentially watch multiple players, it is
 called only for the player that is currently being tracked, which will
 be the one that is considered “best” as described in the
 <<Triggers#watch-menu,Watch Menu>> section above. Players which enable
-the trigger are better than ones that don't; within that group, it is
+the trigger are better than ones that don’t; within that group, it is
 better to be playing, and as a tie-breaker the lowest numbered player
 is chosen.
 
@@ -382,7 +382,7 @@ it is watching is currently playing--so we wrap our expression in a
     (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  {conum-guard-clojure} <3>
 ----
 
-<1> Skip this whole expression if the trigger isn't active.
+<1> Skip this whole expression if the trigger isn’t active.
 
 <2> We need to do a little bit of silly math because Beat Link Trigger
 represents the current pitch multiplier in a fairly straightforward
@@ -399,9 +399,9 @@ https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
 
 There is one more improvement we can make, though. Our code as it
 stands sends an OSC message to Resolume for every status packet from
-the watched player, even when the pitch is not changing. That's
+the watched player, even when the pitch is not changing. That’s
 inefficient; it puts needless traffic on the network, and makes
-Resolume waste time processing messages that don't change anything. By
+Resolume waste time processing messages that don’t change anything. By
 adding a little more sophistication to our Tracked Update Expression,
 we can keep track of the last value we sent to Resolume, and only send
 a new one when it is different. We will use a local named
@@ -484,10 +484,10 @@ was adjusting the pitch for:
 
 You can also use the Activation expression to send MIDI messages that
 differ from the ones available through the graphical interface. Beat
-Link Trigger embeds Project Overtone's
+Link Trigger embeds Project Overtone’s
 https://github.com/rosejn/midi-clj[midi-clj] library and aliases it to
 `midi` within the context of expressions to make it easy to send MIDI
-messages. The trigger's chosen MIDI output is available as
+messages. The trigger’s chosen MIDI output is available as
 `trigger-output` (but may be `nil` if the device is currently not
 available). So as an example of how you could send a Note On message
 with velocity 42 on the note and channel chosen in the trigger window:
@@ -497,7 +497,7 @@ with velocity 42 on the note and channel chosen in the trigger window:
   (midi/midi-note-on trigger-output trigger-note 42 (dec trigger-channel)))
 ```
 
-Note that the user-oriented channel number displayed in the Trigger's
+Note that the user-oriented channel number displayed in the Trigger’s
 Channel menu is actually one larger than the value you actually need
 to send in the MIDI protocol (Channel 1 is represented in protocol by
 the number 0, and Channel 16 by the number 15, so that the channel can
@@ -547,7 +547,7 @@ trigger is on.
 <3> We want to later tell it that it is off, but it is
 critical that Beat Link Trigger expressions finish and return
 promptly, or they will back up the whole event distribution system,
-and cause other events to be delayed or lost. So we use Clojure's
+and cause other events to be delayed or lost. So we use Clojure’s
 http://clojuredocs.org/clojure.core/future[`future`] to send a block
 of code to be executed in the background on another thread.
 
@@ -575,7 +575,7 @@ your other expressions within the Show.
 
 To support that, all Show expressions have access to a Clojure
 http://clojure.org/reference/atoms[atom] named `globals` that is
-shared with all other Show expressions, so that's a great place to put
+shared with all other Show expressions, so that’s a great place to put
 things for them to find. The atom starts out holding an empty
 http://clojure.org/reference/data_structures#Maps[map], which allows
 you to add key/value pairs to organize the information you want to
@@ -597,11 +597,11 @@ expressions to use.
 The basic concept of an Enabled Filter is described in the
 <<overview,introduction>> to this section; shows use them in a similar
 way. Each Track that you are watching in the Show can be enabled
-separately. If the track's menu:Enabled[] menu is set to Default, that
+separately. If the track’s menu:Enabled[] menu is set to Default, that
 track will look to the show itself to decide whether it should be
 enabled. There is an Enabled Default menu at the top of the Show
 window that is used by all tracks whose Enabled mode is Default. If
-the Show's Enabled Default is set to Custom, it will run your Default
+the Show’s Enabled Default is set to Custom, it will run your Default
 Enabled Filter Expression to decide what to do. If your expression
 returns a `true` value, all these tracks will be enabled; otherwise
 they will be disabled.
@@ -627,7 +627,7 @@ loaded on a player, starts or stops playing, and so on. To react to
 more specific regions of the track, see the
 <<Expressions#show-cue-expressions,Cue Expressions, below>>.
 
-The track expressions can be accessed from the track's
+The track expressions can be accessed from the track’s
 <<Shows#track-context-menu,context menu>>. In addition to the
 `globals` atom described above, these have access to a very similar
 `locals` atom which can be used to share values across expressions
@@ -655,7 +655,7 @@ Cue expressions to use.
 
 The basic concept of an Enabled Filter is described in the
 <<overview,introduction>> to this section; tracks use them in a
-similar way. If the track's menu:Enabled[] menu is set to Custom, it
+similar way. If the track’s menu:Enabled[] menu is set to Custom, it
 will run its Enabled Filter Expression to decide what to do. If your
 expression returns a `true` value, this tracks will be enabled;
 otherwise it will be disabled.
@@ -676,7 +676,7 @@ this expression is called only when the first player loads it. The
 track will continue to be considered loaded until the final player
 unloads it.)
 
-NOTE: If you want this expression to run, make sure the track's
+NOTE: If you want this expression to run, make sure the track’s
 menu:Loaded Message[] menu is set to `Custom`.
 
 This expression is only called when the track is enabled (disabled
@@ -691,7 +691,7 @@ expression is called only when the first player starts playing it. The
 track will continue to be considered playing until the final player
 stops playing it.)
 
-NOTE: If you want this expression to run, make sure the track's
+NOTE: If you want this expression to run, make sure the track’s
 menu:Playing Message[] menu is set to `Custom`.
 
 This expression is only called when the track is enabled (disabled
@@ -721,7 +721,7 @@ stops. (The same track might be playing on multiple players at the
 same time; this expression is called only when the final player stops
 playing it, so it is no longer playing on any player.)
 
-NOTE: If you want this expression to run, make sure the track's Playing
+NOTE: If you want this expression to run, make sure the track’s Playing
 Message menu is set to `Custom`.
 
 A track will also report stopping if it becomes disabled while it was
@@ -735,7 +735,7 @@ had loaded it. (The same track might be loaded into multiple players
 at the same time; this expression is called only when the final player
 unloads it, so it is no longer loaded in any player.)
 
-NOTE: If you want this expression to run, make sure the track's
+NOTE: If you want this expression to run, make sure the track’s
 menu:Loaded Message[] menu is set to `Custom`.
 
 A track will also report unloading if it becomes disabled while it was
@@ -757,9 +757,9 @@ which apply to that cue, allowing you to take actions when some player
 moves into or out of that cue, if the cue starts playing on its first
 beat or from some point later within the cue, or if it stops playing.
 
-The cue expressions can be accessed from the cue's context menu. Cues
+The cue expressions can be accessed from the cue’s context menu. Cues
 have access to the same `globals` and `locals` atoms that track
-expressions in the cue's track do, and individual kinds of expressions
+expressions in the cue’s track do, and individual kinds of expressions
 will automatically have other values available to them which make
 sense in the context in which the expression is used.
 
@@ -770,12 +770,12 @@ expression.
 [[cue-entered-expression]]
 === Entered Expression
 
-Called when the cue's track is enabled, and the first player moves
+Called when the cue’s track is enabled, and the first player moves
 inside the cue (in other words, the playback position of at least one
-player that has the cue's track loaded is within the beat range that
+player that has the cue’s track loaded is within the beat range that
 defines the cue).
 
-NOTE: If you want this expression to run, make sure the cue's
+NOTE: If you want this expression to run, make sure the cue’s
 menu:Entered Message[] menu is set to `Custom`.
 
 There can be multiple players inside the cue at any given moment, but
@@ -791,7 +791,7 @@ Called when the first player that is playing the track moves into the
 cue, as long as it does so right at the beginning of the cue, and hits
 the start of the first beat that defines the cue.
 
-NOTE: If you want this expression to run, make sure the cue's
+NOTE: If you want this expression to run, make sure the cue’s
 menu:On-Beat Message[] menu is set to `Custom`.
 
 There can be multiple players playing the cue at any given moment, but
@@ -810,7 +810,7 @@ in the middle of cue and then started playing, or because the Track
 was disabled when the cue was entered from the beginning and became
 enabled somewhere in the middle of the cue.
 
-NOTE: If you want this expression to run, make sure the cue's
+NOTE: If you want this expression to run, make sure the cue’s
 menu:Late Message[] menu is set to `Custom`.
 
 There can be multiple players playing the cue at any given moment, but
@@ -860,7 +860,7 @@ Called when the last player that was inside the cue leaves it. There
 can be multiple players positioned in the cue at any given moment, and
 this expression will be called as soon as there are none left.
 
-NOTE: If you want this expression to run, make sure the cue's
+NOTE: If you want this expression to run, make sure the cue’s
 menu:Entered Message[] menu is set to `Custom`.
 
 If the track becomes disabled while there were players positioned

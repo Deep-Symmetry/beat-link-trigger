@@ -47,7 +47,7 @@ Also, there is a practical limit to how many Triggers you can have in
 your file, because each one gets considered in sequence whenever a
 packet is received from a player. The limit may be a few dozen, or
 many more, but eventually your CPU will be get busy just evaluating
-triggers. The Show interface doesn't have this limitation--it uses a
+triggers. The Show interface doesn’t have this limitation--it uses a
 sophisticated and efficient mechanism for recognizing tracks, and
 allows you to add thousands of tracks to your Shows. Tracks in a Show
 will not put any load on your CPU until they are actually loaded in a
@@ -55,12 +55,12 @@ player.
 
 Finally, because tracks can be added to a Show either from players on
 the network, or by reading them directly from your rekordbox USB or SD
-media, you can set up your Shows, draw cues on the tracks' beat grids,
+media, you can set up your Shows, draw cues on the tracks’ beat grids,
 with reference to their waveforms, and configure the messages you want
-the cues to send, even in situations where you don't have access to
+the cues to send, even in situations where you don’t have access to
 CDJs. Almost all of the Show interface features are fully functional
 when Beat Link Trigger is operating in Offline mode, and the ones that
-don't make sense are simply hidden from view. This supports a flexible
+don’t make sense are simply hidden from view. This supports a flexible
 and convenient workflow.
 
 == Creating a Show
@@ -119,7 +119,7 @@ time using menu:File[Save a Copy].
 
 image:assets/ShowFileMenu.png[Show File Menu,172,94]
 
-If you want to stop working with a show, and don't want Beat Link
+If you want to stop working with a show, and don’t want Beat Link
 Trigger to automatically open it the next time you launch the program,
 choose menu:File[Close].
 
@@ -141,7 +141,7 @@ a variety of helpful information and shortcuts for getting support.
 [[adding-tracks]]
 === Adding Tracks to a Show
 
-Shows don't do anything until they include at least one Track. There
+Shows don’t do anything until they include at least one Track. There
 are a number of different ways you can add Tracks to your Show. Most
 of them can be found by choosing menu:Tracks[Import Track] in the Show
 window menu bar:
@@ -166,7 +166,7 @@ explanation is added:
 
 image:assets/ImportTrackAlready.png[Track already in Show,1009,466]
 
-To make it possible to set up your Show even when you don't have
+To make it possible to set up your Show even when you don’t have
 access to your player network, you can also import Tracks directly
 from rekordbod USB or SD media. To do that, mount the media on your
 computer, and choose menu:Tracks[Import Track>from Offline Media]. An
@@ -204,12 +204,12 @@ can click kbd:[Cancel] if you did not actually want to import a Track.
 The final way to add a Track to a Show is to copy it from another
 Show. When you have multiple Show windows open, you can copy Tracks
 from one to another by finding the Track in the open Show that already
-contains it, then choosing menu:Copy to Show “<name>”[] in the Track's
+contains it, then choosing menu:Copy to Show “<name>”[] in the Track’s
 context menu:
 
 image:assets/CopyTrack.png[Copy Track to Show,1005,625]
 
-TIP: If you don't see an open Show in the `Copy to` list, that means
+TIP: If you don’t see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
 
 [[track-row-elements]]
@@ -270,7 +270,7 @@ you have a large show with many cues.
 NOTE: As with the MIDI Output Menu in the
 <<Triggers#midi-output-menu,Triggers window>>, if a MIDI Output is
 chosen which is no longer available on the system, it will remain in
-that Track's menu, but the Enabled section of the Track will be
+that Track’s menu, but the Enabled section of the Track will be
 replaced with the message “Not found.” Once the output reappears, or a
 different output is chosen, the Track will become operational again.
 
@@ -463,7 +463,7 @@ players doing things with the Track.
 image:assets/TrackEnabledMenu.png[Enabled Menu,1005,582]
 
 Default:: With this setting, which will be used by most Tracks, the
-Show's shared menu:Enabled Default[] menu (at the top of the window)
+Show’s shared menu:Enabled Default[] menu (at the top of the window)
 is used. This allows you to enable and disable most or all tracks
 using a common set of rules, while special tracks that need to be
 different can still use their own settings. All of the options in this
@@ -502,7 +502,7 @@ it.
 === Track Context Menu
 
 Each Track row has a context menu attached to it, which can be
-accessed by right-clicking (or control-clicking) anywhere on the row's
+accessed by right-clicking (or control-clicking) anywhere on the row’s
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the Track, as
@@ -542,15 +542,15 @@ have set up for that Track.
 
 Tracks have settings and expressions that allow you to make things
 happen when they load or start and stop playing, but you will often be
-interested in more specific _parts_ of the track being played. That's
+interested in more specific _parts_ of the track being played. That’s
 where Cues come in. To add Cues to a Track, choose
-menu:Edit Track Cues[] in the Track's context menu, as described in the
+menu:Edit Track Cues[] in the Track’s context menu, as described in the
 previous section. That will open a new window for viewing and editing
-details about that Track's Cues:
+details about that Track’s Cues:
 
 image:assets/CuesWindow.png[Cues Window,912,461]
 
-Before introducing the various ways to add Cues to the track, let's
+Before introducing the various ways to add Cues to the track, let’s
 explore the features available at the top of the window.
 
 === Cues Window Header Elements
@@ -563,7 +563,7 @@ manually scroll this one to the section you want to see regardless of
 whether any players are currently playing it. If any are, you will
 see their playback position(s) marked on the waveform as illustrated
 above, but they will not cause the waveform to scroll to follow them
-unless you check the `Auto-Scroll` checkbox. Although you wont't want
+unless you check the `Auto-Scroll` checkbox. Although you wont’t want
 to do that when you are editing cues, it can be nice when running a
 show, as it makes it easy to follow along as Cues approach and run.
 
@@ -584,7 +584,7 @@ context of being able to detect that a player has loaded the track.
 [[adding-cues]]
 === Adding Cues to a Track
 
-The Cues window doesn't do much until you add at least one Cue. As
+The Cues window doesn’t do much until you add at least one Cue. As
 mentioned above, you can use the kbd:[New Cue] button to do this, and
 then edit the cue to position it where you want it, but it is easier
 to specify where you want it on the beat grid first. To do that,
@@ -631,7 +631,7 @@ To help understand the purpose of the cue, you can give it a name. The
 default is `Untitled` (with a numeric suffix if needed to keep it
 distinct), but as soon as the cue is created, the Name field is
 selected and ready for you to type something more meaningful. For this
-example, we'll type "First two measures", since we placed the cue at
+example, we’ll type "First two measures", since we placed the cue at
 the point where this track begins playback after being loaded.
 
 The cue name also appears as a tool tip when you hover the mouse
@@ -651,14 +651,14 @@ exact hue you want.
 If cues overlap each other, Beat Link Trigger draws them in separate
 lanes to make it easier to tell where each begins and ends. It can
 handle even very complex sets of overlapping cues, adjusting them
-into a minimal set of lanes. Here's an example of what it would look
+into a minimal set of lanes. Here’s an example of what it would look
 like if we added a second cue called “Video Clip 1” that overlaps
 part of our first cue:
 
 image:assets/SecondCue.png[Overlapping cues,791,389]
 
 Cues are also visible, and show their names as tool tips, in the
-waveform preview drawn in Track rows in the Show window, so you don't
+waveform preview drawn in Track rows in the Show window, so you don’t
 even need to open the Cues Editor for a quick reminder of what cues
 are coming up:
 
@@ -672,7 +672,7 @@ more as a visual indicator of their state.
 === Context Menu Button
 
 Below the first row of cue configuration elements there is a gear
-button that allows you to access the cue's Context Menu with a regular
+button that allows you to access the cue’s Context Menu with a regular
 mouse click. The gear will be filled in if any Expressions have been
 added to the Cue, and hollow otherwise. The contents of the menu
 itself are described <<Shows#cue-context-menu,below>>.
@@ -682,7 +682,7 @@ itself are described <<Shows#cue-context-menu,below>>.
 
 To the right of the context menu button there is an Entered Status
 indicator which has two parts. The outer ring indicates whether the
-Cue's Track is currently enabled (a green circle) or disabled (a red
+Cue’s Track is currently enabled (a green circle) or disabled (a red
 circle with a slash). If any player is currently positioned anywhere
 inside the Cue, there is a filled circle inside the enabled indicator
 ring:
@@ -709,7 +709,7 @@ ring:
 === Entered Message Menu
 
 The menu:Entered Message[] Menu determines what kind of MIDI message
-is sent when the first player moves into the cue (as long as the Cue's
+is sent when the first player moves into the cue (as long as the Cue’s
 Track is Enabled), or when the last player that had been positioned
 inside the cue moves out of it.
 
@@ -728,7 +728,7 @@ will appear once you choose an event type to send.
 
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
-the first player moves inside the Cue (as long as the Cue's Track is
+the first player moves inside the Cue (as long as the Cue’s Track is
 enabled), and a Note Off message when the last player that had been
 inside the Cue moves back out of it, or the Track is disabled.
 +
@@ -739,7 +739,7 @@ configured just to the right of the note selector.
 
 CC:: With this setting, the Show sends a Control Change message, with
 value 127 and the note number shown to the right of the menu, when the
-first player moves inside the Cue (as long as the Cue's Track is
+first player moves inside the Cue (as long as the Cue’s Track is
 enabled), and a CC with value 0 when the last player that had been
 inside the Cue moves back out of it, or the Track is disabled.
 
@@ -776,7 +776,7 @@ entered/exited messages are sent for this Cue.
 
 Below the Entered Status indicator there is an Started Status
 indicator. Like the Entered Status indicator, it has two parts. The
-outer ring indicates whether the Cue's Track is currently enabled (a
+outer ring indicates whether the Cue’s Track is currently enabled (a
 green circle) or disabled (a red circle with a slash). If any player
 is currently playing inside the Cue, there is a filled circle inside
 the enabled indicator ring:
@@ -805,7 +805,7 @@ the enabled indicator ring:
 The menu:Started On-Beat Message[] Menu determines what kind of MIDI
 message is sent when the first player begins playing the Cue, as long
 as it does so from the very first beat of the Cue (and as long as the
-Cue's Track is enabled), or when the last player that had been playing
+Cue’s Track is enabled), or when the last player that had been playing
 inside the cue moves out of it or the Track becomes disabled, if it
 was started on its first beat.
 
@@ -820,7 +820,7 @@ choose an event type to send.
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
 the first player starts playing the Cue from its first beat (as long
-as the Cue's Track is enabled), and a Note Off message when the last
+as the Cue’s Track is enabled), and a Note Off message when the last
 player that had been playing the Cue stops doing so, or the Track is
 disabled (as long as the Cue started playing from its first beat).
 +
@@ -832,7 +832,7 @@ configured just to the right of the note selector.
 CC:: With this setting, the Show sends a Control Change message, with
 value 127 and the note number shown to the right of the menu, when the
 first player starts playing the Cue from its first beat (as long as
-the Cue's Track is enabled), and a CC with value 0 when the last
+the Cue’s Track is enabled), and a CC with value 0 when the last
 player that had been playing the Cue stops doing so, or the Track is
 disabled (as long as the Cue started playing from its first beat).
 
@@ -869,7 +869,7 @@ started on-beat/ended messages are sent for this Cue.
 The menu:Started Late Message[] Menu determines what kind of MIDI
 message is sent when the first player begins playing the Cue, as long
 as it missed playing the very first beat of the Cue (and as long as the
-Cue's Track is enabled), or when the last player that had been playing
+Cue’s Track is enabled), or when the last player that had been playing
 inside the cue moves out of it or the Track becomes disabled, if it
 was started somewhere after its first beat.
 
@@ -884,7 +884,7 @@ choose an event type to send.
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
 the first player starts playing the Cue from somewhere past its first
-beat (as long as the Cue's Track is enabled), and a Note Off message
+beat (as long as the Cue’s Track is enabled), and a Note Off message
 when the last player that had been playing the Cue stops doing so, or
 the Track is disabled (as long as the Cue started playing after its
 first beat).
@@ -897,7 +897,7 @@ configured just to the right of the note selector.
 CC:: With this setting, the Show sends a Control Change message, with
 value 127 and the note number shown to the right of the menu, when the
 first player starts playing the Cue from somewhere past its first beat
-(as long as the Cue's Track is enabled), and a CC with value 0 when
+(as long as the Cue’s Track is enabled), and a CC with value 0 when
 the last player that had been playing the Cue stops doing so, or the
 Track is disabled (as long as the Cue started playing after its first
 beat).
@@ -934,7 +934,7 @@ started late/ended messages are sent for this Cue.
 === Cue Context Menu
 
 Each Cue row has a context menu attached to it, which can be accessed
-by right-clicking (or control-clicking) anywhere on the row's
+by right-clicking (or control-clicking) anywhere on the row’s
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the Cue, as
@@ -995,11 +995,11 @@ working with a large number of cues.
  by the `Filter` or `Entered Only` settings, Beat Link Trigger will
  pop up a dialog to remind you why you are not seeing it.)
 
-* You can also scroll a Cue's configuration row into view by clicking
+* You can also scroll a Cue’s configuration row into view by clicking
   on the cue in the waveform display at the top of the window.
 
 * Finally, as noted in the Context Menu section above, you can use a
-  Cue's context menu to scroll the waveform to reveal the cue within
+  Cue’s context menu to scroll the waveform to reveal the cue within
   the track beat grid.
 
 == Learning More

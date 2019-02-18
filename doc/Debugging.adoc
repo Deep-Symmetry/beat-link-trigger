@@ -43,7 +43,7 @@ embedded copy of this User Guide, which can be used even if you are
 not connected to the Internet (although links to other sites will not
 work in that case).
 
-There's no way for the author to know how many people are using the
+There’s no way for the author to know how many people are using the
 the program, or where they are, unless they choose to contact him.
 Many people have (especially on the Gitter chat), but if you have
 not, and would like to say hello and share how you are using Beat
@@ -55,7 +55,7 @@ menu:Help[Send User Greeting (email)] to make it easy.
 
 When Beat Link Trigger is running it reports events to a log file. As
 noted above, this includes full stack traces for compilation problems
-when you try to save an expression that isn't quite right. If a
+when you try to save an expression that isn’t quite right. If a
 problem occurs while trying to run your expression later, that will
 end up in the log too. So it can be a useful place to look when things
 are not working the way you expect. You can find the log file by choosing
@@ -115,7 +115,7 @@ dumps] are often a valuable next step.
 
 You can also skip the email and open an
 https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue]
-directly on the project's GitHub page.
+directly on the project’s GitHub page.
 
 In any case, even if Deep Symmetry is unable to investigate your
 report immediately (since this is free software developed during our
@@ -126,7 +126,7 @@ spare time), we very much appreciate you taking the effort to send it.
 
 In addition to logging values to the log file, you can get a glimpse
 at what your expressions are up to by opening an inspector window on
-the Expression Globals or a particular trigger's Expression Locals.
+the Expression Globals or a particular trigger’s Expression Locals.
 The first is done by choosing menu:Triggers[Inspect Expression
 Globals]. This opens a window showing you all the keys and values that
 have been created in the `globals` atom shared by all triggers. Here
@@ -142,9 +142,9 @@ each entry and dive down into the fields and values that make it up,
 which can be quite a powerful way to explore the objects.
 
 Similarly, the locals for a trigger can be inspected by choosing
-menu:Inspect Expression Locals[] from that trigger's context menu.
-Here's the result of drilling down a little into the `:resolume` OSC
-client object created in that example's trigger:
+menu:Inspect Expression Locals[] from that trigger’s context menu.
+Here’s the result of drilling down a little into the `:resolume` OSC
+client object created in that example’s trigger:
 
 image:assets/ExpressionLocals.png[Expression Locals,789,626]
 

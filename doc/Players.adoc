@@ -35,7 +35,7 @@ Beat Link Trigger can take advantage of track metadata and related
 information from the players to provide you a rich view of what is
 happening right now on all the decks. As shown in the example view
 below, this can be an invaluable resoure on its own for running
-visuals for a show, even if you don't have any triggers set up:
+visuals for a show, even if you don’t have any triggers set up:
 
 image:assets/PlayerStatus.png[Player Status Window,599,842]
 
@@ -58,7 +58,7 @@ Although Beat Link can do a good job of tracking the playback location
 for tracks that are being played normally, the only information it has
 available are the beat packets which tell it when the player has
 reached a particular beat, and which can be translated to a time using
-the track's beat grid. It can combine these with the playback speed
+the track’s beat grid. It can combine these with the playback speed
 information which comes more frequently (in status packets sent
 several times per second), to interpolate the current playback
 position in between beats.
@@ -175,7 +175,7 @@ the cache creation dialog, to tell Beat Link Trigger to pause a second
 between adding each track to the cache. This greatly slows down the
 process, but it avoids interfering with the players. Failing to do
 this can cause playback to stutter if the DJ jumps directly to the
-middle of a track, for example. Don't check the box if the player is
+middle of a track, for example. Don’t check the box if the player is
 idle and you want to quickly cache a lot of tracks.
 
 image:assets/CreateCache3.png[Creating Metadata Cache,526,198]
@@ -269,7 +269,7 @@ might run into this kind of unpredictability.
 
 == Viewing Metadata Cache Contents
 
-If you want to work on trigger definitions while you don't have access
+If you want to work on trigger definitions while you don’t have access
 to CDJs or the media containing the tracks that you want to base them
 on, you can look at the contents of a metadata cache to find out the
 rekordbox IDs of the tracks you want your triggers to match.
@@ -290,7 +290,7 @@ image:assets/SymmetryContents.png[Example cache contents,850,480]
 
 WARNING: Unless you are using a real player number, this feature will
 not work well for non-rekordbox media. Although Crate Digger can be
-used to provide a simplified and faster view of a player's rekordbox
+used to provide a simplified and faster view of a player’s rekordbox
 media, browsing other kinds of media uses menu requests to the
 players, which will likely fail unless you are using a real player
 number.
@@ -298,7 +298,7 @@ number.
 During pre-show and after-show situations, when there is no DJ on
 stage, it can be convenient to cue up and play tracks from Front of
 House. If you can ensure that the tracks are inserted into one of the
-players' media slots before the show (or at the end of the show), you
+players’ media slots before the show (or at the end of the show), you
 can use Beat Link Trigger to accomplish this, either by choosing
 menu:Network[Load Track on Player], or using the popup menu associated
 with a particular media slot in the Player Status window as shown in
@@ -307,7 +307,7 @@ the screen shot below:
 image:assets/LoadTrackContext.png[Load Track from Player Status Window,532,296]
 
 Either method opens the interface shown below; the advantage of
-starting from a media slot's popup menu is that the corresponding
+starting from a media slot’s popup menu is that the corresponding
 section of the loader interface will be automatically opened for you.
 If there are any computers running rekordbox on the network, they
 will also show up as places that you can tell players to load

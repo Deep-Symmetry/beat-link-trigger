@@ -25,7 +25,7 @@ endif::env-github[]
 This is an introduction to the Beat Link Trigger interface and
 expression programming environment. It shows some ways you can use it,
 but as an open-ended environment, the possibilities are endless. If you
-have questions or other approaches you'd like to share, please post to
+have questions or other approaches you’d like to share, please post to
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
 To keep page sizes manageable, this guide is split into several pages.
@@ -85,7 +85,7 @@ How to learn more, get help from the community, and support this effort.
 == Startup
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ
-Link devices that you want it to monitor. If it can't find any, after
+Link devices that you want it to monitor. If it can’t find any, after
 ten seconds you will see this window:
 
 image:assets/NoDevices.png[No devices found,516,196]
@@ -96,8 +96,8 @@ hub or wireless router you are using is also properly turned on and
 configured). Then click kbd:[Try Again] to try again.
 
 If you just wanted to work on setting up your triggers or expressions,
-and don't have any actual players handy, you can also click
-kbd:[Continue Offline] to work in an offline mode. Your triggers won't
+and don’t have any actual players handy, you can also click
+kbd:[Continue Offline] to work in an offline mode. Your triggers won’t
 actually fire, but you can do all the configuration and editing that
 you need.
 
@@ -173,7 +173,7 @@ to hear from you.
 Beat Link Trigger is, and will remain, completely free and
 open-source. If it has helped you, taught you something, or pleased
 you, let us know and share some of your discoveries and code as
-described above. If you'd like to financially support its ongoing
+described above. If you’d like to financially support its ongoing
 development, you are welcome (but by no means obligated) to donate
 towards the hundreds of hours of research, development, and writing
 that have already been invested. Or perhaps to facilitate future
@@ -187,7 +187,7 @@ efforts, tools, toys, and time to explore.
 +++
 
 > If enough people jump on board, we may even be able to get a newer
-> CDJ to experiment with, although that's an unlikely stretch goal.
+> CDJ to experiment with, although that’s an unlikely stretch goal.
 
 // Once Git finally supports it, change this to: include::Footer.adoc[]
 == License

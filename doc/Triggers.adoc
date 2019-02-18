@@ -122,7 +122,7 @@ track description by storing your desired description string under the
 key `:track-description` in the trigger `locals` map. Here is an
 example of what that could look like, when a track named Apex has been
 recognized, and the string `Apex` has been stored under
-`:track-description` in the trigger's `locals`:
+`:track-description` in the trigger’s `locals`:
 
 image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
 
@@ -141,7 +141,7 @@ image:assets/MetadataStatus.png[Player Status with Metadata,794,166]
 
 Your trigger can also change the content of the metadata line by
 setting whatever value it wants under the key `:metadata-summary` in
-the trigger's `locals`. Metadata values available to your trigger
+the trigger’s `locals`. Metadata values available to your trigger
 expressions include `track-artist`, `track-comment`, `track-genre`,
 `track-key`, `track-label`, `track-length` (in seconds), and
 `track-title`.
@@ -159,7 +159,7 @@ currently available on your system.
 image:assets/MidiMenu.png[MIDI Output Menu,810,281]
 
 NOTE: If a MIDI Output is chosen which is no longer available on the
-system (as shown in trigger 3 above), it will remain in that row's
+system (as shown in trigger 3 above), it will remain in that row’s
 menu, but the Enabled section of the trigger will be replaced with the
 message “Not found.” Once the output reappears, or a different output
 is chosen, the trigger will become operational again.
@@ -200,7 +200,7 @@ MIDI Clock is an old, slow, and imprecise mechanism for synchronizing
 tempo, especially when sent by a general-purpose operating system like
 the one running Beat Link Trigger. If at all possible, you should use
 Ableton Link instead, as described below. You will get _much_ better
-results. If you have to talk to older hardware that can't accept
+results. If you have to talk to older hardware that can’t accept
 Ableton Link, consider still sending Link from Beat Link Trigger, and
 using a dedicated Ableton Link to MIDI bridge to talk to your older
 hardware. If you have any iOS devices available,
@@ -322,7 +322,7 @@ circle:
 === Context Menu
 
 Each trigger row has a context menu attached to it, which can be
-accessed by right-clicking (or control-clicking) anywhere on the row's
+accessed by right-clicking (or control-clicking) anywhere on the row’s
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the trigger, as

@@ -11,7 +11,7 @@ ifdef::env-github[:outfilesuffix: .adoc]
 
 WARNING: This information is obsolete because metadata has become so
 fundamental to Beat Link Trigger. The current approach is to use
-metadata caches when you can't actively request it. This document
+metadata caches when you can’t actively request it. This document
 should be examined for historical reference only, although some of the
 techniques for working with raw rekordbox ID values may still be
 useful. There is no longer any support within the application for
@@ -98,7 +98,7 @@ example, beat position).
 Even with a small number of tracks, there is a drawback to the
 expressions we are using: If you set them up in advance, and then
 during the performance, the DJ needs to put the media into a different
-player, you will need to go into each trigger's Enabled Filter
+player, you will need to go into each trigger’s Enabled Filter
 separately and correct the player that it is looking for. This is
 tedious and error-prone, and with more than a few triggers, frankly
 unmanageable. But there is a better way.
@@ -126,7 +126,7 @@ configured with `add-media` to either of its slots, or you can
 indicate that a slot contains no known media.
 
 If you used menu:Triggers[Inspect Expression Globals] after making
-these choices, you'd see that a `:media-locations` entry has been
+these choices, you’d see that a `:media-locations` entry has been
 added to the expression globals, containing a map reflecting your
 choices like this:
 
@@ -136,7 +136,7 @@ choices like this:
 ```
 
 With the media map properly configured for the current show, it can be
-used in each Enabled Filter expression, like this (but don't panic if
+used in each Enabled Filter expression, like this (but don’t panic if
 this expression looks complicated; it is just to explain the low-level
 workings, the idea is so useful that Beat Link Trigger offers a helper
 function to make it much easier, which will be explained next):
@@ -148,7 +148,7 @@ function to make it much easier, which will be explained next):
      (>= beat-number 225))
 ```
 
-This uses Clojure's map traversal `get-in` function with the
+This uses Clojure’s map traversal `get-in` function with the
 `:media-locations` map to see what media key has been assigned to the
 player slot the track was loaded from. Once each Enabled Filter
 expression is written this way, as soon as you use the Set Media
@@ -156,7 +156,7 @@ Locations window to move media around, all of the filter expressions
 immediately start watching for tracks loaded from the updated
 locations.
 
-As mentioned, though, that's a lot of code to type for what is likely
+As mentioned, though, that’s a lot of code to type for what is likely
 to be a common desire! So Beat Link Trigger includes a convenience
 macro called `track-matches` which does it for you. Using it, we can
 transform the above code to this much simpler version:
@@ -169,7 +169,7 @@ transform the above code to this much simpler version:
 [TIP]
 ====================================================================
 If you want to completely ignore track IDs and where they were loaded
-from, and simply base your triggers on the tracks' position within a
+from, and simply base your triggers on the tracks’ position within a
 playlist, you can use the `track-number` variable in your Enabled
 Filter expression, and tell Beat Link Trigger to display this number
 as its description, instead of the ID and slot information, by
@@ -185,7 +185,7 @@ Filter expression:
 (swap! locals assoc :track-description (str "Track #" track-number))
 ```
 
-This isn't the default, because playlists change more often than track
+This isn’t the default, because playlists change more often than track
 IDs, and there is no way of telling what playlist a track was loaded
 from. But it can work for certain kinds of planned shows.
 ====================================================================
@@ -209,8 +209,8 @@ individual trigger for each player you want to watch, rather than
 having the trigger watch Any Player.
 
 So what does this global map of tracks look like? Here is one example
-(and if you don't like the idea of creating such a deeply nested map
-on your own, we'll introduce a macro to help you build it
+(and if you don’t like the idea of creating such a deeply nested map
+on your own, we’ll introduce a macro to help you build it
 <<adding-tracks-individually,at the end of this section>>):
 
 ```clojure
@@ -233,8 +233,8 @@ show. Inside that comes the main map identifying and describing the
 tracks we are watching for in that library.
 
 NOTE: We could have used a variety of structures for organizing this
-information. Nested maps have a few advantages. As you'll see in the
-Enabled filter source below, it's easy to navigate into them using the
+information. Nested maps have a few advantages. As you’ll see in the
+Enabled filter source below, it’s easy to navigate into them using the
 `get-in` function. And this approach lets us keep track of more than
 one rekordbox database containing tracks we want to watch for, by
 simply adding additional media keywords paired with appropriate nested
@@ -246,7 +246,7 @@ The map nested after the media identification keyword (`:show-1` in
 the example above) identifies the tracks we are interested in when
 they are loaded from that library. It pairs the rekordbox ID number of
 each track with whatever other information we might need to know about
-that track. Finding a track's ID in this map after we've navigated
+that track. Finding a track’s ID in this map after we’ve navigated
 down through the media keyword that has been assigned to player number
 and slot from which a track was loaded means that we are interested in
 the track, and the other information we attach to its ID lets us do
@@ -255,7 +255,7 @@ some pretty useful things.
 In this example, we are tracking a `:name` string for each track, and
 another map we store as `:beat-ccs` that will tell us the particular
 beats within the track where we want to activate, as well as the MIDI
-Controller Change number we want to send to identify the track that's
+Controller Change number we want to send to identify the track that’s
 activating when that beat is reached.
 
 NOTE: There is nothing special about the `:name` and `:beat-ccs`
@@ -271,7 +271,7 @@ The `:name` entries in the track description maps play a double role.
 First, they help us when looking at this expression itself to remember
 what track each entry is matching. But the Enabled filter can also use
 the name string to show the user what track has been matched. This
-didn't matter in the One Trigger per Track approach, because each
+didn’t matter in the One Trigger per Track approach, because each
 trigger had a Comment field where you could enter the track name it
 matched. But in this new approach, we have only a single trigger for
 each player, and that trigger will activate whenever the player loads
@@ -280,12 +280,12 @@ memorizing all the track IDs, how will you be able to tell which one
 has been matched? Well, as described <<README#player-status,above>>, the
 Enabled filter can tell Beat Link Trigger to display the name of the
 track it has matched by copying the `:name` string to the key
-`:track-description` in the trigger `locals` atom. Let's look at the
-Enabled filter's code now:
+`:track-description` in the trigger `locals` atom. Let’s look at the
+Enabled filter’s code now:
 
-TIP: :sparkles: Don't worry if this looks a little long--this first
+TIP: :sparkles: Don’t worry if this looks a little long--this first
 version shows how you could do it all on your own, so we can explain
-how each piece works. Right after that, we'll introduce another
+how each piece works. Right after that, we’ll introduce another
 convenience macro that lets you avoid writing most of this code.
 
 ```clojure
@@ -331,7 +331,7 @@ trigger is disabled.
 
 If any of the `:watched-tracks` key lookups fail anywhere along the
 way (no media key was assigned to the player and slot through Set
-Media Locations, the media key can't be found in the `:watched-tracks`
+Media Locations, the media key can’t be found in the `:watched-tracks`
 map, the track ID is not in the map, or perhaps `track-source-slot`
 has the value `:no-track` because no track has even been loaded) then
 the `if-let` form does not assign a value to `track`, and it executes
@@ -341,7 +341,7 @@ Link Trigger will display its normal numerical descripton of the track
 status, and returns `nil` to indicate that the filter should not be
 enabled.
 
-Here's what this set of expressions looks like in action:
+Here’s what this set of expressions looks like in action:
 
 image:assets/MatchTracks2.png[Matching Tracks 2, 848]
 
@@ -353,7 +353,7 @@ shorten the code you need to write. As long as you have structured
 your nested track map as described in this example, starting with its
 identifying keyword (`:watched-tracks` in our example), followed by
 the media library keyword and rekordbox ID as the nested keys to reach
-each track's information map, you can perform the lookup by simply
+each track’s information map, you can perform the lookup by simply
 calling `find-track` with the keyword you used to store your track map
 in the globals. So we could shorten the expression above to be:
 
@@ -448,10 +448,10 @@ configured to watch a single player. They each have identical copies
 of the above Enabled filter installed, and are set to use it, which is
 why the loaded track names are showing up in the blue Player Status
 section. The first trigger is enabled, because that player is sitting
-at the beat mentioned in the track's `:beat-ccs` map. As soon as that
+at the beat mentioned in the track’s `:beat-ccs` map. As soon as that
 player starts playing, the trigger will activate. But how will it know
 which MIDI CC number it is supposed to send in its activation message?
-That's taken care of by a custom Activation expression that has been
+That’s taken care of by a custom Activation expression that has been
 installed:
 
 ```clojure
@@ -460,7 +460,7 @@ installed:
     (midi/midi-control trigger-output cc 127 (dec trigger-channel))))
 ```
 
-This expression first checks that the trigger's chosen MIDI Output can
+This expression first checks that the trigger’s chosen MIDI Output can
 be found (to avoid throwing exceptions trying to send to a missing
 device), then looks for the value that the Enabled filter stored in
 the `:activate-cc` local. It then sends a MIDI CC message to that

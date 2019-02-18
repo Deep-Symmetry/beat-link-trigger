@@ -54,8 +54,8 @@ section, you will almost always want to use the new, convenient
 an incredibly powerful graphical interface for matching tracks and
 defining cues on beat ranges within those tracks.
 
-If, for some reason, you don't want to use the Show interface, and you
-are unable to get metadata (although as of version 0.5.0 we can't
+If, for some reason, you don’t want to use the Show interface, and you
+are unable to get metadata (although as of version 0.5.0 we can’t
 think of any situations where this might apply), you can prepare ahead
 of time by hard-coding the rekordbox ID numbers in your triggers, or
 you can set up a <<Players#caching-metadata,Metadata Cache>>.
@@ -172,7 +172,7 @@ this works).
 about to write a playlist entry for it, and only want to do it once.
 
 <4> Only proceed deeper into the expression if we actually have
-metadata, because otherwise we can't create a meaningful playlist
+metadata, because otherwise we can’t create a meaningful playlist
 entry.
 
 <5> Format the lines of the playlist entry.
