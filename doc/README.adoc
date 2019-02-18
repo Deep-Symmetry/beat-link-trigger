@@ -86,14 +86,24 @@ How to learn more, get help from the community, and support this effort.
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ
 Link devices that you want it to monitor. If it can’t find any, after
-ten seconds you will see this window:
+ten seconds you will see a window like this:
 
-image:assets/NoDevices.png[No devices found,516,196]
+image:assets/NoDevices.png[No devices found,520,374]
 
 If you were expecting to find devices, double-check that they are
 powered on, and properly networked with your computer (and that any
 hub or wireless router you are using is also properly turned on and
-configured). Then click kbd:[Try Again] to try again.
+configured). The window shows all network interfaces that were found
+in your computer, along with the IP address and net mask assigned to
+your computer on that interface. The devices will only be able to
+communicate with you if they have compatible IPv4 addresses. If you
+are not on a network with a DHCP server, for example, the players will
+assign themselves addresses of the form 169.254._x_._y_/16, so if none
+of your addresses match that pattern, you will not be able to
+communicate with them.
+
+Make sure your network interfaces are configured properly, then
+click kbd:[Try Again] to try again.
 
 If you just wanted to work on setting up your triggers or expressions,
 and don’t have any actual players handy, you can also click

@@ -6,6 +6,7 @@
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show :as show]
+            [beat-link-trigger.help :as help]
             [beat-link-trigger.util :as util]
             [beat-link-trigger.triggers :as triggers]
             [seesaw.core :as seesaw]
@@ -43,18 +44,23 @@
 
         (do
           (seesaw/invoke-now (seesaw/hide! searching))  ; No luck so far, ask what to do
-          (timbre/info "Failed going online")
-          (let [options (to-array ["Try Again" "Quit" "Continue Offline"])
-                choice  (seesaw/invoke-now
-                         (javax.swing.JOptionPane/showOptionDialog
-                          nil "No DJ Link devices were seen on any network. Search again?"
-                          "No DJ Link Devices Found"
-                          javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                          options (aget options 0)))]
-            (case choice
-              0 (do (seesaw/invoke-now (seesaw/show! searching)) (recur)) ; Try Again
-              2 (seesaw/invoke-soon (seesaw/dispose! searching))          ; Continue Offline
-              (System/exit 1)))))))  ; Quit, or just closed the window, which means the same
+          (let [network (help/list-network-interfaces)]
+            (timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
+                         (clojure.string/join "; " network))
+            (let [options (to-array ["Try Again" "Quit" "Continue Offline"])
+                  choice  (seesaw/invoke-now
+                           (javax.swing.JOptionPane/showOptionDialog
+                            nil
+                            (str "<html>No DJ Link devices were seen on any network.<br><br>"
+                                 "The following network interfaces were found:<br>"
+                                 (clojure.string/join "<br>" network) "<br>&nbsp;")
+                            "No DJ Link Devices Found"
+                            javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
+                            options (aget options 0)))]
+              (case choice
+                0 (do (seesaw/invoke-now (seesaw/show! searching)) (recur)) ; Try Again
+                2 (seesaw/invoke-soon (seesaw/dispose! searching))          ; Continue Offline
+                (System/exit 1))))))))  ; Quit, or just closed the window, which means the same
 
   (finish-startup))
 

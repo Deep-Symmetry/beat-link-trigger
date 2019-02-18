@@ -1,5 +1,6 @@
 (ns beat-link-trigger.help
-  "Serves the embedded copy of the user guide."
+  "Serves the embedded copy of the user guide, and offers network
+  troubleshooting assistance."
   (:require [compojure.route :as route]
             [compojure.core :as compojure]
             [org.httpkit.server :as server]))
@@ -52,3 +53,31 @@
   []
   (if-let [port (help-server)]
     (clojure.java.browse/browse-url (str "http://127.0.0.1:" port "/guide/README.html"))))
+
+(defn- describe-ipv4-addresses
+  "Produces a compact summary of the IPv4 addresses (if any) attached to
+  a network interface."
+  [^java.net.NetworkInterface interface]
+  (let [candidates (filter #(.getBroadcast %) (.getInterfaceAddresses interface))]
+    (if (seq candidates)
+      (clojure.string/join ", " (map #(str (.getHostAddress (.getAddress %)) "/" (.getNetworkPrefixLength %))
+                                     candidates))
+      "No IPv4 addresses")))
+
+(defn- describe-interface
+  "Produces a troubleshooting summary about a network interface."
+  [^java.net.NetworkInterface interface]
+  (let [display-name (.getDisplayName interface)
+        raw-name     (.getName interface)]
+    (str display-name
+         (when (not= display-name raw-name) " (" raw-name ")")
+         ": " (describe-ipv4-addresses interface))))
+
+(defn list-network-interfaces
+  "Describes the network interfaces present in the system."
+  []
+  (->> (java.util.Collections/list (java.net.NetworkInterface/getNetworkInterfaces))
+       (filter #(.isUp %))
+       (map describe-interface)
+       sort
+       #_(clojure.string/join "\n")))
