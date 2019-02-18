@@ -602,10 +602,10 @@ the wavform to a different section. Also remember that you can adjust
 the Zoom slider to make it easier to position your cue.
 
 Alternately, you can click to select a single beat, then shift-click
-another to specify the entire range without dragging. If you created
-a beat selection by accident and want to get rid of it, you can either
-drag it back down to nothing, or shift-click a different beat and then
-shift-click it again to deselect it.
+another to specify the entire range without dragging. If you created a
+beat selection by accident and want to get rid of it, you can either
+drag it back down to nothing, or click a single beat outside the
+selection and then shift-click it to deselect it.
 
 Regardless of how you do it, once you have the right beats selected,
 clicking the kbd:[New Cue] button will create a new cue covering
