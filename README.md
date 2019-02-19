@@ -30,11 +30,18 @@ stop, and when the triggers are enabled:
 
 <img src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
-There is also an interface for monitoring
-the status of each player found on the network, which you can access
-by choosing `Show Player Status` in the `Network` menu:
+There is also an [interface](doc/Players#the-player-status-window) for
+monitoring the status of each player found on the network, which you
+can access by choosing `Show Player Status` in the `Network` menu:
 
 <img src="doc/assets/PlayerStatus.png" alt="Player Status window" width="599" height="842">
+
+And starting with version 0.5.0, there is a [Show
+interface](doc/Shows.adoc#shows) with which you can paint cues on
+track beat grids, to automate away the complexities of manually
+managing triggers.
+
+<img src="doc/assets/SecondCue.png" alt="Show interface snippet" width="791" height="389">
 
 ### Going Further
 
