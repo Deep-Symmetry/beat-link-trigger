@@ -30,7 +30,7 @@ stop, and when the triggers are enabled:
 
 <img src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
-There is also an [interface](doc/Players#the-player-status-window) for
+There is also an [interface](doc/Players.adoc#the-player-status-window) for
 monitoring the status of each player found on the network, which you
 can access by choosing `Show Player Status` in the `Network` menu:
 
