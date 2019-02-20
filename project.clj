@@ -14,7 +14,7 @@
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.12"]
-                 [fipp "0.6.16"]
+                 [fipp "0.6.17"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.5.0-SNAPSHOT"]
