@@ -40,7 +40,24 @@
                                 :title "DJ Link Connection Failed" :type :error))))
         (do  ; We succeeded in finding a DJ Link network
           (seesaw/invoke-soon (seesaw/dispose! searching))
-          (timbre/info "Went online, using player number" (.getDeviceNumber (VirtualCdj/getInstance))))
+          (timbre/info "Went online, using player number" (.getDeviceNumber (VirtualCdj/getInstance)))
+
+          ;; Provide warnings about network topology problems
+          (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
+            (seesaw/invoke-now
+             (seesaw/alert (str "<html>Found multiple network interfaces on the DJ Link network.<br>"
+                                "This can lead to duplicate packets and unreliable results:<br><br>"
+                                (clojure.string/join "<br>" interfaces))
+                           :title "Network Configuration Problem" :type :warning)))
+
+          (when-let [unreachables (seq (.findUnreachablePlayers (VirtualCdj/getInstance)))]
+            (let [descriptions (map #(str (.getName %) " (" (.getHostAddress (.getAddress %)) ")") unreachables)]
+              (seesaw/invoke-now
+               (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
+                                  "We will not be able to communicate with the following device"
+                                  (when (> (count unreachables) 1) "s") ":<br><br>"
+                                  (clojure.string/join "<br>" (sort descriptions)))
+                             :title "Network Configuration Problem" :type :error)))))
 
         (do
           (seesaw/invoke-now (seesaw/hide! searching))  ; No luck so far, ask what to do

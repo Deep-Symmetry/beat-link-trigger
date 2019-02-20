@@ -3,7 +3,8 @@
   troubleshooting assistance."
   (:require [compojure.route :as route]
             [compojure.core :as compojure]
-            [org.httpkit.server :as server]))
+            [org.httpkit.server :as server])
+  (:import [org.deepsymmetry.beatlink VirtualCdj]))
 
 (defn show-landing-page
   "The home page for the embedded web server, currently does not do
@@ -79,5 +80,15 @@
   (->> (java.util.Collections/list (java.net.NetworkInterface/getNetworkInterfaces))
        (filter #(.isUp %))
        (map describe-interface)
-       sort
-       #_(clojure.string/join "\n")))
+       sort))
+
+(defn list-conflicting-network-interfaces
+  "When there was more than one interface on the network on which we saw
+  DJ Link traffic, returns a list of their descriptions. Otherwise
+  returns `nil`."
+  []
+  (let [interfaces (.getMatchingInterfaces (VirtualCdj/getInstance))]
+    (when (> (count interfaces) 1)
+      (->> interfaces
+           (map describe-interface)
+           sort))))

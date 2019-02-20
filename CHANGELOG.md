@@ -49,6 +49,12 @@ This change log follows the conventions of
 - The Color, Filename, Time, and Year menus are supported for media
   that has been configured to contain them when loading tracks, thanks
   to reports from Ramon Palmieri and J C.
+- When going online, if no DJ Link devices can be found, a list of
+  network interfaces and their IPv4 addresses is displayed to help
+  with troubleshooting.
+- Even if going online was successful, warnings are shown if there are
+  problems with the network, such as more than one interface connected
+  to the DJ Link network, or devices found on more than one network.
 - You can use the command-line argument `-o` or `--offline` to start
   immediately in offline mode, without spending time searching for a
   DJ Link network. This will not even start the Beat Link DeviceFinder
