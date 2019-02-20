@@ -78,7 +78,7 @@
   "Describes the network interfaces present in the system."
   []
   (->> (java.util.Collections/list (java.net.NetworkInterface/getNetworkInterfaces))
-       (filter #(.isUp %))
+       (filter #(and (.isUp %) (not (.isLoopback %))))
        (map describe-interface)
        sort))
 
