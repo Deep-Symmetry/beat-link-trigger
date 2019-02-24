@@ -16,8 +16,9 @@ too!
 
 ## Usage
 
-Download the latest disk image (`.dmg`) installer for the Mac, or
-executable `beat-link-trigger.jar` file for other platforms, from the
+Download the latest disk image (`.dmg`) installer for the Mac, `.msi`
+installer for 64-bit Windows, or executable `.jar` file for other
+platforms, from the
 [releases](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
 page and double-click it to run it. If that doesn&rsquo;t work, [see
 below](#startup-issues).
