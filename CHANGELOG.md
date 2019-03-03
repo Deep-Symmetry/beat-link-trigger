@@ -6,7 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- The `SignatureFinder` would crash trying to calculate signatures
+  for tracks without artists.
 
 
 ## [0.5.0] - 2019-02-23
