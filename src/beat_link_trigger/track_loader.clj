@@ -740,6 +740,20 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 8) slot-reference))))
    true))
 
+;; Creates a menu item node for the Bit Rate menu.
+(defmethod menu-item-node Message$MenuItemType/BIT_RATE_MENU bit-rate-menu-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (attach-menu-node-children node (.requestBitRateMenuFrom menu-loader slot-reference 0) slot-reference))))
+   true))
+
 ;; Creates a menu item node for the Time menu.
 (defmethod menu-item-node Message$MenuItemType/TIME_MENU time-menu-node
   [^Message item ^SlotReference slot-reference]
@@ -1062,8 +1076,8 @@
            (let [distance (.getValue (first (.arguments item)))
                  key-id   (menu-item-id item)]
              (attach-menu-node-children node (.requestTracksByKeyAndDistanceFrom menu-loader slot-reference 0
-                                                                            key-id distance)
-                                   slot-reference)))))
+                                                                                 key-id distance)
+                                        slot-reference)))))
      true))
 
 ;; Creates a menu item node for a Key. Will build child Key items as
@@ -1080,9 +1094,25 @@
        (when (unloaded? node)
          (let [key-id (menu-item-id item)]
            (attach-menu-node-children node (.requestKeyNeighborMenuFrom menu-loader slot-reference 0 key-id)
-                                 slot-reference
-                                 {Message$MenuItemType/KEY create-key-neighbor-node})))))
+                                      slot-reference
+                                      {Message$MenuItemType/KEY create-key-neighbor-node})))))
    true))
+
+;; Creates a menu item node for a Bit Rate.
+(defmethod menu-item-node Message$MenuItemType/BIT_RATE bit-rate-node
+  [^Message item ^SlotReference slot-reference]
+  (let [bit-rate (menu-item-id item)]
+    (DefaultMutableTreeNode.
+     (proxy [Object IMenuEntry] []
+       (toString [] (str bit-rate " Kbps"))
+       (getId [] (int 0))
+       (getSlot [] slot-reference)
+       (getTrackType [] nil)
+       (loadChildren [^javax.swing.tree.TreeNode node]
+         (when (unloaded? node)
+           (attach-menu-node-children node (.requestTracksByBitRateFrom menu-loader slot-reference 0 bit-rate)
+                                      slot-reference))))
+     true)))
 
 ;; Creates a menu item node for the Rating menu.
 (defmethod menu-item-node Message$MenuItemType/RATING_MENU rating-menu-node
