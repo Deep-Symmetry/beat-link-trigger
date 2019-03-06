@@ -8,8 +8,9 @@ This change log follows the conventions of
 
 ### Fixed
 
-- The `SignatureFinder` would crash trying to calculate signatures
-  for tracks without artists.
+- The `SignatureFinder` would crash trying to calculate signatures for
+  tracks without artists, and trying to import such tracks from
+  offline media into shows would also fail.
 
 ### Added
 

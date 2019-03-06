@@ -2998,7 +2998,7 @@
             preview   (find-waveform-preview data-ref @anlz-atom @ext-atom)
             detail    (when @ext-atom (WaveformDetail. data-ref @ext-atom))
             art       (find-art database track-row)
-            signature (.computeTrackSignature signature-finder (.getTitle metadata) (item-label (.getArtist metadata))
+            signature (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
                                               (.getDuration metadata) detail beat-grid)]
         (if (and signature (track-present? show signature))
           (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
