@@ -563,14 +563,20 @@
      (build-cues track)
      (seesaw/invoke-later scroll-to-cue track cue))))
 
+(defn- display-title
+  "Returns the title of a track, or the string [no title] if it is
+  empty"
+  [track]
+  (let [title (:title (:metadata track))]
+    (if (clojure.string/blank? title) "[no title]" title)))
+
 (defn- track-inspect-action
   "Creates the menu action which allows a track's local bindings to be
   inspected. Offered in the popups of both track rows and cue rows."
   [track]
   (seesaw/action :handler (fn [_]
                             (inspector/inspect @(:expression-locals track)
-                                               :window-name (str "Expression Locals for "
-                                                                 (:title (:metadata track)))))
+                                               :window-name (str "Expression Locals for " (display-title track))))
                  :name "Inspect Expression Locals"
                  :tip "Examine any values set as Track locals by its Expressions."))
 
@@ -1545,7 +1551,7 @@
   Must be supplied current versions of `show` and `track.`"
   [show track parent]
   (let [track-root   (build-track-path show (:signature track))
-        root         (seesaw/frame :title (str "Cues for Track: " (get-in track [:metadata :title]))
+        root         (seesaw/frame :title (str "Cues for Track: " (display-title track))
                                    :on-close :nothing)
         wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root) (:grid track))
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
@@ -2334,8 +2340,8 @@
                                   (or (not loaded-only?) (not (online?))
                                       ((set (vals (.getSignatures signature-finder))) (:signature track)))))
                                (vals (:tracks show)))
-        sorted-tracks  (sort-by (juxt #(clojure.string/lower-case (get-in % [:metadata :title] ""))
-                                      #(clojure.string/lower-case (get-in % [:metadata :artist] ""))
+        sorted-tracks  (sort-by (juxt #(clojure.string/lower-case (or (get-in % [:metadata :title]) ""))
+                                      #(clojure.string/lower-case (or (get-in % [:metadata :artist]) ""))
                                       :signature)
                                 visible-tracks)]
     (swap-show! show assoc :visible (mapv :signature sorted-tracks))
@@ -2652,7 +2658,7 @@
         panel          (mig/mig-panel
                         :constraints (track-panel-constraints (.getWidth (:frame show)))
                         :items [[(create-track-art show signature) "spany 4"]
-                                [(seesaw/label :text (:title metadata)
+                                [(seesaw/label :text (or (:title metadata) "[no title]")
                                                :font (util/get-display-font :bitter Font/ITALIC 14)
                                                :foreground :yellow)
                                  "width 60:120"]
@@ -2876,8 +2882,7 @@
     (if (some #(= signature %) (:visible show))
       (seesaw/invoke-later (seesaw/scroll! tracks :to (.getBounds (:panel track))))
       (seesaw/alert (:frame show)
-                    (str "The track \"" (get-in track [:metadata :title])
-                         "\" is currently hidden by your filters.\r\n"
+                    (str "The track \"" (display-title track) "\" is currently hidden by your filters.\r\n"
                           "To continue working with it, you will need to adjust the filters.")
                      :title "Can't Scroll to Hidden Track" :type :info))))
 
