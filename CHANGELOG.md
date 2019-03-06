@@ -6,7 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- A variety of places inside the show interface were assuming that
+  imported tracks would have non-`nil` artist metadata. This has been
+  corrected, and any `nil` metadata keys should now be handled
+  gracefully and even informatively.
 
 
 ## [0.5.1] - 2019-03-05
