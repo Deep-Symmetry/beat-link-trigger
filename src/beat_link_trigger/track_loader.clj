@@ -968,12 +968,10 @@
          (attach-menu-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
-;; Creates a menu item node for all albums by a given artist in a
-;; given genre. Invoked as a contextual handler for the ALL item.
 (defn- create-all-genre-artist-albums-node
   "Handles the ALL menu item when listing genre artist albums. Creates
   an appropriate node to implement it."
-  [genre-id ^Message item ^SlotReference slot-reference]
+  [genre-id artist-id ^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
@@ -982,12 +980,30 @@
      (getTrackType [] nil)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-menu-node-children node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id -1 -1)
-                               slot-reference))))
+         (attach-menu-node-children
+          node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id artist-id -1)
+          slot-reference))))
    true))
 
-;; Creates a menu item node for all artists in a given genre. Invoked
-;; as a contextual handler for the ALL item.
+(defn- create-genre-artist-album-node
+  "Contextual handler for the ALBUM menu item when listing genre artist
+  albums. Creates an appropriate node to implement it."
+  [genre-id artist-id ^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (let [album-id (menu-item-id item)]
+           (attach-menu-node-children
+            node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id artist-id album-id)
+            slot-reference
+            {Message$MenuItemType/ALL (partial create-all-genre-artist-albums-node genre-id artist-id)})))))
+   true))
+
 (defn- create-all-genre-artists-node
   "Handles the ALL menu item when listing genre artists. Creates an
   appropriate node to implement it."
@@ -1000,9 +1016,29 @@
      (getTrackType [] nil)
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
-         (attach-menu-node-children node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1)
-                               slot-reference
-                               {Message$MenuItemType/ALL (partial create-all-genre-artist-albums-node genre-id)}))))
+         (attach-menu-node-children
+          node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1) slot-reference
+          {Message$MenuItemType/ALBUM_TITLE (partial create-genre-artist-album-node genre-id -1)
+           Message$MenuItemType/ALL (partial create-all-genre-artist-albums-node genre-id -1)}))))
+   true))
+
+(defn- create-genre-artist-node
+  "Contextual handler for the ARTIST menu item when listing genre
+  artists. Creates an appropriate node to implement it."
+  [genre-id ^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (int 0))
+     (getSlot [] slot-reference)
+     (getTrackType [] nil)
+     (loadChildren [^javax.swing.tree.TreeNode node]
+       (when (unloaded? node)
+         (let [artist-id (menu-item-id item)]
+           (attach-menu-node-children
+            node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id artist-id) slot-reference
+            {Message$MenuItemType/ALBUM_TITLE (partial create-genre-artist-album-node genre-id artist-id)
+             Message$MenuItemType/ALL (partial create-all-genre-artist-albums-node genre-id artist-id)})))))
    true))
 
 ;; Creates a menu item node for a genre.
@@ -1017,9 +1053,10 @@
      (loadChildren [^javax.swing.tree.TreeNode node]
        (when (unloaded? node)
          (let [genre-id (menu-item-id item)]
-           (attach-menu-node-children node (.requestGenreArtistMenuFrom menu-loader slot-reference 0 genre-id)
-                                 slot-reference
-                                 {Message$MenuItemType/ALL (partial create-all-genre-artists-node genre-id)})))))
+           (attach-menu-node-children
+            node (.requestGenreArtistMenuFrom menu-loader slot-reference 0 genre-id) slot-reference
+            {Message$MenuItemType/GENRE (partial create-genre-artist-node genre-id)
+             Message$MenuItemType/ALL (partial create-all-genre-artists-node genre-id)})))))
    true))
 
 ;; Creates a menu item node for the Label menu.

@@ -11,6 +11,10 @@ This change log follows the conventions of
 - The `SignatureFinder` would crash trying to calculate signatures for
   tracks without artists, and trying to import such tracks from
   offline media into shows would also fail.
+- When loading tracks on a player using the `dbserver` approach (which
+  is still done when loading from rekordbox), the Genre menu was not
+  implemented correctly, and genre filtering would be lost after the
+  top level of the menu.
 
 ### Added
 
