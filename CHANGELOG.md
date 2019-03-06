@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+
+## [0.5.1] - 2019-03-05
+
 ### Fixed
 
 - The `SignatureFinder` would crash trying to calculate signatures for
@@ -20,8 +25,7 @@ This change log follows the conventions of
 
 - The `MenuLoader` now supports loading tracks from the Label, Bit Rate,
   Original Artist, and Remixer menus.
-- Track Metadata can now include bit rate when that information is
-  provided by the player's `dbserver`.
+- Track Metadata now includes bit rate, when applicable.
 
 
 ## [0.5.0] - 2019-02-23
@@ -688,7 +692,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.3.8...v0.4.0
