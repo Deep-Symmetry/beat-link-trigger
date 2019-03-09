@@ -12,6 +12,11 @@ This change log follows the conventions of
   imported tracks would have non-`nil` artist metadata. This has been
   corrected, and any `nil` metadata keys should now be handled
   gracefully and even informatively.
+- The build process would not work for new clones of the repository
+  because an empty directory needed by the
+  [`lein-v`](https://github.com/roomkey/lein-v) Leiningen plugin was
+  missing. A dummy file was added to the project to make sure that
+  directory gets created.
 
 
 ## [0.5.1] - 2019-03-05
