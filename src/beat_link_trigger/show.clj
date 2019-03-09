@@ -767,6 +767,51 @@
                                   (seesaw/alert "Problem deleting cue:" e)))))
                  :name "Delete Cue"))
 
+(defn- sanitize-cue-for-library
+  "Removes the elements of a cue that will not be stored in the library.
+  Returns a tuple of the name by which it will be stored, and the
+  content to be stored (or compared to see if it matches another cue)."
+  [cue]
+  [(:comment cue) (dissoc cue :uuid :start :end :hue)])
+
+(defn- cue-in-library?
+  "Checks whether there is a cue matching the specified name is already
+  present in the library. Returns falsy if there is none, `:matches`
+  if there is an exact match, or `:conflict` if there is a different
+  cue with that name present. When comparing cues, the location of the
+  cue does not matter."
+  [show comment content]
+  (when-let [existing (get-in show [:contents :cue-library comment])]
+    (if (= existing content) :matches :conflict)))
+
+(defn- library-cue-action
+  "Creates the menu action which either adds a cue to the library, or
+  removes or updates it after confirmation, if there is already a cue
+  of the same name in the library."
+  [track cue panel]
+  (let [[show track]      (latest-show-and-track track)
+        cue               (find-cue track cue)
+        [comment content] (sanitize-cue-for-library cue)]
+    (if (clojure.string/blank? comment)
+      (seesaw/action :name "Type a Comment to add Cue to Library" :enabled? false)
+      (if-let [existing (cue-in-library? show comment content)]
+        (case existing
+          :matches
+          (seesaw/action :handler (fn [_] (swap-show! show update-in [:contents :cue-library] dissoc comment))
+                         :name "Remove Cue from Library")
+
+          :conflict
+          (seesaw/action :handler (fn [_]
+                                    (when (seesaw/confirm panel (str "This will replace the existing library cue with "
+                                                                     "the same name.\r\n"
+                                                                     "If you want to keep both, rename this cue first "
+                                                                     "and try again.")
+                                                          :type :question :title "Replace Library Cue?")
+                                      (swap-show! show assoc-in [:contents :cue-library comment] content)))
+                         :name "Update Cue in Library"))
+        (seesaw/action :handler (fn [_] (swap-show! show assoc-in [:contents :cue-library comment] content))
+                       :name "Add Cue to Library")))))
+
 (defn hue-to-color
   "Returns a Color object of the given hue. If lightness is not
   specified, 50 is used, giving the purest, most intense version of
@@ -1077,7 +1122,8 @@
         popup-fn (fn [e] (concat (cue-editor-actions track cue panel gear)
                                  [(seesaw/separator) (track-inspect-action track) (seesaw/separator)
                                   (scroll-wave-to-cue-action track cue) (seesaw/separator)
-                                  (duplicate-cue-action track cue) (delete-cue-action track cue panel)]))]
+                                  (duplicate-cue-action track cue) (library-cue-action track cue panel)
+                                  (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
