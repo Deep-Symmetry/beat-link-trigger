@@ -1409,6 +1409,7 @@
                                       (swap-track! track update :cues-editor dissoc :selection)
                                       (update-track-gear-icon track)
                                       (build-cues track)
+                                      (scroll-wave-to-cue track new-cue)
                                       (scroll-to-cue track new-cue true))
                               (catch Exception e
                                 (timbre/error e "Problem adding Library Cue")
@@ -1646,6 +1647,7 @@
     (swap-track! track update :cues-editor dissoc :selection)
     (update-track-gear-icon track)
     (build-cues track)
+    (scroll-wave-to-cue track cue)
     (scroll-to-cue track cue true)))
 
 (defn- start-animation-thread

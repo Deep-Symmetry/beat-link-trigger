@@ -27,6 +27,9 @@ This change log follows the conventions of
 - You can access the context menu for a cue by right-clicking (or
   control-clicking) on the cue in the waveform within the Cues Editor
   window.
+- The Cues Editor waveform is scrolled if necessary to make a new cue
+  visible when it is created.
+- The confirmation dialog title for deleting a cue shows the cue name.
 
 
 ## [0.5.1] - 2019-03-05
