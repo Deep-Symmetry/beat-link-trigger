@@ -18,6 +18,16 @@ This change log follows the conventions of
   missing. A dummy file was added to the project to make sure that
   directory gets created.
 
+### Added
+
+- Shows now have a Cue Library that makes it easy to share common cues
+  between tracks. Thanks to [Jan
+  Vermeerbergen](https://twitter.com/aftermathematic) for the great
+  idea.
+- You can access the context menu for a cue by right-clicking (or
+  control-clicking) on the cue in the waveform within the Cues Editor
+  window.
+
 
 ## [0.5.1] - 2019-03-05
 

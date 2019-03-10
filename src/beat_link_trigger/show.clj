@@ -627,7 +627,7 @@
                                 (scroll-to-cue track new-cue true))
                               (catch Exception e
                                 (timbre/error e "Problem duplicating cue")
-                                (seesaw/alert "Problem duplicating cue:" e))))
+                                (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
                  :name "Duplicate Cue"))
 
 (defn- expunge-deleted-cue
@@ -764,7 +764,7 @@
                                 (build-cues track)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting cue")
-                                  (seesaw/alert "Problem deleting cue:" e)))))
+                                  (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error)))))
                  :name "Delete Cue"))
 
 (defn- sanitize-cue-for-library
@@ -784,6 +784,19 @@
   (when-let [existing (get-in show [:contents :cue-library comment])]
     (if (= existing content) :matches :conflict)))
 
+(defn- update-library-button-visibility
+  "Makes sure that the Library button is visible in any open Cue Editor
+  windows if the library has any cues in it, and is hidden otherwise."
+  [show]
+  (let [show           (latest-show show)
+        library-empty? (empty? (get-in show [:contents :cue-library]))]
+    (doseq [[signature track] (:tracks show)]
+      (when-let [editor (:cues-editor track)]
+        (let [button (seesaw/select (:frame editor) [:#library])]
+          (if library-empty?
+            (seesaw/hide! button)
+            (seesaw/show! button)))))))
+
 (defn- library-cue-action
   "Creates the menu action which either adds a cue to the library, or
   removes or updates it after confirmation, if there is already a cue
@@ -797,7 +810,9 @@
       (if-let [existing (cue-in-library? show comment content)]
         (case existing
           :matches
-          (seesaw/action :handler (fn [_] (swap-show! show update-in [:contents :cue-library] dissoc comment))
+          (seesaw/action :handler (fn [_]
+                                    (swap-show! show update-in [:contents :cue-library] dissoc comment)
+                                    (update-library-button-visibility show))
                          :name "Remove Cue from Library")
 
           :conflict
@@ -809,7 +824,9 @@
                                                           :type :question :title "Replace Library Cue?")
                                       (swap-show! show assoc-in [:contents :cue-library comment] content)))
                          :name "Update Cue in Library"))
-        (seesaw/action :handler (fn [_] (swap-show! show assoc-in [:contents :cue-library comment] content))
+        (seesaw/action :handler (fn [_]
+                                  (swap-show! show assoc-in [:contents :cue-library comment] content)
+                                  (update-library-button-visibility show))
                        :name "Add Cue to Library")))))
 
 (defn hue-to-color
@@ -1126,8 +1143,10 @@
                                   (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
-    ;; or right click on the gear button. Also set the proper initial gear appearance.
+    ;; or right click on the gear button. Also set the proper initial gear appearance. Add the popup builder to
+    ;; the panel user data so that it can be used when control-clicking on a cue in the waveform as well.
     (seesaw/config! [panel gear] :popup popup-fn)
+    (seesaw/config! panel :user-data {:popup popup-fn})
     (seesaw/listen gear
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (popup-fn e))]
@@ -1277,7 +1296,7 @@
   "Checks whether the mouse is currently over any cue, and if so returns
   it as the first element of a tuple. Always returns the latest
   version of the supplied track as the second element of the tuple."
-  [track ^WaveformDetail wave ^MouseEvent e]
+  [track ^WaveformDetailComponent wave ^MouseEvent e]
   (let [point (.getPoint e)
         track (latest-track track)
         cue (first (filter (fn [cue] (.contains (cue-rectangle track cue wave) point))
@@ -1310,10 +1329,17 @@
   [^InputEvent e]
   (pos? (bit-and (.getModifiersEx e) MouseEvent/SHIFT_DOWN_MASK)))
 
+(defn- context-click?
+  "Checks whether the control key was pressed when a mouse event
+  occured, or if it was the right button."
+  [^MouseEvent e]
+  (or (javax.swing.SwingUtilities/isRightMouseButton e)
+      (pos? (bit-and (.getModifiersEx e) MouseEvent/CTRL_DOWN_MASK))))
+
 (defn- handle-wave-key
   "Processes a key event while a cue waveform is being displayed, in
   case it requires a cursor change."
-  [track ^WaveformDetail wave ^InputEvent e]
+  [track ^WaveformDetailComponent wave ^InputEvent e]
   (let [track (latest-track track)
         [unshifted shifted] (get-in track [:cues-editor :cursors])]
     (when unshifted  ; We have cursors defined, so apply the appropriate one
@@ -1339,7 +1365,7 @@
   occur. If there is an active selection, its `start` and `end` will
   be supplied; similarly, if the mouse is over a `cue` that will be
   supplied."
-  [track ^WaveformDetail wave ^MouseEvent e [start end] cue]
+  [track ^WaveformDetailComponent wave ^MouseEvent e [start end] cue]
   (cond
     (and start (<= (Math/abs (- (.getX e) (.getXForBeat wave start))) click-edge-tolerance))
     [nil :start]
@@ -1354,11 +1380,56 @@
         (when (<= (Math/abs (- (.getX e) (+ (.getX r) (.getWidth r)))) click-edge-tolerance)
           [cue :end])))))
 
+(defn- build-cue-library-popup-items
+  "Creates the popup menu items allowing you to add cues from the
+  library to a track."
+  [track]
+  (let [[show track] (latest-show-and-track track)
+        library      (sort-by first (vec (get-in show [:contents :cue-library])))]
+    (if (empty? library)
+      [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
+      (for [[comment contents] library]
+        (seesaw/action :name (str "New “" comment "” Cue")
+                       :handler (fn [_]
+                                  (try
+                                    (let [uuid        (java.util.UUID/randomUUID)
+                                          track       (latest-track track)
+                                          [start end] (get-in track [:cues-editor :selection] [1 2])
+                                          all-names   (map :comment (vals (get-in track [:contents :cues :cues])))
+                                          new-comment (if (some #(= comment %) all-names)
+                                                        (util/assign-unique-name all-names comment)
+                                                        comment)
+                                          new-cue     (merge contents {:uuid    uuid
+                                                                       :start   start
+                                                                       :end     end
+                                                                       :hue     (assign-cue-hue track)
+                                                                       :comment new-comment})]
+                                      (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
+                                      (swap-track! track update :cues-editor dissoc :selection)
+                                      (update-track-gear-icon track)
+                                      (build-cues track)
+                                      (scroll-to-cue track new-cue true))
+                              (catch Exception e
+                                (timbre/error e "Problem adding Library Cue")
+                                (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error)))))))))
+
+(defn- show-cue-library-popup
+  "Displays the popup menu allowing you to add a cue from the library to
+  a track."
+  [track ^WaveformDetailComponent wave ^MouseEvent e]
+  (let [[cue track] (find-cue-under-mouse track wave e)
+        popup-items (if cue
+                      (let [panel    (get-in track [:cues-editor :panels (:uuid cue)])
+                            popup-fn (:popup (seesaw/user-data panel))]
+                        (popup-fn e))
+                      (build-cue-library-popup-items track))]
+    (util/show-popup-from-button wave (seesaw/popup :items popup-items) e)))
+
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
   cues and selection."
-  [track ^WaveformDetail wave ^MouseEvent e]
+  [track ^WaveformDetailComponent wave ^MouseEvent e]
   (let [[cue track]     (find-cue-under-mouse track wave e)
         x               (.getX e)
         beat            (long (.getBeatForX wave x))
@@ -1401,7 +1472,7 @@
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
   beat ranges for creating cues."
-  [track ^WaveformDetail wave ^MouseEvent e]
+  [track ^WaveformDetailComponent wave ^MouseEvent e]
   (let [track          (latest-track track)
         ^BeatGrid grid (:grid track)
         x              (.getX e)
@@ -1428,37 +1499,40 @@
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
   setting up beat ranges for creating cues, and scrolling the lower
-  pane to cues."
-  [track ^WaveformDetail wave ^MouseEvent e]
-  (let [[cue track]     (find-cue-under-mouse track wave e)
-        ^BeatGrid grid (:grid track)
-        x               (.getX e)
-        beat            (long (.getBeatForX wave x))
-        selection       (get-in track [:cues-editor :selection])]
-    (if (and (shift-down? e) selection)
-      (if (= selection [beat (inc beat)])
-        (do  ; Shift-click on single-beat selection clears it.
-          (swap-track! track update :cues-editor dissoc :selection :cursors)
-          (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
-        (handle-wave-drag track wave e))  ; Adjusting an existing selection; we can handle it as a drag.
-      (if-let [target (find-click-edge-target track wave e selection cue)]
-        (do ; We are dragging the edge of the selection or a cue.
-          (swap-track! track assoc-in [:cues-editor :drag-target] target)
-          (handle-wave-drag track wave e))
-        ;; We are starting a new selection.
-        (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
-          (do  ; Yes, set new selection.
-            (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])
-            (handle-wave-move track wave e))  ; Update the cursors.
-          (swap-track! track update :cues-editor dissoc :selection))))  ; No, clear selection.
-    (.repaint wave)
-    (when cue (scroll-to-cue track cue false true))))
+  pane to cues. Ignores right-clicks and control-clicks so those can
+  pull up the context menu."
+  [track ^WaveformDetailComponent wave ^MouseEvent e]
+  (if (context-click? e)
+    (show-cue-library-popup track wave e)
+    (let [[cue track]     (find-cue-under-mouse track wave e)
+          ^BeatGrid grid (:grid track)
+          x               (.getX e)
+          beat            (long (.getBeatForX wave x))
+          selection       (get-in track [:cues-editor :selection])]
+      (if (and (shift-down? e) selection)
+        (if (= selection [beat (inc beat)])
+          (do  ; Shift-click on single-beat selection clears it.
+            (swap-track! track update :cues-editor dissoc :selection :cursors)
+            (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
+          (handle-wave-drag track wave e))  ; Adjusting an existing selection; we can handle it as a drag.
+        (if-let [target (find-click-edge-target track wave e selection cue)]
+          (do ; We are dragging the edge of the selection or a cue.
+            (swap-track! track assoc-in [:cues-editor :drag-target] target)
+            (handle-wave-drag track wave e))
+          ;; We are starting a new selection.
+          (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
+            (do  ; Yes, set new selection.
+              (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])
+              (handle-wave-move track wave e))  ; Update the cursors.
+            (swap-track! track update :cues-editor dissoc :selection))))  ; No, clear selection.
+      (.repaint wave)
+      (when cue (scroll-to-cue track cue false true)))))
 
 (defn- handle-wave-release
   "Processes a mouse-released event in the wave detail component,
   cleaning up any drag-tracking structures and cursors that were in
   effect."
-  [track ^WaveformDetail wave ^MouseEvent e]
+  [track ^WaveformDetailComponent wave ^MouseEvent e]
   (let [track (latest-track track)
         [cue-dragged] (get-in track [:cues-editor :drag-target])]
     (when cue-dragged
@@ -1609,9 +1683,19 @@
         auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (online?)
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
+        lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-popup-items track)))
         top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
                                     :items [[(seesaw/button :text "New Cue"
-                                                            :listen [:action-performed (fn [e] (new-cue track))])]
+                                                            :listen [:action-performed
+                                                                     (fn ([e] (new-cue track)))])]
+                                            [(seesaw/button :id :library :text "Library ▾"
+                                                            :visible? (seq (get-in show [:contents :cue-library]))
+                                                            :listen [:mouse-pressed
+                                                                     (fn ([e] (util/show-popup-from-button
+                                                                               (seesaw/to-widget e)
+                                                                               (lib-popup-fn) e)))]
+                                                            :popup (lib-popup-fn))
+                                             "hidemode 3"]
                                             [(seesaw/label :text "Filter:") "gap unrelated"]
                                             [filter-field "pushx 4, growx 4"]
                                             [entered-only "hidemode 3"]
@@ -2652,7 +2736,7 @@
                                 (update-track-visibility show)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting track")
-                                  (seesaw/alert "Problem deleting track:" e)))))
+                                  (seesaw/alert (str e) :title "Problem Deleting Track" :type :error)))))
                  :name "Delete Track"))
 
 (defn- paint-track-state
