@@ -966,9 +966,18 @@ appending the word “Copy” (and possibly a number) to its name to keep
 it unique. You can use this if you need to create several cues that
 have common elements.
 
+The menu:Add Cue to Library[] option adds the cue contents to the show
+cue library, making it easy to create other cues in any track which
+send the same messages. See <<Shows#cue-library,The Cue Library>> for
+more details.
+
 Finally, the menu:Delete Cue[] option does just what it sounds like,
 after confirming that you want to discard any expressions and settings
 you have configured for that Cue.
+
+TIP: In addition to accessing the context menu from the cue row, you
+can bring it up by right-clicking or control-clicking on the cue in
+the waveform at the top of the window.
 
 [[navigating-cues]]
 == Navigating Cues
@@ -993,7 +1002,9 @@ working with a large number of cues.
 * When you create a new Cue, the list of cues is automatically
  scrolled to ensure the new cue is visible. (If your new cue is hidden
  by the `Filter` or `Entered Only` settings, Beat Link Trigger will
- pop up a dialog to remind you why you are not seeing it.)
+ pop up a dialog to remind you why you are not seeing it.) If needed,
+ the track waveform at the top of the window is also scrolled to show
+ the new cue.
 
 * You can also scroll a Cue’s configuration row into view by clicking
   on the cue in the waveform display at the top of the window.
@@ -1001,6 +1012,64 @@ working with a large number of cues.
 * Finally, as noted in the Context Menu section above, you can use a
   Cue’s context menu to scroll the waveform to reveal the cue within
   the track beat grid.
+
+[[cue-library]]
+== The Cue Library
+
+When building a show with a group of tracks, there will often be a
+shared set of lighting looks or presets that will be useful in more
+than one track. Once you have set up a cue that sends the proper
+messages to achieve that look, you can make it available for reuse
+in any track by adding it to the Cue Library. To do that, choose
+menu:Add Cue to Library[] from the Cue
+<<Shows#cue-context-menu,context menu.>>
+
+As soon as you have a cue in the show's library, a kbd:[Library ▾]
+button appears next to the kbd:[New Cue] button in any Cue Editor
+windows you have open for tracks in the show. Clicking it gives you
+a menu of all the cues that you have added to the show's library, and
+choosing one creates a new cue (in the same location that the
+kbd:[New Cue] button would), based on the template cue that you put
+in the library:
+
+image:assets/CueLibraryButton.png[Cue Library Button,961,453]
+
+TIP: The names that appear in the Cue Library are the names (comments)
+of the cues that have been added to it, so it makes sense to make sure
+your cue is well named before adding it to the library.
+
+Another way to choose a cue template from the library is to right-click
+(or control-click) anywhere outside an existing cue in the waveform
+at the top of the Cue Editor window:
+
+image:assets/CueLibraryContext.png[Cue Library Context Menu,961,453]
+
+Using either of those approaches to choose menu:New “Red Wash” Cue[] in
+the menu would result in the creation of a cue based on that template
+in the selected region of the track:
+
+image:assets/CueLibraryUsed.png[Cue from Library,961,453]
+
+The new cue will share any of the MIDI message configurations and
+Expressions that were present in the cue that was added to the show
+library.
+
+=== Updating the Library
+
+If you already have a cue in the library, you  can update its content
+by changing the cue that it was based on, and then using the cue
+context menu again. When there is already a cue with a particular
+name in the library, instead of seeing Add Cue to Library, the
+option will read menu:Update Cue in Library[]. Choosing that will
+replace the cue template with the MIDI and Expression settings of the
+current cue. (This will not change any cues that you already created
+based on the template, but it will change any future cues you create
+from it.)
+
+If the current cue has exactly the same content as the cue of the
+same name in the library (ignoring incidental details like its
+position in the track or displayed hue), the menu option will read
+menu:Remove Cue from Library[], and choosing it will do just that.
 
 == Learning More
 
