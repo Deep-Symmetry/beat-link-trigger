@@ -756,7 +756,8 @@
   (seesaw/action :handler (fn [_]
                             (when (seesaw/confirm panel (str "This will irreversibly remove the cue, losing any\r\n"
                                                              "configuration and expressions created for it.")
-                                                  :type :question :title "Delete Cue?")
+                                                  :type :question
+                                                  :title (str "Delete Cue “" (:comment (find-cue track cue)) "”?"))
                               (try
                                 (cleanup-cue true track cue)
                                 (swap-track! track expunge-deleted-cue cue)
