@@ -207,7 +207,8 @@
   (let [show (latest-show show)]
     (when-let [expression-fn (get-in show [:expression-fns kind])]
       (try
-        [(expression-fn status {:show show} (:expression-globals show)) nil]
+        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+          [(expression-fn status {:show show} (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t "Problem running show global " kind " expression,"
                         (get-in show [:contents :expressions kind]))
@@ -225,9 +226,10 @@
   (let [[show track] (latest-show-and-track track)]
     (when-let [expression-fn (get-in track [:expression-fns kind])]
       (try
-        [(expression-fn status {:locals (:expression-locals track)
-                                :show   show
-                                :track  track} (:expression-globals show)) nil]
+        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+          [(expression-fn status {:locals (:expression-locals track)
+                                  :show   show
+                                  :track  track} (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
                                (get-in track [:contents :expressions kind])))
@@ -465,11 +467,12 @@
         cue          (find-cue track cue)]
     (when-let [expression-fn (get-in track [:cues :expression-fns (:uuid cue) kind])]
       (try
-        [(expression-fn status-or-beat {:locals (:expression-locals track)
-                                        :show   show
-                                        :track  track
-                                        :cue    cue}
-                        (:expression-globals show)) nil]
+        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+          [(expression-fn status-or-beat {:locals (:expression-locals track)
+                                          :show   show
+                                          :track  track
+                                          :cue    cue}
+                          (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/cue-editor-title kind track cue) ":\n"
                                (get-in track [:contents :expressions kind])))

@@ -12,6 +12,9 @@ This change log follows the conventions of
   imported tracks would have non-`nil` artist metadata. This has been
   corrected, and any `nil` metadata keys should now be handled
   gracefully and even informatively.
+- Custom expressions were being run in the `clojure.core` namespace
+  even though they were being compiled in (and expected to be run in)
+  `beat-link-trigger.expressions`.
 - The build process would not work for new clones of the repository
   because an empty directory needed by the
   [`lein-v`](https://github.com/roomkey/lein-v) Leiningen plugin was
