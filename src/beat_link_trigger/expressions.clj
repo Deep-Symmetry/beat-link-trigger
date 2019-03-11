@@ -7,9 +7,11 @@
             [overtone.midi :as midi]
             [overtone.osc :as osc]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj DeviceUpdate Beat CdjStatus MixerStatus Util
+  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Util
+            DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder TrackPositionUpdate]
+           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
+            PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 (defn track-source-slot

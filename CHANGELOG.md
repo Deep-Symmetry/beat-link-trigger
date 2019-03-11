@@ -30,6 +30,9 @@ This change log follows the conventions of
 - The Cues Editor waveform is scrolled if necessary to make a new cue
   visible when it is created.
 - The confirmation dialog title for deleting a cue shows the cue name.
+- More of the Beat Link classes which might be useful to work with
+  inside user expressions are imported into the namespace in which
+  those expressions are compiled and run.
 
 
 ## [0.5.1] - 2019-03-05
