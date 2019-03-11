@@ -12,6 +12,10 @@ This change log follows the conventions of
   imported tracks would have non-`nil` artist metadata. This has been
   corrected, and any `nil` metadata keys should now be handled
   gracefully and even informatively.
+- When editing global show expressions, even though the new code was
+  being compiled and run properly, it was not getting saved to the
+  show in the right place, so it would not appear when edited again or
+  when the show was reloaded.
 - Custom expressions were being run in the `clojure.core` namespace
   even though they were being compiled in (and expected to be run in)
   `beat-link-trigger.expressions`.

@@ -796,7 +796,7 @@
           (show-call swap-show! show update :expression-editors dissoc kind)))
       (if track
         (show-call swap-track! track assoc-in [:contents :expressions kind] text)
-        (show-call swap-show! show assoc-in [:contents :expression kind] text))  ; Save the new text.
+        (show-call swap-show! show assoc-in [:contents :expressions kind] text))  ; Save the new text.
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
