@@ -88,7 +88,7 @@ When you first open Beat Link Trigger, it tries to find the Pro DJ
 Link devices that you want it to monitor. If it can’t find any, after
 ten seconds you will see a window like this:
 
-image:assets/NoDevices.png[No devices found,520,374]
+image:NoDevices.png[No devices found,520,374]
 
 If you were expecting to find devices, double-check that they are
 powered on, and properly networked with your computer (and that any
@@ -121,7 +121,7 @@ If you connect to a DJ Link network after a period of working on your
 triggers in offline mode, you can take Beat Link Trigger online by
 checking menu:Network[Online?]:
 
-image:assets/GoingOnline.png[Going Online,400,185]
+image:GoingOnline.png[Going Online,400,185]
 
 You can also go offline at any time by un-checking the menu option.
 
@@ -139,7 +139,7 @@ see what Player Number it is using by looking at the menu:Network[Online?]
 menu option without toggling it again. Whenever it is checked, the
 Player Number being used by Beat Link is shown there.
 
-image:assets/CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,185]
+image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,185]
 
 Most of the time you will want to be using Player 5, as shown here,
 because that is compatible with big shows where there are four real

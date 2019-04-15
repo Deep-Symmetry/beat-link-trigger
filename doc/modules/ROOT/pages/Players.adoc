@@ -37,7 +37,7 @@ happening right now on all the decks. As shown in the example view
 below, this can be an invaluable resoure on its own for running
 visuals for a show, even if you don’t have any triggers set up:
 
-image:assets/PlayerStatus.png[Player Status Window,599,842]
+image:PlayerStatus.png[Player Status Window,599,842]
 
 Only players currently visible on the network will appear in this
 window. The player number will be bright green if it is currently
@@ -143,7 +143,7 @@ are in use), and then click on the gear button next to the
 corresponding player slot, choosing the Create Metadata Cache File
 option:
 
-image:assets/CreateCache.png[Create Metadata Cache option,350,234]
+image:CreateCache.png[Create Metadata Cache option,350,234]
 
 This will open a dialog where you can choose to cache either all the
 tracks present on the media, or only those associated with a
@@ -160,7 +160,7 @@ you only need the metadata for tracks on the chosen playlist.
 
 Also choose the file where you want to save the cache:
 
-image:assets/CreateCache2.png[Create Metadata Cache window,613,635]
+image:CreateCache2.png[Create Metadata Cache window,613,635]
 
 When you click kbd:[Save], Beat Link Trigger will download the metadata,
 artwork, cue list, beat grid, and waveform information about all the
@@ -178,7 +178,7 @@ this can cause playback to stutter if the DJ jumps directly to the
 middle of a track, for example. Don’t check the box if the player is
 idle and you want to quickly cache a lot of tracks.
 
-image:assets/CreateCache3.png[Creating Metadata Cache,526,198]
+image:CreateCache3.png[Creating Metadata Cache,526,198]
 
 Once the cache is created, it will automatically be attached to that
 player slot, so Beat Link Trigger will use the cache instead of asking
@@ -188,7 +188,7 @@ attach caches using the gear button next to any player media slot. The
 gear will be filled in when a cache is attached, and the cache file
 information displayed next to it, as shown here:
 
-image:assets/CreateCache4.png[Metadata Cache Attached,350,234]
+image:CreateCache4.png[Metadata Cache Attached,350,234]
 
 NOTE: If the media seems to have changed since the cache was created,
 you will see a warning about that when the cache is attached. If the
@@ -207,12 +207,12 @@ up in a busy show), you can ask Beat Link Trigger to watch for media
 that matches the cache, and automatically attach it. To do this,
 choose `Auto-Attach Metadata Caches` in the `File` menu.
 
-image:assets/AutoAttach.png[Auto-Attach option,314,210]
+image:AutoAttach.png[Auto-Attach option,314,210]
 
 This will open a window where you can configure the cache files that
 should be watched for. Click kbd:[Add File] to add one:
 
-image:assets/AutoAttach2.png[Auto-Attach window,433,232]
+image:AutoAttach2.png[Auto-Attach window,433,232]
 
 This will open a file chooser dialog you can use to find the file or
 files that you want to be watched, and they will appear in the window.
@@ -229,7 +229,7 @@ media has been modified in rekordbox since the cache was created, an
 all-tracks cache will need to be re-created. A playlist cache will
 continue to match unless that specific playlist has been altered.
 
-image:assets/AutoAttach3.png[Auto-Attach window with some files,433,232]
+image:AutoAttach3.png[Auto-Attach window with some files,433,232]
 
 If you no longer want one of the files to be watched for, simply click
 the kbd:[Remove] button next to it.
@@ -240,7 +240,7 @@ Trigger 0.4.1 or later, the icon will be an “i” in a blue circle, and
 clicking it will give you information about the media from which the
 cache was created as well as the contents of the cache itself:
 
-image:assets/AutoAttach4.png[Metadata Cache Details,604,227]
+image:AutoAttach4.png[Metadata Cache Details,604,227]
 
 
 TIP: If you have any older metadata cache files, it would be a good
@@ -276,14 +276,14 @@ rekordbox IDs of the tracks you want your triggers to match.
 
 To do this, choose `View Metadata Cache Contents` in the `File` menu.
 
-image:assets/ViewCacheContents.png[View Cache option,314,210]
+image:ViewCacheContents.png[View Cache option,314,210]
 
 This will open a file chooser dialog you can use to find the file
 containing the cache that you want to examine. Once you choose one, a
 window will open containing a row for each entry in the metadata
 cache, showing its rekordbox ID, title, and artist:
 
-image:assets/SymmetryContents.png[Example cache contents,850,480]
+image:SymmetryContents.png[Example cache contents,850,480]
 
 [[loading-playing]]
 == Loading and Playing Tracks
@@ -304,7 +304,7 @@ menu:Network[Load Track on Player], or using the popup menu associated
 with a particular media slot in the Player Status window as shown in
 the screen shot below:
 
-image:assets/LoadTrackContext.png[Load Track from Player Status Window,532,296]
+image:LoadTrackContext.png[Load Track from Player Status Window,532,296]
 
 Either method opens the interface shown below; the advantage of
 starting from a media slot’s popup menu is that the corresponding
@@ -313,7 +313,7 @@ If there are any computers running rekordbox on the network, they
 will also show up as places that you can tell players to load
 tracks from.
 
-image:assets/LoadTrackWindow.png[Load Track Window,565,484]
+image:LoadTrackWindow.png[Load Track Window,565,484]
 
 This window allows you to drill down through the menu hierarchy
 associated with the media mounted in any player slot, just as if you
@@ -336,7 +336,7 @@ already-expanded section (although the icon will be labeled `-` in
 that case). Selecting a row that corresponds to an individual track
 enables the kbd:[Load] button:
 
-image:assets/LoadTrackButton.png[Load Track Button,633,484]
+image:LoadTrackButton.png[Load Track Button,633,484]
 
 Clicking that button tells the player chosen in the menu:Load on[]
 menu to load the selected track. (The button will also be disabled,
@@ -361,7 +361,7 @@ the top of the window, and you can start typing. As you add to your
 search string, the results are narrowed down. Once you can see what
 you are looking for, you can expand and load it.
 
-image:assets/LoadTrackSearch.png[Load Track: Searching,672,648]
+image:LoadTrackSearch.png[Load Track: Searching,672,648]
 
 If there are more than 25 results matching your search string, only
 the first 25 will be loaded and shown to begin with. You can use the
@@ -369,7 +369,7 @@ kbd:[Load] button to load more, in larger and larger batches, although
 your best bet is probably to use a longer and more selective search
 string instead:
 
-image:assets/LoadTrackSearch2.png[Load Track: Searching,785,667]
+image:LoadTrackSearch2.png[Load Track: Searching,785,667]
 
 == Keeping Player Status Always Visible
 

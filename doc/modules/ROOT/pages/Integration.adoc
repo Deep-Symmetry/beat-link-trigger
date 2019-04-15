@@ -57,7 +57,7 @@ which the BEYOND Talk UDP server is listening. To determine these
 things, you can choose menu:Tools[Network Monitor...] within BEYOND to
 bring up a window like this:
 
-image:assets/BeyondNetworkMonitor.png[Network Monitor,584,461]
+image:BeyondNetworkMonitor.png[Network Monitor,584,461]
 
 By looking at the Adapter IP and Mask lines, we can determine that the
 broadcast address we want to use to reach the BEYOND Talk server is
@@ -71,7 +71,7 @@ broadcast address of the subnet the server is attached to.
 Then, make sure the BEYOND UDP Talk server is enabled
 (menu:Settings[Network > Network Settings...]):
 
-image:assets/BeyondNetworkSettings.png[Network Settings,424,446]
+image:BeyondNetworkSettings.png[Network Settings,424,446]
 
 Choose a port that is not in use by anything else on your system (the
 default of `16062` is likely fine), check the Enable Talk Server check
@@ -79,7 +79,7 @@ box, and click btn:[OK]. Make a note of the broadcast address and UDP
 port it is listening on, and then make sure the talk server is fully
 enabled by choosing menu:Settings[Network > BEYOND Talk server]:
 
-image:assets/BeyondTalkServer.png[Talk Server,720,479]
+image:BeyondTalkServer.png[Talk Server,720,479]
 
 TIP: In older versions of BEYOND, we sometimes had to quit and restart
 the program after making these configuration changes in order for them
@@ -122,7 +122,7 @@ and label it something like &ldquo;Beyond BPM Sync&rdquo; in the
 Comment field. Configure it to Watch the Master Player, and give it a
 Custom Enabled Filter:
 
-image:assets/BeyondBPMSync.png[Beyond BPM Sync,810,160]
+image:BeyondBPMSync.png[Beyond BPM Sync,810,160]
 
 The Enabled Filter editor will pop open, so you can paste in the
 following code:
@@ -186,13 +186,13 @@ user interface. Choose menu:Settings[Configuration...] and click the
 Laser Preview tab. Check the Display Internal BEYOND Command check
 box, and click btn:[OK]:
 
-image:assets/BeyondPreviewConfig.png[Beyond Laser Preview configuration,486,586]
+image:BeyondPreviewConfig.png[Beyond Laser Preview configuration,486,586]
 
 One that is done, as you interact with the interface, you will see
 small messages at the bottom left of the laser preview section showing
 you the equivalent PangoScript command for what you just did:
 
-image:assets/BeyondPreview.png[Beyond Laser Preview,336,282]
+image:BeyondPreview.png[Beyond Laser Preview,336,282]
 
 In this case, I just activated cue 16, 20 (cue 20 on page 16). So in
 the trigger’s Activation Expression editor, I would use the following:
@@ -254,7 +254,7 @@ choosing menu:Settings[MIDI>Device Settings...] Here, the new LoopBe
 virtual port has been chosen for input and output as Device 1 within
 Beyond:
 
-image:assets/LoopBeDevice1.png[LoopBe Internal MIDI chosen for Device
+image:LoopBeDevice1.png[LoopBe Internal MIDI chosen for Device
 1, 498, 612]
 
 Click btn:[OK] and the device will be available as a source of MIDI
@@ -267,14 +267,14 @@ messages, right-click on the metronome at the top of the BEYOND
 window, and click the btn:[Enable MIDI input to set BPM] button in the
 contextual menu that appears:
 
-image:assets/BeyondEnableBPM.png[Enabling MIDI to set BPM,404,579]
+image:BeyondEnableBPM.png[Enabling MIDI to set BPM,404,579]
 
 Once that is done, you can configure a Trigger in Beat Link Trigger to
 send MIDI output to the device that BEYOND is listening to, and set
 the Message menu to Clock, so it will send MIDI Clock messages to
 communicate the current BPM:
 
-image:assets/BeyondClockTrigger.png[Clock Trigger for BEYOND,806,202]
+image:BeyondClockTrigger.png[Clock Trigger for BEYOND,806,202]
 
 +++<img src="assets/BeyondMIDIsynced.png" width="162" height="104"
 align="right" alt="BEYOND synced to MIDI Clock">+++
@@ -302,14 +302,14 @@ trigger will send a MIDI Note On message for note 125 on channel 1
 when the trigger activates, and the corresponding Note Off message
 when it deactivates:
 
-image:assets/BeyondMIDITrigger.png[Beyond MIDI Trigger,814,298]
+image:BeyondMIDITrigger.png[Beyond MIDI Trigger,814,298]
 
 To tie that to a cue cell in BEYOND, choose
 menu:Settings[MIDI>"(device)" settings...], picking the name of the
 device that you connected in order to receive MIDI messages from Beat
 Link Trigger:
 
-image:assets/BeyondPortSettings.png[Beyond MIDI Device Settings,574,449]
+image:BeyondPortSettings.png[Beyond MIDI Device Settings,574,449]
 
 That will open a window that gives you access to a great many MIDI
 mapping options, allowing you to cause BEYOND to react to incoming
@@ -320,7 +320,7 @@ just take a quick look at mapping the first cue cell to respond to the
 Beat Link Trigger we have just created. To do that, click the
 btn:[Configure...] button for the Main Grid MIDI surface:
 
-image:assets/BeyondMIDIMapping.png[Beyond MIDI Mapping,502,671]
+image:BeyondMIDIMapping.png[Beyond MIDI Mapping,502,671]
 
 This section allows you to set the MIDI messages which BEYOND will
 interpret as a mouse down or mouse up event in each of the cue cells.
@@ -334,7 +334,7 @@ BEYOND is in Learn mode, activate and deactivate the trigger in Beat
 Link Trigger. The Learn 1+2 command tells BEYOND to watch for the next
 two MIDI events and enter them into the grid cells for you:
 
-image:assets/BeyondMIDILearn.png[Beyond MIDI Main Grid,770,271]
+image:BeyondMIDILearn.png[Beyond MIDI Main Grid,770,271]
 
 Once you have that mapping set up, whenever Beat Link Trigger reports
 that the trigger is activated, BEYOND will act as though you have
@@ -343,7 +343,7 @@ deactivated, BEYOND will act as though you have released the mouse. In
 order to have cues end when triggers deactivate, you will want to put
 BEYOND into Flash mode:
 
-image:assets/BeyondFlashMode.png[Beyond Flash Cue Mode,706,206]
+image:BeyondFlashMode.png[Beyond Flash Cue Mode,706,206]
 
 Alternately, if you want to leave it in the default Toggle mode, you
 could use a custom Deactivation Expression in Beat Link Trigger to
@@ -371,7 +371,7 @@ turned on in the ShowXpress Live Preferences, and choose a password.
 Quit and relaunch the application if this was not turned on when you
 initially opened it.
 
-image:assets/LiveExternalControl.png[ShowXpress Live Preferences,700,540]
+image:LiveExternalControl.png[ShowXpress Live Preferences,700,540]
 
 Then paste this block of code into Beat Link Trigger’s Global Setup
 Expression:
@@ -767,7 +767,7 @@ at http://deepsymmetry.org/media/SMPTE.bltx (to use an exported
 trigger like that, create a trigger row in Beat Link Trigger, then
 click on its action [gear] menu and choose `Import Trigger`):
 
-image:assets/ImportTrigger.png[Import Trigger option,360,388]
+image:ImportTrigger.png[Import Trigger option,360,388]
 
 As downloaded, that trigger is configured to watch Player 3, but you
 can set it to watch whatever you want, including the Master Player or
@@ -801,7 +801,7 @@ example:
 When you run the daemon, it opens a small window which shows its
 configuration and status:
 
-image:assets/SMPTEdaemon.png[SMPTE daemon,521,346]
+image:SMPTEdaemon.png[SMPTE daemon,521,346]
 
 The main thing you are likely to want to change here is the SMPTE
 frame rate, which you can do in the dropdown menu. You can also pick
@@ -847,7 +847,7 @@ builds the application at
 http://deepsymmetry.org/media/SMPTE%20daemon.maxpat.zip (here is what
 it looks like in patcher mode, unlocked):
 
-image:assets/SMPTEpatch.png[SMPTE patcher,661,784]
+image:SMPTEpatch.png[SMPTE patcher,661,784]
 
 As noted above, you need https://github.com/MattijsKneppers[Mattijs
 Kneppers]’ https://cycling74.com/tools/smpte/[smpte~] object to work
@@ -876,7 +876,7 @@ When you run the dual daemon, it opens a slightly larger window for
 its configuration and status, but the content should be familiar
 compared to what you saw above:
 
-image:assets/SMPTEdualDaemon.png[SMPTE dual daemon,408,508]
+image:SMPTEdualDaemon.png[SMPTE dual daemon,408,508]
 
 The top section allows you to configure global settings like the port
 number, audio configuration, and gain. Then there are two separate
@@ -891,7 +891,7 @@ daemon itself, the patch source for it is at
 http://deepsymmetry.org/media/SMPTE%20dual%20daemon.maxpat.zip (here
 is what it looks like in patcher mode, unlocked):
 
-image:assets/SMPTEdualPatch.png[Dual SMPTE patcher,1290,840]
+image:SMPTEdualPatch.png[Dual SMPTE patcher,1290,840]
 
 Again, I hope this is useful to intrepid explorers who want to try
 working with SMPTE, but please don’t expect me to be able to offer

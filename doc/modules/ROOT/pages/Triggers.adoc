@@ -40,14 +40,14 @@ different messages in response to what the player is doing.
 If this is the first time you have opened Beat Link Trigger, you will
 see just one trigger containing default options.
 
-image:assets/FirstTrigger.png[First Trigger,900,294]
+image:FirstTrigger.png[First Trigger,900,294]
 
 To create additional triggers you can choose menu:Triggers[New
 Trigger], or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on other
 platforms). You can get back to this default state at any time by
 choosing menu:Triggers[Clear Triggers].
 
-image:assets/TriggersMenu.png[Triggers Menu,392,206]
+image:TriggersMenu.png[Triggers Menu,392,206]
 
 TIP: Triggers allow you to build all kinds of integrations with your
 players, at a very low level. For the common case of wanting to make
@@ -76,7 +76,7 @@ The menu:Watch[] menu tells the trigger what player(s) it should pay
 attention to. It lets you choose Player&nbsp;1 through Player&nbsp;4,
 as well as two dynamic choices.
 
-image:assets/WatchMenu.png[Watch Menu,840,294]
+image:WatchMenu.png[Watch Menu,840,294]
 
 NOTE: If a player is chosen which is not currently present on the
 network, the player will be reported “not found”, and the trigger will
@@ -124,7 +124,7 @@ example of what that could look like, when a track named Apex has been
 recognized, and the string `Apex` has been stored under
 `:track-description` in the trigger’s `locals`:
 
-image:assets/ApexRecognized.png[Track Apex Recognized,804,161]
+image:ApexRecognized.png[Track Apex Recognized,804,161]
 
 [[metadata]]
 ==== Metadata
@@ -137,7 +137,7 @@ When metadata is available for a track, the Player Status section
 grows to two lines, and displays the track title and artist on the
 second line, without any effort on the part of your trigger code:
 
-image:assets/MetadataStatus.png[Player Status with Metadata,794,166]
+image:MetadataStatus.png[Player Status with Metadata,794,166]
 
 Your trigger can also change the content of the metadata line by
 setting whatever value it wants under the key `:metadata-summary` in
@@ -156,7 +156,7 @@ The menu:MIDI Output[] Menu lets you choose the MIDI device to which
 the trigger will send messages. It will show all MIDI outputs
 currently available on your system.
 
-image:assets/MidiMenu.png[MIDI Output Menu,810,281]
+image:MidiMenu.png[MIDI Output Menu,810,281]
 
 NOTE: If a MIDI Output is chosen which is no longer available on the
 system (as shown in trigger 3 above), it will remain in that row’s
@@ -169,7 +169,7 @@ is chosen, the trigger will become operational again.
 The menu:Message[] Menu determines what kind of MIDI message is sent by the
 trigger.
 
-image:assets/MessageMenu.png[Message Menu,790,270]
+image:MessageMenu.png[Message Menu,790,270]
 
 Note:: With this setting, the trigger sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -266,7 +266,7 @@ specify the MIDI channel on which messages are sent.
 The menu:Enabled[] menu controls when the trigger will respond to the
 watched player starting or stopping playback.
 
-image:assets/EnabledMenu.png[Enabled Menu,814,287]
+image:EnabledMenu.png[Enabled Menu,814,287]
 
 Always:: With this setting, the trigger is enabled until you disable
 it.
@@ -305,16 +305,16 @@ circle:
 |Indicator
 
 |Disabled, Not Playing
-|image:assets/Disabled.png[Disabled,52,52]
+|image:Disabled.png[Disabled,52,52]
 
 |Enabled, Not Playing
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Disabled, Playing
-|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Playing
-|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -331,7 +331,7 @@ expression will be filled in if that expression has a value, and the
 gear in the button will be filled in if any expression associated with
 the trigger has a value.
 
-image:assets/ContextMenu.png[Context Menu,314,297]
+image:ContextMenu.png[Context Menu,314,297]
 
 Below the expression editors the menu:Inspect Expression Locals[]
 option allows you to explore any values that have been set up by

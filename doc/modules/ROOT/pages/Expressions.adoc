@@ -133,7 +133,7 @@ trigger’s menu:Enabled[] menu to Custom, Beat Link Trigger will pop
 open the editor for that expression for you, if you have not yet
 created it:
 
-image:assets/Editor.png[Enabled Filter Editor,880,756]
+image:Editor.png[Enabled Filter Editor,880,756]
 
 The editor window for each type of expression provides documentation
 about the purpose of the expression and guidance on how to write it.
@@ -151,7 +151,7 @@ and the track starts with beat 1). With the help of
 https://clojure.org/guides/learn/syntax[Learn Clojure] and the help
 text in the editor window, we come up with the following expression:
 
-image:assets/EnabledExample.png[Enabled Example,609,358]
+image:EnabledExample.png[Enabled Example,609,358]
 
 Try entering that as the Enabled Filter expression for your filter,
 set the Enabled menu to Custom, and watch the Trigger Status indicator

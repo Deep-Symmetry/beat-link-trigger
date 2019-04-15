@@ -65,7 +65,7 @@ each when any player has loaded the track that the trigger cares
 about. For example, in the following screen shot we have two triggers
 watching for two specific tracks:
 
-image:assets/MatchTracks.png[Matching Tracks, 870]
+image:MatchTracks.png[Matching Tracks, 870]
 
 The Enabled Filter expression for the first trigger is as follows:
 
@@ -118,7 +118,7 @@ given show. To actually assign them, choose
 menu:Triggers[Set Media Locations]
 in the Triggers window menu:
 
-image:assets/MediaLocations.png[Set Media Locations, 420]
+image:MediaLocations.png[Set Media Locations, 420]
 
 Each player found on the network will have a row in this window, and
 using the menus you can assign any of the media libraries you
@@ -176,7 +176,7 @@ as its description, instead of the ID and slot information, by
 choosing menu:Triggers[Default Track Description>playlist position] in
 the Triggers window menu:
 
-image:assets/TrackDescriptionMenu.png[Track Description Menu, 680]
+image:TrackDescriptionMenu.png[Track Description Menu, 680]
 
 This is equivalent to including the following form in your Enabled
 Filter expression:
@@ -343,7 +343,7 @@ enabled.
 
 Here’s what this set of expressions looks like in action:
 
-image:assets/MatchTracks2.png[Matching Tracks 2, 848]
+image:MatchTracks2.png[Matching Tracks 2, 848]
 
 ==== Simplifying the Expression
 
@@ -544,7 +544,7 @@ Finally, here is an example of using the
 <<README#inspecting-locals-and-globals,Globals Inspector>> to dive into the
 structure we have created, illustrating its hierarchical nature:
 
-image:assets/InspectingTrackMap.png[Inspecting our Track Map, 566]
+image:InspectingTrackMap.png[Inspecting our Track Map, 566]
 
 == Historical Code
 

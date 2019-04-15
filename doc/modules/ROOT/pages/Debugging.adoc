@@ -133,7 +133,7 @@ have been created in the `globals` atom shared by all triggers. Here
 is what that looks like after the example code shown in the
 <<Expressions#global-expressions,Global Expressions section>> has run:
 
-image:assets/ExpressionGlobals.png[Expression Globals,872,462]
+image:ExpressionGlobals.png[Expression Globals,872,462]
 
 The inspector is a little messy, but right away you can see the three
 keys we created, and the corresponding Java objects stored under them.
@@ -146,7 +146,7 @@ menu:Inspect Expression Locals[] from that trigger’s context menu.
 Here’s the result of drilling down a little into the `:resolume` OSC
 client object created in that example’s trigger:
 
-image:assets/ExpressionLocals.png[Expression Locals,789,626]
+image:ExpressionLocals.png[Expression Locals,789,626]
 
 == Saving and Loading
 
@@ -167,7 +167,7 @@ to do this, and you might lose work. If you are concerned about that
 happening, you can periodically manually save your current trigger
 configuration by choosing menu:File[Save].
 
-image:assets/Save.png[Save option,314,210]
+image:Save.png[Save option,314,210]
 
 ====
 
@@ -190,7 +190,7 @@ robust, convenient solution.
 Start by choosing menu:File[Write Playlist]. This will bring up the
 Playlist Writer window.
 
-image:assets/PlaylistWriter.png[Playlist Writer,412,256]
+image:PlaylistWriter.png[Playlist Writer,412,256]
 
 You can configure how long a track needs to be played for before it
 gets included in the playlist and whether you want to ignore players
@@ -203,7 +203,7 @@ Once everything is set the way you want it, click kbd:[Start] and you
 will be prompted to choose where to save the file. Once you have done
 that, the window updates to show you that the playlist is being written:
 
-image:assets/PlaylistWriterActive.png[Playlist Writer active,412,256]
+image:PlaylistWriterActive.png[Playlist Writer active,412,256]
 
 From this point on, all tracks that play longer than your configured
 minimum time will be written to the playlist, in Comma-Separated Value

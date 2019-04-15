@@ -68,13 +68,13 @@ and convenient workflow.
 To use the Show interface, you start by choosing menu:File[New Show]
 in the Beat Link Triggers window.
 
-image:assets/NewShow.png[New Show option,314,210]
+image:NewShow.png[New Show option,314,210]
 
 This opens a Save dialog where you choose the location and name of
 your new Show file. Navigate to where you would like to keep it, type
 a name, and click kbd:[Save].
 
-image:assets/NewShow2.png[New Show Save dialog,660,460]
+image:NewShow2.png[New Show Save dialog,660,460]
 
 Beat Link Trigger will create a new, empty Show file for you with your
 chosen name, and open its window. If you quit with a Show window open,
@@ -86,7 +86,7 @@ Show, and video cues in another) and each one will be reopened
 automatically and run independently. You can tailor which Shows you
 open based on which hardware is being used for a given performance.
 
-image:assets/NewShowWindow.png[Empty Show window,793,418]
+image:NewShowWindow.png[Empty Show window,793,418]
 
 === Show Window Header Elements
 
@@ -117,7 +117,7 @@ avoid the risk of losing data, you can manually save it by choosing
 menu:File[Save]. You can also save a copy to a different file at any
 time using menu:File[Save a Copy].
 
-image:assets/ShowFileMenu.png[Show File Menu,172,94]
+image:ShowFileMenu.png[Show File Menu,172,94]
 
 If you want to stop working with a show, and don’t want Beat Link
 Trigger to automatically open it the next time you launch the program,
@@ -128,7 +128,7 @@ discussed in the <<Shows#adding-tracks,next section>>, and to edit
 expressions that customize the show as a whole, as described in the
 <<Expressions#show-global-expressions,Expressions section>>.
 
-image:assets/ShowTracksMenu.png[Show Tracks Menu,319,136]
+image:ShowTracksMenu.png[Show Tracks Menu,319,136]
 
 The menu:Inspect Expression Locals[] option allows you to explore any
 values that have been set up by expressions to share across the entire
@@ -146,7 +146,7 @@ are a number of different ways you can add Tracks to your Show. Most
 of them can be found by choosing menu:Tracks[Import Track] in the Show
 window menu bar:
 
-image:assets/ImportTrack.png[Import Track menu,793,418]
+image:ImportTrack.png[Import Track menu,793,418]
 
 If you are currently Online, and there are any players on the network
 that have rekordbox tracks loaded that are not already part of the
@@ -157,14 +157,14 @@ it to the Show file (the elements of a Track row are explained
 <<Shows#track-row-elements,below>>, after the other ways of adding
 them to a Show).
 
-image:assets/FirstTrackLoaded.png[First track loaded into Show,1009,466]
+image:FirstTrackLoaded.png[First track loaded into Show,1009,466]
 
 To help avoid confusion, rather than simply having the player
 disappear from the list of import choices if the track it has loaded
 is already part of the Show, the menu option is disabled and an
 explanation is added:
 
-image:assets/ImportTrackAlready.png[Track already in Show,1009,466]
+image:ImportTrackAlready.png[Track already in Show,1009,466]
 
 To make it possible to set up your Show even when you don’t have
 access to your player network, you can also import Tracks directly
@@ -173,7 +173,7 @@ computer, and choose menu:Tracks[Import Track>from Offline Media]. An
 Choose Media dialog will appear, from which you can navigate to the
 media:
 
-image:assets/ChooseMedia.png[Choose Media dialog,526,369]
+image:ChooseMedia.png[Choose Media dialog,526,369]
 
 Once you click kbd:[Choose Media], the exported database is parsed,
 and a Choose Track window is presented, which is very similar to the
@@ -181,12 +181,12 @@ and a Choose Track window is presented, which is very similar to the
 offered by the Player Status window (see that section for details
 about how to navigate the interface and use the Search feature):
 
-image:assets/ShowChooseTrack.png[Choose Track dialog,720,518]
+image:ShowChooseTrack.png[Choose Track dialog,720,518]
 
 Once you have found the Track you are looking for, click kbd:[Choose
 Track] to add it to the Show.
 
-image:assets/SecondTrackLoaded.png[Second track loaded into Show,1005,589]
+image:SecondTrackLoaded.png[Second track loaded into Show,1005,589]
 
 TIP: To save time, once you have chosen media to load tracks from
 during a Beat Link Trigger session, your media choice is remembered
@@ -207,7 +207,7 @@ from one to another by finding the Track in the open Show that already
 contains it, then choosing menu:Copy to Show “<name>”[] in the Track’s
 context menu:
 
-image:assets/CopyTrack.png[Copy Track to Show,1005,625]
+image:CopyTrack.png[Copy Track to Show,1005,625]
 
 TIP: If you don’t see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
@@ -223,7 +223,7 @@ is a column that shows the track title, artist, a comment field, and
 information about which players have the track loaded, and which are
 currently playing it.
 
-image:assets/ShowTrack.png[A Track row,900,165]
+image:ShowTrack.png[A Track row,900,165]
 
 === Comment Field
 
@@ -288,16 +288,16 @@ a filled circle inside the enabled indicator ring:
 |Indicator
 
 |Disabled, Not Loaded
-|image:assets/Disabled.png[Disabled,52,52]
+|image:Disabled.png[Disabled,52,52]
 
 |Enabled, Not Loaded
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Disabled, Loaded
-|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Loaded
-|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -315,7 +315,7 @@ sent when the Track first becomes loaded by any player (as long as the
 Track is Enabled, as described below), or when the track is unloaded
 by the last player that had loaded it.
 
-image:assets/LoadedMessageMenu.png[Loaded Message Menu,1005,625]
+image:LoadedMessageMenu.png[Loaded Message Menu,1005,625]
 
 None:: With this setting, which is the default, nothing is sent when
 the Track loads or unloads.footnote:none[Note that this is different
@@ -331,7 +331,7 @@ the Track gets loaded onto the first player (as long as the Track is
 enabled), and a Note Off message when the last player unloads the
 Track, or the Track is disabled.
 +
-image:assets/LoadedNote.png[Loaded Note parameters,1079,157]
+image:LoadedNote.png[Loaded Note parameters,1079,157]
 +
 The Channel on which the Loaded/Unloaded messages are sent is
 configured just to the right of the note selector.
@@ -385,16 +385,16 @@ indicator ring:
 |Indicator
 
 |Disabled, Not Playing
-|image:assets/Disabled.png[Disabled,52,52]
+|image:Disabled.png[Disabled,52,52]
 
 |Enabled, Not Playing
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Disabled, Playing
-|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Playing
-|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -405,7 +405,7 @@ sent when the first player starts playing the Track (as long as the
 Track is Enabled, as described below), or when the last player that
 was playing the track stops.
 
-image:assets/PlayingMessageMenu.png[Playing Message Menu,1261,230]
+image:PlayingMessageMenu.png[Playing Message Menu,1261,230]
 
 None:: With this setting, which is the default, nothing is sent when
 the Track starts or stops playing.footnote:none[] When `None` is
@@ -460,7 +460,7 @@ started/stopped messages are sent for this Track.
 The menu:Enabled[] menu controls whether the Show will react to
 players doing things with the Track.
 
-image:assets/TrackEnabledMenu.png[Enabled Menu,1005,582]
+image:TrackEnabledMenu.png[Enabled Menu,1005,582]
 
 Default:: With this setting, which will be used by most Tracks, the
 Show’s shared menu:Enabled Default[] menu (at the top of the window)
@@ -512,7 +512,7 @@ that expression has a value, and the gear in the button will be filled
 in if any expression associated with the Track has a value, or if
 there are any Cues in the Track.
 
-image:assets/TrackContextMenu.png[Context Menu,1005,604]
+image:TrackContextMenu.png[Context Menu,1005,604]
 
 The first option in the menu, menu:Edit Track Cues[], opens the Cues
 window for the Track, which is how you can create Cues that respond to
@@ -548,7 +548,7 @@ menu:Edit Track Cues[] in the Track’s context menu, as described in the
 previous section. That will open a new window for viewing and editing
 details about that Track’s Cues:
 
-image:assets/CuesWindow.png[Cues Window,912,461]
+image:CuesWindow.png[Cues Window,912,461]
 
 Before introducing the various ways to add Cues to the track, let’s
 explore the features available at the top of the window.
@@ -593,7 +593,7 @@ that you want the Cue to run for. Dragging over the eight beats
 past where the player was cued in the above example sets up a
 selection like this:
 
-image:assets/DraggingCue.png[Cues Window,793,166]
+image:DraggingCue.png[Cues Window,793,166]
 
 If your aim was slightly off, you can drag the edges of the selection
 to adjust them, as suggested by the cursor in the image above, or you
@@ -611,7 +611,7 @@ Regardless of how you do it, once you have the right beats selected,
 clicking the kbd:[New Cue] button will create a new cue covering
 the chosen beats:
 
-image:assets/FirstCue.png[First cue added,912,461]
+image:FirstCue.png[First cue added,912,461]
 
 == Cue Row Elements
 
@@ -637,7 +637,7 @@ the point where this track begins playback after being loaded.
 The cue name also appears as a tool tip when you hover the mouse
 pointer over the cue in the waveform:
 
-image:assets/CueNamed.png[Cue named,790,278]
+image:CueNamed.png[Cue named,790,278]
 
 === Cue Hue
 
@@ -655,14 +655,14 @@ into a minimal set of lanes. Here’s an example of what it would look
 like if we added a second cue called “Video Clip 1” that overlaps
 part of our first cue:
 
-image:assets/SecondCue.png[Overlapping cues,791,389]
+image:SecondCue.png[Overlapping cues,791,389]
 
 Cues are also visible, and show their names as tool tips, in the
 waveform preview drawn in Track rows in the Show window, so you don’t
 even need to open the Cues Editor for a quick reminder of what cues
 are coming up:
 
-image:assets/CuesInShowWindow.png[Overlapping cues,886,218]
+image:CuesInShowWindow.png[Overlapping cues,886,218]
 
 In both waveforms, <<Shows#entered-status,Entered>> Cues are whitened
 slightly and <<Shows#started-status,Started>> Cues are whitened even
@@ -693,16 +693,16 @@ ring:
 |Indicator
 
 |Disabled, Not Entered
-|image:assets/Disabled.png[Disabled,52,52]
+|image:Disabled.png[Disabled,52,52]
 
 |Enabled, Not Entered
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Disabled, Entered
-|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Entered
-|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -719,7 +719,7 @@ auto-cues within the Cue, or the DJ uses cue/loop call, needle jump,
 the jog wheel, or search to move into or out of the cue, its state
 will update and the appropriate messages will be sent.
 
-image:assets/EnteredMessageMenu.png[Entered Message Menu,912,554]
+image:EnteredMessageMenu.png[Entered Message Menu,912,554]
 
 None:: With this setting, which is the default, nothing is sent when
 the Track loads or unloads.footnote:none[] When `None` is chosen,
@@ -732,7 +732,7 @@ the first player moves inside the Cue (as long as the Cue’s Track is
 enabled), and a Note Off message when the last player that had been
 inside the Cue moves back out of it, or the Track is disabled.
 +
-image:assets/EnteredNote.png[Entered Note parameters,792,113]
+image:EnteredNote.png[Entered Note parameters,792,113]
 +
 The Channel on which the Entered/Exited messages are sent is
 configured just to the right of the note selector.
@@ -787,16 +787,16 @@ the enabled indicator ring:
 |Indicator
 
 |Disabled, Not Started
-|image:assets/Disabled.png[Disabled,52,52]
+|image:Disabled.png[Disabled,52,52]
 
 |Enabled, Not Started
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Disabled, Started
-|image:assets/DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
 
 |Enabled, Started
-|image:assets/EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
 
@@ -809,7 +809,7 @@ Cue’s Track is enabled), or when the last player that had been playing
 inside the cue moves out of it or the Track becomes disabled, if it
 was started on its first beat.
 
-image:assets/StartedOnBeatMenu.png[Started On-Beat Message Menu,912,554]
+image:StartedOnBeatMenu.png[Started On-Beat Message Menu,912,554]
 
 None:: With this setting, which is the default, nothing is sent when
 the Cue starts on its first beat or ends after having started that
@@ -824,7 +824,7 @@ as the Cue’s Track is enabled), and a Note Off message when the last
 player that had been playing the Cue stops doing so, or the Track is
 disabled (as long as the Cue started playing from its first beat).
 +
-image:assets/StartedOnBeatNote.png[Started On-Beat Note parameters,792,109]
+image:StartedOnBeatNote.png[Started On-Beat Note parameters,792,109]
 +
 The Channel on which the Started On-Beat/Ended messages are sent is
 configured just to the right of the note selector.
@@ -873,7 +873,7 @@ Cue’s Track is enabled), or when the last player that had been playing
 inside the cue moves out of it or the Track becomes disabled, if it
 was started somewhere after its first beat.
 
-image:assets/StartedLateMenu.png[Started Late Message Menu,912,554]
+image:StartedLateMenu.png[Started Late Message Menu,912,554]
 
 None:: With this setting, which is the default, nothing is sent when
 the Cue starts after its first beat or ends after having started that
@@ -889,7 +889,7 @@ when the last player that had been playing the Cue stops doing so, or
 the Track is disabled (as long as the Cue started playing after its
 first beat).
 +
-image:assets/StartedLateNote.png[Started Late Note parameters,789,110]
+image:StartedLateNote.png[Started Late Note parameters,789,110]
 +
 The Channel on which the Started Late/Ended messages are sent is
 configured just to the right of the note selector.
@@ -943,7 +943,7 @@ section>>. The gear icon next to an expression will be filled in if
 that expression has a value, and the gear in the button will be filled
 in if any expression associated with the Cue has a value.
 
-image:assets/CueContextMenu.png[Context Menu,912,613]
+image:CueContextMenu.png[Context Menu,912,613]
 
 The menu starts with the expression-related options, allowing you to
 open editors to create or edit Clojure code that runs at well-defined
@@ -1032,7 +1032,7 @@ choosing one creates a new cue (in the same location that the
 kbd:[New Cue] button would), based on the template cue that you put
 in the library:
 
-image:assets/CueLibraryButton.png[Cue Library Button,961,453]
+image:CueLibraryButton.png[Cue Library Button,961,453]
 
 TIP: The names that appear in the Cue Library are the names (comments)
 of the cues that have been added to it, so it makes sense to make sure
@@ -1042,13 +1042,13 @@ Another way to choose a cue template from the library is to right-click
 (or control-click) anywhere outside an existing cue in the waveform
 at the top of the Cue Editor window:
 
-image:assets/CueLibraryContext.png[Cue Library Context Menu,961,453]
+image:CueLibraryContext.png[Cue Library Context Menu,961,453]
 
 Using either of those approaches to choose menu:New “Red Wash” Cue[] in
 the menu would result in the creation of a cue based on that template
 in the selected region of the track:
 
-image:assets/CueLibraryUsed.png[Cue from Library,961,453]
+image:CueLibraryUsed.png[Cue from Library,961,453]
 
 The new cue will share any of the MIDI message configurations and
 Expressions that were present in the cue that was added to the show

@@ -47,12 +47,12 @@ Once you have installed Carabiner and have it running, bring up the
 Carabiner Connection window by choosing
 `Ableton Link: Carabiner Connection` in the `Network` menu:
 
-image:assets/CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,205]
+image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,205]
 
 This will open the Carabiner Connection window (the set of devices you
 see at the bottom will depend on what is actually on your network):
 
-image:assets/CarabinerWindow.png[Carabiner Connection window,396,447]
+image:CarabinerWindow.png[Carabiner Connection window,396,447]
 
 NOTE: This window will also open whenever you choose `Link` in a
 trigger’s <<Triggers#message-menu,Message Menu>>, or load a trigger
@@ -73,7 +73,7 @@ Pioneer gear, you can increase this value until things sound right.
 Once your port value is correct, you can click the Connect check box
 to establish a connection with Carabiner:
 
-image:assets/CarabinerConnected.png[Carabiner connection established,396,447]
+image:CarabinerConnected.png[Carabiner connection established,396,447]
 
 Once connected, you can no longer adjust the port value, but you can
 tweak the latency at any time while listening to sound from your
@@ -88,7 +88,7 @@ In order to allow triggers to influence the Link session, configure a
 trigger to send to Link by choosing menu:Message[Link] in the trigger
 itself:
 
-image:assets/LinkTrigger.png[Link trigger,844,165]
+image:LinkTrigger.png[Link trigger,844,165]
 
 Triggers that work with Link can align the beat grid with either
 individual beats, or entire bars of four beats (the default). If you
@@ -106,7 +106,7 @@ Once a trigger like this activates, the tempo of its watched player
 will show up as the `Target BPM` within the Carabiner Connection
 window. That is not happening yet, though:
 
-image:assets/CarabinerNotTargeting.png[Carabiner not targeting a tempo,396,447]
+image:CarabinerNotTargeting.png[Carabiner not targeting a tempo,396,447]
 
 Starting with version 0.4.0 of Beat Link Trigger, Carabiner can sync
 without using triggers at all. If you still want to use it in that
@@ -116,7 +116,7 @@ Mode, whenever a Link trigger is active, Beat Link Trigger will
 control the Link session tempo, and will align it to the beat (or bar)
 of the trigger’s watched player:
 
-image:assets/CarabinerMastering.png[Carabiner controlling the tempo,396,447]
+image:CarabinerMastering.png[Carabiner controlling the tempo,396,447]
 
 === Carabiner Status (Triggers Mode)
 
@@ -136,13 +136,13 @@ a filled circle inside the enabled circle:
 |Indicator
 
 |Disabled (Sync Mode `Off`)
-|image:assets/Disabled.png[Disabled,52,52]
+|image:Disabled.png[Disabled,52,52]
 
 |Enabled, No Link Trigger Active
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Enabled, Link Trigger Active
-|image:assets/EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
 
 |===
 
@@ -154,7 +154,7 @@ it. You can do that by choosing menu:Sync Mode[passive] in the
 Carabiner window. As soon as you do that the `Ableton Link` section of
 the window becomes enabled:
 
-image:assets/CarabinerPassive.png[Carabiner in Passive Sync Mode,396,447]
+image:CarabinerPassive.png[Carabiner in Passive Sync Mode,396,447]
 
 This gives you a place to control the things that a trigger would
 normally set for you (whether the Link session is currently being
@@ -163,7 +163,7 @@ four-beat bars). Since it starts out with `Sync` unchecked, when you
 are ready to tie the Link session to the Pioneer beat grid, simply
 check the `Sync` checkbox in the Ableton Link section:
 
-image:assets/CarabinerPassiveSynced.png[Carabiner Synced Passively,396,447]
+image:CarabinerPassiveSynced.png[Carabiner Synced Passively,396,447]
 
 At this point the Link session will follow the master Pioneer player,
 until you change the Carabiner settings.
@@ -202,10 +202,10 @@ an active Sync state:
 |Indicator
 
 |Enabled, Not Synced
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Enabled, Synced
-|image:assets/EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
 
 |===
 
@@ -230,7 +230,7 @@ In order to do this, Beat Link must be using a standard player number,
 so it can fully participate as a Tempo Master. You turn this on by
 checking menu:Network[Use Real Player Number].
 
-image:assets/RealPlayerNumber.png[Using a Real Player Number,400,185]
+image:RealPlayerNumber.png[Using a Real Player Number,400,185]
 ====
 
 Once you successfully activate Full Sync Mode, the entire Ableton Link
@@ -238,7 +238,7 @@ section is enabled, and you can have the Link session become Tempo
 Master for the Pioneer players by clicking the Master radio button in
 that section:
 
-image:assets/CarabinerFullMaster.png[Carabiner Full Sync Master,396,447]
+image:CarabinerFullMaster.png[Carabiner Full Sync Master,396,447]
 
 When Link is tempo master, any Ableton Link enabled software or
 hardware can control the Link session tempo, and any Pioneer players
@@ -265,10 +265,10 @@ its `Master` radio button is chosen.
 |Indicator
 
 |Enabled, Neither Synced nor Master
-|image:assets/Enabled.png[Enabled,52,52]
+|image:Enabled.png[Enabled,52,52]
 
 |Enabled, Synced or Master
-|image:assets/EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
+|image:EnabledPlaying.png[alt=Enabled, Trigger Active,width=52,height=52]
 
 |===
 
