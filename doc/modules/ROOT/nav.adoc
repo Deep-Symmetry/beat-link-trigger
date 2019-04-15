@@ -5,4 +5,6 @@
 * xref:Players.adoc[The Player Status Window]
 * xref:Shows.adoc[Shows]
 * xref:Link.adoc[Working with Ableton Link]
+* xref:Debugging.adoc[Debugging and Sharing]
+* xref:Integration.adoc[Integration Examples]
 * xref:README.adoc#what-next[What Next?]
