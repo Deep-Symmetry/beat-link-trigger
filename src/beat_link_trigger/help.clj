@@ -3,6 +3,7 @@
   troubleshooting assistance."
   (:require [compojure.route :as route]
             [compojure.core :as compojure]
+            [ring.util.response :as response]
             [org.httpkit.server :as server])
   (:import [org.deepsymmetry.beatlink VirtualCdj]))
 
@@ -16,6 +17,7 @@
 
 (compojure/defroutes all-routes
   (compojure/GET "/" [] show-landing-page)
+  (compojure/GET "/guide" [] (response/redirect "/guide/index.html"))
   (route/resources "/guide/" {:root "user_guide"})
   (route/not-found "<p>Page not found.</p>"))
 

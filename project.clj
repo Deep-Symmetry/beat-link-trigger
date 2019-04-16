@@ -26,6 +26,7 @@
                  [uk.co.xfactory-librarians/coremidi4j "1.1"]
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
+                 [ring/ring-core "1.7.1"]
                  [compojure "1.6.1"]
                  [jakarta.xml.bind/jakarta.xml.bind-api "2.3.2"]]  ; via https://stackoverflow.com/questions/43574426/
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
