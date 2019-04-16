@@ -31,55 +31,8 @@ the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 To keep page sizes manageable, this guide is split into several pages.
 It is worth reading through this whole guide once if you are new to
 Beat Link Trigger. Once you know what you are looking for, you can
-also dive right into it by jumping to the page you want:
-
-****
-
-[horizontal]
-<<startup,Startup>>::
-Connect to a network of players or work offline.
-
-<<Triggers#triggers,Triggers>>::
-Watch for specific activity on one or more CDJs, and send things
-like MIDI or OSC messages in response. Recognize tracks and synchronize
-external systems to them using MIDI clock or Ableton Link.
-
-<<Expressions#expressions,Expressions>>::
-Customize and extend Beat Link Trigger by writing code in Clojure,
-the language used to implement the program itself.
-
-<<Matching#matching-tracks,Matching Tracks>>::
-Configure your triggers to respond only when particular tracks are
-being played.
-
-<<Players#the-player-status-window,The Player Status Window>>::
-Get a detailed view of what is happening on each player, what is
-coming up next, and even load and play tracks during pre-show.
-
-<<Shows#shows,Shows>>::
-Watch for beat ranges of specific tracks to be played, and send
-things like MIDI or OSC messages in response.
-
-<<Link#working-with-ableton-link,Working with Ableton Link>>::
-With the help of
-https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Triggers
-can synchronize an Ableton Link session’s tempo, beats, and bars to
-the track playing on their watched player, or you can add Link as its
-own “player” that can become Tempo Master to the CDJs. Even without
-Carabiner, you can <<Link#sync-control,control>> which players are
-Synced, and which is the Tempo Master.
-
-<<Debugging#debugging-and-sharing,Debugging and Sharing>>::
-Tools to help figure out what is going on in your triggers, share
-them between projects or with others, and log playlists.
-
-<<Integration#integration-examples,Integration Examples>>::
-Ways Beat Link Trigger has been used to run shows with other systems.
-
-<<what-next,What Next?>>::
-How to learn more, get help from the community, and support this effort.
-
-****
+also dive right into it by jumping to the page you want using the
+navigation menu on the left.
 
 [[startup]]
 == Startup
