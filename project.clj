@@ -47,30 +47,15 @@
              "Specification-Version" ~#(:version %)
              "Build-Timestamp"       ~(str (java.util.Date.))}
 
-  :plugins [[lein-asciidoctor "0.1.17"]
+  :plugins [[lein-shell "0.5.0"]
             [lein-resource "17.06.1"]
             [com.roomkey/lein-v "7.0.0"]]
 
   :middleware [lein-v.plugin/middleware]
 
-  ;; Enable the creation of an embedded, offline copy of the User Guide.
-  :asciidoctor [{:sources          ["doc/*.adoc"]
-                 :to-dir           "target/classes/user_guide"
-                 :compact          true
-                 :format           :html5
-                 :extract-css      true
-                 :title            "Beat Link Trigger User Guide"
-                 :source-highlight true}]
-
-  ;; Enable the copying of images and other resources linked to by the embedded User Guide.
-  :resource {:resource-paths ["doc/assets"]
-             :target-path    "target/classes/user_guide/assets"
-             :skip-stencil   [#".*"]}
-
   ;; Perform the tasks which embed the user guide before compilation, so it will be available
   ;; both in development, and in the distributed archive.
-  :prep-tasks ["asciidoctor"
-               "resource"
+  :prep-tasks [["shell" "antora" "doc/embedded.yml"]
                "javac"
                "compile"
                ["v" "cache" "resources/beat_link_trigger" "edn"]]

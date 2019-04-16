@@ -53,7 +53,7 @@
   starting the embedded web server if needed."
   []
   (if-let [port (help-server)]
-    (clojure.java.browse/browse-url (str "http://127.0.0.1:" port "/guide/README.html"))))
+    (clojure.java.browse/browse-url (str "http://127.0.0.1:" port "/guide/index.html"))))
 
 (defn- describe-ipv4-addresses
   "Produces a compact summary of the IPv4 addresses (if any) attached to
