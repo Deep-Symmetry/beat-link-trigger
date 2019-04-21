@@ -1,6 +1,7 @@
 /target
 /classes
 /checkouts
+/doc/build
 /resources/beat_link_trigger/version.edn
 pom.xml
 pom.xml.asc

@@ -1,6 +1,6 @@
 site:
   title: Beat Link Trigger User Guide
-  url: http://127.0.0.1:9889/guide
+  url: https://deepsymmetry.org/beatlink/trigger/guide
   start_page: beat-link-trigger::README.adoc
 content:
   sources:
@@ -11,5 +11,3 @@ ui:
   bundle:
     url: https://deepsymmetry.org/media/antora/ui-bundle.zip
     snapshot: true
-output:
-  dir: ./../target/classes/user_guide

@@ -1,8 +1,0 @@
-<svg class="svg-inline--fa fa-times fa-w-11 fa-inverse" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<path fill="#b26610" d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path>
-<g transform="translate(255 256)">
-    <g transform="scale(0.6, 0.6)">
-        <path fill="white" d="M176 432c0 44.112-35.888 80-80 80s-80-35.888-80-80 35.888-80 80-80 80 35.888 80 80zM25.26 25.199l13.6 272C39.499 309.972 50.041 320 62.83 320h66.34c12.789 0 23.331-10.028 23.97-22.801l13.6-272C167.425 11.49 156.496 0 142.77 0H49.23C35.504 0 24.575 11.49 25.26 25.199z" transform="translate(-95 -256)"></path>
-    </g>
-</g>
-</svg>
