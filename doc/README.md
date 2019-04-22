@@ -1,7 +1,8 @@
 # User Guide Module
 
 > :mag_right: If you are looking for the online user guide, it has
-> [moved] off of GitHub to become easier to read and navigate.
+> [moved](https://deepsymmetry.org/beatlink/trigger/guide/) off of
+> GitHub to become easier to read and navigate.
 
 Beat Link Trigger now uses [Antora](https://antora.org) to build its
 User Guide. This folder hosts the documentation module and playbooks
