@@ -11,8 +11,9 @@ hosted on the Deep Symmetry web site.
 
 The Leiningen project in the root of this repository automatically
 invokes Antora to build the embedded version as an early build step.
-The online version is built manually by running the following commands
-from the project root:
+The online version, which will grow to support multiple released
+versions of Beat Link Trigger, is built manually by running the
+following commands from the project root:
 
     antora --fetch doc/ds.yml
     rsync -avz doc/build/site/ slice:/var/www/ds/beatlink/trigger/guide
