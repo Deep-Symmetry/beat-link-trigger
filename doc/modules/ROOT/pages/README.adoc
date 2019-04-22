@@ -85,6 +85,7 @@ lost contact with the players, taking Beat Link Trigger offline and
 then going back online can often solve the problem.
 ====
 
+[[checking-player-number]]
 === Checking your Player Number
 
 Once you have successfully taken Beat Link Trigger online, you can
