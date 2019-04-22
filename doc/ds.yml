@@ -5,7 +5,7 @@ site:
 content:
   sources:
   - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
-    branches: migrate-to-antora
+    branches: master
     tags: va*
     start_path: doc
 ui:
