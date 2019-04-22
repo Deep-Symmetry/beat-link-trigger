@@ -2,7 +2,7 @@
 
 [![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
  <img align="right" width="275" height="250" alt="Beat Link"
-      src="doc/assets/BeatLink-logo-padded-left.png">
+      src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
 An application to trigger MIDI events when CDJs start playing tracks,
 reach particular beats, or whatever else you can think of. Built
@@ -29,25 +29,26 @@ A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
 stop, and when the triggers are enabled:
 
-<img src="doc/assets/TriggerWindow.png" alt="Trigger window" width="793" height="637">
+<img src="doc/modules/ROOT/assets/images/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
-There is also an [interface](doc/Players.adoc#the-player-status-window) for
-monitoring the status of each player found on the network, which you
-can access by choosing `Show Player Status` in the `Network` menu:
+There is also an
+[interface](https://deepsymmetry.org/beatlink/trigger/guide/beat-link-trigger/Players.html)
+for monitoring the status of each player found on the network, which
+you can access by choosing `Show Player Status` in the `Network` menu:
 
-<img src="doc/assets/PlayerStatus.png" alt="Player Status window" width="599" height="842">
+<img src="doc/modules/ROOT/assets/images/PlayerStatus.png" alt="Player Status window" width="599" height="842">
 
 And starting with version 0.5.0, there is a [Show
-interface](doc/Shows.adoc#shows) with which you can paint cues on
-track beat grids, to automate away the complexities of manually
-managing triggers.
+interface](https://deepsymmetry.org/beatlink/trigger/guide/beat-link-trigger/Shows.html)
+with which you can paint cues on track beat grids, to automate away
+the complexities of manually managing triggers.
 
-<img src="doc/assets/SecondCue.png" alt="Show interface snippet" width="791" height="389">
+<img src="doc/modules/ROOT/assets/images/SecondCue.png" alt="Show interface snippet" width="791" height="389">
 
 ### Going Further
 
 **This page is just a quick introduction!** Please see the the full
-[:notebook: user guide](doc/README.adoc#beat-link-trigger-user-guide)
+[:notebook: user guide](https://deepsymmetry.org/beatlink/trigger/guide/)
 for many more details, including:
 
 * How to configure Triggers
@@ -177,7 +178,7 @@ so you don&rsquo;t need to worry about installing or managing Java if you
 don&rsquo;t use it for other purposes. It is code-signed by Deep Symmetry,
 so your Mac should be happy to install and run it without complaint.
 
-<img src="doc/assets/DMG-Installer.png" width="640" height="435"
+<img src="doc/modules/ROOT/assets/images/DMG-Installer.png" width="640" height="435"
      alt="Installer window">
 
 If you already have your own Java runtime installed and want to use
@@ -186,7 +187,7 @@ then the first time you try to launch the downloaded
 jar file by double-clicking it you will see an error like this because
 it is not a Mac-specific application:
 
-<img src="doc/assets/Unsigned.png" alt="Unsigned jar" width="492" height="299">
+<img src="doc/modules/ROOT/assets/images/Unsigned.png" alt="Unsigned jar" width="492" height="299">
 
 You can fix that by control-clicking on the Jar and choosing
 &ldquo;Open&rdquo; at the top of the contextual menu that pops up. You
@@ -194,7 +195,7 @@ will be asked to confirm that you really want to run it. Click the
 &ldquo;Open&rdquo; button in that confirmation dialog, and from then
 on, you will be able to run that copy by just double-clicking it.
 
-<img src="doc/assets/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
+<img src="doc/modules/ROOT/assets/images/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
 > You will need to repeat this process for each version that you
 > download.
@@ -202,7 +203,7 @@ on, you will be able to run that copy by just double-clicking it.
 ## Licenses
 
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
- src="doc/assets/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
+ src="doc/modules/ROOT/assets/images/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
 
 Copyright © 2016&ndash;2019 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
