@@ -4,8 +4,9 @@ site:
   start_page: beat-link-trigger::README.adoc
 content:
   sources:
-  - url: ./..
-    branches: HEAD
+  - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
+    branches: migrate-to-antora
+    tags: va*
     start_path: doc
 ui:
   bundle:
