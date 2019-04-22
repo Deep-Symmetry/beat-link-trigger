@@ -6,7 +6,7 @@ used to build it. `embedded.yml` is used to create the self-hosted
 version which is served out of Beat Link Trigger itself, so it can be
 used even without an Internet connection, and `ds.yml` is used to
 build the [online
-version]((https://deepsymmetry.org/beatlink/trigger/guide/)) that is
+version](https://deepsymmetry.org/beatlink/trigger/guide/) that is
 hosted on the Deep Symmetry web site.
 
 The Leiningen project in the root of this repository automatically
