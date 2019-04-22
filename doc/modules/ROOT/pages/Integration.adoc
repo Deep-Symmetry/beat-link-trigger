@@ -35,6 +35,7 @@ other systems. This section builds on the concepts introduced there,
 to demonstrate useful and practical integrations with systems we (or
 our early adopters) use regularly.
 
+[[pangolin-beyond-advanced]]
 == Pangolin BEYOND Advanced
 
 http://pangolin.com/shop/lasershow-designer-beyond-advanced/#tab-description[Pangolin
@@ -357,6 +358,7 @@ tracks that you want them to. And again, this barely scratches the
 surface of MIDI mapping in BEYOND; see the BEYOND documentation and
 Pangolin forums for more information about that.
 
+[[chauvet-showxpress]]
 == Chauvet ShowXpress Live (SweetLight, QuickDMX)
 
 https://github.com/PouleR[PouleR] pointed out that
@@ -562,6 +564,7 @@ like this, which would tell it to set fader number 2 to position 0:
 (send-live-command "FADER_CHANGE|2|0")
 ```
 
+[[grandma2]]
 == MA Lighting grandMA2
 
 http://lxhues.com[Alex Hughes] inquired if it would be possible to use
@@ -719,6 +722,7 @@ will want to go back and read this entire user guide to get a better
 understanding of how to make your triggers activate, and the other
 things you can do with Beat Link Trigger.
 
+[[smpte-linear]]
 == SMPTE Linear Timecode
 
 Many people want to create SMPTE timecode audio streams that are

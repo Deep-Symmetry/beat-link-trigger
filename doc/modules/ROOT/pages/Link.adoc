@@ -82,6 +82,7 @@ Pioneer gear and Link-enabled software or hardware.
 The current tempo of the Link session is shown, as well as the number
 of other Link-enabled programs (Link Peers) visible on the network.
 
+[[syncing-triggers]]
 == Syncing with Triggers
 
 In order to allow triggers to influence the Link session, configure a
@@ -146,6 +147,7 @@ a filled circle inside the enabled circle:
 
 |===
 
+[[passive-sync]]
 == Passive Sync Mode
 
 Sometimes you simply want to tie the Ableton Link session to whatever
@@ -218,6 +220,7 @@ is why the `Master` radio button in the Ableton Link session remains
 disabled. To enable that, you need to take the Sync Mode all the way
 up to `Full`, which is our next topic.
 
+[[full-sync]]
 == Full Sync Mode
 
 If you want the Ableton Link session to be a full participant on the
@@ -276,7 +279,7 @@ You can also put any player in Sync mode, or assign it as the Tempo
 Master, which is the topic of the next section.
 
 [[sync-control]]
-== Sync Control
+== Player Sync Control
 
 The bottom section of the window lets you see and control which
 players are in Sync mode, and which is the Tempo Master.

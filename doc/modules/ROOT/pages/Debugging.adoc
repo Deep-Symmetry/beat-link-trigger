@@ -93,6 +93,7 @@ Suddenly your logs will be growing steadily, filling with lines like these:
   track BPM: 126.0, effective BPM: 126.0, beat within bar: 1 master? false
 ```
 
+[[reporting-issues]]
 === Reporting Issues
 
 If you run into trouble and it seems likely the problem is in Beat
@@ -148,6 +149,7 @@ client object created in that example’s trigger:
 
 image:ExpressionLocals.png[Expression Locals,789,626]
 
+[[saving-and-loading]]
 == Saving and Loading
 
 The entire trigger configuration can be saved to a text file by
@@ -171,11 +173,12 @@ image:Save.png[Save option,314,210]
 
 ====
 
+[[exporting-and-importing]]
 === Exporting and Importing Triggers
 
-As mentioned in the <<Triggers#context-menu,Context Menu>> section,
-individual triggers can be exported on their own, and imported into
-other trigger configurations.
+As mentioned in the <<Triggers#context-menu,Triggers Context Menu>>
+section, individual triggers can be exported on their own, and
+imported into other trigger configurations.
 
 [[writing-playlists]]
 == Writing Playlists

@@ -63,6 +63,7 @@ when Beat Link Trigger is operating in Offline mode, and the ones that
 don’t make sense are simply hidden from view. This supports a flexible
 and convenient workflow.
 
+[[creating]]
 == Creating a Show
 
 To use the Show interface, you start by choosing menu:File[New Show]
@@ -225,6 +226,7 @@ currently playing it.
 
 image:ShowTrack.png[A Track row,900,165]
 
+[[track-comment]]
 === Comment Field
 
 The comment field starts out holding whatever comment the DJ entered
@@ -232,6 +234,7 @@ about the track in rekordbox, but you are free to edit it however you
 like, to help you remember things about the track or to make it easy
 to find using the `Filter` field.
 
+[[track-preview]]
 === Waveform Preview
 
 The waveform preview section shows the overall intensity and dominant
@@ -255,6 +258,7 @@ any Cues or Expressions added to the Track, and hollow otherwise. The
 contents of the menu itself are described
 <<Shows#track-context-menu,below>>.
 
+[[track-midi-output]]
 === MIDI Output Menu
 
 The menu:MIDI Output[] Menu lets you choose the MIDI device to which
@@ -274,6 +278,7 @@ that Track’s menu, but the Enabled section of the Track will be
 replaced with the message “Not found.” Once the output reappears, or a
 different output is chosen, the Track will become operational again.
 
+[[loaded-status]]
 === Loaded Status
 
 To the right of the MIDI Output menu there is a Loaded Status
@@ -308,6 +313,7 @@ Link, which allows them to be efficiently detected and indexed within
 the Show, and means that even if you have a variety of remixes of the
 same track, they should all be recognized correctly.
 
+[[loaded-message]]
 === Loaded Message Menu
 
 The menu:Loaded Message[] Menu determines what kind of MIDI message is
@@ -370,6 +376,7 @@ want to use it.
 As described above, this lets you specify the MIDI channel on which
 loaded/unloaded messages are sent for this Track.
 
+[[playing-status]]
 === Playing Status
 
 To the right of the Loaded Message section there is a Playing Status
@@ -398,6 +405,7 @@ indicator ring:
 
 |===
 
+[[playing-message]]
 === Playing Message Menu
 
 The menu:Playing Message[] Menu determines what kind of MIDI message is
@@ -613,8 +621,10 @@ the chosen beats:
 
 image:FirstCue.png[First cue added,912,461]
 
+[[cue-row-elements]]
 == Cue Row Elements
 
+[[start-end-spinners]]
 === Start and End Spinners
 
 You can see and adjust the beats on which the Cue starts and ends
@@ -625,6 +635,7 @@ the edges of the cue in the waveform, which also works.
 The End must always be at least one beat past the Start, and neither
 can extend outside the beat grid of the Track.
 
+[[cue-name]]
 === Cue Name
 
 To help understand the purpose of the cue, you can give it a name. The
@@ -639,6 +650,7 @@ pointer over the cue in the waveform:
 
 image:CueNamed.png[Cue named,790,278]
 
+[[cue-hue]]
 === Cue Hue
 
 Cues are assigned distinct hues when they are created to help you tell
@@ -706,6 +718,7 @@ ring:
 
 |===
 
+[[entered-message]]
 === Entered Message Menu
 
 The menu:Entered Message[] Menu determines what kind of MIDI message
@@ -800,6 +813,7 @@ the enabled indicator ring:
 
 |===
 
+[[started-on-beat-menu]]
 === Started On-Beat Message Menu
 
 The menu:Started On-Beat Message[] Menu determines what kind of MIDI
@@ -864,6 +878,7 @@ your Cue expressions if they want to use it.
 As described above, this lets you specify the MIDI channel on which
 started on-beat/ended messages are sent for this Cue.
 
+[[started-late-menu]]
 === Started Late Message Menu
 
 The menu:Started Late Message[] Menu determines what kind of MIDI

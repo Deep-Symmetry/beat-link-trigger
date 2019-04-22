@@ -115,9 +115,12 @@ which may require you to turn off one of the other players.
 [[what-next]]
 == What Next?
 
-Hopefully this has been enough to get you started, and thinking about
-interesting ways you can synchronize your CDJs with other elements of
-your show.
+Hopefully this guide has been enough to get you started, and thinking
+about interesting ways you can synchronize your CDJs with other
+elements of your show. (If you have not yet read the other pages in
+the guide, please do so, either using the “Learning More” links in
+each page—like the one right above—or by exploring the navigation menu
+on the left.)
 
 If you have any thoughts, questions, your own integration examples, or
 even crazy ideas, please share them in the

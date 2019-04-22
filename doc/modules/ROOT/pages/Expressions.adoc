@@ -261,6 +261,7 @@ need to remove the key/value pairs themselves from the `globals` atom
 because Beat Link Trigger will reset it to hold an empty map once the
 shutdown expression finishes.
 
+[[trigger-expressions]]
 == Trigger Expressions
 
 Each trigger has its own set of expressions which can be accessed from
