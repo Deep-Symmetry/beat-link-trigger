@@ -227,6 +227,22 @@
               (.adjustPlaybackPosition virtual-cdj ms-delta)))))
       (timbre/warn "Ignoring phase-at-time response for time" (:when info) "since was expecting" ableton-now))))
 
+(defn- handle-version
+  "Processes the response to a recognized version command. Warns if
+  Carabiner should be upgraded."
+  [version]
+  (timbre/info "Connected to Carabiner daemon, version:" version)
+  (when (= version "1.1.0")
+    (future
+      (seesaw/invoke-later
+       (javax.swing.JOptionPane/showMessageDialog
+        @carabiner-window
+        "You are running an old version of Carabiner, which cannot
+properly handle long timestamps. You should upgrade to at least
+version 1.1.1, or you might experience synchronization glitches."
+        "Carabiner Upgrade Recommended"
+        javax.swing.JOptionPane/WARNING_MESSAGE)))))
+
 (defn- handle-unsupported
   "Processes an unsupported command reponse from Carabiner. If it is to
   our version query, warn the user that they should upgrade Carabiner."
@@ -237,10 +253,11 @@
        (javax.swing.JOptionPane/showMessageDialog
         @carabiner-window
         "You are running an old version of Carabiner, which might lose messages.
-You should upgrade to at least version 1.1.0, which can cope with
+You should upgrade to at least version 1.1.1, which can cope with
 multiple commands being grouped in the same network packet (this
-happens when they are sent near the same time). Otherwise you might
-experience synchronization glitches."
+happens when they are sent near the same time), and can properly parse
+long timestamp values. Otherwise you might experience synchronization
+glitches."
         "Carabiner Upgrade Recommended"
         javax.swing.JOptionPane/WARNING_MESSAGE)))
     (timbre/error "Carabiner complained about not recognizing our command:" command)))
@@ -264,7 +281,7 @@ experience synchronization glitches."
                     status        (handle-status (clojure.edn/read reader))
                     beat-at-time  (handle-beat-at-time (clojure.edn/read reader))
                     phase-at-time (handle-phase-at-time (clojure.edn/read reader))
-                    version       (timbre/info "Connected to Carabiner daemon, version:" (clojure.edn/read reader))
+                    version       (handle-version (clojure.edn/read reader))
                     unsupported   (handle-unsupported (clojure.edn/read reader))
                     (timbre/error "Unrecognized message from Carabiner:" message))
                   (let [next-cmd (clojure.edn/read {:eof ::eof} reader)]

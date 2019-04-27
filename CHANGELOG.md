@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- A warning when you are running a version of Carabiner older than
+  1.1.1, which fixes the parsing of timestamp values sent by Beat Link
+  Trigger.
 
 ## [0.5.2] - 2019-03-10
 
