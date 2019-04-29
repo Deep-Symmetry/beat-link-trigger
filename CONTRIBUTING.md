@@ -15,13 +15,27 @@ By participating, you are expected to uphold this code.
 ## Getting started
 
 Before you can start contributing to Beat Link Trigger, you'll need to
-set up your environment first. Fork and clone the repo and install
+set up your environment. Fork and clone the repo and install
 [Clojure][clojure] (for compiling and running the code) and
 [Leiningen](https://leiningen.org) (to manage the project dependencies
-and builds). Both of these rely on having a working Java runtime;
-if the mechanism you used to install them did not automatically
-include one, I recommend installing a current version of the
+and builds). Both of these rely on having a working Java runtime; if
+the mechanism you used to install them did not automatically include
+one, I recommend installing a current version of the
 [OpenJDK](http://openjdk.java.net).
+
+> Starting with version 0.5.3, you also need to have
+> [Antora](https://antora.org) installed because it is used to build the
+> embedded copy of the User Guide when building and running from source.
+> If you are impatient to get started without doing that, you can
+> temporarily comment out the section of `project.clj` that does this.
+> Add a semicolon to the `:prep-tasks` line so that it looks like this:
+>
+>  `  :prep-tasks [ ; ["shell" "antora" "doc/embedded.yml"]`
+>
+> But keep in mind that if you do this, the built-in user guide will
+> not work, and you will not be able to create a release-worthy build
+> until you install Antora and restore the line to its un-commented
+> state.
 
 Once you have those in place, you can run BLT from source by opening a
 terminal window inside your clone of the project, and typing `lein
