@@ -185,10 +185,76 @@ share across expressions.
 [global-setup-expression]
 === Global Setup Expression
 
-This is run when Beat Link Trigger starts
-up, or when you open a new Trigger file, so it runs before any of your
-individual trigger expressions. Here is a fairly sophisticated example that
-creates a
+This is run when Beat Link Trigger starts up, or when you open a new
+Trigger file, so it runs before any of your individual trigger
+expressions. As a simple example of what you might want to do, here is
+an expression opens the Player Status window:
+
+[source,clojure,subs=attributes+]
+----
+(beat-link-trigger.triggers/show-player-status)
+----
+
+Setting this as your Global Setup Expression will automatically open
+the Player Status window whenever Beat Link Trigger launches. (This
+also makes sure subsystems like the `TimeFinder` are running, which
+can be helpful if you are writing other expressions that depend on
+knowing the playback position of tracks.)
+
+If you ever start up BLT in offline mode with this Global Setup
+Expression in place, however, you will be presented with an error
+dialog, complaining "`Must be Online to show Player Status window.`"
+To avoid being inconvenienced by that, we can make the expression
+smarter, so it only tries to open Player Status when already Online:
+
+[source,clojure,subs=attributes+]
+----
+(when (.isRunning (VirtualCdj/getInstance))  {conum-guard-clojure} <1>
+  (beat-link-trigger.triggers/show-player-status))  {conum-guard-clojure} <2>
+----
+
+<1> A `when` clause in Clojure only executes its body if a test
+expression returns a true value. In this case we ask the Beat Link
+`VirtualCdj` object if it is running, which is only true when Beat
+Link Trigger is online.
+
+<2> This means the expression body, which is the same as our first
+attempt at opening Player Status, is only run when it is safe to do
+so.
+
+Another example came up in the
+https://gitter.im/brunchboy/beat-link-trigger[community chat room],
+from a user who wanted to set up a turn-key lighting system that
+automatically started Beat Link Trigger and Carabiner. If you are in a
+situation like that, and can be sure that Carabiner has already been
+started by the time Beat Link Triger launches, you can set up a Global
+Setup Expression to automatically open the Carabiner window and
+connect to it:
+
+[source,clojure,subs=attributes+]
+----
+(future  {conum-guard-clojure} <1>
+  (Thread/sleep 2000)  {conum-guard-clojure} <2>
+  (seesaw.core/invoke-later  {conum-guard-clojure} <3>
+    (beat-link-trigger.carabiner/show-window nil)  {conum-guard-clojure} <4>
+    (beat-link-trigger.carabiner/connect)))  {conum-guard-clojure} <5>
+----
+
+<1> This runs the rest of the expression on a background thread, so it
+can take its time while the rest of Beat Link Trigger's startup
+process continues.
+
+<2> Pauses the expression for two seconds, to make sure BLT is ready
+to connect to Carabiner.
+
+<3> Rejoins the main User Interface thread, which is necessary to do
+things like creating windows.
+
+<4> Opens the Carabiner window.
+
+<5> Tries to connect to the Carabiner daemon.
+
+Finally, here is an even more sophisticated example that creates a
 https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
 for sending a remote trigger command to the ChamSys MagicQ lighting
 control software using its
