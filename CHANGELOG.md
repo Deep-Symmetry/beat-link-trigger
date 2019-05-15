@@ -6,6 +6,18 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- Stop occasionally stuttering show cues at end. Thanks to
+  [Minnesota](https://www.minnmusic.com/) for noticing and helping pin
+  down this problem: It turns out that if CDJs send a status packet
+  shortly enough after a beat packet, they don't always update the
+  beat number in that status packet, even though they have updated the
+  beat-within-bar number. This was causing BLT to think the cue had
+  been re-entered after the beat packet exited it, until the next
+  status packet with the correct beat number arrived.
+
+
 ### Added
 
 - A warning when you are running a version of Carabiner older than

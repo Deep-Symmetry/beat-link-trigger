@@ -709,6 +709,10 @@
   expression in the cue, and `status-or-beat` is the protocol message,
   if any, which caused the state change, if any."
   [track cue event status-or-beat]
+  #_(timbre/info "sending cue messages" event (.getTimestamp status-or-beat)
+               (if (instance? Beat status-or-beat)
+                 (str "Beat " (.getBeatWithinBar status-or-beat) "/4")
+                 (str "Status " (.getBeatNumber status-or-beat))))
   (when-let [cue (find-cue track cue)]
     (try
       (let [base-event                     ({:entered         :entered
@@ -2179,6 +2183,27 @@
           (when (get-in track [:contents :cues :entered-only])
             (seesaw/invoke-later (update-cue-visibility track))))))))
 
+(def min-beat-distance
+  "The number of nanoseconds that must have elapsed since the last
+  beat packet was received before we can trust the beat number in a
+  status packet."
+  (.toNanos java.util.concurrent.TimeUnit/MILLISECONDS 5))
+
+(defn- update-cue-state-if-past-beat
+  "Checks if it has been long enough after a beat packet was received to
+  update the cues' entered state based on a status-packet's beat number.
+  This check needs to be made because we have seen status packets that
+  players send within a few milliseconds after a beat sometimes still
+  contain the old beat number, even though they have updated their
+  beat-within-bar number. So this function leaves the show's cue state
+  unchanged if a beat happened too recently."
+  [show track player status]
+  (let [last-beat (get-in show [:last-beat player])]
+    (if (or (not last-beat)
+            (> (- (.getTimestamp status) last-beat) min-beat-distance))
+      (update-cue-entered-state show track player (.getBeatNumber status))
+      show)))
+
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
   a player that has it loaded. `track` may be `nil` if the track is
@@ -2195,7 +2220,7 @@
                                     (assoc-in [:on-air player] (when (.isOnAir status) signature))
                                     (assoc-in [:master player] (when (.isTempoMaster status) signature))
                                     (update-track-trip-state track)
-                                    (update-cue-entered-state track player (.getBeatNumber status)))))
+                                    (update-cue-state-if-past-beat track player status))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show signature track player status)))
@@ -2228,6 +2253,7 @@
                                 (-> show
                                     capture-current-state
                                     (assoc-in [:playing player] signature) ; In case beat arrives before playing status.
+                                    (assoc-in [:last-beat player] (.getTimestamp beat))
                                     (update-track-trip-state track)
                                     (update-cue-entered-state track player (.beatNumber position)))))
         show      (get shows (:file show))
