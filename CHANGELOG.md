@@ -24,6 +24,11 @@ This change log follows the conventions of
   1.1.1, which fixes the parsing of timestamp values sent by Beat Link
   Trigger.
 
+### Changed
+
+- The User Guide is now created using [Antora](https://antora.org),
+  which produces much nicer output and formatting.
+
 ## [0.5.2] - 2019-03-10
 
 ### Fixed
