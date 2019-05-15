@@ -50,7 +50,7 @@
 
   :plugins [[lein-shell "0.5.0"]
             [lein-resource "17.06.1"]
-            [com.roomkey/lein-v "7.0.0"]]
+            [com.roomkey/lein-v "7.1.0"]]
 
   :middleware [lein-v.plugin/middleware]
 
