@@ -393,3 +393,52 @@
              (clojure.set/union result vs))
            #{}
            (take-while (fn [[[start]]] (< (or start (dec to)) to)) (matching-subsequence interval-map from nil)))))
+
+(def ^:private packet-header
+  "The byte sequence that begins any device update packet."
+  (byte-array 10 (map byte [0x51 0x73 0x70 0x74 0x31 0x57 0x6d 0x4a 0x4f 0x4c])))
+
+(defn- create-device-update-packet
+  "Used in creating simulated device update objects, sets up the fields
+  which are present in any such packet, then creates the datagram
+  packet that can be used to instantiate the Beat Link wrapper.
+  `buffer` is a byte array of the correct size for the object to be
+  created which has already had the object-specific fields
+  initialized."
+  [buffer options]
+  (let [{:keys [address device-name device-number port]
+         :or   {address       (java.net.InetAddress/getLocalHost)
+                device-name   "Simulator"
+                device-number 1
+                port          50001}} options]
+    (System/arraycopy packet-header 0 buffer 0 (count packet-header))
+    (doseq [[i b] (take 20 (map-indexed (fn [i c] [(+ i 0x0b) (byte c)]) device-name))]
+      (aset buffer i b))
+    (aset buffer 0x1f (byte 1))
+    (aset buffer 0x21 (byte device-number))
+    (org.deepsymmetry.beatlink.Util/numberToBytes (- (count buffer) 0x24) buffer 0x22 2)
+    (java.net.DatagramPacket. buffer (count buffer) address port)))
+
+(defn simulate-beat
+  "Create a Beat object for simulating triggers."
+  ([]
+   (simulate-beat {}))
+  ([options]
+   (let [buffer (byte-array 96)
+         {:keys [pitch bpm beat device-number]
+          :or   {pitch         1048576
+                 bpm           12800
+                 beat          1
+                 device-number 1}}              options]
+     (org.deepsymmetry.beatlink.Util/numberToBytes pitch buffer 85 3)
+     (org.deepsymmetry.beatlink.Util/numberToBytes bpm buffer 90 2)
+     (aset buffer 0x5c (byte beat))
+     (aset buffer 0x5f (byte device-number))
+     (org.deepsymmetry.beatlink.Beat. (create-device-update-packet buffer options)))))
+
+(defn simulate-player-status
+  "Create a CdjStatus object"
+  ([]
+   (simulate-player-status {}))
+  ([options]
+   (let [buffer (byte-array 0xcc)])))
