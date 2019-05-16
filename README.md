@@ -32,14 +32,14 @@ stop, and when the triggers are enabled:
 <img src="doc/modules/ROOT/assets/images/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
 There is also an
-[interface](https://deepsymmetry.org/beatlink/trigger/guide/beat-link-trigger/Players.html)
+[interface](https://blt-guide.deepsymmetry.org/beat-link-trigger/Players.html)
 for monitoring the status of each player found on the network, which
 you can access by choosing `Show Player Status` in the `Network` menu:
 
 <img src="doc/modules/ROOT/assets/images/PlayerStatus.png" alt="Player Status window" width="599" height="842">
 
 And starting with version 0.5.0, there is a [Show
-interface](https://deepsymmetry.org/beatlink/trigger/guide/beat-link-trigger/Shows.html)
+interface](https://blt-guide.deepsymmetry.org/beat-link-trigger/Shows.html)
 with which you can paint cues on track beat grids, to automate away
 the complexities of manually managing triggers.
 
@@ -48,7 +48,7 @@ the complexities of manually managing triggers.
 ### Going Further
 
 **This page is just a quick introduction!** Please see the the full
-[:notebook: user guide](https://deepsymmetry.org/beatlink/trigger/guide/)
+[:notebook: user guide](https://blt-guide.deepsymmetry.org/)
 for many more details, including:
 
 * How to configure Triggers
