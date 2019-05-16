@@ -583,6 +583,12 @@
                  :name "Inspect Expression Locals"
                  :tip "Examine any values set as Track locals by its Expressions."))
 
+(defn- cue-missing-expression?
+  "Checks whether the expression body of the specified kind is empty for
+  the specified cue."
+  [track cue kind]
+  (clojure.string/blank? (get-in (find-cue track cue) [:expressions kind])))
+
 (defn- cue-editor-actions
   "Creates the popup menu actions corresponding to the available
   expression editors for a given cue."
@@ -592,9 +598,114 @@
       (seesaw/action :handler (fn [e] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
-                     :icon (if (clojure.string/blank? (get-in (find-cue track cue) [:expressions kind]))
+                     :icon (if (cue-missing-expression? track cue kind)
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
+
+(defn- random-beat
+  "Creates a beat object with random attributes for simulating
+  expression calls."
+  []
+  (util/simulate-beat {:beat          (inc (rand-int 4))
+                       :device-number (inc (rand-int 4))
+                       :bpm           (+ 4000 (rand-int 12000))}))
+
+(defn- random-cdj-status
+  "Creates a CDJ status object with random attributes for simulating
+  expression calls. If provided, the supplied options are used to
+  further configure the object."
+  ([]
+   (random-cdj-status {}))
+  ([options]
+   (util/simulate-player-status (merge {:bb            (inc (rand-int 4))
+                                        :beat          (rand-int 2000)
+                                        :device-number (inc (rand-int 4))
+                                        :bpm           (+ 4000 (rand-int 12000))}
+                                       options))))
+
+(defn- random-beat-or-status
+  "Creates either a beat or CDJ status object with random attributes for
+  simulating expression calls. If provided, the supplied options are used to
+  further configure the CDJ status object when one is being created."
+  ([]
+   (random-beat-or-status {}))
+  ([options]
+   (if (zero? (rand-int 2))
+     (random-beat)
+     (random-cdj-status options))))
+
+(defn- random-beat-and-position
+  "Creates random, mutually consistent beat and track position update
+  objects for simulating expression calls, using the track beat grid."
+  [track]
+  (let [^BeatGrid grid (:grid track)
+        beat           (inc (rand-int (.beatCount grid)))
+        time           (.getTimeWithinTrack grid beat)]
+    [(util/simulate-beat {:beat          (.getBeatWithinBar grid beat)
+                          :device-number (inc (rand-int 4))
+                          :bpm           (+ 4000 (rand-int 12000))})
+     (org.deepsymmetry.beatlink.data.TrackPositionUpdate. (System/nanoTime) time beat true true 1.0 false grid)]))
+
+(declare send-cue-messages)
+
+(defn- event-enabled?
+  "Checks whether the specified event type is enabled for the given
+  cue (its message is something other than None, and if Custom, there
+  is a non-empty expression body)."
+  [track cue event]
+  (let [cue     (find-cue track cue)
+        message (get-in cue [:events event :message])]
+    (cond
+      (= "None" message)
+      false
+
+      (= "Custom" message)
+      (not (cue-missing-expression? track cue event))
+
+      (= "Same" message) ; Must be a :started-late event
+      (event-enabled? track cue :started-on-beat)
+
+      :else ; Is a MIDI note or CC
+      true)))
+
+(defn- cue-simulate-actions
+  "Creates the actions that simulate events happening to the cue, for
+  testing expressions or creating and testing MIDI mappings in other
+  software."
+  [track cue]
+  [(seesaw/action :name "Entered"
+                  :enabled? (event-enabled? track cue :entered)
+                  :handler (fn [_] (send-cue-messages (latest-track track) cue :entered (random-beat-or-status))))
+   (seesaw/action :name "Started On-Beat"
+                  :enabled? (event-enabled? track cue :started-on-beat)
+                  :handler (fn [_] (send-cue-messages (latest-track track) cue :started-on-beat
+                                                      (random-beat-and-position track))))
+   (seesaw/action :name "Started Late"
+                  :enabled? (event-enabled? track cue :started-late)
+                  :handler (fn [_] (send-cue-messages (latest-track track) cue :started-late (random-cdj-status))))
+   (seesaw/action :name "Beat"
+                  :enabled? (not (cue-missing-expression? track cue :beat))
+                  :handler (fn [_] (run-cue-function track cue :beat (random-beat-and-position track) true)))
+   (seesaw/action :name "Tracked Update"
+                  :enabled? (not (cue-missing-expression? track cue :tracked))
+                  :handler (fn [_] (run-cue-function track cue :tracked (random-cdj-status) true)))
+   (let [enabled-events (filterv (partial event-enabled? track cue) [:started-on-beat :started-late])]
+     (seesaw/action :name "Ended"
+                    :enabled? (seq enabled-events)
+                    :handler (fn [_]
+                               (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event]
+                                            (rand-nth enabled-events))
+                               (send-cue-messages (latest-track track) cue :ended (random-beat-or-status)))))
+   (seesaw/action :name "Exited"
+                  :enabled? (event-enabled? track cue :entered)
+                  :handler (fn [_] (send-cue-messages (latest-track track) cue :exited (random-beat-or-status))))])
+
+(defn- cue-simulate-menu
+  "Creates the submenu containing actions that simulate events happening
+  to the cue, for testing expressions or creating and testing MIDI
+  mappings in other software."
+  [track cue]
+  (seesaw/menu :text "Simulate" :items (cue-simulate-actions track cue)))
 
 (defn- assign-cue-hue
   [track]
@@ -1151,8 +1262,8 @@
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
         popup-fn (fn [e] (concat (cue-editor-actions track cue panel gear)
-                                 [(seesaw/separator) (track-inspect-action track) (seesaw/separator)
-                                  (scroll-wave-to-cue-action track cue) (seesaw/separator)
+                                 [(seesaw/separator) (cue-simulate-menu track cue) (track-inspect-action track)
+                                  (seesaw/separator) (scroll-wave-to-cue-action track cue) (seesaw/separator)
                                   (duplicate-cue-action track cue) (library-cue-action track cue panel)
                                   (delete-cue-action track cue panel)]))]
 

@@ -23,6 +23,10 @@ This change log follows the conventions of
 - A new default option for show cues' Started Late Message menu,
   "Same", which means to send the same message as if the cue had
   started on its first beat.
+- A new "Simulate" submenu in the Cue context menu which allows you to
+  pretend that an event has occured so you can set up and test MIDI
+  mappings in other software (or your custom expressions code), even
+  when you are offline and don't have a CDJ available.
 - A warning when you are running a version of Carabiner older than
   1.1.1, which fixes the parsing of timestamp values sent by Beat Link
   Trigger.

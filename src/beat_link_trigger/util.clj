@@ -429,7 +429,7 @@
           :or   {pitch         1048576
                  bpm           12800
                  beat          1
-                 device-number 1}}              options]
+                 device-number 1}} options]
      (org.deepsymmetry.beatlink.Util/numberToBytes pitch buffer 85 3)
      (org.deepsymmetry.beatlink.Util/numberToBytes bpm buffer 90 2)
      (aset buffer 0x5c (byte beat))
@@ -441,4 +441,12 @@
   ([]
    (simulate-player-status {}))
   ([options]
-   (let [buffer (byte-array 0xcc)])))
+   (let [buffer (byte-array 0xcc)
+         {:keys [pitch bpm bb beat device-number]
+          :or   {pitch         1048576
+                 bpm           12800
+                 bb            1
+                 beat          42
+                 device-number 1}} options]
+     ;; TODO: Flesh out packet with requested options, add new ones for play state, track, etc.
+     (org.deepsymmetry.beatlink.CdjStatus. (create-device-update-packet buffer options)))))
