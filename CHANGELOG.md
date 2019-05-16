@@ -20,6 +20,9 @@ This change log follows the conventions of
 
 ### Added
 
+- A new default option for show cues' Started Late Message menu,
+  "Same", which means to send the same message as if the cue had
+  started on its first beat.
 - A warning when you are running a version of Carabiner older than
   1.1.1, which fixes the parsing of timestamp values sent by Beat Link
   Trigger.

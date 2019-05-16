@@ -720,8 +720,10 @@
                                              :started-on-beat :started-on-beat
                                              :ended           (get-in track [:cues (:uuid cue) :last-entry-event])
                                              :started-late    :started-late} event)
-            {:keys [message note channel]} (get-in cue [:events base-event])]
-        #_(timbre/info "send-cue-messages" event base-event message note channel)
+            base-message                   (get-in cue [:events base-event :message])
+            effective-base-event           (if (= "Same" base-message) :started-on-beat base-event)
+            {:keys [message note channel]} (get-in cue [:events effective-base-event])]
+        #_(timbre/info "send-cue-messages" event base-event effective-base-event message note channel)
         (when (#{"Note" "CC"} message)
           (when-let [output (get-chosen-output track)]
             (if (#{:exited :ended} event)
@@ -731,7 +733,9 @@
               (case message
                 "Note" (midi/midi-note-on output note 127 (dec channel))
                 "CC"   (midi/midi-control output note 127 (dec channel))))))
-        (when (= "Custom" message) (run-cue-function track cue event status-or-beat false)))
+        (when (= "Custom" message)
+          (let [effective-event (if (and (= "Same" base-message) (= :started-late event)) :started-on-beat event)]
+            (run-cue-function track cue effective-event status-or-beat false))))
       (when (#{:started-on-beat :started-late} event)
         ;; Record how we started this cue so we know which event to send upon ending it.
         (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
@@ -1027,7 +1031,7 @@
     (seesaw/listen message-menu
                    :action-performed (fn [_]
                                        (let [choice (seesaw/selection message-menu)]
-                                         (if (= "None" choice)
+                                         (if (#{"Same" "None"} choice)
                                            (seesaw/hide! [note-spinner label channel-spinner])
                                            (seesaw/show! [note-spinner label channel-spinner])))))
     (attach-cue-custom-editor-opener track cue message-menu event panel gear)))
@@ -1038,7 +1042,9 @@
   be one of `cue-events`, above."
   [track cue event default-note]
   (let [message       (seesaw/combobox :id (cue-event-component-id event "message")
-                                       :model ["None" "Note" "CC" "Custom"]
+                                       :model (case event
+                                                :started-late ["Same" "None" "Note" "CC" "Custom"]
+                                                ["None" "Note" "CC" "Custom"])
                                        :selected-item nil  ; So update in create-cue-panel saves default.
                                        :listen [:item-state-changed
                                                 #(swap-cue! track cue
@@ -1184,7 +1190,7 @@
 
       ;; Set the initial state of the Message menu which will, thanks to the above, set the initial visibilty.
       (seesaw/selection! (seesaw/select panel [(cue-event-component-id event "message" true)])
-                         (or (get-in cue [:events event :message]) "None"))
+                         (or (get-in cue [:events event :message]) (if (= event :started-late) "Same" "None")))
 
       ;; In case this is the initial creation of the cue, record the defaulted values of the numeric inputs too.
       ;; This will have no effect if they were loaded.
