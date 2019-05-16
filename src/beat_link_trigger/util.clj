@@ -437,7 +437,7 @@
      (org.deepsymmetry.beatlink.Beat. (create-device-update-packet buffer options)))))
 
 (defn simulate-player-status
-  "Create a CdjStatus object"
+  "Create a CdjStatus object for simulating triggers."
   ([]
    (simulate-player-status {}))
   ([options]
