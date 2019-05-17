@@ -336,20 +336,50 @@ expression will be filled in if that expression has a value, and the
 gear in the button will be filled in if any expression associated with
 the trigger has a value.
 
-image:ContextMenu.png[Context Menu,314,297]
+image:ContextMenu.png[Context Menu,285,265]
 
-Below the expression editors the menu:Inspect Expression Locals[]
+Below the expression editors, the menu:Inspect Expression Locals[]
 option allows you to explore any values that have been set up by
 expressions in the Trigger to re-use or share with each other. See
 <<Debugging#inspecting,Inspecting Locals and Globals>> for more
 details.
 
+The menu:Simulate[] submenu allows you to test your MIDI mappings and
+custom expressions as described in the <<trigger-simulate,next
+section>>.
+
 After that are options with which you can import an exported trigger
 configuration into the current trigger, or export the current trigger
 configuration to a text file which can be imported into a different
-trigger or shared with colleagues. Finally, the menu:Delete Triger[]
+trigger or shared with colleagues. Finally, the menu:Delete Trigger[]
 option allows you to delete the trigger, unless it is the only
 remaining trigger in the window.
+
+[[trigger-simulate]]
+=== Simulating Trigger Events
+
+The menu:Simulate[] submenu allows you to pretend that an Activation,
+Deactivation, Beat or Tracked Update event has occurred, and send the
+corresponding MIDI messages and/or run the custom Expressions you have
+configured for those situations. Choosing Activation or Deactivation
+will send the MIDI note or CC message you have configured for the
+trigger. Chosing any option will run the corresponding Expression if
+you have created one.
+
+image:TriggerSimulate.png[Trigger Simulate Menu,471,180]
+
+[TIP]
+====
+
+This can allow you to set up MIDI mappings in other software, like
+Ableton Live, that requires actual MIDI messages in order to learn
+them, even when you are working in offline mode because you don't
+currently have access to your CDJs.
+
+====
+
+The corresponding option will be disabled if there is no MIDI message
+or Expression configured for that event.
 
 == Learning More
 
