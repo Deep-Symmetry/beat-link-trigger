@@ -963,7 +963,11 @@ image:CueContextMenu.png[Context Menu,912,613]
 The menu starts with the expression-related options, allowing you to
 open editors to create or edit Clojure code that runs at well-defined
 moments to customize the behavior of the Cue. These are followed by
-the menu:Inspect Expression Locals[] option, which allows you to
+the menu:Simulate[] submenu, which allows you to test your MIDI
+mappings and custom expressions as described in the
+<<cue-simulate,next section>>.
+
+The menu:Inspect Expression Locals[] option, which allows you to
 explore any values that have been set up by expressions in any Cue or
 the Track itself to re-use or share with each other. See
 <<Debugging#inspecting,Inspecting Locals and Globals>> for more
@@ -993,6 +997,29 @@ you have configured for that Cue.
 TIP: In addition to accessing the context menu from the cue row, you
 can bring it up by right-clicking or control-clicking on the cue in
 the waveform at the top of the window.
+
+[[cue-simulate]]
+=== Simulating Cue Events
+
+The menu:Simulate[] submenu allows you to pretend that an Entered,
+Exited, Started, Ended, Beat or Tracked Update event has occurred, and
+send the corresponding MIDI messages and/or run the custom Expressions
+you have configured for those situations.
+
+image:CueSimulate.png[Cue Simulate Menu,435,352]
+
+[TIP]
+====
+
+This can allow you to set up MIDI mappings in other software, like
+Ableton Live, that requires actual MIDI messages in order to learn
+them, even when you are working in offline mode because you don't
+currently have access to your CDJs.
+
+====
+
+The corresponding option will be disabled if there is no MIDI message
+or Expression configured for that event.
 
 [[navigating-cues]]
 == Navigating Cues
