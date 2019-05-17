@@ -617,11 +617,17 @@
   ([]
    (random-cdj-status {}))
   ([options]
-   (util/simulate-player-status (merge {:bb            (inc (rand-int 4))
-                                        :beat          (rand-int 2000)
-                                        :device-number (inc (rand-int 4))
-                                        :bpm           (+ 4000 (rand-int 12000))}
-                                       options))))
+   (let [device (inc (rand-int 4))]
+     (util/simulate-player-status (merge {:bb            (inc (rand-int 4))
+                                          :beat          (rand-int 2000)
+                                          :device-number device
+                                          :bpm           (+ 4000 (rand-int 12000))
+                                          :d-r           device
+                                          :s-r           2
+                                          :t-r           1
+                                          :rekordbox     (inc (rand-int 1000))
+                                          :f 0x40}
+                                         options)))))
 
 (defn- random-beat-or-status
   "Creates either a beat or CDJ status object with random attributes for
@@ -648,7 +654,7 @@
 
 (declare send-cue-messages)
 
-(defn- event-enabled?
+(defn- cue-event-enabled?
   "Checks whether the specified event type is enabled for the given
   cue (its message is something other than None, and if Custom, there
   is a non-empty expression body)."
@@ -663,7 +669,7 @@
       (not (cue-missing-expression? track cue event))
 
       (= "Same" message) ; Must be a :started-late event
-      (event-enabled? track cue :started-on-beat)
+      (cue-event-enabled? track cue :started-on-beat)
 
       :else ; Is a MIDI note or CC
       true)))
@@ -674,14 +680,14 @@
   software."
   [track cue]
   [(seesaw/action :name "Entered"
-                  :enabled? (event-enabled? track cue :entered)
+                  :enabled? (cue-event-enabled? track cue :entered)
                   :handler (fn [_] (send-cue-messages (latest-track track) cue :entered (random-beat-or-status))))
    (seesaw/action :name "Started On-Beat"
-                  :enabled? (event-enabled? track cue :started-on-beat)
+                  :enabled? (cue-event-enabled? track cue :started-on-beat)
                   :handler (fn [_] (send-cue-messages (latest-track track) cue :started-on-beat
                                                       (random-beat-and-position track))))
    (seesaw/action :name "Started Late"
-                  :enabled? (event-enabled? track cue :started-late)
+                  :enabled? (cue-event-enabled? track cue :started-late)
                   :handler (fn [_] (send-cue-messages (latest-track track) cue :started-late (random-cdj-status))))
    (seesaw/action :name "Beat"
                   :enabled? (not (cue-missing-expression? track cue :beat))
@@ -689,7 +695,7 @@
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (cue-missing-expression? track cue :tracked))
                   :handler (fn [_] (run-cue-function track cue :tracked (random-cdj-status) true)))
-   (let [enabled-events (filterv (partial event-enabled? track cue) [:started-on-beat :started-late])]
+   (let [enabled-events (filterv (partial cue-event-enabled? track cue) [:started-on-beat :started-late])]
      (seesaw/action :name "Ended"
                     :enabled? (seq enabled-events)
                     :handler (fn [_]
@@ -697,7 +703,7 @@
                                             (rand-nth enabled-events))
                                (send-cue-messages (latest-track track) cue :ended (random-beat-or-status)))))
    (seesaw/action :name "Exited"
-                  :enabled? (event-enabled? track cue :entered)
+                  :enabled? (cue-event-enabled? track cue :entered)
                   :handler (fn [_] (send-cue-messages (latest-track track) cue :exited (random-beat-or-status))))])
 
 (defn- cue-simulate-menu
@@ -1928,6 +1934,36 @@
       (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
         (.setPlaybackState (:wave cues-editor) player interpolated-time (.playing position))))))
 
+(defn- send-loaded-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a track is now loaded. `track` must be current."
+  [track]
+  (try
+    (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
+      (when (#{"Note" "CC"} loaded-message)
+        (when-let [output (get-chosen-output track)]
+          (case loaded-message
+            "Note" (midi/midi-note-on output loaded-note 127 (dec loaded-channel))
+            "CC"   (midi/midi-control output loaded-note 127 (dec loaded-channel)))))
+      (when (= "Custom" loaded-message) (run-track-function track :loaded nil false)))
+    (catch Exception e
+      (timbre/error e "Problem reporting loaded track."))))
+
+(defn- send-playing-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a track is now playing. `track` must be current."
+  [track status]
+  (try
+    (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
+      (when (#{"Note" "CC"} playing-message)
+        (when-let [output (get-chosen-output track)]
+          (case playing-message
+            "Note" (midi/midi-note-on output playing-note 127 (dec playing-channel))
+            "CC"   (midi/midi-control output playing-note 127 (dec playing-channel)))))
+      (when (= "Custom" playing-message) (run-track-function track :playing status false)))
+    (catch Exception e
+      (timbre/error e "Problem reporting playing track."))))
+
 (defn- send-stopped-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a track is no longer playing. `track` must be current."
@@ -2058,16 +2094,7 @@
         now-loaded (players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (= #{player} now-loaded))  ; This is the first player to load the track.
       (when (:tripped track)
-        (try
-          (let [{:keys [loaded-message loaded-note loaded-channel]} (:contents track)]
-            (when (#{"Note" "CC"} loaded-message)
-              (when-let [output (get-chosen-output track)]
-                (case loaded-message
-                  "Note" (midi/midi-note-on output loaded-note 127 (dec loaded-channel))
-                  "CC"   (midi/midi-control output loaded-note 127 (dec loaded-channel)))))
-            (when (= "Custom" loaded-message) (run-track-function track :loaded nil false)))
-          (catch Exception e
-            (timbre/error e "Problem reporting loaded track.")))
+        (send-loaded-messages track)
         ;; Report entry to all cues we've been sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           (send-cue-messages track uuid :entered nil)
@@ -2089,16 +2116,7 @@
         now-playing (players-signature-set (:playing show) signature)]
     (when (or tripped-changed (= #{player} now-playing))  ; This is the first player to play the track.
       (when (:tripped track)
-        (try
-          (let [{:keys [playing-message playing-note playing-channel]} (:contents track)]
-            (when (#{"Note" "CC"} playing-message)
-              (when-let [output (get-chosen-output track)]
-                (case playing-message
-                  "Note" (midi/midi-note-on output playing-note 127 (dec playing-channel))
-                  "CC"   (midi/midi-control output playing-note 127 (dec playing-channel)))))
-            (when (= "Custom" playing-message) (run-track-function track :playing status false)))
-          (catch Exception e
-            (timbre/error e "Problem reporting playing track.")))
+        (send-playing-messages track status)
         ;; Report late start for any cues we were sitting on.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
           (send-cue-messages track uuid :started-late status)
@@ -2757,6 +2775,12 @@
                          "images/Gear-outline.png"
                          "images/Gear-icon.png")))
 
+(defn- track-missing-expression?
+  "Checks whether the expression body of the specified kind is empty for
+  the specified cue."
+  [track kind]
+  (clojure.string/blank? (get-in (latest-track track) [:contents :expressions kind])))
+
 (defn- track-editor-actions
   "Creates the popup menu actions corresponding to the available
   expression editors for a given track."
@@ -2772,9 +2796,57 @@
                                        (latest-track track) panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
-                     :icon (if (clojure.string/blank? (get-in (latest-track track) [:contents :expressions kind]))
+                     :icon (if (track-missing-expression? track kind)
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
+
+(defn- track-event-enabled?
+  "Checks whether the specified event type is enabled for the given
+  track (its message is something other than None, and if Custom,
+  there is a non-empty expression body)."
+  [track event]
+  (let [track   (latest-track track)
+        message (get-in track [:contents (keyword (str (name event) "-message"))])]
+    (cond
+      (= "None" message)
+      false
+
+      (= "Custom" message)
+      (not (track-missing-expression? track event))
+
+      :else ; Is a MIDI note or CC
+      true)))
+
+(defn- track-simulate-actions
+  "Creates the actions that simulate events happening to the track, for
+  testing expressions or creating and testing MIDI mappings in other
+  software."
+  [track]
+  [(seesaw/action :name "Loaded"
+                  :enabled? (track-event-enabled? track :loaded)
+                  :handler (fn [_] (send-loaded-messages (latest-track track))))
+   (seesaw/action :name "Playing"
+                  :enabled? (track-event-enabled? track :playing)
+                  :handler (fn [_] (send-playing-messages (latest-track track) (random-cdj-status))))
+   (seesaw/action :name "Beat"
+                  :enabled? (not (track-missing-expression? track :beat))
+                  :handler (fn [_] (run-track-function track :beat (random-beat-and-position track) true)))
+   (seesaw/action :name "Tracked Update"
+                  :enabled? (not (track-missing-expression? track :tracked))
+                  :handler (fn [_] (run-track-function track :tracked (random-cdj-status) true)))
+   (seesaw/action :name "Stopped"
+                  :enabled? (track-event-enabled? track :playing)
+                  :handler (fn [_] (send-stopped-messages (latest-track track) (random-cdj-status {:f 0}))))
+   (seesaw/action :name "Unloaded"
+                  :enabled? (track-event-enabled? track :loaded)
+                  :handler (fn [_] (send-unloaded-messages (latest-track track))))])
+
+(defn- track-simulate-menu
+  "Creates the submenu containing actions that simulate events happening
+  to the track, for testing expressions or creating and testing MIDI
+  mappings in other software."
+  [track]
+  (seesaw/menu :text "Simulate" :items (track-simulate-actions track)))
 
 (declare import-track)
 
@@ -3060,7 +3132,8 @@
 
         popup-fn (fn [e] (concat [(edit-cues-action track panel gear) (seesaw/separator)]
                                  (track-editor-actions show track panel gear)
-                                 [(seesaw/separator) (track-inspect-action track) (seesaw/separator)]
+                                 [(seesaw/separator) (track-simulate-menu track) (track-inspect-action track)
+                                  (seesaw/separator)]
                                  (track-copy-actions track)
                                  [(seesaw/separator) (delete-track-action show track panel)]))]
 

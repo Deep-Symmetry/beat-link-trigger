@@ -441,12 +441,43 @@
   ([]
    (simulate-player-status {}))
   ([options]
-   (let [buffer (byte-array 0xcc)
-         {:keys [pitch bpm bb beat device-number]
+   (let [buffer (byte-array 0xd4)
+         {:keys [pitch bpm bb beat device-number rekordbox a d-r s-r t-r rekordbox track p-1 f p-2 p-3 packet]
           :or   {pitch         1048576
                  bpm           12800
                  bb            1
                  beat          42
-                 device-number 1}} options]
-     ;; TODO: Flesh out packet with requested options, add new ones for play state, track, etc.
+                 device-number 1
+                 a             0
+                 d-r           0
+                 s-r           0
+                 t-r           0
+                 rekordbox     0
+                 track         0
+                 p-1           0
+                 f             0
+                 p-2           0
+                 p-3           0
+                 packet        1}} options]
+     (aset buffer 0x20 (byte 3))
+     (aset buffer 0x24 (byte device-number))
+     (aset buffer 0x27 (byte a))
+     (aset buffer 0x28 (byte d-r))
+     (aset buffer 0x29 (byte s-r))
+     (aset buffer 0x2a (byte t-r))
+     (org.deepsymmetry.beatlink.Util/numberToBytes rekordbox buffer 0x2c 4)
+     (org.deepsymmetry.beatlink.Util/numberToBytes track buffer 0x32 2)
+     (aset buffer 0x7b (byte p-1))
+     (aset buffer 0x89 (byte f))
+     (aset buffer 0x8b (byte p-2))
+     (org.deepsymmetry.beatlink.Util/numberToBytes pitch buffer 0x8c 4)
+     (org.deepsymmetry.beatlink.Util/numberToBytes bpm buffer 0x92 2)
+     (org.deepsymmetry.beatlink.Util/numberToBytes pitch buffer 0x98 4)
+     (aset buffer 0x9d (byte p-3))
+     (org.deepsymmetry.beatlink.Util/numberToBytes beat buffer 0xa0 4)
+     (aset buffer 0xa6 (byte bb))
+     (org.deepsymmetry.beatlink.Util/numberToBytes pitch buffer 0xc0 4)
+     (org.deepsymmetry.beatlink.Util/numberToBytes pitch buffer 0xc4 4)
+     (org.deepsymmetry.beatlink.Util/numberToBytes packet buffer 0xc8 4)
+     (aset buffer 0xcc (byte 0x0f))
      (org.deepsymmetry.beatlink.CdjStatus. (create-device-update-packet buffer options)))))
