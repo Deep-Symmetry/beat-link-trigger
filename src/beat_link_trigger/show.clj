@@ -602,7 +602,7 @@
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
 
-(defn- random-beat
+(defn random-beat
   "Creates a beat object with random attributes for simulating
   expression calls."
   []
@@ -610,7 +610,7 @@
                        :device-number (inc (rand-int 4))
                        :bpm           (+ 4000 (rand-int 12000))}))
 
-(defn- random-cdj-status
+(defn random-cdj-status
   "Creates a CDJ status object with random attributes for simulating
   expression calls. If provided, the supplied options are used to
   further configure the object."
@@ -629,7 +629,7 @@
                                           :f 0x40}
                                          options)))))
 
-(defn- random-beat-or-status
+(defn random-beat-or-status
   "Creates either a beat or CDJ status object with random attributes for
   simulating expression calls. If provided, the supplied options are used to
   further configure the CDJ status object when one is being created."

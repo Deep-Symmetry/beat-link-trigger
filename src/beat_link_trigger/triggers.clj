@@ -333,46 +333,54 @@
   started playing, as long as the chosen output exists. `data`
   contains the map retrieved from the trigger `user-data` atom which
   is in the process of being updated, to save us from having to look
-  it up again."
-  [trigger status data]
-  (try
-    (let [{:keys [note channel message send start start-stop]} (:value data)]
-      (timbre/info "Reporting activation:" message note "on channel" channel)  ; TODO: reduce these to debug?
-      (when-let [output (get-chosen-output trigger data)]
-        (case message
-          "Note"  (midi/midi-note-on output note 127 (dec channel))
-          "CC"    (midi/midi-control output note 127 (dec channel))
-          "Clock" (when send
-                    (midi/midi-send-msg (:receiver output) (if (= "Start" start) start-message continue-message) -1))
-          nil))
-      (when (and (= message "Link") (carabiner/sync-triggers?) start-stop)
-        (carabiner/start-transport))
-      (run-trigger-function trigger :activation status false))
-    (catch Exception e
-      (timbre/error e "Problem reporting player activation."))))
+  it up again. If `real?` is passed with a falsy value, this is being
+  done because the user chose to simulate the MIDI message or function
+  call, so interaction with Carabiner and MIDI Clock are suppressed."
+  ([trigger status data]
+   (report-activation trigger status data true))
+  ([trigger status data real?]
+   (try
+     (let [{:keys [note channel message send start start-stop]} (:value data)]
+       (timbre/info "Reporting activation:" message note "on channel" channel)  ; TODO: reduce these to debug?
+       (when-let [output (get-chosen-output trigger data)]
+         (case message
+           "Note"  (midi/midi-note-on output note 127 (dec channel))
+           "CC"    (midi/midi-control output note 127 (dec channel))
+           "Clock" (when (and send real?)
+                     (midi/midi-send-msg (:receiver output) (if (= "Start" start) start-message continue-message) -1))
+           nil))
+       (when (and real? (= message "Link") (carabiner/sync-triggers?) start-stop)
+         (carabiner/start-transport))
+       (run-trigger-function trigger :activation status (not real?)))
+     (catch Exception e
+       (timbre/error e "Problem reporting player activation.")))))
 
 (defn- report-deactivation
   "Send a message indicating the player a trigger is watching has
   stopped playing, as long as the chosen output exists. `data`
   contains the map retrieved from the trigger `user-data` atom which
   is in the process of being updated, to save us from having to look
-  it up again."
-  [trigger status data]
-  (try
-    (let [{:keys [note channel message stop start-stop]} (:value data)]
-      (timbre/info "Reporting deactivation:" message note "on channel" channel)
-      (when-let [output (get-chosen-output trigger data)]
-        (case message
-          "Note"  (midi/midi-note-off output note (dec channel))
-          "CC"    (midi/midi-control output note 0 (dec channel))
-          "Clock" (when stop (midi/midi-send-msg (:receiver output) stop-message -1))
-          nil))
-      (when (and (= message "Link") (carabiner/sync-triggers?))
-        (carabiner/unlock-tempo)
-        (when start-stop (carabiner/stop-transport)))
-      (run-trigger-function trigger :deactivation status false))
-    (catch Exception e
-      (timbre/error e "Problem reporting player deactivation."))))
+  it up again. If `real?` is passed with a falsy value, this is being
+  done because the user chose to simulate the MIDI message or function
+  call, so interaction with Carabiner and MIDI Clock are suppressed."
+  ([trigger status data]
+   (report-deactivation trigger status data true))
+  ([trigger status data real?]
+   (try
+     (let [{:keys [note channel message stop start-stop]} (:value data)]
+       (timbre/info "Reporting deactivation:" message note "on channel" channel)
+       (when-let [output (get-chosen-output trigger data)]
+         (case message
+           "Note"  (midi/midi-note-off output note (dec channel))
+           "CC"    (midi/midi-control output note 0 (dec channel))
+           "Clock" (when (and stop real?) (midi/midi-send-msg (:receiver output) stop-message -1))
+           nil))
+       (when (and real? (= message "Link") (carabiner/sync-triggers?))
+         (carabiner/unlock-tempo)
+         (when start-stop (carabiner/stop-transport)))
+       (run-trigger-function trigger :deactivation status (not real?)))
+     (catch Exception e
+       (timbre/error e "Problem reporting player deactivation.")))))
 
 (defn- update-player-state
   "If the Playing state of a device being watched by a trigger has
@@ -715,7 +723,21 @@
   packets."
   [e]
   (let [trigger (.getParent (seesaw/to-widget e))]
-       (swap! (seesaw/user-data trigger) assoc :value (seesaw/value trigger))))
+    (swap! (seesaw/user-data trigger) assoc :value (seesaw/value trigger))))
+
+(defn- missing-expression?
+  "Checks whether the expression body of the specified kind is empty
+  given a trigger panel."
+  [trigger kind]
+  (empty? (get-in @(seesaw/user-data trigger) [:expressions kind])))
+
+(defn- simulate-enabled?
+  "Checks whether the specified event type can be simulated for the
+  given trigger (its message is Note or CC, or there is a non-empty
+  expression body)."
+  [trigger event]
+  (let [message (get-in @(seesaw/user-data trigger) [:value :message])]
+    (or (#{"Note" "CC"} message) (not (missing-expression? trigger event)))))
 
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
@@ -797,12 +819,29 @@
                               (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
                                              :name (str "Edit " (:title spec))
                                              :tip (:tip spec)
-                                             :icon (if (empty? (get-in @(seesaw/user-data panel) [:expressions kind]))
+                                             :icon (if (missing-expression? panel kind)
                                                      (seesaw/icon "images/Gear-outline.png")
                                                      (seesaw/icon "images/Gear-icon.png"))))))
+         sim-actions    (fn []
+                          [(seesaw/action :name "Activation"
+                                           :enabled? (simulate-enabled? panel :activation)
+                                           :handler (fn [_] (report-activation panel (show/random-cdj-status)
+                                                                               @(seesaw/user-data panel) false)))
+                           (seesaw/action :name "Beat"
+                                          :enabled? (not (missing-expression? panel :beat))
+                                          :handler (fn [_] (run-trigger-function panel :beat (show/random-beat) true)))
+                           (seesaw/action :name "Tracked Update"
+                                          :enabled? (not (missing-expression? panel :tracked))
+                                          :handler (fn [_] (run-trigger-function
+                                                            panel :tracked (show/random-cdj-status) true)))
+                           (seesaw/action :name "Deactivation"
+                                         :enabled? (simulate-enabled? panel :deactivation)
+                                         :handler (fn [_] (report-deactivation panel (show/random-cdj-status)
+                                                                               @(seesaw/user-data panel) false)))])
          popup-fn       (fn [e] (concat (editor-actions)
-                                        [(seesaw/separator) inspect-action (seesaw/separator)
-                                         import-action export-action]
+                                        [(seesaw/separator) inspect-action
+                                         (seesaw/menu :text "Simulate" :items (sim-actions))
+                                         (seesaw/separator) import-action export-action]
                                         (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
