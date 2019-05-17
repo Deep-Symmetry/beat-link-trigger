@@ -1,0 +1,14 @@
+site:
+  title: Beat Link Trigger User Guide
+  url: https://blt-guide.deepsymmetry.org/
+  start_page: beat-link-trigger::README.adoc
+content:
+  sources:
+  - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
+    branches: master
+    tags: va*
+    start_path: doc
+ui:
+  bundle:
+    url: https://deepsymmetry.org/media/antora/ui-bundle.zip
+    snapshot: true
