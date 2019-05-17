@@ -839,9 +839,8 @@
                                          :handler (fn [_] (report-deactivation panel (show/random-cdj-status)
                                                                                @(seesaw/user-data panel) false)))])
          popup-fn       (fn [e] (concat (editor-actions)
-                                        [(seesaw/separator) inspect-action
-                                         (seesaw/menu :text "Simulate" :items (sim-actions))
-                                         (seesaw/separator) import-action export-action]
+                                        [(seesaw/separator) (seesaw/menu :text "Simulate" :items (sim-actions))
+                                         inspect-action (seesaw/separator) import-action export-action]
                                         (when (> (count (get-triggers)) 1) [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal

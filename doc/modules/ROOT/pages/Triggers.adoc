@@ -338,15 +338,14 @@ the trigger has a value.
 
 image:ContextMenu.png[Context Menu,285,265]
 
-Below the expression editors, the menu:Inspect Expression Locals[]
-option allows you to explore any values that have been set up by
-expressions in the Trigger to re-use or share with each other. See
-<<Debugging#inspecting,Inspecting Locals and Globals>> for more
-details.
+Below the expression editors, the menu:Simulate[] submenu allows you
+to test your MIDI mappings and custom expressions as described in the
+<<trigger-simulate,next section>>.
 
-The menu:Simulate[] submenu allows you to test your MIDI mappings and
-custom expressions as described in the <<trigger-simulate,next
-section>>.
+The menu:Inspect Expression Locals[] option allows you to explore any
+values that have been set up by expressions in the Trigger to re-use
+or share with each other. See <<Debugging#inspecting,Inspecting Locals
+and Globals>> for more details.
 
 After that are options with which you can import an exported trigger
 configuration into the current trigger, or export the current trigger
@@ -366,7 +365,7 @@ will send the MIDI note or CC message you have configured for the
 trigger. Chosing any option will run the corresponding Expression if
 you have created one.
 
-image:TriggerSimulate.png[Trigger Simulate Menu,471,180]
+image:TriggerSimulate.png[Trigger Simulate Menu,470,180]
 
 [TIP]
 ====
