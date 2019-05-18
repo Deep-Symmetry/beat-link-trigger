@@ -21,7 +21,7 @@ This change log follows the conventions of
 ### Added
 
 - A new default option for show cues' Started Late Message menu,
-  "Same", which means to send the same message as if the cue had
+  `Same`, which means to send the same message as if the cue had
   started on its first beat.
 - A new "Simulate" submenu in the Trigger, Show Track, and Show Cue
   context menus which allows you to pretend that an event has occured

@@ -762,8 +762,8 @@ image:EnteredMessageMenu.png[Entered Message Menu,912,554]
 
 None:: With this setting, which is the default, nothing is sent when
 the Track loads or unloads.footnote:none[] When `None` is chosen,
-there are no interface elements visible to configure the event. They
-will appear once you choose an event type to send.
+there are no interface elements visible to configure the message. They
+will appear once you choose a message type to send.
 
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -854,8 +854,8 @@ image:StartedOnBeatMenu.png[Started On-Beat Message Menu,912,554]
 None:: With this setting, which is the default, nothing is sent when
 the Cue starts on its first beat or ends after having started that
 way.footnote:none[] When `None` is chosen, there are no interface
-elements visible to configure the event. They will appear once you
-choose an event type to send.
+elements visible to configure the message. They will appear once you
+choose a message type to send.
 
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -916,11 +916,32 @@ was started somewhere after its first beat.
 
 image:StartedLateMenu.png[Started Late Message Menu,912,554]
 
-None:: With this setting, which is the default, nothing is sent when
-the Cue starts after its first beat or ends after having started that
-way.footnote:none[] When `None` is chosen, there are no interface
-elements visible to configure the event. They will appear once you
-choose an event type to send.
+Same:: With this setting, which is the default, cues which start late
+will be treated as if they had started playing with the initial beat
+of the cue, so the settings of the menu:Started On-Beat Message[] Menu
+will be used, and there are no separate interface elements visible to
+configure the Late Message.
++
+[TIP]
+====
+
+Most of the time you will want to leave the Late Message set to
+`Same`. Unless you have a memory point or hot cue positioned precisely
+at the beat, the only way you can be certain that the cue will be
+detected as starting on-beat is if you are playing into it. And unless
+it is a long cue, and you expect to have loops or memory points that
+jump to later beats inside it that you want to treat differently, the
+difference between starting on-beat and starting just after the beat
+is not generally visible in the results triggered in the system you
+are controlling via Beat Link Trigger.
+
+====
+
+None:: With this setting nothing is sent when the Cue starts after its
+first beat or ends after having started that way.footnote:none[] When
+`None` is chosen, there are no interface elements visible to configure
+the message. They will appear once you choose a specific message type
+to send.
 
 Note:: With this setting, the Show sends a Note On message, with
 velocity 127 and the note number shown to the right of the menu, when
@@ -959,12 +980,12 @@ context menu>>.
 
 ==== Started Late Note/Controller Spinner
 
-Found immediately to the right of the menu:Started Late Message[]
-Menu (unless `None` is chosen as the Message type), this field lets
-you set the MIDI note number used for Note-based started late and
+Found immediately to the right of the menu:Started Late Message[] Menu
+(unless `Same` or `None` is chosen as the Message type), this field
+lets you set the MIDI note number used for Note-based started late and
 ended messages, or the controller number used for Control Change-based
-started late and ended messages. The value is also available to
-your Cue expressions if they want to use it.
+started late and ended messages. The value is also available to your
+Cue expressions if they want to use it.
 
 ==== Started Late Channel Spinner
 
