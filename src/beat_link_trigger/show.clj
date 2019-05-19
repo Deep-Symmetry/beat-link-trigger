@@ -2632,11 +2632,11 @@
                                          (when (and (= "Custom" choice)
                                                     (not (if track (:creating track) (:creating show)))
                                                     (clojure.string/blank?
-                                                     (get-in (or track show) [:contents :expressions (keyword kind)]))
-                                                    (editors/show-show-editor (keyword kind) show track panel
-                                                     (if gear
-                                                       #(update-track-gear-icon track gear)
-                                                       #(update-tracks-global-expression-icons show))))))))))
+                                                     (get-in (or track show) [:contents :expressions (keyword kind)])))
+                                           (editors/show-show-editor (keyword kind) show track panel
+                                                                     (if gear
+                                                                       #(update-track-gear-icon track gear)
+                                                                       #(update-tracks-global-expression-icons show)))))))))
 
 (defn- attach-track-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
@@ -3196,6 +3196,7 @@
                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
     (attach-track-message-visibility-handler show track "loaded" gear)
     (attach-track-message-visibility-handler show track "playing" gear)
+    (attach-track-custom-editor-opener show track (seesaw/select panel [:#enabled]) :enabled gear)
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.

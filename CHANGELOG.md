@@ -26,6 +26,9 @@ This change log follows the conventions of
 - Some very subtle issues involving tracking and responding to the
   state of show tracks when they unload or Beat Link Trigger goes
   offline and back online.
+- The Expression Editor is now automatically opened if you set a show
+  track's Enabled filter to Custom and there is not yet an expression
+  defined for that.
 
 
 ### Added
