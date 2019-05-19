@@ -20,6 +20,9 @@ This change log follows the conventions of
   example because it had an On-Air enabled filter, and the player
   started reporting being on the air), BLT would send the cues'
   messages twice.
+- If a track became enabled on the same beat that a cue ended, BLT
+  would report ending and exiting the cue even though it had never
+  reported starting it. Those extra reports have been removed.
 - Some very subtle issues involving tracking and responding to the
   state of show tracks when they unload or Beat Link Trigger goes
   offline and back online.
@@ -30,11 +33,12 @@ This change log follows the conventions of
 - A new default option for show cues' Started Late Message menu,
   `Same`, which means to send the same message as if the cue had
   started on its first beat.
-- A new "Simulate" submenu in the Trigger, Show Track, and Show Cue
+- A new `Simulate` submenu in the Trigger, Show Track, and Show Cue
   context menus which allows you to pretend that an event has occured
   so you can set up and test MIDI mappings in other software (or your
   custom expression code), even when you are offline and don't have a
-  CDJ available.
+  CDJ available. Thanks again to
+  [Minnesota](https://www.minnmusic.com/) for the suggestion.
 - A warning when you are running a version of Carabiner older than
   1.1.1, which fixes the parsing of timestamp values sent by Beat Link
   Trigger.

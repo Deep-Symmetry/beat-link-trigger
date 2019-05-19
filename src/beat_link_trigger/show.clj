@@ -2304,13 +2304,14 @@
                 (repaint-cue-states track cue))))
 
           ;; Report cues we have newly exited, which we might also have previously been playing.
-          (doseq [uuid (clojure.set/difference old-entered entered)]
-            (when-let [cue (find-cue track uuid)]
-              (when (seq (players-playing-cue old-track cue))
-                (send-cue-messages track cue :ended status))
-              (send-cue-messages track cue :exited status)
-              (repaint-cue track cue)
-              (repaint-cue-states track cue)))
+          (when (:tripped old-track)  ; Otherwise we never reported entering/playing them, so nothing to do now.
+            (doseq [uuid (clojure.set/difference old-entered entered)]
+              (when-let [cue (find-cue track uuid)]
+                (when (seq (players-playing-cue old-track cue))
+                  (send-cue-messages track cue :ended status))
+                (send-cue-messages track cue :exited status)
+                (repaint-cue track cue)
+                (repaint-cue-states track cue))))
 
           ;; Finaly, run the tracked update expression for the track, if it has one.
           (run-track-function track :tracked status false)
