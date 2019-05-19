@@ -16,6 +16,10 @@ This change log follows the conventions of
   beat-within-bar number. This was causing BLT to think the cue had
   been re-entered after the beat packet exited it, until the next
   status packet with the correct beat number arrived.
+- If a track became enabled while already sitting inside cues (for
+  example because it had an On-Air enabled filter, and the player
+  started reporting being on the air), BLT would send the cues'
+  messages twice.
 
 
 ### Added

@@ -2291,13 +2291,14 @@
         (when (:tripped track)
 
           ;; Report cues we have newly entered, which we might also be newly playing.
-          (doseq [uuid (clojure.set/difference entered old-entered)]
-            (when-let [cue (find-cue track uuid)]
-              (send-cue-messages track cue :entered status)
-              (when (seq (players-playing-cue track cue))
-                (send-cue-messages track cue :started-late status))
-              (repaint-cue track cue)
-              (repaint-cue-states track cue)))
+          (when (:tripped old-track)  ; Otherwise we already reported them above because the track just activated.
+            (doseq [uuid (clojure.set/difference entered old-entered)]
+              (when-let [cue (find-cue track uuid)]
+                (send-cue-messages track cue :entered status)
+                (when (seq (players-playing-cue track cue))
+                  (send-cue-messages track cue :started-late status))
+                (repaint-cue track cue)
+                (repaint-cue-states track cue))))
 
           ;; Report cues we have newly exited, which we might also have previously been playing.
           (doseq [uuid (clojure.set/difference old-entered entered)]
