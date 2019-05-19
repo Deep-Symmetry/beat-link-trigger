@@ -237,25 +237,45 @@
                                      :title "Exception in Show Track Expression" :type :error))
           [nil t])))))
 
+(defn- repaint-cue-states
+  "Causes the two cue state indicators to redraw themselves to reflect a
+  change in state. `cue` can either be the cue object or a cue UUID."
+  [track cue]
+  (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
+    (when-let [panel (get-in (latest-track track) [:cues-editor :panels uuid])]
+      (seesaw/repaint! (seesaw/select panel [:#entered-state]))
+      (seesaw/repaint! (seesaw/select panel [:#started-state])))))
+
+(defn repaint-all-cue-states
+  "Causes the cue state indicators for all cues in a track to redraw
+  themselves to reflect a change in state."
+  [track]
+  (doseq [cue (keys (get-in (latest-track track) [:contents :cues :cues]))]
+    (repaint-cue-states track cue)))
+
 (defn- repaint-track-states
   "Causes the two track state indicators to redraw themselves to reflect
-  a change in state."
+  a change in state. Also update any cue state indicators if there is
+  a cues editor open for the track."
   [show signature]
-  (let [panel (get-in (latest-show show) [:tracks signature :panel])]
+  (let [track (get-in (latest-show show) [:tracks signature])
+        panel (:panel track)]
     (seesaw/repaint! (seesaw/select panel [:#loaded-state]))
-    (seesaw/repaint! (seesaw/select panel [:#playing-state]))))
+    (seesaw/repaint! (seesaw/select panel [:#playing-state]))
+    (repaint-all-cue-states track)))
 
 (defn repaint-all-track-states
   "Causes the track state indicators for all tracks in a show to redraw
   themselves to reflect a change in state."
   [show]
-  (doseq [signature (keys (:tracks (latest-show show)))]
+  (doseq [[signature track] (:tracks (latest-show show))]
     (repaint-track-states show signature)))
 
 (defn- update-track-enabled
-  "Updates either a the track or default enabled filter stored result to the value passed in.
-  Currently we only store results at the track level, but maybe
-  someday shows themselves will be enabled/disabled too."
+  "Updates either the track or default enabled filter stored result to
+  the value passed in. Currently we only store results at the track
+  level, but maybe someday shows themselves will be enabled/disabled
+  too."
   [show track enabled?]
   (let [ks    [:tracks (:signature track) :expression-results :enabled]
         shows (swap-show! show (fn [show]
@@ -327,22 +347,6 @@
     (nil? signature)                " (no track signature)"
     (track-present? show signature) " (already imported)"
     :else                           nil))
-
-(defn- repaint-cue-states
-  "Causes the two cue state indicators to redraw themselves to reflect a
-  change in state. `cue` can either be the cue object or a cue UUID."
-  [track cue]
-  (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
-    (when-let [panel (get-in (latest-track track) [:cues-editor :panels uuid])]
-      (seesaw/repaint! (seesaw/select panel [:#entered-state]))
-      (seesaw/repaint! (seesaw/select panel [:#started-state])))))
-
-(defn repaint-all-cue-states
-  "Causes the cue state indicators for all cues in a track to redraw
-  themselves to reflect a change in state."
-  [track]
-  (doseq [cue (get-in (latest-track track) [:cues :cues])]
-    (repaint-cue-states track cue)))
 
 (defn- read-cue-list
   "Re-creates a CueList object from an imported track. Returns `nil` if
