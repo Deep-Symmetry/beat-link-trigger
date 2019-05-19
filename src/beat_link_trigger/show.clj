@@ -2257,16 +2257,19 @@
       (not= old-loaded signature)
       (do  ; This is a switch between two different tracks.
         #_(timbre/info "Switching between two tracks." old-loaded signature)
+        #_(timbre/info "enabled?" (enabled? show track))
+        #_(timbre/info "on-air" (:on-air show))
+        #_(timbre/info "tripped?" (:tripped track))
         (when old-track
           (when old-playing (no-longer-playing show player old-track status false))
           (no-longer-loaded show player old-track false))
-        (when track
+        (when (and track (enabled? show track))
           (now-loaded show player track false)
           (when is-playing (now-playing show player track status false))))
 
       (and (not= (:tripped old-track) (:tripped track)))
       (do  ; This is an overall activation/deactivation.
-        #_(timbre/info "Track changing tripped to " (:tripped track))
+        (timbre/info "Track changing tripped to " (:tripped track))
         (if (:tripped track)
           (do  ; Track is now active.
             (when (seq (players-signature-set (:loaded show) signature))
@@ -2400,16 +2403,46 @@
         track     (get-in show [:tracks signature])]
     (deliver-beat-events show track player beat position)))
 
-(defn- clear-player-cues
-  "When a player has changed track signatures, clear out any cues which
-  had been marked entered in a previously-loaded track. Designed to be
-  used within a swap! operation, so simply returns the value of `show`,
+(defn- clear-player-track-state
+  "When a player has changed track signatures, clear the tripped flag
+  that may have been set in a previously-loaded track, and any cues
+  which had been marked as entered in that track. Designed to be used
+  within a swap! operation, so simply returns the value of `show`,
   updated if necessary."
   [show signature player]
   (let [old-loaded  (get-in show [:last :loaded player])
         track (when old-loaded (get-in show [:tracks old-loaded]))]
-    (if track
-      (update-in show [:tracks old-loaded :entered] dissoc player)
+    (if (and track (not= signature old-loaded))
+      (-> show
+          (assoc-in [:tracks old-loaded :tripped] false)
+          (update-in [:tracks old-loaded :entered] dissoc player))
+      show)))
+
+(defn- clear-player-signature-state
+  "When a player has changed track signatures, clear out any state
+  markers associated with the previous signature. Designed to be used
+  within a swap! operation, so simply returns the value of `show`,
+  updated if necessary."
+  [show signature player]
+  (if (not= signature (get-in show [:last :loaded player]))
+    (-> show
+        (update :playing dissoc player)
+        (update :on-air dissoc player)
+        (update :master dissoc player))
+    show))
+
+(defn- set-incoming-trip-state
+  "When a player has changed track signatures, set the tripped flag of
+  the incoming track if it is part of the show and we can already tell
+  that it is supposed to be enabled. Designed to be used within a
+  swap! operation, so simply returns the value of `show`, updated if
+  necessary."
+  [show signature player]
+  (let [old-loaded (get-in show [:last :loaded player])
+        track (when signature (get-in show [:tracks signature]))]
+    (if (and track (not= signature old-loaded))
+      (-> show
+          (assoc-in [:tracks signature :tripped] (boolean (enabled? show track))))
       show)))
 
 (defn- update-player-item-signature
@@ -2418,7 +2451,7 @@
   associated with the player, updates the affected track(s) sets of
   loaded players, and runs any expressions that need to be informed
   about the loss of the former signature or gain of a new signature.
-  Also removes any position being tracked for a playe that has lost
+  Also removes any position being tracked for a player that has lost
   its signature. It is important that this function be idempotent
   because it needs to be called redundantly when importing new
   tracks."
@@ -2435,10 +2468,9 @@
                               (-> show
                                   capture-current-state
                                   (assoc-in [:loaded player] signature)
-                                  (update :playing dissoc player)
-                                  (update :on-air dissoc player)
-                                  (update :master dissoc player)
-                                  (clear-player-cues signature player))))
+                                  (clear-player-track-state signature player)
+                                  (clear-player-signature-state signature player)
+                                  (set-incoming-trip-state signature player))))
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))))

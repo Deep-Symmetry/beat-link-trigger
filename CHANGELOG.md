@@ -20,6 +20,9 @@ This change log follows the conventions of
   example because it had an On-Air enabled filter, and the player
   started reporting being on the air), BLT would send the cues'
   messages twice.
+- Some very subtle issues involving tracking and responding to the
+  state of show tracks when they unload or Beat Link Trigger goes
+  offline and back online.
 
 
 ### Added
