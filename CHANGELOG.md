@@ -19,7 +19,8 @@ This change log follows the conventions of
 - The expression variables that were supposed to tell Show Track
   expressions which players had the track loaded and were playing it
   were always empty. They now report the correct sets of player
-  numbers. Thanks to @jonasbarsten for pointing this out.
+  numbers. Thanks to [@jonasbarsten](https://github.com/jonasbarsten)
+  for pointing this out.
 - If a track became enabled while already sitting inside cues (for
   example because it had an On-Air enabled filter, and the player
   started reporting being on the air), BLT would send the cues'
