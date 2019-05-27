@@ -308,6 +308,17 @@
     :segment (Font. "DSEG7 Classic" Font/PLAIN size)
     :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
 
+(defn players-signature-set
+  "Given a map from player number to signature, returns the the set of
+  player numbers whose value matched a particular signature."
+  [player-map signature]
+  (reduce (fn [result [k v]]
+            (if (= v signature)
+              (conj result k)
+              result))
+          #{}
+          player-map))
+
 ;;; "A poor man's interval tree, from http://clj-me.cgrand.net/2012/03/16/a-poor-mans-interval-tree/
 ;;; turns out to offer exactly the API I need for figuring out which cues overlap a beat. I only needed
 ;;; to extend it a slight amount in order to also find cues whose intervals overlap each other.
@@ -393,6 +404,8 @@
              (clojure.set/union result vs))
            #{}
            (take-while (fn [[[start]]] (< (or start (dec to)) to)) (matching-subsequence interval-map from nil)))))
+
+;;; Support for simulating events
 
 (def ^:private packet-header
   "The byte sequence that begins any device update packet."

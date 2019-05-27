@@ -774,17 +774,6 @@
     (every? (partial editors/close-editor? force?)
             (vals (get-in track [:cues-editor :expression-editors (:uuid cue)])))))
 
-(defn- players-signature-set
-  "Given a map from player number to signature, returns the the set of
-  player numbers whose value matched a particular signature."
-  [player-map signature]
-  (reduce (fn [result [k v]]
-            (if (= v signature)
-              (conj result k)
-              result))
-          #{}
-          player-map))
-
 (defn- players-playing-cue
   "Returns the set of players that are currently playing the specified
   cue. `track` must be current."
@@ -795,7 +784,7 @@
                 (conj result player)
                 result))
             #{}
-            (players-signature-set (:playing show) (:signature track)))))
+            (util/players-signature-set (:playing show) (:signature track)))))
 
 (defn- entered?
   "Checks whether any player has entered the cue. `track` must be
@@ -813,7 +802,7 @@
                 (conj result player)
                 result))
             #{}
-            (players-signature-set (:loaded show) (:signature track)))))
+            (util/players-signature-set (:loaded show) (:signature track)))))
 
 (defn- started?
   "Checks whether any players which have entered a cue is actually
@@ -1795,7 +1784,7 @@
         (try
           (Thread/sleep 33)
           (let [show (latest-show show)]
-            (doseq [player (players-signature-set (:playing show) (:signature track))]
+            (doseq [player (util/players-signature-set (:playing show) (:signature track))]
               (when-let [position (.getLatestPositionFor time-finder player)]
                 (.setPlaybackState (:wave editor) player (.getTimeFor time-finder player) (.playing position)))))
           (catch Throwable t
@@ -1993,7 +1982,7 @@
   `status`."
   [show player track status tripped-changed]
   (let [signature   (:signature track)
-        now-playing (players-signature-set (:playing show) signature)]
+        now-playing (util/players-signature-set (:playing show) signature)]
     (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
@@ -2041,7 +2030,7 @@
     (.removeTrackPositionListener time-finder listener)
     (swap-track! track update :listeners dissoc player))
   (let [signature  (:signature track)
-        now-loaded (players-signature-set (:loaded show) signature)]
+        now-loaded (util/players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
@@ -2052,7 +2041,7 @@
         (send-unloaded-messages track))
       (repaint-track-states show signature))
     (update-loaded-text show signature now-loaded)
-    (update-playing-text show signature (players-signature-set (:playing show) signature))
+    (update-playing-text show signature (util/players-signature-set (:playing show) signature))
 
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
       (when-let [preview (preview-loader)]
@@ -2095,7 +2084,7 @@
   [show player track tripped-changed]
   (add-position-listener show player track)
   (let [signature  (:signature track)
-        now-loaded (players-signature-set (:loaded show) signature)]
+        now-loaded (util/players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (= #{player} now-loaded))  ; This is the first player to load the track.
       (when (:tripped track)
         (send-loaded-messages track)
@@ -2117,7 +2106,7 @@
   from a status update, it will be in `status`."
   [show player track status tripped-changed]
   (let [signature   (:signature track)
-        now-playing (players-signature-set (:playing show) signature)]
+        now-playing (util/players-signature-set (:playing show) signature)]
     (when (or tripped-changed (= #{player} now-playing))  ; This is the first player to play the track.
       (when (:tripped track)
         (send-playing-messages track status)
@@ -2272,7 +2261,7 @@
         (timbre/info "Track changing tripped to " (:tripped track))
         (if (:tripped track)
           (do  ; Track is now active.
-            (when (seq (players-signature-set (:loaded show) signature))
+            (when (seq (util/players-signature-set (:loaded show) signature))
               (now-loaded show player track true))
             (when is-playing (now-playing show player track status true)))
           (do  ; Track is no longer active.
@@ -3009,7 +2998,7 @@
         show     (latest-show show)
         track    (get-in show [:tracks signature])
         enabled? (enabled? show track)
-        active?  (seq (players-signature-set (k show) signature))]
+        active?  (seq (util/players-signature-set (k show) signature))]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
     (when active? ; Draw the inner filled circle showing the track is loaded or playing.
@@ -3164,8 +3153,6 @@
                :preview-canvas    soft-preview
                :expression-locals (atom {})
                :creating          true ; Suppress popup expression editors when reopening a show.
-               :loaded            #{}  ; The players that have this loaded.
-               :playing           #{}  ; The players actively playing this.
                :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
 
         popup-fn (fn [e] (concat [(edit-cues-action track panel gear) (seesaw/separator)]

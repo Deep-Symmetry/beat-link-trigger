@@ -289,7 +289,8 @@
                     :doc "The MIDI channel on which track load and
   unload messages are sent."}
 
-   'loaded-players {:code '(:loaded (:track trigger-data))
+   'loaded-players {:code '(util/players-signature-set (:loaded (:show trigger-data))
+                                                       (:signature (:track trigger-data)))
                     :doc "The set of player numbers that currently
   have this track loaded, if any."}
 
@@ -323,7 +324,8 @@
   is configured as \"Default\", the show's Enabled Default value is
   returned.)"}
 
-   'playing-players {:code '(:playing (:track trigger-data))
+   'playing-players {:code '(util/players-signature-set (:playing (:show trigger-data))
+                                                        (:signature (:track trigger-data)))
                      :doc "The set of player numbers that are currently
   playing this track, if any."}})
 
