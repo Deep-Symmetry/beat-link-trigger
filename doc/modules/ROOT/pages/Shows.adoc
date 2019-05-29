@@ -405,6 +405,17 @@ indicator ring:
 
 |===
 
+NOTE: Because of a limitation of the DJ Link protocol, if a player is
+positioned right before a beat, and the DJ uses Cue Play (holds down
+the Cue button to preview the track), Beat Link Trigger might briefly
+think the track is playing if the player sends a beat packet before
+any status packets reporting the fact that it is in cue preview mode.
+As soon as a status packet is received, the track will be recognized
+as not actually playing, and further beat packets will be ignored.
+Unfortunately, the first beat packet can cause your Playing message
+(and Cues' Started messages) to be sent prematurely, followed within a
+fraction of a second by Stopped messages.
+
 [[playing-message]]
 === Playing Message Menu
 

@@ -24,7 +24,8 @@
            [java.awt.event InputEvent MouseEvent WindowEvent]
            [java.lang.ref SoftReference]
            [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
-           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
+           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener
+            CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
             MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt ArtFinder BeatGrid BeatGridFinder CueList DataReference
@@ -2337,6 +2338,12 @@
       (update-cue-entered-state show track player (.getBeatNumber status))
       show)))
 
+(def ^:private cueing-states
+  "The enumeration values for a CDJ Status' playState1 property that
+  indicate that cue play is taking place, so we should not consider
+  beat packets an indication that the track is actually playing."
+  #{CdjStatus$PlayState1/CUE_PLAYING CdjStatus$PlayState1/CUE_SCRATCHING})
+
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
   a player that has it loaded. `track` may be `nil` if the track is
@@ -2352,6 +2359,7 @@
                                     (assoc-in [:playing player] (when (.isPlaying status) signature))
                                     (assoc-in [:on-air player] (when (.isOnAir status) signature))
                                     (assoc-in [:master player] (when (.isTempoMaster status) signature))
+                                    (assoc-in [:cueing player] (when (cueing-states (.getPlayState1 status)) signature))
                                     (update-track-trip-state track)
                                     (update-cue-state-if-past-beat track player status))))
         show      (get shows (:file show))
@@ -2385,7 +2393,9 @@
                               (fn [show]
                                 (-> show
                                     capture-current-state
-                                    (assoc-in [:playing player] signature) ; In case beat arrives before playing status.
+                                    (assoc-in [:playing player] ; In case beat arrives before playing status.
+                                              ;; But ignore the beat as a playing indicator if DJ is actually cueing.
+                                              (when-not (get-in show [:cueing player]) signature))
                                     (assoc-in [:last-beat player] (.getTimestamp beat))
                                     (update-track-trip-state track)
                                     (update-cue-entered-state track player (.beatNumber position)))))

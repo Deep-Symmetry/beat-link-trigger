@@ -8,7 +8,7 @@ This change log follows the conventions of
 
 ### Fixed
 
-- Stop occasionally stuttering show cues at end. Thanks to
+- Stop occasionally stuttering show cues at the end. Thanks to
   [Minnesota](https://www.minnmusic.com/) for noticing and helping pin
   down this problem: It turns out that if CDJs send a status packet
   shortly enough after a beat packet, they don't always update the
@@ -16,6 +16,17 @@ This change log follows the conventions of
   beat-within-bar number. This was causing BLT to think the cue had
   been re-entered after the beat packet exited it, until the next
   status packet with the correct beat number arrived.
+- When the DJ used Cue Play (holding down the Cue button) to preview a
+  track, the resulting beat packets would trick the Show interface to
+  thinking the track started playing as each beat was reached, and
+  then immediately think it had stopped as soon as it received the
+  next status packet from the player. The Show interface now remembers
+  when a player is in Cueing mode, and ignores beat packets in that
+  condition. (It is still possible, if a beat packet is the very first
+  packet received when a DJ starts cue-previewing a track, that BLT
+  will briefly believe it is playing, but there is no way to avoid
+  that, and as soon as a status packet is received from that player,
+  it will know what is happening.)
 - The expression variables that were supposed to tell Show Track
   expressions which players had the track loaded and were playing it
   were always empty. They now report the correct sets of player
