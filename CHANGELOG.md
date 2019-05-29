@@ -40,7 +40,7 @@ This change log follows the conventions of
   would report ending and exiting the cue even though it had never
   reported starting it. Those extra reports have been removed.
 - Some very subtle issues involving tracking and responding to the
-  state of show tracks when they unload or Beat Link Trigger goes
+  state of Show tracks when they unload or Beat Link Trigger goes
   offline and back online have been resolved.
 - The Expression Editor is now automatically opened if you set a Show
   track's Enabled filter to Custom and there is not yet an expression
@@ -60,7 +60,7 @@ This change log follows the conventions of
   [Minnesota](https://www.minnmusic.com/) for the suggestion.
 - A warning when you are running a version of Carabiner older than
   1.1.1, which fixes the parsing of timestamp values sent by Beat Link
-  Trigger.
+  Trigger in Windows.
 
 ### Changed
 
