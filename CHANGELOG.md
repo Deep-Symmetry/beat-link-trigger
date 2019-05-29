@@ -41,15 +41,15 @@ This change log follows the conventions of
   reported starting it. Those extra reports have been removed.
 - Some very subtle issues involving tracking and responding to the
   state of show tracks when they unload or Beat Link Trigger goes
-  offline and back online.
-- The Expression Editor is now automatically opened if you set a show
+  offline and back online have been resolved.
+- The Expression Editor is now automatically opened if you set a Show
   track's Enabled filter to Custom and there is not yet an expression
-  defined for that.
+  defined for it.
 
 
 ### Added
 
-- A new default option for show cues' Started Late Message menu,
+- A new default option for Show cues' Started Late Message menu,
   `Same`, which means to send the same message as if the cue had
   started on its first beat.
 - A new `Simulate` submenu in the Trigger, Show Track, and Show Cue
