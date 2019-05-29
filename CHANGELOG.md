@@ -59,8 +59,8 @@ This change log follows the conventions of
   CDJ available. Thanks again to
   [Minnesota](https://www.minnmusic.com/) for the suggestion.
 - A warning when you are running a version of Carabiner older than
-  1.1.1, which fixes the parsing of timestamp values sent by Beat Link
-  Trigger in Windows.
+  1.1.1, which fixes the parsing (when running in Windows) of
+  timestamp values sent by Beat Link Trigger.
 
 ### Changed
 
