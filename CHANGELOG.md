@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.5.3] - 2019-05-30
+
 ### Fixed
 
 - Stop occasionally stuttering show cues at the end. Thanks to
@@ -66,6 +70,9 @@ This change log follows the conventions of
 
 - The User Guide is now created using [Antora](https://antora.org),
   which produces much nicer output and formatting.
+- The MacOS version is now bundled with Amazon's Coretto 11, a free,
+  long-term-support distribution of the Java OpenJDK, instead of
+  Oracle's short-term version.
 
 ## [0.5.2] - 2019-03-10
 
@@ -788,7 +795,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.2...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.4.1...v0.5.0
