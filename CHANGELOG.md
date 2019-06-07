@@ -49,6 +49,8 @@ Nothing so far.
 - The Expression Editor is now automatically opened if you set a Show
   track's Enabled filter to Custom and there is not yet an expression
   defined for it.
+- Updated the Antora UI used by the User Guide to incorporate upstream
+  security patches.
 
 
 ### Added
