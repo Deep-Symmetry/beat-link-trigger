@@ -17,7 +17,13 @@ invokes Antora to build the embedded version as an early build step.
 
 The online version, which will grow to support multiple released
 versions of Beat Link Trigger, is built automatically by netlify
-whenever changes are pushed to the relevant branches on GitHub.
+whenever changes are pushed to the relevant branches on GitHub. The
+netlify build command is:
+
+    npm i @antora/cli @antora/site-generator-default && \
+    $(npm bin)/antora --fetch doc/netlify.yml
+
+And the publish directory is `doc/build/site`.
 
 An older workflow was to build the documentation site manually for
 hosting on the Deep Symmetry web site by running the following
