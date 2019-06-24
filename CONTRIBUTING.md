@@ -88,7 +88,7 @@ Beat Link Trigger is primarily maintained by [@brunchboy][brunchboy].
 ## License
 
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
- src="doc/assets/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
+ src="../doc/modules/ROOT/assets/images/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
 
 Copyright © 2016&ndash;2018 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
