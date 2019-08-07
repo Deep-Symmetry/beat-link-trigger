@@ -6,7 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- Tooltips over the cue/loop markers in the track preview of the
+  Player Status window showing a description of the cue or loop,
+  including the DJ-assigned comment if one is available.
+
 
 ## [0.5.3] - 2019-05-30
 
