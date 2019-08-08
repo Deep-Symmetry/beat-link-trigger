@@ -349,6 +349,23 @@
     (track-present? show signature) " (already imported)"
     :else                           nil))
 
+(defn- gather-byte-buffers
+  "Collects all the sqeuentially numbered files with the specified
+  prefix and suffix for the specified track into a vector of byte
+  buffers."
+  [prefix suffix track-root]
+  (loop [byte-buffers []
+         idx          0]
+    (let [file-path   (.resolve track-root (str prefix idx suffix))
+          next-buffer (when (Files/isReadable file-path)
+                        (with-open [file-channel (Files/newByteChannel file-path (make-array OpenOption 0))]
+                          (let [buffer (java.nio.ByteBuffer/allocate (.size file-channel))]
+                            (.read file-channel buffer)
+                            (.flip buffer))))]
+        (if next-buffer
+          (recur (conj byte-buffers next-buffer) (inc idx))
+          byte-buffers))))
+
 (defn- read-cue-list
   "Re-creates a CueList object from an imported track. Returns `nil` if
   none is found."
@@ -357,17 +374,9 @@
     (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") (make-array OpenOption 0))
                 data-stream  (java.io.DataInputStream. input-stream)]
       (CueList. (Message/read data-stream)))
-    (loop [tag-byte-buffers []
-           idx              0]
-      (let [file-path (.resolve track-root (str "cue-list-" idx ".kaitai"))
-            next-buffer (when (Files/isReadable file-path)
-                          (with-open [file-channel (Files/newByteChannel file-path (make-array OpenOption 0))]
-                            (let [buffer (java.nio.ByteBuffer/allocate (.size file-channel))]
-                              (.read file-channel buffer)
-                              (.flip buffer))))]
-        (if next-buffer
-          (recur (conj tag-byte-buffers next-buffer) (inc idx))
-          (when (seq tag-byte-buffers) (CueList. tag-byte-buffers)))))))
+    (let [tag-byte-buffers (gather-byte-buffers "cue-list-" ".kaitai" track-root)
+          ext-byte-buffers (gather-byte-buffers "cue-extended-" ".kaitai" track-root)]
+      (when (seq tag-byte-buffers) (CueList. tag-byte-buffers ext-byte-buffers)))))
 
 (def ^:private dummy-reference
   "A meaningless data reference we can use to construct metadata items
@@ -2509,17 +2518,26 @@
    :tempo           (.getTempo metadata)
    :title           (.getTitle metadata)})
 
+(defn- write-byte-buffers
+  "Creates a sequentially numbered series of files with the specified
+  prefix and suffix containing the contents of the supplied byte
+  buffers into the show filesystem."
+  [track-root prefix suffix byte-buffers]
+  (util/doseq-indexed idx [buffer byte-buffers]
+                          (.rewind buffer)
+                          (let [bytes     (byte-array (.remaining buffer))
+                                file-name (str prefix idx suffix)]
+                            (.get buffer bytes)
+                            (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0)))))
+
 (defn- write-cue-list
   "Writes the cue list for a track being imported to the show
   filesystem."
   [track-root ^CueList cue-list]
   (if (nil? (.rawMessage cue-list))
-    (util/doseq-indexed idx [tag-byte-buffer (.rawTags cue-list)]
-      (.rewind tag-byte-buffer)
-      (let [bytes     (byte-array (.remaining tag-byte-buffer))
-            file-name (str "cue-list-" idx ".kaitai")]
-        (.get tag-byte-buffer bytes)
-        (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
+    (do
+      (write-byte-buffers track-root "cue-list-" ".kaitai" (.rawTags cue-list))  ; Write original nexus style cue info.
+      (write-byte-buffers track-root "cue-extended-" ".kaitai" (.rawExtendedTags cue-list)))  ; And nxs2 extended cues.
     (write-message-path (.rawMessage cue-list) (.resolve track-root "cue-list.dbserver"))))
 
 (defn write-beat-grid
@@ -3384,7 +3402,8 @@
                                            (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
             _         (reset! ext-atom (when (and ext-file (.canRead ext-file))
                                          (RekordboxAnlz. (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
-            cue-list  (when @anlz-atom (CueList. @anlz-atom))
+            cue-tags (or @ext-atom @anlz-atom)
+            cue-list  (when cue-tags (CueList. cue-tags))
             data-ref  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
             metadata  (TrackMetadata. data-ref database cue-list)
             beat-grid (when @anlz-atom (BeatGrid. data-ref @anlz-atom))
