@@ -656,24 +656,6 @@
                        "You should re-create it from the current media as soon as you can.")
                   :title "Metadata Cache is Stale" :type :warning)))
 
-(defn- cue-preview-rectangle
-  "Calculates the outline of a cue/loop's indicator within the
-  coordinate system of the waveform preview comment."
-  [preview cue]
-  (let [x (.millisecondsToX preview (.cueTime cue))]
-    (java.awt.geom.Rectangle2D$Double. (- x 4.0) 0.0 9.0 11.0)))
-
-(defn- describe-cue
-  "Produces a brief textual description of a cue/loop suitable for a
-  tooltip."
-  [cue]
-  (let [comment (.comment cue)
-        hot     (.hotCueNumber cue)
-        kind    (if (pos? hot)
-                  (str "Hot " (if (.isLoop cue) "Loop " "Cue ") (char (+ 64 hot)))
-                  (if (.isLoop cue) "Loop" "Memory"))]
-    (str kind (when (seq comment) (str ": " comment)))))
-
 (defn- handle-preview-move
   "Mouse movement listener for a wave preview component; shows a tool
   tip with a cue/loop description if the mouse is hovering over the
@@ -683,8 +665,8 @@
   (let [point (.getPoint e)
         data  (.getLatestMetadataFor metadata-finder n)
         cues  (when data (.. data getCueList entries))
-        cue   (first (filter (fn [cue] (.contains (cue-preview-rectangle preview cue) point)) cues))]
-    (.setToolTipText preview (when cue (describe-cue cue)))))
+        cue   (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) cues))]
+    (.setToolTipText preview (when cue (util/describe-cue cue)))))
 
 (defn- create-player-cell
   "Create a cell for a player, given the shutdown channel and the player

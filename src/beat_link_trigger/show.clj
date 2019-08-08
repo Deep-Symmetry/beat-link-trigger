@@ -1420,11 +1420,16 @@
   component, setting the tooltip appropriately depending on the
   location of cues."
   [track soft-preview preview-loader ^MouseEvent e]
-  (let [point (.getPoint e)
-        track (latest-track track)
-        cue (first (filter (fn [cue] (.contains (cue-preview-rectangle track cue (preview-loader)) point))
-                           (vals (get-in track [:contents :cues :cues]))))]
-    (.setToolTipText soft-preview (when cue (or (:comment cue) "Unnamed Cue")))))
+  (let [point   (.getPoint e)
+        track   (latest-track track)
+        preview (preview-loader)
+        cue     (first (filter (fn [cue] (.contains (cue-preview-rectangle track cue preview) point))
+                               (vals (get-in track [:contents :cues :cues]))))
+        rb-cues (.. preview getCueList entries)
+        rb-cue  (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) rb-cues))]
+    (.setToolTipText soft-preview (or
+                                   (when cue (or (:comment cue) "Unnamed Cue"))
+                                   (when rb-cue (util/describe-cue rb-cue))))))
 
 (defn- find-cue-under-mouse
   "Checks whether the mouse is currently over any cue, and if so returns
