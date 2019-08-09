@@ -371,6 +371,7 @@ string instead:
 
 image:LoadTrackSearch2.png[Load Track: Searching,785,667]
 
+[[keep-open]]
 == Keeping Player Status Always Visible
 
 Some users have expressed an interest in making the Player Status
@@ -387,6 +388,7 @@ form to your Global Setup Expression:
 If the window was already open when you set up this entry, you can make
 it take effect by choosing menu:Network[Show Player Status] again.
 
+[[auto-open]]
 == Automatically Opening Player Status
 
 If you always want the Player Status window to open when you launch Beat

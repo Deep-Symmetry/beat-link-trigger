@@ -18,6 +18,8 @@
 * xref:Matching.adoc[Matching Tracks Manually]
 * xref:Players.adoc[The Player Status Window]
 ** xref:Players.adoc#loading-playing[Loading and Playing Tracks]
+** xref:Players.adoc#keep-open[Keeping Always Visible]
+** xref:Players.adoc#auto-open[Automatically Opening]
 * xref:Shows.adoc[Shows]
 ** xref:Shows.adoc#creating[Creating a Show]
 ** xref:Shows.adoc#adding-tracks[Adding Tracks to a Show]
