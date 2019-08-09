@@ -293,8 +293,9 @@
 
 (defn get-display-font
   "Find one of the fonts configured for use by keyword, which must be
-  one of `:segment`. The `style` argument is a `java.awt.Font` style
-  constant, and `size` is point size.
+  one of `:bitter`, `:orbitron`, `:segment`, or `:teko`. The `style`
+  argument is a `java.awt.Font` style constant, and `size` is point
+  size.
 
   Bitter is available in plain, bold, or italic. Orbitron is only
   available in bold, but asking for bold gives you Orbitron Black.
