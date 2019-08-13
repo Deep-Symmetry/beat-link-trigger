@@ -2,6 +2,7 @@
 ** xref:README.adoc#checking-player-number[Checking Player Number]
 * xref:Triggers.adoc[Triggers]
 ** xref:Triggers.adoc#watch-menu[Watch Menu]
+** xref:Triggers.adoc#player-status-summary[Player Status Summary]
 ** xref:Triggers.adoc#midi-output-menu[MIDI Output Menu]
 ** xref:Triggers.adoc#message-menu[Message Menu]
 ** xref:Triggers.adoc#note-controller-spinner[Note/Controller Spinner]
