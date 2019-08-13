@@ -246,7 +246,14 @@
   {'show {:code '(:show trigger-data)
           :doc "All the details known about the show. Copy to an
   Expression Global if you want to use the Inspector to
-  explore them."}})
+  explore them."}
+
+   'trigger-globals {:code '@(resolve 'beat-link-trigger.triggers/expression-globals)
+                     :doc "The expression globals in the Triggers
+                     window, in case you want to share values with
+                     them."}
+
+})
 
 (defn- show-bindings-for-class
   "Collects the set of bindings for a show editor which is called with a
@@ -994,7 +1001,6 @@ a {
     (catch Exception e
       (timbre/error e "Problem showing trigger" kind "editor"))))
 
-;; TODO: Provide access to trigger-globals from show expressions too and document that here?
 (defn- build-show-help
   "Create the help information for a show window editor with the
   specified kind."
@@ -1006,15 +1012,18 @@ a {
                                   (when-not global? "atom
   <code>locals</code> is available for use by all expressions on this
   track, and the ")
-                                  "atom <code>globals</code> is shared across all expressions in this show."]
+                                  "atom <code>globals</code> is shared
+  across all expressions in this show. You can also use the atom
+  <code>trigger-globals</code> to share the expression globals of the
+  Triggers window."]
                                  (when (seq (:bindings editor-info))
-                                      (concat ["
+                                   (concat ["
 
   <h1>Values Available</h1>
 
   The following values are available for you to use in writing your expression:<dl>"]
-                                              (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
-                                                (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
+                                           (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
+                                             (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
                                  ["</dl>"]))))
 
 (defn- create-show-editor-window
