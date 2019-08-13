@@ -662,15 +662,16 @@
 (defn- delete-all-triggers
   "Closes any global expression editors, then removes all triggers,
   running their own shutdown functions, and finally runs the global
-  shutdown function. If `force?` is true, editor windows will be
-  closed even if they have unsaved changes, otherwise the user will be
-  given a chance to cancel the operation. Returns truthy if the
-  trigger was actually deleted."
+  offline (if we were online) and shutdown functions. If `force?` is
+  true, editor windows will be closed even if they have unsaved
+  changes, otherwise the user will be given a chance to cancel the
+  operation. Returns truthy if the trigger was actually deleted."
   [force?]
   (when (and (every? (partial close-trigger-editors? force?) (get-triggers))
              (every? (partial editors/close-editor? force?) (vals (:expression-editors @trigger-prefs))))
     (doseq [trigger (get-triggers)]
       (delete-trigger true trigger))
+    (when (online?) (run-global-function :offline))
     (run-global-function :shutdown)
     (reset! expression-globals {})
     (reset! trigger-prefs (initial-trigger-prefs))
@@ -1064,7 +1065,8 @@
                                     (prefs/load-from-file file)
                                     (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                     :items (recreate-trigger-rows))
-                                    (adjust-triggers))
+                                    (adjust-triggers)
+                                    (when (online?) (run-global-function :online)))
                                   (catch Exception e
                                     (timbre/error e "Problem loading" file)
                                     (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
@@ -1416,20 +1418,18 @@
   "Updates the icons next to expressions in the Trigger menu to
   reflect whether they have been assigned a non-empty value."
   []
-  (let [menu (seesaw/select @trigger-frame [:#triggers-menu])]
+  (let [menu  (seesaw/select @trigger-frame [:#triggers-menu])
+        exprs {"Edit Global Setup Expression"    :setup
+               "Edit Came Online Expression"     :online
+               "Edit Going Offline Expression"   :offline
+               "Edit Global Shutdown Expression" :shutdown}]
     (doseq [i (range (.getItemCount menu))]
       (let [item (.getItem menu i)]
         (when item
-          (let [label (.getText item)]
-            (cond (= label "Edit Global Setup Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions :setup]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png")))
-
-                  (= label "Edit Global Shutdown Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions :shutdown]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png"))))))))))
+          (when-let [expr (get exprs (.getText item))]
+            (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions expr]))
+                                          "images/Gear-outline.png"
+                                          "images/Gear-icon.png")))))))))
 
 (defn- create-trigger-window
   "Create and show the trigger window."
@@ -1477,7 +1477,8 @@
 
 (defn- start-other-finders
   "Starts up the full complement of metadata-related finders that we
-  use. Also updates the Online menu item to show our player number."
+  use. Also updates the Online menu item to show our player number,
+  and runs any custom Came Online expression."
   []
   (.start metadata-finder)
   (.start (CrateDigger/getInstance))
@@ -1486,7 +1487,8 @@
   (.start (BeatGridFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)
   (.start (WaveformFinder/getInstance))
-  (reflect-online-state))
+  (reflect-online-state)
+  (run-global-function :online))
 
 (defn start
   "Create the Triggers window, and register all the notification
@@ -1520,8 +1522,10 @@
   (when (real-player?) (actively-send-status)))
 
 (defn go-offline
-  "Transition to an offline state, updating the UI appropriately."
+  "Transition to an offline state, running any custom Going Offline
+  expression and then updating the UI appropriately."
   []
+  (run-global-function :offline)
   (.stop (WaveformFinder/getInstance))
   (.stop (BeatGridFinder/getInstance))
   (.stop (ArtFinder/getInstance))

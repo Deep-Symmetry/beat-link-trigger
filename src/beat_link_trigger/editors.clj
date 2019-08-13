@@ -104,8 +104,8 @@
   compile the expressions they edit. Created as an explicit array map
   to keep the keys in the order they are found here."
   (array-map
-   :setup {:title "Global Setup Expression"
-           :tip "Called once to set up any state your trigger expressions may need."
+   :setup {:title    "Global Setup Expression"
+           :tip      "Called once to set up any state your trigger expressions may need."
            :description
            "Called once when the triggers are loaded, or when you update
   the expression. Set up any global state (such as counters, flags, or
@@ -114,8 +114,34 @@
   trigger window is shutting down."
            :bindings nil}
 
-   :shutdown {:title "Global Shutdown Expression"
-              :tip "Called once to release global resources."
+   :online {:title   "Came Online Expression"
+            :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
+            :description
+            "Called after the Global Setup Expression when loading a
+           Triggers file if Online, or by itself if you have taken BLT
+           Online manually. Set up any global state (such as sync
+           modes or showing the Player Status window) that can only be
+           performed when online. Use the Going Offline expression to
+           gracefully disconnect from anything you need to when going
+           Offline or when the trigger window is shutting down."
+            :bindings {'player-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+                                       :doc  "The player number we are using when talking to DJ Link devices."}
+                       'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
+                                       :doc  "The IP address we are using to talk to DJ Link devices."}}}
+
+   :offline {:title     "Going Offline Expression"
+             :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
+             :description
+             "Called before the Global Shutdown Expression when the
+  trigger window is closing or when a new trigger file is being
+  loaded, or by itself when you are taking BLT Offline manually.
+  Gracefully close and release any shared system resources (such as
+  network connections) that you opened in the Came Online
+  expression."
+             :bindings nil}
+
+   :shutdown {:title    "Global Shutdown Expression"
+              :tip      "Called once to release global resources."
               :description
               "Called when when the trigger window is closing, or a
   new trigger file is being loaded. Close and release any shared
