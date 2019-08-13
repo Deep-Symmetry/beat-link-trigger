@@ -32,7 +32,8 @@
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
-  values they want to share across triggers."}
+  values they want to share across triggers. Visible to other
+  namespaces so that, for example, Show expressions can access them."}
   expression-globals (atom {}))
 
 (defonce ^{:private true
@@ -49,15 +50,26 @@
   "A convenient reference to the VirtualCdj singleton."
   (VirtualCdj/getInstance))
 
-(defn- initial-trigger-globals
-  "Create the values to assign the trigger global expression data."
-  []
-  (merge {:global true} (select-keys (prefs/get-preferences) [:send-status?])))
+;; Register the custom readers needed to read back in the defrecords that we use.
+(prefs/add-reader 'beat_link_trigger.util.PlayerChoice util/map->PlayerChoice)
+(prefs/add-reader 'beat_link_trigger.util.MidiChoice util/map->MidiChoice)
+;; For backwards compatibility:
+;; Also register under the old package names before they were moved to the util namespace.
+(prefs/add-reader 'beat_link_trigger.triggers.PlayerChoice util/map->PlayerChoice)
+(prefs/add-reader 'beat_link_trigger.core.PlayerChoice util/map->PlayerChoice)
+(prefs/add-reader 'beat_link_trigger.triggers.MidiChoice util/map->MidiChoice)
+(prefs/add-reader 'beat_link_trigger.core.MidiChoice util/map->MidiChoice)
 
-(def trigger-globals
-  "The data shared across all trigger expressions, and available
-  externally to show expressions."
-  (atom (initial-trigger-globals)))
+(defn- initial-trigger-prefs
+  "Create the values to assign the trigger preferences map."
+  []
+  (merge {:global true}
+         (select-keys (prefs/get-preferences) [:send-status? :tracks-using-playlists?])))
+
+(defonce ^{:private true
+           :doc "Global trigger configuration and expressions."}
+  trigger-prefs
+  (atom (initial-trigger-prefs)))
 
 (defn quit
   "Gracefully attempt to quit, giving the user a chance to veto so they
@@ -75,7 +87,7 @@
   can take charge of other players' tempo, and get metadata for CD and
   unanalyzed media."
   []
-  (boolean (:send-status? @trigger-globals)))
+  (boolean (:send-status? @trigger-prefs)))
 
 (defn- enabled?
   "Check whether a trigger is enabled."
@@ -423,7 +435,7 @@
     (some? custom-description)
     custom-description
 
-    (and (pos? (.getRekordboxId status)) (not (:tracks-using-playlists? @trigger-globals)))
+    (and (pos? (.getRekordboxId status)) (not (:tracks-using-playlists? @trigger-prefs)))
     (str "Track id " (.getRekordboxId status) " [" (.getTrackSourcePlayer status) ":"
          (util/case-enum (.getTrackSourceSlot status)
            CdjStatus$TrackSourceSlot/USB_SLOT "usb"
@@ -565,7 +577,7 @@
   trigger local atom, and the trigger global atom. Returns a tuple of
   the function return value and any thrown exception."
   [kind]
-  (let [data @trigger-globals]
+  (let [data @trigger-prefs]
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
@@ -656,12 +668,12 @@
   trigger was actually deleted."
   [force?]
   (when (and (every? (partial close-trigger-editors? force?) (get-triggers))
-             (every? (partial editors/close-editor? force?) (vals (:expression-editors @trigger-globals))))
+             (every? (partial editors/close-editor? force?) (vals (:expression-editors @trigger-prefs))))
     (doseq [trigger (get-triggers)]
       (delete-trigger true trigger))
     (run-global-function :shutdown)
     (reset! expression-globals {})
-    (reset! trigger-globals (initial-trigger-globals))
+    (reset! trigger-prefs (initial-trigger-prefs))
     (update-global-expression-icons)
     true))
 
@@ -991,19 +1003,9 @@
   (prefs/put-preferences (merge (prefs/get-preferences)
                                 {:triggers         (trigger-configuration)
                                  :window-positions @util/window-positions}
-                                (when-let [exprs (:expressions @trigger-globals)]
+                                (when-let [exprs (:expressions @trigger-prefs)]
                                   {:expressions exprs})
-                                (select-keys @trigger-globals [:tracks-using-playlists? :send-status?]))))
-
-;; Register the custom readers needed to read back in the defrecords that we use.
-(prefs/add-reader 'beat_link_trigger.util.PlayerChoice util/map->PlayerChoice)
-(prefs/add-reader 'beat_link_trigger.util.MidiChoice util/map->MidiChoice)
-;; For backwards compatibility:
-;; Also register under the old package names before they were moved to the util namespace.
-(prefs/add-reader 'beat_link_trigger.triggers.PlayerChoice util/map->PlayerChoice)
-(prefs/add-reader 'beat_link_trigger.core.PlayerChoice util/map->PlayerChoice)
-(prefs/add-reader 'beat_link_trigger.triggers.MidiChoice util/map->MidiChoice)
-(prefs/add-reader 'beat_link_trigger.core.MidiChoice util/map->MidiChoice)
+                                (select-keys @trigger-prefs [:tracks-using-playlists? :send-status?]))))
 
 (defonce ^{:private true
            :doc "The menu action which saves the configuration to the preferences."}
@@ -1223,11 +1225,11 @@
     (.doClick (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m) :#track-position :#track-id)]))
     (.setSelected (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
     (when-let [exprs (:expressions m)]
-      (swap! trigger-globals assoc :expressions exprs)
+      (swap! trigger-prefs assoc :expressions exprs)
       (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
         (let [editor-info (get editors/global-trigger-editors kind)]
           (try
-            (swap! trigger-globals assoc-in [:expression-fns kind]
+            (swap! trigger-prefs assoc-in [:expression-fns kind]
                    (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
                                                       (editors/triggers-editor-title kind nil true)))
             (catch Exception e
@@ -1256,7 +1258,7 @@
                                                                  (update-global-expression-icons))))
                  :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
                  :tip (get-in editors/global-trigger-editors [kind :tip])
-                 :icon (seesaw/icon (if (empty? (get-in @trigger-globals [:expressions kind]))
+                 :icon (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions kind]))
                                        "images/Gear-outline.png"
                                        "images/Gear-icon.png"))))
 
@@ -1359,7 +1361,7 @@
                                         :name "Open Show"
                                         :tip "Opens an already-created show interface."
                                         :key "menu O")
-        using-playlists? (:tracks-using-playlists? @trigger-globals)
+        using-playlists? (:tracks-using-playlists? @trigger-prefs)
         online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
         real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status
                                                     :selected? (real-player?))
@@ -1372,7 +1374,7 @@
     (seesaw/listen bg :selection
                    (fn [e]
                      (when-let [s (seesaw/selection bg)]
-                       (swap! trigger-globals assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
+                       (swap! trigger-prefs assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
     (seesaw/listen online-item :item-state-changed
                    (fn [e]
                      (if (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
@@ -1380,8 +1382,8 @@
                        (go-offline))))
     (seesaw/listen real-item :item-state-changed
                    (fn [e]
-                     (swap! trigger-globals assoc :send-status? (= (.getStateChange e)
-                                                                      java.awt.event.ItemEvent/SELECTED))
+                     (swap! trigger-prefs assoc :send-status? (= (.getStateChange e)
+                                                                 java.awt.event.ItemEvent/SELECTED))
                      (if (real-player?)
                        (actively-send-status)
                        (do
@@ -1420,12 +1422,12 @@
         (when item
           (let [label (.getText item)]
             (cond (= label "Edit Global Setup Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-globals [:expressions :setup]))
+                  (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions :setup]))
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png")))
 
                   (= label "Edit Global Shutdown Expression")
-                  (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-globals [:expressions :shutdown]))
+                  (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions :shutdown]))
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png"))))))))))
 
@@ -1436,7 +1438,7 @@
     (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :nothing
                              :menubar (build-trigger-menubar))
           triggers (seesaw/vertical-panel :id :triggers)
-          panel (seesaw/scrollable triggers :user-data trigger-globals)]
+          panel (seesaw/scrollable triggers :user-data trigger-prefs)]
       (seesaw/config! root :content panel)
       (reset! trigger-frame root)
       (seesaw/config! triggers :items (recreate-trigger-rows))
