@@ -1546,7 +1546,6 @@
   (future
     (seesaw/invoke-now (seesaw/hide! @trigger-frame))
     ((resolve 'beat-link-trigger.core/try-going-online))
-    (if (online?)
-      (start-other-finders)
+    (when-not (online?)
       (seesaw/invoke-now
        (.setSelected (seesaw/select @trigger-frame [:#online]) false)))))
