@@ -109,14 +109,14 @@ efforts, tools, toys, and time to explore.
 This is in no way a sanctioned implementation of the protocols. It should be clear, but:
 
 > :warning: Use at your own risk! For example, there are reports that
-> the XDJ-RX crashes when BLT starts, so don&rsquo;t use it with one on your
-> network. As Pioneer themselves
+> the XDJ-RX (and XDJ-RX2) crash when BLT starts, so don&rsquo;t use
+> it with one on your network. As Pioneer themselves
 > [explain](https://forums.pioneerdj.com/hc/en-us/community/posts/203113059-xdj-rx-as-single-deck-on-pro-dj-link-),
 > the XDJ-RX does not actually implement the protocol:
 >
-> &ldquo;The LINK on the RX is ONLY for linking to rekordbox on your
-> computer or a router with WiFi to connect rekordbox mobile. It can
-> not exchange LINK data with other CDJs or DJMs.&rdquo;
+> &ldquo;The LINK on the RX [and RX2] is ONLY for linking to rekordbox
+> on your computer or a router with WiFi to connect rekordbox mobile.
+> It can not exchange LINK data with other CDJs or DJMs.&rdquo;
 
 While these techniques appear to work for us so far, there are many
 gaps in our knowledge, and things could change at any time with new
