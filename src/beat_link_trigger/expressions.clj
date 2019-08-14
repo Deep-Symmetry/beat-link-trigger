@@ -36,55 +36,81 @@
     CdjStatus$TrackType/REKORDBOX        :rekordbox
     :unknown))
 
+(defn playback-time
+  "Obtains the current playback time of the player that sent the
+  supplied device update, or `nil` if we don't know."
+  [device-update]
+  (let [time-finder (TimeFinder/getInstance)]
+    (when (.isRunning time-finder)
+      (let [result (.getTimeFor time-finder device-update)]
+        (when-not (neg? result)
+          result)))))
+
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
   processing a particular kind of device update, along with the
   expression that will be used to automatically bind that symbol if it
   is used in the expression, and the documentation to show the user
   what the binding is for."
-  {DeviceUpdate {:bindings {'address          {:code
-                                               '(.getAddress status)
-                                               :doc "The address of the device from which this update was received."}
-                            'beat?            {:code '(instance? Beat status)
-                                               :doc  "Will be <code>true</code> if this update is announcing a new beat."}
-                            'beat-within-bar  {:code '(.getBeatWithinBar status)
-                                               :doc
-                                               "The position within a measure of music at which the most recent beat fell (a value from 1 to 4, where 1 represents the down beat). This value will be accurate for players when the track was properly configured within rekordbox (and if the music follows a standard House 4/4 time signature). The mixer makes no effort to synchronize down beats with players, however, so this value is meaningless when coming from the mixer. The usefulness of this value can be checked with <code>bar-meaningful?</code>"}
-                            'bar-meaningful?  {:code '(.isBeatWithinBarMeaningful status)
-                                               :doc
-                                               "Will be <code>true</code> if this update is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
-                            'cdj?             {:code '(or (instance? CdjStatus status)
-                                                          (and (instance? Beat status)
-                                                               (< (.getDeviceNumber status 17))))
-                                               :doc  "Will be <code>true</code> if this update is reporting the status of a CDJ."}
-                            'device-name      {:code '(.getDeviceName status)
-                                               :doc  "The name reported by the device sending the update."}
-                            'device-number    {:code '(.getDeviceNumber status)
-                                               :doc  "The player/device number sending the update."}
-                            'effective-tempo  {:code '(.getEffectiveTempo status)
-                                               :doc  "The effective tempo reflected by this update, which reflects both its track BPM and pitch as needed."}
-                            'mixer?           {:code '(or (instance? MixerStatus status)
-                                                          (and (instance? Beat status)
-                                                               (> (.getDeviceNumber status) 32)))
-                                               :doc  "Will be <code>true</code> if this update is reporting the status of a Mixer."}
-                            'pitch-multiplier {:code '(Util/pitchToMultiplier (.getPitch status))
-                                               :doc
-                                               "Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
-                            'pitch-percent    {:code '(Util/pitchToPercentage (.getPitch status))
-                                               :doc
-                                               "Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
-                            'raw-bpm          {:code '(.getBpm status)
-                                               :doc
-                                               "Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
-                            'raw-pitch        {:code '(.getPitch status)
-                                               :doc
-                                               "Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo.
+  {DeviceUpdate {:bindings {'address            {:code
+                                                 '(.getAddress status)
+                                                 :doc "The address of the device from which this update was received."}
+                            'beat?              {:code '(instance? Beat status)
+                                                 :doc  "Will be <code>true</code> if this update is announcing a new beat."}
+                            'beat-within-bar    {:code '(.getBeatWithinBar status)
+                                                 :doc
+                                                 "The position within a measure of music at which the most recent beat fell (a value from 1 to 4, where 1 represents the down beat). This value will be accurate for players when the track was properly configured within rekordbox (and if the music follows a standard House 4/4 time signature). The mixer makes no effort to synchronize down beats with players, however, so this value is meaningless when coming from the mixer. The usefulness of this value can be checked with <code>bar-meaningful?</code>"}
+                            'bar-meaningful?    {:code '(.isBeatWithinBarMeaningful status)
+                                                 :doc
+                                                 "Will be <code>true</code> if this update is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
+                            'cdj?               {:code '(or (instance? CdjStatus status)
+                                                            (and (instance? Beat status)
+                                                                 (< (.getDeviceNumber status 17))))
+                                                 :doc  "Will be <code>true</code> if this update is reporting the status of a CDJ."}
+                            'device-name        {:code '(.getDeviceName status)
+                                                 :doc  "The name reported by the device sending the update."}
+                            'device-number      {:code '(.getDeviceNumber status)
+                                                 :doc  "The player/device number sending the update."}
+                            'effective-tempo    {:code '(.getEffectiveTempo status)
+                                                 :doc  "The effective tempo reflected by this update, which reflects both its track BPM and pitch as needed."}
+                            'mixer?             {:code '(or (instance? MixerStatus status)
+                                                            (and (instance? Beat status)
+                                                                 (> (.getDeviceNumber status) 32)))
+                                                 :doc  "Will be <code>true</code> if this update is reporting the status of a Mixer."}
+                            'next-cue           {:code '(when-let [reached (playback-time status)]
+                                                          (when-let [metadata (.getLatestMetadataFor
+                                                                               (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                               status)]
+                                                            (when-let [cue-list (.getCueList metadata)]
+                                                              (.findEntryAfter cue-list reached))))
+                                                 :doc  "The next cue that will be reached in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>previous-cue</code> will be equal to that cue."}
+                            'pitch-multiplier   {:code '(Util/pitchToMultiplier (.getPitch status))
+                                                 :doc
+                                                 "Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
+                            'pitch-percent      {:code '(Util/pitchToPercentage (.getPitch status))
+                                                 :doc
+                                                 "Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
+                            'previous-cue       {:code '(when-let [reached (playback-time status)]
+                                                          (when-let [metadata (.getLatestMetadataFor
+                                                                               (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                               status)]
+                                                            (when-let [cue-list (.getCueList metadata)]
+                                                              (.findEntryBefore cue-list reached))))
+                                                 :doc  "The cue that was most recently passed in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>next-cue</code> will be equal to that cue."}
+                            'raw-bpm            {:code '(.getBpm status)
+                                                 :doc
+                                                 "Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
+                            'raw-pitch          {:code '(.getPitch status)
+                                                 :doc
+                                                 "Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo.
 <p>See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
-                            'timestamp        {:code '(.getTimestamp status)
-                                               :doc  "Records the nanosecond at which we received this update."}
-                            'track-bpm        {:code '(/ (.getBpm status) 100.0)
-                                               :doc
-                                               "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}}}
+                            'timestamp          {:code '(.getTimestamp status)
+                                                 :doc  "Records the nanosecond at which we received this update."}
+                            'track-bpm          {:code '(/ (.getBpm status) 100.0)
+                                                 :doc
+                                                 "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}
+                            'track-time-reached {:code '(playback-time status)
+                                                 :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window."}}}
 
    Beat {:inherit  [DeviceUpdate]
          :bindings {'tempo-master? {:code '(.isTempoMaster status)
@@ -151,10 +177,6 @@
                                                :doc  "Which player was the track loaded from? Returns the device number, or 0 if there is no track loaded."}
                          'track-source-slot   {:code '(track-source-slot status)
                                                :doc  "Which slot was the track loaded from? Values are <code>:no-track</code>, <code>:cd-slot</code>, <code>:sd-slot</code>, <code>:usb-slot</code>, or <code>:unknown</code>."}
-                         'track-time-reached  {:code '(let [time-finder (TimeFinder/getInstance)]
-                                                        (when (.isRunning time-finder)
-                                                          (.getTimeFor time-finder status)))
-                                               :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running; the easiest way to make sure that it is running is to open the Player Status window."}
                          'track-title         {:code '(when (some? track-metadata) (.getTitle track-metadata))
                                                :doc  "The title of the loaded track, if metadata is available."}
                          'track-type          {:code '(track-type status)

@@ -12,6 +12,15 @@ This change log follows the conventions of
   which can be used to take actions like opening Player Status or
   manipulating Carabiner, which can only succeed when BLT is online,
   and which you want to happen every time it goes online or offline.
+- New values available in Trigger expressions, `next-cue` and
+  `previous-cue` which return the
+  [CueList.Entry](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/CueList.Entry.html)
+  object corresponding to the upcoming (or most recent) hot cue, loop,
+  or memory point in the track being played by the player being
+  tracked by the trigger, if there is one.
+- The value `track-time-reached` can now be used in any trigger
+  expression and will have a meaningful value if it can be calculated
+  for the corresponding player.
 - The Trigger expression globals can now be accessed from Show
   expressions if you need to share any information or resources with
   your shows.
