@@ -124,7 +124,7 @@
            performed when online. Use the Going Offline expression to
            gracefully disconnect from anything you need to when going
            Offline or when the trigger window is shutting down."
-            :bindings {'player-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+            :bindings {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
                                        :doc  "The player number we are using when talking to DJ Link devices."}
                        'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
                                        :doc  "The IP address we are using to talk to DJ Link devices."}}}
