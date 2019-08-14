@@ -378,8 +378,8 @@ Some users have expressed an interest in making the Player Status
 Window always be visible, no matter what window is active in their
 operating system. This can be arranged by creating a global variable
 entry with the key `:player-status-always-on-top` and the value `true`
-before showing the window. In other words, add the following
-form to your Global Setup Expression:
+before showing the window. In other words, add the following form to
+your <<Expressions#global-setup-expression,Global Setup Expression>>:
 
 ```clojure
 (swap! globals assoc :player-status-always-on-top true)
@@ -391,13 +391,14 @@ it take effect by choosing menu:Network[Show Player Status] again.
 [[auto-open]]
 == Automatically Opening Player Status
 
-If you always want the Player Status window to open when you launch Beat
-Link Trigger, add the following form to your Global Setup Expression,
-and when the Triggers window loads, it will also try to open the Player
-Status Window. It does this the same way as when you choose
-menu:Network[Show Player Status], so you will get all the necessary
-error dialogs and coaching if the environment isn’t correct to support
-the window:
+If you always want the Player Status window to open when you launch
+Beat Link Trigger, add the following form to your
+<<Expressions#came-online-expression,Came Online Expression>>, and
+whenever Beat Link Trigger successfully connects to a DJ Link network,
+it will also try to open the Player Status Window. It does this the
+same way as when you choose menu:Network[Show Player Status], so you
+will get all the necessary error dialogs and coaching if the
+environment isn’t correct to support the window:
 
 ```clojure
 (beat-link-trigger.triggers/show-player-status)
