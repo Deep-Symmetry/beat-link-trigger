@@ -1494,32 +1494,35 @@
   "Create the Triggers window, and register all the notification
   handlers it needs in order to stay up to date with events on the
   MIDI and DJ Link networks. If the window already exists, just bring
-  it to the front, to support returning to online operation."
+  it to the front, to support returning to online operation. Returns
+  truthy if the window was created for the first time."
   []
-  (if @trigger-frame
-    (do
-      (rebuild-all-device-status)
-      (seesaw/show! @trigger-frame))
-    (do
-      ;; Request notifications when MIDI devices appear or vanish
-      (when (CoreMidiDeviceProvider/isLibraryLoaded)
-        (CoreMidiDeviceProvider/addNotificationListener
-         (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
-           (midiSystemUpdated [this]
-             (midi-environment-changed)))))
+  (let [already-created @trigger-frame]
+    (if @trigger-frame
+      (do
+        (rebuild-all-device-status)
+        (seesaw/show! @trigger-frame))
+      (do
+        ;; Request notifications when MIDI devices appear or vanish
+        (when (CoreMidiDeviceProvider/isLibraryLoaded)
+          (CoreMidiDeviceProvider/addNotificationListener
+           (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
+             (midiSystemUpdated [this]
+               (midi-environment-changed)))))
 
-      ;; Open the trigger window
-      (create-trigger-window)
+        ;; Open the trigger window
+        (create-trigger-window)
 
-      ;; Be able to react to players coming and going
-      (.addDeviceAnnouncementListener (DeviceFinder/getInstance) device-listener)
-      (.addUpdateListener virtual-cdj status-listener)
-      (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
-      (.addBeatListener (BeatFinder/getInstance) beat-listener))) ; Allow triggers to respond to beats
-  (.start (BeatFinder/getInstance))
-  (.setPassive metadata-finder true) ; Start out conservatively
-  (when (online?) (start-other-finders))
-  (when (real-player?) (actively-send-status)))
+        ;; Be able to react to players coming and going
+        (.addDeviceAnnouncementListener (DeviceFinder/getInstance) device-listener)
+        (.addUpdateListener virtual-cdj status-listener)
+        (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
+        (.addBeatListener (BeatFinder/getInstance) beat-listener)))  ; Allow triggers to respond to beats
+    (.start (BeatFinder/getInstance))
+    (.setPassive metadata-finder true)  ; Start out conservatively
+    (when (online?) (start-other-finders))
+    (when (real-player?) (actively-send-status))
+    (not already-created)))  ; Indicate whether this was the first creation of the Triggers window
 
 (defn go-offline
   "Transition to an offline state, running any custom Going Offline

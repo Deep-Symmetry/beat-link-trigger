@@ -20,8 +20,8 @@
   they want to proceed offline."
   []
   (seesaw/invoke-now
-   (triggers/start)                ; Set up the Triggers window.
-   (show/reopen-previous-shows)))  ; And reopen any Show windows the user had open during their last session.
+   (when (triggers/start)             ; Set up the Triggers window, and check if it was created for the first time.
+     (show/reopen-previous-shows))))  ; If so also reopen any Show windows the user had open during their last session.
 
 (defn try-going-online
   "Search for a DJ link network, presenting a UI in the process."
