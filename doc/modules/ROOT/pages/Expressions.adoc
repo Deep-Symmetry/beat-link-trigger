@@ -182,7 +182,7 @@ http://clojure.org/reference/data_structures#Maps[map], which allows
 you to add key/value pairs to organize the information you want to
 share across expressions.
 
-[global-setup-expression]
+[[global-setup-expression]]
 === Global Setup Expression
 
 This is run when Beat Link Trigger starts up, or when you open a new
@@ -222,39 +222,15 @@ Link Trigger is online.
 attempt at opening Player Status, is only run when it is safe to do
 so.
 
-Another example came up in the
-https://gitter.im/brunchboy/beat-link-trigger[community chat room],
-from a user who wanted to set up a turn-key lighting system that
-automatically started Beat Link Trigger and Carabiner. If you are in a
-situation like that, and can be sure that Carabiner has already been
-started by the time Beat Link Triger launches, you can set up a Global
-Setup Expression to automatically open the Carabiner window and
-connect to it:
+But there is an even better way to do this, now that version 0.5.4 has
+added the <<came-online-expression,Came Online Expression>> which runs
+once Beat Link Trigger has successfully connected to a DJ Link
+network. Using that expression to show the Player Status window means
+it will always be safe to try, and -- even better -- the window will
+be reopened every time you go back online, not just when initially
+starting the program.
 
-[source,clojure,subs=attributes+]
-----
-(future  {conum-guard-clojure} <1>
-  (Thread/sleep 2000)  {conum-guard-clojure} <2>
-  (seesaw.core/invoke-later  {conum-guard-clojure} <3>
-    (beat-link-trigger.carabiner/show-window nil)  {conum-guard-clojure} <4>
-    (beat-link-trigger.carabiner/connect)))  {conum-guard-clojure} <5>
-----
-
-<1> This runs the rest of the expression on a background thread, so it
-can take its time while the rest of Beat Link Trigger's startup
-process continues.
-
-<2> Pauses the expression for two seconds, to make sure BLT is ready
-to connect to Carabiner.
-
-<3> Rejoins the main User Interface thread, which is necessary to do
-things like creating windows.
-
-<4> Opens the Carabiner window.
-
-<5> Tries to connect to the Carabiner daemon.
-
-Finally, here is an even more sophisticated example that creates a
+Here is an even more sophisticated example that creates a
 https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
 for sending a remote trigger command to the ChamSys MagicQ lighting
 control software using its
@@ -304,7 +280,70 @@ https://docs.oracle.com/javase/8/docs/api/java/net/DatagramPacket.html[`Datagram
 objects preconfigured with the correct command bytes and destination
 address and port, in `:chamsys-on` and `:chamsys-off`.
 
-The Beat Expression below shows how these globals are actually used.
+The <<track-beat-expression,Beat Expression>> below shows how these
+globals are actually used.
+
+[[came-online-expression]]
+=== Came Online Expression
+
+This is run whenever Beat Link Trigger has successfully connected to a
+DJ Link network, either at initial startup or when you have told it
+manually to go online. At initial startup, or whenever you open a new
+Triggers file, it will run after the <<global-setup-expression,Global
+Setup expression>> as long as you are online. It runs by itself when
+you choose menu:Network[Online?] to successfully transition from an
+offline to an online state.
+
+You have access to the expression globals if you need to use anything
+in them.
+
+This is the perfect place to take actions that can only succeed when
+Beat Link Trigger is online, such as opening the Player Status window.
+The simplest approach described <<global-setup-expression,above>> is
+safe to use in this expression, unlike in the Global Setup expression:
+
+[source,clojure,subs=attributes+]
+----
+(beat-link-trigger.triggers/show-player-status)
+----
+
+With this in place, every time you successfully go online, either at
+startup or using menu:Network[Online?], the Player Status window will
+open for you.
+
+Another example came up in the
+https://gitter.im/brunchboy/beat-link-trigger[community chat room],
+from a user who wanted to set up a turn-key lighting system that
+automatically started Beat Link Trigger and Carabiner. If you are in a
+situation like that, and can be sure that Carabiner has already been
+started by the time Beat Link Triger launches, you can set up a Came
+Online Expression to automatically open the Carabiner window and
+connect to it:
+
+[source,clojure,subs=attributes+]
+----
+(beat-link-trigger.carabiner/show-window nil)  {conum-guard-clojure} <1>
+(beat-link-trigger.carabiner/connect)  {conum-guard-clojure} <2>
+----
+
+<1> Opens the Carabiner window.
+
+<2> Tries to connect to the Carabiner daemon.
+
+[[going-offline-expression]]
+=== Going Offline Expression
+
+This is run whenever Beat Link Trigger is online and you manually take
+it offline by choosing menu:Network[Online?], exit the program, open a
+new Trigger file, or choose to delete all triggers. In any of the
+situations where you are doing more than just going offline, it runs
+right before the <<global-shutdown-expression,Global Shutdown
+expression>>. It gives you a chance to gracefully close any
+connections and release any system resources you allocated in your
+Came Online Expression.
+
+You have access to the expression globals if you need to use anything
+in them.
 
 [[global-shutdown-expression]]
 === Global Shutdown Expression
@@ -377,6 +416,7 @@ machine. See the Enabled Filter Expression <<enabled-filter-expression,below>> f
 how we use it. And keep this setup in mind, because it will be
 built on throughout the rest of this section.
 
+[[shutdown-expression]]
 === Shutdown Expression
 
 This is used to release any system resources

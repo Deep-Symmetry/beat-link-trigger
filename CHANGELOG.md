@@ -8,6 +8,13 @@ This change log follows the conventions of
 
 ### Added
 
+- New Trigger Global expressions, Came Online and Going Offline,
+  which can be used to take actions like opening Player Status or
+  manipulating Carabiner, which can only succeed when BLT is online,
+  and which you want to happen every time it goes online or offline.
+- The Trigger expression globals can now be accessed from Show
+  expressions if you need to share any information or resources with
+  your shows.
 - Tooltips over the cue/loop markers in the track preview of the
   Player Status window showing a description of the cue or loop,
   including the DJ-assigned comment if one is available.
