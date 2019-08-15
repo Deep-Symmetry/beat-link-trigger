@@ -5,9 +5,7 @@ site:
 content:
   sources:
   - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
-    branches:
-      - master
-      - doc-v*
+    branches: master
     start_path: doc
 ui:
   bundle:
