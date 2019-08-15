@@ -1,6 +1,7 @@
 name: beat-link-trigger
 title: Beat Link Trigger
 version: 'master'
+prerelease: true
 start_page: ROOT:README.adoc
 nav:
 - modules/ROOT/nav.adoc
