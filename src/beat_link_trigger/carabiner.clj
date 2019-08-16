@@ -462,7 +462,7 @@ glitches."
     (connect)
     (disconnect)))
 
-(defn paint-state
+(defn- paint-state
   "Draws a representation of the sync state, including both whether it
   is enabled (connected to Carabiner and set to a Sync Mode other than
   Off) and whether any Link-mode trigger has tripped (in Triggers
@@ -514,7 +514,8 @@ glitches."
   order to enable full sync."
   [parent]
   (seesaw/alert parent (str "Must be Sending Status Packets to set Sync Mode to Full.\n"
-                            "Please enable them using the Network menu.")
+                            "Please select Use Real Player Number in the Network menu,\n"
+                            "then go offline and back online to enable them.")
                 :title "Beat Link Trigger isn't sending Status Packets" :type :error))
 
 (defn- enable-pioneer-sync-controls
