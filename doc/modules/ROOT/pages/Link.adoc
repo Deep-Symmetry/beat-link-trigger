@@ -111,7 +111,7 @@ image:CarabinerNotTargeting.png[Carabiner not targeting a tempo,396,447]
 
 Starting with version 0.4.0 of Beat Link Trigger, Carabiner can sync
 without using triggers at all. If you still want to use it in that
-mode, you need to choose menu:Sync Mode[Passive] in the Carabiner
+mode, you need to choose menu:Sync Mode[Triggers] in the Carabiner
 window. Once Carabiner is connected and set to Triggers as its Sync
 Mode, whenever a Link trigger is active, Beat Link Trigger will
 control the Link session tempo, and will align it to the beat (or bar)
