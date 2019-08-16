@@ -324,11 +324,21 @@ connect to it:
 ----
 (beat-link-trigger.carabiner/show-window nil)  {conum-guard-clojure} <1>
 (beat-link-trigger.carabiner/connect)  {conum-guard-clojure} <2>
+(beat-link-trigger.carabiner/sync-mode "Passive")  {conum-guard-clojure} <3>
 ----
 
 <1> Opens the Carabiner window.
 
 <2> Tries to connect to the Carabiner daemon.
+
+<3> <<Link#passive-sync,Locks>> the DJ Link network to the tempo of
+Ableton Link. Other choices are "Off",
+<<Link#syncing-triggers,"Triggers">>, and <<Link#full-sync,"Full">>.
+
+NOTE: If you are using the above Carabiner configuration functions in
+an expression, you need to perform them in the order they are shown,
+because each will only work when the preceding step has been
+succesfully accomplished.
 
 [[going-offline-expression]]
 === Going Offline Expression

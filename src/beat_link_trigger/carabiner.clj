@@ -948,3 +948,36 @@ glitches."
   (if @carabiner-window
     (make-window-visible trigger-frame)
     (create-window trigger-frame)))
+
+(defn- require-connection
+  "Throws an exception if we are not connected to the Carabiner daemon."
+  []
+  (when-not (active?)
+    (throw (Exception. "Must be connected to Carabiner to set sync."))))
+
+(defn- require-online
+  "Throws an exception if BLT is not currently online."
+  []
+  (when-not (.isRunning virtual-cdj)
+    (throw (Exception. "BLT must be online to set Carabiner sync."))))
+
+(defn sync-mode
+  "Check or change the sync mode of Carabiner, for use by custom
+  expressions. With no arguments, returns the current sync mode, a
+  string, one of Off, Triggers, Passive, or Full. If the `value`
+  argument is supplied, tries to choose the specified sync mode. This
+  throws an exception if it is not currently possible to change sync
+  mode (e.g. not connected to Carabiner, or BLT is offline.) Ignored
+  the chosen sync mode is not recognized."
+  ([]
+   (if-let [frame @carabiner-window]
+     (seesaw/invoke-now
+      (seesaw/value (seesaw/select frame [:#sync-mode])))
+     (throw (Exception. "Carabiner window has not been opened."))))
+  ([value]
+   (require-connection)
+   (require-online)
+   (if (and (= value "Full") (not (sending-status?)))
+     (throw (Exception. "Must be using a real player number to enable Full Carabiner sync.")))
+   (seesaw/invoke-now
+    (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) value))))
