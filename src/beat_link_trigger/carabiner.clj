@@ -949,6 +949,15 @@ glitches."
     (make-window-visible trigger-frame)
     (create-window trigger-frame)))
 
+(defn- require-frame
+  "Throws an exception if the Carabiner window has not yet been opened.
+  Otherwise, returns the window."
+  []
+  (let [frame @carabiner-window]
+    (when-not frame
+      (throw (Exception. "Carabiner window has not been opened.")))
+    frame))
+
 (defn- require-connection
   "Throws an exception if we are not connected to the Carabiner daemon."
   []
@@ -970,10 +979,8 @@ glitches."
   mode (e.g. not connected to Carabiner, or BLT is offline.) Ignored
   the chosen sync mode is not recognized."
   ([]
-   (if-let [frame @carabiner-window]
-     (seesaw/invoke-now
-      (seesaw/value (seesaw/select frame [:#sync-mode])))
-     (throw (Exception. "Carabiner window has not been opened."))))
+   (seesaw/invoke-now
+    (seesaw/value (seesaw/select (require-frame) [:#sync-mode]))))
   ([value]
    (require-connection)
    (require-online)
@@ -981,3 +988,19 @@ glitches."
      (throw (Exception. "Must be using a real player number to enable Full Carabiner sync.")))
    (seesaw/invoke-now
     (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) value))))
+
+(defn sync-link
+  "Check or change whether we are currently syncing the Ableton Link
+  session to the DJ Link network. With no arguments, returns truthy if
+  this kind of sync is taking place. If the `enable?` argument is
+  supplied, starts or stops the sync accordingly. Throws an exception
+  if we are not in a sync mode which supports this kind of sync."
+  ([]
+   (seesaw/invoke-now
+    (seesaw/value (seesaw/select (require-frame) [:#sync-link]))))
+  ([enable?]
+   (seesaw/invoke-now
+    (let [checkbox (seesaw/select @carabiner-window [:#sync-link])]
+      (when-not (seesaw/config checkbox :enabled?)
+        (throw (Exception. "Cannot set Ableton Link sync in current Carabiner Sync Mode.")))
+      (seesaw/value! checkbox enable?)))))
