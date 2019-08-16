@@ -324,7 +324,7 @@ connect to it:
 ----
 (beat-link-trigger.carabiner/show-window nil)  {conum-guard-clojure} <1>
 (beat-link-trigger.carabiner/connect)  {conum-guard-clojure} <2>
-(beat-link-trigger.carabiner/sync-mode "Passive")  {conum-guard-clojure} <3>
+(beat-link-trigger.carabiner/sync-mode :passive)  {conum-guard-clojure} <3>
 (beat-link-trigger.carabiner/sync-link true)  {conum-guard-clojure} <4>
 (beat-link-trigger.carabiner/align-bars true)  {conum-guard-clojure} <5>
 ----
@@ -334,8 +334,8 @@ connect to it:
 <2> Tries to connect to the Carabiner daemon.
 
 <3> <<Link#passive-sync,Allows>> the DJ Link network to become Tempo
-Master for Ableton Link. Other choices are "Off",
-<<Link#syncing-triggers,"Triggers">>, and <<Link#full-sync,"Full">>.
+Master for Ableton Link. Other choices are `:off`,
+<<Link#syncing-triggers,`:triggers`>>, and <<Link#full-sync,`:full`>>.
 
 <4> Causes Ableton Link to actually follow the DJ Link Tempo Master.
 

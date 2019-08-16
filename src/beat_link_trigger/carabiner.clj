@@ -972,22 +972,28 @@ glitches."
 
 (defn sync-mode
   "Check or change the sync mode of Carabiner, for use by custom
-  expressions. With no arguments, returns the current sync mode, a
-  string, one of Off, Triggers, Passive, or Full. If the `value`
+  expressions. With no arguments, returns the current sync mode, one
+  of `:off`, `:triggers`, `:passive`, or `:full`. If the `mode`
   argument is supplied, tries to choose the specified sync mode. This
   throws an exception if it is not currently possible to change sync
-  mode (e.g. not connected to Carabiner, or BLT is offline.) Ignored
-  the chosen sync mode is not recognized."
+  mode (e.g. not connected to Carabiner, or BLT is offline), or if the
+  chosen sync mode is not recognized."
   ([]
-   (seesaw/invoke-now
-    (seesaw/value (seesaw/select (require-frame) [:#sync-mode]))))
-  ([value]
-   (require-connection)
-   (require-online)
-   (if (and (= value "Full") (not (sending-status?)))
-     (throw (Exception. "Must be using a real player number to enable Full Carabiner sync.")))
-   (seesaw/invoke-now
-    (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) value))))
+   (:sync-mode @client))
+  ([mode]
+   (if-let [value (get {:off      "Off"
+                        :triggers "Triggers"
+                        :passive  "Passive"
+                        :full     "Full"}
+                       mode)]
+     (do
+       (require-connection)
+       (require-online)
+       (if (and (= mode :full) (not (sending-status?)))
+         (throw (Exception. "Must be using a real player number to enable Full Carabiner sync.")))
+       (seesaw/invoke-now
+        (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) value)))
+     (throw (Exception. (str "Unrecognized sync mode: " mode))))))
 
 (defn sync-link
   "Check or change whether we are currently syncing the Ableton Link
