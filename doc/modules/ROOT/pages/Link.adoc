@@ -299,6 +299,17 @@ players themselves. And if there is a DJM mixer on the network, it
 can tell Beat Link to turn its own Sync on or off, or become Tempo
 Master, and Beat Link will obey.
 
+[[connecting-automatically]]
+== Connecting Automatically
+
+If you would like to automatically connect to Carabiner and set up
+sync when you bring Beat Link Trigger online (because you know it is
+running in an environment where Carabiner will always be running), you
+can accomplish this using the
+<<Expressions#came-online-expression,Came Online Expression>>, and
+there is an example of how to do this in the description of that
+expression.
+
 [[ignoring-track-bpm]]
 == Ignoring Track BPM
 

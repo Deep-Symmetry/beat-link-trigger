@@ -326,6 +326,7 @@ connect to it:
 (beat-link-trigger.carabiner/connect)  {conum-guard-clojure} <2>
 (beat-link-trigger.carabiner/sync-mode "Passive")  {conum-guard-clojure} <3>
 (beat-link-trigger.carabiner/sync-link true)  {conum-guard-clojure} <4>
+(beat-link-trigger.carabiner/align-bars true)  {conum-guard-clojure} <5>
 ----
 
 <1> Opens the Carabiner window.
@@ -338,10 +339,14 @@ Master for Ableton Link. Other choices are "Off",
 
 <4> Causes Ableton Link to actually follow the DJ Link Tempo Master.
 
+<5> Aligns Ableton Link and the DJ Link network at the level of entire
+four-beat measures, rather than simple beat alignment.
+
 NOTE: If you are using the above Carabiner configuration functions in
-an expression, you need to perform them in the order they are shown,
-because each will only work when the preceding step has been
-succesfully accomplished.
+an expression, you need to perform the first three steps in the order
+they are shown, because each will only work when the preceding step
+has been succesfully accomplished. Functions 4 and 5 can be called in
+any order.
 
 [[going-offline-expression]]
 === Going Offline Expression

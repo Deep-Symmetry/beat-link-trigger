@@ -55,6 +55,7 @@
 ** xref:Link.adoc#passive-sync[Passive Sync]
 ** xref:Link.adoc#full-sync[Full Sync]
 ** xref:Link.adoc#sync-control[Player Sync Control]
+** xref:Link.adoc#connecting-automatically[Connecting Automatically]
 ** xref:Link.adoc#ignoring-track-bpm[Ignoring Track BPM]
 * xref:Debugging.adoc[Debugging and Sharing]
 ** xref:Debugging.adoc#logs[Logs]
