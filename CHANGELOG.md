@@ -12,9 +12,9 @@ This change log follows the conventions of
   which can be used to take actions like opening Player Status or
   manipulating Carabiner, which can only succeed when BLT is online,
   and which you want to happen every time it goes online or offline.
-- More of the Carabiner window can be controlled from custom
-  expressions, to make the Came Online expression even more useful in
-  setting up turnkey setups.
+- The elements in the Carabiner window can now be controlled from
+  custom expressions, to make the Came Online expression even more
+  useful in creating turnkey setups.
 - New values available in Trigger expressions, `next-cue` and
   `previous-cue` which return the
   [CueList.Entry](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/CueList.Entry.html)

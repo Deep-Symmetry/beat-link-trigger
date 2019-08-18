@@ -310,6 +310,143 @@ can accomplish this using the
 there is an example of how to do this in the description of that
 expression.
 
+[[other-automation]]
+== Other Automation
+
+The example shown in the <<Expressions#came-online-expression,Came
+Online Expression>> illustrates that the Carabiner Connection window
+is designed for convenient use by your custom expression code. Here is
+a list of functions that you can call.
+
+=== Player Sync Control Functions
+
+This first set of functions can be used without opening the Carabiner
+Connection window, and do not even require a Carabiner daemon to be
+installed or running. (Beat Link Trigger does need to be Online,
+though, and the device numbers you mention do need to be on the
+network, or an exception will be thrown, terminating your expression.)
+
+To check the Sync status of a Pioneer device, call `sync-device` and
+pass in the player number. If you have a Nexus mixer, it will use
+player number 33. This is how you would check the Sync status of
+player 2:
+
+```clojure
+(beat-link-trigger.carabiner/sync-device 2)
+```
+
+The result of that call will be `true` if the player is currently in
+Sync mode, or `false` otherwise. So you can use it as part of an `if`
+or `when` construct to control what the rest of your expression does.
+
+To change the Sync state of a player, pass a second argument, using
+`true` to turn Sync on, and `false` to turn it off. So putting player
+1 in Sync mode would be achieved like this:
+
+```clojure
+(beat-link-trigger.carabiner/sync-device 1 true)
+```
+
+Similarly, to check whether a player is currently Tempo Master, you
+can call `master-device` with its player number:
+
+```clojure
+(beat-link-trigger.carabiner/master-device 3)
+```
+
+The result of that call will be `true` if the player is currently the
+Tempo Master, or `false` otherwise. To assign a new Tempo Master, you
+call `appoint-master-device` with the player number that you want to
+take over the Tempo Master role:
+
+```clojure
+(beat-link-trigger.carabiner/appoint-master-device 2)
+```
+
+=== Carabiner Control Functions
+
+The remaining functions in this section can only be invoked when the
+Carabiner window has been created, which you can do by calling
+`show-window`:
+
+```clojure
+(beat-link-trigger.carabiner/show-window nil)
+```
+
+The second argument can be a window that you want to center the
+Carabiner window on top of, but most expressions will not need to do
+that, and so will simply pass `nil`.
+
+Once the window has been created, you also need to connect to the
+Carabiner daemon before anything else can work, which you can do as
+follows (but you will need to be sure that you always have a Carabiner
+daemon running if you are writing code like this):
+
+```clojure
+(beat-link-trigger.carabiner/connect)
+```
+
+Once connected to Carabiner, you can choose a sync mode by calling
+`sync-mode`. With no arguments, it will return the current mode. To
+set a mode, pass a keyword argument with the value `:off`, `:trigger`,
+`:passive` or `:full`, which will turn Carabiner sync off, or set it
+to <<#syncing-triggers,Triggers>>, <<#passive-sync,Passive>>, or
+<<#full-sync,Full>> mode.
+
+```clojure
+(beat-link-trigger.carabiner/sync-mode :full)
+```
+
+NOTE: You need to be in Full sync mode to be able to control the tempo
+of the Pioneer network based on the Ableton Link session tempo, and
+Beat Link Trigger needs to be using a standard player number in order
+to enter Full sync mode.
+
+When sync between Ableton Link and the DJ Link network is enabled, it
+can be performed at either the level of individual beats, or of entire
+bars (measures). The function `align-bars` can check or control this
+setting. To align the networks at the level of bars of music, you
+call:
+
+```clojure
+(beat-link-trigger.carabiner/align-bars true)
+```
+
+Passing a `false` argument turns off bar-level alignment, and passing
+no argument returns the current setting.
+
+To control whether the Ableton Link tempo is currently being tied to
+the DJ Link network, you use the `sync-link` function. With no
+arguments, it returns the current sync state. Passing a `true`
+argument ties the Ableton Link session tempo to follow the DJ Link
+Tempo Master.
+
+```clojure
+(beat-link-trigger.carabiner/sync-link true)
+```
+
+Passing a `false` argument frees Ableton Link to manage its tempo
+separately.
+
+If Carabiner is in Full sync mode, you can also have the Ableton Link
+session tempo act as the Tempo Master for the Pioneer network. To
+activate that, call `appoint-ableton-master`:
+
+```clojure
+(beat-link-trigger.carabiner/appoint-ableton-master)
+```
+
+There are no arguments to this function. If you want to check whether
+the Ableton Link session is currently the Tempo Master, you call:
+
+```clojure
+(beat-link-trigger.carabiner/master-ableton)
+```
+
+This will return `true` if the DJ Link network is currently seeing the
+Ableton Link session as the Tempo Master, and `false` otherwise.
+
+
 [[ignoring-track-bpm]]
 == Ignoring Track BPM
 

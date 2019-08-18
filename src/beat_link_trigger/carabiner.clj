@@ -1005,7 +1005,31 @@ glitches."
     (seesaw/value (seesaw/select (require-frame) [:#sync-link]))))
   ([enable?]
    (seesaw/invoke-now
-    (seesaw/value! (seesaw/select (require-frame) [:#sync-link]) enable?))))
+    (seesaw/value! (seesaw/select (require-frame) [:#sync-link]) enable?)
+    enable?)))  ; Don't return the actual checkbox.
+
+(defn master-ableton
+  "Checks whether the Ableton Link session is currently controlling the
+  tempo of the DJ Link network."
+  []
+  (require-connection)
+  (require-online)
+  (seesaw/invoke-now
+   (seesaw/value (seesaw/select @carabiner-window [:#master-link]))))
+
+(defn appoint-ableton-master
+  "Causes the DJ Link network to follow the tempo of the Ableton Link
+  session. This can only be done when Carabiner is connected and the
+  Sync Mode is Full."
+  []
+  (require-connection)
+  (require-online)
+  (seesaw/invoke-now
+   (let [button (seesaw/select @carabiner-window [:#master-link])]
+     (if (seesaw/config button :enabled?)
+       (do (seesaw/value! button true)
+           true)  ; Don't return the radio button itself.
+       (throw (Exception. "Can only set Ableton Link as Tempo Master when Sync Mode is Full."))))))
 
 (defn align-bars
   "Check or change whether we are currently aligning with Ableton Link
@@ -1017,4 +1041,31 @@ glitches."
     (seesaw/value (seesaw/select (require-frame) [:#bar]))))
   ([enable?]
    (seesaw/invoke-now
-    (seesaw/value! (seesaw/select (require-frame) [:#bar]) enable?))))
+    (seesaw/value! (seesaw/select (require-frame) [:#bar]) enable?)
+    enable?)))  ; Don't return the checkbox itself.
+
+(defn sync-device
+  "Helper function to make it easy to check the Sync state of a Pioneer
+  device by passing just its number, or to turn Sync on or off by
+  passing a second argument to specify the desired state."
+  ([device]
+   (if-let [status (.getLatestStatusFor virtual-cdj device)]
+     (.isSynced status)
+     (throw (Exception. (str "Device " device " not found on network.")))))
+  ([device sync?]
+   (.sendSyncModeCommand virtual-cdj device sync?)))
+
+(defn master-device
+  "Helper function to make it easy to check the Master state of a
+  Pioneer device by passing its number. To assign a new Tempo Master,
+  use `appoint-tempo-master`."
+  [device]
+  (if-let [status (.getLatestStatusFor virtual-cdj device)]
+    (.isTempoMaster status)
+    (throw (Exception. (str "Device " device " not found on network.")))))
+
+(defn appoint-master-device
+  "Helper function to make it easy to tell a Pioneer device to become
+  Tempo Master by passing its number."
+  [device]
+  (.appointTempoMaster virtual-cdj device))
