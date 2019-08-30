@@ -1495,6 +1495,18 @@
      (loadChildren [_]))
    false))
 
+;; Creates a menu item node for a rekordbox track with BPM (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_BPM track-title-and-bpm-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
 ;; Creates a menu item node for the search interface. This special node is also a search entry,
 ;; and returns nil for getDatabase to indicate dbserver queries should be used to perform the search.
 (defmethod menu-item-node Message$MenuItemType/SEARCH_MENU search-menu-node

@@ -30,6 +30,9 @@ This change log follows the conventions of
 - Tooltips over the cue/loop markers in the track preview of the
   Player Status window showing a description of the cue or loop,
   including the DJ-assigned comment if one is available.
+- It should be possible to browse menus of CDJs that return track
+  titles with BPM information embedded in them (a response format that
+  we had not previously seen).
 
 
 ## [0.5.3] - 2019-05-30
