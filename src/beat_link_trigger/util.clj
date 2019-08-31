@@ -3,7 +3,7 @@
   (:require [seesaw.core :as seesaw]
             [overtone.midi :as midi]
             [me.raynes.fs :as fs])
-  (:import [org.deepsymmetry.beatlink DeviceFinder]
+  (:import [org.deepsymmetry.beatlink DeviceFinder MediaDetails]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            [javax.sound.midi Sequencer Synthesizer]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
@@ -234,6 +234,11 @@
   []
   (map #(MidiChoice. (:name %)) (filter usable-midi-device? (sort-by :name (midi/midi-sinks)))))
 
+(defonce ^{:doc "Holds a map of all the MIDI output devices we have
+  opened, keyed by their names, so we can reuse them."}
+  opened-outputs
+  (atom {}))
+
 (defonce ^{:private true
            :doc "Keeps track of whether we have loaded our custom fonts yet."}
   fonts-loaded
@@ -267,11 +272,6 @@
    (swap! window-positions assoc k (if no-size?
                                      [(.getX window) (.getY window)]
                                      [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))))
-
-(defonce ^{:doc "Holds a map of all the MIDI output devices we have
-  opened, keyed by their names, so we can reuse them."}
-  opened-outputs
-  (atom {}))
 
 (defn restore-window-position
   "Tries to put a window back where in the position where it was saved
@@ -308,6 +308,16 @@
     :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
     :segment (Font. "DSEG7 Classic" Font/PLAIN size)
     :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
+
+(defn media-contents
+  "Returns a string describing the number of tracks and playlists
+  present in mounted media found on the network, if that information
+  is available, or an empty string otherwise."
+  [^MediaDetails details]
+  (if (some? details)
+    (str (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
+         (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists")))
+    ""))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of

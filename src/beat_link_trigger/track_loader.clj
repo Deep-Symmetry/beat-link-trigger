@@ -1549,8 +1549,7 @@
                  (str (when-let [name (if (= kind "Computer")
                                         (.getName (.getLatestAnnouncementFrom device-finder (.player slot-reference)))
                                         (.name details))] (str ": " name))
-                      (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
-                      (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists"))))]
+                      (util/media-contents details)))]
     (str base extra)))
 
 (defn- slot-node

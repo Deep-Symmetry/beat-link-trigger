@@ -668,6 +668,16 @@
         cue   (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) cues))]
     (.setToolTipText preview (when cue (util/describe-cue cue)))))
 
+(defn- media-description
+  "Builds a description with as much information as we have available
+  about the media mounted in a slot."
+  [slot-reference]
+  (let [details     (.getMediaDetailsFor metadata-finder slot-reference)
+        detail-name (when details (.name details))
+        media-name  (or (and (not (clojure.string/blank? detail-name)) detail-name)
+                        "Mounted")]
+    (str media-name (util/media-contents details))))
+
 (defn- create-player-cell
   "Create a cell for a player, given the shutdown channel and the player
   number this row is supposed to display."
@@ -737,11 +747,7 @@
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-later
-                                (let [details     (.getMediaDetailsFor metadata-finder slot-reference)
-                                      detail-name (when details (.name details))
-                                      media-name  (or (and (not (clojure.string/blank? detail-name)) detail-name)
-                                                      "Mounted")]
-                                  (seesaw/config! label :text (str media-name " (no metadata cache)")))
+                                (seesaw/config! label :text (media-description slot-reference))
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
                          (mediaUnmounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
@@ -765,7 +771,7 @@
                              (when button
                                (seesaw/invoke-soon
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
-                                (seesaw/config! label :text "Mounted (no metadata cache)"))))))]
+                                (seesaw/config! label :text (media-description slot-reference)))))))]
 
     ;; Show the slot cache popup menus on ordinary mouse presses on the buttons too.
     (seesaw/listen usb-gear
