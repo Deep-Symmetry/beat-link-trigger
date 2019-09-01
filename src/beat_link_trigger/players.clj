@@ -16,7 +16,7 @@
            javax.swing.JFileChooser
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
-            DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener VirtualCdj]
+            DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener MediaDetailsListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArtListener ArtFinder MetadataCache MetadataCacheCreationListener
             MetadataCacheListener MetadataFinder MountListener SearchableItem SlotReference TimeFinder
             TrackMetadataListener WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
@@ -742,22 +742,28 @@
                              CdjStatus$TrackSourceSlot/USB_SLOT [usb-gear usb-label]
                              CdjStatus$TrackSourceSlot/SD_SLOT [sd-gear sd-label]
                              nil)))
-        mount-listener (reify MountListener
+        mount-listener (reify
+                         MountListener
                          (mediaMounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
-                               (future
-                                 (Thread/sleep 500)  ; Give the media detail response a chance to arrive.
-                                 (seesaw/invoke-later
-                                  (seesaw/config! label :text (media-description slot-reference))))
                                (seesaw/invoke-later
+                                (seesaw/config! label :text (media-description slot-reference))
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
                          (mediaUnmounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-soon
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
-                                (seesaw/config! label :text "Empty"))))))
+                                (seesaw/config! label :text "Empty")))))
+
+                         MediaDetailsListener
+                         (detailsAvailable [this details]
+                           (let [slot-reference (.-slotReference details)
+                                 [_ label] (slot-elems slot-reference)]
+                             (when label
+                               (seesaw/invoke-later
+                                (seesaw/config! label :text (media-description slot-reference)))))))
         cache-listener (reify MetadataCacheListener
                          (cacheAttached [this slot-reference cache]
                            (let [[button label] (slot-elems slot-reference)]
