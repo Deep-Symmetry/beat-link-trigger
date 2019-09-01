@@ -304,7 +304,7 @@ menu:Network[Load Track on Player], or using the popup menu associated
 with a particular media slot in the Player Status window as shown in
 the screen shot below:
 
-image:LoadTrackContext.png[Load Track from Player Status Window,532,296]
+image:LoadTrackContext.png[Load Track from Player Status Window,500,355]
 
 Either method opens the interface shown below; the advantage of
 starting from a media slot’s popup menu is that the corresponding
