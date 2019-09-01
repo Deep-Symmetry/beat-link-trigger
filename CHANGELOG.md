@@ -34,6 +34,13 @@ This change log follows the conventions of
   titles with BPM information embedded in them (a response format that
   we had not previously seen).
 
+### Changed
+
+- No longer display "(no metadata cache)" next to media names in the
+  Player Status window, because there is no reason for people to use
+  metadata caches now that we can use Crate Digger to reliably obtain
+  metadata on demand.
+
 
 ## [0.5.3] - 2019-05-30
 

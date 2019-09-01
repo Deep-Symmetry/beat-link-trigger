@@ -88,11 +88,19 @@ The white tick marks below the full-track preview waveform at the
 bottom of a player row are minute markers, so you can see at a glance
 how long the track is and how much is left.
 
-Hot cues are shown above the waveform as green triangles, memory
-points as red triangles, and loops as orange triangles. The loop body
-is shown in the wave detail section, if you have that open. Only loops
-that are stored in the track can be displayed; loops created
-on-the-fly by the DJ are not visible over the network.
+Hot cues are shown above the waveform as green triangles (or, if the
+DJ has assigned them a specific color, that color will be used instead
+of green). Memory points as shown as red triangles, and loops as
+orange triangles. The loop body is shown in the scrolling waveform
+detail section. Only loops that are stored in the track can be
+displayed; loops and memory points created on-the-fly by the DJ are
+not visible over the network.
+
+If the DJ has assigned a label (text comment) to a memory point, loop,
+or hot cue, that will also be shown in the scrolling waveform detail
+section (but not in the smaller full-track preview). For hot cues,
+both the letter identifying the hot cue, and the text comment (if
+any), will be drawn using the color assigned by the DJ.
 
 If you are using a compatible mixer, and it (and the players) are all
 configured to display their On-Air status, and the player numbers are
