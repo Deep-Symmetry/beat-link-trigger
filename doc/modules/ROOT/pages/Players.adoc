@@ -137,13 +137,13 @@ players are in use. This section (and the feature) may be removed in a
 future release once we have some experience in the field with the new
 metadata approach.
 
-To create a metadata cache, have your DJ insert his (rekordbox only)
+To create a metadata cache, have your DJ insert her (rekordbox only)
 media into a player before the show begins (and before four players
 are in use), and then click on the gear button next to the
 corresponding player slot, choosing the Create Metadata Cache File
 option:
 
-image:CreateCache.png[Create Metadata Cache option,350,234]
+image:CreateCache.png[Create Metadata Cache option,370,288]
 
 This will open a dialog where you can choose to cache either all the
 tracks present on the media, or only those associated with a
