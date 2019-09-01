@@ -6,6 +6,14 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- Media names were not being displayed in the Player Status window if
+  the media was mounted after the window was already open, because we
+  were not waiting long enough after being told the media had mounted
+  for the VirtualCDJ to request and receive the media details from the
+  player that had mounted it.
+
 ### Added
 
 - New Trigger Global expressions, Came Online and Going Offline,

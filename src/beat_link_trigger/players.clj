@@ -746,8 +746,11 @@
                          (mediaMounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
+                               (future
+                                 (Thread/sleep 500)  ; Give the media detail response a chance to arrive.
+                                 (seesaw/invoke-later
+                                  (seesaw/config! label :text (media-description slot-reference))))
                                (seesaw/invoke-later
-                                (seesaw/config! label :text (media-description slot-reference))
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
                          (mediaUnmounted [this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
