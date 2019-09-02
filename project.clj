@@ -23,7 +23,7 @@
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
                  [com.evocomputing/colors "1.0.4"]
-                 [uk.co.xfactory-librarians/coremidi4j "1.1"]
+                 [uk.co.xfactory-librarians/coremidi4j "1.2-SNAPSHOT"]
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
                  [ring/ring-core "1.7.1"]

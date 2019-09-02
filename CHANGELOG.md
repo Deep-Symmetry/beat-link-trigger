@@ -8,6 +8,9 @@ This change log follows the conventions of
 
 ### Fixed
 
+- MIDI devices names were sometimes unavailable, making the devices
+  unusable, when running in MacOS (especially in the standalone
+  application bundle) due to a problem in the embedded MIDI library.
 - Media names were not being displayed in the Player Status window if
   the media was mounted after the window was already open, because we
   were not waiting long enough after being told the media had mounted
