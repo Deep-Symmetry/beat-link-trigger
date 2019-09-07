@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+
+## [0.5.4] - 2019-09-06
+
 ### Fixed
 
 - MIDI devices names were sometimes unavailable, making the devices
@@ -19,6 +24,14 @@ This change log follows the conventions of
 
 ### Added
 
+- New versions of Beat Link and Carabiner allow us to display the
+  comments DJs have assigned to their memory points and hot cues
+  within rekordbox in the scrolling waveform, as well as hot cues
+  beyond C, and any custom colors assigned to hot cues.
+- Tooltips over the cue/loop markers in the track preview of the
+  Player Status window showing a description of the cue or loop,
+  including the DJ-assigned comment if one is available. Hot cue
+  colors are shown in the preview as well.
 - New Trigger Global expressions, Came Online and Going Offline,
   which can be used to take actions like opening Player Status or
   manipulating Carabiner, which can only succeed when BLT is online,
@@ -38,9 +51,6 @@ This change log follows the conventions of
 - The Trigger expression globals can now be accessed from Show
   expressions if you need to share any information or resources with
   your shows.
-- Tooltips over the cue/loop markers in the track preview of the
-  Player Status window showing a description of the cue or loop,
-  including the DJ-assigned comment if one is available.
 - It should be possible to browse menus of CDJs that return track
   titles with BPM information embedded in them (a response format that
   we had not previously seen).
@@ -842,7 +852,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.3...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.0...v0.5.1
