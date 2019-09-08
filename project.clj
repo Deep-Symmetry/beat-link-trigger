@@ -27,8 +27,7 @@
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
                  [ring/ring-core "1.7.1"]
-                 [compojure "1.6.1"]
-                 [jakarta.xml.bind/jakarta.xml.bind-api "2.3.2"]]  ; via https://stackoverflow.com/questions/43574426/
+                 [compojure "1.6.1"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
@@ -38,7 +37,6 @@
 
   :main beat-link-trigger.BeatLinkTrigger
   :uberjar-name "beat-link-trigger.jar"
-  ;; :jvm-opts ["--add-modules" "java.xml.bind"]
 
   ;; Add project name and version information to jar file manifest
   :manifest {"Name"                  ~#(str (clojure.string/replace (:group %) "." "/")
