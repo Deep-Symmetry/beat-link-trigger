@@ -3782,6 +3782,21 @@
         (.addUpdateListener virtual-cdj update-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
+
+        ;; Need to compile the show expressions before building the tracks, so global setup loads before all others.
+        (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
+          (let [editor-info (get editors/global-show-editors kind)]
+            (try
+              (swap-show! show assoc-in [:expression-fns kind]
+                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                        (editors/show-editor-title kind show nil)))
+              (catch Exception e
+                (timbre/error e (str "Problem parsing " (:title editor-info)
+                                     " when loading Show. Expression:\n" expr "\n"))
+                (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                                   "Check the log file for details.")
+                              :title "Exception during Clojure evaluation" :type :error)))))
+
         (create-track-panels show)
         (update-track-visibility show)
         (refresh-signatures show)
@@ -3799,18 +3814,6 @@
                          (when (= (.getID e) java.awt.event.ComponentEvent/COMPONENT_RESIZED)
                            (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
         (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root))
-        (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
-          (let [editor-info (get editors/global-show-editors kind)]
-            (try
-              (swap-show! show assoc-in [:expression-fns kind]
-                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                        (editors/show-editor-title kind show nil)))
-              (catch Exception e
-                (timbre/error e (str "Problem parsing " (:title editor-info)
-                                     " when loading Show. Expression:\n" expr "\n"))
-                (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
-                                   "Check the log file for details.")
-                              :title "Exception during Clojure evaluation" :type :error)))))
         (run-global-function show :setup nil true)
         (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
