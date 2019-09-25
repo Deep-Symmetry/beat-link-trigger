@@ -270,16 +270,15 @@
   that symbol if it is used in the expression, and the documentation
   to show the user what the binding is for."
   {'show {:code '(:show trigger-data)
-          :doc "All the details known about the show. Copy to an
-  Expression Global if you want to use the Inspector to
-  explore them."}
+          :doc  "All the details known about the show. There is an open
+  issue to document these in the User Guide."}
 
    'trigger-globals {:code '@(resolve 'beat-link-trigger.triggers/expression-globals)
-                     :doc "The expression globals in the Triggers
-                     window, in case you want to share values with
-                     them."}
+                     :doc  "The expression globals in the Triggers
+  window, in case you want to share values with
+  them."}
 
-})
+   })
 
 (defn- show-bindings-for-class
   "Collects the set of bindings for a show editor which is called with a
@@ -295,9 +294,8 @@
   automatically bind that symbol if it is used in the expression, and
   the documentation to show the user what the binding is for."
   {'track {:code '(:track trigger-data)
-           :doc "All the details known about the track. Copy to an
-  Expression Local if you want to use the Inspector to
-  explore them."}
+           :doc "All the details known about the track. There is an
+  open issue to document these in the User Guide."}
 
    'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
                          (:track trigger-data))
