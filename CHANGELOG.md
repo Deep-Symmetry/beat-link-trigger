@@ -6,7 +6,14 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- Shows' Global Setup Expressions are now compiled before any Track
+  expressions, so that they can define values for the Track
+  expressions to use.
+- Some Show expression help was improved to add missing parts, clarify
+  details, and remove instructions that did not actually work. More
+  still needs to be added to the user Guide, as described in Issue #79.
 
 
 ## [0.5.4] - 2019-09-06
