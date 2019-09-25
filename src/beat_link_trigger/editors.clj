@@ -643,7 +643,15 @@
   Clojure destructuring and <a
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
-  easier to use the convenience variables described below."
+  easier to use the convenience variables described below.<p>
+
+  Also note that if the Track's Started Late message is set to Same,
+  this same expression will be called when the track starts late, in
+  which case <code>status</code> will contain a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, as described in the help for the Started Late expression,
+  instead of the above-described tuple, so you will need to write your
+  code to handle both possibilities."
                      :bindings (show-bindings-for-cue-and-class :beat-tpu)}
    :started-late {:title    "Started Late Expression"
                   :tip
@@ -653,7 +661,16 @@
   starts playing the cue from somewhere other than the beginning of
   its first beat. You can use this to trigger systems that do not
   respond to MIDI, or to send more detailed information than MIDI
-  allows."
+  allows.<p>
+
+  The status update object that caused us to notice that the cue had
+  started late (a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object) is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described
+  below."
                   :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
 
    :beat   {:title "Beat Expression"
