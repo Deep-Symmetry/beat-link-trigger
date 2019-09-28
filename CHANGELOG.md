@@ -11,6 +11,12 @@ This change log follows the conventions of
 - Shows' Global Setup Expressions are now compiled before any Track
   expressions, so that they can define values for the Track
   expressions to use.
+- Shows can be created and used on computers that lack any MIDI
+  outputs (previously the Track would never Enable, because no MIDI
+  output could be found for it. Now, that is considered fine, as long
+  as the Track is not configured to work with a particular MIDI
+  device, which will always be true if there are none to choose).
+  Thanks to @jongerrish for raising this issue.
 - Some Show expression help was improved to add missing parts, clarify
   details, and remove instructions that did not actually work. More
   still needs to be added to the user Guide, as described in Issue #79.
