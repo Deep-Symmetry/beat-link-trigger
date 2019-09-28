@@ -317,6 +317,14 @@
             (catch Exception e  ; Some other problem opening the device
               (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
 
+(defn- no-output-chosen
+  "Returns truthy if the MIDI output menu for a track is empty, which
+  will probably only happen if there are no MIDI outputs available on
+  the host system, but we still want to allow non-MIDI expressions to
+  operate."
+  [track]
+  (not (get-in (latest-track track) [:contents :midi-device])))
+
 (defn- enabled?
   "Checks whether the track is enabled, given its configuration and
   current state. `show` must be a current view of the show, it will
@@ -330,7 +338,7 @@
         setting       (if (= track-setting "Default")
                         show-setting
                         track-setting)]
-    (if output
+    (if (or output (no-output-chosen track))
       (case setting
         "Always" true
         "On-Air" ((set (vals (:on-air show))) (:signature track))
@@ -2585,15 +2593,16 @@
   thread since it interacts with UI objects."
   [track]
   (try
-    (let [panel (:panel track)
+    (let [panel         (:panel track)
           enabled-label (seesaw/select panel [:#enabled-label])
-          enabled (seesaw/select panel [:#enabled])]
-      (if-let [output (get-chosen-output track)]
+          enabled       (seesaw/select panel [:#enabled])
+          output        (get-chosen-output track)]
+      (if (or output (no-output-chosen track))
         (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
             (seesaw/config! enabled :visible? true))
         (do (seesaw/config! enabled-label :foreground "red")
-            (seesaw/value! enabled-label "Not found.")
+            (seesaw/value! enabled-label "MIDI Output not found.")
             (seesaw/config! enabled :visible? false))))
     (catch Exception e
       (timbre/error e "Problem showing Track MIDI status."))))
@@ -3211,7 +3220,7 @@
 
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
-    ;; Enabled Filter if "Custom" is chosen as the Message.
+    ;; Enabled Filter if "Custom" is chosen.
     (seesaw/listen (seesaw/select panel [:#outputs])
                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
     (attach-track-message-visibility-handler show track "loaded" gear)
