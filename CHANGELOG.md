@@ -16,7 +16,8 @@ This change log follows the conventions of
   output could be found for it. Now, that is considered fine, as long
   as the Track is not configured to work with a particular MIDI
   device, which will always be true if there are none to choose).
-  Thanks to @jongerrish for raising this issue.
+  Thanks to [@jongerrish](https://github.com/jongerrish) for raising
+  this issue.
 - Some Show expression help was improved to add missing parts, clarify
   details, and remove instructions that did not actually work. More
   still needs to be added to the user Guide, as described in Issue #79.
