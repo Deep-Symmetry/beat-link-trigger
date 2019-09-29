@@ -20,7 +20,8 @@ Download the latest disk image (`.dmg`) installer for the Mac, `.msi`
 installer for 64-bit Windows, or executable `.jar` file for other
 platforms, from the
 [releases](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
-page and double-click it to run it. If that doesn&rsquo;t work, [see
+page. Double-click an installed native app bundle to run it. If that
+doesn't work, or if you are using the executable `.jar` file, [see
 below](#startup-issues).
 
 [![jar](https://img.shields.io/github/downloads/Deep-Symmetry/beat-link-trigger/total.svg)](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
@@ -147,16 +148,19 @@ made programs like Beat Link Trigger possible.
 
 ## Startup Issues
 
-If you downloaded the `.jar` version and
-double-clicking doesn&rsquo;t open up the application, make sure
-you have a recent [Java SE runtime
-environment](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-installed, and try running it from the command line:
+If you downloaded the `.jar` version and are using a recent Java
+distribution, double-clicking doesn&rsquo;t open up the application,
+so open a terminal window and run it from the command line:
 
     java -jar beat-link-trigger.jar
 
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
+
+Make sure you have a current OpenJDK distribution installed (we build
+releases with [Amazon Corretto
+11](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html)).
+
 
 ### Font-Related Bugs
 
@@ -171,12 +175,13 @@ least lets you run the program.
 
 ### Mac Trust Confirmation
 
-If you are on a Mac, your best option nowadays is to download the
-disk image installer. It contains Beat Link Trigger packaged
-as a native Mac application, with an embedded Java 11 runtime,
-so you don&rsquo;t need to worry about installing or managing Java if you
-don&rsquo;t use it for other purposes. It is code-signed by Deep Symmetry,
-so your Mac should be happy to install and run it without complaint.
+If you are on a Mac, your best option nowadays is to download the disk
+image installer. It contains Beat Link Trigger packaged as a native
+Mac application, with an embedded Java 11 runtime, so you don&rsquo;t
+need to worry about installing or managing Java if you don&rsquo;t use
+it for other purposes. It is code-signed by Deep Symmetry, so your Mac
+should be happy to install and run it without complaint (although
+under Catalina this may be an issue again).
 
 <img src="doc/modules/ROOT/assets/images/DMG-Installer.png" width="640" height="435"
      alt="Installer window">
@@ -198,7 +203,9 @@ on, you will be able to run that copy by just double-clicking it.
 <img src="doc/modules/ROOT/assets/images/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
 > You will need to repeat this process for each version that you
-> download.
+> download. Also, current versions of OpenJDK no longer support
+> launching Jar files by double-clicking, so you are better off
+> switching to a native installer, or running via the command-line.
 
 ## Licenses
 
