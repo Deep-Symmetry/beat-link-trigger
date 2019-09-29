@@ -224,20 +224,21 @@ this notice, or any other, from this software.
 
 #### [Remote Tea](https://sourceforge.net/projects/remotetea/)
 
-Used for communicating with the NFSv2 servers on players,
-is licensed under the [GNU Library General
-Public License, version 2](https://opensource.org/licenses/LGPL-2.0).
+Used for communicating with the NFSv2 servers on players, licensed
+ under the [GNU Library General Public License, version
+ 2](https://opensource.org/licenses/LGPL-2.0).
 
 #### The [Kaitai Struct](http://kaitai.io) Java runtime
 
-Used for parsing rekordbox exports and media analysis files, is
-licensed under the [MIT License](https://opensource.org/licenses/MIT).
+Used for parsing rekordbox exports and media analysis files, licensed
+under the [MIT License](https://opensource.org/licenses/MIT).
 
 #### [RSyntaxtTextArea](https://github.com/bobbylight/RSyntaxTextArea)
 
 Used for editing Clojure expression code.
 
-Copyright © 2019, Robert Futrell All rights reserved.
+Copyright © 2019, Robert Futrell.
+All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -267,11 +268,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Provides find/replace and other extended features to RSyntaxTextArea
 when editing Clojure expression code.
 
-Copyright © 2012, Robert Futrell
+Copyright © 2012, Robert Futrell.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
+
 * Redistributions of source code must retain the above copyright
   notice, this list of conditions and the following disclaimer.
 * Redistributions in binary form must reproduce the above copyright
