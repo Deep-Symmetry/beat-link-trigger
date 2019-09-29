@@ -5,6 +5,7 @@
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.nrepl :as nrepl]
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as writer]
             [beat-link-trigger.track-loader :as track-loader]
@@ -941,6 +942,12 @@
                  :name "Ableton Link: Carabiner Connection"))
 
 (defonce ^{:private true
+           :doc "The menu action which opens the nREPL configuration window."}
+  nrepl-action
+  (seesaw/action :handler (fn [e] (nrepl/show-window @trigger-frame))
+                 :name "nREPL: Clojure IDE Connection"))
+
+(defonce ^{:private true
            :doc "The menu action which opens the Load Track window."}
   load-track-action
   (seesaw/action :handler (fn [e] (track-loader/show-dialog))
@@ -1410,7 +1417,7 @@
                                                  (seesaw/separator)
                                                  player-status-action load-track-action
                                                  (seesaw/separator)
-                                                 carabiner-action]
+                                                 carabiner-action nrepl-action]
                                          :id :network-menu)
                             (menus/build-help-menu)])))
 

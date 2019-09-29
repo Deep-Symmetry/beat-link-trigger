@@ -27,7 +27,9 @@
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
                  [ring/ring-core "1.7.1"]
-                 [compojure "1.6.1"]]
+                 [compojure "1.6.1"]
+                 [nrepl "0.6.0"]
+                 [cider/cider-nrepl "0.22.3"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
