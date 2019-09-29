@@ -25,7 +25,7 @@ Public License, version 2].
 Used for parsing rekordbox exports and media analysis files, licensed
 under the https://opensource.org/licenses/MIT[MIT License].
 
-==== [RSyntaxtTextArea](https://github.com/bobbylight/RSyntaxTextArea)
+==== https://github.com/bobbylight/RSyntaxTextArea[RSyntaxtTextArea]
 
 Used for editing Clojure expression code.
 
@@ -55,7 +55,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-==== [RSTAUI](https://github.com/bobbylight/RSTAUI)
+==== https://github.com/bobbylight/RSTAUI[RSTAUI]
 
 Provides find/replace and other extended features to RSyntaxTextArea
 when editing Clojure expression code.
