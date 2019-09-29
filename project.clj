@@ -10,6 +10,7 @@
                  [org.clojure/tools.cli "0.4.2"]
                  [clojure-humanize "0.2.2"]
                  [com.fifesoft/rsyntaxtextarea "3.0.4"]
+                 [com.fifesoft/rstaui "3.0.2"]
                  [org.pushing-pixels/radiance-substance "1.0.2"]
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]
                  [com.taoensso/timbre "4.10.0"]
