@@ -743,10 +743,10 @@
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
   overall application look."
-  (seesaw/invoke-now
-   (with-open [s (clojure.java.io/input-stream
-                  (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
-     (org.fife.ui.rsyntaxtextarea.Theme/load s))))
+  (delay (seesaw/invoke-now
+          (with-open [s (clojure.java.io/input-stream
+                         (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
+            (org.fife.ui.rsyntaxtextarea.Theme/load s)))))
 
 (defn trigger-index
   "Returns the index number associated with the trigger, for use in
@@ -953,50 +953,268 @@ a {
 
 (defn- confirm-close-if-dirty
   "Checks if an editor window has unsaved changes (which will be
-  reflected by the enabled state of the supplied save button). If it
+  reflected by the enabled state of the supplied save action). If it
   does, bring the frame to the front and show a modal confirmation
   dialog. Return truthy if the editor should be closed."
-  [frame save-button]
-  (or (not (seesaw/config save-button :enabled?))
+  [frame save-action]
+  (or (not (seesaw/config save-action :enabled?))
       (do
         (.toFront frame)
         (seesaw/confirm frame "Closing will discard the changes you made. Proceed?"
                         :type :question :title "Discard Changes?"))))
+
+(defn- build-search-listener
+  "Creates the search coordination object that manages find and replace
+  capabilities for an editor window."
+  [editor status-label]
+  (proxy [org.fife.rsta.ui.search.SearchListener] []
+    (getSelectedText []
+      (.getSelectedText editor))
+    (searchEvent [^org.fife.rsta.ui.search.SearchEvent e]
+      (let [type    (.getType e)
+            context (.getSearchContext e)
+            result  (cond
+                      (= type org.fife.rsta.ui.search.SearchEvent$Type/MARK_ALL)
+                      (org.fife.ui.rtextarea.SearchEngine/markAll editor context)
+
+                      (= type org.fife.rsta.ui.search.SearchEvent$Type/FIND)
+                      (let [res (org.fife.ui.rtextarea.SearchEngine/find editor context)]
+                        (when-not (.wasFound res)
+                          (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor))
+                        res)
+
+                      (= type org.fife.rsta.ui.search.SearchEvent$Type/REPLACE)
+                      (let [res (org.fife.ui.rtextarea.SearchEngine/replace editor context)]
+                        (when-not (.wasFound res)
+                          (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor))
+                        res)
+
+                      (= type org.fife.rsta.ui.search.SearchEvent$Type/REPLACE_ALL)
+                      (let [res (org.fife.ui.rtextarea.SearchEngine/replaceAll editor context)]
+                        (seesaw/alert (str (.getCount res) " occurrences replaced.") :title "Replace Results")
+                        res)
+
+                      :else
+                      (timbre/warn "Unrecognized search event type:" type))
+            text (if (.wasFound result)
+                   (str "Text found; occurences marked: " (.getMarkedCount result) ".")
+                   (if (= type org.fife.rsta.ui.search.SearchEvent$Type/MARK_ALL)
+                     (if (pos? (.getMarkedCount result))
+                       (str "Occurrences marked: " (.getMarkedCount result) ".")
+                       "")
+                     "Text not found."))]
+        #_(timbre/info type context)
+        (seesaw/value! status-label text)))))
+
+(defn- build-search-tools
+  "Creates the find and replace dialogs and toolbars to work with an
+  editor window."
+  [frame editor status-label]
+  (let [listener        (build-search-listener editor status-label)
+        find-dialog     (org.fife.rsta.ui.search.FindDialog. frame listener)
+        replace-dialog  (org.fife.rsta.ui.search.ReplaceDialog. frame listener)
+        find-toolbar    (org.fife.rsta.ui.search.FindToolBar. listener)
+        replace-toolbar (org.fife.rsta.ui.search.ReplaceToolBar. listener)
+        context         (.getSearchContext find-dialog)]
+    (.setSearchContext replace-dialog context)
+    (.setSearchContext find-toolbar context)
+    (.setSearchContext replace-toolbar context)
+    {:find-dialog     find-dialog
+     :replace-dialog  replace-dialog
+     :find-toolbar    find-toolbar
+     :replace-toolbar replace-toolbar}))
+
+(defn- build-find-dialog-action
+  "Creates a menu action to show the Find dialog for an editor window."
+  [find-dialog replace-dialog]
+  (seesaw/action :handler (fn [e]
+                            (when (.isVisible replace-dialog) (.setVisible replace-dialog false))
+                            (.setVisible find-dialog true))
+                 :name "Show Find Dialog…"
+                 :key "shift menu F"))
+
+(defn- build-replace-dialog-action
+  "Creates a menu action to show the Replace dialog for an editor
+  window."
+  [find-dialog replace-dialog]
+  (seesaw/action :handler (fn [e]
+                            (when (.isVisible find-dialog) (.setVisible find-dialog false))
+                            (.setVisible replace-dialog true))
+                 :name "Show Replace Dialog…"
+                 :key "shift menu R"))
+
+(defn- build-go-to-line-action
+  "Creates a menu action to jump to a particular source line for an
+  editor window."
+  [frame editor find-dialog replace-dialog]
+  (seesaw/action :handler (fn [e]
+                            (when (.isVisible find-dialog) (seesaw/hide! find-dialog))
+                            (when (.isVisible replace-dialog) (seesaw/hide! replace-dialog))
+                            (let [dialog (org.fife.rsta.ui.GoToDialog. frame)]
+                              (.setMaxLineNumberAllowed dialog (.getLineCount editor))
+                              (seesaw/show! dialog)
+                              (let [line (.getLineNumber dialog)]
+                                (when (pos? line)
+                                  (try
+                                    (.setCaretPosition editor (.getLineStartOffset editor (dec line)))
+                                    (catch Exception e
+                                      (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor)
+                                      (timbre/error e "Problem going to editor line number")))))))
+                 :name "Go To Line…"
+                 :key "menu G"))
+
+(defn- build-find-toolbar-action
+  "Creates a menu action to show the Find toolbar for an editor window."
+  [editor-panel find-toolbar]
+  (let [menu      (.getMenuShortcutKeyMask (.getToolkit editor-panel))
+        keystroke (javax.swing.KeyStroke/getKeyStroke java.awt.event.KeyEvent/VK_F menu)
+        action (.addBottomComponent editor-panel keystroke find-toolbar)]
+    (.putValue action javax.swing.Action/NAME "Find…")
+    action))
+
+(defn- build-replace-toolbar-action
+  "Creates a menu action to show the Replace toolbar for an editor
+  window."
+  [editor-panel replace-toolbar]
+  (let [menu      (.getMenuShortcutKeyMask (.getToolkit editor-panel))
+        keystroke (javax.swing.KeyStroke/getKeyStroke java.awt.event.KeyEvent/VK_R menu)
+        action (.addBottomComponent editor-panel keystroke replace-toolbar)]
+    (.putValue action javax.swing.Action/NAME "Replace…")
+    action))
+
+(defn- build-load-action
+  "Creates a menu action to load an editor window from the contents of a
+  file."
+  [frame editor]
+  (seesaw/action :handler (fn [e]
+                            (when-let [file (chooser/choose-file frame :all-files? true
+                                                                 :filters [["Clojure files" ["clj"]]])]
+                              (try
+                                (.setText editor (slurp file))
+                                (.setCaretPosition editor 0)
+                                (catch Exception e
+                                  (timbre/error e "Problem loading" file)
+                                  (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
+                                                :title "Problem Reading File" :type :error)))))
+                 :name "Load from File"
+                 :key "menu L"))
+
+(defn- build-insert-action
+  "Creates a menu action to insert the contents of a file into an editor
+  window."
+  [frame editor]
+  (seesaw/action :handler (fn [e]
+                            (when-let [file (chooser/choose-file frame :all-files? true
+                                                                 :filters [["Clojure files" ["clj"]]])]
+                              (try
+                                (.insert editor (slurp file) (.getCaretPosition editor))
+                                (catch Exception e
+                                  (timbre/error e "Problem inserting" file)
+                                  (seesaw/alert (str "<html>Unable to Insert File Contents.<br><br>" e)
+                                                :title "Problem Reading File" :type :error)))))
+                 :name "Insert File Contents"
+                 :key "menu I"))
+
+(defn- build-save-action
+  "Creates a menu action to save the contents of an editor window to a
+  file."
+  [frame editor]
+  (seesaw/action :handler (fn [e]
+                            (when-let [file (chooser/choose-file frame :type :save
+                                                                 :all-files? false
+                                                                 :filters [["Clojure files" ["clj"]]])]
+                              (when-let [file (util/confirm-overwrite-file file "clj" frame)]
+                                (try
+                                  (spit file (.getText editor))
+                                  (catch Exception e
+                                    (timbre/error e "Problem saving" file)
+                                    (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
+                                                  :title "Problem Saving File" :type :error))))))
+                 :name "Save to File"
+                 :key "menu S"))
+
+(defn- build-update-action
+  "Creates a menu action to update the expression associated with an
+  editor window."
+  [editor save-fn]
+  (seesaw/action :handler (fn [e] (save-fn (.getText editor)))
+                 :name "Update"
+                 :key "menu U"
+                 :enabled? false))
+
+(defn- build-close-action
+  "Creates a menu action to close an editor window."
+  [frame]
+  (seesaw/action :handler (fn [e]
+                            (.dispatchEvent frame (java.awt.event.WindowEvent.
+                                                   frame java.awt.event.WindowEvent/WINDOW_CLOSING)))
+                 :name "Close"
+                 :key "menu W"))
+
+(defn- build-menubar
+  "Creates the menu bar for an editor window."
+  [frame editor editor-panel update-action {:keys [find-dialog replace-dialog find-toolbar replace-toolbar]}]
+  (seesaw/menubar
+   :items [#_(seesaw/menu :text "File" :items (concat [load-action save-action]))  ; TODO: Add save/load capabilities?
+           (seesaw/menu :text "File"
+                        :items [(build-load-action frame editor)
+                                (build-insert-action frame editor)
+                                (build-save-action frame editor)
+                                (seesaw/separator)
+                                update-action
+                                (seesaw/separator)
+                                (build-close-action frame)])
+           (seesaw/menu :text "Search"
+                        :items [(build-find-toolbar-action editor-panel find-toolbar)
+                                (build-replace-toolbar-action editor-panel replace-toolbar)
+                                (seesaw/separator)
+                                (build-go-to-line-action frame editor find-dialog replace-dialog)
+                                #_(seesaw/separator)
+                                #_(build-find-dialog-action find-dialog replace-dialog)
+                                #_(build-replace-dialog-action find-dialog replace-dialog)])]))
 
 (defn- create-triggers-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Triggers window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind trigger update-fn]
-  (let [global? (:global @(seesaw/user-data trigger))
-        text (get-in @(seesaw/user-data trigger) [:expressions kind])
-        save-fn (fn [text] (update-triggers-expression kind trigger global? text update-fn))
-        root (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :nothing :size [800 :by 600]
-                           ;; TODO: Add save/load capabilities?
-                           #_:menubar #_(seesaw/menubar
-                                     :items [(seesaw/menu :text "File" :items (concat [load-action save-action]
-                                                                                      non-mac-actions))
-                                             (seesaw/menu :text "Triggers"
-                                                          :items [new-trigger-action clear-triggers-action])]))
-        editor (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
-                                   :enabled? false)
-        help (seesaw/styled-text :id :help :wrap-lines? true)]
+  (let [global?       (:global @(seesaw/user-data trigger))
+        text          (get-in @(seesaw/user-data trigger) [:expressions kind])
+        save-fn       (fn [text] (update-triggers-expression kind trigger global? text update-fn))
+        root          (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :nothing
+                                    :size [800 :by 600])
+        editor        (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane   (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        editor-panel  (org.fife.rsta.ui.CollapsibleSectionPanel.)
+        status-label  (seesaw/label)
+        tools         (build-search-tools root editor status-label)
+        update-action (build-update-action editor save-fn)
+        help          (seesaw/styled-text :id :help :wrap-lines? true)]
+    (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
-    (.apply editor-theme editor)
+    (.setCodeFoldingEnabled editor true)
+    (.setMarkOccurrences editor true)
+    (.apply @editor-theme editor)
     (seesaw/config! help :editable? false)
-    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
-                                                         [save-button "push, align center, wrap"]
+    (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
+                                                          "push 2, span 3, grow 100 100, wrap, sizegroup a"]
+
+                                                         [status-label "align left, sizegroup b"]
+                                                         [update-action "align center, push"]
+                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
+
                                                          [(seesaw/scrollable help :hscroll :never)
-                                                          "sizegroup a, gapy unrelated, width 100%"]]))
+                                                          "span 3, sizegroup a, gapy unrelated, width 100%"]]))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action tools))
     (seesaw/config! editor :id :source)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
-                     (seesaw/config! save-button :enabled?
+                     (seesaw/config! update-action :enabled?
                                      (not= (util/remove-blanks (get-in @(seesaw/user-data trigger) [:expressions kind]))
                                            (util/remove-blanks (seesaw/text e))))))
     (seesaw/value! root {:source text})
+    (.setCaretPosition editor 0)
+    (.discardAllEdits editor)
     (.setContentType help "text/html")
     (.setText help (build-triggers-help kind global? (if global? global-trigger-editors trigger-editors)))
     (seesaw/scroll! help :to :top)
@@ -1004,10 +1222,10 @@ a {
     (seesaw/listen help :hyperlink-update
                    (fn [e]
                      (let [type (.getEventType e)
-                           url (.getURL e)]
+                           url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root save-button)
+    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root update-action)
                                                   (swap! (seesaw/user-data trigger) update-in [:expression-editors]
                                                          dissoc kind)
                                                   (.dispose root))))
@@ -1019,7 +1237,7 @@ a {
               (.setLocationRelativeTo root trigger)
               (seesaw/show! root)
               (.toFront root))
-            (can-close? [_]  (confirm-close-if-dirty root save-button))
+            (can-close? [_]  (confirm-close-if-dirty root update-action))
             (dispose [_]
               (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind)
               (seesaw/dispose! root)))]
@@ -1072,31 +1290,44 @@ a {
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind show track parent-frame update-fn]
-  (let [text        (find-show-expression-text kind show track)
-        save-fn     (fn [text] (update-show-expression kind show track text update-fn))
-        root        (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
-        editor      (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
-                                   :enabled? false)
-        help        (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn    (fn [] (if track
-                             (show-call swap-track! track update :expression-editors dissoc kind)
-                             (show-call swap-show! show update :expression-editors dissoc kind)))]
+  (let [text          (find-show-expression-text kind show track)
+        save-fn       (fn [text] (update-show-expression kind show track text update-fn))
+        root          (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
+        editor        (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane   (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        editor-panel  (org.fife.rsta.ui.CollapsibleSectionPanel.)
+        status-label  (seesaw/label)
+        tools         (build-search-tools root editor status-label)
+        update-action (build-update-action editor save-fn)
+        help          (seesaw/styled-text :id :help :wrap-lines? true)
+        close-fn      (fn [] (if track
+                               (show-call swap-track! track update :expression-editors dissoc kind)
+                               (show-call swap-show! show update :expression-editors dissoc kind)))]
+    (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
-    (.apply editor-theme editor)
+    (.setCodeFoldingEnabled editor true)
+    (.setMarkOccurrences editor true)
+    (.apply @editor-theme editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
-                     (seesaw/config! save-button :enabled?
+                     (seesaw/config! update-action :enabled?
                                      (not= (util/remove-blanks (find-show-expression-text kind show track))
                                            (util/remove-blanks (seesaw/text e))))))
     (seesaw/config! help :editable? false)
-    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
-                                                         [save-button "push, align center, wrap"]
+    (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
+                                                          "push 2, span 3, grow 100 100, wrap, sizegroup a"]
+
+                                                         [status-label "align left, sizegroup b"]
+                                                         [update-action "align center, push"]
+                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
+
                                                          [(seesaw/scrollable help :hscroll :never)
-                                                          "sizegroup a, gapy unrelated, width 100%"]]))
+                                                          "span 3, sizegroup a, gapy unrelated, width 100%"]]))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action tools))
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
+    (.setCaretPosition editor 0)
+    (.discardAllEdits editor)
     (.setContentType help "text/html")
     (.setText help (build-show-help kind (not track) (if track show-track-editors global-show-editors)))
     (seesaw/scroll! help :to :top)
@@ -1107,7 +1338,7 @@ a {
                            url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root save-button)
+    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
     (let [result
@@ -1118,7 +1349,7 @@ a {
               (.setLocationRelativeTo root parent-frame)
               (seesaw/show! root)
               (.toFront root))
-            (can-close? [_] (confirm-close-if-dirty root save-button))
+            (can-close? [_] (confirm-close-if-dirty root update-action))
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
@@ -1151,30 +1382,43 @@ a {
   kind of Cues Editor window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind track cue parent-frame update-fn]
-  (let [text        (find-cue-expression-text kind track cue)
-        save-fn     (fn [text] (update-cue-expression kind track cue text update-fn))
-        root        (seesaw/frame :title (cue-editor-title kind track cue) :on-close :nothing :size [800 :by 600])
-        editor      (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        save-button (seesaw/button :text "Update" :listen [:action (fn [e] (save-fn (.getText editor)))]
-                                   :enabled? false)
-        help        (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn    (fn [] (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
-                                      dissoc kind))]
+  (let [text          (find-cue-expression-text kind track cue)
+        save-fn       (fn [text] (update-cue-expression kind track cue text update-fn))
+        root          (seesaw/frame :title (cue-editor-title kind track cue) :on-close :nothing :size [800 :by 600])
+        editor        (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane   (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        editor-panel  (org.fife.rsta.ui.CollapsibleSectionPanel.)
+        status-label  (seesaw/label)
+        tools         (build-search-tools root editor status-label)
+        update-action (build-update-action editor save-fn)
+        help          (seesaw/styled-text :id :help :wrap-lines? true)
+        close-fn      (fn [] (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
+                                        dissoc kind))]
+    (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
-    (.apply editor-theme editor)
+    (.setCodeFoldingEnabled editor true)
+    (.setMarkOccurrences editor true)
+    (.apply @editor-theme editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
-                     (seesaw/config! save-button :enabled?
+                     (seesaw/config! update-action :enabled?
                                      (not= (util/remove-blanks (find-cue-expression-text kind track cue))
                                            (util/remove-blanks (seesaw/text e))))))
     (seesaw/config! help :editable? false)
-    (seesaw/config! root :content (mig/mig-panel :items [[scroll-pane "grow 100 100, wrap, sizegroup a"]
-                                                         [save-button "push, align center, wrap"]
+    (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
+                                                          "push 2, span 3, grow 100 100, wrap, sizegroup a"]
+
+                                                         [status-label "align left, sizegroup b"]
+                                                         [update-action "align center, push"]
+                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
+
                                                          [(seesaw/scrollable help :hscroll :never)
-                                                          "sizegroup a, gapy unrelated, width 100%"]]))
+                                                          "span 3, sizegroup a, gapy unrelated, width 100%"]]))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action tools))
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
+    (.setCaretPosition editor 0)
+    (.discardAllEdits editor)
     (.setContentType help "text/html")
     (.setText help (build-show-help kind false show-track-cue-editors))
     (seesaw/scroll! help :to :top)
@@ -1185,7 +1429,7 @@ a {
                            url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root save-button)
+    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
     (let [result
@@ -1196,7 +1440,7 @@ a {
               (.setLocationRelativeTo root parent-frame)
               (seesaw/show! root)
               (.toFront root))
-            (can-close? [_] (confirm-close-if-dirty root save-button))
+            (can-close? [_] (confirm-close-if-dirty root update-action))
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
