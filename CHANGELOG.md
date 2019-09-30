@@ -22,6 +22,11 @@ This change log follows the conventions of
   to exit expressions you have saved to files, it can connect to Beat
   Link Trigger, and offer full-featured code completion, popup
   documentation, and expression evaluation.
+- The Triggers and Show windows now allow you to edit shared functions
+  for use by any expression, in the form of ordinary Clojure code that
+  is ideal for working with in an external IDE. Most extensive
+  development should be done in these shared functions, and trigger
+  expressions can be small, simply calling the functions.
 
 ### Fixed
 
