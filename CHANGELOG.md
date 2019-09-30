@@ -6,6 +6,23 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- Expression editors have been greatly improved, with new features in
+  the context menu, and a new menu bar:
+  - They now allow you to load or insert files into the expression
+    text, or save the text to a file, where you can edit it with a
+    full-featured Clojure IDE.
+  - Rich Find and Replace support has been added.
+  - You can jump to a line number.
+  - Code folding in the context menu allows you to collapse sections
+    of the code you aren't working on, to better see the outer
+    structure.
+- You can now start an nREPL server so that when you use a Clojure IDE
+  to exit expressions you have saved to files, it can connect to Beat
+  Link Trigger, and offer full-featured code completion, popup
+  documentation, and expression evaluation.
+
 ### Fixed
 
 - Shows' Global Setup Expressions are now compiled before any Track
