@@ -2631,7 +2631,12 @@
       (let [item (.getItem menu i)]
         (when item
           (let [label (.getText item)]
-            (cond (= label "Edit Global Setup Expression")
+            (cond (= label "Edit Shared Functions")
+                  (.setIcon item (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions :shared]))
+                                                "images/Gear-outline.png"
+                                                "images/Gear-icon.png")))
+
+                  (= label "Edit Global Setup Expression")
                   (.setIcon item (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions :setup]))
                                                 "images/Gear-outline.png"
                                                 "images/Gear-icon.png")))
@@ -3792,13 +3797,15 @@
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
 
-        ;; Need to compile the show expressions before building the tracks, so global setup loads before all others.
+        ;; Need to compile the show expressions before building the tracks, so shared functions are available.
         (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
           (let [editor-info (get editors/global-show-editors kind)]
             (try
               (swap-show! show assoc-in [:expression-fns kind]
-                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                        (editors/show-editor-title kind show nil)))
+                          (if (= kind :shared)
+                            (expressions/define-shared-functions expr (editors/show-editor-title kind show nil))
+                            (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                               (editors/show-editor-title kind show nil))))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
                                      " when loading Show. Expression:\n" expr "\n"))

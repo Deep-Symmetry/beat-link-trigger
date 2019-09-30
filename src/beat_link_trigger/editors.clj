@@ -38,12 +38,16 @@
   regard to whether there are unsaved changes."))))
 
 (defn sort-setup-to-front
-  "Given a sequence of expression keys and value tuples, makes sure
-  that if a `:setup` key is present, it and its expression are first
-  in the sequence, so they get evaluated first, in case they define
-  any functions needed to evaluate the other expressions."
+  "Given a sequence of expression keys and value tuples, makes sure that
+  if `:shared` or `:setup` keys present, they and their expressions
+  are first and second in the sequence, so they get evaluated first,
+  in case they define any functions needed to evaluate the other
+  expressions. The setup expreession should no longer do that, now
+  that shared functions are better supported, but this behavior is
+  maintained for backwards compatibility with older files."
   [exprs]
-  (concat (filter #(= :setup (first %)) exprs) (filter #(not= :setup (first %)) exprs)))
+  (concat (filter #(= :shared (first %)) exprs) (filter #(= :setup (first %)) exprs)
+          (filter #(not (#{:shared :setup} (first %))) exprs)))
 
 (defmacro ^:private show-call
   "Calls a function in the show namespace, without a compile-time
@@ -104,6 +108,13 @@
   compile the expressions they edit. Created as an explicit array map
   to keep the keys in the order they are found here."
   (array-map
+   :shared {:title "Shared Functions"
+            :tip "The place to define functions used by expressions."
+            :description "Compiled before any expressions are, so you
+            can define any functions those expressions might find
+            useful. This is just ordinary Clojure code that can be
+            conveniently edited using an IDE if you turn on the
+            embedded nREPL server."}
    :setup {:title    "Global Setup Expression"
            :tip      "Called once to set up any state your trigger expressions may need."
            :description
@@ -114,7 +125,7 @@
   trigger window is shutting down."
            :bindings nil}
 
-   :online {:title   "Came Online Expression"
+   :online {:title    "Came Online Expression"
             :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
             :description
             "Called after the Global Setup Expression when loading a
@@ -129,7 +140,7 @@
                        'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
                                        :doc  "The IP address we are using to talk to DJ Link devices."}}}
 
-   :offline {:title     "Going Offline Expression"
+   :offline {:title    "Going Offline Expression"
              :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
              :description
              "Called before the Global Shutdown Expression when the
@@ -376,6 +387,13 @@
   compile the expressions they edit. Created as an explicit array map
   to keep the keys in the order they are found here."
   (array-map
+   :shared {:title "Shared Functions"
+            :tip "The place to define functions used by expressions."
+            :description "Compiled before any expressions are, so you
+            can define any functions those expressions might find
+            useful. This is just ordinary Clojure code that can be
+            conveniently edited using an IDE if you turn on the
+            embedded nREPL server."}
    :setup {:title "Global Setup Expression"
            :tip "Called once to set up any state your show expressions may need."
            :description
@@ -775,9 +793,11 @@
         editor-info (get (if global? global-trigger-editors trigger-editors) kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it
-        (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-               (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                  (triggers-editor-title kind trigger global?))))
+        (if (= kind :shared)
+          (expressions/define-shared-functions text (triggers-editor-title kind trigger global?))
+          (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
+                 (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
+                                                    (triggers-editor-title kind trigger global?)))))
       (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
         (dispose editor)  ; Close the editor
         (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
@@ -834,11 +854,13 @@
         editor-info (get (if track show-track-editors global-show-editors) kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it.
-        (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                          (show-editor-title kind show track))]
-          (if track
-            (show-call swap-track! track assoc-in [:expression-fns kind] compiled)
-            (show-call swap-show! show assoc-in [:expression-fns kind] compiled))))
+        (if (= kind :shared)
+          (expressions/define-shared-functions text (show-editor-title kind show track))
+          (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
+                                                            (show-editor-title kind show track))]
+            (if track
+              (show-call swap-track! track assoc-in [:expression-fns kind] compiled)
+              (show-call swap-show! show assoc-in [:expression-fns kind] compiled)))))
       (when-let [editor (find-show-expression-editor kind show track)]
         (dispose editor)  ; Close the editor
         (if track
@@ -929,6 +951,17 @@ a {
 }
 </style></head>")
 
+(defn- triggers-locals-globals
+  "Describes trigger locals and globals bindings when available
+  available."
+  [kind global?]
+  (when-not (= kind :shared)
+    (clojure.string/join (concat ["<p>The "
+                                  (when-not global? "atom
+  <code>locals</code> is available for use by all expressions on this
+  trigger, and the ")
+                                  "atom <code>globals</code> is shared across all expressions in any trigger."]))))
+
 (defn- build-triggers-help
   "Create the help information for a triggers window editor with the
   specified kind."
@@ -936,11 +969,7 @@ a {
   (let [editor-info (get editors kind)]
     (clojure.string/join (concat [help-header "<h1>Description</h1>"
                                   (:description editor-info)
-                                  "<p>The "
-                                  (when-not global? "atom
-  <code>locals</code> is available for use by all expressions on this
-  trigger, and the ")
-                                  "atom <code>globals</code> is shared across all expressions in any trigger."]
+                                  (triggers-locals-globals kind global?)]
                                  (when (seq (:bindings editor-info))
                                       (concat ["
 
@@ -1260,6 +1289,20 @@ a {
     (catch Exception e
       (timbre/error e "Problem showing trigger" kind "editor"))))
 
+(defn- show-locals-globals
+  "Describes show locals and globals bindings when available
+  available."
+  [kind global?]
+  (when-not (= kind :shared)
+    (clojure.string/join (concat ["<p>The "
+                                  (when-not global? "atom
+  <code>locals</code> is available for use by all expressions on this
+  track, and the ")
+                                  "atom <code>globals</code> is shared
+  across all expressions in this show. You can also use the atom
+  <code>trigger-globals</code> to share the expression globals of the
+  Triggers window."]))))
+
 (defn- build-show-help
   "Create the help information for a show window editor with the
   specified kind."
@@ -1267,14 +1310,7 @@ a {
   (let [editor-info (get editors kind)]
     (clojure.string/join (concat [help-header "<h1>Description</h1>"
                                   (:description editor-info)
-                                  "<p>The "
-                                  (when-not global? "atom
-  <code>locals</code> is available for use by all expressions on this
-  track, and the ")
-                                  "atom <code>globals</code> is shared
-  across all expressions in this show. You can also use the atom
-  <code>trigger-globals</code> to share the expression globals of the
-  Triggers window."]
+                                  (show-locals-globals kind global?)]
                                  (when (seq (:bindings editor-info))
                                    (concat ["
 

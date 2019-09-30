@@ -1239,8 +1239,10 @@
         (let [editor-info (get editors/global-trigger-editors kind)]
           (try
             (swap! trigger-prefs assoc-in [:expression-fns kind]
-                   (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                      (editors/triggers-editor-title kind nil true)))
+                   (if (= kind :shared)
+                     (expressions/define-shared-functions expr (editors/triggers-editor-title kind nil true))
+                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                        (editors/triggers-editor-title kind nil true))))
             (catch Exception e
               (timbre/error e (str "Problem parsing " (:title editor-info)
                                    " when loading Triggers. Expression:\n" expr "\n"))
@@ -1426,7 +1428,8 @@
   reflect whether they have been assigned a non-empty value."
   []
   (let [menu  (seesaw/select @trigger-frame [:#triggers-menu])
-        exprs {"Edit Global Setup Expression"    :setup
+        exprs {"Edit Shared Functions"           :shared
+               "Edit Global Setup Expression"    :setup
                "Edit Came Online Expression"     :online
                "Edit Going Offline Expression"   :offline
                "Edit Global Shutdown Expression" :shutdown}]

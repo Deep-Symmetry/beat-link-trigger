@@ -307,3 +307,16 @@
           eof (Object.)
           forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
       (eval `(wrap-user-expression (do ~@forms) ~available-bindings ~nil-status?)))))
+
+(defn define-shared-functions
+  "Takes a string that a user has entered as shared functions for
+  expressions, and evaluates it in the expressions namespace. The
+  `title` describes the shared function context and is reported as the
+  file name in any exception arising during parsing the expression."
+  [expr title]
+  (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+    (let [reader (rt/indexing-push-back-reader expr 1 title)
+          eof (Object.)
+          forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
+      (doseq [form forms]
+        (eval form)))))
