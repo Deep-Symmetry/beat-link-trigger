@@ -95,9 +95,10 @@
   centered over it."
   [file required-extension parent]
   (when file
-    (let [required-extension (if (.startsWith required-extension ".")
-                               required-extension
-                               (str "." required-extension))
+    (let [required-extension (when required-extension
+                               (if (.startsWith required-extension ".")
+                                 required-extension
+                                 (str "." required-extension)))
           file (if (or (nil? required-extension) (.. file (getAbsolutePath) (endsWith required-extension)))
                  file
                  (clojure.java.io/file (str (.getAbsolutePath file) required-extension)))]
