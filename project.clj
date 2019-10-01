@@ -58,7 +58,7 @@
 
   ;; Perform the tasks which embed the user guide before compilation, so it will be available
   ;; both in development, and in the distributed archive.
-  :prep-tasks [["shell" "antora" "doc/embedded.yml"]
+  :prep-tasks [["shell" "antora" "--fetch" "doc/embedded.yml"]
                "javac"
                "compile"
                ["v" "cache" "resources/beat_link_trigger" "edn"]]
