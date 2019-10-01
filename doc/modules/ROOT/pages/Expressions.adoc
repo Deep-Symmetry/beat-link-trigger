@@ -167,7 +167,7 @@ Clojure http://clojuredocs.org[documentation], but you can also ask
 for help in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
-[[shared-functions]]
+[shared-functions]
 == Shared Functions
 
 Once you start writing more complex expressions, you may find yourself
@@ -298,6 +298,7 @@ this:
 Of course you would replace the example repository name and URL with
 the actual name and URL of the repository you want to add.
 
+[local-libraries]
 === Local Libraries
 
 If you have a library already downloaded as a standalone Jar file (or
