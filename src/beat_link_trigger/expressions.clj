@@ -4,6 +4,8 @@
   (:require [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [beat-link-trigger.util :as util]
+            [cemerick.pomegranate :as pomegranate]
+            [cemerick.pomegranate.aether :as aether]
             [overtone.midi :as midi]
             [overtone.osc :as osc]
             [taoensso.timbre :as timbre])
@@ -13,6 +15,32 @@
            [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
+
+(def default-repositories
+  "Have our add-dependencies function default to searching Clojars as
+  well as Maven Central."
+  (merge aether/maven-central
+         {"clojars" "https://clojars.org/repo"}))
+
+(defn add-library
+  "Allow expression code to add a new Maven dependency at runtime by
+  specifying its coordinate, and optionally the repositories to
+  search."
+  [coordinate & {:keys [repositories] :or {repositories default-repositories}}]
+  (pomegranate/add-dependencies :coordinates [coordinate] :repositories repositories))
+
+(defn add-libraries
+  "Allow expression code to add multiple new Maven dependency at runtime
+  by specifying their coordinates, and optionally the repositories to
+  search."
+  [coordinates & {:keys [repositories] :or {repositories default-repositories}}]
+  (pomegranate/add-dependencies :coordinates coordinates :repositories repositories))
+
+(defn extend-classpath
+  "Allow expression code to add a local Jar file or directory to the
+  classpath at runtime."
+  [jar-or-dir]
+  (pomegranate/add-classpath jar-or-dir))
 
 (defn track-source-slot
   "Converts the Java enum value representing the slot from which a track

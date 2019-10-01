@@ -27,6 +27,8 @@ This change log follows the conventions of
   is ideal for working with in an external IDE. Most extensive
   development should be done in these shared functions, and trigger
   expressions can be small, simply calling the functions.
+- There is a new mechanism your expressions can use to download and
+  use new libraries that enable you to build your integrations.
 
 ### Fixed
 

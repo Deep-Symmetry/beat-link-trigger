@@ -167,6 +167,154 @@ Clojure http://clojuredocs.org[documentation], but you can also ask
 for help in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
+[[shared-functions]]
+== Shared Functions
+
+Once you start writing more complex expressions, you may find yourself
+repeating common pieces of code over and over again in multiple
+expressions. The best way to deal with that is to pull out the
+repetetive part and write it as a function, which can then be called
+from any expression that wants to use it. In Clojure, you use `defn`
+to define a function, and choosing menu:Triggers[Edit Shared
+Functions] brings up an editor window that is where you should
+organize all of the shared functions you want your Triggers
+expressions to use.
+
+The Shared Functions will be loaded before any of your expressions are
+compiled.
+
+TIP: If you are going to be using the functions in Show expressions,
+define them using menu:Tracks[Edit Shared Functions] in the Show
+window instead. Even though they get compiled into the same
+`beat-link-triggers.expressions` namespace, putting them in the Show
+means they will be saved as part of the Show, so if you share the Show
+with someone else, the expressions will still work. If you need them
+in both your Show and Triggers expressions, put them in both places so
+the Triggers expressions will work even if the Show isn't open.
+Redefining a function is harmless, although make sure you have exactly
+the same definition in both places or you will confuse yourself!
+
+TODO: Link to example, e.g. Break Buddy.
+
+[importing-libraries]
+== Importing Libraries
+
+Although Beat Link Trigger includes many useful libraries for things
+like working with MIDI and Open Sound Control, there are going to be
+situations where you would like to use something that isn't already
+built in. To support that, there is now a mechanism that lets you
+dynamically load any Java (or Clojure, or other JVM language) library
+that you have locally on your machine (in the form of a Jar file or
+directory of classes), or that exists in a Maven repository on the
+Internet.
+
+TIP: You need to be connected to the Internet the first time you try
+to load a library from a repository, but from then on it will be in
+your local Maven cache, so you will be able to access it even when
+offline.
+
+For example, suppose you are building an integration where you want to
+be able to write out JSON files. BLT doesn't include that ability out
+of the box, but there is a nice Clojure library,
+https://github.com/clojure/data.json[data.json], that offers it.
+Looking at the project page, we can see that it has a Leiningen
+dependency "`coordinate`" of `[org.clojure/data.json "0.2.6"]`.
+Leiningen is a very common tool for managing library dependencies in
+Clojure projects, and that format is what the BLT library loader uses
+as well. To make this library available, add this to the Shared
+Functions:
+
+[source,clojure,subs=attributes+]
+----
+(add-library '[org.clojure/data.json "0.2.6"])
+(require '[clojure.data.json :as json])
+----
+
+(The Leiningen coordinate needs to be preceded by a single quote mark
+for Clojure to parse it properly.) Assuming you are connected to the
+Internet, the first line will download the data.json library, and any
+libraries that it needs for its own use, and add them to the class
+path so your expressions can access them.
+
+The second line loads the main namespace of the data.json library, and
+aliases it under the name `json` to make it more convenient for your
+expressions to call its functions.
+
+At this point, your expressions can do things like:
+
+[source,clojure,subs=attributes+]
+----
+(json/write-str {:a 1 :b 2})
+----
+
+Which returns a string holding the JSON representation of the Clojure
+map. See the library's http://clojure.github.com/data.json/[API
+documentation] for more details.
+
+If you want to add multiple libraries, you can call call `add-library`
+multiple times, or in a slightly more compact and efficient variation,
+call `add-libraries` instead and pass a vector of all the coordinates
+(put another set of square brackets around them), like so:
+
+[source,clojure,subs=attributes+]
+----
+(add-libraries '[[org.clojure/data.json "0.2.6"]
+                 [incanter "1.9.3"]])
+(require '[clojure.data.json :as json])
+(require '[incanter/incanter-core :as incanter])
+----
+
+Notice that you still need individual `require` statements for all the
+Clojure libraries you want to actually load and/or give short aliases
+to. Java libraries don't need `require` statements but you might want
+to `import` some of their classes to save typing.
+
+WARNING: Adding libraries like this, while very powerful, is also
+fraught with peril. Beyond vetting that the library seems to be
+well-written and safe, and that your network connection is good the
+first time you try it, there are a number of scenarios in which
+`add-library` will not work, or will not work as you'd expect, because
+of the nature of JVM classloaders. If any of the jars you add provide
+conflicting versions of an existing Beat Link Trigger dependency, this
+will lead to very bad results. So when this works, it can let you add
+new features quickly, but if it doesn't, ask for help from the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter Chat community]
+to see if there might be another library that would work better, or if
+the functionality you need can be safely incorporated in a future
+release.
+
+If you need to load a dependency from a repository other than Clojars
+or Maven Central, you can tell `add-library` where to look by merging
+the description of your repository with the default repositories, like
+this:
+
+[source,clojure,subs=attributes+]
+----
+(add-library '[com.mycompany/cool "0.0.1"]
+             :repositories (merge default-repositories
+                                  {"my repo name" "https://repo.mycompany.com"}))
+----
+
+Of course you would replace the example repository name and URL with
+the actual name and URL of the repository you want to add.
+
+=== Local Libraries
+
+If you have a library already downloaded as a standalone Jar file (or
+directory hierarchy of class files and resources), you can use it by
+adding it to the Beat Link Trigger class path, like in this example:
+
+[source,clojure,subs=attributes+]
+----
+(extend-classpath "/Users/james/git/wayang/wayang-0.1.7.jar")
+----
+
+WARNING: In addition to the caveats described above about adding
+libraries in general, the low-level `extend-classpath` function
+doesn't give you any feedback if the path you entered for the file or
+directory is incorrect; you will simply not find the library classes
+you were hoping would be available when your code tries to use them.
+
 [[global-expressions]]
 == Triggers Global Expressions
 
@@ -685,6 +833,38 @@ per minute that the mixer reported it is running at).
 message that tells MagicQ the remote trigger is off again. So, by
 cycling those messages once per beat, the lighting console can be
 driven at the same BPM as the CDJs.
+
+[[show-shared-functions]]
+== Show Shared Functions
+
+Just like in the Triggers window, if you start writing complex
+expressions in your Show, you will find yourself repeating common
+pieces of code over and over again in multiple expressions. The best
+way to deal with that is to pull out the repetetive part and write it
+as a function, which can then be called from any expression that wants
+to use it. In Clojure, you use `defn` to define a function, and
+choosing menu:Tracks[Edit Shared Functions] brings up an editor window
+that is where you should organize all of the shared functions you want
+your Show expressions to use.
+
+The Shared Functions will be loaded before any of your expressions are
+compiled.
+
+TIP: If you are going to be using the functions only in Triggers
+expressions, define them using menu:Triggers[Edit Shared Functions] in
+the Triggers window instead. Even though they get compiled into the
+same `beat-link-triggers.expressions` namespace, putting them in the
+Triggers window means they will be saved independently of the Show,
+and will work even if the Show was never opened, or if you share the
+Triggers with someone else. If you need them in both your Show and
+Triggers expressions, put them in both places. Redefining a function
+is harmless, although make sure you have exactly the same definition
+in both places or you will confuse yourself!
+
+TODO: Link to example, e.g. Break Buddy.
+
+Also see the discussion of how you can <<importing-libraries,import
+libraries>> for use in your expressions.
 
 [[show-global-expressions]]
 == Show Global Expressions

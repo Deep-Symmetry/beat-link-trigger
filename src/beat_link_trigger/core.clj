@@ -91,37 +91,48 @@
   ([offline]
    (logs/init-logging)
    (timbre/info "Beat Link Trigger starting.")
-   (seesaw/invoke-now
-    (seesaw/native!)  ; Adopt as native a look-and-feel as possible.
-    (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames.
-    (try  ; Install our custom dark and textured look-and-feel on top of it.
-      (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
-        (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin (.newInstance skin-class)))
-      (catch ClassNotFoundException e
-        (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?")))
 
-    ;; If we are running under Java 9 or later on the Mac, and have one of the overly-skinny default system
-    ;; fonts, but can swap back to Lucida Grande, do so now.
-    (when (and (when-let [font-name (.getName (UIManager/get "MenuBar.font"))]
-                 (.startsWith font-name "."))
-               (some #(= "Lucida Grande" %)
-                     (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
-      (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
-                                       (when (and (instance? javax.swing.plaf.FontUIResource v)
-                                                  (.startsWith (.getName v) "."))
-                                         [k v])))]
-        (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle v) (.getSize v))))))
+   ;; Set up a dynamic class loader so that users can add new jars or Maven dependencies for their
+   ;; expression code at runtime.
+   (let [cl (clojure.lang.DynamicClassLoader. (clojure.lang.RT/baseLoader))]
+     (.bindRoot Compiler/LOADER cl)
+     (.setContextClassLoader (Thread/currentThread) cl)
 
-   ;; If we are on a Mac, hook up our About handler where users expect to find it, and add a Quit handler
-   ;; that saves the state, and gives users a chance to veto losing unsaved editor windows.
-   (menus/install-mac-about-handler)
-   (menus/install-mac-quit-handler)
+     ;; Switch to the Swing Event Dispatch Thread to configure the user interface.
+     (seesaw/invoke-now
+      (seesaw/native!)  ; Adopt as native a look-and-feel as possible.
+      (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames.
+      (try  ; Install our custom dark and textured look-and-feel on top of it.
+        (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
+          (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin (.newInstance skin-class)))
+        (catch ClassNotFoundException e
+          (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?")))
 
-   ;; Restore saved window positions if they exist
-   (when-let [saved (:window-positions (prefs/get-preferences))]
-     (reset! util/window-positions saved))
+      ;; Use our dynamic class loader on the Swing thread too.
+      (.setContextClassLoader (Thread/currentThread) cl)
+
+      ;; If we are running under Java 9 or later on the Mac, and have one of the overly-skinny default system
+      ;; fonts, but can swap back to Lucida Grande, do so now.
+      (when (and (when-let [font-name (.getName (UIManager/get "MenuBar.font"))]
+                   (.startsWith font-name "."))
+                 (some #(= "Lucida Grande" %)
+                       (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
+        (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
+                                         (when (and (instance? javax.swing.plaf.FontUIResource v)
+                                                    (.startsWith (.getName v) "."))
+                                           [k v])))]
+          (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle v) (.getSize v))))))
+
+     ;; If we are on a Mac, hook up our About handler where users expect to find it, and add a Quit handler
+     ;; that saves the state, and gives users a chance to veto losing unsaved editor windows.
+     (menus/install-mac-about-handler)
+     (menus/install-mac-quit-handler)
+
+     ;; Restore saved window positions if they exist
+     (when-let [saved (:window-positions (prefs/get-preferences))]
+       (reset! util/window-positions saved))
 
 
-   (if offline
-     (finish-startup)       ; User did not want to go online.
-     (try-going-online))))  ; Normal startup, try finding a Pioneer DJ Link network.
+     (if offline
+       (finish-startup)       ; User did not want to go online.
+       (try-going-online)))))  ; Normal startup, try finding a Pioneer DJ Link network.
