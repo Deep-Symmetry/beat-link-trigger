@@ -293,3 +293,15 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+<a href="https://www.netlify.com">
+  <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
+</a>
+
+#### [Antora](https://antora.org)
+
+Used to build the [user guide](https://blt-guide.deepsymmetry.org/),
+for embedding inside the application, and hosting on
+[Netlify](https://www.netlify.com). Antora is licensed under the
+[Mozilla Public License Version
+2.0](https://www.mozilla.org/en-US/MPL/2.0/) (MPL-2.0).
