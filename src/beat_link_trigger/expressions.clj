@@ -16,6 +16,9 @@
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
+
+;;; These first definitions are intended for use by user expressions and shared functions:
+
 (def default-repositories
   "Have our add-dependencies function default to searching Clojars as
   well as Maven Central."
@@ -73,6 +76,21 @@
       (let [result (.getTimeFor time-finder device-update)]
         (when-not (neg? result)
           result)))))
+
+(defn extract-raw-cue-update
+  "Given a status value from a show cue's started-on-beat or
+  started-late expression, returns the raw device update object
+  associated with it, which will be the first element of a tuple in
+  the case of the started-on-beat expression."
+  [cue-status]
+  (if (instance? org.deepsymmetry.beatlink.DeviceUpdate cue-status)
+    cue-status
+    (first cue-status)))
+
+
+;;; The remainder of the functions in this namespace are used by the
+;;; expression compiler, and are not intended for users to interact
+;;; with directly.
 
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
