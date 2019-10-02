@@ -814,8 +814,13 @@
                                        :name "Import Trigger")
          delete-action  (seesaw/action :handler (fn [_] (delete-trigger true panel))
                                        :name "Delete Trigger")
-         inspect-action (seesaw/action :handler (fn [_] (inspector/inspect @(:locals @(seesaw/user-data panel))
-                                                                           :window-name "Trigger Expression Locals"))
+         inspect-action (seesaw/action :handler (fn [_] (try
+                                                          (inspector/inspect @(:locals @(seesaw/user-data panel))
+                                                                             :window-name "Trigger Expression Locals")
+                                                          (catch StackOverflowError _
+                                                            (util/inspect-overflowed))
+                                                          (catch Throwable t
+                                                            (util/inspect-failed t))))
                                        :name "Inspect Expression Locals"
                                        :tip "Examine any values set as Trigger locals by its Expressions.")
          editor-actions (fn []
@@ -1360,8 +1365,13 @@
 (defn- build-trigger-menubar
   "Creates the menu bar for the trigger window."
   []
-  (let [inspect-action   (seesaw/action :handler (fn [e] (inspector/inspect @expression-globals
-                                                                            :window-name "Trigger Expression Globals"))
+  (let [inspect-action   (seesaw/action :handler (fn [e] (try
+                                                           (inspector/inspect @expression-globals
+                                                                              :window-name "Trigger Expression Globals")
+                                                           (catch StackOverflowError _
+                                                            (util/inspect-overflowed))
+                                                          (catch Throwable t
+                                                            (util/inspect-failed t))))
                                         :name "Inspect Expression Globals"
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
         new-show-action  (seesaw/action :handler (fn [e] (show/new @trigger-frame))

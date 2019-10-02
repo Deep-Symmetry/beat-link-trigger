@@ -349,6 +349,23 @@
                   (if (.isLoop cue) "Loop" "Memory"))]
     (str kind (when (seq comment) (str ": " comment)))))
 
+(defn inspect-overflowed
+  "Tell the user their attempt to inspect something has resulted in a
+  stack overflow, which probably means there is a cycle and they need
+  to use another means of exploring it."
+  []
+  (seesaw/alert (str "<html>A stack overflow occurred while trying to inspect your data. This probably means<br>"
+                     "that there is a cycle in the data which causes the inspector to loop forever.<br><br>"
+                     "If you want to inspect it, you will need to turn on the nREPL server with CIDER<br>"
+                     "handler, connect CIDER, and use cider-inspect to explore it interactively.")
+                :title "Inspection Failed, Cycle in Data?" :type :error))
+
+(defn inspect-failed
+  "Tell the user their attempt to inspect something has crashed for some
+  unkown reason, as described by throwable `t`."
+  [t]
+  (seesaw/alert (str "<html>A problem occurred while trying to inspect your data.<br><br>" t)
+                :title "Inspection Failed" :type :error))
 
 ;;; "A poor man's interval tree, from http://clj-me.cgrand.net/2012/03/16/a-poor-mans-interval-tree/
 ;;; turns out to offer exactly the API I need for figuring out which cues overlap a beat. I only needed

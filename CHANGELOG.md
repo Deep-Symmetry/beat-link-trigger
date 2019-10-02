@@ -45,7 +45,8 @@ This change log follows the conventions of
 - Some Show expression help was improved to add missing parts, clarify
   details, and remove instructions that did not actually work. More
   still needs to be added to the user Guide, as described in Issue #79.
-
+- When an attempt to inspect your locals or globals fails, an error
+  dialog is now displayed explaining what happened.
 
 ## [0.5.4] - 2019-09-06
 

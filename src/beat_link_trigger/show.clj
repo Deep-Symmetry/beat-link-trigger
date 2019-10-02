@@ -599,9 +599,14 @@
   "Creates the menu action which allows a track's local bindings to be
   inspected. Offered in the popups of both track rows and cue rows."
   [track]
-  (seesaw/action :handler (fn [_]
-                            (inspector/inspect @(:expression-locals track)
-                                               :window-name (str "Expression Locals for " (display-title track))))
+  (seesaw/action :handler (fn [_] (try
+                                    (inspector/inspect @(:expression-locals track)
+                                                       :window-name (str "Expression Locals for "
+                                                                         (display-title track)))
+                                    (catch StackOverflowError _
+                                      (util/inspect-overflowed))
+                                    (catch Throwable t
+                                      (util/inspect-failed t))))
                  :name "Inspect Expression Locals"
                  :tip "Examine any values set as Track locals by its Expressions."))
 
@@ -3614,8 +3619,13 @@
   import submenu."
   [show]
   (let [title          (str "Expression Globals for Show " (util/trim-extension (.getPath (:file show))))
-        inspect-action (seesaw/action :handler (fn [e] (inspector/inspect @(:expression-globals show)
-                                                                          :window-name title))
+        inspect-action (seesaw/action :handler (fn [e] (try
+                                                         (inspector/inspect @(:expression-globals show)
+                                                                            :window-name title)
+                                                         (catch StackOverflowError _
+                                                            (util/inspect-overflowed))
+                                                          (catch Throwable t
+                                                            (util/inspect-failed t))))
                                       :name "Inspect Expression Globals"
                                       :tip "Examine any values set as globals by any Track Expressions.")]
     (seesaw/menubar :items [(seesaw/menu :text "File"
