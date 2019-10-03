@@ -83,9 +83,41 @@
   associated with it, which will be the first element of a tuple in
   the case of the started-on-beat expression."
   [cue-status]
-  (if (instance? org.deepsymmetry.beatlink.DeviceUpdate cue-status)
+  (if (instance? DeviceUpdate cue-status)
     cue-status
     (first cue-status)))
+
+(def device-finder
+  "A convenient reference to the DeviceFinder singleton."
+  (DeviceFinder/getInstance))
+
+(def virtual-cdj
+  "A convenient reference to the VirtualCdj singleton."
+  (VirtualCdj/getInstance))
+
+(def metadata-finder
+  "A convenient reference to the MetadataFinder singleton."
+  (MetadataFinder/getInstance))
+
+(def art-finder
+  "A convenient reference to the ArtFinder singleton."
+  (org.deepsymmetry.beatlink.data.ArtFinder/getInstance))
+
+(def beatgrid-finder
+  "A convenient reference to the BeatGridFinder singleton."
+  (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance))
+
+(def waveform-finder
+  "A convenient reference to the WaveformFinder singleton."
+  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
+
+(def signature-finder
+  "A convenient reference to the SingatureFinder singleton."
+  (SignatureFinder/getInstance))
+
+(def time-finder
+  "A convenient reference to the TimeFinder singleton."
+  (TimeFinder/getInstance))
 
 
 ;;; The remainder of the functions in this namespace are used by the
