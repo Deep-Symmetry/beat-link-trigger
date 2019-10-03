@@ -1497,8 +1497,7 @@
 
 (defn- start-other-finders
   "Starts up the full complement of metadata-related finders that we
-  use. Also updates the Online menu item to show our player number,
-  and runs any custom Came Online expression."
+  use. Also updates the Online menu item to show our player number."
   []
   (.start metadata-finder)
   (.start (CrateDigger/getInstance))
@@ -1507,15 +1506,16 @@
   (.start (BeatGridFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)
   (.start (WaveformFinder/getInstance))
-  (reflect-online-state)
-  (run-global-function :online))
+  (reflect-online-state))
 
 (defn start
   "Create the Triggers window, and register all the notification
   handlers it needs in order to stay up to date with events on the
-  MIDI and DJ Link networks. If the window already exists, just bring
-  it to the front, to support returning to online operation. Returns
-  truthy if the window was created for the first time."
+  MIDI and DJ Link networks. When we are supposed to go online, try
+  doing so, and run any custom Came Online expressions. If the window
+  already exists, just bring it to the front, to support returning to
+  online operation. Returns truthy if the window was created for the
+  first time."
   []
   (let [already-created @trigger-frame]
     (if @trigger-frame
@@ -1542,12 +1542,17 @@
     (.setPassive metadata-finder true)  ; Start out conservatively
     (when (online?) (start-other-finders))
     (when (real-player?) (actively-send-status))
+    (when (online?)
+      (run-global-function :online)
+      (show/run-show-online-expressions))
+
     (not already-created)))  ; Indicate whether this was the first creation of the Triggers window
 
 (defn go-offline
   "Transition to an offline state, running any custom Going Offline
   expression and then updating the UI appropriately."
   []
+  (show/run-show-offline-expressions)
   (run-global-function :offline)
   (.stop (WaveformFinder/getInstance))
   (.stop (BeatGridFinder/getInstance))

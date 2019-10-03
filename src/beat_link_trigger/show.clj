@@ -3782,6 +3782,7 @@
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true track))
+                                  (when (online?) (run-global-function show :offline nil (not force?)))
                                   (run-global-function show :shutdown nil (not force?))
                                   (try
                                     (save-show show false)
@@ -3841,6 +3842,7 @@
                            (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
         (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root))
         (run-global-function show :setup nil true)
+        (when (online?) (run-global-function show :online nil true))
         (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
         (seesaw/show! root))
@@ -3919,6 +3921,21 @@
   if all shows have been closed."
   [force?]
   (every? (fn [show] ((:close show) force? true)) (vals @open-shows)))
+
+(defn run-show-online-expressions
+  "Called when we have gone online to run the went-online expressions of
+  any already-open shows."
+  []
+  (doseq [show (vals @open-shows)]
+    (run-global-function show :online nil true)))
+
+(defn run-show-offline-expressions
+  "Called when we are going ffline to run the going-offline expressions
+  of any open shows."
+  []
+  (doseq [show (vals @open-shows)]
+    (run-global-function show :offline nil true)))
+
 
 (defn midi-environment-changed
   "Called on the Swing Event Update thread by the Triggers window when
