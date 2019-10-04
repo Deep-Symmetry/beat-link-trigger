@@ -507,7 +507,7 @@ situations where you are doing more than just going offline, it runs
 right before the <<global-shutdown-expression,Global Shutdown
 expression>>. It gives you a chance to gracefully close any
 connections and release any system resources you allocated in your
-Came Online Expression.
+<<came-online-expression,Came Online Expression>>.
 
 You have access to the expression globals if you need to use anything
 in them.
@@ -515,11 +515,11 @@ in them.
 [[global-shutdown-expression]]
 === Global Shutdown Expression
 
-This is run when Beat Link Trigger is
-exiting, or before it opens a new Trigger file (or when you choose to
-delete all triggers). It gives you a chance to close any connections
-and release any system resources that you allocated in your Global
-Setup Expression. Here is how we would do that for the ChamSys MagicQ
+This is run when Beat Link Trigger is exiting, or before it opens a
+new Trigger file (or when you choose to delete all triggers). It gives
+you a chance to close any connections and release any system resources
+that you allocated in your <<global-setup-expression,Global Setup
+Expression>>. Here is how we would do that for the ChamSys MagicQ
 example we started above:
 
 ```clojure
@@ -885,7 +885,8 @@ shared with all other Show expressions, so that’s a great place to put
 things for them to find. The atom starts out holding an empty
 http://clojure.org/reference/data_structures#Maps[map], which allows
 you to add key/value pairs to organize the information you want to
-share across expressions.
+share across expressions. Show expressions also all have access to the
+Triggers window globals atom, under the name `trigger-globals`.
 
 [[show-global-setup-expression]]
 === Global Setup Expression
@@ -896,6 +897,21 @@ because Beat Link Trigger automatically reopened it at launch because
 you had it open the last time you used the program. You can use it to
 open network connections or set up other values for your Track and Cue
 expressions to use.
+
+[[show-came-online-expression]]
+=== Came Online Expression
+
+This is run whenever the show is opened when Beat Link Trigger is
+already connected to a DJ Link network, or if you have told it
+manually to go online with the show already open. When opening the
+show it will run after the <<show-global-setup-expression,Global Setup
+expression>> as long as you are online. It runs by itself when you
+choose menu:Network[Online?] to successfully transition from an
+offline to an online state.
+
+You have access to the show and triggers globals if you need to use
+anything in them.
+
 
 [[show-default-enabled-filter-expression]]
 === Default Enabled Filter Expression
@@ -916,13 +932,30 @@ Disabled Tracks do not respond to being played, and all of their
 configured cues are disabled.
 
 
+[[going-offline-expression]]
+=== Going Offline Expression
+
+This is run whenever the show is open, Beat Link Trigger was online,
+and you manually take it offline by choosing menu:Network[Online?],
+when you close the Show file, or exit the program. In any of the
+situations where you are doing more than just going offline, it runs
+right before the <<show-global-shutdown-expression,Global Shutdown
+expression>>. It gives you a chance to gracefully close any
+connections and release any system resources you allocated in your
+<<show-came-online-expression,Came Online Expression>>.
+
+You have access to the show and triggers globals if you need to use
+anything in them.
+
+
 [[show-global-shutdown-expression]]
 === Global Shutdown Expression
 
 This is run when the Show file is closed, either because you closed
 the window, or because Beat Link Trigger is shutting down. You can use
 it to close any network connections or clean up any other resources
-your Global Setup Expression allocated.
+your <<show-global-setup-expression,Global Setup Expression>>
+allocated.
 
 [[show-track-expressions]]
 == Show Track Expressions
