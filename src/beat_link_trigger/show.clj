@@ -2633,30 +2633,19 @@
   (let [show (latest-show show)
         menu (seesaw/select (:frame show) [:#tracks-menu])]
     (doseq [i (range (.getItemCount menu))]
-      (let [item (.getItem menu i)]
+      (let [item  (.getItem menu i)
+            exprs {"Edit Shared Functions"                  :shared
+                   "Edit Global Setup Expression"           :setup
+                   "Edit Came Online Expression"            :online
+                   "Edit Default Enabled Filter Expression" :enabled
+                   "Edit Going Offline Expression"          :offline
+                   "Edit Global Shutdown Expression"        :shutdown}]
         (when item
           (let [label (.getText item)]
-            (cond (= label "Edit Shared Functions")
-                  (.setIcon item (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions :shared]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png")))
-
-                  (= label "Edit Global Setup Expression")
-                  (.setIcon item (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions :setup]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png")))
-
-                  (= label "Edit Default Enabled Filter Expression")
-                  (.setIcon item (seesaw/icon (if (clojure.string/blank?
-                                                   (get-in show [:contents :expressions :enabled]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png")))
-
-                  (= label "Edit Global Shutdown Expression")
-                  (.setIcon item (seesaw/icon (if (clojure.string/blank?
-                                                   (get-in show [:contents :expressions :shutdown]))
-                                                "images/Gear-outline.png"
-                                                "images/Gear-icon.png"))))))))))
+            (when-let [expr (get exprs (.getText item))]
+            (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions expr]))
+                                          "images/Gear-outline.png"
+                                          "images/Gear-icon.png"))))))))))
 
 (defn- attach-track-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set

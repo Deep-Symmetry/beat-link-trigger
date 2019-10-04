@@ -394,6 +394,7 @@
             useful. This is just ordinary Clojure code that can be
             conveniently edited using an IDE if you turn on the
             embedded nREPL server."}
+
    :setup {:title "Global Setup Expression"
            :tip "Called once to set up any state your show expressions may need."
            :description
@@ -403,6 +404,20 @@
   need. Use the Global Shutdown expression to clean up resources when
   the show window is shutting down."
            :bindings (show-bindings-for-class nil)}
+
+   :online {:title    "Came Online Expression"
+            :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
+            :description
+            "Called after the Global Setup Expression when loading a
+  Show if Online, or by itself if you have taken BLT Online manually.
+  Set up any global state (such as sync modes or showing the Player
+  Status window) that can only be performed when online. Use the Going
+  Offline expression to gracefully disconnect from anything you need
+  to when going Offline or when the Show is shutting down."
+            :bindings {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+                                       :doc  "The player number we are using when talking to DJ Link devices."}
+                       'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
+                                       :doc  "The IP address we are using to talk to DJ Link devices."}}}
 
    :enabled {:title "Default Enabled Filter Expression"
              :tip "Called to see if a track set to Default should be enabled."
@@ -418,6 +433,16 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
              :bindings (show-bindings-for-class CdjStatus)}
+
+   :offline {:title    "Going Offline Expression"
+             :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
+             :description
+             "Called before the Global Shutdown Expression when the
+  Show window is closing, or by itself when you are taking BLT Offline
+  manually. Gracefully close and release any shared system
+  resources (such as network connections) that you opened in the Came
+  Online expression."
+             :bindings nil}
 
    :shutdown {:title "Global Shutdown Expression"
               :tip "Called once to release global resources."
