@@ -8,6 +8,7 @@
             [cemerick.pomegranate.aether :as aether]
             [overtone.midi :as midi]
             [overtone.osc :as osc]
+            [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
