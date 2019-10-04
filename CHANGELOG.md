@@ -38,6 +38,10 @@ This change log follows the conventions of
 - Shows' Global Setup Expressions are now compiled before any Track
   expressions, so that they can define values for the Track
   expressions to use.
+- The Edit Track Cues gear was not updating its filled-in status to
+  indicate the presence or absence of cues except when a show was
+  initially loaded. It now updates immediately when the first cue is
+  created or the last cue deleted in a track.
 - Shows can be created and used on computers that lack any MIDI
   outputs (previously the Track would never Enable, because no MIDI
   output could be found for it. Now, that is considered fine, as long
