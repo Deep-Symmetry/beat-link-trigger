@@ -1532,6 +1532,24 @@
         (when (<= (Math/abs (- (.getX e) (+ (.getX r) (.getWidth r)))) click-edge-tolerance)
           [cue :end])))))
 
+(defn- compile-cue-expressions
+  "Compiles and installs all the expressions associated with a track's
+  cue. Used both when opening a show, and when adding a cue from the
+  library."
+  [track cue]
+  (doseq [[kind expr] (:expressions cue)]
+    (let [editor-info (get editors/show-track-cue-editors kind)]
+      (try
+        (swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
+                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                        (editors/cue-editor-title kind track cue)))
+        (catch Exception e
+          (timbre/error e (str "Problem parsing " (:title editor-info)
+                               " when loading Show. Expression:\n" expr "\n"))
+          (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                             "Check the log file for details.")
+                        :title "Exception during Clojure evaluation" :type :error))))))
+
 (defn- build-cue-library-popup-items
   "Creates the popup menu items allowing you to add cues from the
   library to a track."
@@ -1560,6 +1578,7 @@
                                       (swap-track! track update :cues-editor dissoc :selection)
                                       (update-track-gear-icon track)
                                       (build-cues track)
+                                      (compile-cue-expressions track new-cue)
                                       (scroll-wave-to-cue track new-cue)
                                       (scroll-to-cue track new-cue true))
                               (catch Exception e
@@ -3262,18 +3281,7 @@
 
     ;; Parse any custom expressions defined for cues in the track.
     (doseq [cue (vals (get-in contents [:cues :cues]))]
-      (doseq [[kind expr] (:expressions cue)]
-        (let [editor-info (get editors/show-track-cue-editors kind)]
-          (try
-            (swap-signature! show signature assoc-in [:cues :expression-fns (:uuid cue) kind]
-                             (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                                (editors/cue-editor-title kind track cue)))
-            (catch Exception e
-              (timbre/error e (str "Problem parsing " (:title editor-info)
-                                   " when loading Show. Expression:\n" expr "\n"))
-              (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
-                                 "Check the log file for details.")
-                            :title "Exception during Clojure evaluation" :type :error))))))
+      (compile-cue-expressions track cue))
 
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.

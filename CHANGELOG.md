@@ -32,6 +32,9 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Adding cues from the library was not compiling their custom
+  expressions, so the expressions would not work until the show was
+  closed and reopened, or the expressions were edited.
 - Shows' Global Setup Expressions are now compiled before any Track
   expressions, so that they can define values for the Track
   expressions to use.
