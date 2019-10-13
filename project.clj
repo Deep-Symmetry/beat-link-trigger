@@ -15,7 +15,7 @@
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.14"]
-                 [fipp "0.6.19"]
+                 [fipp "0.6.21"]
                  [inspector-jay "0.3"]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.5.5-SNAPSHOT"]
@@ -30,7 +30,7 @@
                  [ring/ring-core "1.7.1"]
                  [compojure "1.6.1"]
                  [nrepl "0.6.0"]
-                 [cider/cider-nrepl "0.22.3"]
+                 [cider/cider-nrepl "0.22.4"]
                  [com.cemerick/pomegranate "1.1.0"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
