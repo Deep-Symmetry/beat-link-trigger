@@ -932,7 +932,7 @@ Disabled Tracks do not respond to being played, and all of their
 configured cues are disabled.
 
 
-[[going-offline-expression]]
+[[show-going-offline-expression]]
 === Going Offline Expression
 
 This is run whenever the show is open, Beat Link Trigger was online,
