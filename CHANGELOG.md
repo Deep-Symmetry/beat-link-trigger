@@ -54,6 +54,10 @@ This change log follows the conventions of
   still needs to be added to the user Guide, as described in Issue #79.
 - When an attempt to inspect your locals or globals fails, an error
   dialog is now displayed explaining what happened.
+- It seems that some versions of rekordbox create extended cue entries
+  that are missing color bytes, which was causing Crate Digger to
+  crash when trying to parse the track's EXT file. This should now be
+  handled more gracefully.
 
 ## [0.5.4] - 2019-09-06
 
