@@ -13,20 +13,23 @@ This change log follows the conventions of
   - They now allow you to load or insert files into the expression
     text, or save the text to a file, where you can edit it with a
     full-featured Clojure IDE.
-  - Rich Find and Replace support has been added.
-  - You can jump to a line number.
+  - An Edit menu makes it more apparent what kinds of editing have
+    always been available in the context menu, and shows their
+    keyboard shortcuts.
+  - Rich Find and Replace support has been added in a Search menu.
+  - You can jump to a line number, also through the Search menu.
   - Code folding in the context menu allows you to collapse sections
     of the code you aren't working on, to better see the outer
     structure.
-- You can now start an nREPL server so that when you use a Clojure IDE
-  to exit expressions you have saved to files, it can connect to Beat
-  Link Trigger, and offer full-featured code completion, popup
-  documentation, and expression evaluation.
 - The Triggers and Show windows now allow you to edit shared functions
   for use by any expression, in the form of ordinary Clojure code that
   is ideal for working with in an external IDE. Most extensive
   development should be done in these shared functions, and trigger
   expressions can be small, simply calling the functions.
+- You can now start an nREPL server so that when you use a Clojure IDE
+  to exit expressions you have saved to files, it can connect to Beat
+  Link Trigger, and offer full-featured code completion, popup
+  documentation, and expression evaluation.
 - There is a new mechanism your expressions can use to download and
   use new libraries that enable you to build your integrations.
 

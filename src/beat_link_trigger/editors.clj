@@ -12,7 +12,8 @@
             [taoensso.timbre :as timbre]
             [beat-link-trigger.util :as util])
   (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]
-           [org.deepsymmetry.beatlink.data TrackPositionUpdate]))
+           [org.deepsymmetry.beatlink.data TrackPositionUpdate]
+           [org.fife.ui.rtextarea RTextArea]))
 
 (defonce
   ^{:private true
@@ -1218,6 +1219,14 @@ a {
                                 update-action
                                 (seesaw/separator)
                                 (build-close-action frame)])
+           (seesaw/menu :text "Edit"
+                        :items [(RTextArea/getAction RTextArea/UNDO_ACTION)
+                                (RTextArea/getAction RTextArea/REDO_ACTION)
+                                (RTextArea/getAction RTextArea/CUT_ACTION)
+                                (RTextArea/getAction RTextArea/COPY_ACTION)
+                                (RTextArea/getAction RTextArea/PASTE_ACTION)
+                                (RTextArea/getAction RTextArea/DELETE_ACTION)
+                                (RTextArea/getAction RTextArea/SELECT_ALL_ACTION)])
            (seesaw/menu :text "Search"
                         :items [(build-find-toolbar-action editor-panel find-toolbar)
                                 (build-replace-toolbar-action editor-panel replace-toolbar)
