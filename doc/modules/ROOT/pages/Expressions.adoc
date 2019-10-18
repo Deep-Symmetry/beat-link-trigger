@@ -164,27 +164,28 @@ particular track reaches a particular beat, the <<Shows#shows,Show
 interface>> is now a much easier and more powerful way to arrange
 that. Still, read on for more basic expression editing concepts.
 
-[TIP] ==== As you use the editor, you will notice that it provides
-syntax coloring and parenthesis-matching help. But if you end up
-making a mistake in your expression, Beat Link Trigger will likely
-report an compilation error when you click kbd:[Update], and you can
-check the <<Debugging#logs,log>> for a more detailed stack trace. You
-can try searching the web for information about the error, or looking
-in the Clojure
-https://clojure.org/guides/getting_started[documentation], but you can
-also ask for help in the Beat Link Trigger
+[TIP]
+====
+As you use the editor, you will notice that it provides syntax
+coloring and parenthesis-matching help. But if you end up making a
+mistake in your expression, Beat Link Trigger will likely report an
+compilation error when you click kbd:[Update], and you can check the
+<<Debugging#logs,log>> for a more detailed stack trace. You can try
+searching the web for information about the error, or looking in the
+Clojure https://clojure.org/guides/getting_started[documentation], but
+you can also ask for help in the Beat Link Trigger
 https://gitter.im/brunchboy/beat-link-trigger[Gitter chat room].
 
 If you are working with large expressions, you can focus on the part
-you are interested in by using the little `-` box that appears next to
-the line number of the first line of a multi-line expression. This
-allows you to collapse the entire expression, letting you see what
-comes on either side of it. Clicking the box again (which will show as
-a `+` sign now) will expand it agaon. If you hover the mouse over the
-`+` without clicking on it, you can also peek at the collapsed content
-as a tooltip. This feature can also be activated using the
-menu:Folding[] submenu of the context menu, which appears when you
-right-click or control-click in the editor text area.
+you are interested in by using the little kbd:[-] box that appears
+next to the line number of the first line of a multi-line expression.
+This allows you to collapse the entire expression, letting you see
+what comes on either side of it. Clicking the box again (which will
+show as a kbd:[\+] sign now) will expand it again. If you hover the
+mouse over the kbd:[+] without clicking on it, you can also peek at
+the collapsed content as a tooltip. This feature can also be activated
+using the menu:Folding[] submenu of the context menu, which appears
+when you right-click or control-click in the editor text area.
 ====
 
 
@@ -205,15 +206,13 @@ saving your changes.
 
 The menu:Edit[] menu gives you access to the standard editing
 capabilities that were formerly available in the context menu (which
-you could bring up by right-clicking or control-clicking anywhere
-inside the editor text area), and shows you their keyboard
-equivalents. You might not even have known these features were
-available, although you were probahly already reflexively using the
-platform-standard editing keys:
+you can bring up by right-clicking or control-clicking anywhere inside
+the editor text area), and shows you their keyboard equivalents. You
+might not even have known these features were available, although you
+were probably already reflexively using the platform-standard editing
+keys:
 
 image:EditorEditMenu.png[Editor Edit Menu,205,180]
-
-The context menu also has a Folding submenu which
 
 The menu:Search[] menu opens up special panes below the editor text
 area that allow you to find and replace text, with control over case
