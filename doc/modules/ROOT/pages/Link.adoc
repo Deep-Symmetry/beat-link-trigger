@@ -47,7 +47,7 @@ Once you have installed Carabiner and have it running, bring up the
 Carabiner Connection window by choosing
 `Ableton Link: Carabiner Connection` in the `Network` menu:
 
-image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,400,205]
+image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,160]
 
 This will open the Carabiner Connection window (the set of devices you
 see at the bottom will depend on what is actually on your network):
