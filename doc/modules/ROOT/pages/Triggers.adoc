@@ -47,7 +47,7 @@ Trigger], or type kbd:[⌘+T] (on the Mac) or kbd:[Ctrl+T] (on other
 platforms). You can get back to this default state at any time by
 choosing menu:Triggers[Clear Triggers].
 
-image:TriggersMenu.png[Triggers Menu,353,201]
+image:TriggersMenu.png[Triggers Menu,355,225]
 
 TIP: Triggers allow you to build all kinds of integrations with your
 players, at a very low level. For the common case of wanting to make
