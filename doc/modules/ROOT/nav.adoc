@@ -13,6 +13,7 @@
 ** xref:Triggers.adoc#context-menu[Context Menu]
 ** xref:Triggers.adoc#trigger-simulate[Simulating Events]
 * xref:Expressions.adoc[Expressions]
+** xref:Expressions.adoc#editing-expressions[Editing Expressions]
 ** xref:Expressions.adoc#shared-functions[Shared Functions]
 ** xref:Expressions.adoc#importing-libraries[Importing Libraries]
 ** xref:Expressions.adoc#global-expressions[Triggers Global Expressions]
