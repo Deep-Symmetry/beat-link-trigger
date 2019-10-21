@@ -221,8 +221,9 @@ expressions. It also allows you to jump to a particular line by
 number.
 
 image:EditorSearchMenu.png[Editor Search Menu,260,95]
+image:FindReplace.png[Find and Replace bars,740,480]
 
-Finally, the Help menu is the same one available in most other
+Finally, the menu:Help[] menu is the same one available in most other
 windows, giving you access to this guide along with other helpful
 tools and information.
 
