@@ -129,7 +129,7 @@ discussed in the <<Shows#adding-tracks,next section>>, and to edit
 expressions that customize the show as a whole, as described in the
 <<Expressions#show-global-expressions,Expressions section>>.
 
-image:ShowTracksMenu.png[Show Tracks Menu,319,136]
+image:ShowTracksMenu.png[Show Tracks Menu,320,200]
 
 The menu:Inspect Expression Locals[] option allows you to explore any
 values that have been set up by expressions to share across the entire
@@ -147,7 +147,7 @@ are a number of different ways you can add Tracks to your Show. Most
 of them can be found by choosing menu:Tracks[Import Track] in the Show
 window menu bar:
 
-image:ImportTrack.png[Import Track menu,793,418]
+image:ImportTrack.png[Import Track menu,790,568]
 
 If you are currently Online, and there are any players on the network
 that have rekordbox tracks loaded that are not already part of the
@@ -165,7 +165,7 @@ disappear from the list of import choices if the track it has loaded
 is already part of the Show, the menu option is disabled and an
 explanation is added:
 
-image:ImportTrackAlready.png[Track already in Show,1009,466]
+image:ImportTrackAlready.png[Track already in Show,990,435]
 
 To make it possible to set up your Show even when you don’t have
 access to your player network, you can also import Tracks directly
@@ -208,7 +208,7 @@ from one to another by finding the Track in the open Show that already
 contains it, then choosing menu:Copy to Show “<name>”[] in the Track’s
 context menu:
 
-image:CopyTrack.png[Copy Track to Show,1005,625]
+image:CopyTrack.png[Copy Track to Show,995,645]
 
 TIP: If you don’t see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
