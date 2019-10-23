@@ -89,6 +89,21 @@ open based on which hardware is being used for a given performance.
 
 image:NewShowWindow.png[Empty Show window,793,418]
 
+[[opening-shows]]
+.Opening Shows
+[TIP]
+====
+Whenever a show is open, it is active (although if your tracks'
+Enabled Filters are configured to their `Default` setting, then you
+can turn them all off by choosing menu:Enabled Default[Never] at the
+top of the show). You can deactivate it by closing the window. Beat
+Link Trigger will automatically reopen any shows that were open the
+last time you quit. If you manually closed a show window but want to
+activate it now, or you want to open a new show that you received or
+downloaded, you can open it by choosing menu:File[Open Show] in the
+Beat Link Triggers window and navigating to the show file.
+====
+
 === Show Window Header Elements
 
 At the top of the Show window, above any Tracks that you have added to
