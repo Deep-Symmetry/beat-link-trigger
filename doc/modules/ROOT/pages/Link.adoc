@@ -233,7 +233,7 @@ In order to do this, Beat Link must be using a standard player number,
 so it can fully participate as a Tempo Master. You turn this on by
 checking menu:Network[Use Real Player Number].
 
-image:RealPlayerNumber.png[Using a Real Player Number,400,185]
+image:RealPlayerNumber.png[Using a Real Player Number,360,160]
 ====
 
 Once you successfully activate Full Sync Mode, the entire Ableton Link
