@@ -904,6 +904,57 @@ waiting for someone to create a more robust and permanent solution. If
 you can help do that, please let us know!
 
 
+[[break-buddy]]
+== Break Buddy “Robo DJ”
+
+One of my most enthusiastic users came up with an interesting question
+shortly after figuring out how to give have dramatic synchronized
+lighting effects and pyro without having to follow a preset playlist:
+since we can load tracks on the players, and start and stop playback,
+is there any way to have Beat Link Trigger perform a programmed
+automatic mix if the DJ needs to urgently leave the booth for a bit,
+such as for a bathroom break? I thought thiw was something the new
+Show interface could make possible, with some careful setup and an
+understanding of the limitations, so I built this example for him.
+
+NOTE: This will never replace real mixing, because there is no way to
+control the crossfaders, EQ, or any effects. You will need to either
+pick tracks that can be harmonically mixed, or use hard cuts between
+tracks, stopping one player while simultaneously starting the next.
+
+But if you follow a few setup steps, this actually works better than I
+initially expected. If nothing else, it is a really fun demonstration
+of the power of the Show interface. Here's how to do it!
+
+Start by saving the link:{attachmentsdir}/BreakBuddy.bls[Break Buddy
+show] where you like to keep your Beat Link Trigger shows. It has all
+the necessary shared functions built in, and some xample tracks
+showing how to configure your own, as described below.
+
+* Set up some tracks in rekordbox so their first cue or memory point
+  is where you want to mix into, put them all onto the same USB or SD
+  card (or leave them in rekordbox if you will be using it in export
+  mode), and <<Shows#adding-tracks,import them>> into the Break Buddy
+  show (<<Shows#opening-shows,opening it>> first if you haven't yet done so).
+
+* Make sure your CDJs are configured to Auto Cue to the first memory
+  cue (in menu:Preferences[My Settings] within rekordbox).
+
+* If you are going to be adjusting the tempo of tracks, be sure that
+  the CDJs also have Master Tempo turned on, so the track pitches are
+  unaffected by the tempo changes, and configure BLT to use a standard
+  player number by checking menu:Network[Use Real Player Number] (you
+  will have to turn off one of your CDJs first, if you have four).
++
+image:RealPlayerNumber.png[Using a Real Player Number,360,160]
+
+* It would not hurt to put the players into Sync mode when you are
+  about to start using the show, but the show's shared functions will
+  try to turn on Sync and Master as needed.
+
+...To be continued!
+
+
 == Learning More
 
 ****

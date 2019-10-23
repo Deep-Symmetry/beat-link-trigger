@@ -255,7 +255,10 @@ the Triggers expressions will work even if the Show isn't open.
 Redefining a function is harmless, although make sure you have exactly
 the same definition in both places or you will confuse yourself!
 
-TODO: Link to example, e.g. Break Buddy.
+For a detailed (and amusing) look at defining and using shared
+functions in a show, check out the <<Integration#break-buddy,Break
+Buddy>> integration example.
+
 
 [[importing-libraries]]
 == Importing Libraries
@@ -923,7 +926,10 @@ Triggers expressions, put them in both places. Redefining a function
 is harmless, although make sure you have exactly the same definition
 in both places or you will confuse yourself!
 
-TODO: Link to example, e.g. Break Buddy.
+For a detailed (and amusing) look at defining and using shared
+functions in a show, check out the <<Integration#break-buddy,Break
+Buddy>> integration example.
+
 
 Also see the discussion of how you can <<importing-libraries,import
 libraries>> for use in your expressions.
