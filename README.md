@@ -294,10 +294,6 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-<a href="https://www.netlify.com">
-  <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
-</a>
-
 #### [inspector-jay](https://github.com/timmolderez/inspector-jay)
 
 Supports inspection of the atoms that store local and global values
@@ -359,6 +355,10 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+<a href="https://www.netlify.com">
+  <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
+</a>
 
 #### [Antora](https://antora.org)
 
