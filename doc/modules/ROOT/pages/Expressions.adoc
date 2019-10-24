@@ -186,6 +186,10 @@ mouse over the kbd:[+] without clicking on it, you can also peek at
 the collapsed content as a tooltip. This feature can also be activated
 using the menu:Folding[] submenu of the context menu, which appears
 when you right-click or control-click in the editor text area.
+
+And if you want to really get serious about learning Clojure and
+editing it in a powerful way, consider
+<<Debugging#advanced-coding,connecting an IDE>>.
 ====
 
 

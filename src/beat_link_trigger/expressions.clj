@@ -1,7 +1,8 @@
 (ns beat-link-trigger.expressions
   "A namespace in which user-entered custom expressions will be
   evaluated, which provides support for making them easier to write."
-  (:require [clojure.tools.reader :as r]
+  (:require [clojure.repl :refer :all]
+            [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [beat-link-trigger.util :as util]
             [cemerick.pomegranate :as pomegranate]

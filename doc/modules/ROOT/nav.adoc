@@ -67,6 +67,7 @@
 ** xref:Debugging.adoc#logs[Logs]
 ** xref:Debugging.adoc#reporting-issues[Reporting Issues]
 ** xref:Debugging.adoc#inspecting[Inspecting Locals and Globals]
+** xref:Debugging.adoc#advanced-coding[Advanced Coding]
 ** xref:Debugging.adoc#saving-and-loading[Saving and Loading]
 *** xref:Debugging.adoc#exporting-and-importing[Exporting and Importing Triggers]
 ** xref:Debugging.adoc#writing-playlists[Writing Playlists]

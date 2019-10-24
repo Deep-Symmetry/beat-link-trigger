@@ -25,8 +25,9 @@ ifndef::env-github[]
 :idseparator: -
 endif::env-github[]
 
-Tools to help figure out what is going on in your triggers, share
-them between projects or with others, and log playlists.
+Tools to help figure out what is going on in your triggers, take
+advantage of powerful Clojure development environments, share triggers
+between projects or with others, and log playlists.
 
 == Overview
 
@@ -148,6 +149,128 @@ Here’s the result of drilling down a little into the `:resolume` OSC
 client object created in that example’s trigger:
 
 image:ExpressionLocals.png[Expression Locals,789,626]
+
+[[advanced-coding]]
+== Advanced Coding
+
+The built in code editor gives you some basic help with writing
+Clojure, such as syntax coloring and parenthesis matching, but if you
+are going to write more than a few lines, or want help learning
+Clojure and testing ideas, you are much better off using a
+full-featured Clojure development environment, like
+https://cursive-ide.com[Cursive] or (if you already use the Emacs text
+editor) https://cider.mx[CIDER].
+
+Much of the power of these environments comes from the way they
+interact with the live, running Clojure environment so that you can
+benefit from code-completion assistance, documentation popups, and
+even dive into the source code of your functions and the ones that
+make up Beat Link Trigger itself, making it easy to try things out,
+update your functions, examine values, and try again. This kind of
+instant feedback leads to a fertile learning experience and incredibly
+productive development workflow centered around the Clojure “REPL”
+(read-eval-print loop).
+
+Beat Link Trigger has features to support working in these editors. At
+a basic level, the built-in code editor can save your expression or
+function code to an external text file, which you can edit in one of
+these environments, and then have the built-in editor load the results
+back in. But you will get the best results if you turn on a network
+REPL server inside BLT so the external IDE can connect to it and
+operate at full power.
+
+To do this, choose menu:Network[nREPL: Clojure IDE connection]:
+
+image:ReplMenu.png[nREPL menu option,360,160]
+
+This will open a small window which allows you to configure and start
+the nREPL server the IDEs can use:
+
+image:ReplWindow.png[nREPL Server window,372,222]
+
+The default port number was chosen to be different from the Carabiner
+port (in case you are using that), and unlikely to be otherwise used.
+If for some reason port 17,001 is in use on your computer, you can
+pick a different port. You just need to tell the IDE which port you
+are using when you have it connect to the nREPL server.
+
+If you are going to use Cursive, you can simply start the server by
+clicking the `Run` checkbox. If you are going to use CIDER, to make
+full use of CIDER's powerful features, click the `Inject` checkbox
+first, which will configure the nREPL server to add special CIDER
+middleware. (If you forgot to do this, you can uncheck the `Run`
+checkbox to stop the server, check `Inject`, and then `Run` it again.)
+
+Although it probably won't hurt to inject the CIDER handler when using
+a different editor, it's a little safer to leave it out of the loop if
+you don't need it.
+
+=== Connecting from Cursive
+
+Once you have the nREPL server running (without injecting the CIDER
+handler), you will want to follow the Cursive instructions for
+https://cursive-ide.com/userguide/repl.html#remote-repls[Remote
+REPLs], using the `Connect to server` radio button, entering
+`127.0.0.1` as the `Host` (assuming you are running Cursive on the
+same machine as Beat Link Trigger, although you don't have to!) and
+then set the `Port` value to the one you chose in Beat Link Trigger.
+
+Once you have your Remote REPL configuration created, it appears in
+the menu at the top right of the project window, and you can connect
+to it by pressing the green triangle (play button) to the right of it
+(I named my configuration BLT nREPL):
+
+image:Cursive.png[Cursive connected,535,550]
+
+Whatever expressions you type at the bottom of the REPL window are
+immediately evaluated, and the results shown above, and you can use
+Cursive's editor window features to send functions and files to the
+REPL. Cursive's built-in completion can be seen in action at the
+bottom of the above screen shot. See the
+https://cursive-ide.com/userguide/[Cursive User Guide] for more
+information.
+
+
+=== Connecting from CIDER
+
+Once you have the nREPL server running with the CIDER handler
+injected, you can tell CIDER to connect to it by typing kbd:[M-x]
+`cider-connect` kbd:[RET] and CIDER will prompt you for the host and
+port information. If you are running BLT on the same machine as CIDER,
+enter `localhost` or `127.0.0.1` for the host, and then enter the port
+number you chose in Beat Link Trigger.
+
+The https://docs.cider.mx/cider/index.html[CIDER Docs] give you the
+details of how to work with it.
+
+=== Using the Connection
+
+Regardless of the IDE you are using, you will probably want to switch
+your namespace to `beat-link-trigger.expressions` because this is
+where your Shared Functions live, and they are where you should put
+your most sophisticated coding, so that individual expressions can be
+short and sweet, using the Shared Functions for the heavy lifting.
+This namespace is also configured to include Clojure's
+developer-friendly functions like `doc` (to let you look at the
+documentation for a function or variable), `source` (to let you see
+the source code of a function), and so on. The
+https://clojure.org/reference/repl_and_main[Clojure documentation]
+mentions some of the things you can do at the REPL (although you can
+ignore the parts that talk about how to start Clojure; Beat Link
+Trigger has already done that for you). There is a page about
+https://clojure.org/guides/repl/basic_usage[basic usage],
+https://clojure.org/guides/repl/navigating_namespaces[navigating
+namespaces], and a
+https://clojure.org/guides/repl/annex_community_resources[collection
+of resources] describing REPLs and the mindset of using them
+effectively. (The navigation links on the left side and top of those
+pages can take you other good places for learning about the REPL,
+Clojure, troubleshooting, and so on.)
+
+For more ideas specifically about how to explore Beat Link Trigger
+from a Clojure IDE, mention you are doing it on the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter Chat]!
+
 
 [[saving-and-loading]]
 == Saving and Loading
