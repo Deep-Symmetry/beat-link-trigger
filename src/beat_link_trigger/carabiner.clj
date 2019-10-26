@@ -560,13 +560,13 @@ glitches."
 
 (def sync-hysteresis
   "The number of milliseconds to wait for sync state to settle after
-  sendign a sync command, so our UI does not get into a terrible
+  sending a sync command, so our UI does not get into a terrible
   feedback loop."
   250)
 
 (def master-hysteresis
   "The number of milliseconds to wait for sync state to settle after
-  sendign a tempo master assignment command, so our UI does not get
+  sending a tempo master assignment command, so our UI does not get
   into a terrible feedback loop."
   300)
 
