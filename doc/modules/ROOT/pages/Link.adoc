@@ -152,7 +152,7 @@ a filled circle inside the enabled circle:
 
 Sometimes you simply want to tie the Ableton Link session to whatever
 is playing on the CDJs, without having to set up a trigger to manage
-it. You can do that by choosing menu:Sync Mode[passive] in the
+it. You can do that by choosing menu:Sync Mode[Passive] in the
 Carabiner window. As soon as you do that the `Ableton Link` section of
 the window becomes enabled:
 
