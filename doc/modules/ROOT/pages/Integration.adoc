@@ -51,12 +51,12 @@ PangoTalk UDP server, which requires BEYOND Advanced, but you can use
 MIDI with BEYOND Essentials to get decent tempo tracking and basic cue
 triggers, as described <<pangolin-beyond-essentials,below>>.
 
-To begin with, in the Global Setup Expression, we tell Beat Link
-Trigger how to communicate with BEYOND, by specifying the broadcast
-address of the network interface it is listening on, and the port on
-which the BEYOND Talk UDP server is listening. To determine these
-things, you can choose menu:Tools[Network Monitor...] within BEYOND to
-bring up a window like this:
+To begin with, in the Shared Functions, we tell Beat Link Trigger how
+to communicate with BEYOND, by specifying the broadcast address of the
+network interface it is listening on, and the port on which the BEYOND
+Talk UDP server is listening. To determine these things, you can
+choose menu:Tools[Network Monitor...] within BEYOND to bring up a
+window like this:
 
 image:BeyondNetworkMonitor.png[Network Monitor,584,461]
 
@@ -94,7 +94,7 @@ Calculator found at menu:Tools[Subnet Calculator] that can help you
 determine the broadcast address.
 
 Once you have the UDP Talk server up and working, edit Beat Link
-Trigger’s Global Setup expression to use the broadcast address and
+Trigger’s Shared Functions to use the broadcast address and
 port to define a new function, `beyond-command`, that your other
 expressions will be able to use to send PangoScript commands to it:
 
@@ -146,9 +146,9 @@ there, so it will always start by sending the current BPM value to
 BEYOND).
 
 When the current tempo is different from what we have sent to BEYOND,
-we use the `beyond-command` function that we defined in the Global
-Setup expression to send a `SetBpm` command to BEYOND, containing the
-current tempo at which the Master Player is playing. If there is no
+we use the `beyond-command` function that we defined in the Shared
+Functions to send a `SetBpm` command to BEYOND, containing the current
+tempo at which the Master Player is playing. If there is no
 difference, we send nothing, because BEYOND is already at the right
 tempo. Either way, we record the current effective tempo in the
 `locals` map for use when the next update packet is received.
@@ -375,8 +375,8 @@ initially opened it.
 
 image:LiveExternalControl.png[ShowXpress Live Preferences,700,540]
 
-Then paste this block of code into Beat Link Trigger’s Global Setup
-Expression:
+Then paste this block of code into Beat Link Trigger’s Shared
+Functions:
 
 ```clojure
 (defn live-response-handler
@@ -579,10 +579,10 @@ and loading that within Beat Link Trigger.
 WARNING: If you already have triggers of your own that you want to
 keep, be sure to save your configuration before opening another one!
 In that case you may want to export your triggers, or manually cut and
-paste the relevant pieces of code into your global expressions.
+paste the relevant pieces of code into your Shared Functions.
 
 To begin with, paste this block of code into Beat Link Trigger’s
-Global Setup Expression:
+Shared Functions:
 
 ```clojure
 (defn gm-response-handler
@@ -641,7 +641,12 @@ Global Setup Expression:
   []
   (let [master (get-in @globals [:gm-connection :bpm-master])]
     (send-gm-command (str "Learn SpecialMaster " master))))
+```
 
+Then paste this setup code in to the Global Setup Expression (notice
+how it builds on the Shared Functions we just created):
+
+```clojure
 ;; Attempt to connect to the grandMA2 telnet command port.
 ;; Edit the variable definitions below to reflect your setup.
 (try
@@ -706,15 +711,18 @@ Deactivation Expression to:
 ```
 
 If you have other things that you want to happen when particular
-tracks start or stop playing or reach particular sections, you can set
-up other triggers that send whatever commands you like in their
-Activation and Deactivation expressions using the `send-gm-command`
-function that was created by the Global Setup Expression. And you can
-then configure them to be active only when a CDJ is playing a
-particular track, or is within a particular range of beats within that
-track, as shown in <<Matching#matching-tracks,Matching Tracks>> above. This
-allows you to have certain looks called up automatically when the
-right parts of the right tracks are played.
+tracks start or stop playing or reach particular sections, then you
+want to set up a <<Shows#show,Show>>. If you really want to do it the
+older, more complicated way, then you can set up other triggers that
+send whatever commands you like in their Activation and Deactivation
+expressions using the `send-gm-command` function that was created by
+the Global Setup Expression, and configure them to be active only when
+a CDJ is playing a particular track, or is within a particular range
+of beats within that track, as shown in
+<<Matching#matching-tracks,Matching Tracks>>. This allows you to have
+certain looks called up automatically when the right parts of the
+right tracks are played. But honestly, learn about Shows, they are so
+much easier to set up, and do all that work for you!
 
 TIP: If you jumped to this section to learn about how to integrate the
 lighting desk with CDJs, and you think it looks promising, you

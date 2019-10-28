@@ -29,6 +29,7 @@ endif::env-github[]
 Watch for beat ranges of specific tracks to be played, and send things
 like MIDI or OSC messages in response.
 
+[[overview]]
 == Overview
 
 Version 0.5 of Beat Link Trigger introduced a major new set of user

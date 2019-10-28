@@ -651,6 +651,14 @@ machine. See the Enabled Filter Expression <<enabled-filter-expression,below>> f
 how we use it. And keep this setup in mind, because it will be
 built on throughout the rest of this section.
 
+TIP: Even though we use speed control in Resolume as a running
+example, and these examples still provide a useful context for
+understanding how expressions work in Beat Link Trigger, there is a
+better way to synchronize Resolume with your tracks today. It now
+https://resolume.com/support/en/link[supports Ableton Link], and
+<<Link#overview,so does BLT>>, so you can use that for easier, even
+more stable synchronization.
+
 [[shutdown-expression]]
 === Shutdown Expression
 

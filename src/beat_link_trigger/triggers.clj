@@ -37,6 +37,14 @@
   namespaces so that, for example, Show expressions can access them."}
   expression-globals (atom {}))
 
+;; Make the expression globals conveniently available when compiling
+;; shared functions too.
+(in-ns 'beat-link-trigger.expressions)
+(def globals
+  "The Beat Link Trigger expression globals"
+  beat-link-trigger.triggers/expression-globals)
+(in-ns 'beat-link-trigger.triggers)
+
 (defonce ^{:private true
            :doc "Holds the trigger window, through which we can access and
   manipulate the triggers themselves."}

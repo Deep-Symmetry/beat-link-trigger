@@ -33,6 +33,7 @@ own “player” that can become Tempo Master to the CDJs. Even without
 Carabiner, you can <<sync-control,control>> which players are Synced,
 and which is the Tempo Master.
 
+[[overview]]
 == Overview
 
 If you install and run
