@@ -277,7 +277,7 @@ communicate the current BPM:
 
 image:BeyondClockTrigger.png[Clock Trigger for BEYOND,806,202]
 
-+++<img src="assets/BeyondMIDIsynced.png" width="162" height="104"
++++<img src="_images/BeyondMIDIsynced.png" width="162" height="104"
 align="right" alt="BEYOND synced to MIDI Clock">+++
 Once that trigger activates, the BPM display in BEYOND will turn
 yellow and will track the tempo of the track that activated the
