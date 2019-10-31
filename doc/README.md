@@ -15,10 +15,10 @@ is managed by [netlify](https://www.netlify.com).
 The Leiningen project in the root of this repository automatically
 invokes Antora to build the embedded version as an early build step.
 
-The online version, which will grow to support multiple released
-versions of Beat Link Trigger, is built automatically by netlify
-whenever changes are pushed to the relevant branches on GitHub. The
-netlify build command is:
+The online version, which will supports multiple released versions of
+Beat Link Trigger, is built automatically by netlify whenever changes
+are pushed to the relevant branches on GitHub. The netlify build
+command is:
 
     npm i @antora/cli @antora/site-generator-default && \
     $(npm bin)/antora --fetch doc/netlify.yml
