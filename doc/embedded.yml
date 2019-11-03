@@ -3,6 +3,7 @@ site:
   url: http:/guide
   start_page: beat-link-trigger::README.adoc
 content:
+  edit_url: false
   sources:
   - url: ./..
     branches: HEAD
