@@ -80,4 +80,5 @@
 ** xref:Integration.adoc#chauvet-showxpress[QuickDMX]
 ** xref:Integration.adoc#smpte-linear[SMPTE Linear Timecode]
 ** xref:Integration.adoc#chauvet-showxpress[SweetLight]
+** xref:Integration.adoc#xone-on-air[Xone:96 Channels On Air]
 * xref:README.adoc#what-next[What Next?]

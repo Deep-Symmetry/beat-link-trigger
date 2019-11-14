@@ -963,6 +963,205 @@ image:RealPlayerNumber.png[Using a Real Player Number,360,160]
 ...To be continued!
 
 
+[[xone-on-air]]
+== Xone:96 Channels On Air Support
+
+This started as a request for assistance on the Beat Link project, but
+it turns out at least one Beat Link Trigger user also has this great
+mixer, and missed the On Air display that CDJs only give when talking
+to DJMs. But since the Xone:96 can send MIDI events to report the
+positions of its faders, by plugging in a USB cable you can have Beat
+Link Trigger translate those into Channels On Air messages that update
+the CDJ lights for you.
+
+To make it easy to turn this feature on and off along with other
+things you are doing in Beat Link Trigger, I created a standalone show
+file that implements the integration. If you have that show open, it
+tries to translate mixer MIDI into CDJ on-air messages, and if you
+close it, it stops. The show looks a little strange because it has no
+tracks, but it doesn't need any, all the action happens in the Shared
+Functions and the Global Setup and Global Shutdown Expressions.
+
+To try it out, start by saving the
+link:{attachmentsdir}/XoneOnAir.bls[Xone On Air show] where you like
+to keep your Beat Link Trigger shows, then open it. Assuming your
+mixer is plugged into a USB port, it should start working. Move
+channel faders up and down, and move the cross-fader back and forth,
+and your CDJs should change color appropriately (as long as you have
+the On Air feature enabled on the CDJs themselves, and Beat Link
+Trigger is online and talking to them).
+
+NOTE: If the mixer wasn't connected, you will see an error dialog
+about the MIDI device not being found. Plug in the mixer, close the
+show, and reopen it, and things should work better. If it still
+complains, your MIDI device must be named differently than expected,
+the show is looking for a port with "XONE" in the name. Figure out
+what your mixer's MIDI port is called on your system, then edit line
+33 of the Global Setup Expression so it is a substring that matches
+only that port, and try again.
+
+As shipped, the show assumes channels 1 and 2 are tied to the left
+side of the cross fader, and 3 and 4 to the right, but that is easily
+edited at the top of the Shared Functions, as shown below.
+
+If you are curious how the show actually works, here is all the code!
+
+.Shared Functions
+[source,clojure]
+----
+(def xone-left-channels
+  "The set of channels assigned to the left side of the cross-fader"
+  #{1 2}) <1>
+
+(def xone-right-channels
+  "The set of channels assigned to the right side of the cross-fader"
+  #{3 4}) <2>
+
+(def xone-min-on-air-value
+  "The MIDI value of the fader must be this far from zero (or, in the
+  case of the cross-fader, from the opposite end of travel), for a
+  channel to be considered on the air."
+  2) <3>
+
+(defn xone-on-air-via-channel-faders <4>
+  "Returns the channel numbers that are currently on the air based
+  solely on the known positions of the channel faders, given the
+  updated state of the show globals following a MIDI event."
+  [state]
+  (set (filter (fn [num]
+                 (>= (get state (keyword (str "channel-" num))) xone-min-on-air-value))
+               (range 1 5))))
+
+(defn xone-blocked-by-cross-fader
+  "Returns set of the channel numbers that are currently muted because
+  of the cross-fader position, if any, given the updated state of the
+  show globals following a MIDI event."
+  [state]
+  (let [fader-position (:cross-fader state)]
+    (cond
+      (< fader-position xone-min-on-air-value) xone-right-channels
+      (< (- 127 fader-position) xone-min-on-air-value) xone-left-channels
+      :else #{})))
+
+(defn xone-midi-received
+  "This function is called with each MIDI message received from the mixer,
+  and also given access to the show globals so that it can update the known
+  mixer state and determine the resulting on-air channels."
+  [globals msg]
+  ;; Default Xone configuration sends faders as CC on MIDI Channel 16.
+  (when (and (= :control-change (:command msg)) (= 15 (:channel msg)))
+       ;; Check if it is one of the faders we care about.
+    (when-let [recognized (get {0 :channel-1
+                                1 :channel-2
+                                2 :channel-3
+                                3 :channel-4
+                                5 :cross-fader}
+                               (long (:note msg)))]
+      ;; It is, so update known mixer state with the current fader value, and
+      ;; calculate which channels are now on-air.
+      (let [state  (swap! globals assoc recognized (:velocity msg))
+            on-air (clojure.set/difference (xone-on-air-via-channel-faders state)
+                                           (xone-blocked-by-cross-fader state))]
+        ;; If the Virtual CDJ is running (Beat Link Trigger itself is online),
+        ;; send a Channels On Air message to update the actual CDJ's state.
+        ;; (We need to convert the values to integers, rather than the longs
+        ;; that Clojure uses natively, to be compatible with the Beat Link API.)
+        (when (.isRunning virtual-cdj)
+          (.sendOnAirCommand virtual-cdj (set (map int on-air))))))))
+----
+
+<1> Any channel numbers listed in this set will be considered off the
+air when the cross fader is all the way to the right.
+
+<2> Any channel numbers listed in this set will be considered off the
+air when the cross fader is all the way to the left. (If you omit any
+channels numbers from both sets, they will be unaffected by the cross
+fader.)
+
+<3> You can change this value to adjust how far from the end of a
+fader a channel goes off the air. The MIDI values for the faders run
+from 0 to 127.
+
+<4> The rest of this code is functions that are called when MIDI
+events arrive from the mixer to decide how they affect the channels.
+Hopefully the inline comments show how they work.
+
+.Global Setup Expression
+[source,clojure]
+----
+;; Track the current state we believe the mixer to have. Will not be
+;; accurate for a given fader until it is moved. We assume all channels
+;; are on the air until we get actual data.
+(swap! globals assoc
+  :cross-fader 63
+  :channel-1  127
+  :channel-2  127
+  :channel-3  127
+  :channel-4  127)
+
+;; Try to open the MIDI input with which we receive data from the mixer. Edit the MIDI
+;; device name in the first line if needed to match your Xone's MIDI input device name.
+(let [mixer-device-name "XONE"] <1>
+  (try
+    (let [device (midi/midi-in mixer-device-name)]
+      ;; Open a MIDI input with the specified name, which should be coming from the mixer.
+      (swap! globals assoc :mixer-midi device)
+      ;; Arrange for xone-midi-received to be called whenever we get a message from the mixer.
+      (midi/midi-handle-events device (fn [msg] (xone-midi-received globals msg))))
+    (catch Throwable t
+      (timbre/warn t "Unable to open Xone MIDI device" mixer-device-name)
+      (seesaw/invoke-later  <2>
+       (seesaw/alert
+        (str "<html>The XoneOnAir show was unable to open a MIDI port matching \"" mixer-device-name
+             "\"<br>to receive messages from the mixer. Please make sure the mixer<br>"
+             "is connected, verify the device name that is showing up, and if needed<br>"
+             "edit the definition of <code>mixer-device-name</code> in the Global Setup Expression."
+             "<br><br>Close and reopen the show to try again.")
+        :title "MIDI Device Not Found, On-Air Detection Disabled"
+        :type :error)))))
+----
+
+This code runs after the shared functions have been defined, when the
+show is starting up. It tries to open the mixer's MIDI port.
+
+<1> This is where you edit the mixer MIDI port name if it doesn't
+contain "XONE" on your system.
+
+<2> This is the code that displays the error window when the MIDI port
+can't be found.
+
+.Global Shutdown Expression
+[source,clojure]
+----
+;; Close the mixer MIDI connection if we opened one.
+(swap! globals
+  (fn [current]
+    (when-let [device (:mixer-midi current)]
+      (.close (:transmitter device)))
+    (dissoc current :mixer-midi)))
+----
+
+This code runs when the show is closing, and closes the mixer's MIDI
+port gracefully if it was open.
+
+=== Experimenting Without the Mixer
+
+I don't actually have a Xone:96, so to develop this code I had to make
+a "fake one" based on its
+https://www.allen-heath.com/media/X96_MIDI-Control-Overview.pdf[MIDI
+mapping manual], which I did in the form of a Max patch. If you have
+Max, you can link:{attachmentsdir}/XoneSimulator.maxpat[save it] and
+play with it too. It has four simulated channel faders and a cross
+fader:
+
+image:XoneSimulator.png[Xone:96 Simulator,674,659]
+
+I set my environment up so that MIDI output port `c` in Max had a name
+that matched what the Global Setup Expression was looking for, and I
+could control my CDJ's on-air lights by sliding the faders in the
+patch.
+
+
 == Learning More
 
 ****
