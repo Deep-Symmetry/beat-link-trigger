@@ -44,7 +44,7 @@
 					"numoutlets" : 0,
 					"patching_rect" : [ 202.0, 324.0, 75.0, 22.0 ],
 					"style" : "",
-					"text" : "ctlout c 5 16"
+					"text" : "ctlout c 4 16"
 				}
 
 			}

@@ -1055,7 +1055,7 @@ If you are curious how the show actually works, here is all the code!
                                 1 :channel-2
                                 2 :channel-3
                                 3 :channel-4
-                                5 :cross-fader}
+                                4 :cross-fader}
                                (long (:note msg)))]
       ;; It is, so update known mixer state with the current fader value, and
       ;; calculate which channels are now on-air.
@@ -1160,6 +1160,11 @@ I set my environment up so that MIDI output port `c` in Max had a name
 that matched what the Global Setup Expression was looking for, and I
 could control my CDJ's on-air lights by sliding the faders in the
 patch.
+
+NOTE: https://github.com/GuyHarwood[@GuyHardwood], who was the
+inspiration for this integration, discovered through MIDI Monitor that
+the documentation is incorrect about the CC number used for the
+cross-fader. It appears to actually be 4 rather than 5.
 
 
 == Learning More
