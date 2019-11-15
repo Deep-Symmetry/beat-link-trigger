@@ -916,16 +916,19 @@ you can help do that, please let us know!
 == Break Buddy “Robo DJ”
 
 One of my most enthusiastic users came up with an interesting question
-shortly after figuring out how to give have dramatic synchronized
-lighting effects and pyro without having to follow a preset playlist:
-since we can load tracks on the players, and start and stop playback,
-is there any way to have Beat Link Trigger perform a programmed
-automatic mix if the DJ needs to urgently leave the booth for a bit,
-such as for a bathroom break? I thought thiw was something the new
-Show interface could make possible, with some careful setup and an
-understanding of the limitations, so I built this example for him.
+shortly after figuring out how to achieve dramatic synchronized
+lighting effects and pyro without having to follow a preset playlist.
+His question: since we can load tracks on the players, and start and
+stop playback, is there any way to have Beat Link Trigger perform a
+programmed automatic mix if the DJ needs to urgently leave the booth
+for a bit, such as for a bathroom break? I thought thiw was something
+the new Show interface could make possible, with some careful setup
+and an understanding of the limitations, so I built this example for
+him.
 
-NOTE: This will never replace real mixing, because there is no way to
+[NOTE]
+====
+This will never replace real mixing, because there is no way to
 control the crossfaders, EQ, or any effects. You will need to either
 pick tracks that can be harmonically mixed, or use hard cuts between
 tracks, stopping one player while simultaneously starting the next.
@@ -933,10 +936,11 @@ tracks, stopping one player while simultaneously starting the next.
 But if you follow a few setup steps, this actually works better than I
 initially expected. If nothing else, it is a really fun demonstration
 of the power of the Show interface. Here's how to do it!
+====
 
 Start by saving the link:{attachmentsdir}/BreakBuddy.bls[Break Buddy
 show] where you like to keep your Beat Link Trigger shows. It has all
-the necessary shared functions built in, and some xample tracks
+the necessary shared functions built in, and some example tracks
 showing how to configure your own, as described below.
 
 * Set up some tracks in rekordbox so their first cue or memory point
@@ -959,6 +963,214 @@ image:RealPlayerNumber.png[Using a Real Player Number,360,160]
 * It would not hurt to put the players into Sync mode when you are
   about to start using the show, but the show's shared functions will
   try to turn on Sync and Master as needed.
+
+* Load and play one of the tracks in the show, and let the show take
+  it from there!
+
+The way it works is that the tracks in the show are chosen to mix well
+into each other, and have BLT cues painted on them so that each track
+loads the next one on the other player while it is playing, and then
+transitions to it at an appropriate point and in an appropriate way.
+
+TIP: The order in which the tracks appear in the show will be
+alphabetic by name, as always, not the order in which they will play.
+That is determined by the cues you create. So you will need some way
+to remind yourself the track you want to load and play first, such as
+by putting a comment in it.
+
+The show makes extensive use of Shared Functions to enable the cues to
+perform their tricky operations. They (and the variables they use) are
+all named starting with the prefix `bb-` (short for Break Buddy) so as
+not to conflict with shared functions used by other shows or the
+Triggers window. Here is a listing of all the shared function, with a
+little additional explanation of how they work beyond the doc comments
+that are already part of them, to set the stage for the discussion of
+the cue library that uses them.
+
+TIP: Don't panic if this seems a lot of code detail, you can just skim
+it to your level of comfort, and focus on the explanation of the cues
+themselves, which comes next.
+
+.Shared Functions, part 1
+[source,clojure]
+----
+(def bb-players-for-mixing
+  "The player numbers that will be swapped between when using the show
+  mixing helper functions. Edit the numbers in the line below if you
+  don't want to have Break Buddy alternate between players 2 and 3."
+  (atom #{(int 2) (int 3)})) <1>
+
+(defn bb-this-player <2>
+  "Given a status value from a show cue's started-on-beat or
+  started-late expression, return the player number that started."
+  [cue-status]
+  (.getDeviceNumber (extract-raw-cue-update cue-status)))
+
+(defn bb-other-player
+  "Given a status value from a show cue's started-on-beat or
+  started-late expression, return the player number of the other
+  player we are supposed to be mixing with."
+  [cue-status]
+  (first (clojure.set/difference @bb-players-for-mixing
+                                 #{(.getDeviceNumber (extract-raw-cue-update cue-status))})))
+
+(defn bb-start-player <3>
+  "Tells the specified player number to start playing as long as it is
+  positioned at a cue (argument must be a `java.lang.Integer`). Also
+  makes sure it is synced first."
+  [player-number]
+  (timbre/info "starting player" player-number "in sync mode")
+  (.sendSyncModeCommand virtual-cdj player-number true)
+  (.sendFaderStartCommand virtual-cdj #{player-number} #{}))
+
+(defn bb-stop-player
+  "Tells the specified player number to stop playing and return to its
+  cue (argument must be a `java.lang.Integer`)."
+  [player-number]
+  (.sendFaderStartCommand virtual-cdj #{} #{player-number}))
+
+(defn bb-swap-players
+  "Given a status value from a show cue's started-on-beat or
+  started-late expression, stop that player and start the other one as
+  a single network message. First ensures the other player is synced."
+  [cue-status]
+  (.sendSyncModeCommand virtual-cdj (bb-other-player cue-status) true)
+  (.sendFaderStartCommand virtual-cdj
+                          #{(bb-other-player cue-status)} #{(bb-this-player cue-status)}))
+
+(defn bb-load-track-on-other-player <4>
+  "Tells the other player to load the track with the specified rekordbox ID
+  from the same USB that the current player is using. The other player must
+  currently be stopped. Also sets this player as the master player to prepare
+  for any necessary tempo changes."
+  [cue-status track-id]
+  (let [status (.getLatestStatusFor virtual-cdj (bb-this-player cue-status))]
+    (.sendLoadTrackCommand virtual-cdj (bb-other-player cue-status) track-id
+                           (.getTrackSourcePlayer status) (.getTrackSourceSlot status)
+                           (.getTrackType status)))
+  (.appointTempoMaster virtual-cdj (bb-this-player cue-status)))
+
+(defn bb-load-track-on-this-player <5>
+  "Tells the current player to load the track with the specified rekordbox ID
+  from the same USB that the current track is using. The player must be stopped,
+  so this only makes sense to use in an Ended Expression for a cue that does a
+  hard cut to the other player and stops this one."
+  [cue-status track-id]
+  (let [status (.getLatestStatusFor virtual-cdj (bb-this-player cue-status))]
+    (.sendLoadTrackCommand virtual-cdj (bb-this-player cue-status) track-id
+                           (.getTrackSourcePlayer status) (.getTrackSourceSlot status)
+                           (.getTrackType status))))
+----
+
+<1> The `bb-players-for-mixing` set is how the functions can determine
+the "other player" when you tell them to do something to it. As
+shipped, the show assumes you want it to mix between players 2 and 3.
+If you want it to use different player numbers, replace the `2` and/or
+`3` in this line with the numbers you actually want to use.
+
+<2> The `bb-this-player` and `bb-other-player` are able to translate
+between whatever gets passed to a cue expression as the `status` value
+and the player number of the player that is playing the cue, or the
+other player that you want to mix to. They are primarily used by other
+functions as you will see below.
+
+<3> You can call `bb-start-player` and `bb-stop-player` with a player
+number to start or stop that player. `bb-swap-players` takes the
+`status` value that was passed to a cue expression and stops the
+player that was playing the cue, and starts the other player, at the
+same instant. That allows you to perform a hard cut between tracks.
+
+<4> You can call `bb-load-track-on-other-player` once you know the
+other player is stopped, to get it ready to mix into a new track. You
+need to pass it the rekordbox ID of the track as it exists in the
+media your show is working from.
+
+<5> Similarly, you can call `bb-load-track-on-this-player` with a cue
+`status` track ID when you know the player has just been stopped by
+the cue.
+
+TIP: The easiest way to find the rekordbox IDs to use in your cues is
+to load the tracks into a player (using the same media or collection
+you will be using to run the Break Buddy show), and then look in the
+Triggers window at a trigger that is showing that player. It will show
+the Track ID in the blue Player Status Summary section (The Track ID
+is 81 in the figure below):
+
+image:BreakBuddyTrackID.png[Finding a Track ID,905,286]
+
+The functions we've looked at so far enable basic automatic mixes. But
+sometimes you need to nudge the tempo before, during, and after
+the mix. The rest of the shared functions are more complicated, but
+they enable clever cues to do just that:
+
+.Shared Functions, part 2
+[source,clojure]
+----
+;; This last set of functions are when you want to be able to control tempo during your mixes,
+;; and will only work when you have Beat Link Trigger using a real player number (so there can't
+;; be more than three CDJs on the network).
+(defn bb-prepare-for-tempo-adjustments
+  "Gets the Virtual CDJ ready to tweak the tempo when Break Buddy cues
+  need it to, or logs an error if BLT is not configured to use a real
+  player number."
+  []
+  (if (.isSendingStatus virtual-cdj)
+    (do
+      (.setSynced virtual-cdj true)
+      (.setPlaying virtual-cdj true))
+    (seesaw/alert "Beat Link Trigger needs use a real player number to make tempo adjustments."
+                  :title "Show Shared Functions prepare-for-tempo-adjustments failed" :type :error)))
+
+(defn bb-tempo-adjust-step
+  "Called periodically while we are adjusting tempo. Figures out what
+  the current tempo should be, and sets the Virtual CD to that tempo."
+  [cue-status {:keys [start-time start-tempo tempo-distance time-distance]}]
+  (when-let [current-time (playback-time (extract-raw-cue-update cue-status))]
+    (let [time-passed (- current-time start-time)
+          new-tempo   (+ start-tempo (* tempo-distance (/ time-passed time-distance)))]
+      (.setTempo virtual-cdj new-tempo))))
+
+(defn bb-start-tempo-adjust
+  "Called when a cue that is going to adjust the tempo has begun. Puts
+  both players we are working with into Sync mode, and then causes the
+  Virtual CDJ to become tempo master, and calculates the tempo
+  adjustment parameters based on the current tempo, and the start and
+  end times of the cue."
+  [cue-status cue track target-tempo]
+  (timbre/info "Adjusting tempo to" target-tempo)
+  (doseq [player @bb-players-for-mixing]
+    (.sendSyncModeCommand virtual-cdj player true))
+  (.becomeTempoMaster virtual-cdj)
+  (let [{:keys [grid expression-locals]} track
+        start-tempo                      (.getTempo (VirtualCdj/getInstance))
+        start-time                       (.getTimeWithinTrack grid (:start cue))
+        end-time                         (.getTimeWithinTrack grid (:end cue))
+        specs                            {:start-time     start-time
+                                          :end-time       end-time
+                                          :start-tempo    start-tempo
+                                          :target-tempo   (double target-tempo)
+                                          :tempo-distance (- target-tempo start-tempo)
+                                          :time-distance  (- end-time start-time)}]
+    (swap! expression-locals assoc-in [:tempo-adjust-cues (:uuid cue)] specs)
+    (bb-tempo-adjust-step cue-status specs)))
+
+(defn bb-continue-tempo-adjust
+  "Called by the Tracked Update expression of tempo-adjustment cues to
+  make the next step in adjusting the tempo."
+  [cue-status track cue]
+  (when-let [specs (get-in @(:expression-locals track) [:tempo-adjust-cues (:uuid cue)])]
+    (bb-tempo-adjust-step cue-status specs)))
+
+(defn bb-finish-tempo-adjust
+  "Called by the Ended expression of tempo-adjustment cues to set the
+  final tempo and clean up."
+  [track cue]
+  (when-let [target-tempo (get-in @(:expression-locals track)
+                                   [:tempo-adjust-cues (:uuid cue) :target-tempo])]
+    (.setTempo virtual-cdj target-tempo))
+  (swap! (:expression-locals track) update :tempo-adjust-cues dissoc (:uuid cue)))
+----
+
 
 ...To be continued!
 
