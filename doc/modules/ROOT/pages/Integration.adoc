@@ -991,7 +991,7 @@ the cue library that uses them.
 
 TIP: Don't panic if this seems a lot of code detail, you can just skim
 it to your level of comfort, and focus on the explanation of the cues
-themselves, which comes next.
+themselves, which comes <<bb-cue-library,next>>.
 
 .Shared Functions, part 1
 [source,clojure]
@@ -1091,6 +1091,7 @@ media your show is working from.
 `status` track ID when you know the player has just been stopped by
 the cue.
 
+[[finding-track-id]]
 TIP: The easiest way to find the rekordbox IDs to use in your cues is
 to load the tracks into a player (using the same media or collection
 you will be using to run the Break Buddy show), and then look in the
@@ -1200,16 +1201,178 @@ But how do these functions know what tempo you want to get to? That's
 configured when you set up the tempo adjustment cue itself! Time to
 make this more concrete by looking at some actual cues.
 
+[[bb-cue-library]]
 === The Break Buddy Cue Library
 
 To make it easy to get all the pieces right, Break Buddy takes
-advantage of the Cue Library feature of Beat Link Trigger shows. It
-includes some cues that are already set up with the right code in
-their Expressions to make this magic work; you just need to paint them
-on your tracks, and then edit the track IDs or tempos in the
-expressions as needed for the details of your mix.
+advantage of the <<Shows#cue-library,Cue Library>> feature of Beat
+Link Trigger shows. It includes some cues that are already set up with
+the right code in their Expressions to make this magic work; you just
+need to paint them on your tracks, and then edit the track IDs or
+tempos in the expressions as needed for the details of your mix.
 
-...To be continued!
+image:BreakBuddyCueLibrary.png[Break Buddy Cue Library,912,712]
+
+See the <<Shows#cue-library,Cue Library guide>> if you need a reminder
+of how to place such cues in a show track. This section describes how
+three of them are used to perform a smooth, tempo-adjusted mix between
+Concrete Angel and Transcendence in this sample show.
+
+Because Concrete Angel is designed to be the first track in the
+automatic mix, once playing it needs to load the track it is supposed
+to mix into. It uses the **Load track on other player** cue to
+accomplish that. The cue is positioned many measures before the mix
+happens, so that the other player has time to finish loading it and
+positioning itself at the first memory point before the mix needs to
+take place. This kind of cue is simple, and uses only the Entered
+expression.
+
+The contents of that expression use the
+`bb-load-track-on-other-player` function described in the previous
+section to tell the player that isn't currently playing the cue to
+load a track:
+
+.Load Track on Other Player cue's Entered expression
+[source,clojure]
+----
+;; Replace the number at the end with the ID of the track you want to load.
+(bb-load-track-on-other-player status 853)
+----
+
+> See the tip <<finding-track-id,above>> for the easiest way to find
+> the ID of the track you want to load.
+
+So when playback of Concrete Angel reaches this cue, the other player
+is told to load Transcendence. The tracks are very harmonically
+compatible, so this mix is going to be able to play out the end of
+Concrete Angel on top of the beginning of Transcendence. They have
+different enough tempos that it's worth ramping from the 130 BPM of
+Concrete Angel to the 127 BPM of Transcendence during the mix. That is
+accomplished by painting an **Adjust Tempo** cue over four bars of
+Concrete Angel, and having the cue that starts the other player happen
+in the middle of that ramp.
+
+The Adjust Tempo cue is a more complex cue, with three different
+expressions to make it work. The first is the Started On Beat
+expression (and also notice in the screen shot above that the cue is
+configured with `Same` as its Late Message, so that even if the cue
+starts a bit late, the Started On Beat expression is invoked. The
+Shared Function code handles that case smoothly).
+
+The Started On Beat expression is where you tell the cue what tempo
+you want to ramp towards:
+
+.Adjust Tempo cue's Started On Beat expression
+[source,clojure]
+----
+;; Edit the number at the end of the next line to specify your desired tempo.
+;; The cue will gradually move towards that tempo over however many beats you
+;; paint it.
+(bb-start-tempo-adjust status cue track 127)
+----
+
+That `127` was the only thing we needed to configure for the cue,
+because we want to ramp to the 127 BPM that is the natural temppo of
+Transcendence. The tempo adjustment Shared Functions can figure out
+the current tempo, and how much time is left in the cue, to control
+how quickly they need to ramp the tempo.
+
+The cue's other expressions simply use the Shared Functions detailed
+in the previous section to make the adjustment happen as the cue
+plays:
+
+.Adjust Tempo cue's Tracked Update expression
+[source,clojure]
+----
+(bb-continue-tempo-adjust status track cue)
+----
+
+.Adjust Tempo cue's Ended expression
+[source,clojure]
+----
+(bb-finish-tempo-adjust track cue)
+----
+
+So with this setup, starting at beat 793 of Concrete Angel, and over a
+period of sixteen beats, the tempo of both players will smoothly
+adjust from 130 down to 127 BPM. And halfway through that process, we
+start Transcendence playing, using a **Start other player** cue.
+
+This is another simple cue, with a single expression that you don't
+need to edit. It uses the Started On Beat expression to tell the other
+player to start playing:
+
+.Start Other Player cue's Started On Beat expression
+[source,clojure]
+----
+(bb-start-player (bb-other-player status))
+----
+
+It combines the `bb-start-player` and `bb-other-player` functions
+described in the previous section to make that happen.
+
+These three cues combined perform a smooth tempo-adjusting mix between
+these two very harmonically compatible tracks. You could then use
+another Load Track on Other Player cue in the new track to set up the
+next track that it wanted to mix into, and carry on from there.
+
+Sometimes you need to do different kinds of mixes, though. Often you
+don't want to let your outgoing track play to completion, and the
+**Stop this player and load new track** cue is great in such
+situations. It accomplishes those tasks using two expressions. The
+Started On Beat expression stops the player that was playing the cue:
+
+.Stop this Player and Load New Track cue's Started On Beat expression
+[source,clojure]
+----
+(bb-stop-player (bb-this-player status))
+----
+
+Much like the previous expression we looked at, this combines two
+Shared Functions to stop the player playing the track in which the cue
+was placed. As soon as the player stops, the cue's Ended expression
+will be run. Its content is functionally the same as the Load Track on
+This Player cue we have already seen:
+
+.Stop this Player and Load New Track cue's Ended expression
+[source,clojure]
+----
+;; Replace the number at the end with the ID of the track you want to load once stopped.
+(bb-load-track-on-this-player status 93)
+----
+
+And of course sometimes tracks are so incompatible with each other
+that you want to just do a hard cut between them, stopping the
+outgoing player simultaneously with starting the incoming player. The
+**Cut to other player and load track** cue lets you do exactly that.
+It is very similar to the Stop this Player and Load New Track cue; the
+only difference is the function called in the Started On Beat
+expression:
+
+.Cut to Other Player and Load New Track cue's Started On Beat expression
+[source,clojure]
+----
+(bb-swap-players status)
+----
+
+This uses a Shared Function that knows how to stop the player that is
+playing the track holding the cue, and start the other one, in a
+single network message.
+
+As with the previous cue, you edit the Ended expression to put in the
+ID of the track you want to load once the player has stopped.
+
+=== Going Further
+
+Hopefully you can see ways to combine these cues to create a variety
+of mixes between tracks to keep the dance floor alive as you take your
+desperately needed break! It is also possible to combine the Shared
+Functions in other ways to do slightly different mixes, for example
+turning off Sync before loading a track with a radically different
+tempo, and doing a hard cut over to it. Try experimenting! If you come
+up with great ideas (or just get stuck and want help), come talk about
+it on the https://gitter.im/brunchboy/beat-link-trigger[Gitter
+channel].
 
 
 [[xone-on-air]]
