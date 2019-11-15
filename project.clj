@@ -5,7 +5,7 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/core.async "0.4.500"]
+                 [org.clojure/core.async "0.5.527"]
                  [org.clojure/data.csv "0.1.4"]
                  [org.clojure/tools.cli "0.4.2"]
                  [clojure-humanize "0.2.2"]
@@ -27,7 +27,7 @@
                  [uk.co.xfactory-librarians/coremidi4j "1.2"]
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
-                 [ring/ring-core "1.7.1"]
+                 [ring/ring-core "1.8.0"]
                  [compojure "1.6.1"]
                  [nrepl "0.6.0"]
                  [cider/cider-nrepl "0.22.4"]
