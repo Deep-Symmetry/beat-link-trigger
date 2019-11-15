@@ -32,6 +32,11 @@ This change log follows the conventions of
   documentation, and expression evaluation.
 - There is a new mechanism your expressions can use to download and
   use new libraries that enable you to build your integrations.
+- The User Guide now contains and explains a Show that can be used to
+  control the On-Air display of CDJs when working with a Xone:96
+  mixer by responding to its MIDI messages.
+- There is also an example Show that can take over the players and
+  perform simple mixes when the DJ needs to take an urgent break.
 
 ### Fixed
 
