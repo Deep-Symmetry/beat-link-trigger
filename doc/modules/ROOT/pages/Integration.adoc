@@ -978,11 +978,13 @@ That is determined by the cues you create. So you will need some way
 to remind yourself the track you want to load and play first, such as
 by putting a comment in it.
 
+=== Break Buddy Shared Functions
+
 The show makes extensive use of Shared Functions to enable the cues to
 perform their tricky operations. They (and the variables they use) are
 all named starting with the prefix `bb-` (short for Break Buddy) so as
 not to conflict with shared functions used by other shows or the
-Triggers window. Here is a listing of all the shared function, with a
+Triggers window. Here is a listing of all the shared functions, with a
 little additional explanation of how they work beyond the doc comments
 that are already part of them, to set the stage for the discussion of
 the cue library that uses them.
@@ -1109,9 +1111,9 @@ they enable clever cues to do just that:
 ;; This last set of functions are when you want to be able to control tempo during your mixes,
 ;; and will only work when you have Beat Link Trigger using a real player number (so there can't
 ;; be more than three CDJs on the network).
-(defn bb-prepare-for-tempo-adjustments
+(defn bb-prepare-for-tempo-adjustments   ;; <1>
   "Gets the Virtual CDJ ready to tweak the tempo when Break Buddy cues
-  need it to, or logs an error if BLT is not configured to use a real
+  need it to, or reports an error if BLT is not configured to use a real
   player number."
   []
   (if (.isSendingStatus virtual-cdj)
@@ -1121,7 +1123,7 @@ they enable clever cues to do just that:
     (seesaw/alert "Beat Link Trigger needs use a real player number to make tempo adjustments."
                   :title "Show Shared Functions prepare-for-tempo-adjustments failed" :type :error)))
 
-(defn bb-tempo-adjust-step
+(defn bb-tempo-adjust-step   ;; <2>
   "Called periodically while we are adjusting tempo. Figures out what
   the current tempo should be, and sets the Virtual CD to that tempo."
   [cue-status {:keys [start-time start-tempo tempo-distance time-distance]}]
@@ -1130,7 +1132,7 @@ they enable clever cues to do just that:
           new-tempo   (+ start-tempo (* tempo-distance (/ time-passed time-distance)))]
       (.setTempo virtual-cdj new-tempo))))
 
-(defn bb-start-tempo-adjust
+(defn bb-start-tempo-adjust   ;; <3>
   "Called when a cue that is going to adjust the tempo has begun. Puts
   both players we are working with into Sync mode, and then causes the
   Virtual CDJ to become tempo master, and calculates the tempo
@@ -1154,14 +1156,14 @@ they enable clever cues to do just that:
     (swap! expression-locals assoc-in [:tempo-adjust-cues (:uuid cue)] specs)
     (bb-tempo-adjust-step cue-status specs)))
 
-(defn bb-continue-tempo-adjust
+(defn bb-continue-tempo-adjust   ;; <4>
   "Called by the Tracked Update expression of tempo-adjustment cues to
   make the next step in adjusting the tempo."
   [cue-status track cue]
   (when-let [specs (get-in @(:expression-locals track) [:tempo-adjust-cues (:uuid cue)])]
     (bb-tempo-adjust-step cue-status specs)))
 
-(defn bb-finish-tempo-adjust
+(defn bb-finish-tempo-adjust   ;; <5>
   "Called by the Ended expression of tempo-adjustment cues to set the
   final tempo and clean up."
   [track cue]
@@ -1171,6 +1173,41 @@ they enable clever cues to do just that:
   (swap! (:expression-locals track) update :tempo-adjust-cues dissoc (:uuid cue)))
 ----
 
+<1> The `bb-prepare-for-tempo-adjustments` function is called by the
+show's Came Online Expression to warn you that the tempo-adjustment
+cues won't work if you don't have Beat Link Trigger configured to use
+a real player number. (It does nothing if you have things set up
+correctly.)
+
+<2> The `bb-tempo-adjust-step` function is called several time a
+second by cues that are adjusting tempo. It sets a new tempo, by
+seeing how much longer the cue lasts, and how far the tempo still
+needs to be changed.
+
+<3> The `bb-start-tempo-adjust` function is called at the beginning of
+a cue that will be adjusting tempo. It sets up all the calculations
+that will be needed so `bb-tempo-adjust-step` can work, and then calls
+it for the first time.
+
+<4> The `bb-continue-tempo-adjust` function is called by the cue's
+Tracked Update expression, finds the calculations that were made by
+`bb-start-tempo-adjust`, and passes them to `bb-tempo-adjust-step`.
+
+<5> Finally, the `bb-finish-tempo-adjust` function is called when the
+cue ends to clean things up and establish the final target tempo.
+
+But how do these functions know what tempo you want to get to? That's
+configured when you set up the tempo adjustment cue itself! Time to
+make this more concrete by looking at some actual cues.
+
+=== The Break Buddy Cue Library
+
+To make it easy to get all the pieces right, Break Buddy takes
+advantage of the Cue Library feature of Beat Link Trigger shows. It
+includes some cues that are already set up with the right code in
+their Expressions to make this magic work; you just need to paint them
+on your tracks, and then edit the track IDs or tempos in the
+expressions as needed for the details of your mix.
 
 ...To be continued!
 
