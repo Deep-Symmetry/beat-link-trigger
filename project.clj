@@ -16,7 +16,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.14"]
                  [fipp "0.6.21"]
-                 [inspector-jay "0.3"]
+                 [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.5.5-SNAPSHOT"]
                  [org.deepsymmetry/electro "0.1.3"]
@@ -31,7 +31,8 @@
                  [compojure "1.6.1"]
                  [nrepl "0.6.0"]
                  [cider/cider-nrepl "0.22.4"]
-                 [com.cemerick/pomegranate "1.1.0"]]
+                 [com.cemerick/pomegranate "1.1.0"]
+                 [org.apache.maven/maven-artifact "3.5.3"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core

@@ -3950,3 +3950,16 @@
         ;; Keep our original selection chosen, even if it is now missing
         (seesaw/selection! output-menu old-selection))
       (show-midi-status track))))
+
+(defn require-version
+  "Can be called by shows' Global Setup expression to display an error
+  and close the show if the Beat Link Trigger version is not at least
+  the one passed as a `min-version`."
+  [show min-version]
+  (when (neg? (.compareTo (org.apache.maven.artifact.versioning.DefaultArtifactVersion. (util/get-version))
+                          (org.apache.maven.artifact.versioning.DefaultArtifactVersion. min-version)))
+    (seesaw/invoke-later
+     (seesaw/alert (:frame show) (str "<html>This show requires Beat Link Trigger version " min-version
+                                      "<br>or later. It will now close.<br><br>")
+                   :title "Newer Version Required" :type :error)
+     ((:close show) true false))))
