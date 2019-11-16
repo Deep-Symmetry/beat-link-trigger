@@ -32,6 +32,12 @@ This change log follows the conventions of
   documentation, and expression evaluation.
 - There is a new mechanism your expressions can use to download and
   use new libraries that enable you to build your integrations.
+- Shows' Came Online and Going Offline expressions now have access to
+  information about the show itself.
+- A new helper function `beat-link-trigger.show/require-version` can
+  be used to display an error to the user and close a show file when
+  it is opened in a version of Beat Link Trigger that is too old to
+  run it correctly.
 - The User Guide now contains and explains a Show that can be used to
   control the On-Air display of CDJs when working with a Xone:96
   mixer by responding to its MIDI messages.

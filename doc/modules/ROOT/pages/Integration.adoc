@@ -1417,7 +1417,7 @@ file that implements the integration. If you have that show open, it
 tries to translate mixer MIDI into CDJ on-air messages, and if you
 close it, it stops. The show looks a little strange because it has no
 tracks, but it doesn't need any, all the action happens in the Shared
-Functions and the Global Setup and Global Shutdown Expressions.
+Functions and the Came Online and Going Offline Expressions.
 
 To try it out, start by saving the
 link:{attachmentsdir}/XoneOnAir.bls[Xone On Air show] where you like
@@ -1440,10 +1440,38 @@ port, and try again.
 
 As shipped, the show assumes channels 1 and 2 are tied to the left
 side of the cross fader, and 3 and 4 to the right, but that is easily
-edited at the top of the Shared Functions, as shown below.
+edited at the top of the Shared Functions, as shown in the code
+listing <<xone-shared,below>>.
 
-If you are curious how the show actually works, here is all the code!
+[TIP]
+====
+For the channel on-air messages to affect your correct CDJs, you need
+to make sure each CDJ is displaying the actual mixer channel number
+that it is connected to. That happens automatically if you plug them
+into a DJM-2000, but most people have to set them manually.
 
+Here are some instructions from the Pioneer forum about assigning
+player channel numbers. You need to have the network cable and all USB
+connections (cables and media sticks) disconnected for this to work:
+
+. Power on your CDJ
+. Press and hold the "MENU" button on the top (This enters the Utility mode)
+. Use the control knob to scroll down through the list until you reach "Player No."
+. Press down on the knob to select it
+. Scroll through your available channels (Auto, 1, 2, 3, 4)
+. Press down on the knob to select your desired channel
+. Press the "MENU" button again to exit the Utility setting
+
+It may be necessary to wait a few seconds while an existing "Auto"
+selection assigns your player number before you can edit it. And
+again, You must have all LAN and USB connections removed in order to
+assign the player number.
+====
+
+If you are curious how the Xone:96 On-Air show actually works, here is
+all the code!
+
+[[xone-shared]]
 .Shared Functions
 [source,clojure]
 ----
