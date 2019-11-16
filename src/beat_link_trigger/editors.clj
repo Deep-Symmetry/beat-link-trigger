@@ -415,10 +415,12 @@
   Status window) that can only be performed when online. Use the Going
   Offline expression to gracefully disconnect from anything you need
   to when going Offline or when the Show is shutting down."
-            :bindings {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
-                                       :doc  "The player number we are using when talking to DJ Link devices."}
-                       'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
-                                       :doc  "The IP address we are using to talk to DJ Link devices."}}}
+            :bindings (merge
+                       (show-bindings-for-class nil)
+                       {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+                                        :doc  "The player number we are using when talking to DJ Link devices."}
+                        'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
+                                        :doc  "The IP address we are using to talk to DJ Link devices."}})}
 
    :enabled {:title "Default Enabled Filter Expression"
              :tip "Called to see if a track set to Default should be enabled."
@@ -443,7 +445,7 @@
   manually. Gracefully close and release any shared system
   resources (such as network connections) that you opened in the Came
   Online expression."
-             :bindings nil}
+             :bindings (show-bindings-for-class nil)}
 
    :shutdown {:title "Global Shutdown Expression"
               :tip "Called once to release global resources."
