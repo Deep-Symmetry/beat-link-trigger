@@ -2946,6 +2946,7 @@
     (filter identity
             (map (fn [other-show]
                    (when (and (not= (:file show) (:file other-show))
+                              (not (:block-tracks? other-show))
                               (not (get-in other-show [:tracks (:signature track)])))
                      (seesaw/action :handler (fn [_]
                                                (let [new-track (merge (select-keys track [:signature :metadata
@@ -3612,8 +3613,7 @@
                                       "images/Gear-icon.png"))))
 
 (defn- build-show-menubar
-  "Creates the menu bar for a show window, given the show map and the
-  import submenu."
+  "Creates the menu bar for a show window, given the show map."
   [show]
   (let [title          (str "Expression Globals for Show " (util/trim-extension (.getPath (:file show))))
         inspect-action (seesaw/action :handler (fn [e] (try
@@ -3963,3 +3963,24 @@
                                       "<br>or later. It will now close.<br><br>")
                    :title "Newer Version Required" :type :error)
      ((:close show) true false))))
+
+(defn block-tracks
+  "Can be used to tell Beat Link Trigger the show does not want to
+  import or work with tracks, to prevent the user from importing
+  them (for example, shows whose purpose is to add Channels On Air
+  support for additional mixers have no use for tracks. The default is
+  for a show to use tracks, but you can pass a truthy value to this
+  function to turn that off."
+  [show blocked?]
+  (let [blocked? (boolean blocked?)]  ; Normalize to `true` or `false`.
+    (swap-show! show update :block-tracks?
+                (fn [were-blocked?]
+                  (when (not= blocked? were-blocked?)
+                    (seesaw/invoke-later  ; This is a change, so update the UI.
+                     (let [menu (.getMenu (seesaw/config (:frame show) :menubar) 1)]
+                       (.setLabel menu (if blocked? "Expressions" "Tracks"))
+                       (if blocked?
+                         (.remove menu 0)  ; Remove the Import menu.
+                         (.insert menu (:import-menu show) 0)))))  ; Restore the Import menu.
+                  blocked?)))  ; Record the current state.
+  nil)  ; Don't return the whole shows list.

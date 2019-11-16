@@ -1207,7 +1207,10 @@ We can do that with this short expression:
 ----
 ;; Make sure we are running a new enough version of Beat Link Trigger
 ;; for this show to work correctly.
-(show/require-version show "0.5.5-SNAPSHOT-75")
+(show/require-version show "0.5.5-SNAPSHOT-76")
+
+;; Make the UI understand that this show does not use tracks.
+(show/block-tracks show true)
 ----
 
 This code runs after the shared functions have been defined, when the
@@ -1219,6 +1222,13 @@ NOTE: If you are running an even older version of Beat Link Trigger,
 the `require-version` check will not exist, and you will see a
 compilation error reported instead. Either way, you should upgrade to
 a newer version, and things will be reported more nicely from now on.
+
+It also tweaks the Show window slightly, changing the Tracks menu to
+an Expressions menu, which omits the Import Tracks submenu: this show
+does not have any need to import tracks or create cues for them, it
+simply talks to a mixer over MIDI. This also removes options in any
+other shows' track context menus which would offer to copy the tracks
+to this show.
 
 All right! With that, we have all the infrastructure we need in place
 to create tempo-adjusting mixes. But how do the Shared Functions know
