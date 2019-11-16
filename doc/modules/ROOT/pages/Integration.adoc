@@ -1207,7 +1207,7 @@ We can do that with this short expression:
 ----
 ;; Make sure we are running a new enough version of Beat Link Trigger
 ;; for this show to work correctly.
-(beat-link-trigger.show/require-version show "0.5.5-SNAPSHOT-72")
+(show/require-version show "0.5.5-SNAPSHOT-75")
 ----
 
 This code runs after the shared functions have been defined, when the
@@ -1557,7 +1557,7 @@ Hopefully the inline comments show how they work.
 ----
 ;; Make sure we are running a new enough version of Beat Link Trigger
 ;; for this show to work correctly.
-(beat-link-trigger.show/require-version show "0.5.5-SNAPSHOT-72")
+(show/require-version show "0.5.5-SNAPSHOT-75")
 
 ;; Track the current state we believe the mixer to have. Will not be
 ;; accurate for a given fader until it is moved. We assume all channels

@@ -400,3 +400,17 @@
           forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
       (doseq [form forms]
         (eval form)))))
+
+(defn alias-other-namespaces
+  "Sets up short aliases for Beat Link Trigger namespaces that might be
+  useful to expression code, and that could not be required when
+  initially loading this namespace because that would have led to
+  circular dependencies."
+  []
+  (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+ (alias 'carabiner 'beat-link-trigger.carabiner)
+    (alias 'help 'beat-link-trigger.help)
+    (alias 'players 'beat-link-trigger.players)
+    (alias 'prefs 'beat-link-trigger.prefs)
+    (alias 'show 'beat-link-trigger.show)
+    (alias 'triggers 'beat-link-trigger.triggers)))

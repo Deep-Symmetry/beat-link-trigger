@@ -34,6 +34,8 @@ This change log follows the conventions of
   use new libraries that enable you to build your integrations.
 - Shows' Came Online and Going Offline expressions now have access to
   information about the show itself.
+- All expressions have more convenient shortcuts by which to access
+  important Beat Link Trigger namespaces.
 - A new helper function `beat-link-trigger.show/require-version` can
   be used to display an error to the user and close a show file when
   it is opened in a version of Beat Link Trigger that is too old to

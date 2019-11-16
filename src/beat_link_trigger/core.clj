@@ -128,6 +128,9 @@
      (menus/install-mac-about-handler)
      (menus/install-mac-quit-handler)
 
+     ;; Add convenience aliases to the expressions namespace for easier authoring.
+     (beat-link-trigger.expressions/alias-other-namespaces)
+
      ;; Restore saved window positions if they exist
      (when-let [saved (:window-positions (prefs/get-preferences))]
        (reset! util/window-positions saved))
