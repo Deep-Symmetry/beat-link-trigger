@@ -1197,9 +1197,34 @@ Tracked Update expression, finds the calculations that were made by
 <5> Finally, the `bb-finish-tempo-adjust` function is called when the
 cue ends to clean things up and establish the final target tempo.
 
-But how do these functions know what tempo you want to get to? That's
-configured when you set up the tempo adjustment cue itself! Time to
-make this more concrete by looking at some actual cues.
+Because the whole concept of Shared Functions did not exist in earlier
+versions of Beat Link Trigger, it is polite to give the user a warning
+of why their show won't work if they try to open it in an old version.
+We can do that with this short expression:
+
+.Global Setup Expression
+[source,clojure]
+----
+;; Make sure we are running a new enough version of Beat Link Trigger
+;; for this show to work correctly.
+(beat-link-trigger.show/require-version show "0.5.5-SNAPSHOT-72")
+----
+
+This code runs after the shared functions have been defined, when the
+show is starting up. It checks that it is running in a recent enough
+version of Beat Link Trigger to work properly. If not, a dialog
+explaining that problem is displayed, and the show is closed.
+
+NOTE: If you are running an even older version of Beat Link Trigger,
+the `require-version` check will not exist, and you will see a
+compilation error reported instead. Either way, you should upgrade to
+a newer version, and things will be reported more nicely from now on.
+
+All right! With that, we have all the infrastructure we need in place
+to create tempo-adjusting mixes. But how do the Shared Functions know
+what tempo you want to get to? That's configured when you set up the
+tempo adjustment cue itself! Time to make this more concrete by
+looking at some actual cues.
 
 [[bb-cue-library]]
 === The Break Buddy Cue Library
@@ -1404,13 +1429,14 @@ the On Air feature enabled on the CDJs themselves, and Beat Link
 Trigger is online and talking to them).
 
 NOTE: If the mixer wasn't connected, you will see an error dialog
-about the MIDI device not being found. Plug in the mixer, close the
-show, and reopen it, and things should work better. If it still
-complains, your MIDI device must be named differently than expected,
-the show is looking for a port with "XONE" in the name. Figure out
-what your mixer's MIDI port is called on your system, then edit line
-33 of the Global Setup Expression so it is a substring that matches
-only that port, and try again.
+about the MIDI device not being found when Beat Link Trigger goes
+online with the show open. Plug in the mixer, then take BLT offline
+and back online, and things should work better. If it still complains,
+your MIDI device must be named differently than expected: the show is
+looking for a port with "XONE" in the name. Figure out what your
+mixer's MIDI port is called on your system, then edit line 3 of the
+Came Online Expression so it is a substring that matches only that
+port, and try again.
 
 As shipped, the show assumes channels 1 and 2 are tied to the left
 side of the cross fader, and 3 and 4 to the right, but that is easily
@@ -1501,6 +1527,10 @@ Hopefully the inline comments show how they work.
 .Global Setup Expression
 [source,clojure]
 ----
+;; Make sure we are running a new enough version of Beat Link Trigger
+;; for this show to work correctly.
+(beat-link-trigger.show/require-version show "0.5.5-SNAPSHOT-72")
+
 ;; Track the current state we believe the mixer to have. Will not be
 ;; accurate for a given fader until it is moved. We assume all channels
 ;; are on the air until we get actual data.
@@ -1510,10 +1540,28 @@ Hopefully the inline comments show how they work.
   :channel-2  127
   :channel-3  127
   :channel-4  127)
+----
 
+This code runs after the shared functions have been defined, when the
+show is starting up. It first makes sure that it is running in a
+recent enough version of Beat Link Trigger to work properly. If not, a
+dialog explaining that is displayed, and the show is closed.
+
+NOTE: If you are running an even older version of Beat Link Trigger,
+the `require-version` check will not exist, and you will see a
+compilation error reported instead. Either way, you should upgrade to
+a newer version, and things will be reported more nicely from now on.
+
+It then sets up some assumed values for the mixer's channel faders and
+cross fader, which will be replaced with actual values as soon as we
+receive MIDI from the mixer reporting their movement.
+
+.Came Online Expression
+[source,clojure]
+----
 ;; Try to open the MIDI input with which we receive data from the mixer. Edit the MIDI
 ;; device name in the first line if needed to match your Xone's MIDI input device name.
-(let [mixer-device-name "XONE"] <1>
+(let [mixer-device-name "XONE"]   ;; <1>
   (try
     (let [device (midi/midi-in mixer-device-name)]
       ;; Open a MIDI input with the specified name, which should be coming from the mixer.
@@ -1522,19 +1570,22 @@ Hopefully the inline comments show how they work.
       (midi/midi-handle-events device (fn [msg] (xone-midi-received globals msg))))
     (catch Throwable t
       (timbre/warn t "Unable to open Xone MIDI device" mixer-device-name)
-      (seesaw/invoke-later  <2>
-       (seesaw/alert
+      (seesaw/invoke-later   ;; <2>
+       (seesaw/alert (:frame show)
         (str "<html>The XoneOnAir show was unable to open a MIDI port matching \"" mixer-device-name
              "\"<br>to receive messages from the mixer. Please make sure the mixer<br>"
              "is connected, verify the device name that is showing up, and if needed<br>"
-             "edit the definition of <code>mixer-device-name</code> in the Global Setup Expression."
-             "<br><br>Close and reopen the show to try again.")
+             "edit the definition of <code>mixer-device-name</code> in the Came Online Expression."
+             "<br><br>Take Beat Link Trigger offline and back online to try again.")
         :title "MIDI Device Not Found, On-Air Detection Disabled"
         :type :error)))))
 ----
 
-This code runs after the shared functions have been defined, when the
-show is starting up. It tries to open the mixer's MIDI port.
+This is run whenever Beat Link Trigger is brought online, (or, if it
+was already online when the show is opened, it is run right after the
+Global Setup expression). It tries to connect to the mixer, and sets
+up to be informed whenever faders are moved, so we can figure out
+which channels are on the air.
 
 <1> This is where you edit the mixer MIDI port name if it doesn't
 contain "XONE" on your system.
@@ -1542,7 +1593,7 @@ contain "XONE" on your system.
 <2> This is the code that displays the error window when the MIDI port
 can't be found.
 
-.Global Shutdown Expression
+.Going Offline Expression
 [source,clojure]
 ----
 ;; Close the mixer MIDI connection if we opened one.
@@ -1553,7 +1604,8 @@ can't be found.
     (dissoc current :mixer-midi)))
 ----
 
-This code runs when the show is closing, and closes the mixer's MIDI
+This code runs when Beat Link Trigger is being taken offline (or the
+show is closing with BLT still online), and closes the mixer's MIDI
 port gracefully if it was open.
 
 === Experimenting Without the Mixer
@@ -1575,8 +1627,8 @@ patch.
 
 NOTE: https://github.com/GuyHarwood[@GuyHardwood], who was the
 inspiration for this integration, discovered through MIDI Monitor that
-the documentation is incorrect about the CC number used for the
-cross-fader. It appears to actually be 4 rather than 5.
+the official documentation is incorrect about the CC number used for
+the cross-fader. It appears to actually be 4 rather than 5.
 
 
 == Learning More
