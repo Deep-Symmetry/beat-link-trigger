@@ -2732,7 +2732,8 @@
     (doall (map (fn [track color]
                   (seesaw/config! (:panel track) :background color))
                 sorted-tracks (cycle ["#eee" "#ddd"])))
-    (seesaw/config! tracks :items (concat (map :panel sorted-tracks) [:fill-v]))))
+    (when tracks  ; If the show has a custom user panel installed, this will be nil.
+      (seesaw/config! tracks :items (concat (map :panel sorted-tracks) [:fill-v])))))
 
 (defn- build-filter-target
   "Creates a string that can be matched against to filter a track by
@@ -3801,7 +3802,7 @@
                                   (when-not quitting? (swap! util/window-positions dissoc window-name))
                                   (.dispose root)
                                   true)))]
-        (swap! open-shows assoc file (assoc show :close close-fn))
+        (swap! open-shows assoc file (assoc show :close close-fn :default-ui layout))
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
@@ -3974,17 +3975,28 @@
   them (for example, shows whose purpose is to add Channels On Air
   support for additional mixers have no use for tracks. The default is
   for a show to use tracks, but you can pass a truthy value to this
-  function to turn that off."
+  function to turn that off.
+
+  Really fancy show files may want to present their own user
+  interface, replacing the now-useless window content that is supposed
+  to show the tracks in the show. They can do this by passing an
+  subclass of `JComponent` to this function, and that will be
+  installed as the content of the window. Passing a falsy value (or
+  anything which does not derive from `JComponent`) restures the
+  standard Show user interface in the window."
   [show blocked?]
-  (let [blocked? (boolean blocked?)]  ; Normalize to `true` or `false`.
-    (swap-show! show update :block-tracks?
-                (fn [were-blocked?]
-                  (when (not= blocked? were-blocked?)
-                    (seesaw/invoke-later  ; This is a change, so update the UI.
+  (seesaw/invoke-later
+   (seesaw/config! (:frame show) :content
+                   (if (instance? javax.swing.JComponent blocked?)
+                     blocked?
+                     (:default-ui show)))
+   (let [blocked? (boolean blocked?)]  ; Normalize to `true` or `false`.
+     (swap-show! show update :block-tracks?
+                 (fn [were-blocked?]
+                   (when (not= blocked? were-blocked?)
                      (let [menu (.getMenu (seesaw/config (:frame show) :menubar) 1)]
                        (.setLabel menu (if blocked? "Expressions" "Tracks"))
                        (if blocked?
                          (.remove menu 0)  ; Remove the Import menu.
-                         (.insert menu (:import-menu show) 0)))))  ; Restore the Import menu.
-                  blocked?)))  ; Record the current state.
-  nil)  ; Don't return the whole shows list.
+                         (.insert menu (:import-menu show) 0))))  ; Restore the Import menu.
+                   blocked?)))))  ; Record the current state.

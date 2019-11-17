@@ -10,6 +10,7 @@
             [overtone.midi :as midi]
             [overtone.osc :as osc]
             [seesaw.core :as seesaw]
+            [seesaw.mig]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
