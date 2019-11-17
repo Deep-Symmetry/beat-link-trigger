@@ -1411,6 +1411,9 @@ positions of its faders, by plugging in a USB cable you can have Beat
 Link Trigger translate those into Channels On Air messages that update
 the CDJ lights for you.
 
+[[xone-v1]]
+=== First Version
+
 To make it easy to turn this feature on and off along with other
 things you are doing in Beat Link Trigger, I created a standalone show
 file that implements the integration. If you have that show open, it
@@ -1419,8 +1422,15 @@ close it, it stops. The show looks a little strange because it has no
 tracks, but it doesn't need any, all the action happens in the Shared
 Functions and the Came Online and Going Offline Expressions.
 
+> As soon as this was working, it got me thinking about some simple
+> things I could add to Beat Link Trigger that could make
+> non-track-oriented "shows" like this **a lot** more powerful, which
+> led to the <<xone-v2,second version>> below. But understanding this
+> much simpler version is a good idea before diving into how we can
+> add a graphical interface to it!
+
 To try it out, start by saving the
-link:{attachmentsdir}/XoneOnAir.bls[Xone On Air show] where you like
+link:{attachmentsdir}/XoneOnAirNoUI.bls[Xone On Air show] where you like
 to keep your Beat Link Trigger shows, then open it. Assuming your
 mixer is plugged into a USB port, it should start working. Move
 channel faders up and down, and move the cross-fader back and forth,
@@ -1516,7 +1526,7 @@ all the code!
   [globals msg]
   ;; Default Xone configuration sends faders as CC on MIDI Channel 16.
   (when (and (= :control-change (:command msg)) (= 15 (:channel msg)))
-       ;; Check if it is one of the faders we care about.
+    ;; Check if it is one of the faders we care about.
     (when-let [recognized (get {0 :channel-1
                                 1 :channel-2
                                 2 :channel-3
@@ -1528,6 +1538,7 @@ all the code!
       (let [state  (swap! globals assoc recognized (:velocity msg))
             on-air (clojure.set/difference (xone-on-air-via-channel-faders state)
                                            (xone-blocked-by-cross-fader state))]
+
         ;; If the Virtual CDJ is running (Beat Link Trigger itself is online),
         ;; send a Channels On Air message to update the actual CDJ's state.
         ;; (We need to convert the values to integers, rather than the longs
@@ -1583,12 +1594,12 @@ the `require-version` check will not exist, and you will see a
 compilation error reported instead. Either way, you should upgrade to
 a newer version, and things will be reported more nicely from now on.
 
-It also tweaks the Show window slightly, changing the Tracks menu to
-an Expressions menu, which omits the Import Tracks submenu: this show
-does not have any need to import tracks or create cues for them, it
-simply talks to a mixer over MIDI. This also removes options in any
-other shows' track context menus which would offer to copy the tracks
-to this show.
+It also tweaks the Show window slightly, changing the **Tracks** menu
+to an **Expressions** menu, which omits the **Import Tracks** submenu:
+this show does not have any need to import tracks or create cues for
+them, it simply talks to a mixer over MIDI. This also removes options
+in any other shows' track context menus which would offer to copy the
+tracks to this show.
 
 It then sets up some assumed values for the mixer's channel faders and
 cross fader, which will be replaced with actual values as soon as we
@@ -1667,6 +1678,26 @@ NOTE: https://github.com/GuyHarwood[@GuyHardwood], who was the
 inspiration for this integration, discovered through MIDI Monitor that
 the official documentation is incorrect about the CC number used for
 the cross-fader. It appears to actually be 4 rather than 5.
+
+[[xone-v2]]
+=== Second Version, with GUI
+
+As mentioned above, while I was working on this show I realized there
+were probably many other kinds of integrations that would be
+convenient to share as show files but which had nothing to do with
+tracks. So I added the mechanism that turns off the import tracks
+feature, but that left most of the show window empty, with a useless
+menu:Enabled Default[] menu and Filter box at the top. And building
+the mixer simulator I used for testing made me wish I could have a
+similar UI in the show itself, to show what is going on with the
+mixer. And I realized that it would only take a few small additions to
+Beat Link Trigger to enable me (and anyone) to build things like that,
+so I added them!
+
+Save the link:{attachmentsdir}/XoneOnAir.bls[full-featured GUI
+version] where you keep your shows, and let's take a tour of the code.
+
+To be continued...
 
 
 == Learning More
