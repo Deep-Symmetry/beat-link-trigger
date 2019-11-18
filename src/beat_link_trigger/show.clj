@@ -4000,3 +4000,20 @@
                          (.remove menu 0)  ; Remove the Import menu.
                          (.insert menu (:import-menu show) 0))))  ; Restore the Import menu.
                    blocked?)))))  ; Record the current state.
+
+(defn user-data
+  "Helper function to return the user data map stored in the show."
+  [show]
+  (get-in show [:contents :user]))
+
+(defn swap-user-data!
+  "Atomically updates the custom user data map stored in the show by
+  calling the specified function with the supplied arguments on the
+  current value of the user data map in the specified show. Returns
+  the updated user data map.
+
+  This can be used by shows with custom user interfaces to update
+  their settings in a way that will be saved inside the show file."
+  [show f & args]
+  (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
+          [(:file show) :contents :user]))
