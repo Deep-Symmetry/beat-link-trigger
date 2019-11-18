@@ -4004,7 +4004,7 @@
 (defn user-data
   "Helper function to return the user data map stored in the show."
   [show]
-  (get-in show [:contents :user]))
+  (get-in (latest-show show) [:contents :user]))
 
 (defn swap-user-data!
   "Atomically updates the custom user data map stored in the show by
