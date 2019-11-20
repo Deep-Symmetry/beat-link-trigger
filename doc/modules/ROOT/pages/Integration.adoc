@@ -1731,6 +1731,7 @@ channel assignments come from if the data isn't yet saved.
 But that's the end of familiar stuff for a long while. Now we get into
 the new part that builds the graphical user interface.
 
+[[xone-shared-v2-p2]]
 .Shared Functions, part 2
 [source,clojure]
 ----
@@ -1757,8 +1758,8 @@ include::example$xone-shared-gui.clj[lines=51..83]
 <1> This function reacts to the user changing the position of one of
 the X-Y channel assignment controls to update the saved show data that
 keeps track of which channels belong on which side. It then calls
-`xone-recompute-on-air` because of course changing channel assignments
-can affect which channels are on the air.
+<<xone-shared-v2-p2,`xone-recompute-on-air`>> because of course
+changing channel assignments can affect which channels are on the air.
 
 <2> This function builds the actual X-Y channel assignment controls
 themselves, and hooks them up to the previous function.
@@ -1771,7 +1772,8 @@ include::example$xone-shared-gui.clj[lines=85..102]
 
 <1> Similarly, this function reacts to the user (or an incoming MIDI
 message) changing the position of one of the faders (channel or
-cross-fader). All it needs to do is call `xone-recompute-on-air`.
+cross-fader). All it needs to do is call
+<<xone-shared-v2-p2,`xone-recompute-on-air`>>.
 
 <2> And this function builds the channel fader controls themselves and
 hooks them up to the previous function.
