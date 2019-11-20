@@ -1485,66 +1485,7 @@ all the code!
 .Shared Functions
 [source,clojure]
 ----
-(def xone-left-channels
-  "The set of channels assigned to the left side of the cross-fader"
-  #{1 2}) <1>
-
-(def xone-right-channels
-  "The set of channels assigned to the right side of the cross-fader"
-  #{3 4}) <2>
-
-(def xone-min-on-air-value
-  "The MIDI value of the fader must be this far from zero (or, in the
-  case of the cross-fader, from the opposite end of travel), for a
-  channel to be considered on the air."
-  2) <3>
-
-(defn xone-on-air-via-channel-faders <4>
-  "Returns the channel numbers that are currently on the air based
-  solely on the known positions of the channel faders, given the
-  updated state of the show globals following a MIDI event."
-  [state]
-  (set (filter (fn [num]
-                 (>= (get state (keyword (str "channel-" num))) xone-min-on-air-value))
-               (range 1 5))))
-
-(defn xone-blocked-by-cross-fader
-  "Returns set of the channel numbers that are currently muted because
-  of the cross-fader position, if any, given the updated state of the
-  show globals following a MIDI event."
-  [state]
-  (let [fader-position (:cross-fader state)]
-    (cond
-      (< fader-position xone-min-on-air-value) xone-right-channels
-      (< (- 127 fader-position) xone-min-on-air-value) xone-left-channels
-      :else #{})))
-
-(defn xone-midi-received
-  "This function is called with each MIDI message received from the mixer,
-  and also given access to the show globals so that it can update the known
-  mixer state and determine the resulting on-air channels."
-  [globals msg]
-  ;; Default Xone configuration sends faders as CC on MIDI Channel 16.
-  (when (and (= :control-change (:command msg)) (= 15 (:channel msg)))
-    ;; Check if it is one of the faders we care about.
-    (when-let [recognized (get {0 :channel-1
-                                1 :channel-2
-                                2 :channel-3
-                                3 :channel-4
-                                4 :cross-fader}
-                               (long (:note msg)))]
-      ;; It is, so update known mixer state with the current fader value, and
-      ;; calculate which channels are now on-air.
-      (let [state  (swap! globals assoc recognized (:velocity msg))
-            on-air (clojure.set/difference (xone-on-air-via-channel-faders state)
-                                           (xone-blocked-by-cross-fader state))]
-
-        ;; If the Virtual CDJ is running (Beat Link Trigger itself is online),
-        ;; send a Channels On Air message to update the actual CDJ's state.
-        ;; (We need to convert the values to integers, rather than the longs
-        ;; that Clojure uses natively, to be compatible with the Beat Link API.)
-        (when (.isRunning virtual-cdj)
-          (.sendOnAirCommand virtual-cdj (set (map int on-air))))))))
+include::example$xone-shared-noui.clj[]
 ----
 
 <1> Any channel numbers listed in this set will be considered off the
@@ -1608,26 +1549,7 @@ receive MIDI from the mixer reporting their movement.
 .Came Online Expression
 [source,clojure]
 ----
-;; Try to open the MIDI input with which we receive data from the mixer. Edit the MIDI
-;; device name in the first line if needed to match your Xone's MIDI input device name.
-(let [mixer-device-name "XONE"]   ;; <1>
-  (try
-    (let [device (midi/midi-in mixer-device-name)]
-      ;; Open a MIDI input with the specified name, which should be coming from the mixer.
-      (swap! globals assoc :mixer-midi device)
-      ;; Arrange for xone-midi-received to be called whenever we get a message from the mixer.
-      (midi/midi-handle-events device (fn [msg] (xone-midi-received globals msg))))
-    (catch Throwable t
-      (timbre/warn t "Unable to open Xone MIDI device" mixer-device-name)
-      (seesaw/invoke-later   ;; <2>
-       (seesaw/alert (:frame show)
-        (str "<html>The XoneOnAir show was unable to open a MIDI port matching \"" mixer-device-name
-             "\"<br>to receive messages from the mixer. Please make sure the mixer<br>"
-             "is connected, verify the device name that is showing up, and if needed<br>"
-             "edit the definition of <code>mixer-device-name</code> in the Came Online Expression."
-             "<br><br>Take Beat Link Trigger offline and back online to try again.")
-        :title "MIDI Device Not Found, On-Air Detection Disabled"
-        :type :error)))))
+include::example$xone-online-noui.clj[]
 ----
 
 This is run whenever Beat Link Trigger is brought online, (or, if it
@@ -1645,12 +1567,7 @@ can't be found.
 .Going Offline Expression
 [source,clojure]
 ----
-;; Close the mixer MIDI connection if we opened one.
-(swap! globals
-  (fn [current]
-    (when-let [device (:mixer-midi current)]
-      (.close (:transmitter device)))
-    (dissoc current :mixer-midi)))
+include::example$xone-offline.clj[lines=1..6]
 ----
 
 This code runs when Beat Link Trigger is being taken offline (or the
@@ -1694,8 +1611,171 @@ mixer. And I realized that it would only take a few small additions to
 Beat Link Trigger to enable me (and anyone) to build things like that,
 so I added them!
 
+Here is what the final result looks like in action:
+
+image:XoneShowUI.png[Xone:96 Show UI,574,504]
+
+The top row shows the mixer channels that are currently calculated as
+being on the air by lighting them up in red. Immediately below that is
+a row of controls that allow you to tell the show which side of the
+cross-fader each channel has been assigned on the mixer, just like the
+physical switches above the faders on the mixer itself. If the switch
+is in the middle, the channel is unaffected by the cross-fader. If it
+is on the left (X) or right (Y) side, then the channel is heard when
+the cross-fader is on that side.
+
+Below these are the channel numbers, and below those are MIDI activity
+indicators whose centers flash blue whenever the mixer reports motion
+on that channel fader. At the same time, the graphical representation
+of the channel fader will jump to where the mixer reported, and the
+on-air indicators will update. If the show's channel faders are not in
+the right place (because the mixer was adjusted while this show was
+not open or online), you can either drag the GUI version to the right
+spot using your mouse, or just wiggle the physical mixer channel
+fader, which will send MIDI events that snap the GUI for that channel
+into the right place.
+
+Finally, at the bottom is the MIDI indicator and GUI representation of
+the cross-fader position, which works the same way. The positions of
+the X-Y selectors and faders are saved when you close the show, so
+they will appear in the same place as you left them, and you will
+rarely need to tweak anything by editing expression code.
+
 Save the link:{attachmentsdir}/XoneOnAir.bls[full-featured GUI
-version] where you keep your shows, and let's take a tour of the code.
+version] where you keep your shows and you can start using it, but for
+those of you who want to know how it works, let's take a tour of the
+code!
+
+The <<xone-shared-v2,Shared Functions>> are much larger in this
+version, because that is where all the GUI elements are constructed,
+so we will save them for last. The Global Setup Expression is actually
+simpler here:
+
+.Global Setup Expression
+[source,clojure]
+----
+;; Make sure we are running a new enough version of Beat Link Trigger
+;; for this show to work correctly.
+(show/require-version show "0.5.5-SNAPSHOT-83")  ;; <1>
+
+;; Make the UI understand that this show does not use tracks, and
+;; build and install the custom GUI that takes over the window.
+(show/block-tracks show (xone-build-ui show globals))  ;; <2>
+----
+
+<1> This show needs a newer version of BLT, because it takes advantage
+of new features for drawing the UI and saving settings. But that also
+means the section that set up default values for the fader positions
+is no longer necessary.
+
+<2> In addition to telling BLT this show doesn't import any tracks,
+the `show/block-tracks` function can install a custom user interface
+to be drawn as the content of the window. We achieve that by calling a
+new Shared Function here that creates and returns that custom
+interface.
+
+The Came Online expression is almost identical to the previous
+version, and only needed one additional line:
+
+.Came Online Expression
+[source,clojure]
+----
+include::example$xone-online-gui.clj[]
+----
+
+<1> This line, which starts up a background thread to draw and fade
+out the MIDI activity indicators is the only thing that is different
+from the first version. The implementation of the function itself is
+in the Shared Functions, of course.
+
+Similarly, there is only one addition needed to the Going Offline
+expression:
+
+.Going Offline Expression
+[source,clojure]
+----
+include::example$xone-offline.clj[]
+----
+
+<1> This new line redraws the MIDI activity indicators after the mixer
+connection has been closed, which gives them an obvious "offline"
+appearance.
+
+We do this because the act of closing the mixer connection also
+terminates the background thread that is animating the indicators, so
+it won't have a chance to reflect this change. All this stuff is done
+with our new Shared Functions, so let's take a look at them.
+
+[[xone-shared-v2]]
+.Shared Functions, part 1
+[source,clojure]
+----
+include::example$xone-shared-gui.clj[lines=1..25]
+----
+
+<1> This is the only variable definition we still need from the
+original version, because the rest are now managed by stored settings
+controlled by graphical elements in the interface. Tweaking this one
+value still requires you to edit code.
+
+<2> This function is almost identical to its old version. The comment
+explains that the value comes from a different place than it used to
+(the new saved show data rather than globals), and we added a default
+value of `0` to the `get` for when no data has yet been saved in the
+show.
+
+<3> Again, nearly identical to the non-GUI version, but it is
+receiving saved show data, and here is where the default values of the
+channel assignments come from if the data isn't yet saved.
+
+But that's the end of familiar stuff for a long while. Now we get into
+the new part that builds the graphical user interface.
+
+.Shared Functions, part 2
+[source,clojure]
+----
+include::example$xone-shared-gui.clj[lines=27..49]
+----
+
+<1> This code used to be part of `xone-midi-received`. That function
+still exists below, but now the calculation of what channels are on
+the air, and sending the results to the CDJs, happens in response to
+the graphical faders moving because that can be caused by the user
+dragging them or by MIDI events.
+
+<2> This function creates the numbers that appear above the channel
+faders. BLT uses https://github.com/daveray/seesaw[Seesaw] to provide
+a Clojure wrapper around Java Swing GUI components, and
+http://www.miglayout.com[MIG Layout] to arrange them.
+
+.Shared Functions, part 3
+[source,clojure]
+----
+include::example$xone-shared-gui.clj[lines=51..83]
+----
+
+<1> This function reacts to the user changing the position of one of
+the X-Y channel assignment controls to update the saved show data that
+keeps track of which channels belong on which side. It then calls
+`xone-recompute-on-air` because of course changing channel assignments
+can affect which channels are on the air.
+
+<2> This function builds the actual X-Y channel assignment controls
+themselves, and hooks them up to the previous function.
+
+.Shared Functions, part 4
+[source,clojure]
+----
+include::example$xone-shared-gui.clj[lines=85..102]
+----
+
+<1> Similarly, this function reacts to the user (or an incoming MIDI
+message) changing the position of one of the faders (channel or
+cross-fader). All it needs to do is call `xone-recompute-on-air`.
+
+<2> And this function builds the channel fader controls themselves and
+hooks them up to the previous function.
+
 
 To be continued...
 
