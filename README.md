@@ -123,20 +123,28 @@ While these techniques appear to work for us so far, there are many
 gaps in our knowledge, and things could change at any time with new
 releases of hardware or even firmware updates from Pioneer.
 
-You should also not expect to be able to run Beat Link Trigger, or any
-project like it, on the same machine that you are running rekordbox,
-because they will compete over access to network ports.
+:x: You should also not expect to be able to run Beat Link Trigger, or
+any project like it, on the same machine that you are running
+rekordbox, because they will compete over access to network ports.
 
-Beat Link Trigger seems to work great with CDJ-2000 Nexus gear, and
-works fairly well (with less information available) with older
-CDJ-2000s. It has also been reported to work with XDJ-1000 gear. If
-you can try it with anything else, *please* let us know what you learn
-in the
-[Gitter chat room](https://gitter.im/brunchboy/beat-link-trigger), or
-if you have worked out actionable details about something that could
-be improved,
-[open an Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues)
-or submit a pull request so we can all improve our understanding
+:wrench: No released version yet works with the brand-new XDJ-XZ
+all-in-one controller, but with the help of users on the Gitter Chat,
+the [latest preview
+builds](https://github.com/Deep-Symmetry/beat-link-trigger/releases/download/v0.5.4/beat-link-trigger-0.6.0-PREVIEW.jar)
+of the upcoming 0.6.0 release are mostly working. Please help test
+that if you have one of these devices, and share your results in the
+[Gitter chat room](https://gitter.im/brunchboy/beat-link-trigger)!
+
+:white_check_mark: Beat Link Trigger seems to work great with CDJ-2000
+Nexus gear, and works fairly well (with less information available)
+with older CDJ-2000s. It has also been reported to work with XDJ-1000
+gear. If you can try it with anything else, *please* let us know what
+you learn in the [Gitter chat
+room](https://gitter.im/brunchboy/beat-link-trigger), or if you have
+worked out actionable details about something that could be improved,
+[open an
+Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or
+submit a pull request so we can all improve our understanding
 together.
 
 If something isn&rsquo;t working with your hardware and you don&rsquo;t yet know
