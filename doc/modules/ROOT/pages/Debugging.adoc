@@ -115,6 +115,68 @@ such cases
 https://helpx.adobe.com/experience-manager/kb/TakeThreadDump.html[thread
 dumps] are often a valuable next step.
 
+=== Wireshark Captures
+
+If you are helping investigate an issue involving communication with
+the DJ Link gear (especially when new products are released), it will
+be necessary for you to include a packet capture of what was happening
+on the network when you saw the problem or tried to use the gear. For
+that, download and install https://www.wireshark.org[Wireshark], then
+perform a capture and include the file in your report.
+
+To make it easier to understand how the capture relates to an issue
+you are seeing, it is even better if you can include a movie of your
+screen showing when the problem happens, and also include the precise
+timestamp in that video. The easiest way to have timestamps appear in
+your video is to download and open the
+link:{attachmentsdir}/Timestamp.bls[Timestamp show] that is embedded
+in this guide, and position its window near the part of your screen
+where you are capturing the issue. The Timestamp show looks like this:
+
+image:TimestampShow.png[Timestamp Show,477,244]
+
+The timestamps it displays are identical to the ones that Wireshark
+writes in the capture file, which makes it possible to correlate
+things happening on the screen with packets in the capture.
+
+[NOTE]
+====
+In case you are curious, the code that implements this Timeout show is
+very short! The Global Setup expression tells BLT that the show does
+not use tracks, replaces the normal content of the show window with
+the big clock label, and creates a background thread to update it 30
+times each second:
+
+[source,clojure]
+----
+(swap! globals assoc :running true)
+(let [formatter (java.text.SimpleDateFormat. "HH:mm:ss.SSS")
+      timestamp (seesaw/label :text "00:00:00.0000"
+                              :halign :center :valign :center
+                              :font "DSEG7 Classic-40")]
+  (show/block-tracks show timestamp)
+  (future
+    (loop []
+      (seesaw/invoke-now
+        (seesaw/value! timestamp (.format formatter (java.util.Date.))))
+      (Thread/sleep 33)
+      (when (:running @globals) (recur)))))
+----
+
+And the Global Shutdown expression just tells that background thread
+to stop running:
+
+[source,clojure]
+----
+(swap! globals dissoc :running)
+----
+
+Since those are the only things in the show, the file is only 542
+bytes long.
+====
+
+=== GitHub Issues
+
 You can also skip the email and open an
 https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue]
 directly on the project’s GitHub page.
