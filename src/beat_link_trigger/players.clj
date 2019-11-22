@@ -714,7 +714,8 @@
         row            (mig/mig-panel
                         :id (keyword (str "player-" n))
                         :background (Color/BLACK)
-                        :items (concat [[title-label "width 340!, push, span 3"] [art "right, spany 4, wrap, hidemode 2"]
+                        :items (concat [[title-label "width 340!, push, span 3"]
+                                        [art "right, spany 4, wrap, hidemode 2"]
                                         [artist-label "width 340!, span 3, wrap unrelated"]
                                         [usb-gear "split 2, right"] ["USB:" "right"]
                                         [usb-label "width 280!, span 2, wrap"]
