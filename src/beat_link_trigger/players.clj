@@ -701,10 +701,12 @@
         artist-label   (seesaw/label :text "" :font (util/get-display-font :bitter Font/BOLD 12) :foreground :green)
         usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
                                       :popup (partial slot-popup n :usb))
-        usb-label      (seesaw/label :id :usb-label :text "Empty")
+        usb-label      (seesaw/label :id :usb-label :text "USB:")
+        usb-name       (seesaw/label :id :usb-name :text "Empty")
         sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
                                       :popup (partial slot-popup n :sd))
-        sd-label       (seesaw/label :id :sd-label :text "Empty")
+        sd-label       (seesaw/label :id :sd-label :text "SD:")
+        sd-name        (seesaw/label :id :sd-name :text "Empty")
         detail         (when @should-show-details (WaveformDetailComponent. (int n)))
         zoom-slider    (when @should-show-details
                          (seesaw/slider :id :zoom :min 1 :max 32 :value 4
@@ -717,10 +719,10 @@
                         :items (concat [[title-label "width 340!, push, span 3"]
                                         [art "right, spany 4, wrap, hidemode 2"]
                                         [artist-label "width 340!, span 3, wrap unrelated"]
-                                        [usb-gear "split 2, right"] ["USB:" "right"]
-                                        [usb-label "width 280!, span 2, wrap"]
-                                        [sd-gear "split 2, right"] ["SD:" "right"]
-                                        [sd-label "width 280!, span 2, wrap"]]
+                                        [usb-gear "split 2, right"] [usb-label "right"]
+                                        [usb-name "width 280!, span 2, wrap"]
+                                        [sd-gear "split 2, right"] [sd-label "right"]
+                                        [sd-name "width 280!, span 2, wrap"]]
                                        (when @should-show-details
                                          [[zoom-slider "span 4, grow, split 2"] [zoom-label "wrap"]
                                           [detail "span, grow, wrap, hidemode 3"]])
@@ -740,8 +742,8 @@
         slot-elems     (fn [slot-reference]
                          (when (= n (.player slot-reference))
                            (util/case-enum (.slot slot-reference)
-                             CdjStatus$TrackSourceSlot/USB_SLOT [usb-gear usb-label]
-                             CdjStatus$TrackSourceSlot/SD_SLOT [sd-gear sd-label]
+                             CdjStatus$TrackSourceSlot/USB_SLOT [usb-gear usb-name]
+                             CdjStatus$TrackSourceSlot/SD_SLOT [sd-gear sd-name]
                              nil)))
         mount-listener (reify
                          MountListener
@@ -875,16 +877,33 @@
     (.setBorder no-players (javax.swing.border.EmptyBorder. 10 10 10 10))
     no-players))
 
+(defn- update-slot-labels
+  "Updates the USB/SD labels of a player cell in case the device is an
+  XDJ-XZ, which has two USB slots instead."
+  [cell device]
+  (seesaw/invoke-soon
+   (if (= (.getName device) "XDJ-XZ")
+     (do
+       (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
+       (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
+     (do
+       (seesaw/value! (seesaw/select cell [:#sd-label]) "SD:")
+       (seesaw/value! (seesaw/select cell [:#usb-label]) "USB:")))))
+
 (defn- players-present
   "Builds a grid to contain only the players which are currently
   visible on the netowrk, and if there are none, to contain the
   no-players indicator. If there are two or fewer players, the grid
   will have a single column, otherwise it will have two. This is
   friendlier to the smaller screens that are often available front of
-  house."
+  house.
+
+  Also updates the USB/SD labels in case the device is an XDJ-XZ,
+  which has two USB slots instead."
   [grid players no-players]
   (let [visible-players (keep-indexed (fn [index player]
-                                        (when (some? (.getLatestAnnouncementFrom device-finder (inc index)))
+                                        (when-let [device (.getLatestAnnouncementFrom device-finder (inc index))]
+                                          (update-slot-labels player device)
                                           player))
                                       players)
         grid (seesaw/grid-panel :id players :columns (if (< (count visible-players) 3) 1 2))]
