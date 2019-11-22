@@ -115,8 +115,8 @@
   map."
   [file]
   (try
-    (let [filesystem (FileSystems/newFileSystem (.toPath file) nil)
-          contents (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
+    (let [filesystem (FileSystems/newFileSystem (.toPath file) (.getContextClassLoader (Thread/currentThread)))
+          contents   (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
       (when-not (= (:type contents) ::show)
         (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
       (when-not (= (:version contents) 1)
@@ -171,7 +171,7 @@
     (swap! open-shows #(apply update-in % [show-file :tracks signature] f args))))
 
 (defn- flush-show
-  "Closes the ZIP fileystem so that changes are written to the actual
+  "Closes the ZIP filesystem so that changes are written to the actual
   show file, then reopens it."
   [show]
   (let [{:keys [file filesystem]} show]

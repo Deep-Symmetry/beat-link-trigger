@@ -48,6 +48,10 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Changes in the Java 13 API were inadvertently backwards incompatible
+  with the way that BLT opens Show files, causing shows to be
+  unusuable in Java 13 (attempting to open them crashed with a
+  `NullPointerException` inside the bowels of the Java JDK).
 - Adding cues from the library was not compiling their custom
   expressions, so the expressions would not work until the show was
   closed and reopened, or the expressions were edited.
