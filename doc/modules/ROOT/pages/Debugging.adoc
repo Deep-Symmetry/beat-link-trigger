@@ -95,7 +95,7 @@ Suddenly your logs will be growing steadily, filling with lines like these:
 ```
 
 [[reporting-issues]]
-=== Reporting Issues
+== Reporting Issues
 
 If you run into trouble and it seems likely the problem is in Beat
 Link Trigger itself rather than one of your own expressions, you can
@@ -139,23 +139,26 @@ The timestamps it displays are identical to the ones that Wireshark
 writes in the capture file, which makes it possible to correlate
 things happening on the screen with packets in the capture.
 
+If there is room to have the Wireshark capture window appear in your
+video also, great! That can be very helpful, but the timestamp window
+is easier to read at small movie sizes.
+
 [NOTE]
 ====
-In case you are curious, the code that implements this Timeout show is
-very short! The Global Setup expression tells BLT that the show does
-not use tracks, replaces the normal content of the show window with
-the big clock label, and creates a background thread to update it 30
-times each second:
+In case you are curious, the code that implements this Timestamp show
+is very short:
 
+.Global Setup Expression
 [source,clojure]
 ----
-(swap! globals assoc :running true)
+(show/require-version show "0.5.5")  ;; <1>
+(swap! globals assoc :running true)  ;; <2>
 (let [formatter (java.text.SimpleDateFormat. "HH:mm:ss.SSS")
       timestamp (seesaw/label :text "00:00:00.0000"
                               :halign :center :valign :center
                               :font "DSEG7 Classic-40")]
-  (show/block-tracks show timestamp)
-  (future
+  (show/block-tracks show timestamp)  ;; <3>
+  (future  ;; <4>
     (loop []
       (seesaw/invoke-now
         (seesaw/value! timestamp (.format formatter (java.util.Date.))))
@@ -163,15 +166,28 @@ times each second:
       (when (:running @globals) (recur)))))
 ----
 
-And the Global Shutdown expression just tells that background thread
-to stop running:
+<1> Check that the version of BLT is new enough for this show to work.
 
+<2> Set a `:running` flag that we can use to stop the animation thread
+(below).
+
+<3> Update the show window to reflect that it does not use tracks,
+also replacing the normal content of the window with the big timestamp
+label.
+
+<4> Create a background animation thread to update the label 30 times
+each second.
+
+And when the window closes, we tell the animation thread to stop by
+removing the `:running` flag:
+
+.Global Shutdown Expression
 [source,clojure]
 ----
 (swap! globals dissoc :running)
 ----
 
-Since those are the only things in the show, the file is only 542
+Since those are the only things in the show, the file is only 560
 bytes long.
 ====
 
