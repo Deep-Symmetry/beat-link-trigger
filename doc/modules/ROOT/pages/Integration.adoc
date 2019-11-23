@@ -1257,7 +1257,7 @@ The contents of that expression use the
 section to tell the player that isn't currently playing the cue to
 load a track:
 
-.Load Track on Other Player cue's Entered expression
+."Load Track on Other Player" cue's Entered expression
 [source,clojure]
 ----
 ;; Replace the number at the end with the ID of the track you want to load.
@@ -1287,7 +1287,7 @@ Shared Function code handles that case smoothly).
 The Started On Beat expression is where you tell the cue what tempo
 you want to ramp towards:
 
-.Adjust Tempo cue's Started On Beat expression
+."Adjust Tempo" cue's Started On Beat expression
 [source,clojure]
 ----
 ;; Edit the number at the end of the next line to specify your desired tempo.
@@ -1306,13 +1306,13 @@ The cue's other expressions simply use the Shared Functions detailed
 in the previous section to make the adjustment happen as the cue
 plays:
 
-.Adjust Tempo cue's Tracked Update expression
+."Adjust Tempo" cue's Tracked Update expression
 [source,clojure]
 ----
 (bb-continue-tempo-adjust status track cue)
 ----
 
-.Adjust Tempo cue's Ended expression
+."Adjust Tempo" cue's Ended expression
 [source,clojure]
 ----
 (bb-finish-tempo-adjust track cue)
@@ -1327,7 +1327,7 @@ This is another simple cue, with a single expression that you don't
 need to edit. It uses the Started On Beat expression to tell the other
 player to start playing:
 
-.Start Other Player cue's Started On Beat expression
+."Start Other Player" cue's Started On Beat expression
 [source,clojure]
 ----
 (bb-start-player (bb-other-player status))
@@ -1347,7 +1347,7 @@ don't want to let your outgoing track play to completion, and the
 situations. It accomplishes those tasks using two expressions. The
 Started On Beat expression stops the player that was playing the cue:
 
-.Stop this Player and Load New Track cue's Started On Beat expression
+."Stop this Player and Load New Track" cue's Started On Beat expression
 [source,clojure]
 ----
 (bb-stop-player (bb-this-player status))
@@ -1359,7 +1359,7 @@ was placed. As soon as the player stops, the cue's Ended expression
 will be run. Its content is functionally the same as the Load Track on
 This Player cue we have already seen:
 
-.Stop this Player and Load New Track cue's Ended expression
+."Stop this Player and Load New Track" cue's Ended expression
 [source,clojure]
 ----
 ;; Replace the number at the end with the ID of the track you want to load once stopped.
@@ -1374,7 +1374,7 @@ It is very similar to the Stop this Player and Load New Track cue; the
 only difference is the function called in the Started On Beat
 expression:
 
-.Cut to Other Player and Load New Track cue's Started On Beat expression
+."Cut to Other Player and Load New Track" cue's Started On Beat expression
 [source,clojure]
 ----
 (bb-swap-players status)
