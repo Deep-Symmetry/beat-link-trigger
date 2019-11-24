@@ -14,6 +14,7 @@
             [beat-link-trigger.view-cache :as view-cache]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
+            [beat-carabiner.core :as beat-carabiner]
             [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
@@ -367,7 +368,7 @@
                      (midi/midi-send-msg (:receiver output) (if (= "Start" start) start-message continue-message) -1))
            nil))
        (when (and real? (= message "Link") (carabiner/sync-triggers?) start-stop)
-         (carabiner/start-transport))
+         (beat-carabiner/start-transport))
        (run-trigger-function trigger :activation status (not real?)))
      (catch Exception e
        (timbre/error e "Problem reporting player activation.")))))
@@ -393,8 +394,8 @@
            "Clock" (when (and stop real?) (midi/midi-send-msg (:receiver output) stop-message -1))
            nil))
        (when (and real? (= message "Link") (carabiner/sync-triggers?))
-         (carabiner/unlock-tempo)
-         (when start-stop (carabiner/stop-transport)))
+         (beat-carabiner/unlock-tempo)
+         (when start-stop (beat-carabiner/stop-transport)))
        (run-trigger-function trigger :deactivation status (not real?)))
      (catch Exception e
        (timbre/error e "Problem reporting player deactivation.")))))
@@ -423,9 +424,9 @@
                       (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch status)) bpm-override)
                       (.getEffectiveTempo status))]
           (when (carabiner/sync-triggers?)
-            (if (carabiner/valid-tempo? tempo)
-              (carabiner/lock-tempo tempo)
-              (carabiner/unlock-tempo))))))
+            (if (beat-carabiner/valid-tempo? tempo)
+              (beat-carabiner/lock-tempo tempo)
+              (beat-carabiner/unlock-tempo))))))
     (if (and (= "Clock" (:message (:value updated))) (enabled? trigger updated))
       (start-clock trigger)
       (stop-clock trigger updated)))
@@ -920,7 +921,7 @@
                                          (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
                                 (editors/show-trigger-editor :activation panel #(update-gear-icon panel gear)))
                               (when (and (= "Link" choice)
-                                         (not (carabiner/active?)))
+                                         (not (beat-carabiner/active?)))
                                 (carabiner/show-window @trigger-frame))
                               (cond
                                 (= "Clock" choice) (do (seesaw/hide! [note channel-label channel bar start-stop])
