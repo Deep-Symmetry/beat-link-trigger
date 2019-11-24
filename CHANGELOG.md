@@ -11,6 +11,11 @@ This change log follows the conventions of
 - Support for the new XDJ-XZ, thanks to patient and detailed reports,
   experiments, packet captures, and videos from [Teo
   Tormo](https://djtechtools.com/?s=teo+tormo).
+- The User Guide now contains and explains a Show that can be used to
+  control the On-Air display of CDJs when working with a Xone:96
+  mixer by responding to its MIDI messages.
+- There is also an example Show that can take over the players and
+  perform simple mixes when the DJ needs to take an urgent break.
 - Expression editors have been greatly improved, with new features in
   the context menu, and a new menu bar:
   - They now allow you to load or insert files into the expression
@@ -43,11 +48,6 @@ This change log follows the conventions of
   be used to display an error to the user and close a show file when
   it is opened in a version of Beat Link Trigger that is too old to
   run it correctly.
-- The User Guide now contains and explains a Show that can be used to
-  control the On-Air display of CDJs when working with a Xone:96
-  mixer by responding to its MIDI messages.
-- There is also an example Show that can take over the players and
-  perform simple mixes when the DJ needs to take an urgent break.
 
 ### Fixed
 
