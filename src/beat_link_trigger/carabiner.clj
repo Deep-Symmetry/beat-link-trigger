@@ -553,7 +553,8 @@
                                                                               nil))]) "wrap"]
 
                               [(seesaw/checkbox :id :bar :text "Align at bar level"
-                                                :enabled? (:bars (beat-carabiner/state))
+                                                :enabled? false
+                                                :selected? (:bar (beat-carabiner/state))
                                                 :listen [:item-state-changed
                                                          (fn [^ItemEvent e]
                                                            (let [bars (= (.getStateChange e) ItemEvent/SELECTED)]
