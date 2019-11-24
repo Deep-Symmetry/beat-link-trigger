@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.6.0] - 2019-11-24
+
 ### Added
 
 - Support for the new XDJ-XZ, thanks to patient and detailed reports,
@@ -81,6 +85,15 @@ This change log follows the conventions of
   that are missing color bytes, which was causing Crate Digger to
   crash when trying to parse the track's EXT file. This should now be
   handled more gracefully.
+
+### Changed
+
+- Communication with the Carabiner daemon is now performed using the
+  new
+  [beat-carabiner](https://github.com/Deep-Symmetry/beat-carabiner)
+  library instead of its own code, so that features and enhancements
+  are shared between this project and others like [Open Beat
+  Control](https://github.com/Deep-Symmetry/open-beat-control).
 
 ## [0.5.4] - 2019-09-06
 
@@ -925,7 +938,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.4...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.4...v0.6.0
 [0.5.4]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.1...v0.5.2
