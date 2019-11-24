@@ -8,6 +8,9 @@ This change log follows the conventions of
 
 ### Added
 
+- Support for the new XDJ-XZ, thanks to patient and detailed reports,
+  experiments, packet captures, and videos from [Teo
+  Tormo](https://djtechtools.com/?s=teo+tormo).
 - Expression editors have been greatly improved, with new features in
   the context menu, and a new menu bar:
   - They now allow you to load or insert files into the expression
