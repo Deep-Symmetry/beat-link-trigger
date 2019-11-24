@@ -430,7 +430,7 @@
 
     :else
     (do
-      (beat-carabiner/set-sync-mode new-mode)
+      (beat-carabiner/set-sync-mode (if (= new-mode :triggers) :passive new-mode))
       (seesaw/config! (seesaw/select root [:#sync-link]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#bar]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#master-link]) :enabled? (= :full new-mode))
