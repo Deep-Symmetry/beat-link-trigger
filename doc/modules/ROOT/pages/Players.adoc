@@ -109,6 +109,21 @@ connected to, then you can use the "On-Air" indication above the
 player number as an additional hint about when you need to pay
 attention to it.
 
+=== Larger Waveform Windows
+
+If you would like to display an even more detailed view of a track
+waveform, for example because you are live streaming a performance and
+want to overlay that on your video feed, you can open up a resizable
+window containing just the scrolling waveform details. If you move the
+mouse over the scrolling waveform in the Player Status window, the
+cursor becomes a magnifying glass. Clicking on the waveform opens it
+in a separate window that you can resize, position, and zoom
+indepentently. Each player's waveform detail window will remember how
+you have sized and positioned it so that the next time you open it you
+will find it configured the same way. If the window is already open
+when you click on the waveform in the Player Status window, it will
+simply be brought to the front if it was hidden.
+
 === Non-rekordbox Metadata
 
 The Player Status window is a lot less useful if non-rekordbox tracks

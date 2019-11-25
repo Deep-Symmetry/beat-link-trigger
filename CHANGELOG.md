@@ -20,6 +20,10 @@ Nothing so far.
   mixer by responding to its MIDI messages.
 - There is also an example Show that can take over the players and
   perform simple mixes when the DJ needs to take an urgent break.
+- Clicking on the scrolling waveform detail in the Player Status
+  window now opens an independent, resizable window containing that
+  scrolling waveform, in case you want a larger view (for example to
+  use as an overlay in a live stream).
 - Expression editors have been greatly improved, with new features in
   the context menu, and a new menu bar:
   - They now allow you to load or insert files into the expression

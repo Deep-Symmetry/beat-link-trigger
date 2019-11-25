@@ -74,6 +74,12 @@
   []
   ((resolve 'beat-link-trigger.triggers/real-player?)))
 
+(def magnify-cursor
+  "A custom cursor that indicates something can be magnified."
+  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                       (.getImage (seesaw/icon "images/Magnify-cursor.png"))
+                       (java.awt.Point. 6 6)
+                       "Magnify"))
 
 (defonce ^{:private true
            :doc "Keeps track of whether we have already warned about
@@ -561,6 +567,37 @@
   (when item
     (.label item)))
 
+(defonce ^{:private true
+           :doc "Holds any waveform detail windows that the user has open,
+  indexed by player number."}
+
+  waveform-windows (atom {}))
+
+(defn open-waveform-window
+  "Creates a standalone, resizable window displaying a player waveform,
+  given a player number.."
+  [n parent]
+  (if-let [existing (get @waveform-windows n)]
+    (.toFront existing)  ; Already open, just bring to front.
+    (let [key         (keyword (str "waveform-detail-" n))  ; Not open yet, so create.
+          wave        (WaveformDetailComponent. n)
+          zoom-slider (seesaw/slider :id :zoom :min 1 :max 32 :value 2
+                                     :listen [:state-changed #(.setScale wave (seesaw/value %))])
+          zoom-panel  (seesaw/border-panel :background "#000"
+                                           :center zoom-slider :east (seesaw/label :text " Zoom "))
+          panel       (seesaw/border-panel :background "#000" :north zoom-panel :center wave)
+          root        (seesaw/frame :title (str "Player " n " Waveform Detail")
+                                    :on-close :dispose
+                                    :width 600 :height 200
+                                    :content panel)]
+      (swap! waveform-windows assoc n root)
+      (.setScale wave 2)
+      (util/restore-window-position root key parent)
+      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root key)))
+      (seesaw/listen root :window-closed (fn [e] (swap! waveform-windows dissoc n)))
+      (seesaw/show! root)
+      (.toFront root))))
+
 (defn- update-metadata-labels
   "Updates the track title and artist name when the metadata has
   changed. Let the user know if they are not going to be able to get
@@ -785,6 +822,11 @@
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
                                 (seesaw/config! label :text (media-description slot-reference)))))))]
 
+    ;; Display the magnify cursor over the waveform detail component,
+    ;; and open a standalone window on the waveform when it is clicked.
+    (.setCursor detail magnify-cursor)
+    (seesaw/listen detail :mouse-clicked (fn [e] (open-waveform-window n detail)))
+
     ;; Show the slot cache popup menus on ordinary mouse presses on the buttons too.
     (seesaw/listen usb-gear
                    :mouse-pressed (fn [e]
@@ -953,7 +995,9 @@
                                            (>!! shutdown-chan :done)
                                            (reset! player-window nil)
                                            (.removeDeviceAnnouncementListener device-finder dev-listener)
-                                           (.removeLifecycleListener virtual-cdj stop-listener)))
+                                           (.removeLifecycleListener virtual-cdj stop-listener)
+                                           (doseq [detail (vals @waveform-windows)]
+                                             (.dispose detail))))
       (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :player-status true)))
       (seesaw/pack! root)
       (.setResizable root @allow-ugly-resizing)
