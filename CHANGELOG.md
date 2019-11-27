@@ -6,7 +6,13 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- Triggers-mode syncing was broken in the conversion to the external
+  library version of Carabiner integration; a `:manual` mode needed to
+  be added to beat-carabiner in order to support it. (I doubt anyone
+  is actually using this, but I can still imagine situations in which
+  it might be useful.)
 
 ## [0.6.0] - 2019-11-24
 

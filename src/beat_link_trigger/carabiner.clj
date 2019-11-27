@@ -14,16 +14,10 @@
            [org.deepsymmetry.electro Metronome Snapshot]))
 
 (defonce ^{:private true
-           :doc "Holds our own notion of the sync mode as chosen in
-  the menu, which extends the three supported by beat-carabiner to
-  include `:triggers`, in which calls from individual triggers
-  configured to `Link` mode can switch beat-carabiner between `:off`
-  and `:passive`.
+           :doc "Holds some timestamps used in managing master and
+  sync mode changes requsted by the user."}
 
-  Also tracks some timestamps used in managing master and sync mode
-  changes requsted by the user."}
-
-  state (atom {:sync-mode :off}))
+  state (atom {}))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to configure and
@@ -45,15 +39,17 @@
   other than `:off` (using our expanded set of modes, which includes
   `:triggers`)."
   []
-  (and (beat-carabiner/active?)
-       (not= :off (:sync-mode @state))))
+  (let [bc-state (beat-carabiner/state)]
+    (and (:running bc-state)
+         (not= :off (:sync-mode bc-state)))))
 
 (defn sync-triggers?
   "Checks whether we have an active connection for which Link triggers
   are controlling the tempo."
   []
-  (and (beat-carabiner/active?)
-       (= :triggers (:sync-mode @state))))
+  (let [bc-state (beat-carabiner/state)]
+    (and (:running bc-state)
+         (= :manual (:sync-mode bc-state)))))
 
 (defn sync-full?
   "Checks whether we have an active connection and are configured for
@@ -114,7 +110,7 @@
      (seesaw/value! (seesaw/select frame [:#peers]) (if-some [peers (:link-peers state)]
                                                       (str peers)
                                                       "---"))
-     (when (= :triggers (:sync-mode state))
+     (when (= :manual (:sync-mode state))
        (seesaw/value! (seesaw/select frame [:#sync-link]) (boolean (:target-bpm state)))))))
 
 ;; Arrange to update our window whenever the link state changes.
@@ -181,7 +177,7 @@
    (beat-at-time time nil))
   ([time beat-number]
    (beat-carabiner/beat-at-time time beat-number)
-   (when (= :triggers (:sync-mode @state))  ; Update Align at bar level checkbox when driven by trigger
+   (when (= :manual (:sync-mode (beat-carabiner/state)))  ; Update Align at bar level checkbox when driven by trigger
        (seesaw/invoke-later
         (seesaw/value! (seesaw/select @carabiner-window [:#bar]) (some? beat-number))))))
 
@@ -395,7 +391,6 @@
   Update the Virtual CDJ sync state accordingly if necessary (this may
   be happening in response to a change that started there)."
   [synced]
-  #_(timbre/debug "link-sync-state-changed" synced (:sync-mode @state) "master?" (.isTempoMaster virtual-cdj))
   (when (not= (.isSynced virtual-cdj) synced)
     (swap! state assoc-in [:sync-command-sent (.getDeviceNumber virtual-cdj)] (System/currentTimeMillis))
     (beat-carabiner/sync-link synced)))
@@ -416,7 +411,6 @@
   mode is consistent with the current state, and if so, updates the
   relevant interface elements and sets up the new state."
   [new-mode root]
-  (swap! state assoc :sync-mode new-mode)
   (cond
     (and (not= new-mode :off) (not (.isRunning virtual-cdj)))
     (do
@@ -430,7 +424,7 @@
 
     :else
     (do
-      (beat-carabiner/set-sync-mode (if (= new-mode :triggers) :passive new-mode))
+      (beat-carabiner/set-sync-mode (if (= new-mode :triggers) :manual new-mode))
       (seesaw/config! (seesaw/select root [:#sync-link]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#bar]) :enabled? (#{:passive :full} new-mode))
       (seesaw/config! (seesaw/select root [:#master-link]) :enabled? (= :full new-mode))
@@ -638,12 +632,16 @@
   mode (e.g. not connected to Carabiner, or BLT is offline), or if the
   chosen sync mode is not recognized."
   ([]
-   (:sync-mode @state))
+   (let [result (:sync-mode (beat-carabiner/state))]
+     (case result
+       :manual :triggers
+       result)))
   ([mode]
    (if-let [value (get {:off      "Off"
-                        :triggers "Triggers"
+                        :manual   "Triggers"  ; In case someone is used to the beat-carabiner version.
                         :passive  "Passive"
-                        :full     "Full"}
+                        :full     "Full"
+                        :triggers "Triggers"}
                        mode)]
      (do
        (require-connection)
