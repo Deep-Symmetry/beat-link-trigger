@@ -5,7 +5,7 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/core.async "0.5.527"]
+                 [org.clojure/core.async "0.6.532"]
                  [org.clojure/data.csv "0.1.4"]
                  [org.clojure/tools.cli "0.4.2"]
                  [clojure-humanize "0.2.2"]
@@ -14,8 +14,8 @@
                  [org.pushing-pixels/radiance-substance "1.0.2"]
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]
                  [com.taoensso/timbre "4.10.0"]
-                 [com.fzakaria/slf4j-timbre "0.3.14"]
-                 [fipp "0.6.21"]
+                 [com.fzakaria/slf4j-timbre "0.3.16"]
+                 [fipp "0.6.22"]
                  [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
                  [me.raynes/fs "1.4.6"]
                  [org.deepsymmetry/beat-link "0.6.0"]
@@ -33,7 +33,7 @@
                  [nrepl "0.6.0"]
                  [cider/cider-nrepl "0.22.4"]
                  [com.cemerick/pomegranate "1.1.0"]
-                 [org.apache.maven/maven-artifact "3.6.2"]]
+                 [org.apache.maven/maven-artifact "3.6.3"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
