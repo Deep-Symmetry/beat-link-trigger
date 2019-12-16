@@ -84,7 +84,7 @@
   [quit]
   (when-not (on-mac?)
     [(seesaw/separator)
-     (seesaw/action :handler (fn [e] quit)
+     (seesaw/action :handler (fn [e] (quit))
                     :name "Exit")]))
 
 (defn mail-supported?

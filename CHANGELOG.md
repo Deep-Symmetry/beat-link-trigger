@@ -8,6 +8,11 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The File→Exit menu option apparently never worked on Windwos or
+  Linux, I only discovered this when I started working on
+  deep-dish-pi, my planned custom Raspberry Pi distribution with
+  preconfigured BLT, Carabiner and other goodies... I wish someone had
+  told me!
 - Triggers-mode syncing was broken in the conversion to the external
   library version of Carabiner integration; a `:manual` mode needed to
   be added to beat-carabiner in order to support it. (I doubt anyone
