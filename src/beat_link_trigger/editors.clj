@@ -1239,9 +1239,9 @@ a {
                                 (build-replace-toolbar-action editor-panel replace-toolbar)
                                 (seesaw/separator)
                                 (build-go-to-line-action frame editor find-dialog replace-dialog)
-                                #_(seesaw/separator)
-                                #_(build-find-dialog-action find-dialog replace-dialog)
-                                #_(build-replace-dialog-action find-dialog replace-dialog)])
+                                (seesaw/separator)
+                                (build-find-dialog-action find-dialog replace-dialog)
+                                (build-replace-dialog-action find-dialog replace-dialog)])
            (menus/build-help-menu)]))
 
 (defn- create-triggers-editor-window
