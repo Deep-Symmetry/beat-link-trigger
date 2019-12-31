@@ -13,6 +13,12 @@ This change log follows the conventions of
   deep-dish-pi, my planned custom Raspberry Pi distribution with
   preconfigured BLT, Carabiner and other goodies... I wish someone had
   told me!
+- When pre-nexus players are on the network, the waveform no longer
+  jiggles around near the first beat, because Beat Link now realizes
+  that it can never get track position information from those players.
+  To make it even clearer what is happening, the Time and Remain
+  sections for such players in the Player Status window now display
+  "[Pre-nexus, no data.]"
 - Triggers-mode syncing was broken in the conversion to the external
   library version of Carabiner integration; a `:manual` mode needed to
   be added to beat-carabiner in order to support it. (I doubt anyone

@@ -408,38 +408,50 @@
         "--"))
     "--"))
 
+(defn- pre-nexus
+  "Checks whether the specified player number seems to be an older,
+  pre-nexus player, for which we cannot obtain time information."
+  [n]
+  (when-let [u (.getLatestStatusFor virtual-cdj n)]
+    (.isPreNexusCdj u)))
+
 (defn- paint-time
   "Draws time information for a player. Arguments are player number, a
   boolean flag indicating we are drawing remaining time, the component
   being drawn, and the graphics context in which drawing is taking
   place."
   [n remain c g]
-  (let [played      (time-played n)
-        ms          (when (and played (>= played 0)) (if remain (time-left n played) played))
-        min         (format-time (when ms (/ ms 60000)))
-        sec         (format-time (when ms (/ (mod ms 60000) 1000)))
-        half-frame  (when ms (mod (org.deepsymmetry.beatlink.Util/timeToHalfFrame ms) 150))
-        frame       (format-time (when half-frame (/ half-frame 2)))
-        frac-frame  (if half-frame (if (even? half-frame) "0" "5") "-")]
+  (let [played     (time-played n)
+        ms         (when (and played (>= played 0)) (if remain (time-left n played) played))
+        min        (format-time (when ms (/ ms 60000)))
+        sec        (format-time (when ms (/ (mod ms 60000) 1000)))
+        half-frame (when ms (mod (org.deepsymmetry.beatlink.Util/timeToHalfFrame ms) 150))
+        frame      (format-time (when half-frame (/ half-frame 2)))
+        frac-frame (if half-frame (if (even? half-frame) "0" "5") "-")]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
     (.setPaint g (if remain (Color. 255 200 200) (Color/WHITE)))
     (.setFont g (util/get-display-font :teko Font/PLAIN 16))
     (.drawString g (if remain "Remain" "Time") (int 4) (int 16))
-    (.setFont g (util/get-display-font :segment Font/PLAIN 20))
-    (.drawString g min (int 2) (int 40))
-    (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 34.0 2.0 3.0))
-    (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 24.0 2.0 3.0))
-    (.drawString g sec (int 45) (int 40))
-    (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 34.0 2.0 3.0))
-    (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 24.0 2.0 3.0))
-    (.drawString g frame (int 87) (int 40))
-    (.setFont g (util/get-display-font :teko Font/BOLD 10))
-    (.drawString g "M" (int 34) (int 40))
-    (.drawString g "S" (int 77) (int 40))
-    (.drawString g "F" (int 135) (int 40))
-    (.fill g (java.awt.geom.Rectangle2D$Double. 120.0 37.0 2.0 3.0))
-    (.setFont g (util/get-display-font :segment Font/PLAIN 16))
-    (.drawString g frac-frame (int 122) (int 40))))
+    (if (and (not ms) (pre-nexus n))
+        (do  ; Report that we can't display time information, as this is a pre-nexus device.
+          (.setFont g (util/get-display-font :teko Font/PLAIN 19))
+          (.drawString g "[Pre-nexus, no data.]" (int 2) (int 37)))
+      (do ; Normal time display.
+        (.setFont g (util/get-display-font :segment Font/PLAIN 20))
+        (.drawString g min (int 2) (int 40))
+        (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 34.0 2.0 3.0))
+        (.fill g (java.awt.geom.Rectangle2D$Double. 42.0 24.0 2.0 3.0))
+        (.drawString g sec (int 45) (int 40))
+        (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 34.0 2.0 3.0))
+        (.fill g (java.awt.geom.Rectangle2D$Double. 84.0 24.0 2.0 3.0))
+        (.drawString g frame (int 87) (int 40))
+        (.setFont g (util/get-display-font :teko Font/BOLD 10))
+        (.drawString g "M" (int 34) (int 40))
+        (.drawString g "S" (int 77) (int 40))
+        (.drawString g "F" (int 135) (int 40))
+        (.fill g (java.awt.geom.Rectangle2D$Double. 120.0 37.0 2.0 3.0))
+        (.setFont g (util/get-display-font :segment Font/PLAIN 16))
+        (.drawString g frac-frame (int 122) (int 40))))))
 
 (defn- tempo-values
   "Look up the current playback pitch percentage and effective tempo
