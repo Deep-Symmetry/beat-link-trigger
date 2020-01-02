@@ -50,12 +50,22 @@
       ((:stop @running-server))
       (reset! running-server nil))))
 
+(defn user-guide-link
+  "Makes sure the local user guide is being served, then returns a URL
+  that will reach the specified section (or the landing page if none
+  was specified)."
+  ([]
+   (user-guide-link "README.html"))
+  ([section]
+   (when-let [port (help-server)]
+     (str "http://127.0.0.1:" port "/guide/beat-link-trigger/" section))))
+
 (defn show-user-guide
   "Opens a web browser window on the locally-served user guide copy,
   starting the embedded web server if needed."
   []
-  (if-let [port (help-server)]
-    (clojure.java.browse/browse-url (str "http://127.0.0.1:" port "/guide/index.html"))))
+  (when-let [guide-url (user-guide-link)]
+    (clojure.java.browse/browse-url guide-url)))
 
 (defn- describe-ipv4-addresses
   "Produces a compact summary of the IPv4 addresses (if any) attached to
