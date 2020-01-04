@@ -1,13 +1,5 @@
 = Matching Tracks Without Metadata Requests
-James Elliott <james@deepsymmetry.org>
-:icons: font
-:toc:
-:experimental:
-:toc-placement: preamble
-
-// Set up support for relative links on GitHub; add more conditions
-// if you need to support other environments and extensions.
-ifdef::env-github[:outfilesuffix: .adoc]
+include::partial$PagePreamble.adoc[]
 
 WARNING: This information is obsolete because metadata has become so
 fundamental to Beat Link Trigger. The current approach is to use

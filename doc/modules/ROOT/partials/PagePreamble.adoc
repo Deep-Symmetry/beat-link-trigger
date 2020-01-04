@@ -1,0 +1,29 @@
+James Elliott <james@deepsymmetry.org>
+:icons: font
+:toc:
+:experimental:
+:toc-placement: preamble
+:guide-top: README
+
+// Set up support for relative links on GitHub, and give it
+// usable icons for admonitions, w00t! Add more conditions
+// if you need to support other environments and extensions.
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::env-github[]
+
+// Render section header anchors in a GitHub-compatible way when
+// building the embedded user guide.
+ifndef::env-github[]
+:idprefix:
+:idseparator: -
+endif::env-github[]
+
+// Work around the issue with rendering callouts on GitHub.
+:conum-guard-clojure: ;;
+ifndef::icons[:conum-guard-clojure: ;; ;;]

@@ -1,30 +1,6 @@
 = Triggers
-James Elliott <james@deepsymmetry.org>
-:icons: font
-:toc:
-:experimental:
-:toc-placement: preamble
+include::partial$PagePreamble.adoc[]
 :toclevels: 3
-:guide-top: README
-
-// Set up support for relative links on GitHub, and give it
-// usable icons for admonitions, w00t! Add more conditions
-// if you need to support other environments and extensions.
-ifdef::env-github[]
-:outfilesuffix: .adoc
-:tip-caption: :bulb:
-:note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
-:warning-caption: :warning:
-endif::env-github[]
-
-// Render section header anchors in a GitHub-compatible way when
-// building the embedded user guide.
-ifndef::env-github[]
-:idprefix:
-:idseparator: -
-endif::env-github[]
 
 Watch for specific activity on one or more CDJs, and send things
 like MIDI or OSC messages in response. Recognize tracks and synchronize
