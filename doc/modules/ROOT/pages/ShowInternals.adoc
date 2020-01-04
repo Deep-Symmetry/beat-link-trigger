@@ -1,0 +1,41 @@
+= Show Internal Structures
+include::partial$PagePreamble.adoc[]
+
+The data structures used internally by Beat Link Trigger to implement
+shows. Because some of the elements can be useful when writing your
+own expressions, they are made available to those expressions.
+
+[[show]]
+== The Show
+
+This map contains everything Beat Link Trigger needs to know about a
+show in order to be able to display and run it. Some of the elements
+are not suitable for use by expressions, but some can be quite useful.
+
+[[track]]
+== A Track
+
+This map contains everything Beat Link Trigger needs to know about a
+track in a show in order to be able to display and run it. Some of the
+elements are not suitable for use by expressions, but some can be
+quite useful.
+
+[[cue]]
+== A Cue
+
+This map contains everything Beat Link Trigger needs to know about a
+cue in a show track in order to be able to display and run it. Some of
+the elements are not suitable for use by expressions, but some can be
+quite useful.
+
+
+== Learning More
+
+****
+
+* Continue to <<Matching#matching-tracks,Matching Tracks>>
+* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
+
+****
+
+include::partial$Footer.adoc[]

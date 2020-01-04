@@ -939,6 +939,10 @@ you to add key/value pairs to organize the information you want to
 share across expressions. Show expressions also all have access to the
 Triggers window globals atom, under the name `trigger-globals`.
 
+Also, all expressions that run in a show have access to a value `show`
+that contains everything Beat Link Trigger knows about the show, which
+can be <<ShowInternals#show,useful>>.
+
 [[show-global-setup-expression]]
 === Global Setup Expression
 
@@ -1019,12 +1023,14 @@ more specific regions of the track, see the
 
 The track expressions can be accessed from the track’s
 <<Shows#track-context-menu,context menu>>. In addition to the
-`globals` atom described above, these have access to a very similar
-`locals` atom which can be used to share values across expressions
-within the track itself (but not other tracks; each gets its own
-`locals` map), and individual kinds of expressions will automatically
-have other values available to them which make sense in the context in
-which the expression is used.
+`globals` atom and `show` value described above, these have access to
+a very similar `locals` atom which can be used to share values across
+expressions within the track itself (but not other tracks; each gets
+its own `locals` map), a `track` value that contains everything Beat
+Link Trigger <<ShowInternals#track,knows about the track>>, and
+individual kinds of expressions will automatically have other values
+available to them which make sense in the context in which the
+expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of
@@ -1205,10 +1211,12 @@ moves into or out of that cue, if the cue starts playing on its first
 beat or from some point later within the cue, or if it stops playing.
 
 The cue expressions can be accessed from the cue’s context menu. Cues
-have access to the same `globals` and `locals` atoms that track
-expressions in the cue’s track do, and individual kinds of expressions
-will automatically have other values available to them which make
-sense in the context in which the expression is used.
+have access to the same `globals` and `locals` atoms, and `show` and
+`track` values that track expressions in the cue’s track do. They also
+can use a `cue` value that contains everything Beat Link Trigger
+<<ShowInternals#cue,knows about the cue>>, and individual kinds of
+expressions will automatically have other values available to them
+which make sense in the context in which the expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of
@@ -1317,7 +1325,7 @@ inside this cue, this expression will be called at that point as well.
 
 ****
 
-* Continue to <<Matching#matching-tracks,Matching Tracks>>
+* Continue to <<ShowInternals#show-internal-structures,Show Internal Structures>>
 * Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
 
 ****

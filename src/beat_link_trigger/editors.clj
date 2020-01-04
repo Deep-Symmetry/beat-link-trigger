@@ -2,15 +2,16 @@
   "Provides the user interface for editing expressions that customize
   application behavior."
   (:require [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.help :as help]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
             [me.raynes.fs :as fs]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre]
-            [beat-link-trigger.util :as util])
+            [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]
            [org.deepsymmetry.beatlink.data TrackPositionUpdate]
            [org.fife.ui.rtextarea RTextArea]))
@@ -282,15 +283,14 @@
   that symbol if it is used in the expression, and the documentation
   to show the user what the binding is for."
   {'show {:code '(:show trigger-data)
-          :doc  "All the details known about the show. There is an open
-  issue to document these in the User Guide."}
+          :doc (str "All the details known about the show. See the <a href=\""
+                    (help/user-guide-link "ShowInternals.html#show")
+                    "\">User Guide</a> for details.")}
 
    'trigger-globals {:code '@(resolve 'beat-link-trigger.triggers/expression-globals)
                      :doc  "The expression globals in the Triggers
   window, in case you want to share values with
-  them."}
-
-   })
+  them."}})
 
 (defn- show-bindings-for-class
   "Collects the set of bindings for a show editor which is called with a
@@ -306,8 +306,9 @@
   automatically bind that symbol if it is used in the expression, and
   the documentation to show the user what the binding is for."
   {'track {:code '(:track trigger-data)
-           :doc "All the details known about the track. There is an
-  open issue to document these in the User Guide."}
+           :doc (str "All the details known about the track. See the <a href=\""
+                    (help/user-guide-link "ShowInternals.html#track")
+                    "\">User Guide</a> for details.")}
 
    'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
                          (:track trigger-data))
@@ -593,9 +594,9 @@
   automatically bind that symbol if it is used in the expression, and
   the documentation to show the user what the binding is for."
   {'cue {:code '(:cue trigger-data)
-         :doc  "All the details known about the cue. Copy to an
-  Expression Local if you want to use the Inspector to explore
-  them."}
+         :doc (str "All the details known about the cue. See the <a href=\""
+                    (help/user-guide-link "ShowInternals.html#cue")
+                    "\">User Guide</a> for details.")}
 
    'entered-message {:code '(get-in trigger-data [:cue :events :entered :message])
                      :doc  "The type of MIDI message to be sent when
