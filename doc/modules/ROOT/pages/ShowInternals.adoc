@@ -379,7 +379,7 @@ track's beat grid at which the cue begins.
 [[cue-uuid]]
 `:uuid`:: The unique identifier (a Java
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID]
-object that identifies this cue within the show, so it can be
+object) that identifies this cue within the show, so it can be
 recognized in the lists of which players are positioned inside it,
 playing it, and so on, or looked up in a track's <<#cues-map,`:cues`
 map>>.
