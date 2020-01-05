@@ -354,6 +354,7 @@ the expression editor will be opened to let you do that. You can
 also open that editor using the <<Shows#track-context-menu,track
 context menu>>.
 
+[[loaded-note-spinner]]
 ==== Loaded Note/Controller Spinner
 
 Found immediately to the right of the menu:Loaded Message[] Menu (unless
@@ -363,6 +364,7 @@ controller number used for Control Change-based loaded and unloaded
 messages. The value is also available to your Track expressions if they
 want to use it.
 
+[[loaded-channel-spinner]]
 ==== Loaded Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which
@@ -451,6 +453,7 @@ the expression editor will be opened to let you do that. You can
 also open that editor using the <<Shows#track-context-menu,track
 context menu>>.
 
+[[playing-note-spinner]]
 ==== Playing Note/Controller Spinner
 
 Found immediately to the right of the menu:Playing Message[] Menu (unless
@@ -460,6 +463,7 @@ controller number used for Control Change-based started and stopped
 messages. The value is also available to your Track expressions if they
 want to use it.
 
+[[playing-channel-spinner]]
 ==== Playing Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which

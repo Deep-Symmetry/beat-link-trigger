@@ -11,7 +11,10 @@ own expressions, they are made available to those expressions.
 This map contains everything Beat Link Trigger needs to know about a
 show in order to be able to display and run it. Some of the elements
 are not suitable for use by expressions, but some can be quite useful.
+It is passed to all show expressions as the value `show`.
 
+[[track-signatures]]
+.Track Signatures
 NOTE: The discussion below often mentions track _signatures_. These
 are strings that uniquely identify a track that can be loaded on a
 player. They are calculated using things like the track's title,
@@ -23,6 +26,9 @@ two different structures are referring to the same track, or use a
 signature to look up other details about a track using the show's
 `:tracks` map, described <<#tracks-map,below>>.
 
+Here's a list of some of the more useful values present in the show
+map, and the keywords under which each can be found.
+
 `:block-tracks?`:: Normally absent, but will have a `true` value if
 your show expressions have called `show/block-tracks` to suppress the
 normal display of tracks that makes up the user interface of the Show
@@ -31,8 +37,8 @@ window, or set up your own custom UI as described in the
 <<Integration#xone-on-air,Xone:96 Channels on Air integration
 example>>.
 
-`:contents`:: Some additional configuration information about the
-show, described <<#show-contents,below>>.
+`:contents`:: The basic configuration information for the show,
+described <<#show-contents,below>>.
 
 `:cueing`:: A map from player numbers to track signatures if the
 specified player is currently cue-playing (rather than normally
@@ -86,8 +92,8 @@ of the window as well as the **Loaded Only** checkbox next to it.
 === Show Contents
 
 The `:contents` map contains information that can be directly saved
-into the show file to represent its high-level configuration. Some
-elements that might be useful include:
+into the show file to represent the configuration the user has chosen.
+Some elements that might be useful include:
 
 `:comments`:: A map from track signature to the comment string, if
 any, that has been entered for that track in the Show window.
@@ -95,15 +101,16 @@ any, that has been entered for that track in the Show window.
 `:cue-library`:: Holds the definitions of any cues that have been
 added to the show's library.
 
-`:enabled`:: The value chosen in the menu:Enabled Default[] menu, one
-of `"Never"`, `"On-Air"`, `"Master"`, `"Custom"`, or `"Always"`.
+`:enabled`:: The value chosen in the show's menu:Enabled Default[]
+menu, one of `"Never"`, `"On-Air"`, `"Master"`, `"Custom"`, or
+`"Always"`.
 
 `:expressions`:: A map holding the source text of any show-level
 expressions that have been created, indexed by the keyword identifying
 the expression type.
 
 `:filter`:: The filter text that has been entered at the top of the
-show window, if any, causing only matching tracks will be visible.
+show window, if any, causing only matching tracks to be visible.
 
 `:loaded-only`:: Indicates whether the **Loaded Only** checkbox at the
 top of the show window has been checked, causing only tracks that are
@@ -118,9 +125,202 @@ the show is opened again.
 == A Track
 
 This map contains everything Beat Link Trigger needs to know about a
-track in a show in order to be able to display and run it. Some of the
-elements are not suitable for use by expressions, but some can be
-quite useful.
+track in a show in order to be able to display it and run cues in it.
+Some of the elements are not suitable for use by expressions, but some
+can be quite useful. It is passed to all track expressions as the
+value `track`, and all tracks in the show can be found in the `show`
+map under the keyword `:tracks`, further indexed by their
+<<#track-signatures,signatures>>.
+
+Here's a list of some of the more useful values present in a track
+map, and the keywords under which each can be found.
+
+`:contents`:: The basic configuration information for the track,
+described <<#track-contents,below>>.
+
+`:cues`:: Holds working information about the current state of the
+cues in the track, for convenient and efficient display and tracking
+of entry/exit. The information you are more likely to use is found
+inside the `:contents` map, described <<#track-contents,below>>.
+
+`:cues-editor`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JFrame.html[`JFrame`]
+holding the cues editor window for the track, if one has been opened.
+
+`:file`:: The Java
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/File.html[`File`]
+object holding the show to which the track belongs.
+
+`:filter`:: A string containing all of the track-related text which
+can be matched by the **Filter** text field at the top of the show
+window, so filtering can be performed efficiently.
+
+`:grid`:: The Beat Link
+https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html[`Beat
+Grid`] object that lists where each beat in the track falls.
+
+`:metadata`:: A map containing useful information about the track,
+described <<#track-metadata,below>>.
+
+`:panel`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JPanel.html[`JPanel`]
+holding user interface of the track row.
+
+`:preview`:: An on-demand loader for the graphical waveform preview
+that shows the track waveform, cues, and current playback position of
+any players that have loaded the track when it is visible in the show
+window.
+
+`:preview-canvas`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JPanel.html[`JPanel`]
+in which the track's graphical waveform preview, cues, and current
+playback positions are drawn.
+
+`:signature`:: The unique string that <<#track-signatures,identifies>>
+this track, regardless of what media it was loaded from, so it can be
+recognized in the lists of which players have it loaded, playing, and
+so on, or looked up in the show's <<#tracks-map,`:tracks` map>>.
+
+`:tripped`:: Will be `true` when the track is currently enabled and
+loaded on at least one player (the same conditions under which there
+will be a green dot showing in the <<Shows#loaded-status,**Loaded
+Status** indicator>> of the track row).
+
+
+[[track-contents]]
+=== Track Contents
+
+The `:contents` map contains information that can be directly saved
+into the show file to represent the track configuration the user has
+chosen. Some elements that might be useful include:
+
+`:comment`:: The comment text, if any, entered to describe the cue.
+This shows up as a tooltip to help identify the cue on the track
+waveforms, and can also be used to filter visible cues.
+
+`:cues`:: Holds information about the Cues Editor associated with the
+track, as described <<#cues-editor,below>>.
+
+`:enabled`:: The Enabled setting for the track, as configured with the
+track's <<Shows#enabled-menu,Enabled Menu>>.
+
+`:expressions`:: A map holding the source text of any track-level
+expressions that have been created, indexed by the keyword identifying
+the expression type.
+
+`:loaded-channel`:: The MIDI channel on which Loaded and Unloaded
+messages are sent, as configured with the track's
+<<Shows#loaded-channel-spinner,Loaded Channel Spinner>>.
+
+`:loaded-message`:: The type of message that will be sent for Loaded
+and Unloaded events, as configured with the track's
+<<Shows#loaded-message,Loaded Message Menu>>.
+
+`:loaded-note`:: The MIDI note (or controller number) used to send
+Loaded and Unloaded messages, as configured with the track's
+<<Shows#loaded-note-spinner,Loaded Note/Controller Spinner>>.
+
+`:midi-device`:: The MIDI device to which track messages will be sent,
+as configured with the track's <<Shows#track-midi-output,MIDI Output
+Menu>>.
+
+`:playing-channel`:: The MIDI channel on which Playing and Stopped
+messages are sent, as configured with the track's
+<<Shows#playing-channel-spinner,Playing Channel Spinner>>.
+
+`:playing-message`:: The type of message that will be sent for Playing
+and Stopped events, as configured with the track's
+<<Shows#playing-message,Playing Message Menu>>.
+
+`:playing-note`:: The MIDI note (or controller number) used to send
+Playing and Stopped messages, as configured with the track's
+<<Shows#playing-note-spinner,Playing Note/Controller Spinner>>.
+
+[[track-metadata]]
+=== Track Metadata
+
+The `:metadata` map contains information obtained from the Beat Link
+https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackMetadata.html[`TrackMetadata`]
+object describing the track. Note that few DJs fill in all this
+information in rekordbox, so values are often `nil`. Available keys
+and values are:
+
+`:album`:: A string naming the album the track is part of, if any.
+
+`:artist`:: A string naming the artist who performed the
+track.
+
+`:comment`:: A string entered by the DJ in rekordbox to make notes
+about the track, if any.
+
+`:date-added`:: A string holding a date in "YYYY-MM-DD" format
+reporting when the track was imported into rekordbox.
+
+`:duration`:: An integer holding the playback length of the track, in
+seconds, at normal speed (100% pitch).
+
+`:genre`:: A string describing the musical genre of the track.
+
+`:key`:: A string describing the dominant musical key of the track.
+
+`:label`:: A string naming the record label that issued the track.
+
+`:original-artist`:: A string naming the artist who originally
+performed the track, if any.
+
+`:rating`:: An integer the number of stars (`0`--`5`) the DJ assigned
+the track in rekordbox.
+
+`:remixer`:: A string naming the person who remixed the track, if any.
+
+`:tempo`:: An integer holding the starting tempo of the track when
+played at normal speed (100% pitch). Units are beats per hundred
+minutes, so a track that begins at 128.5 BPM would have the value
+`12850`.
+
+`:title`:: A string identifying the title of the track.
+
+[[cues-editor]]
+=== Track Cues Editor Information
+
+The track's cues editor information map contains the information
+needed to manage the Cues Editor window that can be opened for a
+track. Its keys and values are:
+
+`:auto-scroll`:: Will be `true` when the **Auto-Scroll** checkbox at
+the top of the window is checked.
+
+[[cues-map]]
+`:cues`:: A map holding information about all cues in the track. The
+keys are the cues' <<#cue-signature,signatures>>, and the values are
+the cue maps described in the <<#cue,Cue section>>.
+
+`:entered-only`:: Will be `true` when the **Entered-Only** checkbox at
+the top of the window is checked.
+
+`:hue`:: A floating-point number representing the angle around the
+color wheel that was chosen for the last cue created; used to assign
+each new cue a visibly distinct hue.
+
+`:filter`:: The filter text that has been entered at the top of the
+cues editor window, if any, causing only matching cues to be
+visible.
+
+`:visible`:: A vector of the signatures of all the cues that are
+currently visible in the cues editor window, in the order in which
+they appear. This can be affected by the **Filter** text field at the
+top of the window, as well as the **Entered Only** checkbox next
+to it.
+
+`:window`:: The left and right coordinates of the cues editor window
+on the screen, and its height and width, for use in restoring the
+window when it is opened again.
+
+`:zoom`:: An integer reporting how far out the waveform view has been
+zoomed. The value `1` shows the full detail of the waveform, `2`
+compresses two columns into one, and so on.
+
+
 
 [[cue]]
 == A Cue
