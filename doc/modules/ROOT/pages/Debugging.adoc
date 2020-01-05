@@ -91,6 +91,7 @@ such cases
 https://helpx.adobe.com/experience-manager/kb/TakeThreadDump.html[thread
 dumps] are often a valuable next step.
 
+[[wireshark]]
 === Wireshark Captures
 
 If you are helping investigate an issue involving communication with

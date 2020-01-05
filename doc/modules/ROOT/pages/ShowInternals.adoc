@@ -12,6 +12,108 @@ This map contains everything Beat Link Trigger needs to know about a
 show in order to be able to display and run it. Some of the elements
 are not suitable for use by expressions, but some can be quite useful.
 
+NOTE: The discussion below often mentions track _signatures_. These
+are strings that uniquely identify a track that can be loaded on a
+player. They are calculated using things like the track's title,
+artist, length, and beat grid, so the same track can be recognized
+when found on different media. An example signature looks like
+`"6c8139bd531a417999317a9d024d6d8ea6993507"`. While you will never
+need to compute one directly yourself, you can compare them to see if
+two different structures are referring to the same track, or use a
+signature to look up other details about a track using the show's
+`:tracks` map, described <<#tracks-map,below>>.
+
+`:block-tracks?`:: Normally absent, but will have a `true` value if
+your show expressions have called `show/block-tracks` to suppress the
+normal display of tracks that makes up the user interface of the Show
+window, or set up your own custom UI as described in the
+<<Debugging#wireshark,Wireshark debugging section>> and the
+<<Integration#xone-on-air,Xone:96 Channels on Air integration
+example>>.
+
+`:contents`:: Some additional configuration information about the
+show, described <<#show-contents,below>>.
+
+`:cueing`:: A map from player numbers to track signatures if the
+specified player is currently cue-playing (rather than normally
+playing) the specified track.
+
+`:default-ui`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JPanel.html[`JPanel`]
+holding the normal show interface displayed by Beat Link Trigger
+inside the Show window (the Enabled Default, Filter, and scrolling
+list of tracks). This can be replaced by calling `show/block-tracks`
+as described above, but is kept here in case you later call
+`(show/block-tracks nil)` to restore the normal show interface.
+
+`:file`:: The Java
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/File.html[`File`]
+object holding the show.
+
+`:frame`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JFrame.html[`JFrame`]
+holding the show window.
+
+`:last-beat`:: A map from player number to the timestamp of the last
+beat packet that was received from that player.
+
+`:loaded`:: A map from player numbers to the track signature of the
+track, if any, currently loaded in that player.
+
+`:master`:: A map from player numbers to the track signature of the
+track, if any, currently loaded in that player, as long as that player
+is the current Tempo Master.
+
+`:on-air`:: A map from player numbers to track signatures showing
+which tracks are currently loaded into players that are on the air
+according to the mixer. (Requires a DJM mixer, and the players and
+mixer must be configured to offer the on-air feature.)
+
+`:playing`:: A map from player numbers to the track signature of the
+track, if any, currently playing on that player.
+
+[[tracks-map]]
+`:tracks`:: A map holding information about all tracks in the show. The
+keys are the track's signatures, and the values are the track maps
+described in the <<#track,Track section>>.
+
+`:visible`:: A vector of the signatures of all the tracks that are
+currently visible in the show window, in the order in which they
+appear. This can be affected by the **Filter** text field at the top
+of the window as well as the **Loaded Only** checkbox next to it.
+
+[[show-contents]]
+=== Show Contents
+
+The `:contents` map contains information that can be directly saved
+into the show file to represent its high-level configuration. Some
+elements that might be useful include:
+
+`:comments`:: A map from track signature to the comment string, if
+any, that has been entered for that track in the Show window.
+
+`:cue-library`:: Holds the definitions of any cues that have been
+added to the show's library.
+
+`:enabled`:: The value chosen in the menu:Enabled Default[] menu, one
+of `"Never"`, `"On-Air"`, `"Master"`, `"Custom"`, or `"Always"`.
+
+`:expressions`:: A map holding the source text of any show-level
+expressions that have been created, indexed by the keyword identifying
+the expression type.
+
+`:filter`:: The filter text that has been entered at the top of the
+show window, if any, causing only matching tracks will be visible.
+
+`:loaded-only`:: Indicates whether the **Loaded Only** checkbox at the
+top of the show window has been checked, causing only tracks that are
+currently loaded in a player to be visible in the window.
+
+`:window`:: The left and right coordinates of the show window on the
+screen, and its height and width, for use in restoring the window when
+the show is opened again.
+
+
 [[track]]
 == A Track
 
@@ -26,7 +128,7 @@ quite useful.
 This map contains everything Beat Link Trigger needs to know about a
 cue in a show track in order to be able to display and run it. Some of
 the elements are not suitable for use by expressions, but some can be
-quite useful.
+quite useful. They are stored under the following keys:
 
 
 == Learning More
