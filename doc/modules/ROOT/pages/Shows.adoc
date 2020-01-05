@@ -803,6 +803,7 @@ the expression editor will be opened to let you do that. You can
 also open that editor using the <<Shows#cue-context-menu,cue
 context menu>>.
 
+[[entered-note-spinner]]
 ==== Entered Note/Controller Spinner
 
 Found immediately to the right of the menu:Entered Message[] Menu (unless
@@ -812,6 +813,7 @@ controller number used for Control Change-based entered and exited
 messages. The value is also available to your Cue expressions if they
 want to use it.
 
+[[entered-channel-spinner]]
 ==== Entered Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which
@@ -897,6 +899,7 @@ expression, the expression editor will be opened to let you do that.
 You can also open that editor using the <<Shows#cue-context-menu,cue
 context menu>>.
 
+[[started-on-beat-note-spinner]]
 ==== Started On-Beat Note/Controller Spinner
 
 Found immediately to the right of the menu:Started On-Beat Message[]
@@ -906,6 +909,7 @@ ended messages, or the controller number used for Control Change-based
 started on-beat and ended messages. The value is also available to
 your Cue expressions if they want to use it.
 
+[[started-on-beat-channel-spinner]]
 ==== Started On-Beat Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which
@@ -985,6 +989,7 @@ expression, the expression editor will be opened to let you do that.
 You can also open that editor using the <<Shows#cue-context-menu,cue
 context menu>>.
 
+[[started-late-note-spinner]]
 ==== Started Late Note/Controller Spinner
 
 Found immediately to the right of the menu:Started Late Message[] Menu
@@ -994,6 +999,7 @@ ended messages, or the controller number used for Control Change-based
 started late and ended messages. The value is also available to your
 Cue expressions if they want to use it.
 
+[[started-late-channel-spinner]]
 ==== Started Late Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which

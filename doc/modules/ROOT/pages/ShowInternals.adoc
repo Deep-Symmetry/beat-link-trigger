@@ -63,8 +63,9 @@ holding the show window.
 `:last-beat`:: A map from player number to the timestamp of the last
 beat packet that was received from that player.
 
-`:loaded`:: A map from player numbers to the track signature of the
-track, if any, currently loaded in that player.
+`:loaded`:: A map from player numbers to the track
+<<#track-signatures,signature>> of the track, if any, currently loaded
+in that player.
 
 `:master`:: A map from player numbers to the track signature of the
 track, if any, currently loaded in that player, as long as that player
@@ -147,6 +148,10 @@ inside the `:contents` map, described <<#track-contents,below>>.
 https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JFrame.html[`JFrame`]
 holding the cues editor window for the track, if one has been opened.
 
+`:entered`:: A map from player numbers to the set of <<#cue-uuid,cue
+UUIDs>> of the cues, if any, that player is currently positioned
+inside of.
+
 `:file`:: The Java
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/File.html[`File`]
 object holding the show to which the track belongs.
@@ -194,9 +199,8 @@ The `:contents` map contains information that can be directly saved
 into the show file to represent the track configuration the user has
 chosen. Some elements that might be useful include:
 
-`:comment`:: The comment text, if any, entered to describe the cue.
-This shows up as a tooltip to help identify the cue on the track
-waveforms, and can also be used to filter visible cues.
+`:comment`:: The comment text, if any, entered to describe the track.
+This can be used to filter visible tracks.
 
 `:cues`:: Holds information about the Cues Editor associated with the
 track, as described <<#cues-editor,below>>.
@@ -292,8 +296,8 @@ the top of the window is checked.
 
 [[cues-map]]
 `:cues`:: A map holding information about all cues in the track. The
-keys are the cues' <<#cue-signature,signatures>>, and the values are
-the cue maps described in the <<#cue,Cue section>>.
+keys are the cues' <<#cue-uuid,UUIDs>>, and the values are the cue
+maps described in the <<#cue,Cue section>>.
 
 `:entered-only`:: Will be `true` when the **Entered-Only** checkbox at
 the top of the window is checked.
@@ -320,16 +324,65 @@ window when it is opened again.
 zoomed. The value `1` shows the full detail of the waveform, `2`
 compresses two columns into one, and so on.
 
-
-
 [[cue]]
 == A Cue
 
 This map contains everything Beat Link Trigger needs to know about a
 cue in a show track in order to be able to display and run it. Some of
 the elements are not suitable for use by expressions, but some can be
-quite useful. They are stored under the following keys:
+quite useful. It is passed to all cue expressions as the value `cue`.
 
+Here's a list of some of the more useful values present in a cue map,
+and the keywords under which each can be found.
+
+`:comment`:: The comment text, if any, entered to describe the cue.
+This shows up as a tooltip to help identify the cue on the track
+waveforms, and can also be used to filter visible cues.
+
+`:end`:: An integer that specifies the beat number within the
+track's beat grid at which the cue ends.
+
+`:events`:: A map containing the cue's event configuration. It has
+three keys, `:entered`, `:started-on-beat`, and `started-late`, and
+each of those hold inner maps with keys `:message`, `:note`, and
+`:channel`. Jointly these record the choices the user has made in the
+cue's <<Shows#entered-message,Entered Message Menu>>,
+<<Shows#entered-note-spinner,Entered Note/Controller Spinner>>,
+<<Shows#entered-channel-spinner,Entered Channel Spinner>>,
+<<Shows#started-on-beat-menu,Started On-Beat Message Menu>>,
+<<Shows#started-on-beat-note-spinner,Started On-Beat Note/Controller
+Spinner>>, <<Shows#started-on-beat-channel-spinner,Started On-Beat
+Channel Spinner>>, <<Shows#started-late-menu,Started Late Message
+Menu>>, <<Shows#started-late-note-spinner,Started Late Note/Controller
+Spinner>>, and <<Shows#started-late-channel-spinner,Started Late
+Channel Spinner>> respectively.
++
+To make this concrete, here is an example `:events` map:
++
+[source,clojure]
+----
+{:entered         {:message "Note", :note 1, :channel 1}
+ :started-on-beat {:message "Note", :note 2, :channel 1}
+ :started-late    {:message "None", :note 3, :channel 1}}
+----
+
+`:expressions`:: A map holding the source text of any cue-level
+expressions that have been created, indexed by the keyword identifying
+the expression type.
+
+`:hue`:: An floating point value that specifies the angle around the
+color wheel that is used when drawing this cue.
+
+`:start`:: An integer that specifies the beat number within the
+track's beat grid at which the cue begins.
+
+[[cue-uuid]]
+`:uuid`:: The unique identifier (a Java
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID]
+object that identifies this cue within the show, so it can be
+recognized in the lists of which players are positioned inside it,
+playing it, and so on, or looked up in a track's <<#cues-map,`:cues`
+map>>.
 
 == Learning More
 

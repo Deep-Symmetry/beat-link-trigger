@@ -25,6 +25,11 @@ This change log follows the conventions of
   is actually using this, but I can still imagine situations in which
   it might be useful.)
 
+### Added
+
+- Documentation of the show, track, and cue structures that are
+  available to expressions running inside them.
+
 ## [0.6.0] - 2019-11-24
 
 ### Added
