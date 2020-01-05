@@ -123,14 +123,14 @@ the show is opened again.
 
 
 [[track]]
-== A Track
+== Tracks
 
-This map contains everything Beat Link Trigger needs to know about a
-track in a show in order to be able to display it and run cues in it.
-Some of the elements are not suitable for use by expressions, but some
-can be quite useful. It is passed to all track expressions as the
-value `track`, and all tracks in the show can be found in the `show`
-map under the keyword `:tracks`, further indexed by their
+Each track map contains everything Beat Link Trigger needs to know
+about a track in a show in order to be able to display it and run cues
+in it. Some of the elements are not suitable for use by expressions,
+but some can be quite useful. It is passed to all track expressions as
+the value `track`, and all tracks in the show can be found in the
+`show` map under the keyword `:tracks`, further indexed by their
 <<#track-signatures,signatures>>.
 
 Here's a list of some of the more useful values present in a track
@@ -325,12 +325,13 @@ zoomed. The value `1` shows the full detail of the waveform, `2`
 compresses two columns into one, and so on.
 
 [[cue]]
-== A Cue
+== Cues
 
-This map contains everything Beat Link Trigger needs to know about a
-cue in a show track in order to be able to display and run it. Some of
-the elements are not suitable for use by expressions, but some can be
-quite useful. It is passed to all cue expressions as the value `cue`.
+Each cue map contains everything Beat Link Trigger needs to know about
+a cue in a show track in order to be able to display and run it. Some
+of the elements are not suitable for use by expressions, but some can
+be quite useful. It is passed to all cue expressions as the value
+`cue`.
 
 Here's a list of some of the more useful values present in a cue map,
 and the keywords under which each can be found.
