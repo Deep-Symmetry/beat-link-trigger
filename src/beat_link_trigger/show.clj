@@ -17,7 +17,7 @@
             [seesaw.chooser :as chooser]
             [seesaw.icon :as icon]
             [seesaw.mig :as mig]
-            [com.evocomputing.colors :as colors]
+            [thi.ng.color.core :as color]
             [taoensso.timbre :as timbre])
   (:import [javax.sound.midi Sequencer Synthesizer]
            [java.awt Color Cursor Font Graphics2D Rectangle RenderingHints]
@@ -975,20 +975,20 @@
                        :name "Add Cue to Library")))))
 
 (defn hue-to-color
-  "Returns a Color object of the given hue. If lightness is not
-  specified, 50 is used, giving the purest, most intense version of
-  the hue."
+  "Returns a Color object of the given hue (in degrees, ranging from 0.0
+  to 360.0). If lightness is not specified, 0.5 is used, giving the
+  purest, most intense version of the hue. The color is fully opaque."
   ([hue]
-   (hue-to-color hue 50))
+   (hue-to-color hue 0.5))
   ([hue lightness]
-   (let [color (colors/create-color :h hue :s 100 :l lightness)]
-     (java.awt.Color. (colors/red color) (colors/green color) (colors/blue color)))))
+   (let [color (color/hsla (/ hue 360.0) 1.0 lightness)]
+     (java.awt.Color. @(color/as-int24 color)))))
 
 (defn color-to-hue
-  "Extracts the hue number from a Color object. If colorless, red is the
-  default."
+  "Extracts the hue number (in degrees) from a Color object. If
+  colorless, red is the default."
   [color]
-  (colors/hue (colors/create-color color)))
+  (* 360.0 (color/hue (color/int32 (.getRGB color)))))
 
 (def cue-opacity
   "The degree to which cues replace the underlying waveform colors when
@@ -1001,8 +1001,8 @@
   playing. `track` must be current."
   [track cue]
   (if (and (:tripped track) (entered? track cue))
-    (if (started? track cue) 80 65)
-    50))
+    (if (started? track cue) 0.8 0.65)
+    0.5))
 
 (defn- repaint-preview
   "Tells the track's preview component to repaint itself because the

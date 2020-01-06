@@ -371,8 +371,8 @@ To make this concrete, here is an example `:events` map:
 expressions that have been created, indexed by the keyword identifying
 the expression type.
 
-`:hue`:: An floating point value that specifies the angle around the
-color wheel that is used when drawing this cue.
+`:hue`:: An floating point value that specifies the angle (in degrees)
+around the color wheel that is used when drawing this cue.
 
 `:start`:: An integer that specifies the beat number within the
 track's beat grid at which the cue begins.
