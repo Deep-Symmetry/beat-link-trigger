@@ -82,7 +82,9 @@
         @quit ; User wants to quit.
         (do
           (timbre/info "Giving up attempt to go online, user wants to quit.")
-          (System/exit 1))
+          (seesaw/invoke-soon
+           (seesaw/dispose! @searching)
+           (triggers/quit)))
 
         @continue-offline ; User wants to continue offline.
         (do
