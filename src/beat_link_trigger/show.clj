@@ -620,7 +620,7 @@
   "Creates the popup menu actions corresponding to the available
   expression editors for a given cue."
   [track cue panel gear]
-  (for [[kind spec] editors/show-track-cue-editors]
+  (for [[kind spec] @editors/show-track-cue-editors]
     (let [update-fn (fn [] (update-cue-gear-icon track cue gear))]
       (seesaw/action :handler (fn [e] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
                      :name (str "Edit " (:title spec))
@@ -1538,7 +1538,7 @@
   library."
   [track cue]
   (doseq [[kind expr] (:expressions cue)]
-    (let [editor-info (get editors/show-track-cue-editors kind)]
+    (let [editor-info (get @editors/show-track-cue-editors kind)]
       (try
         (swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
@@ -2873,7 +2873,7 @@
   "Creates the popup menu actions corresponding to the available
   expression editors for a given track."
   [show track panel gear]
-  (for [[kind spec] editors/show-track-editors]
+  (for [[kind spec] @editors/show-track-editors]
     (let [update-fn (fn []
                       (when (= kind :setup)  ; Clean up then run the new setup function
                         (run-track-function track :shutdown nil true)
@@ -3267,7 +3267,7 @@
 
     ;; Parse any custom expressions defined for the track.
     (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
-      (let [editor-info (get editors/show-track-editors kind)]
+      (let [editor-info (get @editors/show-track-editors kind)]
         (try
           (swap-signature! show signature assoc-in [:expression-fns kind]
                            (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
@@ -3611,8 +3611,8 @@
                                                                 (when (online?)
                                                                   (run-global-function show :online nil true)))
                                                               (update-tracks-global-expression-icons show))))
-                 :name (str "Edit " (get-in editors/global-show-editors [kind :title]))
-                 :tip (get-in editors/global-show-editors [kind :tip])
+                 :name (str "Edit " (get-in @editors/global-show-editors [kind :title]))
+                 :tip (get-in @editors/global-show-editors [kind :tip])
                  :icon (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions kind]))
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))
@@ -3637,7 +3637,7 @@
                                          :id :tracks-menu
                                          :items (concat [(:import-menu show)]
                                                         (map (partial build-global-editor-action show)
-                                                              (keys editors/global-show-editors))
+                                                              (keys @editors/global-show-editors))
                                                         [(seesaw/separator) inspect-action]))
                             (menus/build-help-menu)])))
 
@@ -3812,7 +3812,7 @@
 
         ;; Need to compile the show expressions before building the tracks, so shared functions are available.
         (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
-          (let [editor-info (get editors/global-show-editors kind)]
+          (let [editor-info (get @editors/global-show-editors kind)]
             (try
               (swap-show! show assoc-in [:expression-fns kind]
                           (if (= kind :shared)

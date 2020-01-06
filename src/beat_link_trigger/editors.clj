@@ -277,11 +277,12 @@
   connections) that you opened in the Setup expression."
               :bindings (trigger-bindings-for-class nil)}))
 
-(def show-bindings
+(defn- show-bindings
   "Identifies symbols which can be used inside any show expression,
   along with the expression that will be used to automatically bind
   that symbol if it is used in the expression, and the documentation
   to show the user what the binding is for."
+  []
   {'show {:code '(:show trigger-data)
           :doc (str "All the details known about the show. See the <a href=\""
                     (help/user-guide-link "ShowInternals.html#show")
@@ -298,13 +299,14 @@
   convenience bindings with those associated with the specified class,
   which may be `nil`."
   [update-class]
-  (merge show-bindings (when update-class (expressions/bindings-for-update-class update-class))))
+  (merge (show-bindings) (when update-class (expressions/bindings-for-update-class update-class))))
 
-(def show-bindings-for-track
+(defn- show-bindings-for-track
   "Identifies symbols which can be used inside any show track
   expression, along with the expression that will be used to
   automatically bind that symbol if it is used in the expression, and
   the documentation to show the user what the binding is for."
+  []
   {'track {:code '(:track trigger-data)
            :doc (str "All the details known about the track. See the <a href=\""
                     (help/user-guide-link "ShowInternals.html#track")
@@ -379,8 +381,8 @@
   track convenience bindings with those associated with the specified
   class, which may be `nil`."
   [update-class]
-  (merge show-bindings
-         show-bindings-for-track
+  (merge (show-bindings)
+         (show-bindings-for-track)
          (when update-class (expressions/bindings-for-update-class update-class))))
 
 (def global-show-editors
@@ -388,45 +390,46 @@
   window overall, along with the details needed to describe and
   compile the expressions they edit. Created as an explicit array map
   to keep the keys in the order they are found here."
-  (array-map
-   :shared {:title "Shared Functions"
-            :tip "The place to define functions used by expressions."
-            :description "Compiled before any expressions are, so you
+  (delay
+   (array-map
+    :shared {:title "Shared Functions"
+             :tip "The place to define functions used by expressions."
+             :description "Compiled before any expressions are, so you
             can define any functions those expressions might find
             useful. This is just ordinary Clojure code that can be
             conveniently edited using an IDE if you turn on the
             embedded nREPL server."}
 
-   :setup {:title "Global Setup Expression"
-           :tip "Called once to set up any state your show expressions may need."
-           :description
-           "Called once when the show is loaded, or when you update the
+    :setup {:title "Global Setup Expression"
+            :tip "Called once to set up any state your show expressions may need."
+            :description
+            "Called once when the show is loaded, or when you update the
   expression. Set up any global state (such as counters, flags, or
   network connections) that your expressions within any track or cue
   need. Use the Global Shutdown expression to clean up resources when
   the show window is shutting down."
-           :bindings (show-bindings-for-class nil)}
+            :bindings (show-bindings-for-class nil)}
 
-   :online {:title    "Came Online Expression"
-            :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
-            :description
-            "Called after the Global Setup Expression when loading a
+    :online {:title    "Came Online Expression"
+             :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
+             :description
+             "Called after the Global Setup Expression when loading a
   Show if Online, or by itself if you have taken BLT Online manually.
   Set up any global state (such as sync modes or showing the Player
   Status window) that can only be performed when online. Use the Going
   Offline expression to gracefully disconnect from anything you need
   to when going Offline or when the Show is shutting down."
-            :bindings (merge
-                       (show-bindings-for-class nil)
-                       {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
-                                        :doc  "The player number we are using when talking to DJ Link devices."}
-                        'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
-                                        :doc  "The IP address we are using to talk to DJ Link devices."}})}
+             :bindings (merge
+                        (show-bindings-for-class nil)
+                        {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+                                         :doc  "The player number we are using when talking to DJ Link devices."}
+                         'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
+                                         :doc  "The IP address we are using to talk to DJ Link devices."}})}
 
-   :enabled {:title "Default Enabled Filter Expression"
-             :tip "Called to see if a track set to Default should be enabled."
-             :description
-             "Called whenever a status update packet is received from
+    :enabled {:title "Default Enabled Filter Expression"
+              :tip "Called to see if a track set to Default should be enabled."
+              :description
+              "Called whenever a status update packet is received from
   a player that has loaded a track whose Enabled mode is set to
   Default, when the show itself has chosen Custom as its Enabled
   Default. Return a <code>true</code> value as the last expression to
@@ -436,46 +439,46 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-             :bindings (show-bindings-for-class CdjStatus)}
+              :bindings (show-bindings-for-class CdjStatus)}
 
-   :offline {:title    "Going Offline Expression"
-             :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
-             :description
-             "Called before the Global Shutdown Expression when the
+    :offline {:title    "Going Offline Expression"
+              :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
+              :description
+              "Called before the Global Shutdown Expression when the
   Show window is closing, or by itself when you are taking BLT Offline
   manually. Gracefully close and release any shared system
   resources (such as network connections) that you opened in the Came
   Online expression."
-             :bindings (show-bindings-for-class nil)}
+              :bindings (show-bindings-for-class nil)}
 
-   :shutdown {:title "Global Shutdown Expression"
-              :tip "Called once to release global resources."
-              :description
-              "Called when when the show window is closing. Close and
+    :shutdown {:title "Global Shutdown Expression"
+               :tip "Called once to release global resources."
+               :description
+               "Called when when the show window is closing. Close and
   release any shared system resources (such as network connections)
   that you opened in the Global Setup expression."
-              :bindings (show-bindings-for-class nil)}))
+               :bindings (show-bindings-for-class nil)})))
 
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
   along with the details needed to describe and compile the
   expressions they edit. Created as an explicit array map to keep the
   keys in the order they are found here."
-  (array-map
-   :setup {:title "Setup Expression"
-           :tip "Called once to set up any state your other expressions may need."
-           :description
-           "Called once when the show is loaded, or when you update the
+  (delay (array-map
+          :setup {:title "Setup Expression"
+                  :tip "Called once to set up any state your other expressions may need."
+                  :description
+                  "Called once when the show is loaded, or when you update the
   expression. Set up any state (such as counters, flags, or network
   connections) that your other expressions for this track need. Use
   the Shutdown expression to clean up resources when the show is
   shutting down."
-           :bindings (show-bindings-for-track-and-class nil)}
+                  :bindings (show-bindings-for-track-and-class nil)}
 
-   :enabled {:title "Enabled Filter Expression"
-             :tip "Called to see if the track should be enabled."
-             :description
-             "Called whenever a status update packet is received from
+          :enabled {:title "Enabled Filter Expression"
+                    :tip "Called to see if the track should be enabled."
+                    :description
+                    "Called whenever a status update packet is received from
   a player that has loaded a track whose Enabled mode is set to
   Custom. Return a <code>true</code> value as the last expression to
   enable the track. The status update object, a beat-link <a
@@ -484,21 +487,21 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-             :bindings (show-bindings-for-track-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-and-class CdjStatus)}
 
-   :loaded {:title "Loaded Expression"
-            :tip "Called when a player loads this track, if enabled."
-            :description
-            "Called when the track is enabled and the first player loads
+          :loaded {:title "Loaded Expression"
+                   :tip "Called when a player loads this track, if enabled."
+                   :description
+                   "Called when the track is enabled and the first player loads
   this track. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-            :bindings (show-bindings-for-track-and-class nil)}
+                   :bindings (show-bindings-for-track-and-class nil)}
 
-   :playing {:title "Playing Expression"
-             :tip "Called when a player plays this track, if enabled."
-             :description
-             "Called when the track is enabled and the first player starts
+          :playing {:title "Playing Expression"
+                    :tip "Called when a player plays this track, if enabled."
+                    :description
+                    "Called when the track is enabled and the first player starts
   playing this track. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows.<p>
@@ -510,11 +513,11 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-             :bindings (show-bindings-for-track-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-and-class CdjStatus)}
 
-   :beat {:title "Beat Expression"
-          :tip "Called on each beat from devices with the track loaded."
-          :description "Called whenever a beat packet is received from
+          :beat {:title "Beat Expression"
+                 :tip "Called on each beat from devices with the track loaded."
+                 :description "Called whenever a beat packet is received from
   a player that is playing this track. You can use this for
   beat-driven integrations with other systems.<p>
 
@@ -526,12 +529,12 @@
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
   easier to use the convenience variables described below."
-          :bindings (show-bindings-for-track-and-class :beat-tpu)}
+                 :bindings (show-bindings-for-track-and-class :beat-tpu)}
 
-   :tracked {:title "Tracked Update Expression"
-             :tip "Called for each update from a player with this track loaded, when enabled."
-             :description
-             "Called whenever a status update packet is received from
+          :tracked {:title "Tracked Update Expression"
+                    :tip "Called for each update from a player with this track loaded, when enabled."
+                    :description
+                    "Called whenever a status update packet is received from
   a player that has this track loaded, after the Enabled Filter
   Expression, if any, has had a chance to decide if the track is
   enabled, and after the Loaded, Playing, Stopped, or Unloaded
@@ -545,11 +548,11 @@
   enabled, and at least one player is playing), wrap your code inside a
   <code>when</code> expression conditioned on the
   <code>playing-players</code> convenience variable."
-             :bindings (show-bindings-for-track-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-and-class CdjStatus)}
 
-   :stopped {:title "Stopped Expression"
-                  :tip "Called when all players stop playing the track, or the track is disabled."
-                  :description "Called when the track becomes disabled or when the last
+          :stopped {:title "Stopped Expression"
+                    :tip "Called when all players stop playing the track, or the track is disabled."
+                    :description "Called when the track becomes disabled or when the last
   player stops playing the track, if any had been. You can use this
   to trigger systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows.<p>
@@ -568,31 +571,32 @@
   has disappeared or the track settings have been changed, so your
   expression must be able to cope with <code>nil</code> values for all
   the convenience variables that it uses."
-                  :bindings (show-bindings-for-track-and-class CdjStatus)
-                  :nil-status? true}
+                    :bindings (show-bindings-for-track-and-class CdjStatus)
+                    :nil-status? true}
 
-   :unloaded {:title "Unloaded Expression"
-              :tip "Called when all players unload the track, or the track is disabled."
-              :description "Called when the track becomes disabled or when the last
+          :unloaded {:title "Unloaded Expression"
+                     :tip "Called when all players unload the track, or the track is disabled."
+                     :description "Called when the track becomes disabled or when the last
   player unloads the track, if any had it loaded. You can use this
   to trigger systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows."
-                  :bindings (show-bindings-for-track-and-class nil)}
+                     :bindings (show-bindings-for-track-and-class nil)}
 
-   :shutdown {:title "Shutdown Expression"
-              :tip "Called once to release resources your track had been using."
-              :description
-              "Called when when the track is shutting down, either
+          :shutdown {:title "Shutdown Expression"
+                     :tip "Called once to release resources your track had been using."
+                     :description
+                     "Called when when the track is shutting down, either
   because it was deleted or the show was closed. Close and release any
   system resources (such as network connections) that you opened in
   the Setup expression."
-              :bindings (show-bindings-for-track-and-class nil)}))
+                     :bindings (show-bindings-for-track-and-class nil)})))
 
-(def show-bindings-for-track-and-cue
+(defn- show-bindings-for-track-and-cue
   "Identifies symbols which can be used inside any show track cue
   expression, along with the expression that will be used to
   automatically bind that symbol if it is used in the expression, and
   the documentation to show the user what the binding is for."
+  []
   {'cue {:code '(:cue trigger-data)
          :doc (str "All the details known about the cue. See the <a href=\""
                     (help/user-guide-link "ShowInternals.html#cue")
@@ -652,9 +656,9 @@
   track, and cue convenience bindings with those associated with the
   specified class, which may be `nil`."
   [update-class]
-  (merge show-bindings
-         show-bindings-for-track
-         show-bindings-for-track-and-cue
+  (merge (show-bindings)
+         (show-bindings-for-track)
+         (show-bindings-for-track-and-cue)
          (when update-class (expressions/bindings-for-update-class update-class))))
 
 (def show-track-cue-editors
@@ -662,21 +666,21 @@
   along with the kinds of details needed to compile the expressions
   they edit. Created as an explicit array map to keep the keys in the
   order they are found here."
-  (array-map
-   :entered {:title    "Entered Expression"
-             :tip      "Called when a player moves inside this cue, if the track is enabled."
-             :description
-             "Called when the track is enabled and the first player
+  (delay (array-map
+          :entered {:title    "Entered Expression"
+                    :tip      "Called when a player moves inside this cue, if the track is enabled."
+                    :description
+                    "Called when the track is enabled and the first player
   moves inside this cue. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-             :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
+                    :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
 
-   :started-on-beat {:title    "Started On-Beat Expression"
-                     :tip
-                     "Called when a player starts playing this cue from its first beat, if the track is enabled."
-                     :description
-                     "Called when the track is enabled and the first
+          :started-on-beat {:title    "Started On-Beat Expression"
+                            :tip
+                            "Called when a player starts playing this cue from its first beat, if the track is enabled."
+                            :description
+                            "Called when the track is enabled and the first
   player starts playing the cue from the beginning of its first beat.
   You can use this to trigger systems that do not respond to MIDI, or
   to send more detailed information than MIDI allows.<p>
@@ -697,12 +701,12 @@
   object, as described in the help for the Started Late expression,
   instead of the above-described tuple, so you will need to write your
   code to handle both possibilities."
-                     :bindings (show-bindings-for-cue-and-class :beat-tpu)}
-   :started-late {:title    "Started Late Expression"
-                  :tip
-                  "Called when a player starts playing this cue later than its first beat, if the track is enabled."
-                  :description
-                  "Called when the track is enabled and the first player
+                            :bindings (show-bindings-for-cue-and-class :beat-tpu)}
+          :started-late {:title    "Started Late Expression"
+                         :tip
+                         "Called when a player starts playing this cue later than its first beat, if the track is enabled."
+                         :description
+                         "Called when the track is enabled and the first player
   starts playing the cue from somewhere other than the beginning of
   its first beat. You can use this to trigger systems that do not
   respond to MIDI, or to send more detailed information than MIDI
@@ -716,12 +720,12 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described
   below."
-                  :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
+                         :bindings (show-bindings-for-cue-and-class DeviceUpdate)}
 
-   :beat   {:title "Beat Expression"
-            :tip   "Called on each beat from devices playing inside the cue."
-            :description
-            "Called whenever a beat packet is received from a player
+          :beat   {:title "Beat Expression"
+                   :tip   "Called on each beat from devices playing inside the cue."
+                   :description
+                   "Called whenever a beat packet is received from a player
   that is playing this cue (other than for the beat that started the
   cue, if any, which will have called the started-on-beat or
   started-late expression). You can use this for beat-driven
@@ -735,12 +739,12 @@
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
   easier to use the convenience variables described below."
-            :bindings (show-bindings-for-cue-and-class :beat-tpu)}
+                   :bindings (show-bindings-for-cue-and-class :beat-tpu)}
 
-   :tracked {:title "Tracked Update Expression"
-             :tip "Called for each update from a player that is positioned inside the cue, when the track is enabled."
-             :description
-             "Called whenever a status update packet is received from
+          :tracked {:title "Tracked Update Expression"
+                    :tip "Called for each update from a player that is positioned inside the cue, when the track is enabled."
+                    :description
+                    "Called whenever a status update packet is received from
   a player whose playback position is inside the cue (as long as the
   track is enabled), and after calling the entered or started
   expression, if appropriate. The status update object, a beat-link <a
@@ -753,12 +757,12 @@
   one player is playing it), wrap your code inside a <code>when</code>
   expression conditioned on the <code>players-playing</code>
   convenience variable."
-          :bindings (show-bindings-for-cue-and-class CdjStatus)}
+                    :bindings (show-bindings-for-cue-and-class CdjStatus)}
 
-:ended {:title "Ended Expression"
-           :tip   "Called when all players stop playing this cue, if the track is enabled."
-           :description
-           "Called when the track is enabled and the last player that
+          :ended {:title "Ended Expression"
+                  :tip   "Called when all players stop playing this cue, if the track is enabled."
+                  :description
+                  "Called when the track is enabled and the last player that
   had been playing this cue leaves it or stops playing. You can use
   this to trigger systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows.<p>
@@ -768,13 +772,13 @@
   been changed, so your expression must be able to cope with
   <code>nil</code> values for all the convenience variables that it
   uses."
-           :bindings    (show-bindings-for-cue-and-class DeviceUpdate)
-           :nil-status? true}
+                  :bindings    (show-bindings-for-cue-and-class DeviceUpdate)
+                  :nil-status? true}
 
-   :exited {:title "Exited Expression"
-            :tip   "Called when all players move outside this cue, if the track is enabled."
-            :description
-            "Called when the track is enabled and the last player that
+          :exited {:title "Exited Expression"
+                   :tip   "Called when all players move outside this cue, if the track is enabled."
+                   :description
+                   "Called when the track is enabled and the last player that
   had been inside this cue moves back out of it. You can use this to
   trigger systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows.<p>
@@ -784,8 +788,8 @@
   been changed, so your expression must be able to cope with
   <code>nil</code> values for all the convenience variables that it
   uses."
-            :bindings    (show-bindings-for-cue-and-class DeviceUpdate)
-            :nil-status? true}))
+                   :bindings    (show-bindings-for-cue-and-class DeviceUpdate)
+                   :nil-status? true})))
 
 (def ^:private editor-theme
   "The color theme to use in the code editor, so it can match the
@@ -866,7 +870,7 @@
   "Determines the title for a show expression editor window. If it is
   from an individual track, identifies it as such."
   [kind show track]
-  (let [title (get-in (if track show-track-editors global-show-editors) [kind :title])]
+  (let [title (get-in (if track @show-track-editors @global-show-editors) [kind :title])]
     (if track
       (str (or title kind) " for Track \"" (get-in track [:metadata :title]) "\"")
       (str "Show \"" (fs/base-name (:file show) true) "\" " title))))
@@ -880,7 +884,7 @@
     (show-call swap-track! track update :expression-fns dissoc kind) ; In case parse fails, leave nothing there.
     (show-call swap-show! show update :expression-fns dissoc kind))
   (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
-        editor-info (get (if track show-track-editors global-show-editors) kind)]
+        editor-info (get (if track @show-track-editors @global-show-editors) kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it.
         (if (= kind :shared)
@@ -926,7 +930,7 @@
 (defn cue-editor-title
   "Determines the title for a cue expression editor window."
   [kind track cue]
-  (let [title (get-in show-track-cue-editors [kind :title])]
+  (let [title (get-in @show-track-cue-editors [kind :title])]
     (str title " for Cue in Track \"" (get-in track [:metadata :title]) "\"")))
 
 (defn- update-cue-expression
@@ -938,7 +942,7 @@
   (show-call swap-track! track update-in [:cues :expression-fns (:uuid cue)]
              dissoc kind)  ; Clean up any old value first in case the parse fails.
   (let [text        (clojure.string/trim text) ; Remove whitespace on either end
-        editor-info (get show-track-cue-editors kind)]
+        editor-info (get @show-track-cue-editors kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it
         (show-call swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
@@ -1403,7 +1407,7 @@ a {
     (.setCaretPosition editor 0)
     (.discardAllEdits editor)
     (.setContentType help "text/html")
-    (.setText help (build-show-help kind (not track) (if track show-track-editors global-show-editors)))
+    (.setText help (build-show-help kind (not track) (if track @show-track-editors @global-show-editors)))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -1494,7 +1498,7 @@ a {
     (.setCaretPosition editor 0)
     (.discardAllEdits editor)
     (.setContentType help "text/html")
-    (.setText help (build-show-help kind false show-track-cue-editors))
+    (.setText help (build-show-help kind false @show-track-cue-editors))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
