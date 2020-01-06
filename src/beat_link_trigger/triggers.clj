@@ -28,7 +28,7 @@
            [java.awt Color RenderingHints]
            [java.awt.event WindowEvent]
            [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener MixerStatus Util VirtualCdj]
+            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener MixerStatus Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
             CrateDigger SignatureFinder]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
@@ -52,13 +52,17 @@
   trigger-frame
   (atom nil))
 
-(def metadata-finder
-  "A convenient reference to the MetadataFinder singleton."
-  (MetadataFinder/getInstance))
+(def device-finder
+  "A convenient reference to the DeviceFinder singleton."
+  (DeviceFinder/getInstance))
 
 (def virtual-cdj
   "A convenient reference to the VirtualCdj singleton."
   (VirtualCdj/getInstance))
+
+(def metadata-finder
+  "A convenient reference to the MetadataFinder singleton."
+  (MetadataFinder/getInstance))
 
 ;; Register the custom readers needed to read back in the defrecords that we use.
 (prefs/add-reader 'beat_link_trigger.util.PlayerChoice util/map->PlayerChoice)
@@ -162,8 +166,7 @@
                        (- this-device))
         [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
         better (or (= existing-device this-device)
-                   (when (some? existing-device) (nil? (.getLatestAnnouncementFrom (DeviceFinder/getInstance)
-                                                                                   existing-device)))
+                   (when (some? existing-device) (nil? (.getLatestAnnouncementFrom device-finder existing-device)))
                    (> match-score (or existing-score -256)))]
     (when better
       (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
@@ -500,7 +503,7 @@
   "Check whether we are in online mode, with all the required
   beat-link finder objects running."
   []
-  (and (.isRunning (DeviceFinder/getInstance)) (.isRunning virtual-cdj)))
+  (and (.isRunning device-finder) (.isRunning virtual-cdj)))
 
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
@@ -520,7 +523,7 @@
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
-        (let [found (when (online?) (.getLatestAnnouncementFrom (DeviceFinder/getInstance) (int (.number selection))))
+        (let [found (when (online?) (.getLatestAnnouncementFrom device-finder (int (.number selection))))
               status (when (online?) (.getLatestStatusFor virtual-cdj (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
@@ -1190,13 +1193,41 @@
 
 (defonce ^{:private true
            :doc "Responds to the arrival or departure of DJ Link
-  devices by updating our user interface appropriately."}
+  devices by updating our user interface appropriately. If we were
+  online and lost the last device, drop offline and then switch to
+  trying to go back online until the user cancels that, for reliable
+  headless operation."}
   device-listener
   (reify DeviceAnnouncementListener
     (deviceFound [this announcement]
       (rebuild-all-device-status))
     (deviceLost [this announcement]
-      (rebuild-all-device-status))))
+      (rebuild-all-device-status)
+      (when (and (online?) (empty? (.getCurrentDevices device-finder)))
+        ;; We are online but lost the last DJ Link device. Switch back to looking for the network.
+        (future
+          (seesaw/invoke-now  ; Go offline.
+           (.setSelected (seesaw/select @trigger-frame [:#online]) false))
+          (Thread/sleep 200)  ; Give things a chance to stabilize.
+          (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
+           (.setSelected (seesaw/select @trigger-frame [:#online]) true)))))))
+
+(defonce ^{:private true
+           :doc "Used to detect the `VirtualCdj` shutting down
+           unexpectedly due to network problems, so we can
+           recognize that we are offline and try to recover."}
+  vcdj-lifecycle-listener
+  (reify LifecycleListener
+    (started [this _]) ; Nothing to do.
+    (stopped [this _]
+      (future
+        (go-offline true) ; Indicate this is a special case of going offline even though VirtualCdj is offline already.
+        (seesaw/invoke-now
+         ;; Update the Online menu state, which calls `go-offline` again but that is a no-op this time.
+         (.setSelected (seesaw/select @trigger-frame [:#online]) false))
+        (Thread/sleep 200)  ; Give things a chance to stabilize.
+        (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
+         (.setSelected (seesaw/select @trigger-frame [:#online]) true))))))
 
 (defn- translate-enabled-values
   "Convert from the old true/false model of enabled stored in early
@@ -1543,13 +1574,15 @@
         (create-trigger-window)
 
         ;; Be able to react to players coming and going
-        (.addDeviceAnnouncementListener (DeviceFinder/getInstance) device-listener)
+        (.addDeviceAnnouncementListener device-finder device-listener)
         (.addUpdateListener virtual-cdj status-listener)
         (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
         (.addBeatListener (BeatFinder/getInstance) beat-listener)))  ; Allow triggers to respond to beats
     (.start (BeatFinder/getInstance))
     (.setPassive metadata-finder true)  ; Start out conservatively
-    (when (online?) (start-other-finders))
+    (when (online?)
+      (start-other-finders)
+      (.addLifecycleListener virtual-cdj vcdj-lifecycle-listener))  ; React when VirtualCdj shuts down unexpectedly.
     (when (real-player?) (actively-send-status))
     (when (online?)
       (run-global-function :online)
@@ -1559,21 +1592,30 @@
 
 (defn go-offline
   "Transition to an offline state, running any custom Going Offline
-  expression and then updating the UI appropriately."
-  []
-  (when (online?)  ; Don't do all this if we got here from a failed attempt to go online.
-    (show/run-show-offline-expressions)
-    (run-global-function :offline)
-    (.stop (WaveformFinder/getInstance))
-    (.stop (BeatGridFinder/getInstance))
-    (.stop (ArtFinder/getInstance))
-    (.stop metadata-finder)
-    (.stop (BeatFinder/getInstance))
-    (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
-    (.stop virtual-cdj)
-    (Thread/sleep 200))  ; Wait for straggling update packets
-  (reflect-online-state)
-  (rebuild-all-device-status))
+  expression and then updating the UI appropriately. If `was-online?`
+  is passed, it reports whether we had been online. In normal
+  circumstances, this does not need to be passed, and our current
+  online state is checked. However, in the special case of reacting to
+  the `VirtualCdj` unexpectedly shutting itself down due to network
+  problems, we want to be able to run expressions and do proper
+  cleanup."
+  ([]
+   (go-offline (online?)))
+  ([was-online?]
+   (.removeLifecycleListener virtual-cdj vcdj-lifecycle-listener)  ; No longer care when it stops.
+   (when was-online?  ; Don't do all this if we got here from a failed attempt to go online.
+     (show/run-show-offline-expressions)
+     (run-global-function :offline)
+     (.stop (WaveformFinder/getInstance))
+     (.stop (BeatGridFinder/getInstance))
+     (.stop (ArtFinder/getInstance))
+     (.stop metadata-finder)
+     (.stop (BeatFinder/getInstance))
+     (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
+     (.stop virtual-cdj)
+     (Thread/sleep 200))  ; Wait for straggling update packets
+   (reflect-online-state)
+   (rebuild-all-device-status)))
 
 (defn go-online
   "Try to transition to an online state, updating the UI appropriately."
@@ -1582,5 +1624,5 @@
     (seesaw/invoke-now (seesaw/hide! @trigger-frame))
     ((resolve 'beat-link-trigger.core/try-going-online))
     (when-not (online?)
-      (seesaw/invoke-now
+      (seesaw/invoke-now  ; We failed to go online, so update the menu to reflect that.
        (.setSelected (seesaw/select @trigger-frame [:#online]) false)))))

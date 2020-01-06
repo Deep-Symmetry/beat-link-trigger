@@ -23,6 +23,9 @@ This change log follows the conventions of
   user tried going online from an offline state but failed. This would
   lead to exceptions because the expressions would (naturally) assume
   the came-online expressions had been run before them.
+- If the user chooses to quit during a failed attempt to go online,
+  save their state and give them a chance to save any modified
+  expressions they have open.
 - Triggers-mode syncing was broken in the conversion to the external
   library version of Carabiner integration; a `:manual` mode needed to
   be added to beat-carabiner in order to support it. (I doubt anyone
@@ -31,6 +34,11 @@ This change log follows the conventions of
 
 ### Added
 
+- BLT now detects the loss of the DJ Link network when you had been
+  online, and tries to reconnect automatically in case the network
+  environment has changed. This is especially important for
+  long-running headless operation, which is being explored with VNC on
+  the Raspberry Pi 4.
 - Documentation of the show, track, and cue structures that are
   available to expressions running inside them.
 
