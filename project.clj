@@ -24,7 +24,7 @@
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
-                 [org.clojars.brunchboy/colors "1.0.5"]
+                 [com.evocomputing/colors "1.0.5"]
                  [uk.co.xfactory-librarians/coremidi4j "1.3"]
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.3.0"]
