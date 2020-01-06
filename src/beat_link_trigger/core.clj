@@ -15,6 +15,14 @@
            [java.awt GraphicsEnvironment]
            [javax.swing UIManager]))
 
+(def device-finder
+  "A convenient reference to the DeviceFinder singleton."
+  (DeviceFinder/getInstance))
+
+(def virtual-cdj
+  "A convenient reference to the VirtualCdj singleton."
+  (VirtualCdj/getInstance))
+
 (defn finish-startup
   "Called when we have successfully gone online, or the user has said
   they want to proceed offline."
@@ -23,61 +31,110 @@
    (when (triggers/start)             ; Set up the Triggers window, and check if it was created for the first time.
      (show/reopen-previous-shows))))  ; If so also reopen any Show windows the user had open during their last session.
 
+(defn- build-network-description
+  "Returns a string suitable for creating a `JLabel` describing the
+  current network configuration when we are having trouble finding DJ
+  Link devices."
+  []
+  (let [network (help/list-network-interfaces)]
+    (timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
+                 (clojure.string/join "; " network))
+    (str "<html>No DJ Link devices were seen on any network, still looking.<br><br>"
+         "The following network interfaces were found:<br>"
+         (clojure.string/join "<br>" network) "<br>&nbsp;")))
+
+(defn- build-troubleshooting-window
+  "Creates and displays a frame that shows we are having trouble finding
+  DJ Link devices, and information about the current network."
+  [network-label continue-offline quit]
+  (let [continue-button (seesaw/button :text "Continue Offline"
+                                       :listen [:action-performed (fn [_] (reset! continue-offline true))])
+        quit-button     (seesaw/button :text "Quit"
+                                       :listen [:action-performed (fn [_] (reset! quit true))])
+        buttons         (seesaw/grid-panel :columns 3 :items [continue-button (seesaw/label) quit-button])
+        scroll          (seesaw/scrollable network-label)
+        border          (seesaw/border-panel :center scroll :south buttons :border 10)
+        root (seesaw/frame :title "Beat Link Trigger: No DJ Link Devices Found"
+                           :on-close :nothing
+                           :content border)]
+    (seesaw/pack! root)
+    (.setLocationRelativeTo root nil)
+    (seesaw/show! root)
+    root))
+
 (defn try-going-online
   "Search for a DJ link network, presenting a UI in the process."
   []
-  (let [searching     (about/create-searching-frame)
-        real-player   (triggers/real-player?)]
-    (loop []
-      (timbre/info "Trying to go online, Use Real Player Number?" real-player)
-      (.setUseStandardPlayerNumber (VirtualCdj/getInstance) real-player)
-      (if (try (.start (VirtualCdj/getInstance)) ; Make sure we can see some DJ Link devices and start the VirtualCdj
-               (catch Exception e
-                 (timbre/warn e "Unable to create Virtual CDJ")
-                 (seesaw/invoke-now
-                  (seesaw/hide! searching)
-                  (seesaw/alert (str "<html>Unable to create Virtual CDJ<br><br>" e)
-                                :title "DJ Link Connection Failed" :type :error))))
-        (do  ; We succeeded in finding a DJ Link network
-          (seesaw/invoke-soon (seesaw/dispose! searching))
-          (timbre/info "Went online, using player number" (.getDeviceNumber (VirtualCdj/getInstance)))
+  (let [continue-offline (atom false)
+        quit             (atom false)
+        searching        (atom (about/create-searching-frame continue-offline quit))
+        real-player      (triggers/real-player?)
+        network-label    (seesaw/invoke-now (seesaw/label))]
+    (.start device-finder)  ; We are going to look for devices ourselves, so the user can interrupt us.
+    (timbre/info "Trying to go online, Use Real Player Number?" real-player)
+    (loop [tries-before-troubleshooting 200]  ; Try for twenty seconds before switching to the troubleshooting window.
+      (cond
+        (not (or @continue-offline @quit (zero? tries-before-troubleshooting) (seq (.getCurrentDevices device-finder))))
+        (do  ; Keep looping and looking until something of interest happens.
+          (Thread/sleep 100)
+          (recur (dec tries-before-troubleshooting)))
 
-          ;; Provide warnings about network topology problems
-          (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
-            (seesaw/invoke-now
-             (seesaw/alert (str "<html>Found multiple network interfaces on the DJ Link network.<br>"
-                                "This can lead to duplicate packets and unreliable results:<br><br>"
-                                (clojure.string/join "<br>" interfaces))
-                           :title "Network Configuration Problem" :type :warning)))
-
-          (when-let [unreachables (seq (.findUnreachablePlayers (VirtualCdj/getInstance)))]
-            (let [descriptions (map #(str (.getName %) " (" (.getHostAddress (.getAddress %)) ")") unreachables)]
-              (seesaw/invoke-now
-               (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
-                                  "We will not be able to communicate with the following device"
-                                  (when (> (count unreachables) 1) "s") ":<br><br>"
-                                  (clojure.string/join "<br>" (sort descriptions)))
-                             :title "Network Configuration Problem" :type :error)))))
-
+        @quit ; User wants to quit.
         (do
-          (seesaw/invoke-now (seesaw/hide! searching))  ; No luck so far, ask what to do
-          (let [network (help/list-network-interfaces)]
-            (timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
-                         (clojure.string/join "; " network))
-            (let [options (to-array ["Try Again" "Quit" "Continue Offline"])
-                  choice  (seesaw/invoke-now
-                           (javax.swing.JOptionPane/showOptionDialog
-                            nil
-                            (str "<html>No DJ Link devices were seen on any network.<br><br>"
-                                 "The following network interfaces were found:<br>"
-                                 (clojure.string/join "<br>" network) "<br>&nbsp;")
-                            "No DJ Link Devices Found"
-                            javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                            options (aget options 0)))]
-              (case choice
-                0 (do (seesaw/invoke-now (seesaw/show! searching)) (recur)) ; Try Again
-                2 (seesaw/invoke-soon (seesaw/dispose! searching))          ; Continue Offline
-                (System/exit 1))))))))  ; Quit, or just closed the window, which means the same
+          (timbre/info "Giving up attempt to go online, user wants to quit.")
+          (System/exit 1))
+
+        @continue-offline ; User wants to continue offline.
+        (do
+          (timbre/info "Giving up attempt to go online, user wants to continue offline.")
+          (seesaw/invoke-soon (seesaw/dispose! @searching)))
+
+        (zero? tries-before-troubleshooting) ; It is time to show or update the troubleshooting interface.
+        (do
+          (if (clojure.string/blank? (seesaw/config network-label :text))
+            ;; This is the first time we are displaying troubleshooting information.
+            (seesaw/invoke-now
+             (seesaw/dispose! @searching)
+             (seesaw/config! network-label :text (build-network-description))
+             (reset! searching (build-troubleshooting-window network-label continue-offline quit)))
+            (seesaw/invoke-now  ; We are just updating the content of the troubleshooting window.
+             (seesaw/config! network-label :text (build-network-description))))
+          (recur 20))  ; Update every two seconds.
+
+        :else ; We saw a DJ-Link device, and so can go online.
+        (do
+          (seesaw/invoke-soon (seesaw/dispose! @searching))
+          (.setUseStandardPlayerNumber virtual-cdj real-player)
+          (if (try (.start virtual-cdj) ; Make sure we can start the VirtualCdj
+                   (catch Exception e
+                     (timbre/warn e "Unable to create Virtual CDJ")
+                     (seesaw/invoke-now
+                      (seesaw/alert (str "<html>Unable to create Virtual CDJ, check log for details.<br><br>" e)
+                                    :title "DJ Link Connection Failed" :type :error))))
+            (do  ; We succeeded in finding a DJ Link network
+              (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj))
+
+              ;; Provide warnings about network topology problems
+              (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
+                (seesaw/invoke-now
+                 (seesaw/alert (str "<html>Found multiple network interfaces on the DJ Link network.<br>"
+                                    "This can lead to duplicate packets and unreliable results:<br><br>"
+                                    (clojure.string/join "<br>" interfaces))
+                               :title "Network Configuration Problem" :type :warning)))
+
+              (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
+                (let [descriptions (map #(str (.getName %) " (" (.getHostAddress (.getAddress %)) ")") unreachables)]
+                  (seesaw/invoke-now
+                   (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
+                                      "We will not be able to communicate with the following device"
+                                      (when (> (count unreachables) 1) "s") ":<br><br>"
+                                      (clojure.string/join "<br>" (sort descriptions)))
+                                 :title "Network Configuration Problem" :type :error)))))
+            (do  ; We could not go online even though we see devices.
+              (timbre/warn "Unable to create Virtual CDJ")
+              (seesaw/invoke-now
+               (seesaw/alert "Unable to create Virtual CDJ, check the log for details."
+                             :title "DJ Link Connection Failed" :type :error))))))))
 
   (finish-startup))
 

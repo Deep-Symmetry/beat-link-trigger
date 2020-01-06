@@ -106,19 +106,33 @@
 
 (defn- create-searching-panel
   "Create the panel explaining that we are searching for DJ Link
-  devices, given the function which paints the animated backdrop."
-  [paint-fn]
-  (let [panel (seesaw/xyz-panel
-               :id :xyz :background "black"
-               :paint paint-fn
-               :items [(seesaw/progress-bar :indeterminate? true :bounds [10 350 380 20])])]
+  devices. `continue-offline` and `quit` are atoms that we should set
+  to `true` if the user clicks the corresponding button, and
+  `paint-fn` is the function which paints the animated backdrop."
+  [continue-offline quit paint-fn]
+  (let [continue-button (seesaw/button :text "Continue Offline"
+                                       :listen [:action-performed (fn [_] (reset! continue-offline true))])
+        quit-button     (seesaw/button :text "Quit"
+                                       :listen [:action-performed (fn [_] (reset! quit true))])
+        panel           (seesaw/xyz-panel
+                         :id :xyz :background "black"
+                         :paint paint-fn
+                         :items [(seesaw/progress-bar :indeterminate? true :bounds [10 10 380 20])
+                                 continue-button quit-button])]
+    (.setSize continue-button (.getPreferredSize continue-button))
+    (.setSize quit-button (.getSize continue-button))
+    (seesaw/move-to! continue-button 10 350)
+    (seesaw/move-to! quit-button (- 390 (.getWidth quit-button)) 350)
     panel))
 
 (defn create-searching-frame
-  "Create and show a frame that explains we are looking for devices."
-  []
+  "Create and show a frame that explains we are looking for devices.
+  `continue-offline` and `quit` are atoms that we should set to `true`
+  if the user clicks the corresponding button."
+  [continue-offline quit]
   (seesaw/invoke-now
-   (let [searching (create-frame create-searching-panel :title "Looking for DJ Link devices…")]
+   (let [searching (create-frame (partial create-searching-panel continue-offline quit)
+                                 :title "Looking for DJ Link devices…")]
      (seesaw/config! searching :resizable? false :on-close :nothing)
      (seesaw/show! searching)
      searching)))
