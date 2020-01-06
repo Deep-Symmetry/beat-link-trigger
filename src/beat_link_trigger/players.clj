@@ -412,7 +412,9 @@
   "Checks whether the specified player number seems to be an older,
   pre-nexus player, for which we cannot obtain time information."
   [n]
-  (when-let [u (.getLatestStatusFor virtual-cdj n)]
+  (when-let [u (try
+                 (.getLatestStatusFor virtual-cdj n)
+                 (catch Exception e))]  ; Absorb exceptions when virtual-cdj shuts down because we went offline.
     (.isPreNexusCdj u)))
 
 (defn- paint-time
