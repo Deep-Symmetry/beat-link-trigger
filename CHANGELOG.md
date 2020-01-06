@@ -34,6 +34,14 @@ This change log follows the conventions of
 - Documentation of the show, track, and cue structures that are
   available to expressions running inside them.
 
+### Changed
+
+- The process of attempting to go online can now be interrupted at any
+  time to either continue offline or quit, rather than having to wait
+  for ten seconds for the attempt to fail. After twenty seconds, a
+  troubleshooting window replaces the animated searching window, but
+  the attempt to go online will continue until stopped by the user.
+
 ## [0.6.0] - 2019-11-24
 
 ### Added
