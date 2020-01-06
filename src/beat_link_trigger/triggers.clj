@@ -1561,17 +1561,18 @@
   "Transition to an offline state, running any custom Going Offline
   expression and then updating the UI appropriately."
   []
-  (show/run-show-offline-expressions)
-  (run-global-function :offline)
-  (.stop (WaveformFinder/getInstance))
-  (.stop (BeatGridFinder/getInstance))
-  (.stop (ArtFinder/getInstance))
-  (.stop metadata-finder)
-  (.stop (BeatFinder/getInstance))
-  (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
-  (.stop virtual-cdj)
+  (when (online?)  ; Don't do all this if we got here from a failed attempt to go online.
+    (show/run-show-offline-expressions)
+    (run-global-function :offline)
+    (.stop (WaveformFinder/getInstance))
+    (.stop (BeatGridFinder/getInstance))
+    (.stop (ArtFinder/getInstance))
+    (.stop metadata-finder)
+    (.stop (BeatFinder/getInstance))
+    (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
+    (.stop virtual-cdj)
+    (Thread/sleep 200))  ; Wait for straggling update packets
   (reflect-online-state)
-  (Thread/sleep 200)  ; Wait for straggling update packets
   (rebuild-all-device-status))
 
 (defn go-online

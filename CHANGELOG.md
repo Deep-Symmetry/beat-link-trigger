@@ -19,6 +19,10 @@ This change log follows the conventions of
   To make it even clearer what is happening, the Time and Remain
   sections for such players in the Player Status window now display
   "[Pre-nexus, no data.]"
+- No longer run the going-offline expressions in the case where the
+  user tried going online from an offline state but failed. This would
+  lead to exceptions because the expressions would (naturally) assume
+  the came-online expressions had been run before them.
 - Triggers-mode syncing was broken in the conversion to the external
   library version of Carabiner integration; a `:manual` mode needed to
   be added to beat-carabiner in order to support it. (I doubt anyone
