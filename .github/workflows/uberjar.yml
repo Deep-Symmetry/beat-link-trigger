@@ -1,4 +1,4 @@
-name: Clojure CI
+name: Create überjar
 
 on: [push]
 
@@ -11,5 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: lein deps
+    - name: Check target version
+      run: lein v
     - name: Build überjar
       run: lein uberjar
