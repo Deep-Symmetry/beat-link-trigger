@@ -400,7 +400,7 @@ will get all the necessary error dialogs and coaching if the
 environment isn’t correct to support the window:
 
 ```clojure
-(beat-link-trigger.triggers/show-player-status)
+(triggers/show-player-status)
 ```
 
 == Learning More
