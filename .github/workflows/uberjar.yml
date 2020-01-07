@@ -12,6 +12,6 @@ jobs:
     - name: Install dependencies
       run: lein deps
     - name: Install antora
-      run: npm i @antora/cli @antora/site-generator-default
+      run: npm i -g @antora/cli @antora/site-generator-default
     - name: Build überjar
       run: lein uberjar
