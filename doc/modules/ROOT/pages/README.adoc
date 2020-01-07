@@ -38,10 +38,24 @@ navigation menu on the left.
 == Startup
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ
-Link devices that you want it to monitor. If it can’t find any, after
-ten seconds you will see a window like this:
+Link devices that you want it to monitor. While it is watching the
+network for them, it displays a window like this:
 
-image:NoDevices.png[No devices found,520,374]
+image:FindingDevices.png[Looking for devices,512,512]
+
+If you just wanted to work on setting up your triggers, expressions,
+or shows, and don’t have any actual players handy, you can also click
+kbd:[Continue Offline] to work in an offline mode. Your triggers won’t
+actually fire, but you can do all the configuration and editing that
+you need, and you can load tracks into your shows using rekordbox USB
+and SD media.
+
+If no DJ Link devices can be found after about twenty seconds of
+searching, it probably means something is misconfigured on your
+network, so Beat Link Trigger will replace the window with a
+troubleshooting version that looks like this:
+
+image:NoDevices.png[No devices found,505,468]
 
 If you were expecting to find devices, double-check that they are
 powered on, and properly networked with your computer (and that any
@@ -55,24 +69,24 @@ assign themselves addresses of the form 169.254._x_._y_/16, so if none
 of your addresses match that pattern, you will not be able to
 communicate with them.
 
-Make sure your network interfaces are configured properly, then
-click kbd:[Try Again] to try again.
+While you work on making sure your network interfaces and cables are
+configured properly. Beat Link Trigger is continuing to watch for
+devices, so as soon as you get the issue sorted out, it will go
+online. And as noted above, if that isn't going to happen, you can
+click kbd:[Continue Offline] to work in an offline mode, or you can
+click kbd:[Quit] to give up and try again later, perhaps in a
+different setting.
 
-If you just wanted to work on setting up your triggers or expressions,
-and don’t have any actual players handy, you can also click
-kbd:[Continue Offline] to work in an offline mode. Your triggers won’t
-actually fire, but you can do all the configuration and editing that
-you need.
-
-Once a device is found, or you choose to continue offline, the Trigger
-window opens, in the same configuration that you left it the last time
-you used the program.
+Once a device is found, or you choose to continue offline, the
+Triggers window opens, in the same configuration that you left it the
+last time you used the program, and any Show files you had open will
+be reopened as well.
 
 === Connecting Later
 
 If you connect to a DJ Link network after a period of working on your
-triggers in offline mode, you can take Beat Link Trigger online by
-checking menu:Network[Online?]
+shows and triggers in offline mode, you can take Beat Link Trigger
+online by checking menu:Network[Online?]
 
 image:GoingOnline.png[Going Online,360,160]
 
@@ -82,7 +96,9 @@ You can also go offline at any time by un-checking the menu option.
 ====
 If there has been a disruption to the network, and you seem to have
 lost contact with the players, taking Beat Link Trigger offline and
-then going back online can often solve the problem.
+then going back online can often solve the problem. It will generally
+try to do this for you automatically when it loses contact with the
+last DJ Link device.
 ====
 
 [[checking-player-number]]

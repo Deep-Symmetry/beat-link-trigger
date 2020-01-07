@@ -1212,6 +1212,8 @@
           (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
            (.setSelected (seesaw/select @trigger-frame [:#online]) true)))))))
 
+(declare go-offline)
+
 (defonce ^{:private true
            :doc "Used to detect the `VirtualCdj` shutting down
            unexpectedly due to network problems, so we can
@@ -1355,8 +1357,6 @@
                               (seesaw/alert "Must be Online to show Playlist Writer window."
                                             :title "Beat Link Trigger is Offline" :type :error)))
                  :name "Write Playlist" :enabled? false))
-
-(declare go-offline)
 
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
