@@ -1457,24 +1457,24 @@
 
 (def delete-cursor
   "A custom cursor that indicates a selection will be canceled."
-  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                       (.getImage (seesaw/icon "images/Delete-cursor.png"))
-                       (java.awt.Point. 7 7)
-                       "Deselect"))
+  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                              (.getImage (seesaw/icon "images/Delete-cursor.png"))
+                              (java.awt.Point. 7 7)
+                              "Deselect")))
 
 (def move-w-cursor
   "A custom cursor that indicates the left edge of something will be moved."
-  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                       (.getImage (seesaw/icon "images/Move-W-cursor.png"))
-                       (java.awt.Point. 7 7)
-                       "Move Left Edge"))
+  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                              (.getImage (seesaw/icon "images/Move-W-cursor.png"))
+                              (java.awt.Point. 7 7)
+                              "Move Left Edge")))
 
 (def move-e-cursor
   "A custom cursor that indicates the right edge of something will be moved."
-  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                       (.getImage (seesaw/icon "images/Move-E-cursor.png"))
-                       (java.awt.Point. 7 7)
-                       "Move Right Edge"))
+  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                              (.getImage (seesaw/icon "images/Move-E-cursor.png"))
+                              (java.awt.Point. 7 7)
+                              "Move Right Edge")))
 
 (defn- shift-down?
   "Checks whether the shift key was pressed when an event occured."
@@ -1504,7 +1504,7 @@
   (let [[start end]    (get-in (latest-track track) [:cues-editor :selection])
         start-distance (Math/abs (- beat start))
         end-distance   (Math/abs (- beat end))]
-    (if (< start-distance end-distance) move-w-cursor move-e-cursor)))
+    (if (< start-distance end-distance) @move-w-cursor @move-e-cursor)))
 
 (def click-edge-tolerance
   "The number of pixels we can click away from an edge but still count
@@ -1608,15 +1608,15 @@
         selection       (get-in track [:cues-editor :selection])
         [near-cue edge] (find-click-edge-target track wave e selection cue)
         default-cursor  (case edge
-                          :start move-w-cursor
-                          :end   move-e-cursor
+                          :start @move-w-cursor
+                          :end   @move-e-cursor
                           (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
     (.setToolTipText wave (if cue
                             (or (:comment cue) "Unnamed Cue")
                             "Click and drag to select a beat range for the New Cue button."))
     (if selection
       (if (= selection [beat (inc beat)])
-        (let [shifted   delete-cursor ; We are hovering over a single-beat selection, and can delete it.
+        (let [shifted   @delete-cursor ; We are hovering over a single-beat selection, and can delete it.
               unshifted default-cursor]
           (.setCursor wave (if (shift-down? e) shifted unshifted))
           (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted]))
@@ -1664,7 +1664,7 @@
                          [(min end (max 1 beat)) end]
                          [start (max start (min (.beatCount grid) (inc beat)))])))
 
-        (.setCursor wave (if (= :start edge) move-w-cursor move-e-cursor))
+        (.setCursor wave (if (= :start edge) @move-w-cursor @move-e-cursor))
         (.repaint wave))
       (swap-track! track update :cues-editor dissoc :cursors))))  ; Cursor no longer depends on Shift key state.
 

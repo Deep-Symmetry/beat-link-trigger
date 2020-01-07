@@ -944,51 +944,52 @@
 (defonce ^{:private true
            :doc     "The menu action which adds a new Trigger to the end of the list."}
   new-trigger-action
-
-  (seesaw/action :handler (fn [e]
-                            (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                            :items (concat (get-triggers) [(create-trigger-row)]))
-                            (adjust-triggers))
-                 :name "New Trigger"
-                 :key "menu T"))
+  (delay
+   (seesaw/action :handler (fn [e]
+                             (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                             :items (concat (get-triggers) [(create-trigger-row)]))
+                             (adjust-triggers))
+                  :name "New Trigger"
+                  :key "menu T")))
 
 (defonce ^{:private true
            :doc "The menu action which opens the Carabiner configuration window."}
   carabiner-action
-  (seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
-                 :name "Ableton Link: Carabiner Connection"))
+  (delay (seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
+                        :name "Ableton Link: Carabiner Connection")))
 
 (defonce ^{:private true
            :doc "The menu action which opens the nREPL configuration window."}
   nrepl-action
-  (seesaw/action :handler (fn [e] (nrepl/show-window @trigger-frame))
-                 :name "nREPL: Clojure IDE Connection"))
+  (delay (seesaw/action :handler (fn [e] (nrepl/show-window @trigger-frame))
+                        :name "nREPL: Clojure IDE Connection")))
 
 (defonce ^{:private true
            :doc "The menu action which opens the Load Track window."}
   load-track-action
-  (seesaw/action :handler (fn [e] (track-loader/show-dialog))
-                 :name "Load Track on Player" :enabled? false))
+  (delay (seesaw/action :handler (fn [e] (track-loader/show-dialog))
+                        :name "Load Track on Player" :enabled? false)))
 
 (defonce ^{:private true
            :doc "The menu action which empties the Trigger list."}
   clear-triggers-action
-  (seesaw/action :handler (fn [e]
-                            (try
-                              (let [confirm (seesaw/dialog
-                                             :content "Clear Triggers?\nYou will be left with one default Trigger."
-                                             :type :warning :option-type :yes-no)]
-                                (.pack confirm)
-                                (.setLocationRelativeTo confirm @trigger-frame)
-                                (when (= :success (seesaw/show! confirm))
-                                  (delete-all-triggers true)
-                                  (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                  :items [(create-trigger-row)])
-                                  (adjust-triggers))
-                                (seesaw/dispose! confirm))
-                              (catch Exception e
-                                (timbre/error e "Problem clearing Trigger list."))))
-                 :name "Clear Triggers"))
+  (delay
+   (seesaw/action :handler (fn [e]
+                             (try
+                               (let [confirm (seesaw/dialog
+                                              :content "Clear Triggers?\nYou will be left with one default Trigger."
+                                              :type :warning :option-type :yes-no)]
+                                 (.pack confirm)
+                                 (.setLocationRelativeTo confirm @trigger-frame)
+                                 (when (= :success (seesaw/show! confirm))
+                                   (delete-all-triggers true)
+                                   (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                   :items [(create-trigger-row)])
+                                   (adjust-triggers))
+                                 (seesaw/dispose! confirm))
+                               (catch Exception e
+                                 (timbre/error e "Problem clearing Trigger list."))))
+                  :name "Clear Triggers")))
 
 (defn- format-trigger
   "Organizes the portions of a trigger which are saved or exported."
@@ -1035,27 +1036,28 @@
 (defonce ^{:private true
            :doc "The menu action which saves the configuration to the preferences."}
   save-action
-  (seesaw/action :handler (fn [e] (save-triggers-to-preferences))
-                 :name "Save"
-                 :key "menu S"))
+  (delay (seesaw/action :handler (fn [e] (save-triggers-to-preferences))
+                        :name "Save"
+                        :key "menu S")))
 
 (defonce ^{:private true
            :doc "The menu action which saves the configuration to a user-specified file."}
   save-as-action
-  (seesaw/action :handler (fn [e]
-                            (when (save-triggers-to-preferences)
-                              (let [extension (util/extension-for-file-type :configuration)]
-                                (when-let [file (chooser/choose-file @trigger-frame :type :save
-                                                                     :all-files? false
-                                                                     :filters [["BeatLinkTrigger configuration files"
-                                                                                [extension]]])]
-                                  (when-let [file (util/confirm-overwrite-file file extension @trigger-frame)]
-                                    (try
-                                      (prefs/save-to-file file)
-                                      (catch Exception e
-                                        (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
-                                                      :title "Problem Writing File" :type :error))))))))
-                 :name "Save to File"))
+  (delay
+   (seesaw/action :handler (fn [e]
+                             (when (save-triggers-to-preferences)
+                               (let [extension (util/extension-for-file-type :configuration)]
+                                 (when-let [file (chooser/choose-file @trigger-frame :type :save
+                                                                      :all-files? false
+                                                                      :filters [["BeatLinkTrigger configuration files"
+                                                                                 [extension]]])]
+                                   (when-let [file (util/confirm-overwrite-file file extension @trigger-frame)]
+                                     (try
+                                       (prefs/save-to-file file)
+                                       (catch Exception e
+                                         (seesaw/alert (str "<html>Unable to Save.<br><br>" e)
+                                                       :title "Problem Writing File" :type :error))))))))
+                  :name "Save to File")))
 
 (declare recreate-trigger-rows)
 
@@ -1077,40 +1079,41 @@
 (defonce ^{:private true
            :doc "The menu action which loads the configuration from a user-specified file."}
   load-action
-  (seesaw/action :handler (fn [e]
-                            (let [extension (util/extension-for-file-type :configuration)]
-                              (when-let [file (chooser/choose-file
-                                               @trigger-frame
-                                               :all-files? false
-                                               :filters [["BeatLinkTrigger configuration files" [extension]]
-                                                         (chooser/file-filter "All files" (constantly true))])]
-                                (try
-                                  (when (delete-all-triggers false)
-                                    (prefs/load-from-file file)
-                                    (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                    :items (recreate-trigger-rows))
-                                    (adjust-triggers)
-                                    (when (online?) (run-global-function :online)))
-                                  (catch Exception e
-                                    (timbre/error e "Problem loading" file)
-                                    (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
-                                                  :title "Problem Reading File" :type :error)))
-                                (check-for-parse-error))))
-                 :name "Load from File"
-                 :key "menu L"))
+  (delay
+   (seesaw/action :handler (fn [e]
+                             (let [extension (util/extension-for-file-type :configuration)]
+                               (when-let [file (chooser/choose-file
+                                                @trigger-frame
+                                                :all-files? false
+                                                :filters [["BeatLinkTrigger configuration files" [extension]]
+                                                          (chooser/file-filter "All files" (constantly true))])]
+                                 (try
+                                   (when (delete-all-triggers false)
+                                     (prefs/load-from-file file)
+                                     (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                                                     :items (recreate-trigger-rows))
+                                     (adjust-triggers)
+                                     (when (online?) (run-global-function :online)))
+                                   (catch Exception e
+                                     (timbre/error e "Problem loading" file)
+                                     (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
+                                                   :title "Problem Reading File" :type :error)))
+                                 (check-for-parse-error))))
+                  :name "Load from File"
+                  :key "menu L")))
 
 (defonce ^{:private true
            :doc "The menu action which allows configuration of auto-attached metadata cache files."}
   auto-action
-  (seesaw/action :handler (fn [e] (auto/show-window @trigger-frame))
-                 :name "Auto-Attach Metadata Caches"
-                 :key "menu M"))
+  (delay (seesaw/action :handler (fn [e] (auto/show-window @trigger-frame))
+                        :name "Auto-Attach Metadata Caches"
+                        :key "menu M")))
 
 (defonce ^{:private true
            :doc "The menu action which allows the user to view the contents of a metadata cache file."}
   view-cache-action
-  (seesaw/action :handler (fn [e] (view-cache/choose-file @trigger-frame))
-                 :name "View Metadata Cache Contents"))
+  (delay (seesaw/action :handler (fn [e] (view-cache/choose-file @trigger-frame))
+                        :name "View Metadata Cache Contents")))
 
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
@@ -1333,10 +1336,10 @@
 (defonce ^{:private true
            :doc "The menu action which opens the Player Status window."}
   player-status-action
-  (seesaw/action :handler show-player-status-handler
-                 :name "Show Player Status"
-                 :key "menu P"
-                 :enabled? false))
+  (delay (seesaw/action :handler show-player-status-handler
+                        :name "Show Player Status"
+                        :key "menu P"
+                        :enabled? false)))
 
 (defn show-player-status
   "Try to show the player status window, giving the user appropriate
@@ -1351,12 +1354,12 @@
 (defonce ^{:private true
            :doc "The menu action which opens the Playlist Writer window."}
   playlist-writer-action
-  (seesaw/action :handler (fn [_]
-                            (if (.isRunning virtual-cdj)
-                              (writer/show-window @trigger-frame)
-                              (seesaw/alert "Must be Online to show Playlist Writer window."
-                                            :title "Beat Link Trigger is Offline" :type :error)))
-                 :name "Write Playlist" :enabled? false))
+  (delay (seesaw/action :handler (fn [_]
+                                   (if (.isRunning virtual-cdj)
+                                     (writer/show-window @trigger-frame)
+                                     (seesaw/alert "Must be Online to show Playlist Writer window."
+                                                   :title "Beat Link Trigger is Offline" :type :error)))
+                        :name "Write Playlist" :enabled? false)))
 
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
@@ -1451,25 +1454,25 @@
                          (carabiner/cancel-full-sync)
                          (.setSendingStatus virtual-cdj false)))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
-                                         :items (concat [save-action save-as-action load-action
+                                         :items (concat [@save-action @save-as-action @load-action
                                                          (seesaw/separator) new-show-action open-show-action
-                                                         (seesaw/separator) auto-action view-cache-action
-                                                         (seesaw/separator) playlist-writer-action]
+                                                         (seesaw/separator) @auto-action @view-cache-action
+                                                         (seesaw/separator) @playlist-writer-action]
                                                         (menus/non-mac-file-actions quit)))
                             (seesaw/menu :text "Triggers"
-                                         :items (concat [new-trigger-action (seesaw/separator)]
+                                         :items (concat [@new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-trigger-editors))
                                                         [(seesaw/separator)
                                                          track-submenu inspect-action
-                                                         (seesaw/separator) clear-triggers-action])
+                                                         (seesaw/separator) @clear-triggers-action])
                                          :id :triggers-menu)
 
                             (seesaw/menu :text "Network"
                                          :items [online-item real-item
                                                  (seesaw/separator)
-                                                 player-status-action load-track-action
+                                                 @player-status-action @load-track-action
                                                  (seesaw/separator)
-                                                 carabiner-action nrepl-action]
+                                                 @carabiner-action @nrepl-action]
                                          :id :network-menu)
                             (menus/build-help-menu)])))
 
@@ -1530,7 +1533,7 @@
   []
   (seesaw/invoke-soon
    (try
-     (seesaw/config! [playlist-writer-action load-track-action player-status-action] :enabled? (online?))
+     (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action] :enabled? (online?))
      (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))

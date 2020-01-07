@@ -76,10 +76,10 @@
 
 (def magnify-cursor
   "A custom cursor that indicates something can be magnified."
-  (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                       (.getImage (seesaw/icon "images/Magnify-cursor.png"))
-                       (java.awt.Point. 6 6)
-                       "Magnify"))
+  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                              (.getImage (seesaw/icon "images/Magnify-cursor.png"))
+                              (java.awt.Point. 6 6)
+                              "Magnify")))
 
 (defonce ^{:private true
            :doc "Keeps track of whether we have already warned about
@@ -838,7 +838,7 @@
 
     ;; Display the magnify cursor over the waveform detail component,
     ;; and open a standalone window on the waveform when it is clicked.
-    (.setCursor detail magnify-cursor)
+    (.setCursor detail @magnify-cursor)
     (seesaw/listen detail :mouse-clicked (fn [e] (open-waveform-window n detail)))
 
     ;; Show the slot cache popup menus on ordinary mouse presses on the buttons too.
