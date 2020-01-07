@@ -37,7 +37,7 @@
   Link devices."
   []
   (let [network (help/list-network-interfaces)]
-    (timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
+    #_(timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
                  (clojure.string/join "; " network))
     (str "<html><br>No DJ Link devices were seen on any network, still looking.<br><br>"
          "The following network interfaces were found:<br>"
@@ -55,7 +55,7 @@
         scroll          (seesaw/scrollable network-label)
         border          (seesaw/border-panel :border 10 :center scroll :south buttons
                                              :north (seesaw/progress-bar :indeterminate? true))
-        root (seesaw/frame :title "Beat Link Trigger: No DJ Link Devices Found"
+        root (seesaw/frame :title "No DJ Link Devices Found Yet..."
                            :on-close :nothing
                            :content border)]
     (seesaw/pack! root)
