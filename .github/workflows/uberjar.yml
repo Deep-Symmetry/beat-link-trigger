@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: lein deps
-    - name: Check target version
-      run: lein v
+    - name: Install antora
+      run: npm i @antora/cli @antora/site-generator-default
     - name: Build überjar
       run: lein uberjar
