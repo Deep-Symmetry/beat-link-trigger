@@ -9,7 +9,10 @@
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def ^:private project-version
-  (delay (clojure.edn/read-string (slurp (clojure.java.io/resource "beat_link_trigger/version.edn")))))
+  (delay (if-let [version-data-file (clojure.java.io/resource "beat_link_trigger/version.edn")]
+           (clojure.edn/read-string (slurp version-data-file))
+           ;; Return a dummy version, this only happens when reading preferences during CI build.
+           {:version "0.0.0-SNAPSHOT-0-0x0", :raw-version "v0.0.0-SNAPSHOT-0-0"})))
 
 (defn get-version
   "Returns the version information set up by lein-v."
