@@ -9,15 +9,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Determine release tag
+      run: echo "::set-env name=release_tag::`git describe --abbrev=0`"
     - name: Install dependencies
       run: lein deps
     - name: Install antora
       run: sudo npm i -g @antora/cli @antora/site-generator-default
     - name: Build überjar
       run: lein uberjar
-    - name: Archive überjar
-      uses: actions/upload-artifact@v1
+    - name: Upload überjar
+      uses: Xotl/cool-github-releases@v1
       if: success()
       with:
-        name: blt-jar
-        path: target/beat-link-trigger.jar
+        mode: update
+        tag_name: ${{ env.release_tag }}
+        assets: target/beat-link-trigger.jar
+        github_token: ${{ github.token }}
