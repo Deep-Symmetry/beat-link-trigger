@@ -713,10 +713,11 @@
   marker for one. Will include the DJ-assigned comment if we have
   found one."
   [preview n e]
-  (let [point (.getPoint e)
-        data  (.getLatestMetadataFor metadata-finder n)
-        cues  (when data (.. data getCueList entries))
-        cue   (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) cues))]
+  (let [point    (.getPoint e)
+        data     (.getLatestMetadataFor metadata-finder n)
+        cue-list (when data (.getCueList data))
+        cues     (when cue-list (.entries cue-list))
+        cue      (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) cues))]
     (.setToolTipText preview (when cue (util/describe-cue cue)))))
 
 (defn- media-description
