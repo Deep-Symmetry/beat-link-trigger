@@ -114,11 +114,10 @@
                                        :listen [:action-performed (fn [_] (reset! continue-offline true))])
         quit-button     (seesaw/button :text "Quit"
                                        :listen [:action-performed (fn [_] (reset! quit true))])
-        panel           (seesaw/xyz-panel
-                         :id :xyz :background "black"
-                         :paint paint-fn
-                         :items [(seesaw/progress-bar :indeterminate? true :bounds [10 10 380 20])
-                                 continue-button quit-button])]
+        buttons         (seesaw/grid-panel :columns 3 :opaque? false
+                                           :items [continue-button (seesaw/label) quit-button])
+        panel           (seesaw/border-panel :border 10 :paint paint-fn :south buttons
+                                             :north (seesaw/progress-bar :indeterminate? true))]
     (.setSize continue-button (.getPreferredSize continue-button))
     (.setSize quit-button (.getSize continue-button))
     (seesaw/move-to! continue-button 10 350)

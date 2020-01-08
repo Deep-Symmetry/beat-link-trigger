@@ -53,11 +53,11 @@
                                        :listen [:action-performed (fn [_] (reset! quit true))])
         buttons         (seesaw/grid-panel :columns 3 :items [continue-button (seesaw/label) quit-button])
         scroll          (seesaw/scrollable network-label)
-        border          (seesaw/border-panel :border 10 :center scroll :south buttons
+        panel           (seesaw/border-panel :border 10 :center scroll :south buttons
                                              :north (seesaw/progress-bar :indeterminate? true))
-        root (seesaw/frame :title "No DJ Link Devices Found Yet..."
-                           :on-close :nothing
-                           :content border)]
+        root            (seesaw/frame :title "No DJ Link Devices Found Yet..."
+                                      :on-close :nothing
+                                      :content panel)]
     (seesaw/pack! root)
     (.setLocationRelativeTo root nil)
     (seesaw/show! root)
