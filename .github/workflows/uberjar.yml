@@ -11,14 +11,27 @@ jobs:
     - uses: actions/setup-java@v1
       with:
         java-version: '11'
+
     - name: Determine release tag
       run: echo "::set-env name=release_tag::`git describe --abbrev=0`"
+
+    - name: Cache Leiningen dependencies
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
+        restore-keys: |
+          ${{ runner.os }}-lein-
+
     - name: Install dependencies
       run: lein deps
+
     - name: Install antora
       run: sudo npm i -g @antora/cli @antora/site-generator-default
+
     - name: Build überjar
       run: lein uberjar
+
     - name: Delete pre-existing preview release
       if: success()
       continue-on-error: true
@@ -27,6 +40,7 @@ jobs:
         mode: delete
         tag_name: ${{ env.release_tag }}
         github_token: ${{ github.token }}
+
     - name: Upload überjar
       if: success()
       uses: Xotl/cool-github-releases@v1
@@ -50,8 +64,10 @@ jobs:
 
     needs:
       build_uberjar
+
     steps:
     - uses: actions/checkout@v1
+
     - name: Determine release tag and MSI name
       run: |
         $releaseTag = $( git describe --abbrev=0 )
@@ -60,9 +76,11 @@ jobs:
         echo "::set-env name=version_tag::$versionTag"
         $msiName = "Beat Link Trigger-$versionTag.msi"
         echo "::set-env name=msi_name::$msiName"
+
     - uses: actions/setup-java@v1
       with:
         java-version: '14-ea'
+
     - name: Download überjar
       uses: Xotl/cool-github-releases@v1
       with:
@@ -70,8 +88,16 @@ jobs:
         tag_name: ${{ env.release_tag }}
         assets: beat-link-trigger.jar
         github_token: ${{ github.token }}
+
+    - name: Cache bundled OpenJDK runtime
+    - uses: actions/cache@v1
+      with:
+        path: Runtime
+        key: ${{ runner.os }}-bundled-jdk
+
     - name: Build Windows Installer
       run: .\.github\scripts\build_msi.ps1
+
     - name: Upload Windows MSI
       if: success()
       uses: Xotl/cool-github-releases@v1
