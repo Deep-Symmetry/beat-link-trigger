@@ -51,5 +51,5 @@ jobs:
       with:
         mode: update
         tag_name: ${{ steps.build_uberjar.outputs.release_tag }}
-        assets: *.msi
+        assets: "*.msi"
         github_token: ${{ github.token }}
