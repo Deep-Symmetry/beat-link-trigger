@@ -12,8 +12,9 @@ jobs:
       with:
         java-version: '11'
     - name: Determine release tag
-      run: echo "::set-env name=release_tag::`git describe --abbrev=0`"
-      run: echo "::set-output name=release_tag::`git describe --abbrev=0`"
+      run: |
+        echo "::set-env name=release_tag::`git describe --abbrev=0`"
+        echo "::set-output name=release_tag::`git describe --abbrev=0`"
     - name: Install dependencies
       run: lein deps
     - name: Install antora
