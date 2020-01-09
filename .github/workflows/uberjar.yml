@@ -36,7 +36,7 @@ jobs:
     steps:
     - uses: actions/setup-java@v1
       with:
-        java-version: '14'
+        java-version: '14-ea'
     - name: Download überjar
       uses: Xotl/cool-github-releases@v1
       with:
