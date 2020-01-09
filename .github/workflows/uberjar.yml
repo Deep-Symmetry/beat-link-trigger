@@ -66,9 +66,7 @@ jobs:
 
           > Don’t download this if you aren’t comfortable testing code while it is under active development! Instead, look at the [latest release](https:///github.com/Deep-Symmetry/beat-link-trigger/releases/latest).
 
-          You will need your own Java runtime in order to run the executable `beat-link-trigger.jar` below (you will need to click expand the **Assets** section if you don’t see it).
-
-          Also, please note that since it’s a snapshot release, the content of this release will change frequently—whenever new code is pushed to the project—so you will want to _download the latest version of the jar every time you work with it_.
+          Please note that since it’s a snapshot release, the assets below (you may need to click to expand them) will change frequently—whenever new code is pushed to the project—so you will want to _download the latest versions every time you work with them_. The Mac disk image is not signed, so you will have to configure your Mac to allow it to run, and use the Finder contextual menu to open it the first time you run it after downloading.
 
 
   build_msi:
@@ -114,6 +112,59 @@ jobs:
       run: .\.github\scripts\build_msi.ps1
 
     - name: Upload Windows MSI
+      if: success()
+      uses: Xotl/cool-github-releases@v1
+      with:
+        mode: update
+        tag_name: ${{ env.release_tag }}
+        assets: ${{ env.artifact_name }}
+        github_token: ${{ github.token }}
+
+
+  build_dmg:
+    name: Build macOS Disk Image
+    runs-on: macos-latest
+
+    needs:
+      build_uberjar
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Determine release tag and disk image name
+      run: |
+        releaseTag=$(git describe --abbrev=0)
+        echo "::set-env name=release_tag::$releaseTag"
+        versionTag=${releaseTag%-SNAPSHOT}
+        versionTag=${versionTag#v}
+        echo "::set-env name=version_tag::$versionTag"
+        dmgName="Beat Link Trigger-$versionTag.dmg"
+        echo "::set-env name=dmg_name::$dmgName"
+        artifactName="Beat-Link-Trigger-$versionTag-MacOS.dmg"
+        echo "::set-env name=artifact_name::$artifactName"
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: '14-ea'
+
+    - name: Download überjar
+      uses: Xotl/cool-github-releases@v1
+      with:
+        mode: download
+        tag_name: ${{ env.release_tag }}
+        assets: beat-link-trigger.jar
+        github_token: ${{ github.token }}
+
+    - name: Cache bundled OpenJDK runtime
+      uses: actions/cache@v1
+      with:
+        path: Runtime
+        key: ${{ runner.os }}-bundled-jdk
+
+    - name: Build macOS Disk Image
+      run: zsh .github/scripts/build_pkg.zsh
+
+    - name: Upload macOS Disk Image
       if: success()
       uses: Xotl/cool-github-releases@v1
       with:
