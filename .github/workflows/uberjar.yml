@@ -71,7 +71,9 @@ jobs:
           Also, please note that since it’s a snapshot release, the content of this release will change frequently—whenever new code is pushed to the project—so you will want to _download the latest version of the jar every time you work with it_.
 
   build_msi:
+    name: Build Windows native installer
     runs-on: windows-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     needs:
       build_uberjar
