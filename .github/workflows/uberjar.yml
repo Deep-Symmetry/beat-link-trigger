@@ -4,7 +4,9 @@ on: [push]
 
 jobs:
   build_uberjar:
+    name: Build cross-platform überjar
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
     - uses: actions/checkout@v1
