@@ -1,4 +1,4 @@
-name: Create überjar and Windows MSI
+name: Create überjar and native installers
 
 on: [push]
 
@@ -161,10 +161,10 @@ jobs:
         path: Runtime
         key: ${{ runner.os }}-bundled-jdk
 
-    - name: Build macOS Disk Image
+    - name: Build macOS disk image
       run: zsh .github/scripts/build_pkg.zsh
 
-    - name: Upload macOS Disk Image
+    - name: Upload macOS disk image
       if: success()
       uses: Xotl/cool-github-releases@v1
       with:

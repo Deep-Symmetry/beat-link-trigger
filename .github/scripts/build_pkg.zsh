@@ -21,4 +21,4 @@ jpackage --name "Beat Link Trigger" --input Input --runtime-image Runtime \
          --type dmg --mac-package-identifier "org.deepsymmetry.beat-link-trigger" \
          --app-version $version_tag
 
-mv "$env:msi_name" "$env:artifact_name"
+mv "$dmg_name" "$artifact_name"
