@@ -13,10 +13,12 @@ If (! (Test-path "Input")) {
   mkdir Input
 }
 
-& "c:\Program Files\Java\openjdk-14-ea\bin\jpackage.exe" "--name" "Beat Link Trigger" `
- --input "C:\Users\James Elliott\Downloads\Input" `
- --runtime-image "C:\Users\James Elliott\Downloads\Runtime" `
- --icon "C:\Users\James Elliott\Downloads\BeatLink.ico" `
+mv beat-link-trigger.jar Input
+del *.msi
+
+jpackage --name "Beat Link Trigger" --input .\Input `
+ --runtime-image .\Runtime `
+ --icon ".github\resources\BeatLink.ico" `
  --main-jar beat-link-trigger.jar `
  --win-menu --win-menu-group "Deep Symmetry" --type msi `
  --description "Trigger events and automate shows in response to events on Pioneer CDJs" `

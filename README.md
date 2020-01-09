@@ -19,12 +19,12 @@ too!
 Download the latest disk image (`.dmg`) installer for the Mac, `.msi`
 installer for 64-bit Windows, or executable `.jar` file for other
 platforms, from the
-[releases](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
+[releases](https://github.com/Deep-Symmetry/beat-link-trigger/releases/latest)
 page. Double-click an installed native app bundle to run it. If that
 doesn't work, or if you are using the executable `.jar` file, [see
 below](#startup-issues).
 
-[![jar](https://img.shields.io/github/downloads/Deep-Symmetry/beat-link-trigger/total.svg)](https://github.com/Deep-Symmetry/beat-link-trigger/releases)
+[![jar](https://img.shields.io/github/downloads/Deep-Symmetry/beat-link-trigger/total.svg)](https://github.com/Deep-Symmetry/beat-link-trigger/releases/latest)
 
 A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and

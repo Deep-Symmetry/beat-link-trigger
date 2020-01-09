@@ -1,16 +1,19 @@
-name: Create überjar
+name: Create überjar and Windows MSI
 
 on: [push]
 
 jobs:
-  build:
-
+  build_uberjar:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/setup-java@v1
+      with:
+        java-version: '11'
     - name: Determine release tag
       run: echo "::set-env name=release_tag::`git describe --abbrev=0`"
+      run: echo "::set-output name=release_tag::`git describe --abbrev=0`"
     - name: Install dependencies
       run: lein deps
     - name: Install antora
@@ -24,4 +27,29 @@ jobs:
         mode: update
         tag_name: ${{ env.release_tag }}
         assets: target/beat-link-trigger.jar
+        github_token: ${{ github.token }}
+
+  build_msi:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/setup-java@v1
+      with:
+        java-version: '14'
+    - name: Download überjar
+      uses: Xotl/cool-github-releases@v1
+      with:
+        mode: download
+        tag_name: ${{ steps.build_uberjar.outputs.release_tag }}
+        assets: beat-link-trigger.jar
+        github_token: ${{ github.token }}
+    - name: Build Windows Installer
+      run: .github\scripts\build_msi.ps1
+    - name: Upload Windows MSI
+      uses: Xotl/cool-github-releases@v1
+      if: success()
+      with:
+        mode: update
+        tag_name: ${{ steps.build_uberjar.outputs.release_tag }}
+        assets: *.msi
         github_token: ${{ github.token }}
