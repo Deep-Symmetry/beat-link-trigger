@@ -21,6 +21,7 @@ jpackage --name "Beat Link Trigger" --input .\Input `
  --icon ".\.github\resources\BeatLink.ico" `
  --main-jar beat-link-trigger.jar `
  --win-menu --win-menu-group "Deep Symmetry" --type msi `
+ --win-upgrade-uuid 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6 `
  --description "Trigger events and automate shows in response to events on Pioneer CDJs" `
  --copyright "© 2016-2020 Deep Symmetry, LLC" --vendor "Deep Symmetry, LLC" `
  --app-version "$env:version_tag"
