@@ -39,7 +39,7 @@ jobs:
       run: |
         $releaseTag = $( git describe --abbrev=0 )
         echo "::set-env name=release_tag::$releaseTag"
-        $versionTag = ($releaseTag).replace("-SNAPSHOT","")
+        $versionTag = ($releaseTag).replace("-SNAPSHOT","").replace("v","")
         echo "::set-env name=version_tag::$versionTag"
         $msiName = "Beat Link Trigger-$versionTag.msi"
         echo "::set-env name=msi_name::$msiName"
