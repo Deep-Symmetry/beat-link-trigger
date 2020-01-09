@@ -85,6 +85,8 @@ jobs:
         echo "::set-env name=version_tag::$versionTag"
         $msiName = "Beat Link Trigger-$versionTag.msi"
         echo "::set-env name=msi_name::$msiName"
+        $artifactName = "Beat-Link-Trigger-$versionTag-Win64.msi"
+        echo "::set-env name=artifact_name::$artifactName"
 
     - uses: actions/setup-java@v1
       with:
@@ -113,5 +115,5 @@ jobs:
       with:
         mode: update
         tag_name: ${{ env.release_tag }}
-        assets: ${{ env.msi_name }}
+        assets: ${{ env.artifact_name }}
         github_token: ${{ github.token }}

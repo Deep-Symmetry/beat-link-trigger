@@ -24,3 +24,5 @@ jpackage --name "Beat Link Trigger" --input .\Input `
  --description "Trigger events and automate shows in response to events on Pioneer CDJs" `
  --copyright "© 2016-2020 Deep Symmetry, LLC" --vendor "Deep Symmetry, LLC" `
  --app-version "$env:version_tag"
+
+mv "$env:msi_name" "$env:artifact_name"
