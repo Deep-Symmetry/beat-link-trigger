@@ -70,10 +70,10 @@ jobs:
 
           Also, please note that since it’s a snapshot release, the content of this release will change frequently—whenever new code is pushed to the project—so you will want to _download the latest version of the jar every time you work with it_.
 
+
   build_msi:
     name: Build Windows native installer
     runs-on: windows-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     needs:
       build_uberjar
@@ -121,3 +121,13 @@ jobs:
         tag_name: ${{ env.release_tag }}
         assets: ${{ env.artifact_name }}
         github_token: ${{ github.token }}
+
+
+  succeed_if_skipped:
+    name: Work around GitHub issue skipping CI
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+    - name: Determine release tag and snapshot status
+      run: echo "CI skipped but want action to succeed anyway."
