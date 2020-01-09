@@ -1,4 +1,4 @@
-if [ ! -f Runtime ]; then
+if [ ! -d Runtime ]; then
     curl --location https://corretto.aws/downloads/latest/amazon-corretto-11-x64-macos-jdk.tar.gz \
          --output runtime.tar.gz
     tar xvf runtime.tar.gz
@@ -7,7 +7,7 @@ if [ ! -f Runtime ]; then
         --output Runtime
 fi
 
-if [ ! -f Input ]; then
+if [ ! -d Input ]; then
     mkdir Input
 fi
 
