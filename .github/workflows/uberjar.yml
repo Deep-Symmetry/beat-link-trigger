@@ -42,7 +42,7 @@ jobs:
         $versionTag = ($releaseTag).replace("-SNAPSHOT","")
         echo "::set-env name=version_tag::$versionTag"
         $msiName = "Beat Link Trigger-$versionTag.msi"
-        echo "::set-env name=msi_name::msiName"
+        echo "::set-env name=msi_name::$msiName"
     - uses: actions/setup-java@v1
       with:
         java-version: '14-ea'
