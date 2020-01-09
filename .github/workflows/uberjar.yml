@@ -35,10 +35,14 @@ jobs:
 #      build_uberjar
     steps:
     - uses: actions/checkout@v1
-    - name: Determine release tag
+    - name: Determine release tag and MSI name
       run: |
-        $versionTag = $( git describe --abbrev=0 )
-        echo "::set-env name=release_tag::$versionTag"
+        $releaseTag = $( git describe --abbrev=0 )
+        echo "::set-env name=release_tag::$releaseTag"
+        $versionTag = ($releaseTag).replace("-SNAPSHOT","")
+        echo "::set-env name=version_tag::$versionTag"
+        $msiName = "Beat Link Trigger-$versionTag.msi"
+        echo "::set-env name=msi_name::msiName"
     - uses: actions/setup-java@v1
       with:
         java-version: '14-ea'
@@ -57,5 +61,5 @@ jobs:
       with:
         mode: update
         tag_name: ${{ env.release_tag }}
-        assets: "*.msi"
+        assets: ${{ env.msi_name }}
         github_token: ${{ github.token }}
