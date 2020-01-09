@@ -13,8 +13,16 @@ jobs:
       with:
         java-version: '11'
 
-    - name: Determine release tag
-      run: echo "::set-env name=release_tag::`git describe --abbrev=0`"
+    - name: Determine release tag and snapshot status
+      run: |
+        RELEASE_TAG=$(git describe --abbrev=0)
+        echo "::set-env name=release_tag::$RELEASE_TAG"
+        if [[ $RELEASE_TAG =~ .*-SNAPSHOT ]]
+        then
+          echo "::set-env name=release_snapshot::true"
+        else
+          echo "::set-env name=release_snapshot::false"
+        fi
 
     - name: Cache Leiningen dependencies
       uses: actions/cache@v1
@@ -34,7 +42,7 @@ jobs:
       run: lein uberjar
 
     - name: Delete pre-existing preview release
-      if: success()
+      if: success() && env.release_snapshot
       continue-on-error: true
       uses: Xotl/cool-github-releases@v1
       with:
