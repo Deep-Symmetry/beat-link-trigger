@@ -44,6 +44,8 @@ jobs:
         tag_name: v0.6.1-SNAPSHOT #${{ steps.build_uberjar.outputs.release_tag }}
         assets: beat-link-trigger.jar
         github_token: ${{ github.token }}
+    - name: See if I can find working directory
+      run: Get-Location
     - name: Build Windows Installer
       run: .\ci\scripts\build_msi.ps1
     - name: Upload Windows MSI
