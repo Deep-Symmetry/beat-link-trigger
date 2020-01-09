@@ -12,9 +12,7 @@ jobs:
       with:
         java-version: '11'
     - name: Determine release tag
-      run: |
-        echo "::set-env name=release_tag::`git describe --abbrev=0`"
-        echo "::set-output name=release_tag::`git describe --abbrev=0`"
+      run: echo "::set-env name=release_tag::`git describe --abbrev=0`"
     - name: Install dependencies
       run: lein deps
     - name: Install antora
@@ -33,10 +31,14 @@ jobs:
   build_msi:
     runs-on: windows-latest
 
-    needs:
-      build_uberjar
+#    needs:
+#      build_uberjar
     steps:
     - uses: actions/checkout@v1
+    - name: Determine release tag
+      run: |
+        $versionTag = $( git describe --abbrev=0 )
+        echo "::set-env name=release_tag::$versionTag"
     - uses: actions/setup-java@v1
       with:
         java-version: '14-ea'
@@ -44,7 +46,7 @@ jobs:
       uses: Xotl/cool-github-releases@v1
       with:
         mode: download
-        tag_name: ${{ steps.build_uberjar.outputs.release_tag }}
+        tag_name: ${{ env.release_tag }}
         assets: beat-link-trigger.jar
         github_token: ${{ github.token }}
     - name: Build Windows Installer
@@ -54,6 +56,6 @@ jobs:
       if: success()
       with:
         mode: update
-        tag_name: ${{ steps.build_uberjar.outputs.release_tag }}
+        tag_name: ${{ env.release_tag }}
         assets: "*.msi"
         github_token: ${{ github.token }}
