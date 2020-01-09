@@ -41,11 +41,11 @@ jobs:
       uses: Xotl/cool-github-releases@v1
       with:
         mode: download
-        tag_name: ${{ steps.build_uberjar.outputs.release_tag }}
+        tag_name: v0.6.1-SNAPSHOT #${{ steps.build_uberjar.outputs.release_tag }}
         assets: beat-link-trigger.jar
         github_token: ${{ github.token }}
     - name: Build Windows Installer
-      run: '& ".github\scripts\build_msi.ps1"'
+      run: .\.github\scripts\build_msi.ps1
     - name: Upload Windows MSI
       uses: Xotl/cool-github-releases@v1
       if: success()
