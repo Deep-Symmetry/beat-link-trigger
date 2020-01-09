@@ -124,10 +124,10 @@ jobs:
 
 
   succeed_if_skipped:
-    name: Work around GitHub issue skipping CI
+    name: Skipping CI
     runs-on: ubuntu-latest
     if: "contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
-    - name: Determine release tag and snapshot status
+    - name: Placate GitHub Actions
       run: echo "CI skipped but want action to succeed anyway."
