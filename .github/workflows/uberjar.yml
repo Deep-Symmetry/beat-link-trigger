@@ -45,7 +45,7 @@ jobs:
         assets: beat-link-trigger.jar
         github_token: ${{ github.token }}
     - name: Build Windows Installer
-      run: .\.github\scripts\build_msi.ps1
+      run: .\ci\scripts\build_msi.ps1
     - name: Upload Windows MSI
       uses: Xotl/cool-github-releases@v1
       if: success()
