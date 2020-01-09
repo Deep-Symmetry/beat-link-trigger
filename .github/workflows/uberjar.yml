@@ -33,26 +33,17 @@ jobs:
       with:
         mode: update
         tag_name: ${{ env.release_tag }}
+        isPrerelease: true
         assets: target/beat-link-trigger.jar
         github_token: ${{ github.token }}
         body_mrkdwn: |
-          :construction: This is pre-release code for people who want
-          to help test [what is going into the next
-          release](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/CHANGELOG.md).
+          :construction: This is pre-release code for people who want to help test [what is going into the next release](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/CHANGELOG.md).
 
-          > Don’t download this if you aren’t comfortable testing code
-          > while it is under active development! Instead, look at the
-          > [latest
-          > release](https:///github.com/Deep-Symmetry/beat-link-trigger/releases/latest).
+          > Don’t download this if you aren’t comfortable testing code while it is under active development! Instead, look at the [latest release](https:///github.com/Deep-Symmetry/beat-link-trigger/releases/latest).
 
-          You will need your own Java runtime in order to run the
-          executable `beat-link-trigger.jar` below (you will need to
-          click expand the **Assets** section if you don’t see it).
+          You will need your own Java runtime in order to run the executable `beat-link-trigger.jar` below (you will need to click expand the **Assets** section if you don’t see it).
 
-          Also, please note that since it’s a snapshot release, the
-          content of this release will change frequently—whenever new
-          code is pushed to the project—so you will want to _download
-          the latest version of the jar every time you work with it_.
+          Also, please note that since it’s a snapshot release, the content of this release will change frequently—whenever new code is pushed to the project—so you will want to _download the latest version of the jar every time you work with it_.
 
   build_msi:
     runs-on: windows-latest
