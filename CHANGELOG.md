@@ -8,6 +8,10 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The program could get stuck in an unresponsive state at startup if
+  there were multiple copies running (thanks for the report
+  @drummerclint), or could fail in subtler ways if rekordbox was
+  running. Both are now gracefully reported.
 - The File→Exit menu option apparently never worked on Windwos or
   Linux, I only discovered this when I started working on
   deep-dish-pi, my planned custom Raspberry Pi distribution with
