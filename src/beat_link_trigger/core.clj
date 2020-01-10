@@ -71,7 +71,23 @@
         searching        (atom (about/create-searching-frame continue-offline quit))
         real-player      (triggers/real-player?)
         network-label    (seesaw/invoke-now (seesaw/label))]
-    (.start device-finder)  ; We are going to look for devices ourselves, so the user can interrupt us.
+    (try
+      (.start device-finder)  ; We are going to look for devices ourselves, so the user can interrupt us.
+      (catch java.net.BindException e
+        (timbre/error e "Unable to start Device Finder, is rekordbox or another instance running? Staying offline.")
+        (seesaw/invoke-now
+         (seesaw/alert (str "<html>Unable to search for devices, socket is in use.<br>"
+                            "Is rekordbox or another DJ Link program running?")
+                       :title "Failed to Go Online" :type :error)
+         (seesaw/dispose! @searching)
+         (reset! quit true)))
+      (catch Throwable t
+        (timbre/error t "Problem starting Device Finder, staying offline.")
+        (seesaw/invoke-now
+         (seesaw/alert (str "<html>Unable to search for devices, check the log file for details.<br><br>" t)
+                       :title "Problem Trying to Go Online" :type :error)
+         (seesaw/dispose! @searching)
+         (reset! quit true))))
     (timbre/info "Trying to go online, Use Real Player Number?" real-player)
     (loop [tries-before-troubleshooting 200]  ; Try for twenty seconds before switching to the troubleshooting window.
       (cond

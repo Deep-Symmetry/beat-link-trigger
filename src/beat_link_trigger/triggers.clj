@@ -1581,7 +1581,25 @@
         (.addUpdateListener virtual-cdj status-listener)
         (rebuild-all-device-status)  ; In case any came or went while we were setting up the listener
         (.addBeatListener (BeatFinder/getInstance) beat-listener)))  ; Allow triggers to respond to beats
-    (.start (BeatFinder/getInstance))
+    (try
+      (.start (BeatFinder/getInstance))
+      (catch java.net.BindException e
+        (timbre/error e "Unable to start Beat Finder, is rekordbox or another instance running? Staying offline.")
+        (seesaw/invoke-now
+         (seesaw/alert @trigger-frame
+                       (str "<html>Unable to listen for beat packets, socket is in use.<br>"
+                            "Is rekordbox or another DJ Link program running?")
+                       :title "Failed to Go Online" :type :error)
+         (.stop virtual-cdj)
+         (.setSelected (seesaw/select @trigger-frame [:#online]) false)))
+      (catch Throwable t
+        (timbre/error t "Problem starting Beat Finder, staying offline.")
+        (seesaw/invoke-now
+         (seesaw/alert @trigger-frame
+                       (str "<html>Unable to listen for beat packets, check the log file for details.<br><br>" t)
+                       :title "Problem Trying to Go Online" :type :error)
+         (.stop virtual-cdj)
+         (.setSelected (seesaw/select @trigger-frame [:#online]) false))))
     (.setPassive metadata-finder true)  ; Start out conservatively
     (when (online?)
       (start-other-finders)
