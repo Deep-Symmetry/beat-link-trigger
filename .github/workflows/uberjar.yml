@@ -5,6 +5,14 @@ on:
     branches:
       - master
 
+env:
+  blt_name: Beat Link Trigger
+  blt_copyright: © 2016-2020 Deep Symmetry, LLC
+  blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
+  blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
+  blt_java_modules: java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported
+  blt_vendor: Deep Symmetry, LLC
+
 jobs:
   build_uberjar:
     name: Build cross-platform überjar
