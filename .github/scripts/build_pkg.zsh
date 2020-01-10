@@ -7,12 +7,8 @@ if [ ! -d Runtime ]; then
         --output Runtime
 fi
 
-if [ ! -d Input ]; then
-    mkdir Input
-fi
-
+mkdir Input
 mv beat-link-trigger.jar Input
-rm *.dmg
 
 security create-keychain -p "$IDENTITY_PASSPHRASE" build.keychain
 security default-keychain -s build.keychain
