@@ -100,7 +100,7 @@ jobs:
     - name: Determine überjar name, release tag, version tag, MSI name, and artifact name
       run: |
         $uberjarName = "beat-link-trigger-$git_version.jar"
-        echo "::set-env name=uberjar_name::uberjarName"
+        echo "::set-env name=uberjar_name::$uberjarName"
         $releaseTag = $( git describe --abbrev=0 )
         echo "::set-env name=release_tag::$releaseTag"
         $versionTag = ($releaseTag).replace("-SNAPSHOT","").replace("v","")
@@ -155,7 +155,7 @@ jobs:
 
     - name: Determine überjar name, release tag, version tag, disk image name, and artifact name
       run: |
-        uberjarName"beat-link-trigger-$git_version.jar"
+        uberjarName="beat-link-trigger-$git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
         releaseTag=$(git describe --abbrev=0)
         echo "::set-env name=release_tag::$releaseTag"
