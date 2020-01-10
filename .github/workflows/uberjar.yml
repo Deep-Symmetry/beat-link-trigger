@@ -99,7 +99,7 @@ jobs:
 
     - name: Determine überjar name, release tag, version tag, MSI name, and artifact name
       run: |
-        $uberjarName = "beat-link-trigger-$git_version.jar"
+        $uberjarName = "beat-link-trigger-$env:git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
         $releaseTag = $( git describe --abbrev=0 )
         echo "::set-env name=release_tag::$releaseTag"
@@ -107,7 +107,7 @@ jobs:
         echo "::set-env name=version_tag::$versionTag"
         $msiName = "Beat Link Trigger-$versionTag.msi"
         echo "::set-env name=msi_name::$msiName"
-        $artifactName = "Beat-Link-Trigger-$git_version-Win64.msi"
+        $artifactName = "Beat-Link-Trigger-$env:git_version-Win64.msi"
         echo "::set-env name=artifact_name::$artifactName"
 
     - uses: actions/setup-java@v1
