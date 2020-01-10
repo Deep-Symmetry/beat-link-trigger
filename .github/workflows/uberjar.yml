@@ -77,7 +77,7 @@ jobs:
 
           > Don’t download this if you aren’t comfortable testing code while it is under active development! Instead, look at the [latest release](https:///github.com/Deep-Symmetry/beat-link-trigger/releases/latest).
 
-          Please note that since it’s a snapshot release, the assets below (you may need to click to expand them) will change frequently—whenever new code is pushed to the project—so you will want to _download the latest versions every time you work with them_. The Mac disk image is not signed, so you will have to configure your Mac to allow it to run, and use the Finder contextual menu to open it the first time you run it after downloading.
+          Please note that since it’s a snapshot release, the assets below (you may need to click to expand them) will change frequently—whenever new code is pushed to the project—so you will want to _download the latest versions every time you work with them_.
 
 
   build_msi:
