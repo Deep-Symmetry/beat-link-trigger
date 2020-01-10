@@ -17,11 +17,12 @@ rm *.dmg
 security create-keychain -p "$IDENTITY_PASSPHRASE" build.keychain
 security default-keychain -s build.keychain
 security unlock-keychain -p "$IDENTITY_PASSPHRASE" build.keychain
-security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
 echo "$IDENTITY_P12_B64" > DS_ID_App.p12.txt
 openssl base64 -d -in DS_ID_App.p12.txt -out DS_ID_App.p12
 security import DS_ID_App.p12 -A -P "$IDENTITY_PASSPHRASE"
+
+security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
 jpackage --name "Beat Link Trigger" --input Input --runtime-image Runtime \
          --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
