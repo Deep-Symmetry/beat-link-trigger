@@ -14,7 +14,7 @@ If (! (Test-Path "Runtime")) {
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
 mkdir Input
-mv beat-link-trigger.jar Input
+mv "$env:uberjar_name" Input/beat-link-trigger.jar
 
 # Build the native application bundle and installer.
 jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `

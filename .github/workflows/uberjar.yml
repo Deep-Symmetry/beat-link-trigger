@@ -26,10 +26,13 @@ jobs:
       with:
         java-version: '11'
 
-    - name: Determine release tag and snapshot status
+    - uses: Deep-Symmetry/github-version-action@v1
+
+    - name: Determine release tag, überjar name, and snapshot status
       run: |
         RELEASE_TAG=$(git describe --abbrev=0)
         echo "::set-env name=release_tag::$RELEASE_TAG"
+        echo "::set-env name=uberjar_name::beat-link-trigger-$git_version.jar"
         if [[ $RELEASE_TAG =~ .*-SNAPSHOT ]]
         then
           echo "::set-env name=release_snapshot::true"
@@ -52,7 +55,9 @@ jobs:
       run: sudo npm i -g @antora/cli @antora/site-generator-default
 
     - name: Build überjar
-      run: lein uberjar
+      run: |
+        lein uberjar
+        mv target/beat-link-trigger.jar "./$uberjar_name"
 
     - name: Delete pre-existing preview release
       if: success() && env.release_snapshot
@@ -70,7 +75,7 @@ jobs:
         mode: update
         tag_name: ${{ env.release_tag }}
         isPrerelease: true
-        assets: target/beat-link-trigger.jar
+        assets: ${{ env.uberjar_name }}
         github_token: ${{ github.token }}
         body_mrkdwn: |
           :construction: This is pre-release code for people who want to help test [what is going into the next release](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/CHANGELOG.md).
@@ -90,15 +95,19 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: Determine release tag and MSI name
+    - uses: Deep-Symmetry/github-version-action@v1
+
+    - name: Determine überjar name, release tag, version tag, MSI name, and artifact name
       run: |
+        $uberjarName = "beat-link-trigger-$git_version.jar"
+        echo "::set-env name=uberjar_name::uberjarName"
         $releaseTag = $( git describe --abbrev=0 )
         echo "::set-env name=release_tag::$releaseTag"
         $versionTag = ($releaseTag).replace("-SNAPSHOT","").replace("v","")
         echo "::set-env name=version_tag::$versionTag"
         $msiName = "Beat Link Trigger-$versionTag.msi"
         echo "::set-env name=msi_name::$msiName"
-        $artifactName = "Beat-Link-Trigger-$versionTag-Win64.msi"
+        $artifactName = "Beat-Link-Trigger-$git_version-Win64.msi"
         echo "::set-env name=artifact_name::$artifactName"
 
     - uses: actions/setup-java@v1
@@ -110,7 +119,7 @@ jobs:
       with:
         mode: download
         tag_name: ${{ env.release_tag }}
-        assets: beat-link-trigger.jar
+        assets: ${{ env.uberjar_name }}
         github_token: ${{ github.token }}
 
     - name: Cache bundled OpenJDK runtime
@@ -142,8 +151,12 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: Determine release tag and disk image name
+    - uses: Deep-Symmetry/github-version-action@v1
+
+    - name: Determine überjar name, release tag, version tag, disk image name, and artifact name
       run: |
+        uberjarName"beat-link-trigger-$git_version.jar"
+        echo "::set-env name=uberjar_name::$uberjarName"
         releaseTag=$(git describe --abbrev=0)
         echo "::set-env name=release_tag::$releaseTag"
         versionTag=${releaseTag%-SNAPSHOT}
@@ -151,7 +164,7 @@ jobs:
         echo "::set-env name=version_tag::$versionTag"
         dmgName="Beat Link Trigger-$versionTag.dmg"
         echo "::set-env name=dmg_name::$dmgName"
-        artifactName="Beat-Link-Trigger-$versionTag-MacOS.dmg"
+        artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
         echo "::set-env name=artifact_name::$artifactName"
 
     - uses: actions/setup-java@v1
@@ -163,7 +176,7 @@ jobs:
       with:
         mode: download
         tag_name: ${{ env.release_tag }}
-        assets: beat-link-trigger.jar
+        assets: ${{ env.uberjar_name }}
         github_token: ${{ github.token }}
 
     - name: Cache bundled OpenJDK runtime

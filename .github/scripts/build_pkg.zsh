@@ -13,7 +13,7 @@ fi
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
 mkdir Input
-mv beat-link-trigger.jar Input
+mv $uberjar_name Input/beat-link-trigger.jar
 
 # See if the secrets needed to code-sign the native application are present.
 if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
