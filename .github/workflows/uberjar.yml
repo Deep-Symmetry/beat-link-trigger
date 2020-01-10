@@ -165,6 +165,9 @@ jobs:
         key: ${{ runner.os }}-bundled-jdk
 
     - name: Build macOS disk image
+      env:
+        IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
+        IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
       run: zsh .github/scripts/build_pkg.zsh
 
     - name: Upload macOS disk image

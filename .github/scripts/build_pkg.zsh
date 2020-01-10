@@ -14,11 +14,16 @@ fi
 mv beat-link-trigger.jar Input
 rm *.dmg
 
+echo "$IDENTITY_P12_B64" > DS_ID_App.p12.txt
+openssl base64 -d -in DS_ID_App.p12.txt -out DS_ID_App.p12
+security import DS_ID_App.p12 -P "$IDENTITY_PASSPHRASE"
+
 jpackage --name "Beat Link Trigger" --input Input --runtime-image Runtime \
          --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
          --description "Trigger events and automate shows in response to events on Pioneer CDJs" \
          --copyright "© 2016-2020 Deep Symmetry, LLC" --vendor "Deep Symmetry, LLC" \
          --type dmg --mac-package-identifier "org.deepsymmetry.beat-link-trigger" \
+         --mac-sign --mac-signing-key-user-name "Deep Symmetry, LLC (9M6LKU948Y)" \
          --app-version $version_tag
 
 mv "$dmg_name" "$artifact_name"
