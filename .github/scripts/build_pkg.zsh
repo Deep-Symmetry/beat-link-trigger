@@ -50,18 +50,17 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
 
     # Wait until the request is done processing.
     while true; do
+        sleep 60
         xcrun altool --notarization-info $request_id \
               --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
-              --output-format xml > request_status.plist
-        if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" request_status.plist` \
-             != "in progress" ]; then
+              --output-format xml > status.plist
+        if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist` != "in progress" ]; then
             break;
         fi
-        sleep 60
     done
 
     # See if notarization succeeded, and if so, staple the ticket to the disk image.
-    if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" request_status.plist` = "success" ]; then
+    if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist` = "success" ]; then
         xcrun stapler staple "$dmg_name"
     else
         false;
