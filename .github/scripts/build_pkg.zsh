@@ -54,7 +54,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
         xcrun altool --notarization-info $request_id \
               --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
               --output-format xml > status.plist
-        if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist` != "in progress" ]; then
+        if [ "`/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist`" != "in progress" ]; then
             break;
         fi
     done
