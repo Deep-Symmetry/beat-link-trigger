@@ -10,6 +10,7 @@ env:
   blt_copyright: © 2016-2020 Deep Symmetry, LLC
   blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
   blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
+  blt_mac_notarization_user: "james@deepsymmetry.org"
   blt_java_modules: java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported
   blt_vendor: Deep Symmetry, LLC
 
@@ -189,6 +190,7 @@ jobs:
       env:
         IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
         IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
+        NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
       run: zsh .github/scripts/build_pkg.zsh
 
     - name: Upload macOS disk image

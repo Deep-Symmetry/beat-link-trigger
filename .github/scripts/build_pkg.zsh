@@ -34,13 +34,38 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     # Set the keychain to allow use of the certificate without user interaction (we are headless!)
     security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
-    # Finally, run jpackage to build the native application as a code-signed disk image.
+    # Run jpackage to build the native application as a code-signed disk image.
     jpackage --name $blt_name --input Input --runtime-image Runtime \
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
              --description $blt_description --copyright $blt_copyright --vendor $blt_vendor \
              --type dmg --mac-package-identifier "org.deepsymmetry.beat-link-trigger" \
              --mac-sign --mac-signing-key-user-name $blt_mac_signing_name \
              --app-version $version_tag
+
+    # Submit the disk image to Apple for notarization.
+    xcrun altool --notarize-app --primary-bundle-id "org.deepsymmetry.beat-link-trigger" \
+          --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
+          --file "$dmg_name" --output-format xml > upload_result.plist
+    request_id=`/usr/libexec/PlistBuddy -c "Print :notarization-upload:RequestUUID" upload_result.plist`
+
+    # Wait until the request is done processing.
+    while true; do
+        xcrun altool --notarization-info $request_id \
+              --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
+              --output-format xml > request_status.plist
+        if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" request_status.plist` \
+             != "in progress" ]; then
+            break;
+        fi
+    done
+
+    # See if notarization succeeded, and if so, staple the ticket to the disk image.
+    if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" request_status.plist` = "success" ]; then
+        xcrun stapler staple "$dmg_name"
+    else
+        false;
+    fi
+
 else
     # We have no secrets, so build the native application disk image without code signing.
     jpackage --name $blt_name --input Input --runtime-image Runtime \
