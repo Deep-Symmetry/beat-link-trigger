@@ -60,15 +60,6 @@ jobs:
         lein uberjar
         mv target/beat-link-trigger.jar "./$uberjar_name"
 
-    - name: Delete pre-existing preview release
-      if: success() && env.release_snapshot
-      continue-on-error: true
-      uses: Xotl/cool-github-releases@v1
-      with:
-        mode: delete
-        tag_name: ${{ env.release_tag }}
-        github_token: ${{ github.token }}
-
     - name: Upload überjar
       if: success()
       uses: Xotl/cool-github-releases@v1
@@ -78,13 +69,6 @@ jobs:
         isPrerelease: true
         assets: ${{ env.uberjar_name }}
         github_token: ${{ github.token }}
-        body_mrkdwn: |
-          :construction: This is pre-release code for people who want to help test [what is going into the next release](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/CHANGELOG.md).
-
-          > Don’t download this if you aren’t comfortable testing code while it is under active development! Instead, look at the [latest release](https:///github.com/Deep-Symmetry/beat-link-trigger/releases/latest).
-
-          Please note that since it’s a snapshot release, the assets below (you may need to click to expand them) will change frequently—whenever new code is pushed to the project—so you will want to _download the latest versions every time you work with them_.
-
 
   build_msi:
     name: Build Windows native installer
