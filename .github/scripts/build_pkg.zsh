@@ -57,6 +57,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              != "in progress" ]; then
             break;
         fi
+        sleep 60
     done
 
     # See if notarization succeeded, and if so, staple the ticket to the disk image.
