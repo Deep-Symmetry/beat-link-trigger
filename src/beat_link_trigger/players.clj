@@ -607,7 +607,7 @@
       (swap! waveform-windows assoc n root)
       (.setScale wave 2)
       (util/restore-window-position root key parent)
-      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root key)))
+      (seesaw/listen root #{:component-moved :component-resized} (fn [e] (util/save-window-position root key)))
       (seesaw/listen root :window-closed (fn [e] (swap! waveform-windows dissoc n)))
       (seesaw/show! root)
       (.toFront root))))
