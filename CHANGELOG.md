@@ -35,6 +35,10 @@ This change log follows the conventions of
   be added to beat-carabiner in order to support it. (I doubt anyone
   is actually using this, but I can still imagine situations in which
   it might be useful.)
+- The expanded waveform windows created from the Player Status window
+  did not save their new size if you resized them without later moving
+  them. They now open in the size and position where you last left
+  them regardless of how you moved or resized them.
 
 ### Added
 
