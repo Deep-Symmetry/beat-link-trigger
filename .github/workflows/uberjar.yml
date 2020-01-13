@@ -49,8 +49,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-lein-
 
-    - name: Install dependencies
-      run: lein deps
+    - name: Install dependencies, forcing updates of snapshots
+      run: lein -U deps
 
     - name: Install antora
       run: sudo npm i -g @antora/cli @antora/site-generator-default
