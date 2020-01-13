@@ -34,8 +34,11 @@ This change log follows the conventions of
   did not save their new size if you resized them without later moving
   them. They now open in the size and position where you last left
   them regardless of how you moved or resized them.
-- Incorporated some fixes to the Crate Digger library to handle track
-  data in formats that were slightly different than we believed.
+- Incorporated several fixes in the Beat Link and Crate Digger
+  libraries to handle track data in formats that were slightly
+  different than we believed, so metadata will load more reliably.
+  Please continue to report issues on this front, especially if you
+  can share packet captures and problem files from your USB sticks!
 - Triggers-mode syncing was broken in the conversion to the external
   library version of Carabiner integration; a `:manual` mode needed to
   be added to beat-carabiner in order to support it. (I doubt anyone
