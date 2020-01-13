@@ -28,13 +28,13 @@ jobs:
         java-version: '11'
 
     - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
 
-    - name: Determine release tag, überjar name, and snapshot status
+    - name: Determine überjar name from git version, and snapshot status
       run: |
-        RELEASE_TAG=$(git describe --abbrev=0)
-        echo "::set-env name=release_tag::$RELEASE_TAG"
         echo "::set-env name=uberjar_name::beat-link-trigger-$git_version.jar"
-        if [[ $RELEASE_TAG =~ .*-SNAPSHOT ]]
+        if [[ release_tag =~ .*-SNAPSHOT ]]
         then
           echo "::set-env name=release_snapshot::true"
         else
@@ -81,16 +81,16 @@ jobs:
     - uses: actions/checkout@v1
 
     - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
 
-    - name: Determine überjar name, release tag, version tag, MSI name, and artifact name
+    - name: Determine überjar name, build version, MSI name, and artifact name
       run: |
         $uberjarName = "beat-link-trigger-$env:git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
-        $releaseTag = $( git describe --abbrev=0 )
-        echo "::set-env name=release_tag::$releaseTag"
-        $versionTag = ($releaseTag).replace("-SNAPSHOT","").replace("v","")
-        echo "::set-env name=version_tag::$versionTag"
-        $msiName = "Beat Link Trigger-$versionTag.msi"
+        $buildVersion = ($release_tag).replace("-SNAPSHOT","").replace("v","")
+        echo "::set-env name=build_version::$buildVersion"
+        $msiName = "Beat Link Trigger-$buildVersion.msi"
         echo "::set-env name=msi_name::$msiName"
         $artifactName = "Beat-Link-Trigger-$env:git_version-Win64.msi"
         echo "::set-env name=artifact_name::$artifactName"
@@ -137,17 +137,17 @@ jobs:
     - uses: actions/checkout@v1
 
     - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
 
-    - name: Determine überjar name, release tag, version tag, disk image name, and artifact name
+    - name: Determine überjar name, build version, disk image name, and artifact name
       run: |
         uberjarName="beat-link-trigger-$git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
-        releaseTag=$(git describe --abbrev=0)
-        echo "::set-env name=release_tag::$releaseTag"
-        versionTag=${releaseTag%-SNAPSHOT}
-        versionTag=${versionTag#v}
-        echo "::set-env name=version_tag::$versionTag"
-        dmgName="Beat Link Trigger-$versionTag.dmg"
+        buildVersion=${release_tag%-SNAPSHOT}
+        buildVersion=${buildVersion#v}
+        echo "::set-env name=build_version::$buildVersion"
+        dmgName="Beat Link Trigger-$buildVersion.dmg"
         echo "::set-env name=dmg_name::$dmgName"
         artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
         echo "::set-env name=artifact_name::$artifactName"
