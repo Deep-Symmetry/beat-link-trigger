@@ -175,7 +175,7 @@ jobs:
         IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
         IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
         NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
-      run: zsh .github/scripts/build_pkg.zsh
+      run: zsh .github/scripts/build_dmg.zsh
 
     - name: Upload macOS disk image
       if: success()
