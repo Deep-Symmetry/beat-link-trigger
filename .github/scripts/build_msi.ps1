@@ -23,7 +23,7 @@ jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
  --win-menu --win-menu-group "Deep Symmetry" --type msi `
  --win-upgrade-uuid 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6 `
  --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
- --app-version "$env:version_tag"
+ --app-version "$env:build_version"
 
 # Rename the installer file to the name we like to use for the release artifact.
 mv "$env:msi_name" "$env:artifact_name"
