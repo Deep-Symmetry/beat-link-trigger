@@ -88,7 +88,7 @@ jobs:
       run: |
         $uberjarName = "beat-link-trigger-$env:git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
-        $buildVersion = ($release_tag).replace("-SNAPSHOT","").replace("v","")
+        $buildVersion = ($env:release_tag).replace("-SNAPSHOT","").replace("v","")
         echo "::set-env name=build_version::$buildVersion"
         $msiName = "Beat Link Trigger-$buildVersion.msi"
         echo "::set-env name=msi_name::$msiName"

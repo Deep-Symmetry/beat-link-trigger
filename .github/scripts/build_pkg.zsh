@@ -40,7 +40,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --description $blt_description --copyright $blt_copyright --vendor $blt_vendor \
              --type dmg --mac-package-identifier "org.deepsymmetry.beat-link-trigger" \
              --mac-sign --mac-signing-key-user-name $blt_mac_signing_name \
-             --app-version $version_tag
+             --app-version $build_version
 
     # Submit the disk image to Apple for notarization.
     xcrun altool --notarize-app --primary-bundle-id "org.deepsymmetry.beat-link-trigger" \
@@ -72,7 +72,7 @@ else
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
              --description $blt_description --copyright $blt_copyright --vendor $blt_vendor \
              --type dmg --mac-package-identifier "org.deepsymmetry.beat-link-trigger" \
-             --app-version $version_tag
+             --app-version $build_version
 fi
 
 # Rename the disk image to the name we like to use for the release artifact.
