@@ -39,8 +39,12 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
              --description $blt_description --copyright $blt_copyright --vendor $blt_vendor \
              --type dmg --mac-package-identifier "org.deepsymmetry.beat-link-trigger" \
-             --mac-sign --mac-signing-key-user-name $blt_mac_signing_name \
              --app-version $build_version
+
+    # Code sign the disk image more robustly than jpackage is currently able to, for Catalina.
+    codesign --force --preserve-metadata=identifier,requirements --deep --timestamp --options runtime \
+             --entitlements resources/Clojure.entitlements --prefix "org.deepsymmetry.beat-link-trigger." \
+             --sign $blt_mac_signing_name "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
     xcrun altool --notarize-app --primary-bundle-id "org.deepsymmetry.beat-link-trigger" \
