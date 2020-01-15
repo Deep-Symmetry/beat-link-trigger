@@ -42,12 +42,14 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --app-version $build_version
 
     # Code sign the disk image more robustly than jpackage is currently able to, for Catalina.
+    echo "Code signing the disk image."
     codesign --force --preserve-metadata=identifier,requirements --deep --timestamp --options runtime \
              --entitlements .github/resources/Clojure.entitlements \
              --prefix "org.deepsymmetry.beat-link-trigger." \
              --sign $blt_mac_signing_name "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
+    echo "Sumbitting the disk image to Apple for notarization..."
     xcrun altool --notarize-app --primary-bundle-id "org.deepsymmetry.beat-link-trigger" \
           --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
           --file "$dmg_name" --output-format xml > upload_result.plist
@@ -62,10 +64,12 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
         if [ "`/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist`" != "in progress" ]; then
             break;
         fi
+        echo "...still waiting for notarization to finish..."
     done
 
     # See if notarization succeeded, and if so, staple the ticket to the disk image.
     if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist` = "success" ]; then
+        echo "Notarization succeeded, stapling receipt to disk image."
         xcrun stapler staple "$dmg_name"
     else
         false;
