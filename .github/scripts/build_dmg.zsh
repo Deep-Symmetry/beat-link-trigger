@@ -43,7 +43,8 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
 
     # Code sign the disk image more robustly than jpackage is currently able to, for Catalina.
     codesign --force --preserve-metadata=identifier,requirements --deep --timestamp --options runtime \
-             --entitlements resources/Clojure.entitlements --prefix "org.deepsymmetry.beat-link-trigger." \
+             --entitlements .github/resources/Clojure.entitlements \
+             --prefix "org.deepsymmetry.beat-link-trigger." \
              --sign $blt_mac_signing_name "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
