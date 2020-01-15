@@ -34,7 +34,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     # Set the keychain to allow use of the certificate without user interaction (we are headless!)
     security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
-    # Run jpackage to build the native application as a code-signed disk image.
+    # Run jpackage to build the native application as a disk image.
     jpackage --name $blt_name --input Input --runtime-image Runtime \
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
              --description $blt_description --copyright $blt_copyright --vendor $blt_vendor \
