@@ -342,11 +342,13 @@
   not need to do anything, because our state change may be in response
   to a report from the device itself.)"
   [^ItemEvent event device]
-  (let [selected (= (.getStateChange event) ItemEvent/SELECTED)
-        enabled  (.isSynced (.getLatestStatusFor virtual-cdj device))]
-    (when (not= selected enabled)
-      (swap! state assoc-in [:sync-command-sent device] (System/currentTimeMillis))
-      (.sendSyncModeCommand virtual-cdj device selected))))
+  (when (.isRunning virtual-cdj)  ; Ignore initial setup events if we aren't even online.
+    (when-let [latest-status (.getLatestStatusFor virtual-cdj device)]
+      (let [selected (= (.getStateChange event) ItemEvent/SELECTED)
+            enabled  (.isSynced latest-status)]
+        (when (not= selected enabled)
+          (swap! state assoc-in [:sync-command-sent device] (System/currentTimeMillis))
+          (.sendSyncModeCommand virtual-cdj device selected))))))
 
 (defn- master-button-changed
   "Called when one of the device Master radio buttons has been toggled. Makes
@@ -354,10 +356,12 @@
   not need to do anything, because our state change may be in response
   to a report from the device itself.)"
   [^ItemEvent event device]
-  (when (= (.getStateChange event) ItemEvent/SELECTED)  ; This is the new master
-    (when-not (.isTempoMaster (.getLatestStatusFor virtual-cdj device))  ; But it doesn't know it yet
-      (swap! state assoc :master-command-sent (System/currentTimeMillis))
-      (.appointTempoMaster virtual-cdj device))))
+  (when (.isRunning virtual-cdj)  ; Ignore initial setup events if we aren't even online.
+    (when-let [latest-status (.getLatestStatusFor virtual-cdj device)]
+      (when (= (.getStateChange event) ItemEvent/SELECTED)  ; This is the new master
+        (when-not (.isTempoMaster latest-status)  ; But it doesn't know it yet
+          (swap! state assoc :master-command-sent (System/currentTimeMillis))
+          (.appointTempoMaster virtual-cdj device))))))
 
 (defn- build-device-sync-rows
   "Creates the GUI elements which allow you to view and manipulate the
