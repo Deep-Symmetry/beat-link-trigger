@@ -357,6 +357,15 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#### [Carabiner](https://github.com/Deep-Symmetry/carabiner)
+
+The included copies of Carabiner are distributed under the [GNU
+General Public License, version
+2](https://opensource.org/licenses/GPL-2.0). A copy of the license can be found in
+[gpl-2.0.md](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/gpl-2.0.md)
+within this project.
+
+
 <a href="https://www.netlify.com">
   <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
 </a>

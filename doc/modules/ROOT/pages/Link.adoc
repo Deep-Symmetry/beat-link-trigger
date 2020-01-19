@@ -12,17 +12,25 @@ and which is the Tempo Master.
 [[overview]]
 == Overview
 
-If you install and run
-https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Beat Link
-Trigger can tie into an https://www.ableton.com/en/link/[Ableton Link]
-session, so you can synchronize programs like Ableton Live, Traktor,
-and an increasing collection of others (as well as more and more
-hardware), to the tempo and beat grid established by the players being
-watched by your triggers.
+As long as you are running Beat Link Trigger on one of the common
+operating systems and processor architectures that are supported by
+https://github.com/Deep-Symmetry/lib-carabiner#lib-carabiner[lib-carabiner],
+there is nothing else you need to install or run, and a built-in copy
+of Carabiner will be started when you need it. If you are on a
+different platform, you will need to build, install and run
+https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner] on
+your own.
 
-Once you have installed Carabiner and have it running, bring up the
-Carabiner Connection window by choosing
-`Ableton Link: Carabiner Connection` in the `Network` menu:
+With either approach, Beat Link Trigger can tie into an
+https://www.ableton.com/en/link/[Ableton Link] session, so you can
+synchronize programs like Ableton Live, Traktor, and an increasing
+collection of others (as well as more and more hardware), to the tempo
+and beat grid established by the players being watched by your
+triggers.
+
+To work with Carabiner and Link, bring up the Carabiner Connection
+window by choosing `Ableton Link: Carabiner Connection` in the
+`Network` menu:
 
 image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,160]
 
@@ -36,9 +44,11 @@ trigger’s <<Triggers#message-menu,Message Menu>>, or load a trigger
 that is configured that way, if Carabiner is not already connected.
 
 Set the `Carabiner Port` value to match the port on which your
-Carabiner daemon is listening. The default value of 17000 will work
-unless you have had to explicitly tell it to use a different port
-because some other program is using that one on your system.
+Carabiner daemon should listen (or, if you are running your own
+independent copy, the port on which you have that Carabiner configured
+to listen). The default value of 17000 will work unless you need to
+explicitly tell it to use a different port because some other program
+is using port 17000 on your system.
 
 The `Latency` value is the number of milliseconds it takes from when a
 beat is actually playing on the players in your DJ Link Pro network to
@@ -280,9 +290,11 @@ Master, and Beat Link will obey.
 == Connecting Automatically
 
 If you would like to automatically connect to Carabiner and set up
-sync when you bring Beat Link Trigger online (because you know it is
-running in an environment where Carabiner will always be running), you
-can accomplish this using the
+sync when you bring Beat Link Trigger online (this is especially
+useful now that BLT can automatically run Carabiner for you when you
+connect, but you can also do it if you are running your own custom
+build of Carabiner and can guarantee it is running before BLT goes
+online), you can accomplish this using the
 <<Expressions#came-online-expression,Came Online Expression>>, and
 there is an example of how to do this in the description of that
 expression.

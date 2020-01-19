@@ -47,6 +47,10 @@ This change log follows the conventions of
 
 ### Added
 
+- BLT now embeds copies of Carabiner for all supported platforms, and
+  will automatically run the appropriate one for you when you try to
+  connect to Carabiner if you have not installed and run it
+  separately. This makes it _much_ easier to work with Ableton Link.
 - BLT now detects the loss of the DJ Link network when you had been
   online, and tries to reconnect automatically in case the network
   environment has changed. This is especially important for

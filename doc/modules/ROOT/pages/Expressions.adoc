@@ -504,10 +504,8 @@ Another example came up in the
 https://gitter.im/brunchboy/beat-link-trigger[community chat room],
 from a user who wanted to set up a turn-key lighting system that
 automatically started Beat Link Trigger and Carabiner. If you are in a
-situation like that, and can be sure that Carabiner has already been
-started by the time Beat Link Triger launches, you can set up a Came
-Online Expression to automatically open the Carabiner window and
-connect to it:
+situation like that, you can set up a Came Online Expression to
+automatically open the Carabiner window and connect to it:
 
 [source,clojure,subs=attributes+]
 ----
