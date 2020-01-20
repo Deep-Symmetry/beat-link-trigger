@@ -92,7 +92,7 @@ jobs:
       with:
         tag-var-name: release_tag
 
-    - name: Determine überjar name, build version, MSI name, and artifact name
+    - name: Determine überjar name, build version, MSI name, artifact name, and snapshot status
       run: |
         $uberjarName = "beat-link-trigger-$env:git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
@@ -102,6 +102,11 @@ jobs:
         echo "::set-env name=msi_name::$msiName"
         $artifactName = "Beat-Link-Trigger-$env:git_version-Win64.msi"
         echo "::set-env name=artifact_name::$artifactName"
+        If ($env:release_tag -like '*-SNAPSHOT') {
+          echo "::set-env name=release_snapshot::true"
+        } Else {
+          echo "::set-env name=release_snapshot::false"
+        }
 
     - uses: actions/setup-java@v1
       with:
@@ -150,7 +155,7 @@ jobs:
       with:
         tag-var-name: release_tag
 
-    - name: Determine überjar name, build version, disk image name, and artifact name
+    - name: Determine überjar name, build version, disk image name, artifact name, and snapshot status
       run: |
         uberjarName="beat-link-trigger-$git_version.jar"
         echo "::set-env name=uberjar_name::$uberjarName"
@@ -161,6 +166,12 @@ jobs:
         echo "::set-env name=dmg_name::$dmgName"
         artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
         echo "::set-env name=artifact_name::$artifactName"
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "::set-env name=release_snapshot::true"
+        else
+          echo "::set-env name=release_snapshot::false"
+        fi
 
     - uses: actions/setup-java@v1
       with:
