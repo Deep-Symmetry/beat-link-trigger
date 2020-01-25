@@ -11,6 +11,11 @@ If (! (Test-Path "Runtime")) {
         --add-modules="$env:blt_java_modules" --output .\Runtime
 }
 
+
+# Testing out 4 digit MSI version theory
+$env:build_version = "$env:build_version" + ".0"
+
+
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
 mkdir Input
