@@ -53,7 +53,7 @@ copy ".\.github\resources\Beat Link Trigger.wxs" ".\"
 & $Heat dir "Beat Link Trigger" -cg BEAT_LINK_TRIGGER -dr DEEP_SYMMETRY -gg -ke -sfrag -sreg -template fragment -out beat_link_trigger.wxs
 
 #Create Wix-Toolset Object file
-& $Candle -dbltversion=""$env:build_version"" -nologo *.wxs -ext WixUIExtension
+& $Candle -dbltversion=""$env:build_version"" -nologo *.wxs -ext WixUIExtension -arch x64
 
 #Compile MSI
 & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension
