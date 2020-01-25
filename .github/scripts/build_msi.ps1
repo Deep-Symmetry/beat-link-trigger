@@ -25,6 +25,8 @@ jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
   --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
 
+#Get the Wix-Toolset file for Beat Link Trigger
+copy ".\.github\resources\Beat Link Trigger.wxs" ".\"
 
 ## Wix-Toolset Party Time!
 #Index all files in the Beat Link Trigger directory

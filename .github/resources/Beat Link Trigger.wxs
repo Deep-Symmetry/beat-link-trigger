@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="Beat Link Trigger" Language="1033" Version="$(var.bltversion)" Manufacturer="Deep Symmetry, LLC" UpgradeCode="6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6">
+        <Package InstallerVersion="200" Compressed="yes" Platform="x64" />
+        <Upgrade Id="6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6" />
+        <MajorUpgrade Schedule="afterInstallInitialize" AllowDowngrades="no" AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+        <Media Id="1" Cabinet="BeatLinkTrigger.cab" EmbedCab="yes" />
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder" Name="PFiles64">
+                <Directory Id="ProgramMenuFolder">
+                    <Directory Id="ProgramMenuDir" Name="Deep Symmetry">
+                        <Component Id="StartMenuShortcuts" Guid="0A548DE0-FE47-40E2-BEAF-8E35E5AA07F3">
+                            <RemoveFolder Id="ProgramMenuDir" On="uninstall" />
+                            <RegistryValue Root="HKCU" Key="Software\[Manufacturer]\[ProductName]" Type="string" Value="" />
+                            <Shortcut Id="BeatLinkTrigger" Name="Beat Link Trigger" Description="Start Beat Link Trigger" Target="[DEEP_SYMMETRY]\Beat Link Trigger\BEAT LINK TRIGGER.EXE" Icon="Beat_Link_Trigger.ico">
+                            </Shortcut>
+                        </Component>
+                    </Directory>
+                </Directory>
+                <Directory Id="DEEP_SYMMETRY" Name="Deep Symmetry">
+                </Directory>
+			</Directory>
+        </Directory>
+        <Feature Id="DefaultFeature" Title="Main Feature" Level="1">
+            <ComponentRef Id="StartMenuShortcuts" />
+			<ComponentGroupRef Id="BEAT_LINK_TRIGGER" />
+        </Feature>
+        <UI />
+        <Property Id="WIXUI_INSTALLDIR" Value="DEEP_SYMMETRY" />
+        <Property Id="ARPPRODUCTICON" Value="Beat_Link_Trigger.ico" />
+        <WixVariable Id="WixUILicenseRtf" Value=".\.github\resources\LICENSE.RTF" />
+        <UIRef Id="WixUI_InstallDir" />
+        <Icon Id="Beat_Link_Trigger.ico" SourceFile=".\.github\resources\BeatLink.ico" />
+        <InstallExecuteSequence>
+            <FindRelatedProducts />
+        </InstallExecuteSequence>
+        <Condition Message="This installer is only supported on Windows 10 64 Bit. You will still be able to use Beat Link Trigger if you download and install Orace Java Runtime Environment (JRE) yourself. After that you can run the .jar file which can be downloaded at the Beat Link Trigger project on Github">
+			<![CDATA[Installed OR VersionNT64]]>
+		</Condition>
+    </Product>
+</Wix>
