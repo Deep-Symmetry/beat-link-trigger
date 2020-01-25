@@ -12,23 +12,26 @@ If (! (Test-Path "Runtime")) {
 }
 
 
-# Testing out 4 digit MSI version theory
-$env:build_version = "$env:build_version" + ".0"
-
-
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
 mkdir Input
-mv "$env:uberjar_name" Input/beat-link-trigger.jar
+copy "$env:uberjar_name" Input/beat-link-trigger.jar
 
 # Build the native application bundle and installer.
 jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
  --icon ".\.github\resources\BeatLink.ico" `
  --main-jar beat-link-trigger.jar `
- --win-menu --win-menu-group "Deep Symmetry" --type msi `
- --win-upgrade-uuid 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6 `
- --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
+ --type app-image `
+  --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
 
-# Rename the installer file to the name we like to use for the release artifact.
-mv "$env:msi_name" "$env:artifact_name"
+
+## Wix-Toolset Party Time!
+#Index all files in the Beat Link Trigger directory
+Heat.exe dir "Beat Link Trigger" -cg BEAT_LINK_TRIGGER -dr DEEP_SYMMETRY -gg -ke -sfrag -sreg -template fragment -out beat_link_trigger.wxs
+
+#Create Wix-Toolset Object file
+Candle.exe -dbltversion=""$env:build_version"" -nologo *.wxs -ext WixUIExtension
+
+#Compile MSI
+Light.exe -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension
