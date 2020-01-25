@@ -1,3 +1,23 @@
+# Define Wix-Toolset
+$Heat = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\heat.exe"
+$Candle = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\candle.exe"
+$Light = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\light.exe"
+
+# Check for Heat.exe
+if (!(Test-Path $Heat)) {
+  Write-Warning "Heat location not found, please check if Wix-Toolset is installed correctly"
+}
+
+# Check for Candle.exe
+if (!(Test-Path $Candle)) {
+  Write-Warning "Candle location not found, please check if Wix-Toolset is installed correctly"
+}
+
+# Check for Light.exe
+if (!(Test-Path $Light)) {
+  Write-Warning "Light location not found, please check if Wix-Toolset is installed correctly"
+}
+
 # Download and expand the Amazon Corretto 11 JDK, then use it to build the embedded JRE for inside
 # the Mac application. But if it already exists (because we use a cache action to speed things up),
 # we can skip this section.
@@ -30,10 +50,10 @@ copy ".\.github\resources\Beat Link Trigger.wxs" ".\"
 
 ## Wix-Toolset Party Time!
 #Index all files in the Beat Link Trigger directory
-Heat.exe dir "Beat Link Trigger" -cg BEAT_LINK_TRIGGER -dr DEEP_SYMMETRY -gg -ke -sfrag -sreg -template fragment -out beat_link_trigger.wxs
+& $Heat dir "Beat Link Trigger" -cg BEAT_LINK_TRIGGER -dr DEEP_SYMMETRY -gg -ke -sfrag -sreg -template fragment -out beat_link_trigger.wxs
 
 #Create Wix-Toolset Object file
-Candle.exe -dbltversion=""$env:build_version"" -nologo *.wxs -ext WixUIExtension
+& $Candle -dbltversion=""$env:build_version"" -nologo *.wxs -ext WixUIExtension
 
 #Compile MSI
-Light.exe -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension
+& $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension
