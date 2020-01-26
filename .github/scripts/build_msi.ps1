@@ -46,14 +46,14 @@ jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
  --app-version "$env:build_version"
 
 #Get the Wix-Toolset file for Beat Link Trigger
-copy ".\.github\resources\Beat Link Trigger.wxs" ".\"
+copy ".\.github\resources\MSI Template.wxs" ".\"
 
 ## Wix-Toolset Party Time!
 #Index all files in the Beat Link Trigger directory
-& $Heat dir "Beat Link Trigger" -cg BEAT_LINK_TRIGGER -dr DEEP_SYMMETRY -gg -ke -sfrag -sreg -template fragment -out beat_link_trigger.wxs
+& $Heat dir $env:blt_name -cg Application_Folder -dr App_Vendor_Folder -gg -ke -sfrag -sreg -template fragment -out "application_folder.wxs"
 
 #Create Wix-Toolset Object file
-& $Candle -dbltversion=""$env:build_version"" -nologo *.wxs -ext WixUIExtension -arch x64
+& $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -arch x64
 
 #Compile MSI
 & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension
