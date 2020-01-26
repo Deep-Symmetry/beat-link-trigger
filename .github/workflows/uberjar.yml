@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - Fix-MSI-Upgrade
 
 env:
   blt_name: Beat Link Trigger
