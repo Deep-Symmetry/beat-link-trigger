@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="$(var.AppName)" Language="1033" Version="$(var.AppVersion)" Manufacturer="$(var.AppVendor)" UpgradeCode="$(var.AppUpgradeCode)">
+        <Package InstallerVersion="200" Compressed="yes" Platform="x64" Description="$(var.AppDescription)" Manufacturer="$(var.AppVendor)" />
+        <Upgrade Id="$(var.AppUpgradeCode)" />
+        <MajorUpgrade Schedule="afterInstallInitialize" AllowDowngrades="no" AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+        <Media Id="1" Cabinet="Data.cab" EmbedCab="yes" />
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder" Name="PFiles64">
+                <Directory Id="ProgramMenuFolder">
+                    <Directory Id="ProgramMenuDir" Name="$(var.AppVendorFolder)">
+                        <Component Id="StartMenuShortcuts" Guid="0A548DE0-FE47-40E2-BEAF-8E35E5AA07F3">
+                            <RemoveFolder Id="ProgramMenuDir" On="uninstall" />
+                            <RegistryValue Root="HKCU" Key="Software\[Manufacturer]\[ProductName]" Type="string" Value="" />
+                            <Shortcut Id="AppShortcut" Name="$(var.AppName)" Description="Start $(var.AppName)" Target="[App_Vendor_Folder]\[ProductName]\[ProductName].EXE" Icon="$(var.AppIcon)">
+                            </Shortcut>
+                        </Component>
+                    </Directory>
+                </Directory>
+                <Directory Id="App_Vendor_Folder" Name="$(var.AppVendorFolder)">
+                </Directory>
+			</Directory>
+        </Directory>
+        <Feature Id="DefaultFeature" Title="Main Feature" Level="1">
+            <ComponentRef Id="StartMenuShortcuts" />
+			<ComponentGroupRef Id="Application_Folder" />
+        </Feature>
+        <UI />
+        <Property Id="WIXUI_INSTALLDIR" Value="App_Vendor_Folder" />
+        <Property Id="ARPPRODUCTICON" Value="$(var.AppIcon)" />
+        <WixVariable Id="WixUILicenseRtf" Value=".\.github\resources\LICENSE.RTF" />
+        <UIRef Id="WixUI_InstallDir" />
+        <Icon Id="$(var.AppIcon)" SourceFile=".\.github\resources\$(var.AppIcon)" />
+        <InstallExecuteSequence>
+            <FindRelatedProducts />
+        </InstallExecuteSequence>
+        <Condition Message="This installer is only supported on Windows 10 64 Bit. You will still be able to use [ProductName] if you download and install Orace Java Runtime Environment (JRE) yourself. After that you can run the .jar file which can be downloaded at the Beat Link Trigger project on Github">
+			<![CDATA[Installed OR VersionNT64]]>
+		</Condition>
+    </Product>
+</Wix>

@@ -1,3 +1,23 @@
+# Define Wix-Toolset
+$Heat = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\heat.exe"
+$Candle = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\candle.exe"
+$Light = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\light.exe"
+
+# Check for Heat.exe
+if (!(Test-Path $Heat)) {
+  Write-Warning "Heat location not found, please check if Wix-Toolset is installed correctly"
+}
+
+# Check for Candle.exe
+if (!(Test-Path $Candle)) {
+  Write-Warning "Candle location not found, please check if Wix-Toolset is installed correctly"
+}
+
+# Check for Light.exe
+if (!(Test-Path $Light)) {
+  Write-Warning "Light location not found, please check if Wix-Toolset is installed correctly"
+}
+
 # Download and expand the Amazon Corretto 11 JDK, then use it to build the embedded JRE for inside
 # the Mac application. But if it already exists (because we use a cache action to speed things up),
 # we can skip this section.
@@ -11,19 +31,29 @@ If (! (Test-Path "Runtime")) {
         --add-modules="$env:blt_java_modules" --output .\Runtime
 }
 
+
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
 mkdir Input
-mv "$env:uberjar_name" Input/beat-link-trigger.jar
+copy "$env:uberjar_name" Input/beat-link-trigger.jar
 
 # Build the native application bundle and installer.
 jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
  --icon ".\.github\resources\BeatLink.ico" `
  --main-jar beat-link-trigger.jar `
- --win-menu --win-menu-group "Deep Symmetry" --type msi `
- --win-upgrade-uuid 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6 `
- --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
+ --type app-image `
+  --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
 
-# Rename the installer file to the name we like to use for the release artifact.
-mv "$env:msi_name" "$env:artifact_name"
+#Get the Wix-Toolset file for Beat Link Trigger
+copy ".\.github\resources\MSI Template.wxs" ".\"
+
+## Wix-Toolset Party Time!
+#Index all files in the Beat Link Trigger directory
+& $Heat dir $env:blt_name -cg Application_Folder -dr App_Vendor_Folder -gg -ke -sfrag -sreg -template fragment -out "application_folder.wxs"
+
+#Create Wix-Toolset Object file
+& $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -arch x64
+
+#Compile MSI
+& $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension

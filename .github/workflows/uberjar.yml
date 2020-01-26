@@ -13,6 +13,9 @@ env:
   blt_mac_notarization_user: "james@deepsymmetry.org"
   blt_java_modules: java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported
   blt_vendor: Deep Symmetry, LLC
+  blt_vendor_folder: Deep Symmetry
+  blt_icon: BeatLink.ico
+  blt_upgradecode: 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6
   initial_description: |
     :construction: This is pre-release code for people who want to help test [what is going into the next release](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/CHANGELOG.md).
 
