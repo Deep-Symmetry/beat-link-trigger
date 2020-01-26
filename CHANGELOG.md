@@ -66,6 +66,12 @@ This change log follows the conventions of
   for ten seconds for the attempt to fail. After twenty seconds, a
   troubleshooting window replaces the animated searching window, but
   the attempt to go online will continue until stopped by the user.
+- Most release assets (cross-platform Jar, Mac and Windows native
+  installers) are now built automatically by GitHub whenever changes
+  are pushed to the master branch of the project. Thanks to
+  [@Kevinnns](https://github.com/Kevinnns) for improving the Windows
+  MSI build process to retain features that had been previously
+  offered by his hosted build server.
 
 ## [0.6.0] - 2019-11-24
 
