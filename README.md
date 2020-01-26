@@ -12,7 +12,7 @@ a
 [DJ TechTools article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
 too!
 
-[![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%201.0-blue.svg)](#license)
+[![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#license)
 
 ## Usage
 
@@ -215,11 +215,11 @@ on, you will be able to run that copy by just double-clicking it.
 
 Copyright © 2016&ndash;2020 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
-Distributed under the
-[Eclipse Public License 1.0](http://opensource.org/licenses/eclipse-1.0.php),
-the same as Clojure. By using this software in any fashion, you are
-agreeing to be bound by the terms of this license. You must not remove
-this notice, or any other, from this software.
+Distributed under the [Eclipse Public License
+2.0](https://opensource.org/licenses/EPL-2.0). By using this software
+in any fashion, you are agreeing to be bound by the terms of this
+license. You must not remove this notice, or any other, from this
+software.
 
 ### Library Licenses
 

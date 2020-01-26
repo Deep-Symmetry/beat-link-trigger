@@ -3,11 +3,10 @@
 +++<a href="http://deepsymmetry.org"><img src="_images/DS-logo-bw-200-padded-left.png" align="right" alt="Deep Symmetry logo" width="216" height="123"></a>+++
 Copyright © 2016&ndash;2020 http://deepsymmetry.org[Deep Symmetry, LLC]
 
-Distributed under the
-http://opensource.org/licenses/eclipse-1.0.php[Eclipse Public License
-1.0], the same as Clojure. By using this software in any fashion, you
-are agreeing to be bound by the terms of this license. You must not
-remove this notice, or any other, from this software. A copy of the
-license can be found in
+Distributed under the [Eclipse Public License
+2.0](https://opensource.org/licenses/EPL-2.0). By using this software
+in any fashion, you are agreeing to be bound by the terms of this
+license. You must not remove this notice, or any other, from this
+software. A copy of the license can be found in
 https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
 within this project.

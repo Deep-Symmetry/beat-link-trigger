@@ -92,11 +92,11 @@ Beat Link Trigger is primarily maintained by [@brunchboy][brunchboy].
 
 Copyright © 2016&ndash;2020 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
-Distributed under the
-[Eclipse Public License 1.0](http://opensource.org/licenses/eclipse-1.0.php).
-By using this software in any fashion, you are agreeing to be bound by
-the terms of this license. You must not remove this notice, or any
-other, from this software.
+Distributed under the [Eclipse Public License
+2.0](https://opensource.org/licenses/EPL-2.0). By using this software
+in any fashion, you are agreeing to be bound by the terms of this
+license. You must not remove this notice, or any other, from this
+software.
 
 
 [contributions-released]: https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license
