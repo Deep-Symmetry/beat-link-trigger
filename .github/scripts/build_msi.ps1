@@ -1,7 +1,7 @@
 # Define Wix-Toolset
-$Heat = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\heat.exe"
-$Candle = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\candle.exe"
-$Light = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\light.exe"
+$Heat = "${env:Wix}\bin\heat.exe"
+$Candle = "${env:Wix}\bin\candle.exe"
+$Light = "${env:Wix}\bin\light.exe"
 
 # Check for Heat.exe
 if (!(Test-Path $Heat)) {
