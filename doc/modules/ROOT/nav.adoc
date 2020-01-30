@@ -83,6 +83,8 @@
 ** xref:Integration.adoc#pangolin-beyond-essentials[Pangolin BEYOND Essentials]
 ** xref:Integration.adoc#chauvet-showxpress[QuickDMX]
 ** xref:Integration.adoc#smpte-linear[SMPTE Linear Timecode]
+*** xref:Integration.adoc#smpte-max[LTC using Max/MSP]
+*** xref:Integration.adoc#smpte-orange-pi[LTC using an Orange Pi]
 ** xref:Integration.adoc#chauvet-showxpress[SweetLight]
 ** xref:Integration.adoc#xone-on-air[Xone:96 Channels On Air]
 *** xref:Integration.adoc#xone-v1[First Version]

@@ -716,13 +716,15 @@ track beat grids and translate beat numbers to times, this is
 possible. All that is needed is for someone to write a program that
 can generate the SMPTE audio, and which can be controlled by triggers
 in Beat Link Trigger, ideally over a simple protocol like Open Sound
-Control. There is at least one team working on this, using the
-open-source https://github.com/x42/libltc[libltc library].
+Control.
 
-However, they have gotten busy with other projects, and it is unclear
-when they (or anyone) will have time to finish and release their
-solution. So in the mean time I am sharing some very experimental
-daemons that can be used for this purpose, built using
+There was at least one team working on this, using the open-source
+https://github.com/x42/libltc[libltc library]. However, they got busy
+with other projects, and it is unclear when they (or anyone) will have
+time to finish and release their solution.
+
+So in the mean time I am shared some very experimental daemons that
+can be used for this purpose, built using
 https://cycling74.com/products/max/[Max/MSP]. Because these embed
 https://github.com/MattijsKneppers[Mattijs Kneppers]’
 https://cycling74.com/tools/smpte/[smpte~] object to generate the
@@ -731,18 +733,34 @@ OS X, my daemons only work on the Mac as well. Also, since they embed
 the Max/MSP runtime, they are larger and use more system resources
 than a targeted C implementation based on `libltc` would.
 
-However, if you really want to experiment with SMPTE right now, and
-can live with these limitations, read on to see how. And please keep
-in mind the warning in the <<Players#the-player-status-window,Player Status
-Window section>> about how time information can only be reliable when
-tracks are being played forwards, without loops.
+https://github.com/drummerclint[Clint Alves] figured out a way to
+build an Orange Pi solution that generates SMPTE timecode very
+effectively, and worked with the author of that project to extend it
+for easy control from Beat Link Trigger. If you are willing to do a
+little hardware tinkering, this is a much more polished (and
+inexpensive!) approach than my Max/MSP patch. You can find the details
+<<#smpte-orange-pi,below>>.
 
-NOTE: This is wandering outside the core goals of Beat Link Trigger,
+However, if you really want to experiment with SMPTE right now, have a
+Mac, and can live with these limitations, read on to see how.
+
+[[smpte-max]]
+=== LTC using Max/MSP
+
+[NOTE]
+====
+This is wandering outside the core goals of Beat Link Trigger,
 so the amount of help and support I am going to be able to offer are
 very limited. You may not want to dive too deep into this unless you
 are, or have access to, a Max/MSP expert.
 
-=== Generating a Single SMPTE Stream
+Also please keep in mind the warning in the
+<<Players#the-player-status-window,Player Status Window section>>
+about how time information can only be reliable when tracks are being
+played forwards, without loops.
+====
+
+==== Generating a Single SMPTE Stream
 
 The original request people had was to be able to set up a trigger
 that was enabled when a particular track is playing on a player, and
@@ -841,7 +859,7 @@ Kneppers]’ https://cycling74.com/tools/smpte/[smpte~] object to work
 with this patch; you can find that at
 https://cycling74.com/tools/smpte/
 
-=== Generating Two SMPTE Streams
+==== Generating Two SMPTE Streams
 
 Once people discovered the single stream implementation, it turned out
 that another common desire was to be able to generate two SMPTE
@@ -886,6 +904,113 @@ intensive or detailed support: I don't use SMPTE myself, created these
 experimental daemons to prove that it is possible, and we are all
 waiting for someone to create a more robust and permanent solution. If
 you can help do that, please let us know!
+
+
+[[smpte-orange-pi]]
+=== LTC using an Orange Pi
+
+[NOTE]
+====
+This is wandering outside the core goals of Beat Link Trigger,
+so the amount of help and support I am going to be able to offer are
+very limited. You can look for help on Orange Pi forums and from the
+author of the firmware described below, and Clint may be able to help
+(he is `@drummerclint` on the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter channel]).
+
+Also please keep in mind the warning in the
+<<Players#the-player-status-window,Player Status Window section>>
+about how time information can only be reliable when tracks are being
+played forwards, without loops.
+====
+
+The first thing you will need is an Orange Pi Zero board, an enclosure
+and a power supply. Then you will need the
+http://www.orangepi-dmx.org/orange-pi-smpte-timecode-ltc-reader-converter[LTC
+SMPTE Timecode project uImage] file to boot from. If you want a
+display to show the timecode being generated, there are some
+compatible options. Look on the project page for more information, or
+ask on the Gitter channel. Clint and I worked with the developer to
+arrange for the project to support OSC commands that would allow Beat
+Link Trigger to control it.
+
+==== Controlling the Pi using a Trigger
+
+Once you have the Pi built and working, you can load this
+link:{attachmentsdir}/OrangePiSMPTE.blt[configuration file] in Beat
+Link Trigger, configure it to talk to the IP address of the Pi, and it
+will generate timecode that tracks the on-air master player.
+
+WARNING: Because it is a full configuration file, it will replace any
+triggers you have defined in Beat Link Trigger, so if you care about
+any of them, be sure to save your existing configuration to a separate
+file so you can reload them when you are done working with the Pi. You
+can also export individual triggers to files so you can import them
+into the Orange Pi configuration if you like.
+
+You will need to edit line 1 of the `Came Online` expression to match
+the IP address that the Pi is using, and the port number its OSC
+server is listening on, so BLT knows how to reach it. You can also
+specify the frame rate for the generated timecode on line 2.
+
+If you have changed the host name of your Orange Pi, you will need to
+edit line 3 of the `Shared Functions` to reflect the name you chose.
+
+Other than that, the expressions should work as they are, and you are
+free to explore them to see how they work.
+
+If your players aren't set up with a mixer that manages their on-air
+state, you will want to change the trigger's Enabled filter from
+`On-Air` to `Always`. And if you want to track a specific player
+instead of the Master player, you can change its Watch setting from
+`Master Player` to something else.
+
+==== Controlling the Pi using a Show
+
+If you only want to generate timecode when particular tracks are
+playing, instead of loading the configuration file described in the
+previous section, you can leave your overall configuration alone, and
+open this link:{attachmentsdir}/OrangePiSMPTE.bls[show file] instead.
+
+As with the trigger approach, you will need to edit line 1 of the
+`Came Online` expression to match the IP address that the Pi is using,
+and the port number its OSC server is listening on, so BLT knows how
+to reach it. And if you have changed the host name of your
+Orange Pi, you will need to edit line 3 of the `Shared Functions` to
+reflect the name you chose.
+
+The example track that's in the show, _A Heavy Abacus_, is just a
+placeholder so you can copy its `Loaded` and `Unloaded` expressions
+into the tracks that you actually want to use. So start by
+<<Shows#adding-tracks,importing>> your actual tracks into the show,
+either from a player on the network, or from a rekordbox USB or SD
+card. Once your tracks are added, copy and paste the content of the
+`Loaded` and `Unloaded` expressions in _A Heavy Abacus_ to the
+corresponding expressions in your own tracks. Once that's done, you
+can delete _A Heavy Abacus_.
+
+As you may have noticed, you can edit the first two lines of the
+`Loaded` expression once it is installed into each of your tracks to
+establish the timecode frame rate for that track, as well as an offset
+(in hours) to add to the track's playback position when generating
+timecode for that track. This allows separate video content to be
+configured in Resolume (or whatever video software you are using) for
+each track, and activated by the non-overlapping time code values.
+
+Alternately, you could add more code to the `Loaded` expressions to
+send OSC, MIDI, or other types of messages to your video software to
+cue up the appropriate content when the track loads.
+
+Once one of your configured tracks starts playing, the show will tell
+the Pi to start sending timecode based on the playback position of the
+player that is playing the track, with the frame rate and offset
+specified at the start of the `Loaded` expression.
+
+This show doesn't handle mutiple players playing the same configured
+track at once, or even two different configured tracks playing on
+different players. Such refinements are possible, by making the code
+more sophisticated. If you would like help doing that, please ask on
+the https://gitter.im/brunchboy/beat-link-trigger[Gitter channel].
 
 
 [[break-buddy]]

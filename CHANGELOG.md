@@ -58,6 +58,8 @@ This change log follows the conventions of
   the Raspberry Pi 4.
 - Documentation of the show, track, and cue structures that are
   available to expressions running inside them.
+- An integration example using an Orange Pi to generate SMPTE linear
+  time code.
 
 ### Changed
 
