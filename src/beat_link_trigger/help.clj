@@ -1,7 +1,9 @@
 (ns beat-link-trigger.help
   "Serves the embedded copy of the user guide, and offers network
   troubleshooting assistance."
-  (:require [compojure.route :as route]
+  (:require [clojure.string]
+            [clojure.java.browse]
+            [compojure.route :as route]
             [compojure.core :as compojure]
             [ring.util.response :as response]
             [org.httpkit.server :as server])
@@ -10,7 +12,7 @@
 (defn show-landing-page
   "The home page for the embedded web server, currently does not do
   much, nobody is expected to ever try to load it."
-  [req]
+  [_]
   {:status  200
    :headers {"Content-Type" "text/html"}
    :body    "Beat Link Trigger."})
@@ -18,7 +20,11 @@
 (compojure/defroutes all-routes
   (compojure/GET "/" [] show-landing-page)
   (compojure/GET "/guide" [] (response/redirect "/guide/index.html"))
-  (route/resources "/guide/" {:root "user_guide"})
+  (route/resources "/guide/" {:root       "user_guide"
+                              :mime-types {"blt"    "application/x-beat-link-triggers-configuration"
+                                           "bltx"   "application/x-beat-link-trigger-export"
+                                           "blts"   "application/x-beat-link-trigger-show"
+                                           "maxpat" "application/x-maxmsp-patch-file"}})
   (route/not-found "<p>Page not found.</p>"))
 
 ;; Once the server is started, holds a map where :port contains the
@@ -37,7 +43,7 @@
         (try
           (reset! running-server {:port port
                                   :stop (server/run-server all-routes {:port port})})
-          (catch java.net.BindException e))  ; We will just retry until we are out of ports.
+          (catch java.net.BindException _))  ; We will just retry until we are out of ports.
         (when (and (not @running-server) (< port 65536))
           (recur (inc port)))))
     (:port @running-server)))
