@@ -15,23 +15,24 @@
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [beat-carabiner.core :as beat-carabiner]
+            [clojure.set]
+            [clojure.string]
             [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
             [seesaw.bind :as bind]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
-            [seesaw.icon :as icon]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt Color RenderingHints]
            [java.awt.event WindowEvent]
-           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener MixerStatus Util VirtualCdj]
+           [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
+            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
            [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
             CrateDigger SignatureFinder]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers. Visible to other
@@ -108,7 +109,7 @@
   ([trigger]
    (let [data @(seesaw/user-data trigger)]
      (enabled? trigger data)))
-  ([trigger data]
+  ([_ data]
    (case (get-in data [:value :enabled])
      "Always" true
      "On-Air" (:on-air data)
@@ -179,11 +180,10 @@
   better match. This should only be called with full-blown status
   updates, not beats."
   [status trigger player-selection]
-  (let []
-    (and (some? player-selection)
-         (or (= (:number player-selection) (.getDeviceNumber status))
-             (and (zero? (:number player-selection)) (.isTempoMaster status))
-             (and (neg? (:number player-selection)) (is-better-match? status trigger))))))
+  (and (some? player-selection)
+       (or (= (:number player-selection) (.getDeviceNumber status))
+           (and (zero? (:number player-selection)) (.isTempoMaster status))
+           (and (neg? (:number player-selection)) (is-better-match? status trigger)))))
 
 (defn get-player-choices
   "Returns a sorted list of the player watching choices, including
@@ -259,7 +259,7 @@
           (if (> sleep-ms 5)  ; Long enough to actually try sleeping until we are closer to due.
             (try
               (Thread/sleep (- sleep-ms 5))
-              (catch InterruptedException e))
+              (catch InterruptedException _))
             (loop [target-time (+ (System/nanoTime)
                                   (.toNanos java.util.concurrent.TimeUnit/MILLISECONDS sleep-ms))]
               (when (and (not (Thread/interrupted))
@@ -342,7 +342,7 @@
     (try
       (swap! (seesaw/user-data trigger)
              (fn [trigger-data]
-               (when-let [[clock-thread metro running] (clock-running? trigger-data)]
+               (when-let [[clock-thread _ running] (clock-running? trigger-data)]
                  (reset! running false)
                  (.interrupt clock-thread))
                (dissoc trigger-data :clock)))
