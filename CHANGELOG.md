@@ -56,6 +56,9 @@ This change log follows the conventions of
   environment has changed. This is especially important for
   long-running headless operation, which is being explored with VNC on
   the Raspberry Pi 4.
+- A new feature implemented the CoreMidi4J library allows the user
+  interface to update automatically when MIDI devices are attached or
+  detached even if you are not using a Mac.
 - Documentation of the show, track, and cue structures that are
   available to expressions running inside them.
 - An integration example using an Orange Pi to generate SMPTE linear
