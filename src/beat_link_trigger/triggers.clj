@@ -1567,11 +1567,10 @@
         (seesaw/show! @trigger-frame))
       (do
         ;; Request notifications when MIDI devices appear or vanish
-        (when (CoreMidiDeviceProvider/isLibraryLoaded)
-          (CoreMidiDeviceProvider/addNotificationListener
-           (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
-             (midiSystemUpdated [this]
-               (midi-environment-changed)))))
+        (CoreMidiDeviceProvider/addNotificationListener
+         (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
+           (midiSystemUpdated [this]
+             (midi-environment-changed))))
 
         ;; Open the trigger window
         (create-trigger-window)
