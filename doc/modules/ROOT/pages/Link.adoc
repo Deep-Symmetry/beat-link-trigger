@@ -202,7 +202,7 @@ The `Sync` checkbox works for the Link session in the same way the
 device `Sync` checkboxes in the bottom section do for Pioneer devices,
 as described in the <<sync-control,Sync Control>> section below. This
 Sync Mode is called `Passive` because Ableton Link can only follow the
-Pionner players, it can never control their tempo or beat grid. That
+Pioneer players, it can never control their tempo or beat grid. That
 is why the `Master` radio button in the Ableton Link session remains
 disabled. To enable that, you need to take the Sync Mode all the way
 up to `Full`, which is our next topic.
