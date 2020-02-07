@@ -6,8 +6,7 @@ if [ ! -d Runtime ]; then
          --output runtime.tar.gz
     tar xvf runtime.tar.gz
     amazon-corretto-11.jdk/Contents/Home/bin/jlink --no-header-files --no-man-pages --compress=2 --strip-debug \
-        --add-modules=java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported \
-        --output Runtime
+        --add-modules="$blt_java_modules" --output Runtime
 fi
 
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
