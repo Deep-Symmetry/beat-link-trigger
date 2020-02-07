@@ -40,7 +40,7 @@ copy "$env:uberjar_name" Input/beat-link-trigger.jar
 # Build the native application bundle and installer.
 jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
  --icon ".\.github\resources\BeatLink.ico" `
- --main-jar beat-link-trigger.jar --java-options "-add-modules jdk.javadoc" `
+ --main-jar beat-link-trigger.jar `
  --type app-image `
   --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
