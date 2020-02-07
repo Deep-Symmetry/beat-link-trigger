@@ -45,7 +45,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     codesign --force --preserve-metadata=identifier,requirements --deep --timestamp --options runtime \
              --verbose=4 --entitlements .github/resources/Clojure.entitlements \
              --prefix "org.deepsymmetry.beat-link-trigger." \
-             --sign $blt_mac_signing_name "$dmg_name"
+             --sign "$blt_mac_signing_name" "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
     echo "Sumbitting the disk image to Apple for notarization..."
