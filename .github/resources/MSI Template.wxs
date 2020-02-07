@@ -34,7 +34,7 @@
         <InstallExecuteSequence>
             <FindRelatedProducts />
         </InstallExecuteSequence>
-        <Condition Message="This installer is only supported on Windows 10 64 Bit. You will still be able to use [ProductName] if you download and install Orace Java Runtime Environment (JRE) yourself. After that you can run the .jar file which can be downloaded at the Beat Link Trigger project on Github">
+        <Condition Message="This installer is only supported on Windows 10 64 Bit. You will still be able to use [ProductName] if you download and install a recent OpenJDK distribution yourself. After that you can run the .jar file which can be downloaded at the Beat Link Trigger project on Github">
 			<![CDATA[Installed OR VersionNT64]]>
 		</Condition>
     </Product>
