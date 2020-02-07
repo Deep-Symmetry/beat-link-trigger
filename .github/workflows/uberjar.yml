@@ -127,7 +127,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: Runtime
-        key: ${{ runner.os }}-bundled-jdk
+        key: ${{ runner.os }}-bundled-jdk-v2
 
     - name: Build Windows Installer
       run: .\.github\scripts\build_msi.ps1
