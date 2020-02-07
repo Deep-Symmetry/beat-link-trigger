@@ -11,7 +11,7 @@ env:
   blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
   blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
   blt_mac_notarization_user: "james@deepsymmetry.org"
-  blt_java_modules: java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported
+  blt_java_modules: java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.javadoc,jdk.zipfs,jdk.unsupported
   blt_vendor: Deep Symmetry, LLC
   blt_vendor_folder: Deep Symmetry
   blt_icon: BeatLink.ico
