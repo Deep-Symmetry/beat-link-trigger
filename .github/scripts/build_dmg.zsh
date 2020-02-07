@@ -41,11 +41,23 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --app-version $build_version
 
     # Code sign the disk image more robustly than jpackage is currently able to, for Catalina.
+    echo "Prior to code signing:"
+    ls -l "$dmg_name"
+    codesign -dv --verbose=4 "$dmg_name"
+    echo
+    spctl -a -vv -t install "$dmg_name"
+
     echo "Code signing the disk image."
     codesign --force --preserve-metadata=identifier,requirements --deep --timestamp --options runtime \
              --verbose=4 --entitlements .github/resources/Clojure.entitlements \
              --prefix "org.deepsymmetry.beat-link-trigger." \
              --sign "$blt_mac_signing_name" "$dmg_name"
+
+    echo "After code signing:"
+    ls -l "$dmg_name"
+    codesign -dv --verbose=4 "$dmg_name"
+    echo
+    spctl -a -vv -t install "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
     echo "Sumbitting the disk image to Apple for notarization..."
