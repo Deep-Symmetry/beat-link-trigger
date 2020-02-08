@@ -190,12 +190,6 @@ jobs:
         github_token: ${{ github.token }}
         initial_mrkdwn: ${{ env.initial_description }}
 
-    - name: Cache bundled OpenJDK runtime
-      uses: actions/cache@v1
-      with:
-        path: Runtime
-        key: ${{ runner.os }}-bundled-jdk-v2
-
     - name: Build macOS disk image
       env:
         IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
