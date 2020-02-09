@@ -1,7 +1,14 @@
-# Build the embedded JRE for inside the Mac application, using the OpenJDK 14 the workflow
-# set up, because that is already properly notarized, unlike Amazon Corretto 11.
-jlink --no-header-files --no-man-pages --compress=2 --strip-debug \
-      --add-modules="$blt_java_modules" --output Runtime
+# Download and expand OpenJDK 14 early access JDK, then use it to build the embedded JRE for inside
+# the Mac application. But if it already exists (because we use a cache action to speed things up),
+# we can skip this section.
+if [ ! -d Runtime ]; then
+    curl --location \
+         https://download.java.net/java/GA/jdk14/076bab302c7b4508975440c56f6cc26a/36/GPL/openjdk-14_osx-x64_bin.tar.gz \
+         --output runtime.tar.gz
+    tar xvf runtime.tar.gz
+    jdk-14.jdk/Contents/Home/bin/jlink --no-header-files --no-man-pages --compress=2 --strip-debug \
+        --add-modules="$blt_java_modules" --output Runtime
+fi
 
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.

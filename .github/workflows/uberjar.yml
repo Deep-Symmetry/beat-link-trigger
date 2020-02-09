@@ -180,6 +180,12 @@ jobs:
       with:
         java-version: '14-ea'
 
+    - name: Cache bundled OpenJDK runtime
+      uses: actions/cache@v1
+      with:
+        path: Runtime
+        key: ${{ runner.os }}-bundled-jdk-v3
+
     - name: Download überjar
       uses: Xotl/cool-github-releases@v1
       with:
