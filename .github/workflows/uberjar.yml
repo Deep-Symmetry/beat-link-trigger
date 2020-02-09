@@ -184,7 +184,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: jdk-14.jdk
-        key: ${{ runner.os }}-bundled-jdk-v3
+        key: ${{ runner.os }}-bundled-jdk-v4
 
     - name: Download überjar
       uses: Xotl/cool-github-releases@v1
