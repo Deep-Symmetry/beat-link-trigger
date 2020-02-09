@@ -180,10 +180,10 @@ jobs:
       with:
         java-version: '14-ea'
 
-    - name: Cache bundled OpenJDK runtime
+    - name: Cache OpenJDK 14 release candidate
       uses: actions/cache@v1
       with:
-        path: Runtime
+        path: jdk-14.jdk
         key: ${{ runner.os }}-bundled-jdk-v3
 
     - name: Download überjar
