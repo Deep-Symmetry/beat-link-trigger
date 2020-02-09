@@ -971,6 +971,8 @@ If you only want to generate timecode when particular tracks are
 playing, instead of loading the configuration file described in the
 previous section, you can leave your overall configuration alone, and
 open this link:{attachmentsdir}/OrangePiSMPTE.bls[show file] instead.
+This is the more realistic and ideal approach, however you'd need to 
+have the tracks available beforehand so you can load them in.
 
 As with the trigger approach, you will need to edit line 1 of the
 `Came Online` expression to match the IP address that the Pi is using,
