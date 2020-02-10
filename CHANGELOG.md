@@ -6,12 +6,18 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+
+## [0.6.1] - 2020-02-09
+
 ### Fixed
 
 - The program could get stuck in an unresponsive state at startup if
   there were multiple copies running (thanks for the report
-  @drummerclint), or could fail in subtler ways if rekordbox was
-  running. Both are now gracefully reported.
+  [@drummerclint](https://github.com/drummerclint)), or could fail in
+  subtler ways if rekordbox was running. Both are now gracefully
+  reported.
 - The File→Exit menu option apparently never worked on Windwos or
   Linux, I only discovered this when I started working on
   deep-dish-pi, my planned custom Raspberry Pi distribution with
@@ -1012,7 +1018,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.4...v0.6.0
 [0.5.4]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.2...v0.5.3
