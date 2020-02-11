@@ -6,7 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- Added type hints throughout so the Clojure compiler could avoid the
+  use of reflection, which will improve performance.
 
 
 ## [0.6.1] - 2020-02-09

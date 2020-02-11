@@ -112,7 +112,7 @@
           file (if (or (nil? required-extension) (.. file (getAbsolutePath) (endsWith required-extension)))
                  file
                  (clojure.java.io/file (str (.getAbsolutePath file) required-extension)))]
-      (or (when (not (.exists file)) file)
+      (or (when-not (.exists file) file)
           (let [^JDialog confirm (seesaw/dialog
                                   :content (str "Replace existing file?\nThe file " (.getName file)
                                                 " already exists, and will be overwritten if you proceed.")
@@ -134,8 +134,7 @@
 (defn remove-blanks
   "Converts an empty string to a `nil` value so `or` will reject it."
   [s]
-  (if (clojure.string/blank? s)
-    nil
+  (when-not (clojure.string/blank? s)
     s))
 
 (defn assign-unique-name

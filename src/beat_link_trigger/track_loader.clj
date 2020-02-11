@@ -6,7 +6,8 @@
   for loading tracks into players. When working with the local
   filesytem we provide a simple track selection interface so they can
   be added to show windows."
-  (:require [beat-link-trigger.menus :as menus]
+  (:require [clojure.string]
+            [beat-link-trigger.menus :as menus]
             [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
@@ -19,14 +20,14 @@
            [java.util.concurrent.atomic AtomicInteger]
            [javax.swing JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]
-           [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
-            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate DeviceUpdateListener
+           [org.deepsymmetry.beatlink CdjStatus$TrackSourceSlot CdjStatus$TrackType
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]
            [org.deepsymmetry.cratedigger Database Database$PlaylistFolderEntry]
-           [org.deepsymmetry.cratedigger.pdb RekordboxPdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
-            RekordboxPdb$ArtistRow RekordboxPdb$GenreRow RekordboxPdb$PlaylistTreeRow RekordboxPdb$PlaylistEntryRow]))
+           [org.deepsymmetry.cratedigger.pdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
+            RekordboxPdb$ArtistRow RekordboxPdb$GenreRow]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to pick a track and
@@ -1306,7 +1307,7 @@
   "Formats a numeric rating as a string of zero through five stars in a
   field of periods."
   [rating]
-  (apply str (take 5 (concat (take rating (repeat "*")) (repeat ".")))))
+  (clojure.string/join (take 5 (concat (take rating (repeat "*")) (repeat ".")))))
 
 ;; Creates a menu item node for a rating node.
 (defmethod menu-item-node Message$MenuItemType/RATING rating-node
@@ -1623,7 +1624,7 @@
       (loop [index 0]
         (if (< index (.getChildCount root))
           (let [sibling (.. tree getModel (getChild root index))]
-            (if (neg? (.compareTo (.toString node) (.toString sibling)))
+            (if (neg? (.compareTo (str node) (str sibling)))
               (.. tree getModel (insertNodeInto node root index))  ; Found node we should be in front of.
               (recur (inc index))))
           (.. tree getModel (insertNodeInto node root index)))))))  ; We go at the end of the root.
