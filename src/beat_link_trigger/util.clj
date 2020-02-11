@@ -1,11 +1,18 @@
 (ns beat-link-trigger.util
   "Provides commonly useful utility functions."
-  (:require [seesaw.core :as seesaw]
+  (:require [clojure.edn]
+            [clojure.java.io]
+            [clojure.set]
+            [clojure.string]
+            [me.raynes.fs :as fs]
             [overtone.midi :as midi]
-            [me.raynes.fs :as fs])
-  (:import [org.deepsymmetry.beatlink DeviceFinder MediaDetails]
+            [seesaw.core :as seesaw])
+  (:import [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder MediaDetails]
+           [org.deepsymmetry.beatlink.data CueList$Entry WaveformPreviewComponent]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
+           [java.io File]
            [javax.sound.midi Sequencer Synthesizer]
+           [javax.swing JDialog JFrame]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def ^:private project-version
@@ -83,7 +90,7 @@
 
 (defn trim-extension
   "Removes a file extension from the end of a string."
-  [s]
+  [^String s]
   (let [dot (.lastIndexOf s ".")]
     (if (pos? dot) (subs s 0 dot) s)))
 
@@ -96,7 +103,7 @@
   and `nil` if the user said to cancel the operation. If a non-`nil`
   window is passed in `parent`, the confirmation dialog will be
   centered over it."
-  [file required-extension parent]
+  [^File file ^String required-extension parent]
   (when file
     (let [required-extension (when required-extension
                                (if (.startsWith required-extension ".")
@@ -106,10 +113,10 @@
                  file
                  (clojure.java.io/file (str (.getAbsolutePath file) required-extension)))]
       (or (when (not (.exists file)) file)
-          (let [confirm (seesaw/dialog
-                         :content (str "Replace existing file?\nThe file " (.getName file)
-                                       " already exists, and will be overwritten if you proceed.")
-                         :type :warning :option-type :yes-no)]
+          (let [^JDialog confirm (seesaw/dialog
+                                  :content (str "Replace existing file?\nThe file " (.getName file)
+                                                " already exists, and will be overwritten if you proceed.")
+                                  :type :warning :option-type :yes-no)]
             (.pack confirm)
             (.setLocationRelativeTo confirm parent)
             (let [result (when (= :success (seesaw/show! confirm)) file)]
@@ -121,8 +128,8 @@
   network (ignoring our virtual player, and any mixers or rekordbox
   instances)."
   []
-  (filter #(< % 16) (map #(.getNumber %) (.getCurrentDevices (DeviceFinder/getInstance)))))
-
+  (filter #(< % 16) (map (fn [^DeviceAnnouncement device] (.getNumber device))
+                         (.getCurrentDevices (DeviceFinder/getInstance)))))
 
 (defn remove-blanks
   "Converts an empty string to a `nil` value so `or` will reject it."
@@ -153,7 +160,7 @@
          largest-number (reduce (fn [result name]
                                   (if (= template name)
                                     (max result 1)
-                                    (if-let [[_ n] (re-matches (re-pattern (str quoted "\\s+(\\d+)")) name)]
+                                    (if-let [[_ ^String n] (re-matches (re-pattern (str quoted "\\s+(\\d+)")) name)]
                                       (max result (Long/valueOf n))
                                       result)))
                                 0
@@ -168,17 +175,17 @@
   this ability built in. Takes the text of the placeholder, the
   component into which it should be painted, and the graphics content
   in which painting is taking place."
-  [text c g]
+  [^String text ^javax.swing.JTextField c ^java.awt.Graphics2D g]
   (when (zero? (.. c (getText) (length)))
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
-    (.setColor g java.awt.Color/gray)
+    (.setColor g Color/gray)
     (.drawString g text (.. c (getInsets) left)
                  (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
 
 (defn show-popup-from-button
   "Displays a popup menu when the gear button is clicked as an
   ordinary mouse event."
-  [target popup event]
+  [target ^javax.swing.JPopupMenu popup ^java.awt.event.MouseEvent event]
   (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
 (defmacro case-enum
@@ -272,7 +279,7 @@
   saved, and the window size is not recorded."
   ([window k]
    (save-window-position window k false))
-  ([window k no-size?]
+  ([^JFrame window k no-size?]
    (swap! window-positions assoc k (if no-size?
                                      [(.getX window) (.getY window)]
                                      [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))))
@@ -284,7 +291,7 @@
   right of the screen, the window is instead positioned centered on
   the supplied parent window; if `parent` is nil, `window` is centered
   on the screen."
-  [window k parent]
+  [^JFrame window k parent]
   (let [[x y width height] (get @window-positions k)
         dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
     (if (or (nil? x)
@@ -336,15 +343,15 @@
 
 (defn cue-preview-indicator-rectangle
   "Calculates the outline of a cue/loop's indicator within the
-  coordinate system of the waveform preview comment."
-  [preview cue]
+  coordinate system of the waveform preview component."
+  [^WaveformPreviewComponent preview ^CueList$Entry cue]
   (let [x (.millisecondsToX preview (.cueTime cue))]
     (java.awt.geom.Rectangle2D$Double. (- x 4.0) 0.0 9.0 12.0)))
 
 (defn describe-cue
   "Produces a brief textual description of a cue/loop suitable for a
   tooltip."
-  [cue]
+  [^CueList$Entry cue]
   (let [comment (.comment cue)
         hot     (.hotCueNumber cue)
         kind    (if (pos? hot)
@@ -380,7 +387,7 @@
   lower bound but excludes the upper bound), and either can be `nil`
   to indicate negative or positive infinity. A single point at `n` is
   represented by `[n n]`."
-  [[a b] [c d]]
+  [[a b] [c _]]
   (boolean (and b c
                 (if (= a b)
                   (neg? (compare b c))
@@ -451,7 +458,7 @@
        (iget interval-map from to))
      (get interval-map [x x])))
   ([interval-map from to]
-   (reduce (fn [result [r vs]]
+   (reduce (fn [result [_ vs]]
              (clojure.set/union result vs))
            #{}
            (take-while (fn [[[start]]] (< (or start (dec to)) to)) (matching-subsequence interval-map from nil)))))
@@ -469,14 +476,14 @@
   `buffer` is a byte array of the correct size for the object to be
   created which has already had the object-specific fields
   initialized."
-  [buffer options]
-  (let [{:keys [address device-name device-number port]
+  [^bytes buffer options]
+  (let [{:keys [^java.net.InetAddress address ^String device-name ^int device-number ^int port]
          :or   {address       (java.net.InetAddress/getLocalHost)
                 device-name   "Simulator"
                 device-number 1
                 port          50001}} options]
     (System/arraycopy packet-header 0 buffer 0 (count packet-header))
-    (doseq [[i b] (take 20 (map-indexed (fn [i c] [(+ i 0x0b) (byte c)]) device-name))]
+    (doseq [[^int i ^byte b] (take 20 (map-indexed (fn [i c] [(+ i 0x0b) (byte c)]) device-name))]
       (aset buffer i b))
     (aset buffer 0x1f (byte 1))
     (aset buffer 0x21 (byte device-number))
@@ -506,7 +513,7 @@
    (simulate-player-status {}))
   ([options]
    (let [buffer (byte-array 0xd4)
-         {:keys [pitch bpm bb beat device-number rekordbox a d-r s-r t-r rekordbox track p-1 f p-2 p-3 packet]
+         {:keys [pitch bpm bb beat device-number a d-r s-r t-r rekordbox track p-1 f p-2 p-3 packet]
           :or   {pitch         1048576
                  bpm           12800
                  bb            1
