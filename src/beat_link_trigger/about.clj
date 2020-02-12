@@ -1,13 +1,13 @@
 (ns beat-link-trigger.about
-  "An informational About box."
+  "An informational About box. Also provides the user interface for when
+  Beat Link Trigger is searching for a Pioneer DJ Link network."
   (:require [beat-link-trigger.util :as util]
             [clojure.java.browse]
-            [seesaw.core :as seesaw]
-            [seesaw.graphics :as graphics])
-  (:import [java.awt RenderingHints]
-           [java.awt.image BufferedImage]
+            [clojure.java.io]
+            [seesaw.core :as seesaw])
+  (:import [java.awt RenderingHints Graphics2D]
            [javax.imageio ImageIO]
-           [javax.swing JTextArea]))
+           [javax.swing JButton JFrame JTextArea]))
 
 (defonce ^{:private true
            :doc "Holds the About window when it is open."}
@@ -15,7 +15,7 @@
 
 (defn- paint-backdrop
   "Draw the animated Deep Symmetry backdrop in a component."
-  [c g backdrop start]
+  [c ^Graphics2D g backdrop start]
   (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
   (let [w (seesaw/width c)
         h (seesaw/height c)]
@@ -54,15 +54,15 @@
     (simulate-label version-label)
     (simulate-label java-label)
     (seesaw/listen panel
-                   :component-resized (fn [e]
+                   :component-resized (fn [_]
                                         (let [w (seesaw/width panel)
                                               h (seesaw/height panel)]
                                           (seesaw/config! source-button :bounds [(- w 72) (- h 32) :* :*])
                                           (seesaw/config! java-label :bounds [:* (- h 55) :* :*])))
-                   :mouse-clicked (fn [e]
+                   :mouse-clicked (fn [_]
                                     (clojure.java.browse/browse-url "http://deepsymmetry.org")))
     (seesaw/listen source-button
-                   :mouse-clicked (fn [e]
+                   :mouse-clicked (fn [_]
                                     (clojure.java.browse/browse-url "https://github.com/Deep-Symmetry/beat-link-trigger")))
     panel))
 
@@ -74,20 +74,20 @@
   paint the backdrop; it should assign that as the `:paint` option of
   the container it creates."
   [content-fn & {:keys [title] :or {title "About BeatLinkTrigger"}}]
-  (let [backdrop (ImageIO/read (clojure.java.io/resource "images/Backdrop.png"))
-        start (System/currentTimeMillis)
-        paint-fn (fn [c g] (paint-backdrop c g backdrop start))
-        root (seesaw/frame :title title :on-close :dispose
-                           :minimum-size [400 :by 400]
-                           :content (content-fn paint-fn))
-        animator (future (loop [] (Thread/sleep 15) (.repaint root) (recur)))]
+  (let [backdrop     (ImageIO/read (clojure.java.io/resource "images/Backdrop.png"))
+        start        (System/currentTimeMillis)
+        paint-fn     (fn [c g] (paint-backdrop c g backdrop start))
+        ^JFrame root (seesaw/frame :title title :on-close :dispose
+                                   :minimum-size [400 :by 400]
+                                   :content (content-fn paint-fn))
+        animator     (future (loop [] (Thread/sleep 15) (.repaint root) (recur)))]
     (seesaw/listen root
-                   :window-closed (fn [e]  ; Clean up our resources and record we are closed
+                   :window-closed (fn [_]  ; Clean up our resources and record we are closed
                                     (future-cancel animator)
                                     (reset! frame nil))
-                   :component-resized (fn [e]  ; Stay square
-                                        (let [w (seesaw/width root)
-                                              h (seesaw/height root)]
+                   :component-resized (fn [_]  ; Stay square
+                                        (let [^Integer w (seesaw/width root)
+                                              ^Integer h (seesaw/height root)]
                                           (when (not= w h)
                                             (let [side (Math/min w h)]
                                               (seesaw/config! root :size [side :by side]))))))
@@ -102,7 +102,7 @@
   "Show the About window."
   []
   (seesaw/invoke-later
-   (.toFront (swap! frame #(or % (create-frame create-about-panel))))))
+   (.toFront ^JFrame (swap! frame #(or % (create-frame create-about-panel))))))
 
 (defn- create-searching-panel
   "Create the panel explaining that we are searching for DJ Link
@@ -110,14 +110,14 @@
   to `true` if the user clicks the corresponding button, and
   `paint-fn` is the function which paints the animated backdrop."
   [continue-offline quit paint-fn]
-  (let [continue-button (seesaw/button :text "Continue Offline"
-                                       :listen [:action-performed (fn [_] (reset! continue-offline true))])
-        quit-button     (seesaw/button :text "Quit"
-                                       :listen [:action-performed (fn [_] (reset! quit true))])
-        buttons         (seesaw/grid-panel :columns 3 :opaque? false
-                                           :items [continue-button (seesaw/label) quit-button])
-        panel           (seesaw/border-panel :border 10 :background "black" :paint paint-fn
-                                             :south buttons :north (seesaw/progress-bar :indeterminate? true))]
+  (let [^JButton continue-button (seesaw/button :text "Continue Offline"
+                                                :listen [:action-performed (fn [_] (reset! continue-offline true))])
+        ^JButton quit-button     (seesaw/button :text "Quit"
+                                                :listen [:action-performed (fn [_] (reset! quit true))])
+        buttons                  (seesaw/grid-panel :columns 3 :opaque? false
+                                                    :items [continue-button (seesaw/label) quit-button])
+        panel                    (seesaw/border-panel :border 10 :background "black" :paint paint-fn
+                                                      :south buttons :north (seesaw/progress-bar :indeterminate? true))]
     (.setSize continue-button (.getPreferredSize continue-button))
     (.setSize quit-button (.getSize continue-button))
     (seesaw/move-to! continue-button 10 350)
