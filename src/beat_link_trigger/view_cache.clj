@@ -1,17 +1,12 @@
 (ns beat-link-trigger.view-cache
   "Provides an interface for viewing the contents of a metadata cache
   file, so triggers can be worked on without requiring access to an
-  actual player and media stick."
+  actual player and media stick. This has largely been superceded by
+  the Show interface."
   (:require [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
-            [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data MetadataFinder DataReference MetadataCache]
-           [javax.swing JFileChooser]))
-
-(def ^:private metadata-finder
-  "The object that can obtain track metadata and manage cache files."
-  (MetadataFinder/getInstance))
+  (:import [org.deepsymmetry.beatlink.data DataReference MetadataCache]))
 
 (def ^:private slot
   "The slot reference we always use when building metadata from the
@@ -55,13 +50,13 @@
                            :size [800 :by 400]
                            :on-close :dispose
                            :content (seesaw/scrollable (seesaw/table :model (create-model cache))))]
-    (seesaw/listen root :window-closed (fn [e] (.close cache)))
+    (seesaw/listen root :window-closed (fn [_] (.close cache)))
     (make-window-visible parent-frame root)))
 
 (defn choose-file
-  "Provides an interface for the user to choose a file to list. The
-  argument is a parent frame on which to center the chooser dialog and
-  cavhe view window, if desired."
+  "Provides an interface for the user to choose a file to list. `parent`
+  is a frame on which to center the chooser dialog and cache view
+  window, if desired, and can be `nil` to center them on the screen."
   [parent]
   (when-let [file (chooser/choose-file
                    parent
