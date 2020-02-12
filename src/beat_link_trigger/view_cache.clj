@@ -6,7 +6,8 @@
   (:require [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data DataReference MetadataCache]))
+  (:import [org.deepsymmetry.beatlink.data DataReference MetadataCache]
+           [javax.swing JFrame]))
 
 (def ^:private slot
   "The slot reference we always use when building metadata from the
@@ -16,7 +17,7 @@
 (defn- make-window-visible
   "Ensures that a window is centered on the triggers
   window, in front, and shown."
-  [parent-frame new-frame]
+  [^JFrame parent-frame ^JFrame new-frame]
   (.setLocationRelativeTo new-frame parent-frame)
   (seesaw/show! new-frame)
   (.toFront new-frame))
@@ -32,7 +33,7 @@
       (getRowCount [] (count ids))
       (isCellEditable [row col] false)
       (getColumnName [col] (nth column-names col))
-      (getValueAt [row col]
+      (getValueAt [^long row ^long col]
         (let [id (nth ids row)]
           (if (zero? col)
             id
@@ -45,7 +46,7 @@
 
 (defn- create-view
   "Create the window showing the contents of a chosen cache file."
-  [parent-frame cache]
+  [^JFrame parent-frame ^MetadataCache cache]
   (let [root (seesaw/frame :title (str "Contents of " (.getName cache))
                            :size [800 :by 400]
                            :on-close :dispose
