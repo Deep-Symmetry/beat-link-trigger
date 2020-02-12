@@ -6,7 +6,8 @@
   for loading tracks into players. When working with the local
   filesytem we provide a simple track selection interface so they can
   be added to show windows."
-  (:require [clojure.string]
+  (:require [clojure.java.io]
+            [clojure.string]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
@@ -17,14 +18,15 @@
   (:import [beat_link_trigger.tree_node IMenuEntry ISearchEntry]
            beat_link_trigger.util.PlayerChoice
            [java.awt.event WindowEvent]
+           [java.io File]
            [java.util.concurrent.atomic AtomicInteger]
-           [javax.swing JTree]
+           [javax.swing JButton JComboBox JDialog JFrame JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode TreePath]
-           [org.deepsymmetry.beatlink CdjStatus$TrackSourceSlot CdjStatus$TrackType
+           [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
-           [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType]
+           [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType NumberField StringField]
            [org.deepsymmetry.cratedigger Database Database$PlaylistFolderEntry]
            [org.deepsymmetry.cratedigger.pdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
             RekordboxPdb$ArtistRow RekordboxPdb$GenreRow]))
@@ -80,33 +82,33 @@
   "Looks up the kind of a menu item given the response message
   containing the item. May return `nil` if we do not recognize the
   menu item type code."
-  [item]
-  (.get Message/MENU_ITEM_TYPE_MAP (.getValue (nth (.arguments item) 6))))
+  ^Message$MenuItemType [^Message item]
+  (.get Message/MENU_ITEM_TYPE_MAP (.getValue ^NumberField (nth (.arguments item) 6))))
 
 (defn- menu-item-label
   "Retrieve the label to be displayed on a menu item given the response
   message containing the item."
-  [item]
-  (str (.getValue (nth (.arguments item) 3))))
+  ^String [^Message item]
+  (str (.getValue ^StringField (nth (.arguments item) 3))))
 
 (defn- menu-item-label-2
   "Retrieve the seconary label associated with a menu item given the
   response message containing the item."
-  [item]
-  (str (.getValue (nth (.arguments item) 5))))
+  ^String [^Message item]
+  (str (.getValue ^StringField (nth (.arguments item) 5))))
 
 (defn- menu-item-id
   "Retrieve the primary ID associated with menu item (e.g. the track ID
   for a track entry), given the response message containing the item."
-  [item]
-  (.getValue (nth (.arguments item) 1)))
+  ^long [^Message item]
+  (.getValue ^NumberField (nth (.arguments item) 1)))
 
 (defmulti menu-item-node
   "A multi-method that will create the appropriate kind of menu item
   tree node given the response message that contains it, and the slot
   reference that will allow it to communicate with the appropriate
   dbserver database to load itself or its children."
-  (fn [^Message item ^SlotReference slot-reference] (menu-item-kind item)))
+  (fn [^Message item _] (menu-item-kind item)))
 
 (defn- empty-node
   "Creates an inert child to explain that its parent is empty. Unless a
@@ -132,7 +134,7 @@
 (defmethod menu-item-node :default unrecognized-item-node
   [^Message item ^SlotReference slot-reference]
   (let [kind (or (menu-item-kind item)
-                 (format "0x%x" (.getValue (nth (.arguments item) 6))))]  ; Show number if we can't name it.
+                 (format "0x%x" (.getValue ^NumberField (nth (.arguments item) 6))))]  ; Show number if can't name it.
     (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
        (toString [] (str (menu-item-label item) " [unrecognized (" kind ")" "]"))
@@ -163,7 +165,8 @@
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString []
-       (let [artist-name (when-let [artist (when show-artist (.get (.artistIndex database) (.artistId track)))]
+       (let [artist-name (when-let [^RekordboxPdb$ArtistRow artist
+                                    (when show-artist (.get (.artistIndex database) (.artistId track)))]
                            (Database/getText (.name artist)))]
          (str (Database/getText (.title track))
               (when-not (clojure.string/blank? artist-name)
@@ -178,7 +181,7 @@
   "If, after loading a node, there are still no elements in it, create a
   marker node to make it clear that it is actually empty, and not just
   still loading."
-  [node]
+  [^DefaultMutableTreeNode node]
   (when (unloaded? node)
     (.add node (empty-node))))
 
@@ -194,7 +197,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [title-tracks (.. database trackTitleIndex values)]
            (doseq [track-id title-tracks]
@@ -216,7 +219,7 @@
      (getId [] (int id))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [^Database$PlaylistFolderEntry entry (.. database playlistFolderIndex (get id))]
            (when entry
@@ -238,7 +241,7 @@
      (getId [] (int id))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [^long track-id (.. database playlistIndex (get id))]
            (when-let [^RekordboxPdb$TrackRow track (.. database trackIndex (get track-id))]
@@ -258,7 +261,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [track-id (.. database trackAlbumIndex (get (.id album)))]
            (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))
@@ -277,7 +280,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [name-albums (.. database albumNameIndex values)]
            (doseq [album-id name-albums]
@@ -297,7 +300,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [track-id (.. database trackArtistIndex (get (.id artist)))]
            (.add node (file-track-node database (.get (.trackIndex database) track-id) slot false)))
@@ -316,7 +319,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [name-artists (.. database artistNameIndex values)]
            (doseq [artist-id name-artists]
@@ -336,7 +339,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [track-id (.. database trackGenreIndex (get (.id genre)))]
            (.add node (file-track-node database (.get (.trackIndex database) track-id) slot true)))
@@ -355,7 +358,7 @@
      (getId [] (int 0))
      (getSlot [] slot)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (doseq [name-genres (.. database genreNameIndex values)]
            (doseq [genre-id name-genres]
@@ -380,7 +383,7 @@
      (getSlot []  ; Return a dummy slot even though file searches don't use it because the search UI needs one.
        (or slot (SlotReference/getSlotReference 0 CdjStatus$TrackSourceSlot/NO_TRACK)))
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (.add node (empty-search-node))))
      (getDatabase [] database))
@@ -404,7 +407,7 @@
   "Given a list of file nodes which have been loaded as a file node's
   children, adds them to the node. If none were found, adds an inert
   child to explain that the node was empty."
-  [^DefaultMutableTreeNode node items ^SlotReference slot-reference]
+  [^DefaultMutableTreeNode node items _]
   (if (seq items)
     (doseq [item items]
       (.add node item))
@@ -415,8 +418,9 @@
   menu tree and offer to compose a report about them to help fix that."
   [unrecognized]
   ;; Format a report about each kind of node we did not recognize.
-  (let [reports (map (fn [{:keys [node item]}]
-                       (let [player (.. node getUserObject getSlot player)
+  (let [reports (map (fn [{:keys [^DefaultMutableTreeNode node item]}]
+                       (let [entry ^IMenuEntry (.getUserObject node)
+                             player (.. entry getSlot player)
                              device (.. device-finder (getLatestAnnouncementFrom player) getName)
                              menu   (clojure.string/join "->" (get-parent-list node))]
                          (str "When loading menu " menu " from device named " device ", don't understand: " item)))
@@ -456,11 +460,11 @@
   item, so we can gather them and offer to report on them. Returns
   `nil` if the node is recognized, or the menu item type code that was
   not recognized."
-  [^TreeNode node ^Message item]
+  [^DefaultMutableTreeNode node ^Message item]
   (let [^IMenuEntry entry (.getUserObject node)]
     (when (and (= -1 (.getId entry))
                (.contains (str node) " [unrecognized ("))
-      (.getValue (nth (.arguments item) 6)))))
+      (.getValue ^NumberField (nth (.arguments item) 6)))))
 
 (defn- attach-menu-node-children
   "Given a list of menu items which have been loaded as a node's
@@ -493,7 +497,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestHistoryMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -507,7 +511,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]))
+     (loadChildren [^DefaultMutableTreeNode node]))
    false))
 
 ;; Creates a menu item node for a history playlist
@@ -519,7 +523,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestHistoryPlaylistFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference))))
@@ -534,7 +538,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTrackMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -548,7 +552,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestPlaylistMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -562,7 +566,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestPlaylistItemsFrom metadata-finder
                                                                (.player slot-reference) (.slot slot-reference)
@@ -579,7 +583,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node
@@ -597,7 +601,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestArtistMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -605,14 +609,14 @@
 (defn- create-all-original-artist-albums-node
   "Handles the ALL menu item when listing original artists. Creates an
   appropriate node to implement it."
-  [artist-id ^Message item ^SlotReference slot-reference]
+  [artist-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestOriginalArtistAlbumTrackMenuFrom menu-loader slot-reference 0 artist-id -1) slot-reference))))
@@ -629,7 +633,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
            (attach-menu-node-children
@@ -646,7 +650,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestOriginalArtistMenuFrom menu-loader slot-reference 0) slot-reference
@@ -656,14 +660,14 @@
 (defn- create-all-remixer-albums-node
   "Handles the ALL menu item when listing remixers. Creates an
   appropriate node to implement it."
-  [artist-id ^Message item ^SlotReference slot-reference]
+  [artist-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestRemixerAlbumTrackMenuFrom menu-loader slot-reference 0 artist-id -1) slot-reference))))
@@ -679,7 +683,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
            (attach-menu-node-children
@@ -696,7 +700,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestRemixerMenuFrom menu-loader slot-reference 0) slot-reference
@@ -712,7 +716,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestAlbumMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -726,7 +730,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestColorMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -740,7 +744,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 1) slot-reference))))
    true))
@@ -754,7 +758,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 2) slot-reference))))
    true))
@@ -768,7 +772,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 3) slot-reference))))
    true))
@@ -782,7 +786,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 4) slot-reference))))
    true))
@@ -796,7 +800,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 5) slot-reference))))
    true))
@@ -810,7 +814,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 6) slot-reference))))
    true))
@@ -824,7 +828,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 7) slot-reference))))
    true))
@@ -838,7 +842,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 8) slot-reference))))
    true))
@@ -852,7 +856,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestBitRateMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -866,7 +870,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTimeMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -880,7 +884,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByTimeFrom menu-loader slot-reference 0 (menu-item-id item))
                                     slot-reference))))
@@ -895,7 +899,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestYearMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -905,14 +909,14 @@
 (defn- create-all-years-decade-node
   "Handles the ALL menu item when listing genre artist albums. Creates
   an appropriate node to implement it."
-  [decade ^Message item ^SlotReference slot-reference]
+  [decade _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL YEARS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByDecadeAndYear menu-loader slot-reference 0 decade -1)
                                slot-reference))))
@@ -931,7 +935,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
            (attach-menu-node-children node (.requestTracksByDecadeAndYear menu-loader slot-reference 0 decade year)
                                       slot-reference))))
@@ -947,7 +951,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
            (attach-menu-node-children node (.requestYearsByDecadeFrom menu-loader slot-reference 0 decade)
                                       slot-reference
@@ -964,7 +968,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestGenreMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -972,14 +976,14 @@
 (defn- create-all-genre-artist-albums-node
   "Handles the ALL menu item when listing genre artist albums. Creates
   an appropriate node to implement it."
-  [genre-id artist-id ^Message item ^SlotReference slot-reference]
+  [genre-id artist-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestGenreArtistAlbumTrackMenuFrom menu-loader slot-reference 0 genre-id artist-id -1)
@@ -996,7 +1000,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [album-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1008,14 +1012,14 @@
 (defn- create-all-genre-artists-node
   "Handles the ALL menu item when listing genre artists. Creates an
   appropriate node to implement it."
-  [genre-id ^Message item ^SlotReference slot-reference]
+  [genre-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ARTISTS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestGenreArtistAlbumMenuFrom menu-loader slot-reference 0 genre-id -1) slot-reference
@@ -1033,7 +1037,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1051,7 +1055,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [genre-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1069,7 +1073,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestLabelMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -1077,14 +1081,14 @@
 (defn- create-all-label-artist-albums-node
   "Handles the ALL menu item when listing label artist albums. Creates
   an appropriate node to implement it."
-  [label-id artist-id ^Message item ^SlotReference slot-reference]
+  [label-id artist-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestLabelArtistAlbumTrackMenuFrom menu-loader slot-reference 0 label-id artist-id -1)
@@ -1101,7 +1105,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [album-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1113,14 +1117,14 @@
 (defn- create-all-label-artists-node
   "Handles the ALL menu item when listing label artists. Creates an
   appropriate node to implement it."
-  [label-id ^Message item ^SlotReference slot-reference]
+  [label-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ARTISTS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestLabelArtistAlbumMenuFrom menu-loader slot-reference 0 label-id -1) slot-reference
@@ -1138,7 +1142,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1156,7 +1160,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [label-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1170,14 +1174,14 @@
 (defn- create-all-artist-album-tracks-node
   "Handles the ALL menu item when listing artist albums. Creates an
   appropriate node to implement it."
-  [artist-id ^Message item ^SlotReference slot-reference]
+  [artist-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL TRACKS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestArtistAlbumTrackMenuFrom menu-loader slot-reference 0 artist-id -1) slot-reference))))
@@ -1188,14 +1192,14 @@
 (defn- create-all-artist-albums-node
   "Handles the ALL menu item when listing artists. Creates an
   appropriate node to implement it."
-  [artist-id ^Message item ^SlotReference slot-reference]
+  [artist-id _ ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
      (toString [] "[ALL ALBUMS]")
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children
           node (.requestArtistAlbumMenuFrom menu-loader slot-reference 0 artist-id) slot-reference
@@ -1211,7 +1215,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [artist-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1228,7 +1232,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestKeyMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -1247,9 +1251,9 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
-           (let [distance (.getValue (first (.arguments item)))
+           (let [distance (.getValue ^NumberField (first (.arguments item)))
                  key-id   (menu-item-id item)]
              (attach-menu-node-children
               node (.requestTracksByKeyAndDistanceFrom menu-loader slot-reference 0 key-id distance) slot-reference)))))
@@ -1265,7 +1269,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (let [key-id (menu-item-id item)]
            (attach-menu-node-children
@@ -1283,7 +1287,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
            (attach-menu-node-children
             node (.requestTracksByBitRateFrom menu-loader slot-reference 0 bit-rate) slot-reference))))
@@ -1298,7 +1302,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestRatingMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -1318,7 +1322,7 @@
      (getId [] (int (menu-item-id item)))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestTracksByRatingFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference))))
@@ -1333,7 +1337,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestBpmMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
@@ -1359,7 +1363,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
            (attach-menu-node-children node (.requestTracksByBpmRangeFrom menu-loader slot-reference 0 tempo distance)
                                  slot-reference))))
@@ -1376,7 +1380,7 @@
        (getId [] (int tempo))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
            (attach-menu-node-children node (.requestBpmRangeMenuFrom menu-loader slot-reference 0 tempo)
                                  slot-reference
@@ -1414,7 +1418,7 @@
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference
@@ -1434,7 +1438,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestFolderMenuFrom menu-loader slot-reference 0 -1) slot-reference
                                {Message$MenuItemType/FOLDER create-filesystem-folder-node
@@ -1450,7 +1454,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestFilenameMenuFrom menu-loader slot-reference 0)
                                     slot-reference))))
@@ -1465,7 +1469,7 @@
      (getId [] (int 0))
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (attach-menu-node-children node (.requestAlbumTrackMenuFrom menu-loader slot-reference 0 (menu-item-id item))
                                slot-reference))))
@@ -1518,7 +1522,7 @@
      (getId [] 0)
      (getSlot [] slot-reference)
      (getTrackType [] nil)
-     (loadChildren [^javax.swing.tree.TreeNode node]
+     (loadChildren [^DefaultMutableTreeNode node]
        (when (unloaded? node)
          (.add node (empty-search-node))))
      (getDatabase [] nil))
@@ -1564,7 +1568,7 @@
        (getId [] (int 0))
        (getSlot [] slot-reference)
        (getTrackType [] nil)
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (unloaded? node)
            (let [database (.findDatabase (org.deepsymmetry.beatlink.data.CrateDigger/getInstance) slot-reference)]
              (if (and database (not (.getUseStandardPlayerNumber virtual-cdj)))
@@ -1590,11 +1594,12 @@
   specified player slot, returning it if it exists. Must be invoked on
   the Swing event dispatch thread."
   [^JTree tree ^SlotReference slot]
-  (let [root (.. tree getModel getRoot)]
+  (let [^TreeNode root (.. tree getModel getRoot)]
     (loop [index 0]
       (when (< index (.getChildCount root))
-        (let [child (.. tree getModel (getChild root index))]
-          (if (= (.. child getUserObject getSlot) slot)
+        (let [^DefaultMutableTreeNode child (.. tree getModel (getChild root index))
+              ^IMenuEntry entry             (.getUserObject child)]
+          (if (= (.getSlot entry) slot)
             child
             (recur (inc index))))))))
 
@@ -1603,9 +1608,9 @@
   specified player slot, removing it if it exists. If there are no
   slots left to load from, closes the window. Must be invoked on the
   Swing event dispatch thread."
-  [^JTree tree ^SlotReference slot stop-listener]
+  [^JTree tree ^SlotReference slot ^LifecycleListener stop-listener]
   (when-let [node (find-slot-node tree slot)]
-    (.removeNodeFromParent (.getModel tree) node)
+    (.removeNodeFromParent ^DefaultTreeModel (.getModel tree) node)
     (let [model (.getModel tree)]
       (when (zero? (.getChildCount model (.getRoot model)))
         (.stopped stop-listener metadata-finder)))))
@@ -1618,16 +1623,18 @@
   (when (#{CdjStatus$TrackSourceSlot/SD_SLOT
            CdjStatus$TrackSourceSlot/USB_SLOT
            CdjStatus$TrackSourceSlot/COLLECTION} (.slot slot))
-    (let [node (slot-node slot)
-          root (.. tree getModel getRoot)]
+    (let [^DefaultMutableTreeNode node (slot-node slot)
+          ^DefaultMutableTreeNode root (.. tree getModel getRoot)]
       ;; Find the node we should be inserting the new one in front of, if any.
       (loop [index 0]
         (if (< index (.getChildCount root))
           (let [sibling (.. tree getModel (getChild root index))]
             (if (neg? (.compareTo (str node) (str sibling)))
-              (.. tree getModel (insertNodeInto node root index))  ; Found node we should be in front of.
+              (let [^DefaultTreeModel model (.getModel tree)]
+                (.insertNodeInto model node root index))  ; Found node we should be in front of.
               (recur (inc index))))
-          (.. tree getModel (insertNodeInto node root index)))))))  ; We go at the end of the root.
+          (let [^DefaultTreeModel model (.getModel tree)]
+            (.insertNodeInto model node root index)))))))  ; We go at the end of the root.
 
 (defn- build-media-nodes
   "Create the top-level media database nodes, which will lazily load any
@@ -1641,9 +1648,9 @@
   "Expands and selects the specified tree node, used for positioning the
   user at the right place when they have chosen to load a track from a
   particular media slot."
-  [tree node]
-  (let [model (.getModel tree)
-        node-path (TreePath. (to-array [(.getRoot model) node]))]
+  [^JTree tree ^DefaultMutableTreeNode node]
+  (let [^DefaultTreeModel model (.getModel tree)
+        node-path               (TreePath. (to-array [(.getRoot model) node]))]
     (.setSelectionPath tree node-path)
     (.expandPath tree node-path)
     (.scrollPathToVisible tree node-path)))
@@ -1652,25 +1659,26 @@
   "If the supplied tree path belongs to a Search menu entry, returns the
   start of the path which leads to the Search node itself. Otherwise
   returns `nil`."
-  [^TreePath path]
+  ^TreePath [^TreePath path]
   (when (and path (> (.getPathCount path) 1))
     (loop [result path]
-      (when-let [item (.. result getLastPathComponent getUserObject)]
-        (if (instance? ISearchEntry item)
-          result
-          (when (> (.getPathCount result) 2)
-            (recur (.getParentPath result))))))))
+      (let [^DefaultMutableTreeNode node (.getLastPathComponent result)]
+        (when-let [item (.getUserObject node)]
+          (if (instance? ISearchEntry item)
+            result
+            (when (> (.getPathCount result) 2)
+              (recur (.getParentPath result)))))))))
 
 (defn- add-device
   "Adds a newly-found player to the destination player combo box,
   keeping entries sorted."
-  [players number]
+  [^javax.swing.JComboBox players number]
   (when (<= 1 number 4)
-    (let [model  (.getModel players)
-          player (PlayerChoice. number)]
+    (let [^javax.swing.DefaultComboBoxModel model (.getModel players)
+          player                                  (PlayerChoice. number)]
       (loop [index 0]
         (if (< index (.getSize model))
-          (let [current (.getElementAt model index)]
+          (let [^PlayerChoice current (.getElementAt model index)]
             (if (< number (.number current))
               (.insertElementAt model player index)  ; Found player we belong in front of.
               (recur (inc index))))
@@ -1679,19 +1687,20 @@
 (defn- remove-device
   "Removes a newly-departed player from the destination player combo
   box. If that leaves us with no players, close the window."
-  [players number stop-listener]
-  (let [model (.getModel players)]
+  [^javax.swing.JComboBox players number ^LifecycleListener stop-listener]
+  (let [^javax.swing.DefaultComboBoxModel model (.getModel players)]
       (loop [index 0]
         (when (< index (.getSize model))
-          (if (= number (.number (.getElementAt model index)))
-            (.removeElementAt model index)
-            (recur (inc index))))))
+          (let [^PlayerChoice candidate (.getElementAt model index)]
+            (if (= number (.number candidate))
+              (.removeElementAt model index)
+              (recur (inc index)))))))
   (when (zero? (.getItemCount players))  ; No players left, close the window.
     (.stopped stop-listener metadata-finder)))
 
 (defn- build-device-choices
   "Sets up the initial content of the destination player combo box."
-  [players]
+  [^javax.swing.JComboBox players]
   (doseq [^DeviceAnnouncement announcement (.getCurrentDevices device-finder)]
     (add-device players (.getNumber announcement)))
   (.setSelectedIndex players 0))
@@ -1700,13 +1709,12 @@
   "Event handler for the player choice menu to update the atom tracking
   the selected player state."
   [selected-player e]
-  (let [number (when-let [selection (seesaw/selection e)]
-                 (.number selection))]
+  (let [^Long number      (when-let [^PlayerChoice selection (seesaw/selection e)]
+                            (.number selection))
+        ^CdjStatus status (when number (.getLatestStatusFor virtual-cdj number))]
     (reset! selected-player {:number  number
-                             :playing (and number
-                                           (.. virtual-cdj (getLatestStatusFor number) isPlaying))
-                             :cued    (and number
-                                           (.. virtual-cdj (getLatestStatusFor number) isCued))})))
+                             :playing (and status (.isPlaying status))
+                             :cued    (and status (.isCued status))})))
 
 (defn- configure-partial-search-ui
   "Show (with appropriate content) or hide the label and buttons
@@ -1724,8 +1732,8 @@
   "Loads the search interface elements from any values that were saved
   for the search the last time it was active."
   [search-label search-field search-partial search-button searches selected-search]
-  (let [{:keys [text total path] :or {text ""}} (get @searches selected-search)  ; Check saved search config.
-        node                                    (.getLastPathComponent path)]
+  (let [{:keys [text total ^TreePath path] :or {text ""}} (get @searches selected-search) ; Check saved search config.
+        ^DefaultMutableTreeNode node                      (when path (.getLastPathComponent path))]
     (seesaw/text! search-label (str "Search " (slot-label selected-search) ":"))
     (seesaw/text! search-field text)
     (seesaw/invoke-later
@@ -1737,7 +1745,7 @@
   "Return nodes for every track in an exported rekordbox database that
   matches the supplied search text."
   [^Database database ^SlotReference slot text]
-  (mapcat (fn [title-entry]
+  (mapcat (fn [^java.util.Map$Entry title-entry]
             (let [title (.getKey title-entry)]
               (when (clojure.string/includes? (clojure.string/lower-case title) text)
                 (map (fn [track-id]
@@ -1749,7 +1757,7 @@
   "Return nodes for every artist in an exported rekordbox database that
   matches the supplied search text."
   [^Database database ^SlotReference slot text]
-  (mapcat (fn [name-entry]
+  (mapcat (fn [^java.util.Map$Entry name-entry]
             (let [artist-name (.getKey name-entry)]
               (when (clojure.string/includes? (clojure.string/lower-case artist-name) text)
                 (map (fn [artist-id]
@@ -1761,7 +1769,7 @@
   "Return nodes for every album in an exported rekordbox database that
   matches the supplied search text."
   [^Database database ^SlotReference slot text]
-  (mapcat (fn [name-entry]
+  (mapcat (fn [^java.util.Map$Entry name-entry]
             (let [album-name (.getKey name-entry)]
               (when (clojure.string/includes? (clojure.string/lower-case album-name) text)
                 (map (fn [album-id]
@@ -1772,7 +1780,7 @@
 (defn- file-search
   "Run a search on an exported rekordbox database file. We always return
   complete results because the search is running locally."
-  [^Database database ^SlotReference slot text total]
+  [^Database database ^SlotReference slot text ^AtomicInteger total]
   (let [text (clojure.string/lower-case text)
         results      (concat (file-track-matches database slot text)
                              (file-artist-matches database slot text)
@@ -1784,18 +1792,20 @@
   "Start a new search because the user has changed the search text,
   unless there is no active search so this must be reloading the text
   area when switching to a different existing search."
-  [text search-partial search-button searches tree]
+  [text search-partial search-button searches ^JTree tree]
   (when-let [^SlotReference slot-reference (:current @searches)]
     (swap! searches assoc-in [slot-reference :text] text)
-    (let [{:keys [path]} (get @searches slot-reference)
-          node           (.getLastPathComponent path)
-          total          (AtomicInteger. 25)
-          database       (.. node getUserObject getDatabase)
-          results        (when-not (clojure.string/blank? text)
-                           (if database
-                             (file-search database slot-reference text total)
-                             (.requestSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
-                                                        0 text total)))]
+    (let [{:keys [^TreePath path]}     (get @searches slot-reference)
+          ^DefaultMutableTreeNode node (.getLastPathComponent path)
+          total                        (AtomicInteger. 25)
+          ^ISearchEntry entry          (.getUserObject node)
+          database                     (.getDatabase entry)
+          results                      (when-not (clojure.string/blank? text)
+                                         (if database
+                                           (file-search database slot-reference text total)
+                                           (.requestSearchResultsFrom menu-loader (.player slot-reference)
+                                                                      (.slot slot-reference)
+                                                                      0 text total)))]
       (.removeAllChildren node)
       (if (empty? results)
         (do
@@ -1809,21 +1819,22 @@
           (swap! searches assoc-in [slot-reference :total] (.get total))
           (configure-partial-search-ui search-partial search-button (.get total) (.getChildCount node))))
       (.setSelectionPath tree path)  ; Keep the search active in case the previous selection is gone.
-      (.nodeStructureChanged (.getModel tree) node))))
+      (.nodeStructureChanged ^DefaultTreeModel (.getModel tree) node))))
 
 (defn- search-load-more
   "The user has asked to load more from the active search."
-  [search-partial search-button searches tree]
+  [search-partial search-button searches ^JTree tree]
   (when-let [^SlotReference slot-reference (:current @searches)]
-    (let [{:keys [text total path]} (get @searches slot-reference)
-          node                      (.getLastPathComponent path)
-          loaded                    (.getChildCount node)
-          batch-size                (min 1000 loaded (- total loaded))
-          results (.requestMoreSearchResultsFrom menu-loader (.player slot-reference) (.slot slot-reference)
-                                                 0 text loaded batch-size)]
+    (let [{:keys [text total ^TreePath path]} (get @searches slot-reference)
+          ^DefaultMutableTreeNode node     (.getLastPathComponent path)
+          loaded                           (.getChildCount node)
+          batch-size                       (min 1000 loaded (- total loaded))
+          results                          (.requestMoreSearchResultsFrom menu-loader (.player slot-reference)
+                                                                          (.slot slot-reference)
+                                                                          0 text loaded batch-size)]
       (attach-menu-node-children node results slot-reference)
       (configure-partial-search-ui search-partial search-button total (.getChildCount node))
-      (.nodesWereInserted (.getModel tree) node (int-array (range loaded (+ loaded batch-size)))))))
+      (.nodesWereInserted ^DefaultTreeModel (.getModel tree) node (int-array (range loaded (+ loaded batch-size)))))))
 
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
@@ -1832,90 +1843,92 @@
   creation succeeded."
    [^SlotReference slot]
   (seesaw/invoke-later
-   (let [valid-slots (filter #(#{CdjStatus$TrackSourceSlot/USB_SLOT
-                                 CdjStatus$TrackSourceSlot/SD_SLOT
-                                 CdjStatus$TrackSourceSlot/COLLECTION} (.slot %))
+   (let [valid-slots (filter (fn [^SlotReference mounted]
+                               (#{CdjStatus$TrackSourceSlot/USB_SLOT
+                                  CdjStatus$TrackSourceSlot/SD_SLOT
+                                  CdjStatus$TrackSourceSlot/COLLECTION} (.slot mounted)))
                              (.getMountedMediaSlots metadata-finder))]
      (if (seq valid-slots)
        (try
-         (let [selected-track   (atom nil)
-               selected-player  (atom {:number nil :playing false :cued false})
-               searches         (atom {})
-               root             (seesaw/frame :title "Load Track on a Player"
-                                              :on-close :dispose :resizable? true)
-               slots-model      (DefaultTreeModel. (root-node) true)
-               slots-tree       (seesaw/tree :model slots-model :id :tree)
-               slots-scroll     (seesaw/scrollable slots-tree)
-               load-button      (seesaw/button :text "Load" :enabled? false)
-               play-button      (seesaw/button :text "Play")
-               problem-label    (seesaw/label :text "" :foreground "red")
-               update-load-ui   (fn []
-                                  (let [playing (:playing @selected-player)
-                                        cued    (:cued @selected-player)
-                                        problem (cond (nil? @selected-track) "No track chosen."
-                                                      playing                "Can't load while playing."
-                                                      :else                  "")]
-                                    (seesaw/value! problem-label problem)
-                                    (seesaw/config! load-button :enabled? (empty? problem))
-                                    (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))
-                                    (seesaw/config! play-button :enabled? (or playing cued))))
-               player-changed   (fn [e]
-                                  (update-selected-player selected-player e)
-                                  (update-load-ui))
-               players          (seesaw/combobox :id :players
-                                                 :listen [:item-state-changed player-changed])
-               player-panel     (mig/mig-panel :background "#ddd"
-                                               :items [[(seesaw/label :text "Load on:")]
-                                                       [players] [load-button] [problem-label "push"]
-                                                       [play-button]])
-               search-label     (seesaw/label :text "")
-               search-field     (seesaw/text "")
-               search-partial   (seesaw/label "Showing 0 of 0.")
-               search-button    (seesaw/button :text "Load All")
-               search-panel     (mig/mig-panel :background "#eee"
-                                               :items [[search-label] [search-field "pushx, growx"]
-                                                       [search-partial "hidemode 3, gap unrelated"]
-                                                       [search-button "hidemode 3"]])
-               layout           (seesaw/border-panel
-                                 :center slots-scroll
-                                 :south player-panel)
-               mouse-listener (proxy [java.awt.event.MouseAdapter] []
-                           (mousePressed [^java.awt.event.MouseEvent e]
-                             (when (and (seesaw/config load-button :enabled?) (= 2 (.getClickCount e)))
-                               (.doClick load-button))))
-               stop-listener    (reify LifecycleListener
-                                  (started [this _]) ; Nothing to do, we exited as soon a stop happened anyway.
-                                  (stopped [this _]  ; Close our window if MetadataFinder stops (we need it).
-                                    (seesaw/invoke-later
-                                     (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
-               dev-listener     (reify DeviceAnnouncementListener
-                                  (deviceFound [this announcement]
-                                    (seesaw/invoke-later (add-device players (.getNumber announcement))))
-                                  (deviceLost [this announcement]
-                                    (seesaw/invoke-later
-                                     (remove-device players (.getNumber announcement) stop-listener))))
-               mount-listener   (reify MountListener
-                                  (mediaMounted [this slot]
-                                    (seesaw/invoke-later (add-slot-node slots-tree slot)))
-                                  (mediaUnmounted [this slot]
-                                    (swap! searches dissoc slot)
-                                    (seesaw/invoke-later (remove-slot-node slots-tree slot stop-listener))))
-               status-listener  (reify DeviceUpdateListener
-                                  (received [this status]
-                                    (let [player @selected-player]
-                                      (when (and (= (.getDeviceNumber status) (:number player))
-                                                 (or (not= (.isPlaying status) (:playing player))
-                                                     (not= (.isCued status) (:cued player))))
-                                        (swap! selected-player assoc
-                                               :playing (.isPlaying status)
-                                               :cued (.isCued status))
-                                        (update-load-ui)))))
-               remove-listeners (fn []
-                                  (.removeMountListener metadata-finder mount-listener)
-                                  (.removeLifecycleListener metadata-finder stop-listener)
-                                  (.removeDeviceAnnouncementListener device-finder dev-listener)
-                                  (.removeUpdateListener virtual-cdj status-listener))]
-           (.setSelectionMode (.getSelectionModel slots-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+         (let [selected-track     (atom nil)
+               selected-player    (atom {:number nil :playing false :cued false})
+               searches           (atom {})
+               ^JFrame root       (seesaw/frame :title "Load Track on a Player"
+                                                :on-close :dispose :resizable? true)
+               slots-model        (DefaultTreeModel. (root-node) true)
+               ^JTree slots-tree  (seesaw/tree :model slots-model :id :tree)
+               slots-scroll       (seesaw/scrollable slots-tree)
+               load-button        (seesaw/button :text "Load" :enabled? false)
+               play-button        (seesaw/button :text "Play")
+               problem-label      (seesaw/label :text "" :foreground "red")
+               update-load-ui     (fn []
+                                    (let [playing (:playing @selected-player)
+                                          cued    (:cued @selected-player)
+                                          problem (cond (nil? @selected-track) "No track chosen."
+                                                        playing                "Can't load while playing."
+                                                        :else                  "")]
+                                      (seesaw/value! problem-label problem)
+                                      (seesaw/config! load-button :enabled? (empty? problem))
+                                      (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))
+                                      (seesaw/config! play-button :enabled? (or playing cued))))
+               player-changed     (fn [e]
+                                    (update-selected-player selected-player e)
+                                    (update-load-ui))
+               ^JComboBox players (seesaw/combobox :id :players
+                                                   :listen [:item-state-changed player-changed])
+               player-panel       (mig/mig-panel :background "#ddd"
+                                                 :items [[(seesaw/label :text "Load on:")]
+                                                         [players] [load-button] [problem-label "push"]
+                                                         [play-button]])
+               search-label       (seesaw/label :text "")
+               search-field       (seesaw/text "")
+               search-partial     (seesaw/label "Showing 0 of 0.")
+               search-button      (seesaw/button :text "Load All")
+               search-panel       (mig/mig-panel :background "#eee"
+                                                 :items [[search-label] [search-field "pushx, growx"]
+                                                         [search-partial "hidemode 3, gap unrelated"]
+                                                         [search-button "hidemode 3"]])
+               layout             (seesaw/border-panel
+                                   :center slots-scroll
+                                   :south player-panel)
+               mouse-listener     (proxy [java.awt.event.MouseAdapter] []
+                                    (mousePressed [^java.awt.event.MouseEvent e]
+                                      (when (and (seesaw/config load-button :enabled?) (= 2 (.getClickCount e)))
+                                        (.doClick ^JButton load-button))))
+               stop-listener      (reify LifecycleListener
+                                    (started [this _]) ; Nothing to do, we exited as soon a stop happened anyway.
+                                    (stopped [this _]  ; Close our window if MetadataFinder stops (we need it).
+                                      (seesaw/invoke-later
+                                       (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
+               dev-listener       (reify DeviceAnnouncementListener
+                                    (deviceFound [this announcement]
+                                      (seesaw/invoke-later (add-device players (.getNumber announcement))))
+                                    (deviceLost [this announcement]
+                                      (seesaw/invoke-later
+                                       (remove-device players (.getNumber announcement) stop-listener))))
+               mount-listener     (reify MountListener
+                                    (mediaMounted [this slot]
+                                      (seesaw/invoke-later (add-slot-node slots-tree slot)))
+                                    (mediaUnmounted [this slot]
+                                      (swap! searches dissoc slot)
+                                      (seesaw/invoke-later (remove-slot-node slots-tree slot stop-listener))))
+               status-listener    (reify DeviceUpdateListener
+                                    (received [this status]
+                                      (let [player @selected-player]
+                                        (when (and (= (.getDeviceNumber status) (:number player))
+                                                   (or (not= (.isPlaying ^CdjStatus status) (:playing player))
+                                                       (not= (.isCued ^CdjStatus status) (:cued player))))
+                                          (swap! selected-player assoc
+                                                 :playing (.isPlaying ^CdjStatus status)
+                                                 :cued (.isCued ^CdjStatus status))
+                                          (update-load-ui)))))
+               remove-listeners   (fn []
+                                    (.removeMountListener metadata-finder mount-listener)
+                                    (.removeLifecycleListener metadata-finder stop-listener)
+                                    (.removeDeviceAnnouncementListener device-finder dev-listener)
+                                    (.removeUpdateListener virtual-cdj status-listener))]
+           (.setSelectionMode (.getSelectionModel slots-tree)
+                              javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
            (.addMouseListener slots-tree mouse-listener)
            (.addMountListener metadata-finder mount-listener)
            (.addDeviceAnnouncementListener device-finder dev-listener)
@@ -1924,29 +1937,31 @@
            (build-device-choices players)
            (reset! loader-window root)
            (.addLifecycleListener metadata-finder stop-listener)
-           (seesaw/listen root :window-closed (fn [e]
+           (seesaw/listen root :window-closed (fn [_]
                                                 (reset! loader-window nil)
                                                 (remove-listeners)))
            (seesaw/listen slots-tree
                           :tree-will-expand
-                          (fn [e]
-                            (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
-                                  ^IMenuEntry entry (.getUserObject node)]
+                          (fn [^javax.swing.event.TreeExpansionEvent e]
+                            (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                                  ^IMenuEntry entry            (.getUserObject node)]
                               (.loadChildren entry node)))
                           :selection
-                          (fn [e]
+                          (fn [^javax.swing.event.TreeSelectionEvent e]
                             (reset! selected-track
                                     (when (.isAddedPath e)
-                                      (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                      (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                                            ^IMenuEntry entry            (.getUserObject node)]
                                         (when (.getTrackType entry)
                                           [(.getSlot entry) (.getId entry) (.getTrackType entry)]))))
                             (update-load-ui)
-                            (let [search-path     (when (.isAddedPath e)
-                                                    (trim-to-search-node-path (.getPath e)))
-                                  search-node     (when search-path
-                                                    (.expandPath slots-tree search-path)
-                                                    (.. search-path getLastPathComponent))
-                                  selected-search (when search-node (.. search-node getUserObject getSlot))]
+                            (let [search-path                         (when (.isAddedPath e)
+                                                                        (trim-to-search-node-path (.getPath e)))
+                                  ^DefaultMutableTreeNode search-node (when search-path
+                                                                        (.expandPath slots-tree search-path)
+                                                                        (.. search-path getLastPathComponent))
+                                  ^IMenuEntry selected-entry          (when search-node (.getUserObject search-node))
+                                  selected-search                     (when selected-entry (.getSlot selected-entry))]
                               (when (not= selected-search (:current @searches))
                                 (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
                                 (if selected-search
@@ -1969,8 +1984,10 @@
            (seesaw/listen load-button
                           :action-performed
                           (fn [_]
-                            (let [[slot-reference track track-type] @selected-track
-                                  selected-player                   (.number (.getSelectedItem players))]
+                            (let [[^SlotReference slot-reference
+                                   ^int track
+                                   ^CdjStatus$TrackType track-type] @selected-track
+                                  ^Long selected-player             (.number ^PlayerChoice (.getSelectedItem players))]
                               (.sendLoadTrackCommand virtual-cdj selected-player track
                                                      (.player slot-reference) (.slot slot-reference) track-type))))
            (seesaw/listen play-button
@@ -2024,7 +2041,7 @@
           (when-let [node (find-slot-node tree slot)]
             (expand-and-select-slot-node tree node))))
       (seesaw/invoke-later
-       (when-let [window @loader-window]
+       (when-let [^JFrame window @loader-window]
          (seesaw/show! window)
          (.toFront window)))))))
 
@@ -2033,7 +2050,7 @@
   filesystem. `media-root` can either be a File object representing
   the root of some media containing a rekordbox export, or the
   pathname of such a file."
-  [media-root]
+  ^File [media-root]
   (let [pdb (clojure.java.io/file media-root "PIONEER" "rekordbox" "export.pdb")]
     (when (.canRead pdb)
       pdb)))
@@ -2043,12 +2060,14 @@
   media exports. As long as `depth` is non-zero we are willing to go
   down another layer through a recursive call with a decremented depth
   value."
-  [root depth]
+  ^File [^File root depth]
   (if-let [found (find-pdb root)]
     [found]
     (and (pos? depth)
-         (filter identity (flatten (map #(and (.isDirectory %)
-                                              (find-pdb-recursive % (dec depth))) (.listFiles root)))))))
+         (filter identity (flatten (map (fn [^File f]
+                                          (and (.isDirectory f)
+                                               (find-pdb-recursive f (dec depth))))
+                                        (.listFiles root)))))))
 
 (def rekordbox-export-filter
   "A file filter that matches directories that contain exported
@@ -2060,7 +2079,7 @@
 (defn- describe-pdb-media
   "Returns the root pathname of the media containing a rekordbox
   collection export."
-  [pdb-file]
+  [^File pdb-file]
   (.. pdb-file getParentFile getParentFile getParentFile getAbsolutePath))
 
 (defn offline-file-node
@@ -2089,12 +2108,12 @@
   the usual [database track] tuple.
 
   This function must be invoked on the Swing Event Dispatch thread."
-   [parent pdb extra-labels]
+   [^JFrame parent ^Database pdb extra-labels]
   (try
     (let [selected-track   (atom nil)
           searches         (atom {})
           file-model       (DefaultTreeModel. (offline-file-node pdb) true)
-          file-tree        (seesaw/tree :model file-model :id :tree)
+          ^JTree file-tree (seesaw/tree :model file-model :id :tree)
           file-scroll      (seesaw/scrollable file-tree)
           choose-button    (seesaw/button :text "Choose Track" :enabled? false)
           cancel-button    (seesaw/button :text "Cancel")
@@ -2103,41 +2122,43 @@
                              (seesaw/config! choose-button :enabled? (some? @selected-track)))
           search-label     (seesaw/label :text "Search:")
           search-field     (seesaw/text "")
-          search-partial   (seesaw/label "")  ; Not used in this dialog variant, but expected by search UI.
-          search-button    (seesaw/button :text "Load All")  ; Also not used but expected by search UI.
+          search-partial   (seesaw/label "")                ; Not used in this dialog variant, expected by search UI.
+          search-button    (seesaw/button :text "Load All") ; Also not used but expected by search UI.
           search-panel     (mig/mig-panel :background "#eee"
                                           :items [[search-label] [search-field "pushx, growx"]])
           layout           (seesaw/border-panel :center file-scroll)
-          dialog           (seesaw/dialog :content layout :options (concat [choose-button cancel-button] extra-buttons)
+          ^JDialog dialog  (seesaw/dialog :content layout :options (concat [choose-button cancel-button] extra-buttons)
                                           :title (str "Choose Track from " (describe-pdb-media (.sourceFile pdb)))
                                           :default-option choose-button :modal? true)
-          mouse-listener (proxy [java.awt.event.MouseAdapter] []
-                           (mousePressed [^java.awt.event.MouseEvent e]
-                             (when (and @selected-track (= 2 (.getClickCount e)))
-                               (.doClick choose-button))))]
+          mouse-listener   (proxy [java.awt.event.MouseAdapter] []
+                             (mousePressed [^java.awt.event.MouseEvent e]
+                               (when (and @selected-track (= 2 (.getClickCount e)))
+                                 (.doClick ^JButton choose-button))))]
       (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
       (.setSize dialog 800 600)
       (.setLocationRelativeTo dialog parent)
       (seesaw/listen file-tree
                      :tree-will-expand
-                     (fn [e]
-                       (let [^TreeNode node    (.. e (getPath) (getLastPathComponent))
-                             ^IMenuEntry entry (.getUserObject node)]
+                     (fn [^javax.swing.event.TreeExpansionEvent e]
+                       (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                             ^IMenuEntry entry            (.getUserObject node)]
                          (.loadChildren entry node)))
                      :selection
-                     (fn [e]
+                     (fn [^javax.swing.event.TreeSelectionEvent e]
                        (try
                          (reset! selected-track
                                  (when (.isAddedPath e)
-                                   (let [^IMenuEntry entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                   (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                                         ^IMenuEntry entry            (.getUserObject node)]
                                      (when (.getTrackType entry) (.getId entry)))))
                          (update-choose-ui)
-                         (let [search-path     (when (.isAddedPath e)
-                                                 (trim-to-search-node-path (.getPath e)))
-                               search-node     (when search-path
-                                                 (.expandPath file-tree search-path)
-                                                 (.. search-path getLastPathComponent))
-                               selected-search (when search-node (.. search-node getUserObject getSlot))]
+                         (let [search-path                         (when (.isAddedPath e)
+                                                                     (trim-to-search-node-path (.getPath e)))
+                               ^DefaultMutableTreeNode search-node (when search-path
+                                                                     (.expandPath file-tree search-path)
+                                                                     (.getLastPathComponent search-path))
+                               ^IMenuEntry selected-entry          (when search-node (.. search-node getUserObject))
+                               selected-search                     (when selected-entry (.getSlot selected-entry))]
                            (when (not= selected-search (:current @searches))
                              (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
                              (if selected-search
