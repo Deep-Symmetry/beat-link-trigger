@@ -1,0 +1,2 @@
+{:cljdoc.doc/tree [["Project Overview" {:file "README.md"}]]}
+;; Suppress rendering of the User Guide files, because cljdoc isn't Antora!

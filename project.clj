@@ -1,6 +1,7 @@
 (defproject beat-link-trigger :lein-v
   :description "Trigger events and automate shows in response to CDJ activity."
   :url "https://github.com/Deep-Symmetry/beat-link-trigger"
+  :scm {:name "git" :url "https://github.com/Deep-Symmetry/beat-link-trigger"}
   :license {:name "Eclipse Public License 2.0"
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
