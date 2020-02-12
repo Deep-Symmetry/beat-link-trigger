@@ -2,7 +2,7 @@
   "Provides an interface for viewing the contents of a metadata cache
   file, so triggers can be worked on without requiring access to an
   actual player and media stick. This has largely been superceded by
-  the Show interface."
+  the [[beat-link-trigger.show|Show interface]]."
   (:require [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [taoensso.timbre :as timbre])
