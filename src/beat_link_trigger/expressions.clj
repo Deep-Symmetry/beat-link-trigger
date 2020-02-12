@@ -51,7 +51,7 @@
 (defn track-source-slot
   "Converts the Java enum value representing the slot from which a track
   was loaded to a more convenient Clojure keyword."
-  [status]
+  [^CdjStatus status]
   (util/case-enum (.getTrackSourceSlot status)
     CdjStatus$TrackSourceSlot/NO_TRACK   :no-track
     CdjStatus$TrackSourceSlot/CD_SLOT    :cd-slot
@@ -63,7 +63,7 @@
 (defn track-type
   "Converts the Java enum value representing the type of track that
   was loaded to a more convenient Clojure keyword."
-  [status]
+  [^CdjStatus status]
   (util/case-enum (.getTrackType status)
     CdjStatus$TrackType/NO_TRACK         :no-track
     CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
@@ -73,7 +73,7 @@
 (defn playback-time
   "Obtains the current playback time of the player that sent the
   supplied device update, or `nil` if we don't know."
-  [device-update]
+  [^DeviceUpdate device-update]
   (let [time-finder (TimeFinder/getInstance)]
     (when (.isRunning time-finder)
       (let [result (.getTimeFor time-finder device-update)]
