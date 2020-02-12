@@ -34,21 +34,21 @@
   tell a player to load it."} loader-window
   (atom nil))
 
-(def menu-loader
+(def ^MenuLoader menu-loader
   "The object that provides methods for loading menus from a rekordbox
   database server."
   (MenuLoader/getInstance))
 
-(def device-finder
+(def ^DeviceFinder device-finder
   "The object that tracks the arrival and departure of devices on the
   DJ Link network."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
+(def ^VirtualCdj virtual-cdj
   "The object which can obtained detailed player status information."
   (VirtualCdj/getInstance))
 
-(def metadata-finder
+(def ^MetadataFinder metadata-finder
   "The object that can obtain track metadata."
   (MetadataFinder/getInstance))
 
