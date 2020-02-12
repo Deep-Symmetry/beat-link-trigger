@@ -3,18 +3,20 @@
   application behavior."
   (:require [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
-            [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
-            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
+            [clojure.java.browse]
+            [clojure.java.io]
+            [clojure.string]
             [me.raynes.fs :as fs]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]
-           [org.deepsymmetry.beatlink.data TrackPositionUpdate]
-           [org.fife.ui.rtextarea RTextArea]))
+  (:import [javax.swing JFrame JTextPane]
+           [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus]
+           [org.fife.ui.rtextarea RTextArea SearchResult]
+           [org.fife.ui.rsyntaxtextarea RSyntaxTextArea]))
 
 (defonce
   ^{:private true
@@ -44,7 +46,7 @@
   if `:shared` or `:setup` keys present, they and their expressions
   are first and second in the sequence, so they get evaluated first,
   in case they define any functions needed to evaluate the other
-  expressions. The setup expreession should no longer do that, now
+  expressions. The setup expression should no longer do that, now
   that shared functions are better supported, but this behavior is
   maintained for backwards compatibility with older files."
   [exprs]
@@ -1018,7 +1020,7 @@ a {
   reflected by the enabled state of the supplied save action). If it
   does, bring the frame to the front and show a modal confirmation
   dialog. Return truthy if the editor should be closed."
-  [frame save-action]
+  [^JFrame frame save-action]
   (or (not (seesaw/config save-action :enabled?))
       (do
         (.toFront frame)
@@ -1028,37 +1030,38 @@ a {
 (defn- build-search-listener
   "Creates the search coordination object that manages find and replace
   capabilities for an editor window."
-  [editor status-label]
+  ^org.fife.rsta.ui.search.SearchListener [^RSyntaxTextArea editor status-label]
   (proxy [org.fife.rsta.ui.search.SearchListener] []
     (getSelectedText []
       (.getSelectedText editor))
     (searchEvent [^org.fife.rsta.ui.search.SearchEvent e]
-      (let [type    (.getType e)
-            context (.getSearchContext e)
-            result  (cond
-                      (= type org.fife.rsta.ui.search.SearchEvent$Type/MARK_ALL)
-                      (org.fife.ui.rtextarea.SearchEngine/markAll editor context)
+      (let [type                 (.getType e)
+            context              (.getSearchContext e)
+            ^SearchResult result (cond
+                                   (= type org.fife.rsta.ui.search.SearchEvent$Type/MARK_ALL)
+                                   (org.fife.ui.rtextarea.SearchEngine/markAll editor context)
 
-                      (= type org.fife.rsta.ui.search.SearchEvent$Type/FIND)
-                      (let [res (org.fife.ui.rtextarea.SearchEngine/find editor context)]
-                        (when-not (.wasFound res)
-                          (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor))
-                        res)
+                                   (= type org.fife.rsta.ui.search.SearchEvent$Type/FIND)
+                                   (let [res (org.fife.ui.rtextarea.SearchEngine/find editor context)]
+                                     (when-not (.wasFound res)
+                                       (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor))
+                                     res)
 
-                      (= type org.fife.rsta.ui.search.SearchEvent$Type/REPLACE)
-                      (let [res (org.fife.ui.rtextarea.SearchEngine/replace editor context)]
-                        (when-not (.wasFound res)
-                          (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor))
-                        res)
+                                   (= type org.fife.rsta.ui.search.SearchEvent$Type/REPLACE)
+                                   (let [res (org.fife.ui.rtextarea.SearchEngine/replace editor context)]
+                                     (when-not (.wasFound res)
+                                       (.provideErrorFeedback (javax.swing.UIManager/getLookAndFeel) editor))
+                                     res)
 
-                      (= type org.fife.rsta.ui.search.SearchEvent$Type/REPLACE_ALL)
-                      (let [res (org.fife.ui.rtextarea.SearchEngine/replaceAll editor context)]
-                        (seesaw/alert (str (.getCount res) " occurrences replaced.") :title "Replace Results")
-                        res)
+                                   (= type org.fife.rsta.ui.search.SearchEvent$Type/REPLACE_ALL)
+                                   (let [res (org.fife.ui.rtextarea.SearchEngine/replaceAll editor context)]
+                                     (seesaw/alert (str (.getCount res) " occurrences replaced.")
+                                                   :title "Replace Results")
+                                     res)
 
-                      :else
-                      (timbre/warn "Unrecognized search event type:" type))
-            text (if (.wasFound result)
+                                   :else
+                                   (timbre/warn "Unrecognized search event type:" type))
+            text (if (and result (.wasFound result))
                    (str "Text found; occurences marked: " (.getMarkedCount result) ".")
                    (if (= type org.fife.rsta.ui.search.SearchEvent$Type/MARK_ALL)
                      (if (pos? (.getMarkedCount result))
@@ -1071,7 +1074,7 @@ a {
 (defn- build-search-tools
   "Creates the find and replace dialogs and toolbars to work with an
   editor window."
-  [frame editor status-label]
+  [^JFrame frame ^RSyntaxTextArea editor status-label]
   (let [listener        (build-search-listener editor status-label)
         find-dialog     (org.fife.rsta.ui.search.FindDialog. frame listener)
         replace-dialog  (org.fife.rsta.ui.search.ReplaceDialog. frame listener)
@@ -1088,8 +1091,8 @@ a {
 
 (defn- build-find-dialog-action
   "Creates a menu action to show the Find dialog for an editor window."
-  [find-dialog replace-dialog]
-  (seesaw/action :handler (fn [e]
+  [^java.awt.Component find-dialog ^java.awt.Component replace-dialog]
+  (seesaw/action :handler (fn [_]
                             (when (.isVisible replace-dialog) (.setVisible replace-dialog false))
                             (.setVisible find-dialog true))
                  :name "Show Find Dialog…"
@@ -1098,8 +1101,8 @@ a {
 (defn- build-replace-dialog-action
   "Creates a menu action to show the Replace dialog for an editor
   window."
-  [find-dialog replace-dialog]
-  (seesaw/action :handler (fn [e]
+  [^java.awt.Component find-dialog ^java.awt.Component replace-dialog]
+  (seesaw/action :handler (fn [_]
                             (when (.isVisible find-dialog) (.setVisible find-dialog false))
                             (.setVisible replace-dialog true))
                  :name "Show Replace Dialog…"
@@ -1108,8 +1111,8 @@ a {
 (defn- build-go-to-line-action
   "Creates a menu action to jump to a particular source line for an
   editor window."
-  [frame editor find-dialog replace-dialog]
-  (seesaw/action :handler (fn [e]
+  [^JFrame frame ^RSyntaxTextArea editor ^java.awt.Component find-dialog ^java.awt.Component replace-dialog]
+  (seesaw/action :handler (fn [_]
                             (when (.isVisible find-dialog) (seesaw/hide! find-dialog))
                             (when (.isVisible replace-dialog) (seesaw/hide! replace-dialog))
                             (let [dialog (org.fife.rsta.ui.GoToDialog. frame)]
@@ -1127,7 +1130,7 @@ a {
 
 (defn- build-find-toolbar-action
   "Creates a menu action to show the Find toolbar for an editor window."
-  [editor-panel find-toolbar]
+  [^org.fife.rsta.ui.CollapsibleSectionPanel editor-panel find-toolbar]
   (let [menu      (.getMenuShortcutKeyMask (.getToolkit editor-panel))
         keystroke (javax.swing.KeyStroke/getKeyStroke java.awt.event.KeyEvent/VK_F menu)
         action (.addBottomComponent editor-panel keystroke find-toolbar)]
@@ -1137,7 +1140,7 @@ a {
 (defn- build-replace-toolbar-action
   "Creates a menu action to show the Replace toolbar for an editor
   window."
-  [editor-panel replace-toolbar]
+  [^org.fife.rsta.ui.CollapsibleSectionPanel editor-panel replace-toolbar]
   (let [menu      (.getMenuShortcutKeyMask (.getToolkit editor-panel))
         keystroke (javax.swing.KeyStroke/getKeyStroke java.awt.event.KeyEvent/VK_R menu)
         action (.addBottomComponent editor-panel keystroke replace-toolbar)]
@@ -1147,8 +1150,8 @@ a {
 (defn- build-load-action
   "Creates a menu action to load an editor window from the contents of a
   file."
-  [frame editor]
-  (seesaw/action :handler (fn [e]
+  [^JFrame frame ^RSyntaxTextArea editor]
+  (seesaw/action :handler (fn [_]
                             (when-let [file (chooser/choose-file frame :all-files? true
                                                                  :filters [["Clojure files" ["clj"]]])]
                               (try
@@ -1164,8 +1167,8 @@ a {
 (defn- build-insert-action
   "Creates a menu action to insert the contents of a file into an editor
   window."
-  [frame editor]
-  (seesaw/action :handler (fn [e]
+  [^JFrame frame ^RSyntaxTextArea editor]
+  (seesaw/action :handler (fn [_]
                             (when-let [file (chooser/choose-file frame :all-files? true
                                                                  :filters [["Clojure files" ["clj"]]])]
                               (try
@@ -1180,8 +1183,8 @@ a {
 (defn- build-save-action
   "Creates a menu action to save the contents of an editor window to a
   file."
-  [frame editor]
-  (seesaw/action :handler (fn [e]
+  [^JFrame frame ^RSyntaxTextArea editor]
+  (seesaw/action :handler (fn [_]
                             (when-let [file (chooser/choose-file frame :type :save
                                                                  :all-files? false
                                                                  :filters [["Clojure files" ["clj"]]])]
@@ -1198,16 +1201,16 @@ a {
 (defn- build-update-action
   "Creates a menu action to update the expression associated with an
   editor window."
-  [editor save-fn]
-  (seesaw/action :handler (fn [e] (save-fn (.getText editor)))
+  [^RSyntaxTextArea editor save-fn]
+  (seesaw/action :handler (fn [_] (save-fn (.getText editor)))
                  :name "Update"
                  :key "menu U"
                  :enabled? false))
 
 (defn- build-close-action
   "Creates a menu action to close an editor window."
-  [frame]
-  (seesaw/action :handler (fn [e]
+  [^JFrame frame]
+  (seesaw/action :handler (fn [_]
                             (.dispatchEvent frame (java.awt.event.WindowEvent.
                                                    frame java.awt.event.WindowEvent/WINDOW_CLOSING)))
                  :name "Close"
@@ -1249,23 +1252,23 @@ a {
   kind of Triggers window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind trigger update-fn]
-  (let [global?       (:global @(seesaw/user-data trigger))
-        text          (get-in @(seesaw/user-data trigger) [:expressions kind])
-        save-fn       (fn [text] (update-triggers-expression kind trigger global? text update-fn))
-        root          (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :nothing
-                                    :size [800 :by 600])
-        editor        (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane   (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        editor-panel  (org.fife.rsta.ui.CollapsibleSectionPanel.)
-        status-label  (seesaw/label)
-        tools         (build-search-tools root editor status-label)
-        update-action (build-update-action editor save-fn)
-        help          (seesaw/styled-text :id :help :wrap-lines? true)]
+  (let [global?         (:global @(seesaw/user-data trigger))
+        text            (get-in @(seesaw/user-data trigger) [:expressions kind])
+        save-fn         (fn [text] (update-triggers-expression kind trigger global? text update-fn))
+        ^JFrame root    (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :nothing
+                                      :size [800 :by 600])
+        editor          (RSyntaxTextArea. 16 80)
+        scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
+        status-label    (seesaw/label)
+        tools           (build-search-tools root editor status-label)
+        update-action   (build-update-action editor save-fn)
+        ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
     (.setMarkOccurrences editor true)
-    (.apply @editor-theme editor)
+    (.apply ^org.fife.ui.rsyntaxtextarea.Theme @editor-theme editor)
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
@@ -1291,12 +1294,12 @@ a {
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
-                   (fn [e]
+                   (fn [^javax.swing.event.HyperlinkEvent e]
                      (let [type (.getEventType e)
                            url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root update-action)
+    (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (swap! (seesaw/user-data trigger) update-in [:expression-editors]
                                                          dissoc kind)
                                                   (.dispose root))))
@@ -1368,24 +1371,24 @@ a {
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind show track parent-frame update-fn]
-  (let [text          (find-show-expression-text kind show track)
-        save-fn       (fn [text] (update-show-expression kind show track text update-fn))
-        root          (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
-        editor        (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane   (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        editor-panel  (org.fife.rsta.ui.CollapsibleSectionPanel.)
-        status-label  (seesaw/label)
-        tools         (build-search-tools root editor status-label)
-        update-action (build-update-action editor save-fn)
-        help          (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn      (fn [] (if track
-                               (show-call swap-track! track update :expression-editors dissoc kind)
-                               (show-call swap-show! show update :expression-editors dissoc kind)))]
+  (let [text            (find-show-expression-text kind show track)
+        save-fn         (fn [text] (update-show-expression kind show track text update-fn))
+        ^JFrame root    (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
+        editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
+        status-label    (seesaw/label)
+        tools           (build-search-tools root editor status-label)
+        update-action   (build-update-action editor save-fn)
+        ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
+        close-fn        (fn [] (if track
+                                 (show-call swap-track! track update :expression-editors dissoc kind)
+                                 (show-call swap-show! show update :expression-editors dissoc kind)))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
     (.setMarkOccurrences editor true)
-    (.apply @editor-theme editor)
+    (.apply ^org.fife.ui.rsyntaxtextarea.Theme @editor-theme editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
@@ -1411,12 +1414,12 @@ a {
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
-                   (fn [e]
+                   (fn [^javax.swing.event.HyperlinkEvent e]
                      (let [type (.getEventType e)
                            url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root update-action)
+    (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
     (let [result
@@ -1441,7 +1444,7 @@ a {
   associated with the specified show (and optionally track), make it
   visible, and add it to the show's list of active editors. Register
   an update function to be invoked with no arguments when the user has
-  successfully updated the expression. If `track` is nil we are
+  successfully updated the expression. If `track` is `nil` we are
   editing global expressions."
   [kind show-map track parent-frame update-fn]
   ;; We need to use `show-map` instead of `show` as the argument name so we can call the show function
@@ -1460,23 +1463,23 @@ a {
   kind of Cues Editor window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind track cue parent-frame update-fn]
-  (let [text          (find-cue-expression-text kind track cue)
-        save-fn       (fn [text] (update-cue-expression kind track cue text update-fn))
-        root          (seesaw/frame :title (cue-editor-title kind track cue) :on-close :nothing :size [800 :by 600])
-        editor        (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
-        scroll-pane   (org.fife.ui.rtextarea.RTextScrollPane. editor)
-        editor-panel  (org.fife.rsta.ui.CollapsibleSectionPanel.)
-        status-label  (seesaw/label)
-        tools         (build-search-tools root editor status-label)
-        update-action (build-update-action editor save-fn)
-        help          (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn      (fn [] (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
-                                        dissoc kind))]
+  (let [text            (find-cue-expression-text kind track cue)
+        save-fn         (fn [text] (update-cue-expression kind track cue text update-fn))
+        ^JFrame root    (seesaw/frame :title (cue-editor-title kind track cue) :on-close :nothing :size [800 :by 600])
+        editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
+        editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
+        status-label    (seesaw/label)
+        tools           (build-search-tools root editor status-label)
+        update-action   (build-update-action editor save-fn)
+        ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
+        close-fn        (fn [] (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
+                                          dissoc kind))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
     (.setMarkOccurrences editor true)
-    (.apply @editor-theme editor)
+    (.apply ^org.fife.ui.rsyntaxtextarea.Theme @editor-theme editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
@@ -1502,12 +1505,12 @@ a {
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
-                   (fn [e]
+                   (fn [^javax.swing.event.HyperlinkEvent e]
                      (let [type (.getEventType e)
                            url  (.getURL e)]
                        (when (= type (javax.swing.event.HyperlinkEvent$EventType/ACTIVATED))
                          (clojure.java.browse/browse-url url)))))
-    (seesaw/listen root :window-closing (fn [e] (when (confirm-close-if-dirty root update-action)
+    (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
     (let [result
