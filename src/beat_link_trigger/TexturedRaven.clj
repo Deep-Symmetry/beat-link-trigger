@@ -1,5 +1,6 @@
 (ns beat-link-trigger.TexturedRaven
-  "An enhanced version of the Raven skin with textured watermarks."
+  "An enhanced version of the Raven skin with textured watermarks.
+  Provides the distinctinve look and feel for Beat Link Trigger."
   (:gen-class :extends org.pushingpixels.substance.api.skin.RavenSkin
               :constructors {[] []}
               :exposes {watermark {:set setWatermark}}

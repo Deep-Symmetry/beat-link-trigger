@@ -58,8 +58,8 @@
 
 (defn user-guide-link
   "Makes sure the local user guide is being served, then returns a URL
-  that will reach the specified section (or the landing page if none
-  was specified)."
+  that will reach the specified section (or the front page if none was
+  specified)."
   ([]
    (user-guide-link "README.html"))
   ([section]
@@ -77,9 +77,10 @@
   "Produces a compact summary of the IPv4 addresses (if any) attached to
   a network interface."
   [^java.net.NetworkInterface interface]
-  (let [candidates (filter #(.getBroadcast %) (.getInterfaceAddresses interface))]
+  (let [candidates (filter #(.getBroadcast ^java.net.InterfaceAddress %) (.getInterfaceAddresses interface))]
     (if (seq candidates)
-      (clojure.string/join ", " (map #(str (.getHostAddress (.getAddress %)) "/" (.getNetworkPrefixLength %))
+      (clojure.string/join ", " (map (fn [^java.net.InterfaceAddress addr]
+                                       (str (.getHostAddress (.getAddress addr)) "/" (.getNetworkPrefixLength addr)))
                                      candidates))
       "No IPv4 addresses")))
 
@@ -96,7 +97,8 @@
   "Describes the network interfaces present in the system."
   []
   (->> (java.util.Collections/list (java.net.NetworkInterface/getNetworkInterfaces))
-       (filter #(and (.isUp %) (not (.isLoopback %))))
+       (filter (fn [^java.net.NetworkInterface iface]
+                 (and (.isUp iface) (not (.isLoopback iface)))))
        (map describe-interface)
        sort))
 
