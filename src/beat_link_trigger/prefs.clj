@@ -1,6 +1,7 @@
 (ns beat-link-trigger.prefs
-  "Functions for managing application preferences"
+  "Functions for managing the application preferences."
   (:require [clojure.edn :as edn]
+            [clojure.java.io]
             [fipp.edn :as fipp]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
@@ -20,7 +21,7 @@
 
 (defn- prefs-node
   "Return the node at which we store our preferences."
-  []
+  ^Preferences []
   (.node (Preferences/userRoot) "org.deepsymmetry.beat_link_trigger"))
 
 (defn- empty-preferences
@@ -34,7 +35,7 @@
   string."
   []
   (locking (prefs-node)
-    (when-let [current (.get (prefs-node) "prefs" nil)]
+    (when-let [current ^Preferences (.get (prefs-node) "prefs" nil)]
       (loop [result     current
              next-index 1
              next-chunk (.get (prefs-node) (str "prefs-" next-index) nil)]
@@ -58,7 +59,7 @@
   "Chops up a string representing the current trigger configuration
   into as many preference entries as required to hold it, and stores
   them."
-  [node value]
+  [^Preferences node value]
   (loop [index 0]
     (let [offset (* index Preferences/MAX_VALUE_LENGTH)
           remain (- (count value) offset)
@@ -69,7 +70,7 @@
 
 (defn put-preferences
   "Updates the user preferences to reflect the map supplied. Returns
-  true if successful."
+  `true` if successful."
   [m]
   (try
     (let [prefs (prefs-node)]
@@ -94,7 +95,7 @@
 
 (defn valid-file?
   "Checks whether the specified file seems to be a valid save file. If
-  so, returns it; otherwiser returns nil."
+  so, returns it; otherwiser returns `nil`."
   ([file]
    (valid-file? :beat-link-trigger-version file))
   ([required-key file]
