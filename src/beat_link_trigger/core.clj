@@ -16,11 +16,15 @@
            [javax.swing UIManager]))
 
 (def device-finder
-  "A convenient reference to the DeviceFinder singleton."
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
   (DeviceFinder/getInstance))
 
 (def virtual-cdj
-  "A convenient reference to the VirtualCdj singleton."
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
 (defn finish-startup

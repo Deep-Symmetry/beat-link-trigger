@@ -5,21 +5,28 @@
   (:require [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
+            [clojure.java.io]
+            [clojure.string]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import beat_link_trigger.tree_node.IPlaylistEntry
-           [java.awt Color Font GraphicsEnvironment RenderingHints]
-           java.awt.event.WindowEvent
-           javax.imageio.ImageIO
-           javax.swing.JFileChooser
-           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel TreeNode]
+           [java.awt Color Font Graphics2D RenderingHints]
+           [java.awt.event MouseEvent WindowEvent]
+           [java.io File]
+           [javax.imageio ImageIO]
+           [javax.swing JFileChooser JFrame JLabel JTree]
+           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
-            DeviceAnnouncementListener DeviceFinder DeviceUpdate LifecycleListener MediaDetailsListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArtListener ArtFinder MetadataCache MetadataCacheCreationListener
-            MetadataCacheListener MetadataFinder MountListener SearchableItem SlotReference TimeFinder
-            TrackMetadataListener WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate
+            LifecycleListener MediaDetails MediaDetailsListener VirtualCdj]
+           [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener ArtFinder MetadataCache
+            MetadataCacheCreationListener MetadataCacheListener MetadataFinder MountListener
+            SearchableItem SlotReference TimeFinder TrackMetadata TrackMetadataListener
+            WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
+           [org.deepsymmetry.beatlink.dbserver Message NumberField StringField]
+           [beat_link_trigger.tree_node IPlaylistEntry]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to view player state
@@ -43,29 +50,40 @@
   same place the next time it is opened."}
   window-position (atom nil))
 
-(def device-finder
-  "The object that tracks the arrival and departure of devices on the
-  DJ Link network."
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
-  "The object which can obtained detailed player status information."
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
-(def metadata-finder
-  "The object that can obtain track metadata."
+(def ^MetadataFinder metadata-finder
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
   (MetadataFinder/getInstance))
 
-(def waveform-finder
-  "The object that can obtain track waveform information."
-  (WaveformFinder/getInstance))
-
-(def time-finder
-  "The object that can obtain detailed track time information."
+(def ^TimeFinder time-finder
+  "A convenient reference to the [Beat Link
+  `TimeFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TimeFinder.html)
+  singleton."
   (TimeFinder/getInstance))
 
-(def art-finder
-  "The object that can obtain album artwork."
+(def ^WaveformFinder waveform-finder
+  "A convenient reference to the [Beat Link
+  `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
+  singleton."
+  (WaveformFinder/getInstance))
+
+(def ^ArtFinder art-finder
+  "A convenient reference to the [Beat Link
+  `ArtFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/ArtFinder.html)
+  singleton."
   (ArtFinder/getInstance))
 
 (defn- sending-status?
@@ -77,7 +95,7 @@
 (def magnify-cursor
   "A custom cursor that indicates something can be magnified."
   (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                              (.getImage (seesaw/icon "images/Magnify-cursor.png"))
+                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Magnify-cursor.png"))
                               (java.awt.Point. 6 6)
                               "Magnify")))
 
@@ -108,51 +126,52 @@
   progress bar during the download process, and allows the user to
   cancel it. Once the cache file is created, it is automatically
   attached."
-  ([player slot file]
+  ([player slot ^File file]
    (create-metadata-cache player slot file 0))
-  ([player slot file playlist-id]
-   (let [continue? (atom true)
-         slot-ref  (SlotReference/getSlotReference player slot)
-         progress  (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
-         latest    (seesaw/label :text "Gathering tracks…")
-         panel     (mig/mig-panel
-                    :items [[(seesaw/label :text (str "<html>Creating " (if (pos? playlist-id) "playlist" "full")
-                                                      " metadata cache for player " player
-                                                      ", " (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD")
-                                                      " slot, in file <strong>" (.getName file) "</strong>:</html>"))
-                             "span, wrap"]
-                            [latest "span, wrap 20"]
-                            [progress "grow, span, wrap 16"]
-                            [(seesaw/button :text "Cancel"
-                                            :listen [:action-performed (fn [e]
-                                                                         (reset! continue? false)
-                                                                         (seesaw/config! e :enabled? false
-                                                                                         :text "Canceling…"))])
-                             "span, align center"]])
-         root      (seesaw/frame :title "Downloading Metadata" :on-close :dispose :content panel)
-         trim-name (fn [track]
-                     (let [title (.getTitle track)]
-                       (if (< (count title) 40)
-                         title
-                         (str (subs title 0 39) "…"))))
-         listener  (reify MetadataCacheCreationListener
-                     (cacheCreationContinuing [this last-track finished-count total-count]
-                       (seesaw/invoke-later
-                        (seesaw/config! progress :max total-count :indeterminate? false)
-                        (seesaw/value! progress finished-count)
-                        (seesaw/config! latest :text (str "Added " finished-count " of " total-count
-                                                          ": " (trim-name last-track)))
-                        (when (or (not @continue?) (>= finished-count total-count))
-                          (when @continue?  ; We finished without being canceled, so attach the cache
-                            (future
-                              (try
-                                (Thread/sleep 100)  ; Give the file a chance to be closed and flushed
-                                (.attachMetadataCache (MetadataFinder/getInstance) slot-ref file)
-                                (catch Exception e
-                                  (timbre/error e "Problem attaching just-created metadata cache")))))
-                          (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
-                       @continue?))]
-     (seesaw/listen root :window-closed (fn [e] (reset! continue? false)))
+  ([player slot ^File file playlist-id]
+   (let [continue?    (atom true)
+         slot-ref     (SlotReference/getSlotReference player slot)
+         progress     (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
+         latest       (seesaw/label :text "Gathering tracks…")
+         panel        (mig/mig-panel
+                       :items [[(seesaw/label :text
+                                              (str "<html>Creating " (if (pos? playlist-id) "playlist" "full")
+                                                   " metadata cache for player " player
+                                                   ", " (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD")
+                                                   " slot, in file <strong>" (.getName file) "</strong>:</html>"))
+                                "span, wrap"]
+                               [latest "span, wrap 20"]
+                               [progress "grow, span, wrap 16"]
+                               [(seesaw/button :text "Cancel"
+                                               :listen [:action-performed (fn [e]
+                                                                            (reset! continue? false)
+                                                                            (seesaw/config! e :enabled? false
+                                                                                            :text "Canceling…"))])
+                                "span, align center"]])
+         ^JFrame root (seesaw/frame :title "Downloading Metadata" :on-close :dispose :content panel)
+         trim-name    (fn [^TrackMetadata track]
+                        (let [title (.getTitle track)]
+                          (if (< (count title) 40)
+                            title
+                            (str (subs title 0 39) "…"))))
+         listener     (reify MetadataCacheCreationListener
+                        (cacheCreationContinuing [this last-track finished-count total-count]
+                          (seesaw/invoke-later
+                           (seesaw/config! progress :max total-count :indeterminate? false)
+                           (seesaw/value! progress finished-count)
+                           (seesaw/config! latest :text (str "Added " finished-count " of " total-count
+                                                             ": " (trim-name last-track)))
+                           (when (or (not @continue?) (>= finished-count total-count))
+                             (when @continue?  ; We finished without being canceled, so attach the cache
+                               (future
+                                 (try
+                                   (Thread/sleep 100)  ; Give the file a chance to be closed and flushed
+                                   (.attachMetadataCache (MetadataFinder/getInstance) slot-ref file)
+                                   (catch Exception e
+                                     (timbre/error e "Problem attaching just-created metadata cache")))))
+                             (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
+                          @continue?))]
+     (seesaw/listen root :window-closed (fn [_] (reset! continue? false)))
      (.pack root)
      (.setLocationRelativeTo root nil)
      (seesaw/show! root)
@@ -170,21 +189,21 @@
 (defn- playlist-node
   "Create a node in the playlist selection tree that can lazily load
   its children if it is a folder."
-  [player slot title id folder?]
+  ^DefaultMutableTreeNode [player slot title id folder?]
   (let [unloaded (atom true)]
     (DefaultMutableTreeNode.
      (proxy [Object IPlaylistEntry] []
        (toString [] (str title))
        (getId [] (int id))
        (isFolder [] (true? folder?))
-       (loadChildren [^javax.swing.tree.TreeNode node]
+       (loadChildren [^DefaultMutableTreeNode node]
          (when (and folder? @unloaded)
            (reset! unloaded false)
            (timbre/info "requesting playlist folder" id)
-           (doseq [entry (.requestPlaylistItemsFrom (MetadataFinder/getInstance) player slot 0 id true)]
-             (let [entry-name (.getValue (nth (.arguments entry) 3))
-                   entry-kind (.getValue (nth (.arguments entry) 6))
-                   entry-id (.getValue (nth (.arguments entry) 1))]
+           (doseq [^Message entry (.requestPlaylistItemsFrom (MetadataFinder/getInstance) player slot 0 id true)]
+             (let [entry-name (.getValue ^StringField (nth (.arguments entry) 3))
+                   entry-kind (.getValue ^NumberField (nth (.arguments entry) 6))
+                   entry-id   (.getValue ^NumberField (nth (.arguments entry) 1))]
                (.add node (playlist-node player slot entry-name (int entry-id) (true? (= entry-kind 1)))))))))
      (true? folder?))))
 
@@ -192,7 +211,7 @@
   "Create the top-level playlist nodes, which will lazily load any
   child playlists from the player when they are expanded."
   [player slot]
-  (let [root (playlist-node player slot "root", 0, true)
+  (let [root      (playlist-node player slot "root", 0, true)
         playlists (playlist-node  player slot "Playlists", 0, true)]
     (.add root (playlist-node player slot "All Tracks", 0, false))
     (.add root playlists)
@@ -230,7 +249,7 @@
   (seesaw/invoke-later
    (try
      (let [selected-id           (atom nil)
-           root                  (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
+           ^JFrame root          (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
                                                            (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD"))
                                                :on-close :dispose :resizable? false)
            extension             (util/extension-for-file-type :metadata)
@@ -238,7 +257,7 @@
                                   {:all-files? false
                                    :filters    [["BeatLink metadata cache" [extension]]]})
            heading               (seesaw/label :text "Choose what to cache and where to save it:")
-           tree                  (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
+           ^JTree tree           (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
                                               :root-visible? false)
            speed                 (seesaw/checkbox :text "Performance Priority (cache slowly to avoid playback gaps)")
            panel                 (mig/mig-panel :items [[heading "wrap, align center"]
@@ -253,15 +272,16 @@
        (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
        (seesaw/listen tree
                       :tree-will-expand
-                      (fn [e]
-                        (let [^TreeNode node        (.. e (getPath) (getLastPathComponent))
-                              ^IPlaylistEntry entry (.getUserObject node)]
+                      (fn [^javax.swing.event.TreeExpansionEvent e]
+                        (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                              ^IPlaylistEntry entry        (.getUserObject node)]
                           (.loadChildren entry node)))
                       :selection
-                      (fn [e]
+                      (fn [^javax.swing.event.TreeSelectionEvent e]
                         (reset! selected-id
                                 (when (.isAddedPath e)
-                                  (let [entry (.. e (getPath) (getLastPathComponent) (getUserObject))]
+                                  (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                                        ^IPlaylistEntry entry        (.getUserObject node)]
                                     (when-not (.isFolder entry)
                                       (.getId entry)))))))
        (.setVisibleRowCount tree 10)
@@ -276,7 +296,7 @@
        (.setDialogType chooser JFileChooser/SAVE_DIALOG)
        (seesaw/listen chooser
                       :action-performed
-                      (fn [action]
+                      (fn [^java.awt.event.ActionEvent action]
                         (if (= (.getActionCommand action) JFileChooser/APPROVE_SELECTION)
                           (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
                             (@#'chooser/remember-chooser-dir chooser)
@@ -300,7 +320,7 @@
 (defn time-played
   "If possible, returns the number of milliseconds of track the
   specified player has played."
-  [n]
+  [^Long n]
   (and (.isRunning time-finder) (.getTimeFor time-finder n)))
 
 (defn- playing?
@@ -316,7 +336,7 @@
   color to reflect its play state. Arguments are the player number,
   the component being drawn, and the graphics context in which drawing
   is taking place."
-  [n c g]
+  [n c ^Graphics2D g]
   (let [w       (double (seesaw/width c))
         center  (/ w 2.0)
         h       (double (seesaw/height c))
@@ -353,7 +373,7 @@
   has reported itself as being on the air. Arguments are the player
   number, the component being drawn, and the graphics context in which
   drawing is taking place."
-  [n c g]
+  [n c ^Graphics2D g]
   (let [w       (double (seesaw/width c))
         center  (/ w 2.0)
         h       (double (seesaw/height c))
@@ -382,7 +402,7 @@
   position (within a musical bar) of the specified player, if known.
   Arguments are the player number, the component being drawn, and the
   graphics context in which drawing is taking place."
-  [n c g]
+  [n _ ^Graphics2D g]
   (try
     (let [image-data (clojure.java.io/resource (str "images/BeatMini-" (or (current-beat n) "blank") ".png"))
           image (javax.imageio.ImageIO/read image-data)]
@@ -393,14 +413,14 @@
 (defn- time-left
   "Figure out the number of milliseconds left to play for a given
   player, given the player number and time played so far."
-  [n played]
+  [^Long n played]
   (let [detail (.getLatestDetailFor waveform-finder n)]
     (when detail (max 0 (- (.getTotalTime detail) played)))))
 
 (defn- format-time
   "Formats a number for display as a two-digit time value, or -- if it
   cannot be."
-  [t]
+  ^String [t]
   (if t
     (let [t (int t)]
       (if (< t 100)
@@ -411,10 +431,10 @@
 (defn- pre-nexus
   "Checks whether the specified player number seems to be an older,
   pre-nexus player, for which we cannot obtain time information."
-  [n]
-  (when-let [u (try
-                 (.getLatestStatusFor virtual-cdj n)
-                 (catch Exception e))]  ; Absorb exceptions when virtual-cdj shuts down because we went offline.
+  [^Long n]
+  (when-let [^CdjStatus u (try
+                            (.getLatestStatusFor virtual-cdj n)
+                            (catch Exception _))]  ; Absorb when virtual-cdj shuts down because we went offline.
     (.isPreNexusCdj u)))
 
 (defn- paint-time
@@ -422,7 +442,7 @@
   boolean flag indicating we are drawing remaining time, the component
   being drawn, and the graphics context in which drawing is taking
   place."
-  [n remain c g]
+  [n remain _ ^Graphics2D g]
   (let [played     (time-played n)
         ms         (when (and played (>= played 0)) (if remain (time-left n played) played))
         min        (format-time (when ms (/ ms 60000)))
@@ -460,7 +480,7 @@
   for the specified player, returning them when available as a vector
   followed by boolean indications of whether the device is the
   current tempo master and whether it is synced."
-  [n]
+  [^Long n]
   (when-let [^DeviceUpdate u (when (.isRunning time-finder) (.getLatestUpdateFor time-finder n))]
     [(org.deepsymmetry.beatlink.Util/pitchToPercentage (.getPitch u))
      (when (not= 65535 (.getBpm u)) (.getEffectiveTempo u))  ; Detect when tempo is not valid
@@ -488,9 +508,9 @@
   "Draws tempo information for a player. Arguments are player number,
   the component being drawn, and the graphics context in which drawing
   is taking place."
-  [n c g]
+  [n _ ^Graphics2D g]
   (when-let [[pitch tempo master synced] (tempo-values n)]
-    (let [abs-pitch       (Math/abs pitch)]
+    (let [abs-pitch       (Math/abs (double pitch))]
       (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
       (.setPaint g (Color/WHITE))
       (.setFont g (util/get-display-font :teko Font/PLAIN 16))
@@ -529,7 +549,7 @@
 (defn generic-media-image
   "Return an image that can be used as generic album artwork for the
   type of media being played in the specified player number."
-  [n]
+  [^Long n]
   (let [^CdjStatus status (.getLatestStatusFor virtual-cdj n)]
     (if (nil? status)
       (ImageIO/read (clojure.java.io/resource "images/NoTrack.png"))
@@ -558,10 +578,10 @@
   "Draws the album art for a player. Arguments are player number, the
   component being drawn, and the graphics context in which drawing is
   taking place."
-  [n c g]
-  (if-let [art (try (when (.isRunning art-finder) (.getLatestArtFor art-finder (int n)))
-                      (catch Exception e
-                        (timbre/error e "Problem requesting album art to draw player row, leaving blank.")))]
+  [n _ ^Graphics2D g]
+  (if-let [^AlbumArt art (try (when (.isRunning art-finder) (.getLatestArtFor art-finder (int n)))
+                              (catch Exception e
+                                (timbre/error e "Problem requesting album art to draw player row, leaving blank.")))]
     (if-let [image (.getImage art)]
       (.drawImage g image 0 0 nil)
       (when-let [image (generic-media-image n)]  ; No image found, try drawing a generic substitute.
@@ -569,7 +589,7 @@
     (when-let [image (generic-media-image n)]  ; No actual art found, try drawing a generic substitute.
       (.drawImage g image 0 0 80 80 nil))))
 
-(defn- no-players-found
+#_(defn- no-players-found
   "Returns true if there are no visible players for us to display."
   []
   (empty? (filter #(<= 1 (.getNumber %) 4) (.getCurrentDevices device-finder))))
@@ -591,24 +611,24 @@
   "Creates a standalone, resizable window displaying a player waveform,
   given a player number.."
   [n parent]
-  (if-let [existing (get @waveform-windows n)]
+  (if-let [^JFrame existing (get @waveform-windows n)]
     (.toFront existing)  ; Already open, just bring to front.
-    (let [key         (keyword (str "waveform-detail-" n))  ; Not open yet, so create.
-          wave        (WaveformDetailComponent. n)
-          zoom-slider (seesaw/slider :id :zoom :min 1 :max 32 :value 2
-                                     :listen [:state-changed #(.setScale wave (seesaw/value %))])
-          zoom-panel  (seesaw/border-panel :background "#000"
-                                           :center zoom-slider :east (seesaw/label :text " Zoom "))
-          panel       (seesaw/border-panel :background "#000" :north zoom-panel :center wave)
-          root        (seesaw/frame :title (str "Player " n " Waveform Detail")
-                                    :on-close :dispose
-                                    :width 600 :height 200
-                                    :content panel)]
+    (let [key          (keyword (str "waveform-detail-" n)) ; Not open yet, so create.
+          wave         (WaveformDetailComponent. n)
+          zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 2
+                                      :listen [:state-changed #(.setScale wave (seesaw/value %))])
+          zoom-panel   (seesaw/border-panel :background "#000"
+                                            :center zoom-slider :east (seesaw/label :text " Zoom "))
+          panel        (seesaw/border-panel :background "#000" :north zoom-panel :center wave)
+          ^JFrame root (seesaw/frame :title (str "Player " n " Waveform Detail")
+                                     :on-close :dispose
+                                     :width 600 :height 200
+                                     :content panel)]
       (swap! waveform-windows assoc n root)
       (.setScale wave 2)
       (util/restore-window-position root key parent)
-      (seesaw/listen root #{:component-moved :component-resized} (fn [e] (util/save-window-position root key)))
-      (seesaw/listen root :window-closed (fn [e] (swap! waveform-windows dissoc n)))
+      (seesaw/listen root #{:component-moved :component-resized} (fn [_] (util/save-window-position root key)))
+      (seesaw/listen root :window-closed (fn [_] (swap! waveform-windows dissoc n)))
       (seesaw/show! root)
       (.toFront root))))
 
@@ -617,16 +637,16 @@
   changed. Let the user know if they are not going to be able to get
   metadata without using a standard player number if this is the first
   time we have seen the kind of track for which that is an issue."
-  [metadata player title-label artist-label]
+  [^TrackMetadata metadata player title-label artist-label]
   (seesaw/invoke-soon
    (if metadata
      (do (seesaw/config! title-label :text (or (util/remove-blanks (.getTitle metadata)) "[no title]"))
          (seesaw/config! artist-label :text (or (util/remove-blanks (extract-label (.getArtist metadata)))
                                                 "[no artist]")))
-     (let [status (when (.isRunning virtual-cdj) (.getLatestStatusFor virtual-cdj (int player)))
-           title (if (= CdjStatus$TrackType/NO_TRACK (when status (.getTrackType status)))
-                   "[no track loaded]"
-                   "[no track metadata available]")]
+     (let [^CdjStatus status (when (.isRunning virtual-cdj) (.getLatestStatusFor virtual-cdj (int player)))
+           title             (if (= CdjStatus$TrackType/NO_TRACK (when status (.getTrackType status)))
+                               "[no track loaded]"
+                               "[no track metadata available]")]
        (seesaw/config! title-label :text title)
        (seesaw/config! artist-label :text "n/a")
        (when (and status
@@ -669,7 +689,7 @@
                  (seesaw/action :handler (fn [_] (.detachMetadataCache metadata-finder slot-reference))
                                 :name "Detach Metadata Cache File"))
                (when rekordbox?
-                 (seesaw/action :handler (fn [e]
+                 (seesaw/action :handler (fn [_]
                                            (when-let [file (chooser/choose-file
                                                             @player-window
                                                             :all-files? false
@@ -697,7 +717,7 @@
 
 (defn- warn-about-stale-cache
   "Warn the user that a cache that has just attached seems outdated."
-  [zip-file media-details]
+  [^java.util.zip.ZipFile zip-file ^MediaDetails media-details]
   (let [raw-file (clojure.java.io/file (.getName zip-file))]
     (seesaw/alert @player-window
                   (str "<html>The metadata cache file “" (.getName raw-file) "” that was just attached<br>"
@@ -712,7 +732,7 @@
   tip with a cue/loop description if the mouse is hovering over the
   marker for one. Will include the DJ-assigned comment if we have
   found one."
-  [preview n e]
+  [^WaveformPreviewComponent preview ^Long n ^MouseEvent e]
   (let [point    (.getPoint e)
         data     (.getLatestMetadataFor metadata-finder n)
         cue-list (when data (.getCueList data))
@@ -791,7 +811,7 @@
                          (albumArtChanged [this art-update]
                            (when (= n (.player art-update))
                              (seesaw/repaint! art))))
-        slot-elems     (fn [slot-reference]
+        slot-elems     (fn [^SlotReference slot-reference]
                          (when (= n (.player slot-reference))
                            (util/case-enum (.slot slot-reference)
                              CdjStatus$TrackSourceSlot/USB_SLOT [usb-gear usb-name]
@@ -840,7 +860,7 @@
     ;; Display the magnify cursor over the waveform detail component,
     ;; and open a standalone window on the waveform when it is clicked.
     (.setCursor detail @magnify-cursor)
-    (seesaw/listen detail :mouse-clicked (fn [e] (open-waveform-window n detail)))
+    (seesaw/listen detail :mouse-clicked (fn [_] (open-waveform-window n detail)))
 
     ;; Show the slot cache popup menus on ordinary mouse presses on the buttons too.
     (seesaw/listen usb-gear
@@ -920,24 +940,25 @@
   "Ensures that the Player Status window is in front, not too far off
   the screen, and shown."
   [trigger-frame globals]
-  (util/restore-window-position @player-window :player-status trigger-frame)
-  (seesaw/show! @player-window)
-  (.toFront @player-window)
-  (.setAlwaysOnTop @player-window (boolean (:player-status-always-on-top @globals))))
+  (let [^JFrame window @player-window]
+    (util/restore-window-position window :player-status trigger-frame)
+    (seesaw/show! window)
+    (.toFront window)
+    (.setAlwaysOnTop window (boolean (:player-status-always-on-top @globals)))))
 
 (defn build-no-player-indicator
   "Creates a label with a large border that reports the absence of any
   players on the network."
   []
-  (let [no-players (seesaw/label :text "No players are currently visible on the network."
-                                 :font (util/get-display-font :orbitron Font/PLAIN 16))]
+  (let [^JLabel no-players (seesaw/label :text "No players are currently visible on the network."
+                                         :font (util/get-display-font :orbitron Font/PLAIN 16))]
     (.setBorder no-players (javax.swing.border.EmptyBorder. 10 10 10 10))
     no-players))
 
 (defn- update-slot-labels
   "Updates the USB/SD labels of a player cell in case the device is an
   XDJ-XZ, which has two USB slots instead."
-  [cell device]
+  [cell ^DeviceAnnouncement device]
   (seesaw/invoke-soon
    (if (= (.getName device) "XDJ-XZ")
      (do
@@ -957,7 +978,7 @@
 
   Also updates the USB/SD labels in case the device is an XDJ-XZ,
   which has two USB slots instead."
-  [grid players no-players]
+  [_ players no-players]
   (let [visible-players (keep-indexed (fn [index player]
                                         (when-let [device (.getLatestAnnouncementFrom device-finder (inc index))]
                                           (update-slot-labels player device)
@@ -978,26 +999,26 @@
 
 (defn- create-window
   "Creates the Player Status window."
-  [trigger-frame globals]
+  []
   (try
     (util/load-fonts)
     (let [shutdown-chan (async/promise-chan)
-          root          (seesaw/frame :title "Player Status"
+          ^JFrame root  (seesaw/frame :title "Player Status"
                                       :on-close :dispose)
           grid          (seesaw/grid-panel :id :players :columns 1)
           players       (create-player-cells shutdown-chan)
           no-players    (build-no-player-indicator)
-          dev-listener (reify DeviceAnnouncementListener  ; Update the grid contents as players come and go
-                         (deviceFound [this _]
-                           (seesaw/invoke-later
-                            (seesaw/config! root
-                                            :content (seesaw/scrollable (players-present grid players no-players)))
-                            (seesaw/pack! root)))
-                         (deviceLost [this _]
-                           (seesaw/invoke-later
-                            (seesaw/config! root
-                                            :content (seesaw/scrollable (players-present grid players no-players)))
-                            (seesaw/pack! root))))
+          dev-listener  (reify DeviceAnnouncementListener  ; Update the grid contents as players come and go
+                          (deviceFound [this _]
+                            (seesaw/invoke-later
+                             (seesaw/config! root
+                                             :content (seesaw/scrollable (players-present grid players no-players)))
+                             (seesaw/pack! root)))
+                          (deviceLost [this _]
+                            (seesaw/invoke-later
+                             (seesaw/config! root
+                                             :content (seesaw/scrollable (players-present grid players no-players)))
+                             (seesaw/pack! root))))
           stop-listener (reify LifecycleListener
                           (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
                           (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
@@ -1006,14 +1027,14 @@
       (seesaw/config! root :content (seesaw/scrollable (players-present grid players no-players)))
       (.addDeviceAnnouncementListener device-finder dev-listener)
       (.addLifecycleListener virtual-cdj stop-listener)
-      (seesaw/listen root :window-closed (fn [e]
+      (seesaw/listen root :window-closed (fn [_]
                                            (>!! shutdown-chan :done)
                                            (reset! player-window nil)
                                            (.removeDeviceAnnouncementListener device-finder dev-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)
-                                           (doseq [detail (vals @waveform-windows)]
+                                           (doseq [^JFrame detail (vals @waveform-windows)]
                                              (.dispose detail))))
-      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :player-status true)))
+      (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :player-status true)))
       (seesaw/pack! root)
       (.setResizable root @allow-ugly-resizing)
       (reset! player-window root)
@@ -1025,5 +1046,5 @@
   "Open the Player Status window if it is not already open."
   [trigger-frame globals]
   (locking player-window
-    (when-not @player-window (create-window trigger-frame globals)))
+    (when-not @player-window (create-window)))
   (make-window-visible trigger-frame globals))
