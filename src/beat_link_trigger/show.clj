@@ -9,66 +9,86 @@
             [beat-link-trigger.track-loader :as loader]
             [beat-link-trigger.prefs :as prefs]
             [clojure.edn :as edn]
+            [clojure.java.io]
+            [clojure.set]
+            [clojure.string]
             [fipp.edn :as fipp]
             [inspector-jay.core :as inspector]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
-            [seesaw.icon :as icon]
+            [seesaw.icon]
             [seesaw.mig :as mig]
             [thi.ng.color.core :as color]
             [taoensso.timbre :as timbre])
-  (:import [javax.sound.midi Sequencer Synthesizer]
-           [java.awt Color Cursor Font Graphics2D Rectangle RenderingHints]
+  (:import [java.awt Color Cursor Font Graphics2D Rectangle RenderingHints]
            [java.awt.event InputEvent MouseEvent WindowEvent]
+           [java.io File]
            [java.lang.ref SoftReference]
-           [java.nio.file Path Files FileSystems OpenOption CopyOption StandardCopyOption StandardOpenOption]
-           [org.deepsymmetry.beatlink Beat BeatFinder BeatListener
-            CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
-            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
-            MixerStatus Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt ArtFinder BeatGrid BeatGridFinder CueList DataReference
-            MetadataFinder SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder
+           [java.nio.file Files FileSystem FileSystems OpenOption Path StandardCopyOption StandardOpenOption]
+           [javax.swing JComponent JFrame JMenu JMenuBar JPanel]
+           [javax.swing.text JTextComponent]
+           [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener
+            LifecycleListener VirtualCdj]
+           [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference MetadataFinder
+            SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder
             TrackMetadata TrackPositionUpdate
-            WaveformDetail WaveformDetailComponent WaveformFinder WaveformPreview WaveformPreviewComponent]
+            WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
+           [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.cratedigger Database]
-           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz]
-           [io.kaitai.struct RandomAccessFileKaitaiStream]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow]
+           [io.kaitai.struct RandomAccessFileKaitaiStream]))
 
-(def device-finder
-  "A convenient reference to the DeviceFinder singleton."
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
-  "A convenient reference to the VirtualCdj singleton."
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
-(def metadata-finder
-  "A convenient reference to the MetadataFinder singleton."
+(def ^MetadataFinder metadata-finder
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
   (MetadataFinder/getInstance))
 
-(def art-finder
-  "A convenient reference to the ArtFinder singleton."
+(def ^org.deepsymmetry.beatlink.data.ArtFinder art-finder
+  "A convenient reference to the [Beat Link
+  `ArtFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/ArtFinder.html)
+  singleton."
   (org.deepsymmetry.beatlink.data.ArtFinder/getInstance))
 
-(def beatgrid-finder
-  "A convenient reference to the BeatGridFinder singleton."
+(def ^org.deepsymmetry.beatlink.data.BeatGridFinder beatgrid-finder
+  "A convenient reference to the [Beat Link
+  `BeatGridFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGridFinder.html)
+  singleton."
   (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance))
 
-(def waveform-finder
-  "A convenient reference to the WaveformFinder singleton."
-  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
-
-(def signature-finder
-  "A convenient reference to the SingatureFinder singleton."
+(def ^SignatureFinder signature-finder
+  "A convenient reference to the [Beat Link
+  `SingatureFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/SignatureFinder.html)
+  singleton."
   (SignatureFinder/getInstance))
 
-(def time-finder
-  "A convenient reference to the TimeFinder singleton."
+(def ^TimeFinder time-finder
+  "A convenient reference to the [Beat Link
+  `TimeFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TimeFinder.html)
+  singleton."
   (TimeFinder/getInstance))
+
+(def ^org.deepsymmetry.beatlink.data.WaveformFinder waveform-finder
+  "A convenient reference to the [Beat Link
+  `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
+  singleton."
+  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
 
 (defonce ^{:private true
            :doc "The map of open shows; keys are the file, values are
@@ -88,7 +108,7 @@
 (defn- build-filesystem-path
   "Construct a path in the specified filesystem; translates from
   idiomatic Clojure to Java interop with the `java.nio` package."
-  [filesystem & elements]
+  ^Path [^FileSystem filesystem & elements]
   (.getPath filesystem (first elements) (into-array String (rest elements))))
 
 (defn- read-edn-path
@@ -97,15 +117,20 @@
   #_(timbre/info "Reading from" path "in filesystem" (.getFileSystem path))
   (edn/read-string {:readers @prefs/prefs-readers} (String. (Files/readAllBytes path) "UTF-8")))
 
+(def ^{:private true
+       :tag     "[Ljava.nio.file.StandardOpenOption;"}
+  write-edn-options
+  "The Filesystem options used when writing EDN data into a show file path."
+  (into-array [StandardOpenOption/CREATE StandardOpenOption/TRUNCATE_EXISTING StandardOpenOption/WRITE]))
+
 (defn- write-edn-path
   "Write the supplied data as EDN to the specified path, truncating any previously existing file."
-  [data path]
+  [data ^Path path]
   #_(timbre/info "Writing" data "to" path "in filesystem" (.getFileSystem path))
   (binding [*print-length* nil
             *print-level* nil]
-    (Files/write path (.getBytes (with-out-str (fipp/pprint data)) "UTF-8")
-                 (into-array [StandardOpenOption/CREATE StandardOpenOption/TRUNCATE_EXISTING
-                              StandardOpenOption/WRITE]))))
+    (let [^String formatted (with-out-str (fipp/pprint data))]
+      (Files/write path (.getBytes formatted  "UTF-8") write-edn-options))))
 
 (defn- open-show-filesystem
   "Opens a show file as a ZIP filesystem so the individual elements
@@ -113,7 +138,7 @@
   that the file is, in fact, a properly formatted Show ZIP file.
   Returns the opened and validated filesystem and the parsed contents
   map."
-  [file]
+  [^File file]
   (try
     (let [filesystem (FileSystems/newFileSystem (.toPath file) (.getContextClassLoader (Thread/currentThread)))
           contents   (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
@@ -174,7 +199,7 @@
   "Closes the ZIP filesystem so that changes are written to the actual
   show file, then reopens it."
   [show]
-  (let [{:keys [file filesystem]} show]
+  (let [{:keys [^File file ^FileSystem filesystem]} show]
     (swap! open-shows update file dissoc :filesystem)
     (try
       (.close filesystem)
@@ -186,7 +211,7 @@
 
 (defn- write-message-path
   "Writes the supplied Message to the specified path, truncating any previously existing file."
-  [message path]
+  [^Message message path]
   (with-open [channel (java.nio.channels.FileChannel/open path (into-array [StandardOpenOption/WRITE
                                                                             StandardOpenOption/CREATE_NEW]))]
     (.write message channel)))
@@ -269,7 +294,7 @@
   "Causes the track state indicators for all tracks in a show to redraw
   themselves to reflect a change in state."
   [show]
-  (doseq [[signature track] (:tracks (latest-show show))]
+  (doseq [[signature _] (:tracks (latest-show show))]
     (repaint-track-states show signature)))
 
 (defn- update-track-enabled
@@ -305,7 +330,7 @@
   file but not on this system).
   to be reloaded."
   [track]
-  (when-let [selection (get-in (latest-track track) [:contents :midi-device])]
+  (when-let [^MidiChoice selection (get-in (latest-track track) [:contents :midi-device])]
     (let [device-name (.full_name selection)]
       (or (get @util/opened-outputs device-name)
           (try
@@ -357,16 +382,22 @@
     (track-present? show signature) " (already imported)"
     :else                           nil))
 
+(def ^{:private true
+        :tag     "[Ljava.nio.file.OpenOption;"}
+  empty-open-options
+  "The Filesystem options used for default behavior."
+  (make-array OpenOption 0))
+
 (defn- gather-byte-buffers
   "Collects all the sqeuentially numbered files with the specified
   prefix and suffix for the specified track into a vector of byte
   buffers."
-  [prefix suffix track-root]
+  [prefix suffix ^Path track-root]
   (loop [byte-buffers []
          idx          0]
     (let [file-path   (.resolve track-root (str prefix idx suffix))
           next-buffer (when (Files/isReadable file-path)
-                        (with-open [file-channel (Files/newByteChannel file-path (make-array OpenOption 0))]
+                        (with-open [file-channel (Files/newByteChannel file-path empty-open-options)]
                           (let [buffer (java.nio.ByteBuffer/allocate (.size file-channel))]
                             (.read file-channel buffer)
                             (.flip buffer))))]
@@ -377,16 +408,17 @@
 (defn- read-cue-list
   "Re-creates a CueList object from an imported track. Returns `nil` if
   none is found."
-  [track-root]
+  [^Path track-root]
   (if (Files/isReadable (.resolve track-root "cue-list.dbserver"))
-    (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") (make-array OpenOption 0))
+    (with-open [input-stream (Files/newInputStream (.resolve track-root "cue-list.dbserver") empty-open-options)
                 data-stream  (java.io.DataInputStream. input-stream)]
       (CueList. (Message/read data-stream)))
     (let [tag-byte-buffers (gather-byte-buffers "cue-list-" ".kaitai" track-root)
           ext-byte-buffers (gather-byte-buffers "cue-extended-" ".kaitai" track-root)]
       (when (seq tag-byte-buffers) (CueList. tag-byte-buffers ext-byte-buffers)))))
 
-(def ^:private dummy-reference
+(def ^{:private true
+       :tag DataReference} dummy-reference
   "A meaningless data reference we can use to construct metadata items
   from the show file."
   (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION 0))
@@ -394,7 +426,7 @@
 (defn read-beat-grid
   "Re-creates a BeatGrid object from an imported track. Returns `nil` if
   none is found."
-  [track-root]
+  [^Path track-root]
   (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
     (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
           beats (int-array (map int (nth grid-vec 0)))
@@ -404,7 +436,7 @@
 (defn read-preview
   "Re-creates a WaveformPreview object from an imported track. Returns
   `nil` if none is found."
-  [track-root]
+  [^Path track-root]
   (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
                         [(.resolve track-root "preview-color.data") true]
                         [(.resolve track-root "preview.data") false])]
@@ -415,7 +447,7 @@
 (defn read-detail
   "Re-creates a WaveformDetail object from an imported track. Returns
   `nil` if none is found."
-  [track-root]
+  [^Path track-root]
   (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
                         [(.resolve track-root "detail-color.data") true]
                         [(.resolve track-root "detail.data") false])]
@@ -426,7 +458,7 @@
 (defn read-art
   "Loads album art for an imported track. Returns `nil` if none is
   found."
-  [track-root]
+  [^Path track-root]
   (let [path (.resolve track-root "art.jpg")]
     (when (Files/isReadable path)
       (let [bytes (Files/readAllBytes path)]
@@ -435,7 +467,7 @@
 (defn- build-track-path
   "Creates an up-to-date path into the current show filesystem for the
   content of the track with the given signature."
-  [show signature]
+  ^Path [show signature]
   (let [show (latest-show show)]
     (build-filesystem-path (:filesystem show) "tracks" signature)))
 
@@ -445,9 +477,9 @@
   position is within 100 pixels of going off the bottom right of the
   screen, the window is instead positioned centered on the screen, or
   on the parent component if one was supplied."
-  ([window contents]
+  ([^JFrame window contents]
    (restore-window-position window contents nil))
-  ([window contents parent]
+  ([^JFrame window contents ^JFrame parent]
    (let [[x y width height] (:window contents)
          dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
      (if (or (nil? x)
@@ -530,8 +562,8 @@
          cue   (find-cue track cue)
          uuid  (:uuid cue)]
      (if (some #(= uuid %) (get-in track [:cues-editor :visible]))
-       (let [panel   (get-in track [:cues-editor :panels (:uuid cue)])
-             comment (seesaw/select panel [:#comment])]
+       (let [^JPanel panel           (get-in track [:cues-editor :panels (:uuid cue)])
+             ^JTextComponent comment (seesaw/select panel [:#comment])]
          (seesaw/invoke-later
           (seesaw/scroll! cues :to (.getBounds panel))
           (when select-comment
@@ -554,7 +586,7 @@
   waveform detail component at the top of the cues editor window,
   taking into account its lane assignment and cluster of neighbors.
   `track` and `cue` must be current."
-  [track cue wave]
+  ^Rectangle [track cue ^WaveformDetailComponent wave]
   (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
         lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
         x                (.getXForBeat wave (:start cue))
@@ -568,8 +600,8 @@
   (let [track (latest-track track)
         cue   (find-cue track cue)]
     (when-let [editor (:cues-editor track)]
-      (let [auto-scroll (seesaw/select (:panel editor) [:#auto-scroll])
-            wave        (:wave editor)]
+      (let [auto-scroll                   (seesaw/select (:panel editor) [:#auto-scroll])
+            ^WaveformDetailComponent wave (:wave editor)]
         (seesaw/config! auto-scroll :selected? false)  ; Make sure auto-scroll is turned off.
         (seesaw/invoke-later  ; Wait for re-layout if necessary.
          (seesaw/scroll! wave :to (.getBounds (cue-rectangle track cue wave))))))))
@@ -580,7 +612,7 @@
   reflect the new limits. Then we rebuild the cue list in case they
   need to change order. Also scroll so the cue is still visible, or if
   it has been filtered out warn the user that has happened."
-  [track cue start-model end-model]
+  [track cue ^javax.swing.SpinnerNumberModel start-model ^javax.swing.SpinnerNumberModel end-model]
   (let [cue (find-cue track cue)]
     (.setMaximum start-model (dec (:end cue)))
     (.setMinimum end-model (inc (:start cue)))
@@ -622,7 +654,7 @@
   [track cue panel gear]
   (for [[kind spec] @editors/show-track-cue-editors]
     (let [update-fn (fn [] (update-cue-gear-icon track cue gear))]
-      (seesaw/action :handler (fn [e] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
+      (seesaw/action :handler (fn [_] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
                      :icon (if (cue-missing-expression? track cue kind)
@@ -741,9 +773,9 @@
   (seesaw/menu :text "Simulate" :items (cue-simulate-actions track cue)))
 
 (defn- assign-cue-hue
-  [track]
   "Picks a color for a new cue by cycling around the color wheel, and
   recording the last one used."
+  [track]
   (let [shows (swap-track! track update-in [:contents :cues :hue]
                            (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
@@ -815,7 +847,7 @@
   [track cue]
   ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
 
-(defn- players-inside-cue
+#_(defn- players-inside-cue
   "Returns the set of players that are currently positioned inside the
   specified cue. `track` must be current."
   [track cue]
@@ -884,7 +916,7 @@
   reflect the departure of the cue."
   [force? track cue]
   (when (close-cue-editors? force? track cue)
-    (let [[show track] (latest-show-and-track track)]
+    (let [[_ track] (latest-show-and-track track)]
       (when (:tripped track)
         (when (seq (players-playing-cue track cue))
           (send-cue-messages track cue :ended nil))
@@ -935,7 +967,7 @@
   [show]
   (let [show           (latest-show show)
         library-empty? (empty? (get-in show [:contents :cue-library]))]
-    (doseq [[signature track] (:tracks show)]
+    (doseq [[_ track] (:tracks show)]
       (when-let [editor (:cues-editor track)]
         (let [button (seesaw/select (:frame editor) [:#library])]
           (if library-empty?
@@ -987,7 +1019,7 @@
 (defn color-to-hue
   "Extracts the hue number (in degrees) from a Color object. If
   colorless, red is the default."
-  [color]
+  [^Color color]
   (* 360.0 (color/hue (color/int32 (.getRGB color)))))
 
 (def cue-opacity
@@ -1008,7 +1040,7 @@
   "Tells the track's preview component to repaint itself because the
   overlaid cues have been edited in the cue window."
   [track]
-  (when-let [preview-canvas (:preview-canvas track)]
+  (when-let [preview-canvas ^JComponent (:preview-canvas track)]
     (.repaint preview-canvas)))
 
 (defn- cue-preview-rectangle
@@ -1016,10 +1048,10 @@
   waveform preview component in a track row of a show window, taking
   into account its lane assignment and cluster of neighbors. `track`
   and `cue` must be current."
-  [track cue preview]
+  ^Rectangle [track cue ^WaveformPreviewComponent preview]
   (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
         lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
-        x-for-beat       (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack (:grid track) beat)))
+        x-for-beat       (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack ^BeatGrid (:grid track) beat)))
         x                (x-for-beat (:start cue))
         w                (- (x-for-beat (:end cue)) x)
         y                (double (* lane (/ (.getHeight preview) num-lanes)))]
@@ -1027,15 +1059,15 @@
 
 (defn- paint-preview-cues
   "Draws the cues, if any, on top of the preview waveform."
-  [show signature preview graphics]
-  (let [show                (latest-show show)
-        ^Graphics2D g2      (.create graphics)
-        ^Rectangle cliprect (.getClipBounds g2)
-        track               (get-in show [:tracks signature])
-        beat-for-x          (fn [x] (.findBeatAtTime (:grid track) (.getTimeForX preview x)))
-        from                (beat-for-x (.x cliprect))
-        to                  (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
-        cue-intervals       (get-in track [:cues :intervals])]
+  [show signature ^WaveformPreviewComponent preview ^Graphics2D graphics]
+  (let [show           (latest-show show)
+        ^Graphics2D g2 (.create graphics)
+        cliprect       (.getClipBounds g2)
+        track          (get-in show [:tracks signature])
+        beat-for-x     (fn [x] (.findBeatAtTime ^BeatGrid (:grid track) (.getTimeForX preview x)))
+        from           (beat-for-x (.x cliprect))
+        to             (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
+        cue-intervals  (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
@@ -1057,7 +1089,7 @@
 (defn- paint-cues-and-beat-selection
   "Draws the cues and the selected beat range, if any, on top of the
   waveform."
-  [track wave graphics]
+  [track ^WaveformDetailComponent wave ^Graphics2D graphics]
   (let [^Graphics2D g2      (.create graphics)
         ^Rectangle cliprect (.getClipBounds g2)
         track               (latest-track track)
@@ -1084,11 +1116,11 @@
   (let [track (latest-track track)
         cue   (find-cue track cue)]
     (when-let [preview-loader (:preview track)]
-      (when-let [preview (preview-loader)]
+      (when-let [^WaveformPreviewComponent preview (preview-loader)]
         (let [preview-rect (cue-preview-rectangle track cue preview)]
-          (.repaint (:preview-canvas track)
+          (.repaint ^JComponent (:preview-canvas track)
                     (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
-    (when-let [wave (get-in track [:cues-editor :wave])]
+    (when-let [^WaveformDetailComponent wave (get-in track [:cues-editor :wave])]
       (let [cue-rect (cue-rectangle track cue wave)]
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
@@ -1096,7 +1128,7 @@
   "Draws a representation of the state of the cue, including whether its
   track is enabled and whether any players are positioned or playing
   inside it (as deterimined by the function passed in `f`)."
-  [track cue f c g]
+  [track cue f c ^Graphics2D g]
   (let [w            (double (seesaw/width c))
         h            (double (seesaw/height c))
         outline      (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
@@ -1217,7 +1249,7 @@
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
-                                             :to (long (.beatCount (:grid track))))
+                                             :to (long (.beatCount ^BeatGrid (:grid track))))
 
         start  (seesaw/spinner :id :start
                                :model start-model
@@ -1234,7 +1266,7 @@
                                             (swap-cue! track cue assoc :end new-end)
                                             (update-cue-spinner-models track cue start-model end-model)))])
         swatch (seesaw/canvas :size [18 :by 18]
-                              :paint (fn [component graphics]
+                              :paint (fn [^JComponent component ^Graphics2D graphics]
                                        (let [cue (find-cue track cue)]
                                          (.setPaint graphics (hue-to-color (:hue cue)))
                                          (.fill graphics (java.awt.geom.Rectangle2D$Double.
@@ -1283,7 +1315,7 @@
                        [(get-in event-components [:started-late :note]) "hidemode 3"]
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
-        popup-fn (fn [e] (concat (cue-editor-actions track cue panel gear)
+        popup-fn (fn [_] (concat (cue-editor-actions track cue panel gear)
                                  [(seesaw/separator) (cue-simulate-menu track cue) (track-inspect-action track)
                                   (seesaw/separator) (scroll-wave-to-cue-action track cue) (seesaw/separator)
                                   (duplicate-cue-action track cue) (library-cue-action track cue panel)
@@ -1301,7 +1333,7 @@
     (update-cue-gear-icon track cue gear)
 
     (seesaw/listen swatch
-                   :mouse-pressed (fn [e]
+                   :mouse-pressed (fn [_]
                                     (let [cue (find-cue track cue)]
                                       (when-let [color (chooser/choose-color panel :color (hue-to-color (:hue cue))
                                                                              :title "Choose Cue Hue")]
@@ -1383,7 +1415,7 @@
 (defn- set-auto-scroll
   "Update the cues UI so that the waveform automatically tracks the
   furthest position played."
-  [track wave auto?]
+  [track ^WaveformDetailComponent wave auto?]
   (swap-track! track assoc-in [:contents :cues :auto-scroll] auto?)
   (.setAutoScroll wave (and auto? (online?)))
   (seesaw/scroll! wave :to [:point 0 0]))
@@ -1391,7 +1423,7 @@
 (defn- set-zoom
   "Updates the cues UI so that the waveform is zoomed out by the
   specified factor."
-  [track wave zoom]
+  [track ^WaveformDetailComponent wave zoom]
   (swap-track! track assoc-in [:contents :cues :zoom] zoom)
   (.setScale wave zoom))
 
@@ -1405,7 +1437,7 @@
 (defn- save-cue-window-position
   "Update the saved dimensions of the cue editor window, so it can be
   reopened in the same state."
-  [track window]
+  [track ^JFrame window]
   (swap-track! track assoc-in [:contents :cues :window]
                [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
 
@@ -1424,7 +1456,7 @@
             (seesaw/show! checkboxes)
             (seesaw/hide! checkboxes))
           (when auto?
-            (.setAutoScroll (:wave editor) (and auto? online?))
+            (.setAutoScroll ^WaveformDetailComponent (:wave editor) (and auto? online?))
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))))
 
@@ -1433,16 +1465,20 @@
   component, setting the tooltip appropriately depending on the
   location of cues."
   [track soft-preview preview-loader ^MouseEvent e]
-  (let [point   (.getPoint e)
-        track   (latest-track track)
-        preview (preview-loader)
-        cue     (first (filter (fn [cue] (.contains (cue-preview-rectangle track cue preview) point))
-                               (vals (get-in track [:contents :cues :cues]))))
-        rb-cues (.. preview getCueList entries)
-        rb-cue  (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) rb-cues))]
-    (.setToolTipText soft-preview (or
-                                   (when cue (or (:comment cue) "Unnamed Cue"))
-                                   (when rb-cue (util/describe-cue rb-cue))))))
+  (let [point                             (.getPoint e)
+        track                             (latest-track track)
+        ^WaveformPreviewComponent preview (preview-loader)
+        cue                               (first (filter (fn [cue]
+                                                           (.contains (cue-preview-rectangle track cue preview) point))
+                                                         (vals (get-in track [:contents :cues :cues]))))
+        rb-cues                           (.. preview getCueList entries)
+        rb-cue                            (last (filter (fn [cue]
+                                                          (.contains (util/cue-preview-indicator-rectangle preview cue)
+                                                                     point))
+                                                        rb-cues))]
+    (.setToolTipText ^JComponent soft-preview
+                     (or (when cue (or (:comment cue) "Unnamed Cue"))
+                         (when rb-cue (util/describe-cue rb-cue))))))
 
 (defn- find-cue-under-mouse
   "Checks whether the mouse is currently over any cue, and if so returns
@@ -1458,21 +1494,21 @@
 (def delete-cursor
   "A custom cursor that indicates a selection will be canceled."
   (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                              (.getImage (seesaw/icon "images/Delete-cursor.png"))
+                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Delete-cursor.png"))
                               (java.awt.Point. 7 7)
                               "Deselect")))
 
 (def move-w-cursor
   "A custom cursor that indicates the left edge of something will be moved."
   (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                              (.getImage (seesaw/icon "images/Move-W-cursor.png"))
+                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Move-W-cursor.png"))
                               (java.awt.Point. 7 7)
                               "Move Left Edge")))
 
 (def move-e-cursor
   "A custom cursor that indicates the right edge of something will be moved."
   (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                              (.getImage (seesaw/icon "images/Move-E-cursor.png"))
+                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Move-E-cursor.png"))
                               (java.awt.Point. 7 7)
                               "Move Right Edge")))
 
@@ -1502,8 +1538,8 @@
   the selection that will be dragged, given the beat under the mouse."
   [track beat]
   (let [[start end]    (get-in (latest-track track) [:cues-editor :selection])
-        start-distance (Math/abs (- beat start))
-        end-distance   (Math/abs (- beat end))]
+        start-distance (Math/abs (long (- beat start)))
+        end-distance   (Math/abs (long (- beat end)))]
     (if (< start-distance end-distance) @move-w-cursor @move-e-cursor)))
 
 (def click-edge-tolerance
@@ -1602,15 +1638,15 @@
   tooltip and mouse pointer appropriately depending on the location of
   cues and selection."
   [track ^WaveformDetailComponent wave ^MouseEvent e]
-  (let [[cue track]     (find-cue-under-mouse track wave e)
-        x               (.getX e)
-        beat            (long (.getBeatForX wave x))
-        selection       (get-in track [:cues-editor :selection])
-        [near-cue edge] (find-click-edge-target track wave e selection cue)
-        default-cursor  (case edge
-                          :start @move-w-cursor
-                          :end   @move-e-cursor
-                          (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
+  (let [[cue track]    (find-cue-under-mouse track wave e)
+        x              (.getX e)
+        beat           (long (.getBeatForX wave x))
+        selection      (get-in track [:cues-editor :selection])
+        [_ edge]       (find-click-edge-target track wave e selection cue)
+        default-cursor (case edge
+                         :start @move-w-cursor
+                         :end   @move-e-cursor
+                         (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
     (.setToolTipText wave (if cue
                             (or (:comment cue) "Unnamed Cue")
                             "Click and drag to select a beat range for the New Cue button."))
@@ -1635,8 +1671,8 @@
   [track start end beat]
   (or (get-in track [:cues-editor :drag-target])
       (when (not= start (dec end) beat)
-        (let [start-distance (Math/abs (- beat start))
-              end-distance   (Math/abs (- beat (dec end)))
+        (let [start-distance (Math/abs (long (- beat start)))
+              end-distance   (Math/abs (long (- beat (dec end))))
               target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))]]
           (swap-track! track assoc-in [:cues-editor :drag-target] target)
           target))))
@@ -1649,24 +1685,24 @@
         ^BeatGrid grid (:grid track)
         x              (.getX e)
         beat           (long (.getBeatForX wave x))
-        [start end]    (get-in track [:cues-editor :selection])]
+        [start end]    (get-in track [:cues-editor :selection])
+        [cue edge]     (find-selection-drag-target track start end beat)]
     ;; We are trying to adjust an existing cue or selection. Move the end that was nearest to the mouse.
-    (let [[cue edge] (find-selection-drag-target track start end beat)]
-      (when edge
-        (if cue
-          (do  ; We are dragging the edge of a cue.
-            (if (= :start edge)
-              (swap-cue! track cue assoc :start (min (dec (:end cue)) (max 1 beat)))
-              (swap-cue! track cue assoc :end (max (inc (:start cue)) (min (.beatCount grid) (inc beat)))))
-            (build-cues track))
-          (swap-track! track assoc-in [:cues-editor :selection]  ; We are dragging the beat selection.
-                       (if (= :start edge)
-                         [(min end (max 1 beat)) end]
-                         [start (max start (min (.beatCount grid) (inc beat)))])))
+    (when edge
+      (if cue
+        (do  ; We are dragging the edge of a cue.
+          (if (= :start edge)
+            (swap-cue! track cue assoc :start (min (dec (:end cue)) (max 1 beat)))
+            (swap-cue! track cue assoc :end (max (inc (:start cue)) (min (.beatCount grid) (inc beat)))))
+          (build-cues track))
+        (swap-track! track assoc-in [:cues-editor :selection]  ; We are dragging the beat selection.
+                     (if (= :start edge)
+                       [(min end (max 1 beat)) end]
+                       [start (max start (min (.beatCount grid) (inc beat)))])))
 
-        (.setCursor wave (if (= :start edge) @move-w-cursor @move-e-cursor))
-        (.repaint wave))
-      (swap-track! track update :cues-editor dissoc :cursors))))  ; Cursor no longer depends on Shift key state.
+      (.setCursor wave (if (= :start edge) @move-w-cursor @move-e-cursor))
+      (.repaint wave))
+    (swap-track! track update :cues-editor dissoc :cursors)))  ; Cursor no longer depends on Shift key state.
 
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
@@ -1708,10 +1744,10 @@
   (let [track (latest-track track)
         [cue-dragged] (get-in track [:cues-editor :drag-target])]
     (when cue-dragged
-      (let [cue (find-cue track cue-dragged)]
-        (let [panel (get-in track [:cues-editor :panels (:uuid cue)])]
-          (seesaw/value! (seesaw/select panel [:#start]) (:start cue))
-          (seesaw/value! (seesaw/select panel [:#end]) (:end cue)))))
+      (let [cue (find-cue track cue-dragged)
+            panel (get-in track [:cues-editor :panels (:uuid cue)])]
+        (seesaw/value! (seesaw/select panel [:#start]) (:start cue))
+        (seesaw/value! (seesaw/select panel [:#end]) (:end cue))))
     (when-let [[start end] (get-in track [:cues-editor :selection])]
       (when (>= start end)  ; If the selection has shrunk to zero size, remove it.
         (swap-track! track update :cues-editor dissoc :selection))))
@@ -1719,11 +1755,11 @@
   (handle-wave-move track wave e))  ; This will restore the normal cursor.
 
 (defn- assign-cue-lanes
-  [track cues cue-intervals]
   "Given a sorted list of the cues for a track, assigns each a
   non-overlapping lane number, choosing the smallest value that no
   overlapping neighbor has already been assigned. Returns a map from
   cue UUID to its assigned lane."
+  [track cues cue-intervals]
   (reduce (fn [result cue]
             (let [neighbors (map (partial find-cue track) (util/iget cue-intervals (:start cue) (:end cue)))
                   used      (set (filter identity (map #(result (:uuid %)) neighbors)))]
@@ -1736,15 +1772,14 @@
   itself), and transitively any cues which overlap with them."
   [track cue cue-intervals]
   (let [neighbors (set (map (partial find-cue track) (util/iget cue-intervals (:start cue) (:end cue))))]
-    (loop [current   cue
-           result    #{cue}
+    (loop [result    #{cue}
            remaining (clojure.set/difference neighbors result)]
       (if (empty? remaining)
         result
         (let [current   (first remaining)
               result    (conj result current)
               neighbors (set (map (partial find-cue track) (util/iget cue-intervals (:start current) (:end current))))]
-          (recur current result (clojure.set/difference (clojure.set/union neighbors remaining) result)))))))
+          (recur result (clojure.set/difference (clojure.set/union neighbors remaining) result)))))))
 
 (defn- position-cues
   "Given a sorted list of the cues for a track, assigns each a
@@ -1796,8 +1831,8 @@
     (when (:cues-editor track)
       (update-cue-visibility track)
       (repaint-all-cue-states track)
-      (.repaint (get-in track [:cues-editor :wave]))
-      (let [panel (get-in track [:cues-editor :panel])]
+      (.repaint ^WaveformDetailComponent (get-in track [:cues-editor :wave]))
+      (let [^JPanel panel (get-in track [:cues-editor :panel])]
         (seesaw/config! panel :constraints (cue-panel-constraints track))
         (.revalidate panel)))))
 
@@ -1831,9 +1866,10 @@
         (try
           (Thread/sleep 33)
           (let [show (latest-show show)]
-            (doseq [player (util/players-signature-set (:playing show) (:signature track))]
+            (doseq [^Long player (util/players-signature-set (:playing show) (:signature track))]
               (when-let [position (.getLatestPositionFor time-finder player)]
-                (.setPlaybackState (:wave editor) player (.getTimeFor time-finder player) (.playing position)))))
+                (.setPlaybackState ^WaveformDetailComponent (:wave editor)
+                                   player (.getTimeFor time-finder player) (.playing position)))))
           (catch Throwable t
             (timbre/warn "Problem animating cues editor waveform" t)))
         (recur (:cues-editor (latest-track track)))))
@@ -1844,9 +1880,11 @@
   Must be supplied current versions of `show` and `track.`"
   [show track parent]
   (let [track-root   (build-track-path show (:signature track))
-        root         (seesaw/frame :title (str "Cues for Track: " (display-title track))
+        ^JFrame root (seesaw/frame :title (str "Cues for Track: " (display-title track))
                                    :on-close :nothing)
-        wave         (WaveformDetailComponent. (read-detail track-root) (read-cue-list track-root) (:grid track))
+        wave         (WaveformDetailComponent. ^WaveformDetail (read-detail track-root)
+                                               ^CueList (read-cue-list track-root)
+                                               ^BeatGrid (:grid track))
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
                                     :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
@@ -1860,7 +1898,7 @@
         top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
                                     :items [[(seesaw/button :text "New Cue"
                                                             :listen [:action-performed
-                                                                     (fn ([e] (new-cue track)))])]
+                                                                     (fn ([_] (new-cue track)))])]
                                             [(seesaw/button :id :library :text "Library ▾"
                                                             :visible? (seq (get-in show [:contents :cue-library]))
                                                             :listen [:mouse-pressed
@@ -1925,10 +1963,8 @@
     (.setSize root 800 600)
     (restore-window-position root (get-in track [:contents :cues]) parent)
     (seesaw/listen root
-                   :window-closing (fn [e] (close-fn false))
-                   #{:component-moved :component-resized}
-                   (fn [e]
-                     (save-cue-window-position track root)))
+                   :window-closing (fn [_] (close-fn false))
+                   #{:component-moved :component-resized} (fn [_] (save-cue-window-position track root)))
     (start-animation-thread show track)
     (seesaw/show! root)))
 
@@ -1940,7 +1976,7 @@
   (try
     (let [[show track] (latest-show-and-track track)]
       (if-let [existing (:cues-editor track)]
-        (.toFront (:frame existing))
+        (.toFront ^JFrame (:frame existing))
         (do (create-cues-window show track parent)
             true)))
     (catch Throwable t
@@ -1965,14 +2001,15 @@
   "Updates the position and color of the playback position bar for the
   specified player in the track preview and, if there is an open Cues
   editor window, in its waveform detail."
-  [show signature player]
-  (when-let [position (.getLatestPositionFor time-finder player)]
+  [show signature ^Long player]
+  (when-let [^TrackPositionUpdate position (.getLatestPositionFor time-finder player)]
     (let [interpolated-time (.getTimeFor time-finder player)]
       (when-let [preview-loader (get-in show [:tracks signature :preview])]
-        (when-let [preview (preview-loader)]
+        (when-let [^WaveformPreviewComponent preview (preview-loader)]
           (.setPlaybackState preview player interpolated-time (.playing position))))
       (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
-        (.setPlaybackState (:wave cues-editor) player interpolated-time (.playing position))))))
+        (.setPlaybackState ^WaveformDetailComponent (:wave cues-editor)
+                           player interpolated-time (.playing position))))))
 
 (defn- send-loaded-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
@@ -2093,9 +2130,9 @@
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
       (when-let [preview (preview-loader)]
         #_(timbre/info "clearing for player" player)
-        (.clearPlaybackState preview player)))
+        (.clearPlaybackState ^WaveformPreviewComponent preview player)))
     (when-let [cues-editor (get-in show [:tracks signature :cues-editor])]
-      (.clearPlaybackState (:wave cues-editor) player))))
+      (.clearPlaybackState ^WaveformDetailComponent (:wave cues-editor) player))))
 
 (declare update-show-beat)
 
@@ -2377,7 +2414,7 @@
   contain the old beat number, even though they have updated their
   beat-within-bar number. So this function leaves the show's cue state
   unchanged if a beat happened too recently."
-  [show track player status]
+  [show track player ^CdjStatus status]
   (let [last-beat (get-in show [:last-beat player])]
     (if (or (not last-beat)
             (> (- (.getTimestamp status) last-beat) min-beat-distance))
@@ -2559,18 +2596,18 @@
   "Creates a sequentially numbered series of files with the specified
   prefix and suffix containing the contents of the supplied byte
   buffers into the show filesystem."
-  [track-root prefix suffix byte-buffers]
-  (util/doseq-indexed idx [buffer byte-buffers]
+  [^Path track-root prefix suffix byte-buffers]
+  (util/doseq-indexed idx [^java.nio.ByteBuffer buffer byte-buffers]
                           (.rewind buffer)
                           (let [bytes     (byte-array (.remaining buffer))
                                 file-name (str prefix idx suffix)]
                             (.get buffer bytes)
-                            (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0)))))
+                            (Files/write (.resolve track-root file-name) bytes empty-open-options))))
 
 (defn- write-cue-list
   "Writes the cue list for a track being imported to the show
   filesystem."
-  [track-root ^CueList cue-list]
+  [^Path track-root ^CueList cue-list]
   (if (nil? (.rawMessage cue-list))
     (do
       (write-byte-buffers track-root "cue-list-" ".kaitai" (.rawTags cue-list))  ; Write original nexus style cue info.
@@ -2580,7 +2617,7 @@
 (defn write-beat-grid
   "Writes the beat grid for a track being imported to the show
   filesystem."
-  [track-root ^BeatGrid beat-grid]
+  [^Path track-root ^BeatGrid beat-grid]
   (let [grid-vec [(mapv #(.getBeatWithinBar beat-grid (inc %)) (range (.beatCount beat-grid)))
                   (mapv #(.getTimeWithinTrack beat-grid (inc %)) (range (.beatCount beat-grid)))]]
     (write-edn-path grid-vec (.resolve track-root "beat-grid.edn"))))
@@ -2588,27 +2625,27 @@
 (defn write-preview
   "Writes the waveform preview for a track being imported to the show
   filesystem."
-  [track-root ^WaveformPreview preview]
+  [^Path track-root ^WaveformPreview preview]
   (let [bytes (byte-array (.. preview getData remaining))
         file-name (if (.isColor preview) "preview-color.data" "preview.data")]
     (.. preview getData (get bytes))
-    (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
+    (Files/write (.resolve track-root file-name) bytes empty-open-options)))
 
 (defn write-detail
   "Writes the waveform detail for a track being imported to the show
   filesystem."
-  [track-root ^WaveformDetail detail]
+  [^Path track-root ^WaveformDetail detail]
   (let [bytes (byte-array (.. detail getData remaining))
         file-name (if (.isColor detail) "detail-color.data" "detail.data")]
     (.. detail getData (get bytes))
-    (Files/write (.resolve track-root file-name) bytes (make-array OpenOption 0))))
+    (Files/write (.resolve track-root file-name) bytes empty-open-options)))
 
 (defn write-art
   "Writes album art for a track imported to the show filesystem."
-  [track-root ^AlbumArt art]
+  [^Path track-root ^AlbumArt art]
   (let [bytes (byte-array (.. art getRawBytes remaining))]
     (.. art getRawBytes (get bytes))
-    (Files/write (.resolve track-root "art.jpg") bytes (make-array OpenOption 0))))
+    (Files/write (.resolve track-root "art.jpg") bytes empty-open-options)))
 
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color
@@ -2649,8 +2686,8 @@
   "Updates the icons next to expressions in the Tracks menu to
   reflect whether they have been assigned a non-empty value."
   [show]
-  (let [show (latest-show show)
-        menu (seesaw/select (:frame show) [:#tracks-menu])]
+  (let [show        (latest-show show)
+        ^JMenu menu (seesaw/select (:frame show) [:#tracks-menu])]
     (doseq [i (range (.getItemCount menu))]
       (let [item  (.getItem menu i)
             exprs {"Edit Shared Functions"                  :shared
@@ -2660,11 +2697,10 @@
                    "Edit Going Offline Expression"          :offline
                    "Edit Global Shutdown Expression"        :shutdown}]
         (when item
-          (let [label (.getText item)]
-            (when-let [expr (get exprs (.getText item))]
+          (when-let [expr (get exprs (.getText item))]
             (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions expr]))
                                           "images/Gear-outline.png"
-                                          "images/Gear-icon.png"))))))))))
+                                          "images/Gear-icon.png")))))))))
 
 (defn- attach-track-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
@@ -2754,7 +2790,7 @@
   [loader]
   (let [reference (atom (SoftReference. nil))]
     (fn []
-      (let [result (.get @reference)]  ; See if our soft reference holds the object we need.
+      (let [result (.get ^SoftReference @reference)]  ; See if our soft reference holds the object we need.
         (if (some? result)
           result  ; Yes, we can return same instance we last created.
           (let [next-object (loader)]
@@ -2772,27 +2808,28 @@
   otherwise the wrapped component is asked, which will require loading
   it immediately during creation."
   [loader {:keys [maximum-size minimum-size preferred-size]}]
-  (let [bounds    (java.awt.Rectangle.)
-        size-opts (concat (when-let [size (or minimum-size
-                                              (when-let [wrapped (loader)]
-                                                (.getMinimumSize wrapped)))]
-                            [:minimum-size size])
-                          (when-let [size (or maximum-size
-                                              (when-let [wrapped (loader)]
-                                                (.getMaxiumSize wrapped)))]
-                            [:maximum-size size])
-                          (when-let [size (or preferred-size
-                                              (when-let [wrapped (loader)]
-                                                (.getPreferredSize wrapped)))]
-                            [:preferred-size size]))
-        canvas    (apply seesaw/canvas (concat [:opaque? false] size-opts))
-        delegate  (proxy [org.deepsymmetry.beatlink.data.RepaintDelegate] []
-                    (repaint [x y w h]
-                      #_(timbre/info "delegating repaint" x y w h)
-                      (.repaint canvas x y w h)))]
-    (seesaw/config! canvas :paint (fn [canvas graphics]
-                                    (when-let [component (loader)]
-                                      (.setRepaintDelegate component delegate)
+  (let [bounds             (Rectangle.)
+        size-opts          (concat (when-let [size (or minimum-size
+                                                       (when-let [^JComponent wrapped (loader)]
+                                                         (.getMinimumSize wrapped)))]
+                                     [:minimum-size size])
+                                   (when-let [size (or maximum-size
+                                                       (when-let [^JComponent wrapped (loader)]
+                                                         (.getMaximumSize wrapped)))]
+                                     [:maximum-size size])
+                                   (when-let [size (or preferred-size
+                                                       (when-let [^JComponent wrapped (loader)]
+                                                         (.getPreferredSize wrapped)))]
+                                     [:preferred-size size]))
+        ^JComponent canvas (apply seesaw/canvas (concat [:opaque? false] size-opts))
+        delegate           (proxy [org.deepsymmetry.beatlink.data.RepaintDelegate] []
+                             (repaint [x y w h]
+                               #_(timbre/info "delegating repaint" x y w h)
+                               (.repaint canvas x y w h)))]
+    (seesaw/config! canvas :paint (fn [^JComponent canvas ^Graphics2D graphics]
+                                    (when-let [^JComponent component (loader)]
+                                      (when (instance? WaveformPreviewComponent component)
+                                        (.setRepaintDelegate ^WaveformPreviewComponent component delegate))
                                       (.getBounds canvas bounds)
                                       (.setBounds component bounds)
                                       (.paint component graphics))))
@@ -2804,8 +2841,8 @@
   [show signature]
   (let [art-loader (soft-object-loader #(read-art (build-track-path show signature)))]
     (seesaw/canvas :size [80 :by 80] :opaque? false
-                   :paint (fn [component graphics]
-                            (when-let [art (art-loader)]
+                   :paint (fn [_ ^Graphics2D graphics]
+                            (when-let [^AlbumArt art (art-loader)]
                               (when-let [image (.getImage art)]
                                 (.drawImage graphics image 0 0 nil)))))))
 
@@ -2855,7 +2892,7 @@
 
 (defn- edit-cues-action
   "Creates the menu action which opens the track's cue editor window."
-  [track panel gear]
+  [track panel]
   (seesaw/action :handler (fn [_] (open-cues track panel))
                  :name "Edit Track Cues"
                  :tip "Set up cues that react to particular sections of the track being played."
@@ -2880,7 +2917,7 @@
                         (reset! (:expression-locals track) {})
                         (run-track-function track :setup nil true))
                       (update-track-gear-icon track gear))]
-      (seesaw/action :handler (fn [e] (editors/show-show-editor kind (latest-show show)
+      (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
                                        (latest-track track) panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
@@ -3053,7 +3090,7 @@
   "Draws a representation of the state of the track, including whether
   it is enabled and whether any players have it loaded or playing (as
   deterimined by the keyword passed in `k`)."
-  [show signature k c g]
+  [show signature k c ^Graphics2D g]
   (let [w        (double (seesaw/width c))
         h        (double (seesaw/height c))
         outline  (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
@@ -3078,7 +3115,7 @@
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately."
-  [show track-root]
+  [show ^Path track-root]
   (let [signature      (first (clojure.string/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
         metadata       (read-edn-path (.resolve track-root "metadata.edn"))
         contents-path  (.resolve track-root "contents.edn")
@@ -3096,7 +3133,7 @@
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         panel          (mig/mig-panel
-                        :constraints (track-panel-constraints (.getWidth (:frame show)))
+                        :constraints (track-panel-constraints (.getWidth ^JFrame (:frame show)))
                         :items [[(create-track-art show signature) "spany 4"]
                                 [(seesaw/label :text (or (:title metadata) "[no title]")
                                                :font (util/get-display-font :bitter Font/ITALIC 14)
@@ -3217,7 +3254,7 @@
                :creating          true ; Suppress popup expression editors when reopening a show.
                :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
 
-        popup-fn (fn [e] (concat [(edit-cues-action track panel gear) (seesaw/separator)]
+        popup-fn (fn [_] (concat [(edit-cues-action track panel) (seesaw/separator)]
                                  (track-editor-actions show track panel gear)
                                  [(seesaw/separator) (track-simulate-menu track) (track-inspect-action track)
                                   (seesaw/separator)]
@@ -3309,7 +3346,7 @@
         track     (get-in show [:tracks signature])
         tracks    (seesaw/select (:frame show) [:#tracks])]
     (if (some #(= signature %) (:visible show))
-      (seesaw/invoke-later (seesaw/scroll! tracks :to (.getBounds (:panel track))))
+      (seesaw/invoke-later (seesaw/scroll! tracks :to (.getBounds ^JPanel (:panel track))))
       (seesaw/alert (:frame show)
                     (str "The track \"" (display-title track) "\" is currently hidden by your filters.\r\n"
                           "To continue working with it, you will need to adjust the filters.")
@@ -3326,10 +3363,10 @@
                     (str "<html>Unable to import track, missing required elements:<br>"
                          (clojure.string/join ", " (map name missing-elements)))
                     :title "Track Import Failed" :type :error)
-      (let [{:keys [file filesystem frame contents]} show
+      (let [{:keys [filesystem]}                   show
             {:keys [signature metadata cue-list
-                    beat-grid preview detail art]}   track
-            track-root                               (build-filesystem-path filesystem "tracks" signature)]
+                    beat-grid preview detail art]} track
+            track-root                             (build-filesystem-path filesystem "tracks" signature)]
         (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
         (write-edn-path metadata (.resolve track-root "metadata.edn"))
         (when cue-list
@@ -3350,7 +3387,7 @@
 
 (defn- import-from-player
   "Imports the track loaded on the specified player to the show."
-  [show player]
+  [show ^Long player]
   (let [signature (.getLatestSignatureFor signature-finder player)]
     (if (track-present? show signature)
       (seesaw/alert (:frame show) (str "Track on Player " player " is already in the Show.")
@@ -3378,7 +3415,7 @@
   "Given a database and track object, returns the file in which the
   track's analysis data can be found. If `ext?` is true, returns the
   extended analysis path."
-  [database track-row ext?]
+  ^File [^Database database ^RekordboxPdb$TrackRow track-row ext?]
   (let [volume    (.. database sourceFile getParentFile getParentFile getParentFile)
         raw-path  (Database/getText (.analyzePath track-row))
         subs-path (if ext?
@@ -3392,7 +3429,7 @@
   (if ext
     (try
       (WaveformPreview. data-ref ext)
-      (catch IllegalStateException e
+      (catch IllegalStateException _
         (timbre/info "No color preview waveform found, chcking for blue version.")
         (find-waveform-preview data-ref anlz nil)))
     (when anlz (WaveformPreview. data-ref anlz))))
@@ -3400,10 +3437,10 @@
 (defn- find-art
   "Given a database and track object, returns the track's album art, if
   it has any."
-  [database track-row]
+  ^AlbumArt [^Database database ^RekordboxPdb$TrackRow track-row]
   (let [art-id (long (.artworkId track-row))]
     (when (pos? art-id)
-      (when-let [art-row (.. database artworkIndex (get art-id))]
+      (when-let [^RekordboxPdb$ArtworkRow art-row (.. database artworkIndex (get art-id))]
         (let [volume   (.. database sourceFile getParentFile getParentFile getParentFile)
               art-path (Database/getText (.path art-row))
               art-file (.. volume toPath (resolve (subs art-path 1)) toFile)
@@ -3414,27 +3451,28 @@
   "Imports a track that has been parsed from a local media export, being
   very careful to close the underlying track analysis files no matter
   how we exit."
-  [show database track-row]
+  [show database ^RekordboxPdb$TrackRow track-row]
   (let [anlz-file (find-anlz-file database track-row false)
         ext-file  (find-anlz-file database track-row true)
-        anlz-atom (atom nil)
-        ext-atom  (atom nil)]
+        anlz-atom       (atom nil)
+        ext-atom        (atom nil)]
     (try
-      (let [_         (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
-                                          (RekordboxAnlz.
-                                           (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
-            _         (reset! ext-atom (when (and ext-file (.canRead ext-file))
-                                         (RekordboxAnlz. (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
-            cue-tags (or @ext-atom @anlz-atom)
-            cue-list  (when cue-tags (CueList. cue-tags))
-            data-ref  (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
-            metadata  (TrackMetadata. data-ref database cue-list)
-            beat-grid (when @anlz-atom (BeatGrid. data-ref @anlz-atom))
-            preview   (find-waveform-preview data-ref @anlz-atom @ext-atom)
-            detail    (when @ext-atom (WaveformDetail. data-ref @ext-atom))
-            art       (find-art database track-row)
-            signature (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
-                                              (.getDuration metadata) detail beat-grid)]
+      (let [^RekordboxAnlz anlz (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
+                                                    (RekordboxAnlz.
+                                                     (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
+            ^RekordboxAnlz ext  (reset! ext-atom (when (and ext-file (.canRead ext-file))
+                                                   (RekordboxAnlz.
+                                                    (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
+            cue-tags            (or ext anlz)
+            cue-list            (when cue-tags (CueList. cue-tags))
+            data-ref            (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
+            metadata            (TrackMetadata. data-ref database cue-list)
+            beat-grid           (when anlz (BeatGrid. data-ref anlz))
+            preview             (find-waveform-preview data-ref anlz ext)
+            detail              (when ext (WaveformDetail. data-ref ext))
+            art                 (find-art database track-row)
+            signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
+                                                        (.getDuration metadata) detail beat-grid)]
         (if (and signature (track-present? show signature))
           (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
                         :title "Can’t Re-import Track" :type :error)
@@ -3448,11 +3486,11 @@
         (refresh-signatures show))
       (finally
         (try
-          (when @anlz-atom (.. @anlz-atom _io close))
+          (when @anlz-atom (.. ^RekordboxAnlz @anlz-atom _io close))
           (catch Throwable t
             (timbre/error t "Problem closing parsed rekordbox file" anlz-file)))
         (try
-          (when @ext-atom (.. @ext-atom _io close))
+          (when @ext-atom (.. ^RekordboxAnlz @ext-atom _io close))
           (catch Throwable t
             (timbre/error t "Problem closing parsed rekordbox file" ext-file)))))))
 
@@ -3461,11 +3499,11 @@
   recorded. If `reopen?` is truthy, reopens the show filesystem for
   continued use."
   [show reopen?]
-  (let [window (:frame show)]
+  (let [^JFrame window (:frame show)]
     (swap-show! show assoc-in [:contents :window]
                 [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
   (let [show                               (latest-show show)
-        {:keys [contents file filesystem]} show]
+        {:keys [contents file ^FileSystem filesystem]} show]
     (try
       (write-edn-path contents (build-filesystem-path filesystem "contents.edn"))
       (save-track-contents show)
@@ -3478,15 +3516,21 @@
           (let [[reopened-filesystem] (open-show-filesystem file)]
             (swap-show! show assoc :filesystem reopened-filesystem)))))))
 
+(def ^{:private true
+       :tag     "[Ljava.nio.file.StandardCopyOption;"}
+  save-show-as-options
+  "The Filesystem options used when saving a show to a new file."
+  (into-array [StandardCopyOption/REPLACE_EXISTING]))
+
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
   to the specified destination, then reopens it."
-  [show as-file]
-  (let [show                            (latest-show show)
-        {:keys [frame file filesystem]} show]
+  [show ^File as-file]
+  (let [show           (latest-show show)
+        {:keys [^File file]} show]
     (try
       (save-show show false)
-      (Files/copy (.toPath file) (.toPath as-file) (into-array [StandardCopyOption/REPLACE_EXISTING]))
+      (Files/copy (.toPath file) (.toPath as-file) save-show-as-options)
       (catch Throwable t
         (timbre/error t "Problem saving" file "as" as-file)
         (throw t))
@@ -3498,7 +3542,7 @@
   "Creates the menu action to save a show window, making sure the file
   on disk is up-to-date."
   [show]
-  (seesaw/action :handler (fn [e]
+  (seesaw/action :handler (fn [_]
                             (try
                               (save-show show true)
                               (catch Throwable t
@@ -3512,7 +3556,7 @@
   "Creates the menu action to save a show window to a new file, given
   the show map."
   [show]
-  (seesaw/action :handler (fn [e]
+  (seesaw/action :handler (fn [_]
                             (let [extension (util/extension-for-file-type :show)]
                               (when-let [file (chooser/choose-file (:frame show) :type :save
                                                                    :all-files? false
@@ -3535,14 +3579,15 @@
   "Creates the menu action to import a track from offline media, given
   the show map."
   [show]
-  (seesaw/action :handler (fn [e]
+  (seesaw/action :handler (fn [_]
                             (loop [show (latest-show show)]
-                              (let [result (loader/choose-local-track (:frame show) (:import-database show)
-                                                                      "Change Media")]
+                              (let [^Database database (:import-database show)
+                                    result             (loader/choose-local-track (:frame show) database
+                                                                                  "Change Media")]
                                 (if (string? result) ; User wants to change media
                                   (do
                                     (try
-                                      (.close (:import-database show))
+                                      (.close database)
                                       (catch Throwable t
                                         (timbre/error t "Problem closing offline media database.")))
                                     (swap-show! show dissoc :import-database)
@@ -3573,8 +3618,8 @@
   [show player]
   (let [visible? (safe-check-for-player player)
         reason   (describe-disabled-reason show (when (.isRunning signature-finder)
-                                                  (.getLatestSignatureFor signature-finder player)))]
-    (seesaw/action :handler (fn [e] (import-from-player (latest-show show) player))
+                                                  (.getLatestSignatureFor signature-finder ^Long player)))]
+    (seesaw/action :handler (fn [_] (import-from-player (latest-show show) player))
                    :name (str "from Player " player (when visible? reason))
                    :enabled? (nil? reason)
                    :key (str "menu " player))))
@@ -3592,15 +3637,16 @@
 (defn- build-close-action
   "Creates the menu action to close a show window, given the show map."
   [show]
-  (seesaw/action :handler (fn [e]
+  (seesaw/action :handler (fn [_]
                             (seesaw/invoke-later
-                             (.dispatchEvent (:frame show) (WindowEvent. (:frame show) WindowEvent/WINDOW_CLOSING))))
+                             (let [^JFrame frame (:frame show)]
+                               (.dispatchEvent frame (WindowEvent. frame WindowEvent/WINDOW_CLOSING)))))
                  :name "Close"))
 
 (defn build-global-editor-action
   "Creates an action which edits one of a show's global expressions."
   [show kind]
-  (seesaw/action :handler (fn [e] (editors/show-show-editor kind (latest-show show) nil (:frame show)
+  (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show) nil (:frame show)
                                                             (fn []
                                                               (when (= :setup kind)
                                                                 (when (online?)
@@ -3620,8 +3666,9 @@
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map."
   [show]
-  (let [title          (str "Expression Globals for Show " (util/trim-extension (.getPath (:file show))))
-        inspect-action (seesaw/action :handler (fn [e] (try
+  (let [^File file     (:file show)
+        title          (str "Expression Globals for Show " (util/trim-extension (.getPath file)))
+        inspect-action (seesaw/action :handler (fn [_] (try
                                                          (inspector/inspect @(:expression-globals show)
                                                                             :window-name title)
                                                          (catch StackOverflowError _
@@ -3684,20 +3731,20 @@
   constraints on the columns of the track panels."
   [panels width]
   (let [constraints (track-panel-constraints width)]
-    (doseq [panel panels]
+    (doseq [^JPanel panel panels]
       (seesaw/config! panel :constraints constraints)
       (.revalidate panel))))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
-  [file]
+  [^File file]
   (util/load-fonts)
   (when (online?)  ; Start out the finders that aren't otherwise guaranteed to be running.
     (.start time-finder)
     (.start signature-finder))
-  (let [[filesystem contents] (open-show-filesystem file)]
+  (let [[^FileSystem filesystem contents] (open-show-filesystem file)]
     (try
-      (let [root            (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
+      (let [^JFrame root    (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
                                           :on-close :nothing)
             import-menu     (seesaw/menu :text "Import Track")
             show            {:creating    true
@@ -3792,7 +3839,7 @@
                                       (timbre/error t "Problem closing Show file.")
                                       (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
                                                     :title "Problem Closing Show" :type :error)))
-                                  (when-let [database (:import-database show)]
+                                  (when-let [^Database database (:import-database show)]
                                     (.close database))
                                   (seesaw/invoke-later
                                    ;; Gives windows time to close first, so they don't recreate a broken show.
@@ -3836,9 +3883,9 @@
         (.setSize root 900 600)  ; Our default size if there isn't a position stored in the file.
         (restore-window-position root contents)
         (seesaw/listen root
-                       :window-closing (fn [e] (close-fn false false))
+                       :window-closing (fn [_] (close-fn false false))
                        #{:component-moved :component-resized}
-                       (fn [e]
+                       (fn [^java.awt.event.ComponentEvent e]
                          (util/save-window-position root window-name)
                          (when (= (.getID e) java.awt.event.ComponentEvent/COMPONENT_RESIZED)
                            (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
@@ -3858,11 +3905,11 @@
 (defn- open-internal
   "Opens a show file. If it is already open, just brings the window to
   the front. Returns truthy if the file was newly opened."
-  [parent file]
+  [^JFrame parent ^File file]
   (let [file (.getCanonicalFile file)]
     (try
       (if-let [existing (latest-show file)]
-        (.toFront (:frame existing))
+        (.toFront ^JFrame (:frame existing))
         (do (create-show-window file)
             true))
       (catch Exception e
@@ -3885,7 +3932,7 @@
   []
   (doseq [window (keys @util/window-positions)]
     (when (and (string? window)
-               (.startsWith window "show-"))
+               (.startsWith ^String window "show-"))
       (when-not (open-internal nil (clojure.java.io/file (subs window 5)))
         (swap! util/window-positions dissoc window)))))  ; Remove saved position if show is no longer available.
 
@@ -3893,10 +3940,10 @@
   "Creates a new show file and opens a window on it."
   [parent]
   (let [extension (util/extension-for-file-type :show)]
-    (when-let [file (chooser/choose-file parent :type :save
-                                         :all-files? false
-                                         :filters [["BeatLinkTrigger Show files"
-                                                    [extension]]])]
+    (when-let [^File file (chooser/choose-file parent :type :save
+                                               :all-files? false
+                                               :filters [["BeatLinkTrigger Show files"
+                                                          [extension]]])]
       (let [file (.getCanonicalFile file)]
         (if (latest-show file)
           (seesaw/alert parent "Cannot Replace an Open Show."
@@ -3947,7 +3994,7 @@
   for convenient membership checking."
   [new-outputs output-set]
   (doseq [show (vals @open-shows)]
-    (doseq [[signature track] (:tracks show)]
+    (doseq [[_ track] (:tracks show)]
       (let [output-menu (seesaw/select (:panel track) [:#outputs])
             old-selection (seesaw/selection output-menu)]
         (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
@@ -3994,11 +4041,11 @@
      (swap-show! show update :block-tracks?
                  (fn [were-blocked?]
                    (when (not= blocked? were-blocked?)
-                     (let [menu (.getMenu (seesaw/config (:frame show) :menubar) 1)]
+                     (let [^JMenu menu (.getMenu ^JMenuBar (seesaw/config (:frame show) :menubar) 1)]
                        (.setLabel menu (if blocked? "Expressions" "Tracks"))
                        (if blocked?
                          (.remove menu 0)  ; Remove the Import menu.
-                         (.insert menu (:import-menu show) 0))))  ; Restore the Import menu.
+                         (.insert menu ^JMenu (:import-menu show) 0))))  ; Restore the Import menu.
                    blocked?)))))  ; Record the current state.
 
 (defn user-data
