@@ -6,7 +6,8 @@
             [nrepl.server :as nrepl-server]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre])
+  (:import [javax.swing JFrame]))
 
 (defonce ^{:private true
            :doc     "Holds the nREPL server when it is running."}
@@ -30,7 +31,7 @@
   []
   (try (Class/forName "jdk.javadoc.doclet.Doclet")
        true
-       (catch Throwable t
+       (catch Throwable _
          false)))
 
 (defn- start
@@ -51,7 +52,7 @@
                             (seesaw/config! cider-checkbox :enabled? false)
                             (seesaw/config! port-spinner :enabled? false)
                             server)
-                          (catch IllegalStateException e
+                          (catch IllegalStateException _
                             (future
                               (seesaw/invoke-later
                                (javax.swing.JOptionPane/showMessageDialog
@@ -106,7 +107,7 @@
 (defn- make-window-visible
   "Ensures that the nREPL window is in front, and shown."
   [parent]
-  (let [our-frame @window]
+  (let [^JFrame our-frame @window]
     (util/restore-window-position our-frame :nrepl parent)
     (seesaw/show! our-frame)
     (.toFront our-frame)))
@@ -115,37 +116,37 @@
   "Creates the nREPL window."
   [trigger-frame]
   (try
-    (let [root  (seesaw/frame :title "nREPL Server"
-                              :on-close :hide)
-          port  (get-in (prefs/get-preferences) [:nrepl :port] 17001)
-          cider (get-in (prefs/get-preferences) [:nrepl :cider] false)
-          panel (mig/mig-panel
-                 :background "#ccc"
-                 :items [[(seesaw/label :text "nREPL Port:") "align right"]
-                         [(seesaw/spinner :id :port
-                                          :model (seesaw/spinner-model port :from 1 :to 32767)
-                                          :listen [:selection (fn [e]
-                                                                (prefs/put-preferences
-                                                                 (assoc-in (prefs/get-preferences) [:nrepl :port]
-                                                                           (seesaw/selection e))))])]
-                         [(seesaw/checkbox :id :run :text "Run"
-                                           :listen [:action (fn [e] (run-choice (seesaw/value e)))])
-                          "wrap"]
+    (let [^JFrame root (seesaw/frame :title "nREPL Server"
+                                     :on-close :hide)
+          port         (get-in (prefs/get-preferences) [:nrepl :port] 17001)
+          cider        (get-in (prefs/get-preferences) [:nrepl :cider] false)
+          panel        (mig/mig-panel
+                        :background "#ccc"
+                        :items [[(seesaw/label :text "nREPL Port:") "align right"]
+                                [(seesaw/spinner :id :port
+                                                 :model (seesaw/spinner-model port :from 1 :to 32767)
+                                                 :listen [:selection (fn [e]
+                                                                       (prefs/put-preferences
+                                                                        (assoc-in (prefs/get-preferences) [:nrepl :port]
+                                                                                  (seesaw/selection e))))])]
+                                [(seesaw/checkbox :id :run :text "Run"
+                                                  :listen [:action (fn [e] (run-choice (seesaw/value e)))])
+                                 "wrap"]
 
-                         [(seesaw/label :text "Inject CIDER handler?") "span 2, align right"]
-                         [(seesaw/checkbox :id :cider :text "Inject"
-                                           :selected? cider
-                                           :listen [:action (fn [e]
-                                                              (prefs/put-preferences
-                                                               (assoc-in (prefs/get-preferences) [:nrepl :cider]
-                                                                         (seesaw/value e))))])
-                          "wrap"]])]
+                                [(seesaw/label :text "Inject CIDER handler?") "span 2, align right"]
+                                [(seesaw/checkbox :id :cider :text "Inject"
+                                                  :selected? cider
+                                                  :listen [:action (fn [e]
+                                                                     (prefs/put-preferences
+                                                                      (assoc-in (prefs/get-preferences) [:nrepl :cider]
+                                                                                (seesaw/value e))))])
+                                 "wrap"]])]
 
       ;; Assemble the window
       (seesaw/config! root :content panel)
       (seesaw/pack! root)
       (.setResizable root false)
-      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :nrepl true)))
+      (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :nrepl true)))
       (reset! window root)
       (make-window-visible trigger-frame))
     (catch Exception e

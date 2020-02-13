@@ -103,7 +103,7 @@
   and `nil` if the user said to cancel the operation. If a non-`nil`
   window is passed in `parent`, the confirmation dialog will be
   centered over it."
-  [^File file ^String required-extension parent]
+  ^java.io.File [^File file ^String required-extension parent]
   (when file
     (let [required-extension (when required-extension
                                (if (.startsWith required-extension ".")

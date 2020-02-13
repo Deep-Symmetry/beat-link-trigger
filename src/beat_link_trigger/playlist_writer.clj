@@ -4,24 +4,27 @@
   (:require [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [clojure.data.csv :as csv]
+            [clojure.java.io]
+            [seesaw.chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import java.awt.event.WindowEvent
            java.util.concurrent.TimeUnit
+           [javax.swing JFrame]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceUpdateListener LifecycleListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data MetadataFinder TrackMetadata]))
+           [org.deepsymmetry.beatlink.data MetadataFinder TrackMetadata SearchableItem]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to write playlist files."}
   writer-window (atom nil))
 
-(def virtual-cdj
-  "The object which can obtained detailed player status information."
+(def ^VirtualCdj virtual-cdj
+  "The object which can obtain detailed player status information."
   (VirtualCdj/getInstance))
 
-(def metadata-finder
+(def ^MetadataFinder metadata-finder
   "The object that can obtain track metadata."
   (MetadataFinder/getInstance))
 
@@ -38,7 +41,7 @@
 (defn- make-window-visible
   "Ensures that the playlist writer window is in front, and shown."
   [parent]
-  (let [our-frame @writer-window]
+  (let [^JFrame our-frame @writer-window]
     (util/restore-window-position our-frame :playlist-writer parent)
     (seesaw/show! our-frame)
     (.toFront our-frame)))
@@ -50,7 +53,7 @@
 (defn- format-searchable-item
   "Safely translates a (possibly-mising) SearchableItem value into
   either its name or an empty string."
-  [item]
+  [^SearchableItem item]
   (str (when item (.label item))))
 
 (defn- format-metadata
@@ -149,7 +152,7 @@
           (try
             (with-open [writer (clojure.java.io/writer playlist-file :append true)]
               (csv/write-csv writer [[title artist album player-number (format-source entry)
-                                      (str (java.util.Date. (:started entry))) (str (java.util.Date. now))
+                                      (str (java.util.Date. ^Long (:started entry))) (str (java.util.Date. now))
                                       (format-play-time played)]]))
             (catch Throwable t
               (timbre/error t "Problem adding entry to playlist file" playlist-file))))))))
@@ -216,7 +219,7 @@
   []
   (or (when-let [pref (min-time-pref-key (prefs/get-preferences))]
         (try
-          (Long/valueOf pref)
+          (Long/parseUnsignedLong pref)
           (catch Exception e
             (timbre/error e "Problem parsing playlist minimum play time preference value:" pref))))
       10))
@@ -227,36 +230,36 @@
   []
   (or (when-let [pref (on-air-pref-key (prefs/get-preferences))]
         (try
-          (Boolean/valueOf pref)
+          (Boolean/parseBoolean pref)
           (catch Exception e
             (timbre/error e "Problem parsing playlist on-air preference value:" pref))))
       false))
 
 (defn- create-window
   "Creates the playlist writer window."
-  [trigger-frame]
+  []
   (try
-    (let [playlist-file (atom nil)
-          time-spinner  (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
+    (let [playlist-file   (atom nil)
+          time-spinner    (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
           on-air-checkbox (seesaw/checkbox :id :on-air :selected? (on-air-pref))
-          toggle-button (seesaw/button :id :start :text "Start")
-          status-label  (seesaw/label :id :status :text idle-status)
-          panel         (mig/mig-panel
-                         :background "#ccc"
-                         :items [[(seesaw/label :text "Minimum Play Time:") "align right"]
-                                 [time-spinner]
-                                 [(seesaw/label :text "seconds") "align left, wrap"]
+          toggle-button   (seesaw/button :id :start :text "Start")
+          status-label    (seesaw/label :id :status :text idle-status)
+          panel           (mig/mig-panel
+                           :background "#ccc"
+                           :items [[(seesaw/label :text "Minimum Play Time:") "align right"]
+                                   [time-spinner]
+                                   [(seesaw/label :text "seconds") "align left, wrap"]
 
-                                 [(seesaw/label :text "On-Air Players Only?") "align right"]
-                                 [on-air-checkbox]
-                                 [(seesaw/label :text "") "wrap"]
+                                   [(seesaw/label :text "On-Air Players Only?") "align right"]
+                                   [on-air-checkbox]
+                                   [(seesaw/label :text "") "wrap"]
 
-                                 [(seesaw/label :text "Status:") "align right"]
-                                 [status-label "span, grow, wrap 15"]
+                                   [(seesaw/label :text "Status:") "align right"]
+                                   [status-label "span, grow, wrap 15"]
 
-                                 [(seesaw/label :text "")]
-                                 [toggle-button "span 2"]])
-          root            (seesaw/frame :title "Playlist Writer"
+                                   [(seesaw/label :text "")]
+                                   [toggle-button "span 2"]])
+          ^JFrame root    (seesaw/frame :title "Playlist Writer"
                                         :content panel
                                         :on-close :dispose)
           [update-listener
@@ -269,7 +272,7 @@
       (.addUpdateListener virtual-cdj update-listener)
       (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/listen root
-                     :window-closed (fn [e]
+                     :window-closed (fn [_]
                                       (.removeUpdateListener virtual-cdj update-listener)
                                       (.removeLifecycleListener virtual-cdj stop-listener)
                                       (close-handler)
@@ -278,7 +281,7 @@
                                        (assoc (prefs/get-preferences)
                                               min-time-pref-key (seesaw/value time-spinner)
                                               on-air-pref-key (seesaw/value on-air-checkbox))))
-                     :component-moved (fn [e] (util/save-window-position root :playlist-writer true)))
+                     :component-moved (fn [_] (util/save-window-position root :playlist-writer true)))
       (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-file
                                                                  close-handler root))
       (seesaw/pack! root)
@@ -292,5 +295,5 @@
   "Make the Playlist Writer window visible, creating it if necessary."
   [trigger-frame]
   (locking writer-window
-    (when-not @writer-window (create-window trigger-frame)))
+    (when-not @writer-window (create-window)))
   (make-window-visible trigger-frame))
