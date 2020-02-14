@@ -101,7 +101,8 @@
 ;;; both the Show and Cues windows.
 
 (defn online?
-  "A helper function that checks if we are currently online."
+  "A helper function that checks if we are currently online with a DJ
+  Link network."
   []
   (.isRunning metadata-finder))
 
@@ -424,8 +425,9 @@
   (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION 0))
 
 (defn read-beat-grid
-  "Re-creates a BeatGrid object from an imported track. Returns `nil` if
-  none is found."
+  "Re-creates a [`BeatGrid`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html)
+  from an imported track. Returns `nil` if none is found."
   [^Path track-root]
   (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
     (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
@@ -434,8 +436,9 @@
       (BeatGrid. dummy-reference beats times))))
 
 (defn read-preview
-  "Re-creates a WaveformPreview object from an imported track. Returns
-  `nil` if none is found."
+  "Re-creates a [`WaveformPreview`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformPreview.html)
+  from an imported track. Returns `nil` if none is found."
   [^Path track-root]
   (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
                         [(.resolve track-root "preview-color.data") true]
@@ -445,8 +448,9 @@
         (WaveformPreview. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
 
 (defn read-detail
-  "Re-creates a WaveformDetail object from an imported track. Returns
-  `nil` if none is found."
+  "Re-creates a [`WaveformDetail`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformDetail.html)
+  from an imported track. Returns `nil` if none is found."
   [^Path track-root]
   (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
                         [(.resolve track-root "detail-color.data") true]
@@ -662,17 +666,19 @@
                              "images/Gear-icon.png")))))
 
 (defn random-beat
-  "Creates a beat object with random attributes for simulating
-  expression calls."
+  "Creates a [`Beat`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
+  with random attributes for simulating expression calls."
   []
   (util/simulate-beat {:beat          (inc (rand-int 4))
                        :device-number (inc (rand-int 4))
                        :bpm           (+ 4000 (rand-int 12000))}))
 
 (defn random-cdj-status
-  "Creates a CDJ status object with random attributes for simulating
-  expression calls. If provided, the supplied options are used to
-  further configure the object."
+  "Creates a [CdjStatus
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
+  with random attributes for simulating expression calls. If provided,
+  the supplied options are used to further configure the object."
   ([]
    (random-cdj-status {}))
   ([options]
@@ -689,9 +695,13 @@
                                          options)))))
 
 (defn random-beat-or-status
-  "Creates either a beat or CDJ status object with random attributes for
-  simulating expression calls. If provided, the supplied options are used to
-  further configure the CDJ status object when one is being created."
+  "Creates either a [`Beat`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
+  or a [CdjStatus
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
+  with random attributes for simulating expression calls. If provided,
+  the supplied options are used to further configure the `CdjStatus`
+  object when one is being created."
   ([]
    (random-beat-or-status {}))
   ([options]
@@ -699,9 +709,13 @@
      (random-beat)
      (random-cdj-status options))))
 
-(defn- random-beat-and-position
-  "Creates random, mutually consistent beat and track position update
-  objects for simulating expression calls, using the track beat grid."
+(defn random-beat-and-position
+  "Creates random, mutually consistent
+  [`Beat`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
+  and
+  [`TrackPositionUpdate`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html)
+  objects for simulating expression calls, using the track
+  [`BeatGrid`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html)."
   [track]
   (let [^BeatGrid grid (:grid track)
         beat           (inc (rand-int (.beatCount grid)))
@@ -1007,9 +1021,10 @@
                        :name "Add Cue to Library")))))
 
 (defn hue-to-color
-  "Returns a Color object of the given hue (in degrees, ranging from 0.0
-  to 360.0). If lightness is not specified, 0.5 is used, giving the
-  purest, most intense version of the hue. The color is fully opaque."
+  "Returns a `Color` object of the given `hue` (in degrees, ranging from
+  0.0 to 360.0). If `lightness` is not specified, 0.5 is used, giving
+  the purest, most intense version of the hue. The color is fully
+  opaque."
   ([hue]
    (hue-to-color hue 0.5))
   ([hue lightness]
@@ -3606,7 +3621,8 @@
 (defn safe-check-for-player
   "Returns truthy when the specified player is found on the network, and
   does not throw an exception if we are deeply offline (not even the
-  DeviceFinder is running because BLT was launched in offline mode)."
+  [`DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  is running because BLT was launched in offline mode)."
   [player]
   (when (.isRunning device-finder) (.getLatestAnnouncementFrom device-finder player)))
 
@@ -3919,8 +3935,14 @@
         false))))
 
 (defn open
-  "Let the user choose a show file and tries to open it. If already
-  open, just brings the window to the front."
+  "Prompts the user to choose a show file and tries to open it. If it
+  was already open, just brings the window to the front.
+
+  If the show has a saved window position which fits in the current
+  screen configuration, it will be reopened in that position.
+  Otherwise, if a non-`nil` `parent` window is supplied, the show's
+  window will be centered on that, and if none of those situations
+  apply it will be centered on the screen."
   [parent]
 (when-let [file (chooser/choose-file parent :type :open
                                      :all-files? false
@@ -3937,7 +3959,9 @@
         (swap! util/window-positions dissoc window)))))  ; Remove saved position if show is no longer available.
 
 (defn new
-  "Creates a new show file and opens a window on it."
+  "Creates a new show file and opens a window on it. If a non-`nil`
+  `parent` window is supplied, the new show's window will be centered
+  on that, otherwise it will be centered on the screen."
   [parent]
   (let [extension (util/extension-for-file-type :show)]
     (when-let [^File file (chooser/choose-file parent :type :save
@@ -3979,7 +4003,7 @@
     (run-global-function show :online nil true)))
 
 (defn run-show-offline-expressions
-  "Called when we are going ffline to run the going-offline expressions
+  "Called when we are going offline to run the going-offline expressions
   of any open shows."
   []
   (doseq [show (vals @open-shows)]
@@ -3988,10 +4012,11 @@
 
 (defn midi-environment-changed
   "Called on the Swing Event Update thread by the Triggers window when
-  CoreMidi4J reports a change to the MIDI environment, so we can
-  update each track's menu of available MIDI outputs. Arguments are a
-  seq of all the outputs now available, and a set of the same outputs
-  for convenient membership checking."
+  [CoreMidi4J](https://github.com/DerekCook/CoreMidi4J) reports a
+  change to the MIDI environment, so we can update each track's menu
+  of available MIDI outputs. Arguments are a `seq` of all the outputs
+  now available, and a `set` of the same outputs for convenient
+  membership checking."
   [new-outputs output-set]
   (doseq [show (vals @open-shows)]
     (doseq [[_ track] (:tracks show)]
@@ -4020,8 +4045,8 @@
   "Can be used to tell Beat Link Trigger the show does not want to
   import or work with tracks, to prevent the user from importing
   them (for example, shows whose purpose is to add Channels On Air
-  support for additional mixers have no use for tracks. The default is
-  for a show to use tracks, but you can pass a truthy value to this
+  support for additional mixers have no use for tracks). The default
+  is for a show to use tracks, but you can pass a truthy value to this
   function to turn that off.
 
   Really fancy show files may want to present their own user
@@ -4029,7 +4054,7 @@
   to show the tracks in the show. They can do this by passing an
   subclass of `JComponent` to this function, and that will be
   installed as the content of the window. Passing a falsy value (or
-  anything which does not derive from `JComponent`) restures the
+  anything which does not derive from `JComponent`) restores the
   standard Show user interface in the window."
   [show blocked?]
   (seesaw/invoke-later

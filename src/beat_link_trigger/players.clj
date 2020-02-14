@@ -609,7 +609,7 @@
 
 (defn open-waveform-window
   "Creates a standalone, resizable window displaying a player waveform,
-  given a player number.."
+  given a player number."
   [n parent]
   (if-let [^JFrame existing (get @waveform-windows n)]
     (.toFront existing)  ; Already open, just bring to front.
