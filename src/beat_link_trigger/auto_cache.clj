@@ -1,7 +1,12 @@
 (ns beat-link-trigger.auto-cache
   "Provides an interface for selecting a set of metadata cache files
   that will be automatically attached to player slots when media is
-  mounted that matches the cache file."
+  mounted that matches the cache file.
+
+  Now that [Crate
+  Digger](https://github.com/Deep-Symmetry/crate-digger#crate-digger)
+  is used to allow us to obtain metadata even when there are four CDJs
+  in use, this feature is not really needed."
   (:require [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
@@ -9,17 +14,19 @@
             [clojure.contrib.humanize :as humanize]
             [clojure.contrib.inflect :as inflect]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data MetadataFinder MetadataCache]
-           [org.deepsymmetry.beatlink MediaDetails]
-           [javax.swing JFileChooser]))
+  (:import [org.deepsymmetry.beatlink MediaDetails]
+           [org.deepsymmetry.beatlink.data MetadataFinder MetadataCache]
+           [java.io File]))
 
 (defonce ^{:private true
        :doc "Holds the frame allowing the user to manage automatic
   cache file attachment."}
   auto-window (atom nil))
 
-(def metadata-finder
-  "The object that can obtain track metadata and manage cache files."
+(def ^MetadataFinder metadata-finder
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
   (MetadataFinder/getInstance))
 
 (defn- make-window-visible
@@ -28,7 +35,7 @@
   [trigger-frame]
   (util/restore-window-position @auto-window :auto-cache trigger-frame)
   (seesaw/show! @auto-window)
-  (.toFront @auto-window))
+  (.toFront ^javax.swing.JFrame @auto-window))
 
 (defn- row-icon
   "Returns the appropriate icon to be used for a row, depending on
@@ -40,7 +47,7 @@
   "Displays the appropriate alert when a row's info or warning button
   has been pressed, depending on whether the metadata cache contains
   media details."
-  [panel details playlist tracks]
+  [panel ^MediaDetails details playlist tracks]
   (let [content (str "<br><br>Cache contains: "
                      (if (pos? playlist) "A single playlist of " "All ")
                      tracks " " (inflect/pluralize-noun tracks "track") ".")]
@@ -77,13 +84,13 @@
   (let [files (.getAutoAttachCacheFiles metadata-finder)
         items (or (when (empty? files)
                     [[["No Auto-Attach Cache Files Configured" "pushx, align center, wrap"]]])
-                  (for [file files]
+                  (for [^File file files]
                     (let [[details playlist tracks] (get-cache-details file)]
                       [[(seesaw/label :text (.getAbsolutePath file)) "pushx"]
                        [(seesaw/button :id :info :icon (row-icon details)
-                                       :listen [:action-performed (fn [e] (row-alert panel details playlist tracks))])]
+                                       :listen [:action-performed (fn [_] (row-alert panel details playlist tracks))])]
                        [(seesaw/button :text "Remove"
-                                       :listen [:action-performed (fn [e]
+                                       :listen [:action-performed (fn [_]
                                                                     (.removeAutoAttacheCacheFile metadata-finder file)
                                                                     (create-file-rows panel))])
                         "wrap"]])))]
@@ -115,22 +122,24 @@
                                    :on-close :dispose)
           files      (mig/mig-panel)
           add-button (seesaw/button :text "Add File"
-                                    :listen [:action-performed (fn [e] (choose-file files))])
+                                    :listen [:action-performed (fn [_] (choose-file files))])
           panel      (seesaw/border-panel
                       :center (seesaw/scrollable files)
                       :south (mig/mig-panel :items [[add-button "pushx, align center"]]))]
       (seesaw/config! root :content panel)
       (create-file-rows files)
       (seesaw/listen root
-                     :window-closed (fn [e] (reset! auto-window nil))
-                     :component-moved (fn [e] (util/save-window-position root :auto-cache)))
+                     :window-closed (fn [_] (reset! auto-window nil))
+                     :component-moved (fn [_] (util/save-window-position root :auto-cache)))
       (reset! auto-window root)
       (make-window-visible trigger-frame))
     (catch Exception e
       (timbre/error e "Problem creating Auto Attach window."))))
 
 (defn show-window
-  "Open the Auto Attach window if it is not already open."
+  "Open the Auto Attach window if it is not already open. The Triggers
+  window is passed in `trigger-frame` so that this window can be
+  centered on it when created."
   [trigger-frame]
   (locking auto-window
     (when-not @auto-window (create-window trigger-frame)))
