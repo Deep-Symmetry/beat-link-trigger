@@ -1,6 +1,6 @@
 (ns beat-link-trigger.triggers
-  "Implements the list of triggers that send events when a CDJ starts
-  playing."
+  "Implements the main window, displaying a list of triggers that send
+  events in response to changes in CDJ states."
   (:require [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
@@ -26,12 +26,15 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util PlayerChoice]
-           [java.awt Color RenderingHints]
+           [java.awt Color Graphics2D RenderingHints]
            [java.awt.event WindowEvent]
+           [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder MetadataFinder WaveformFinder SearchableItem
-            CrateDigger SignatureFinder]
+           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder CrateDigger MetadataFinder SearchableItem
+            SignatureFinder TrackMetadata WaveformFinder]
+           [beat_link_trigger.util MidiChoice]
+           [org.deepsymmetry.electro Metronome]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider]))
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
@@ -53,16 +56,28 @@
   trigger-frame
   (atom nil))
 
-(def device-finder
-  "A convenient reference to the DeviceFinder singleton."
+(defn- online-menu-item
+  "Helper function to find the Online menu item, which is often toggled
+  by code."
+  ^JCheckBoxMenuItem []
+  (seesaw/select @trigger-frame [:#online]))
+
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
-  "A convenient reference to the VirtualCdj singleton."
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
-(def metadata-finder
-  "A convenient reference to the MetadataFinder singleton."
+(def ^MetadataFinder metadata-finder
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
   (MetadataFinder/getInstance))
 
 ;; Register the custom readers needed to read back in the defrecords that we use.
@@ -93,7 +108,7 @@
   a state where there is nothing to save anyway, so just exit."
   []
   (if @trigger-frame
-    (.dispatchEvent @trigger-frame (WindowEvent. @trigger-frame WindowEvent/WINDOW_CLOSING))
+    (.dispatchEvent ^JFrame @trigger-frame (WindowEvent. @trigger-frame WindowEvent/WINDOW_CLOSING))
     (System/exit 0)))
 
 (defn real-player?
@@ -159,7 +174,7 @@
   We always match if we are the same device as the last match, even if
   it is a downgrade, to make sure we update the match score and
   relinquish control on the next packet from a better match."
-  [status trigger]
+  [^CdjStatus status trigger]
   (run-custom-enabled status trigger)
   (let [this-device (.getDeviceNumber status)
         match-score (+ (if (enabled? trigger) 1024 0)
@@ -179,7 +194,7 @@
   keep track of the last one we matched, and change only if this is a
   better match. This should only be called with full-blown status
   updates, not beats."
-  [status trigger player-selection]
+  [^CdjStatus status trigger player-selection]
   (and (some? player-selection)
        (or (= (:number player-selection) (.getDeviceNumber status))
            (and (zero? (:number player-selection)) (.isTempoMaster status))
@@ -202,8 +217,8 @@
   to be reloaded."
   ([trigger]
    (get-chosen-output trigger @(seesaw/user-data trigger)))
-  ([trigger data]
-   (when-let [selection (get-in data [:value :outputs])]
+  ([_ data]
+   (when-let [^MidiChoice selection (get-in data [:value :outputs])]
      (let [device-name (.full_name selection)]
        (or (get @util/opened-outputs device-name)
            (try
@@ -239,7 +254,7 @@
   "The loop which sends MIDI clock messages to synchronize a MIDI device
   with the tempo received from beat-link, as long as the trigger is
   enabled and our `running` atom holds a `true` value."
-  [trigger metro running]
+  [trigger ^Metronome metro running]
   (try
     (timbre/info "Midi clock thread starting for Trigger"
                  (:index (seesaw/value trigger)))
@@ -284,13 +299,13 @@
   player pitch."
   [trigger-data]
   (let [bpm-override (:use-fixed-sync-bpm @expression-globals)
-        base-tempo (if-let [cached-status (:status trigger-data)]
-                     (if (= 65535 (.getBpm cached-status))
-                       (or bpm-override 120.0) ; Default to 120 bpm if the player has not loaded a track.
-                       (if bpm-override
-                         (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch cached-status)) bpm-override)
-                         (.getEffectiveTempo cached-status)))
-                     (or bpm-override 120.0))]  ; Default to 120 bpm if we lost status information momentarily.
+        base-tempo   (if-let [^CdjStatus cached-status (:status trigger-data)]
+                       (if (= 65535 (.getBpm cached-status))
+                         (or bpm-override 120.0) ; Default to 120 bpm if the player has not loaded a track.
+                         (if bpm-override
+                           (* (org.deepsymmetry.beatlink.Util/pitchToMultiplier (.getPitch cached-status)) bpm-override)
+                           (.getEffectiveTempo cached-status)))
+                       (or bpm-override 120.0))]  ; Default to 120 bpm if we lost status information momentarily.
     (* base-tempo 24.0)))
 
 (defn- clock-running?
@@ -301,7 +316,7 @@
   running will be a tuple of the thread, its metronome, and its
   running flag, to make it easy to shut down when necessary."
   [trigger-data]
-  (let [[clock-thread metro :as all] (:clock trigger-data)]
+  (let [[^Thread clock-thread ^Metronome metro :as all] (:clock trigger-data)]
     (when (and clock-thread (.isAlive clock-thread))
       (let [tempo (clock-tempo trigger-data)]
         (when (> (Math/abs (- tempo (.getTempo metro))) 0.0001)
@@ -322,7 +337,7 @@
              (if (clock-running? trigger-data)
                trigger-data  ; Clock is already running, and we have alerted it to tempo changes, so leave it as-is.
                (let [running      (atom true)  ; We need to create a new thread and its metronome and shutdown flag.
-                     metro        (org.deepsymmetry.electro.Metronome.)
+                     metro        (Metronome.)
                      clock-thread (Thread. #(clock-sender trigger metro running))]
                  (.setTempo metro (clock-tempo trigger-data))
                  (.setPriority clock-thread (dec Thread/MAX_PRIORITY))
@@ -342,7 +357,7 @@
     (try
       (swap! (seesaw/user-data trigger)
              (fn [trigger-data]
-               (when-let [[clock-thread _ running] (clock-running? trigger-data)]
+               (when-let [[^Thread clock-thread _ running] (clock-running? trigger-data)]
                  (reset! running false)
                  (.interrupt clock-thread))
                (dissoc trigger-data :clock)))
@@ -409,7 +424,7 @@
   associated clock synchronization thread, and record the new state.
   Finally, run the Tracked Update Expression, if there is one, and we
   actually received a status update."
-  [trigger playing on-air status]
+  [trigger playing on-air ^CdjStatus status]
   (let [old-data @(seesaw/user-data trigger)
         updated  (swap! (seesaw/user-data trigger)
                         (fn [data]
@@ -439,11 +454,11 @@
 
 (defn describe-track
   "Identifies a track with the best information available from its
-  status update. If a non-nil `custom-description` is available, use
+  status update. If a non-`nil` `custom-description` is available, use
   it. Otherwise, honor the user preference setting to display either
   the rekordbox id information associated with it (when available), or
   simply the track's position within its playlist."
-  [status custom-description]
+  [^CdjStatus status custom-description]
   (cond
     (some? custom-description)
     custom-description
@@ -472,7 +487,7 @@
   "Include the appropriate track metadata items for display. If a
   non-nil `custom-summary` is available, use it. Otherwise show the
   track title, an em dash, and the track artist."
-  [status metadata custom-summary]
+  [^TrackMetadata metadata custom-summary]
   (let [summary (or custom-summary (str (.getTitle metadata) "&mdash;" (extract-label (.getArtist metadata))))]
     (str "<br>&nbsp;&nbsp; " summary)))
 
@@ -480,9 +495,9 @@
   "Create a brief textual summary of a player state given a status
   update object from beat-link, and track description and metadata
   summary overrides from the trigger's custom expression
-  locals (either of which may be nil, which means to build the
+  locals (either of which may be `nil`, which means to build the
   standard description and summary for the track)."
-  [status track-description metadata-summary]
+  [^CdjStatus status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
         metadata (when (.isRunning metadata-finder) (.getLatestMetadataFor metadata-finder status))
         using-metadata? (or metadata metadata-summary)]
@@ -497,7 +512,7 @@
            (neg? beat) ", beat n/a"
            (zero? beat) ", lead-in"
            :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")"))
-         (when using-metadata? (format-metadata status metadata metadata-summary)))))
+         (when using-metadata? (format-metadata metadata metadata-summary)))))
 
 (defn- online?
   "Check whether we are in online mode, with all the required
@@ -514,16 +529,16 @@
   Update thread."
   [trigger]
   (try
-    (let [player-menu (seesaw/select trigger [:#players])
-          selection (seesaw/selection player-menu)
-          status-label (seesaw/select trigger [:#status])
-          track-description (:track-description @(:locals @(seesaw/user-data trigger)))
-          metadata-summary (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
+    (let [player-menu             (seesaw/select trigger [:#players])
+          ^PlayerChoice selection (seesaw/selection player-menu)
+          status-label            (seesaw/select trigger [:#status])
+          track-description       (:track-description @(:locals @(seesaw/user-data trigger)))
+          metadata-summary        (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
       (if (nil? selection)
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
-        (let [found (when (online?) (.getLatestAnnouncementFrom device-finder (int (.number selection))))
+        (let [found  (when (online?) (.getLatestAnnouncementFrom device-finder (int (.number selection))))
               status (when (online?) (.getLatestStatusFor virtual-cdj (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
@@ -533,9 +548,9 @@
               (do (seesaw/config! status-label :foreground "cyan")
                   (seesaw/value! status-label (build-status-label status track-description metadata-summary)))
               (do (seesaw/config! status-label :foreground "red")
-                  (seesaw/value! status-label (cond (some? status) "Non-Player status received."
+                  (seesaw/value! status-label (cond (some? status)  "Non-Player status received."
                                                     (not (online?)) "Offline."
-                                                    :else "No status received."))))))))
+                                                    :else           "No status received."))))))))
     (catch Exception e
       (timbre/error e "Problem showing Trigger Player status."))))
 
@@ -549,7 +564,7 @@
     (let [enabled-label (seesaw/select trigger [:#enabled-label])
           enabled (seesaw/select trigger [:#enabled])
           state (seesaw/select trigger [:#state])]
-      (if-let [output (get-chosen-output trigger)]
+      (if-let [_ (get-chosen-output trigger)]
         (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
             (seesaw/config! enabled :visible? true)
@@ -580,9 +595,10 @@
                 (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
                   (editors/retitle editor)))
               (get-triggers) (cycle ["#eee" "#ddd"]) (range)))
-  (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration @trigger-frame)))
-                                            (.height (.getBounds @trigger-frame))))
-                              (.pack @trigger-frame)))
+  (let [^JFrame frame @trigger-frame]
+    (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration frame)))
+                    (.height (.getBounds frame))))
+      (.pack frame))))
 
 (defn- run-global-function
   "Checks whether the trigger frame has a custom function of the
@@ -606,7 +622,7 @@
   "Draws a representation of the state of the trigger, including both
   whether it is enabled and whether it has tripped (or would have, if
   it were not disabled)."
-  [trigger c g]
+  [trigger c ^Graphics2D g]
   (let [w (double (seesaw/width c))
         h (double (seesaw/height c))
         outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
@@ -665,7 +681,7 @@
       (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                       :items (remove #(= % trigger) (get-triggers)))
       (adjust-triggers)
-      (.pack @trigger-frame)
+      (.pack ^JFrame @trigger-frame)
       true)
     (catch Exception e
       (timbre/error e "Problem deleting Trigger."))))
@@ -843,7 +859,7 @@
                                                 (reset! (:locals @(seesaw/user-data panel)) {})
                                                 (run-trigger-function panel :setup nil true))
                                               (update-gear-icon panel gear))]
-                              (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind panel update-fn))
+                              (seesaw/action :handler (fn [_] (editors/show-trigger-editor kind panel update-fn))
                                              :name (str "Edit " (:title spec))
                                              :tip (:tip spec)
                                              :icon (if (missing-expression? panel kind)
@@ -865,7 +881,7 @@
                                          :enabled? (simulate-enabled? panel :deactivation)
                                          :handler (fn [_] (report-deactivation panel (show/random-cdj-status)
                                                                                @(seesaw/user-data panel) false)))])
-         popup-fn       (fn [e] (concat (editor-actions)
+         popup-fn       (fn [_] (concat (editor-actions)
                                         [(seesaw/separator) (seesaw/menu :text "Simulate" :items (sim-actions))
                                          inspect-action (seesaw/separator) import-action export-action]
                                         (when (> (count (get-triggers)) 1) [delete-action])))]
@@ -890,7 +906,7 @@
      ;; chosen and the enabled filter expression is empty.
      (let [enabled-menu (seesaw/select panel [:#enabled])]
        (seesaw/listen enabled-menu
-        :action-performed (fn [e]
+        :action-performed (fn [_]
                             (seesaw/repaint! (seesaw/select panel [:#state]))
                             (when (and (= "Custom" (seesaw/selection enabled-menu))
                                        (empty? (get-in @(seesaw/user-data panel) [:expressions :enabled])))
@@ -918,7 +934,7 @@
         :action-performed (fn [_]
                             (let [choice                                        (seesaw/selection message-menu)
                                   {:keys [note send channel-label start
-                                          channel stop bar start-stop outputs]} (seesaw/group-by-id panel)]
+                                          channel stop bar start-stop]} (seesaw/group-by-id panel)]
                               (when (and (= "Custom" choice)
                                          (not (:creating @(seesaw/user-data panel)))
                                          (empty? (get-in @(seesaw/user-data panel) [:expressions :activation])))
@@ -945,7 +961,7 @@
            :doc     "The menu action which adds a new Trigger to the end of the list."}
   new-trigger-action
   (delay
-   (seesaw/action :handler (fn [e]
+   (seesaw/action :handler (fn [_]
                              (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                              :items (concat (get-triggers) [(create-trigger-row)]))
                              (adjust-triggers))
@@ -955,30 +971,31 @@
 (defonce ^{:private true
            :doc "The menu action which opens the Carabiner configuration window."}
   carabiner-action
-  (delay (seesaw/action :handler (fn [e] (carabiner/show-window @trigger-frame))
+  (delay (seesaw/action :handler (fn [_] (carabiner/show-window @trigger-frame))
                         :name "Ableton Link: Carabiner Connection")))
 
 (defonce ^{:private true
            :doc "The menu action which opens the nREPL configuration window."}
   nrepl-action
-  (delay (seesaw/action :handler (fn [e] (nrepl/show-window @trigger-frame))
+  (delay (seesaw/action :handler (fn [_] (nrepl/show-window @trigger-frame))
                         :name "nREPL: Clojure IDE Connection")))
 
 (defonce ^{:private true
            :doc "The menu action which opens the Load Track window."}
   load-track-action
-  (delay (seesaw/action :handler (fn [e] (track-loader/show-dialog))
+  (delay (seesaw/action :handler (fn [_] (track-loader/show-dialog))
                         :name "Load Track on Player" :enabled? false)))
 
 (defonce ^{:private true
-           :doc "The menu action which empties the Trigger list."}
+           :doc     "The menu action which empties the Trigger list."}
   clear-triggers-action
   (delay
-   (seesaw/action :handler (fn [e]
+   (seesaw/action :handler (fn [_]
                              (try
-                               (let [confirm (seesaw/dialog
-                                              :content "Clear Triggers?\nYou will be left with one default Trigger."
-                                              :type :warning :option-type :yes-no)]
+                               (let [^java.awt.Window confirm
+                                     (seesaw/dialog :content (str "Clear Triggers?\n"
+                                                                  "You will be left with one default Trigger.")
+                                                    :type :warning :option-type :yes-no)]
                                  (.pack confirm)
                                  (.setLocationRelativeTo confirm @trigger-frame)
                                  (when (= :success (seesaw/show! confirm))
@@ -1036,7 +1053,7 @@
 (defonce ^{:private true
            :doc "The menu action which saves the configuration to the preferences."}
   save-action
-  (delay (seesaw/action :handler (fn [e] (save-triggers-to-preferences))
+  (delay (seesaw/action :handler (fn [_] (save-triggers-to-preferences))
                         :name "Save"
                         :key "menu S")))
 
@@ -1044,7 +1061,7 @@
            :doc "The menu action which saves the configuration to a user-specified file."}
   save-as-action
   (delay
-   (seesaw/action :handler (fn [e]
+   (seesaw/action :handler (fn [_]
                              (when (save-triggers-to-preferences)
                                (let [extension (util/extension-for-file-type :configuration)]
                                  (when-let [file (chooser/choose-file @trigger-frame :type :save
@@ -1080,7 +1097,7 @@
            :doc "The menu action which loads the configuration from a user-specified file."}
   load-action
   (delay
-   (seesaw/action :handler (fn [e]
+   (seesaw/action :handler (fn [_]
                              (let [extension (util/extension-for-file-type :configuration)]
                                (when-let [file (chooser/choose-file
                                                 @trigger-frame
@@ -1105,14 +1122,14 @@
 (defonce ^{:private true
            :doc "The menu action which allows configuration of auto-attached metadata cache files."}
   auto-action
-  (delay (seesaw/action :handler (fn [e] (auto/show-window @trigger-frame))
+  (delay (seesaw/action :handler (fn [_] (auto/show-window @trigger-frame))
                         :name "Auto-Attach Metadata Caches"
                         :key "menu M")))
 
 (defonce ^{:private true
            :doc "The menu action which allows the user to view the contents of a metadata cache file."}
   view-cache-action
-  (delay (seesaw/action :handler (fn [e] (view-cache/choose-file @trigger-frame))
+  (delay (seesaw/action :handler (fn [_] (view-cache/choose-file @trigger-frame))
                         :name "View Metadata Cache Contents")))
 
 (defn- midi-environment-changed
@@ -1157,15 +1174,16 @@
         (doseq [trigger (get-triggers)]
           (let [selection (get-in @(seesaw/user-data trigger) [:value :players])]
             (when (and (instance? CdjStatus status) (matching-player-number? status trigger selection))
-              (when-not (neg? (:number selection))
-                (run-custom-enabled status trigger))  ; This was already done if Any Player is the selection
-              (update-player-state trigger (.isPlaying status) (.isOnAir status) status)
-              (seesaw/invoke-later
-               (let [status-label (seesaw/select trigger [:#status])
-                     track-description (:track-description @(:locals @(seesaw/user-data trigger)))
-                     metadata-summary (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
-                 (seesaw/config! status-label :foreground "cyan")
-                 (seesaw/value! status-label (build-status-label status track-description metadata-summary)))))))
+              (let [^CdjStatus status status]
+                (when-not (neg? (:number selection))
+                  (run-custom-enabled status trigger)) ; This was already done if Any Player is the selection
+                (update-player-state trigger (.isPlaying status) (.isOnAir status) status)
+                (seesaw/invoke-later
+                 (let [status-label (seesaw/select trigger [:#status])
+                       track-description (:track-description @(:locals @(seesaw/user-data trigger)))
+                       metadata-summary (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
+                   (seesaw/config! status-label :foreground "cyan")
+                   (seesaw/value! status-label (build-status-label status track-description metadata-summary))))))))
         (catch Exception e
           (timbre/error e "Problem responding to Player status packet."))))))
 
@@ -1210,10 +1228,10 @@
         ;; We are online but lost the last DJ Link device. Switch back to looking for the network.
         (future
           (seesaw/invoke-now  ; Go offline.
-           (.setSelected (seesaw/select @trigger-frame [:#online]) false))
+           (.setSelected (online-menu-item) false))
           (Thread/sleep 200)  ; Give things a chance to stabilize.
           (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
-           (.setSelected (seesaw/select @trigger-frame [:#online]) true)))))))
+           (.setSelected (online-menu-item) true)))))))
 
 (declare go-offline)
 
@@ -1229,10 +1247,10 @@
         (go-offline true) ; Indicate this is a special case of going offline even though VirtualCdj is offline already.
         (seesaw/invoke-now
          ;; Update the Online menu state, which calls `go-offline` again but that is a no-op this time.
-         (.setSelected (seesaw/select @trigger-frame [:#online]) false))
+         (.setSelected (online-menu-item) false))
         (Thread/sleep 200)  ; Give things a chance to stabilize.
         (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
-         (.setSelected (seesaw/select @trigger-frame [:#online]) true))))))
+         (.setSelected (online-menu-item) true))))))
 
 (defn- translate-enabled-values
   "Convert from the old true/false model of enabled stored in early
@@ -1281,8 +1299,9 @@
   running them as needed, and sets the default track description."
   []
   (let [m (prefs/get-preferences)]
-    (.doClick (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m) :#track-position :#track-id)]))
-    (.setSelected (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
+    (.doClick ^JRadioButtonMenuItem (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m)
+                                                                     :#track-position :#track-id)]))
+    (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
     (when-let [exprs (:expressions m)]
       (swap! trigger-prefs assoc :expressions exprs)
       (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
@@ -1310,7 +1329,7 @@
 (defn build-global-editor-action
   "Creates an action which edits one of the global expressions."
   [kind]
-  (seesaw/action :handler (fn [e] (editors/show-trigger-editor kind (seesaw/config @trigger-frame :content)
+  (seesaw/action :handler (fn [_] (editors/show-trigger-editor kind (seesaw/config @trigger-frame :content)
                                                                (fn []
                                                                  (when (= :setup kind)
                                                                    (run-global-function :shutdown)
@@ -1390,8 +1409,8 @@
                      javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
                      options (aget options (dec (count options)))))]
         (if (zero? choice)
-          (.setSelected (seesaw/select @trigger-frame [:#send-status]) false)  ; Cancel.
-          (.setSelected (seesaw/select @trigger-frame [:#online]) false)))     ; Go offline.
+          (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#send-status]) false)  ; Cancel.
+          (.setSelected (online-menu-item) false)))     ; Go offline.
       (do (.setSendingStatus virtual-cdj true)  ; We can do it.
           (.setPassive metadata-finder false)))))
 
@@ -1408,7 +1427,7 @@
 (defn- build-trigger-menubar
   "Creates the menu bar for the trigger window."
   []
-  (let [inspect-action   (seesaw/action :handler (fn [e] (try
+  (let [inspect-action   (seesaw/action :handler (fn [_] (try
                                                            (inspector/inspect @expression-globals
                                                                               :window-name "Trigger Expression Globals")
                                                            (catch StackOverflowError _
@@ -1417,11 +1436,11 @@
                                                             (util/inspect-failed t))))
                                         :name "Inspect Expression Globals"
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
-        new-show-action  (seesaw/action :handler (fn [e] (show/new @trigger-frame))
+        new-show-action  (seesaw/action :handler (fn [_] (show/new @trigger-frame))
                                         :name "New Show"
                                         :tip "Create an interface for conveniently assigning cues to tracks."
                                         :key "menu N")
-        open-show-action (seesaw/action :handler (fn [e] (show/open @trigger-frame))
+        open-show-action (seesaw/action :handler (fn [_] (show/open @trigger-frame))
                                         :name "Open Show"
                                         :tip "Opens an already-created show interface."
                                         :key "menu O")
@@ -1436,16 +1455,16 @@
                                               (seesaw/radio-menu-item :text "playlist position" :id :track-position
                                                                       :selected? using-playlists? :group bg)])]
     (seesaw/listen bg :selection
-                   (fn [e]
+                   (fn [_]
                      (when-let [s (seesaw/selection bg)]
                        (swap! trigger-prefs assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
     (seesaw/listen online-item :item-state-changed
-                   (fn [e]
+                   (fn [^java.awt.event.ItemEvent e]
                      (if (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
                        (go-online)
                        (go-offline))))
     (seesaw/listen real-item :item-state-changed
-                   (fn [e]
+                   (fn [^java.awt.event.ItemEvent e]
                      (swap! trigger-prefs assoc :send-status? (= (.getStateChange e)
                                                                  java.awt.event.ItemEvent/SELECTED))
                      (if (real-player?)
@@ -1480,19 +1499,19 @@
   "Updates the icons next to expressions in the Trigger menu to
   reflect whether they have been assigned a non-empty value."
   []
-  (let [menu  (seesaw/select @trigger-frame [:#triggers-menu])
-        exprs {"Edit Shared Functions"           :shared
-               "Edit Global Setup Expression"    :setup
-               "Edit Came Online Expression"     :online
-               "Edit Going Offline Expression"   :offline
-               "Edit Global Shutdown Expression" :shutdown}]
+  (let [^JMenu menu (seesaw/select @trigger-frame [:#triggers-menu])
+        exprs       {"Edit Shared Functions"           :shared
+                     "Edit Global Setup Expression"    :setup
+                     "Edit Came Online Expression"     :online
+                     "Edit Going Offline Expression"   :offline
+                     "Edit Global Shutdown Expression" :shutdown}]
     (doseq [i (range (.getItemCount menu))]
-      (let [item (.getItem menu i)]
+      (let [^JMenuItem item (.getItem menu i)]
         (when item
           (when-let [expr (get exprs (.getText item))]
             (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions expr]))
-                                          "images/Gear-outline.png"
-                                          "images/Gear-icon.png")))))))))
+                                                                 "images/Gear-outline.png"
+                                                                 "images/Gear-icon.png")))))))))
 
 (defn- create-trigger-window
   "Create and show the trigger window."
@@ -1511,7 +1530,7 @@
       (check-for-parse-error)
       (seesaw/listen root
                      :window-closing
-                     (fn [e]
+                     (fn [_]
                        (save-triggers-to-preferences)
                        (if (and (show/close-all-shows false)
                                 (delete-all-triggers false))
@@ -1521,7 +1540,7 @@
                          (menus/respond-to-quit-request false)))
 
                      #{:component-moved :component-resized}
-                     (fn [e] (util/save-window-position root :triggers))))
+                     (fn [_] (util/save-window-position root :triggers))))
     (catch Exception e
       (timbre/error e "Problem creating Trigger window."))))
 
@@ -1534,7 +1553,7 @@
   (seesaw/invoke-soon
    (try
      (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action] :enabled? (online?))
-     (.setText (seesaw/select @trigger-frame [:#online]) (online-menu-name))
+     (.setText (online-menu-item) (online-menu-name))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))
 
@@ -1590,7 +1609,7 @@
                             "Is rekordbox or another DJ Link program running?")
                        :title "Failed to Go Online" :type :error)
          (.stop virtual-cdj)
-         (.setSelected (seesaw/select @trigger-frame [:#online]) false)))
+         (.setSelected (online-menu-item) false)))
       (catch Throwable t
         (timbre/error t "Problem starting Beat Finder, staying offline.")
         (seesaw/invoke-now
@@ -1598,7 +1617,7 @@
                        (str "<html>Unable to listen for beat packets, check the log file for details.<br><br>" t)
                        :title "Problem Trying to Go Online" :type :error)
          (.stop virtual-cdj)
-         (.setSelected (seesaw/select @trigger-frame [:#online]) false))))
+         (.setSelected (online-menu-item) false))))
     (.setPassive metadata-finder true)  ; Start out conservatively
     (when (online?)
       (start-other-finders)
@@ -1645,4 +1664,4 @@
     ((resolve 'beat-link-trigger.core/try-going-online))
     (when-not (online?)
       (seesaw/invoke-now  ; We failed to go online, so update the menu to reflect that.
-       (.setSelected (seesaw/select @trigger-frame [:#online]) false)))))
+       (.setSelected (online-menu-item) false)))))
