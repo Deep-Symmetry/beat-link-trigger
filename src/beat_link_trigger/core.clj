@@ -2,26 +2,28 @@
   "Top level organization for starting up the interface, logging, and
   managing online presence."
   (:require [beat-link-trigger.about :as about]
+            [beat-link-trigger.expressions]
+            [beat-link-trigger.help :as help]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show :as show]
-            [beat-link-trigger.help :as help]
-            [beat-link-trigger.util :as util]
             [beat-link-trigger.triggers :as triggers]
+            [beat-link-trigger.util :as util]
+            [clojure.string]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj]
-           [java.awt GraphicsEnvironment]
-           [javax.swing UIManager]))
+  (:import java.awt.GraphicsEnvironment
+           javax.swing.UIManager
+           [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj]))
 
-(def device-finder
+(def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
   `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
   singleton."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
+(def ^VirtualCdj virtual-cdj
   "A convenient reference to the [Beat Link
   `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
   singleton."
@@ -146,7 +148,9 @@
                                :title "Network Configuration Problem" :type :warning)))
 
               (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
-                (let [descriptions (map #(str (.getName %) " (" (.getHostAddress (.getAddress %)) ")") unreachables)]
+                (let [descriptions (map (fn [^DeviceAnnouncement device]
+                                          (str (.getName device) " (" (.getHostAddress (.getAddress device)) ")"))
+                                        unreachables)]
                   (seesaw/invoke-now
                    (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
                                       "We will not be able to communicate with the following device"
@@ -163,7 +167,7 @@
 
 (defn start
   "Set up logging, set up our user interface look-and-feel, then make
-  sure we can start the Virtual CDJ. If all went well, present the
+  sure we can start the [[virtual-cdj]]. If all went well, present the
   Triggers interface. Called when jar startup has detected a
   recent-enough Java version to succcessfully load this namespace."
   ([]
@@ -184,8 +188,9 @@
       (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames.
       (try  ; Install our custom dark and textured look-and-feel on top of it.
         (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
-          (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin (.newInstance skin-class)))
-        (catch ClassNotFoundException e
+          (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin
+           ^org.pushingpixels.substance.api.SubstanceSkin (.newInstance skin-class)))
+        (catch ClassNotFoundException _
           (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?")))
 
       ;; Use our dynamic class loader on the Swing thread too.
@@ -193,15 +198,16 @@
 
       ;; If we are running under Java 9 or later on the Mac, and have one of the overly-skinny default system
       ;; fonts, but can swap back to Lucida Grande, do so now.
-      (when (and (when-let [font-name (.getName (UIManager/get "MenuBar.font"))]
+      (when (and (when-let [font-name (.getName ^javax.swing.plaf.FontUIResource (UIManager/get "MenuBar.font"))]
                    (.startsWith font-name "."))
                  (some #(= "Lucida Grande" %)
                        (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
         (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
                                          (when (and (instance? javax.swing.plaf.FontUIResource v)
-                                                    (.startsWith (.getName v) "."))
+                                                    (.startsWith (.getName ^javax.swing.plaf.FontUIResource v) "."))
                                            [k v])))]
-          (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle v) (.getSize v))))))
+          (let [^javax.swing.plaf.FontUIResource fr v]
+            (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle fr) (.getSize fr)))))))
 
      ;; If we are on a Mac, hook up our About handler where users expect to find it, and add a Quit handler
      ;; that saves the state, and gives users a chance to veto losing unsaved editor windows.
