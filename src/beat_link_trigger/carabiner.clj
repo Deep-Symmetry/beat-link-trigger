@@ -1,17 +1,22 @@
 (ns beat-link-trigger.carabiner
-  "Communicates with a local Carabiner daemon to participate in an
-  Ableton Link session, using the beat-carabiner library."
+  "Communicates with a
+  local [Carabiner](https://github.com/Deep-Symmetry/carabiner#carabiner)
+  daemon to participate in an [Ableton
+  Link](https://www.ableton.com/en/link/) session, using
+  the [beat-carabiner
+  library](https://github.com/Deep-Symmetry/beat-carabiner#beat-carabiner)."
   (:require [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [beat-carabiner.core :as beat-carabiner]
+            [clojure.string]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [java.net Socket]
+  (:import [java.awt Graphics2D]
            [java.awt.event ItemEvent]
-           [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncement DeviceAnnouncementListener LifecycleListener
-            VirtualCdj DeviceUpdate CdjStatus MixerStatus MasterListener]
-           [org.deepsymmetry.electro Metronome Snapshot]))
+           [javax.swing JCheckBox JFrame JRadioButton]
+           [org.deepsymmetry.beatlink DeviceFinder DeviceAnnouncementListener DeviceUpdate LifecycleListener
+            VirtualCdj]))
 
 (defonce ^{:private true
            :doc "Holds some timestamps used in managing master and
@@ -25,19 +30,22 @@
 
   carabiner-window (atom nil))
 
-(def device-finder
-  "The object that tracks the arrival and departure of devices on the
-  DJ Link network."
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
-  "The object which can obtained detailed player status information."
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
 (defn sync-enabled?
-  "Checks whether we have an active connection and are in any sync mode
-  other than `:off` (using our expanded set of modes, which includes
-  `:triggers`)."
+  "Checks whether we have an active connection and are in
+  any [[sync-mode]] other than `:off` (using our expanded set of
+  modes, which includes `:triggers`)."
   []
   (let [bc-state (beat-carabiner/state)]
     (and (:running bc-state)
@@ -165,12 +173,12 @@
       result)))
 
 (defn beat-at-time
-  "Find out what beat falls at the specified time in the Link
-  timeline, assuming 4 beats per bar since we are dealing with Pro DJ
-  Link, and taking into account the configured latency. When the
-  response comes, if we are configured to be the tempo master, nudge
-  the Link timeline so that it had a beat at the same time. If a
-  beat-number (ranging from 1 to the quantum) is supplied, move the
+  "Find out what beat falls at the specified time in the Link timeline,
+  assuming four beats per bar since we are dealing with Pro DJ Link,
+  and taking into account the configured latency. When the response
+  comes, if we are configured to be the tempo master, nudge the Link
+  timeline so that it had a beat at the same `time`. If a
+  `beat-number` (ranging from 1 to the 4) is supplied, move the
   timeline by more than a beat if necessary in order to get the Link
   session's bars aligned as well."
   ([time]
@@ -184,7 +192,7 @@
 (defn- make-window-visible
   "Ensures that the Carabiner window is in front, and shown."
   [parent]
-  (let [our-frame @carabiner-window]
+  (let [^JFrame our-frame @carabiner-window]
     (util/restore-window-position our-frame :carabiner parent)
     (seesaw/show! our-frame)
     (.toFront our-frame)))
@@ -202,7 +210,7 @@
   Off) and whether any Link-mode trigger has tripped (in Triggers
   mode), or the Ableton Link Sync or Master buttons are chosen in
   Passive and Full modes."
-  [c g]
+  [c ^Graphics2D g]
   (let [w (double (seesaw/width c))
         h (double (seesaw/height c))
         outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
@@ -307,10 +315,12 @@
         (when (.isRunning virtual-cdj)  ; Skip this if we are currently offline.
           (seesaw/invoke-later
            ;; First update the states of the actual device rows
-           (doseq [status (filter #(#{1 2 3 4 33} (long (.getDeviceNumber %))) (.getLatestStatus virtual-cdj))]
-             (let [device        (long (.getDeviceNumber status))
-                   master-button (seesaw/select frame [(keyword (str "#master-" device))])
-                   sync-box      (seesaw/select frame [(keyword (str "#sync-" device))])]
+           (doseq [^DeviceUpdate status (filter (fn [^DeviceUpdate status]
+                                                  (#{1 2 3 4 33} (long (.getDeviceNumber status))))
+                                                (.getLatestStatus virtual-cdj))]
+             (let [device                      (long (.getDeviceNumber status))
+                   ^JRadioButton master-button (seesaw/select frame [(keyword (str "#master-" device))])
+                   ^JCheckBox sync-box         (seesaw/select frame [(keyword (str "#sync-" device))])]
                (when  (and (.isTempoMaster status) (not (seesaw/value master-button)))
                  (let [changed (:master-command-sent @state)]
                    (when (or (nil? changed) (> (- (System/currentTimeMillis) changed) master-hysteresis))
@@ -341,7 +351,7 @@
   sure the corresponding device's sync state is in agreement (we may
   not need to do anything, because our state change may be in response
   to a report from the device itself.)"
-  [^ItemEvent event device]
+  [^ItemEvent event ^Long device]
   (when (.isRunning virtual-cdj)  ; Ignore initial setup events if we aren't even online.
     (when-let [latest-status (.getLatestStatusFor virtual-cdj device)]
       (let [selected (= (.getStateChange event) ItemEvent/SELECTED)
@@ -355,7 +365,7 @@
   sure the corresponding device's Master state is in agreement (we may
   not need to do anything, because our state change may be in response
   to a report from the device itself.)"
-  [^ItemEvent event device]
+  [^ItemEvent event ^Long device]
   (when (.isRunning virtual-cdj)  ; Ignore initial setup events if we aren't even online.
     (when-let [latest-status (.getLatestStatusFor virtual-cdj device)]
       (when (= (.getStateChange event) ItemEvent/SELECTED)  ; This is the new master
@@ -438,7 +448,7 @@
 
       (seesaw/repaint! (seesaw/select root [:#state])))))
 
-(defn- create-shift-tracker
+#_(defn- create-shift-tracker
   "Registers a keyboard listener so the BPM spinner's step value can be
   adjusted to move by whole beats per minute when shift is held down."
   [spinner-model]
@@ -459,118 +469,119 @@
         (beat-carabiner/set-latency latency))
       (when-let [bars (:bars settings)]
         (beat-carabiner/set-sync-bars bars)))
-    (let [root      (seesaw/frame :title "Carabiner Connection"
-                                  :on-close :hide)
-          group     (seesaw/button-group)
-          state     (seesaw/canvas :id :state :size [18 :by 18] :opaque? false
-                                   :tip "Sync state: Outer ring shows enabled, inner light when active.")
-          bpm-model (javax.swing.SpinnerNumberModel. 120.0, 20.0, 999.0, 0.01)
-          link-bpm  (seesaw/spinner :id :bpm-spinner
-                                    :model bpm-model
-                                    :listen [:selection (fn [e]
-                                                          (when (seesaw/config e :enabled?)
-                                                            (let [tempo (seesaw/selection e)]
-                                                              (beat-carabiner/set-link-tempo tempo))))]
-                                    :enabled? false)
-          bpm       (seesaw/label :id :bpm :text "---")
-          panel     (mig/mig-panel
-                     :constraints ["hidemode 3"]
-                     :background "#ccc"
-                     :items (concat
-                             [[(seesaw/label :text "Carabiner Port:") "align right"]
-                              [(seesaw/spinner :id :port
-                                               :model (seesaw/spinner-model (:port (beat-carabiner/state))
-                                                                            :from 1 :to 32767)
-                                               :listen [:selection (fn [e]
-                                                                     (let [port (seesaw/selection e)]
-                                                                       (beat-carabiner/set-carabiner-port port)
-                                                                       (prefs/put-preferences
-                                                                        (assoc-in (prefs/get-preferences)
-                                                                                  [:carabiner :port] port))))])]
-                              [(seesaw/checkbox :id :connect :text "Connect"
-                                                :listen [:action (fn [e]
-                                                                   (connect-choice (seesaw/value e)))]) "span 2, wrap"]
+    (let [^JFrame root (seesaw/frame :title "Carabiner Connection"
+                                     :on-close :hide)
+          group        (seesaw/button-group)
+          state        (seesaw/canvas :id :state :size [18 :by 18] :opaque? false
+                                      :tip "Sync state: Outer ring shows enabled, inner light when active.")
+          bpm-model    (javax.swing.SpinnerNumberModel. 120.0, 20.0, 999.0, 0.01)
+          link-bpm     (seesaw/spinner :id :bpm-spinner
+                                       :model bpm-model
+                                       :listen [:selection (fn [e]
+                                                             (when (seesaw/config e :enabled?)
+                                                               (let [tempo (seesaw/selection e)]
+                                                                 (beat-carabiner/set-link-tempo tempo))))]
+                                       :enabled? false)
+          _            (seesaw/label :id :bpm :text "---")
+          panel        (mig/mig-panel
+                        :constraints ["hidemode 3"]
+                        :background "#ccc"
+                        :items (concat
+                                [[(seesaw/label :text "Carabiner Port:") "align right"]
+                                 [(seesaw/spinner :id :port
+                                                  :model (seesaw/spinner-model (:port (beat-carabiner/state))
+                                                                               :from 1 :to 32767)
+                                                  :listen [:selection (fn [e]
+                                                                        (let [port (seesaw/selection e)]
+                                                                          (beat-carabiner/set-carabiner-port port)
+                                                                          (prefs/put-preferences
+                                                                           (assoc-in (prefs/get-preferences)
+                                                                                     [:carabiner :port] port))))])]
+                                 [(seesaw/checkbox :id :connect :text "Connect"
+                                                   :listen [:action (fn [e]
+                                                                      (connect-choice (seesaw/value e)))])
+                                  "span 2, wrap"]
 
-                              [(seesaw/label :text "Latency (ms):") "align right"]
-                              [(seesaw/spinner :id :latency
-                                               :model (seesaw/spinner-model (:latency (beat-carabiner/state))
-                                                                            :from 0 :to 1000)
-                                               :listen [:selection (fn [e]
-                                                                     (let [latency (seesaw/selection e)]
-                                                                       (beat-carabiner/set-latency latency)
-                                                                       (prefs/put-preferences
-                                                                        (assoc-in (prefs/get-preferences)
-                                                                                  [:carabiner :latency] latency))))])
-                               "wrap"]
+                                 [(seesaw/label :text "Latency (ms):") "align right"]
+                                 [(seesaw/spinner :id :latency
+                                                  :model (seesaw/spinner-model (:latency (beat-carabiner/state))
+                                                                               :from 0 :to 1000)
+                                                  :listen [:selection (fn [e]
+                                                                        (let [latency (seesaw/selection e)]
+                                                                          (beat-carabiner/set-latency latency)
+                                                                          (prefs/put-preferences
+                                                                           (assoc-in (prefs/get-preferences)
+                                                                                     [:carabiner :latency] latency))))])
+                                  "wrap"]
 
-                              [(seesaw/label :text "Sync Mode:") "align right"]
-                              [(seesaw/combobox :id :sync-mode
-                                                :model ["Off" "Triggers" "Passive" "Full"] :enabled? false
-                                                :listen [:item-state-changed
-                                                         (fn [^ItemEvent e]
-                                                           (when (= (.getStateChange e) ItemEvent/SELECTED)
-                                                             (sync-mode-changed
-                                                              (keyword (clojure.string/lower-case (seesaw/value e)))
-                                                              root)))])]
-                              [state "wrap"]
+                                 [(seesaw/label :text "Sync Mode:") "align right"]
+                                 [(seesaw/combobox :id :sync-mode
+                                                   :model ["Off" "Triggers" "Passive" "Full"] :enabled? false
+                                                   :listen [:item-state-changed
+                                                            (fn [^ItemEvent e]
+                                                              (when (= (.getStateChange e) ItemEvent/SELECTED)
+                                                                (sync-mode-changed
+                                                                 (keyword (clojure.string/lower-case (seesaw/value e)))
+                                                                 root)))])]
+                                 [state "wrap"]
 
-                              [(seesaw/separator) "growx, span, wrap"]
+                                 [(seesaw/separator) "growx, span, wrap"]
 
-                              [(seesaw/label :text "Target BPM:") "align right"]
-                              [(seesaw/label :id :target :text "---") "wrap"]
+                                 [(seesaw/label :text "Target BPM:") "align right"]
+                                 [(seesaw/label :id :target :text "---") "wrap"]
 
-                              [(seesaw/label :text "Link BPM:") "align right"]
-                              [link-bpm "wrap"]
+                                 [(seesaw/label :text "Link BPM:") "align right"]
+                                 [link-bpm "wrap"]
 
-                              [(seesaw/label :text "Link Peers:") "align right"]
-                              [(seesaw/label :id :peers :text "---") "wrap"]
+                                 [(seesaw/label :text "Link Peers:") "align right"]
+                                 [(seesaw/label :id :peers :text "---") "wrap"]
 
-                              [(seesaw/separator) "growx, span, wrap"]
+                                 [(seesaw/separator) "growx, span, wrap"]
 
-                              [(seesaw/label :text "Ableton Link:") "align right"]
-                              [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false
+                                 [(seesaw/label :text "Ableton Link:") "align right"]
+                                 [(seesaw/checkbox :id :sync-link :text "Sync" :enabled? false
+                                                   :listen [:item-state-changed (fn [^ItemEvent e]
+                                                                                  (link-sync-state-changed
+                                                                                   (= (.getStateChange e)
+                                                                                      ItemEvent/SELECTED)))])]
+                                 [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false
                                                 :listen [:item-state-changed (fn [^ItemEvent e]
-                                                                               (link-sync-state-changed
-                                                                                (= (.getStateChange e)
-                                                                                   ItemEvent/SELECTED)))])]
-                              [(seesaw/radio :id :master-link :text "Master" :group group :enabled? false
-                                             :listen [:item-state-changed (fn [^ItemEvent e]
-                                                                            (condp = (.getStateChange e)
-                                                                              ItemEvent/SELECTED
-                                                                              (do
-                                                                                (link-master-state-changed true)
-                                                                                (seesaw/config! link-bpm
-                                                                                                :enabled? true))
+                                                                               (condp = (.getStateChange e)
+                                                                                 ItemEvent/SELECTED
+                                                                                 (do
+                                                                                   (link-master-state-changed true)
+                                                                                   (seesaw/config! link-bpm
+                                                                                                   :enabled? true))
 
-                                                                              ItemEvent/DESELECTED
-                                                                              (do
-                                                                                (link-master-state-changed false)
-                                                                                (seesaw/config! link-bpm
-                                                                                                :enabled? false))
+                                                                                 ItemEvent/DESELECTED
+                                                                                 (do
+                                                                                   (link-master-state-changed false)
+                                                                                   (seesaw/config! link-bpm
+                                                                                                   :enabled? false))
 
-                                                                              nil))]) "wrap"]
+                                                                                 nil))]) "wrap"]
 
-                              [(seesaw/checkbox :id :bar :text "Align at bar level"
-                                                :enabled? false
-                                                :selected? (:bar (beat-carabiner/state))
-                                                :listen [:item-state-changed
-                                                         (fn [^ItemEvent e]
-                                                           (let [bars (= (.getStateChange e) ItemEvent/SELECTED)]
-                                                             (beat-carabiner/set-sync-bars bars)
-                                                             (prefs/put-preferences
-                                                              (assoc-in (prefs/get-preferences)
-                                                                        [:carabiner :bars] bars))))])
-                               "skip 1, span 2, wrap"]
+                                 [(seesaw/checkbox :id :bar :text "Align at bar level"
+                                                   :enabled? false
+                                                   :selected? (:bar (beat-carabiner/state))
+                                                   :listen [:item-state-changed
+                                                            (fn [^ItemEvent e]
+                                                              (let [bars (= (.getStateChange e) ItemEvent/SELECTED)]
+                                                                (beat-carabiner/set-sync-bars bars)
+                                                                (prefs/put-preferences
+                                                                 (assoc-in (prefs/get-preferences)
+                                                                           [:carabiner :bars] bars))))])
+                                  "skip 1, span 2, wrap"]
 
-                              [(seesaw/separator) "growx, span, wrap"]]
+                                 [(seesaw/separator) "growx, span, wrap"]]
 
-                             (build-device-sync-rows group)))]
+                                (build-device-sync-rows group)))]
 
       ;; Attach the custom paint function to render the graphical trigger state
       (seesaw/config! state :paint paint-state)
 
       ;; Set up the BPM spinner's editor and shift key listener
-      (.setEditor link-bpm (javax.swing.JSpinner$NumberEditor. link-bpm "##0.00"))
+      (.setEditor ^javax.swing.JSpinner link-bpm (javax.swing.JSpinner$NumberEditor. link-bpm "##0.00"))
       ;; The shift key listener has been removed until I can resolve the bad interaction between the shift key
       ;; and the SpinnerEditor: If you press or release the shift key while trying to edit the text of the spinner,
       ;; for example because you want to shift-select, it changes the step size which cancels the edit.
@@ -582,7 +593,7 @@
       (seesaw/config! root :content panel)
       (seesaw/pack! root)
       (.setResizable root false)
-      (seesaw/listen root :component-moved (fn [e] (util/save-window-position root :carabiner true)))
+      (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :carabiner true)))
       (reset! carabiner-window root)
       (update-connected-status)
       (update-link-status (beat-carabiner/state))
@@ -600,7 +611,11 @@
       (timbre/error e "Problem creating Carabiner window."))))
 
 (defn show-window
-  "Make the Carabiner window visible, creating it if necessary."
+  "Make the Carabiner window visible, creating it if necessary. The
+  Triggers window is passed in `trigger-frame` so that if this is the
+  first time the window is being opened, it can be centered on top of
+  it. Otherwise, the window position used last time will be restored,
+  as long as it is on-screen given the current display configuration."
   [trigger-frame]
   (if @carabiner-window
     (make-window-visible trigger-frame)
@@ -650,7 +665,7 @@
      (do
        (require-connection)
        (require-online)
-       (if (and (= mode :full) (not (sending-status?)))
+       (when (and (= mode :full) (not (sending-status?)))
          (throw (Exception. "Must be using a real player number to enable Full Carabiner sync.")))
        (seesaw/invoke-now
         (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) value)))
@@ -660,7 +675,9 @@
   "Check or change whether we are currently syncing the Ableton Link
   session to the DJ Link network. With no arguments, returns truthy if
   this kind of sync is taking place. If the `enable?` argument is
-  supplied, starts or stops the sync accordingly."
+  supplied, starts or stops the sync accordingly.
+
+  Has no effect if we are not in a compatible [[sync-mode]]."
   ([]
    (seesaw/invoke-now
     (seesaw/value (seesaw/select (require-frame) [:#sync-link]))))
@@ -681,7 +698,7 @@
 (defn appoint-ableton-master
   "Causes the DJ Link network to follow the tempo of the Ableton Link
   session. This can only be done when Carabiner is connected and the
-  Sync Mode is Full."
+  [[sync-mode]] is `:full`."
   []
   (require-connection)
   (require-online)
@@ -709,18 +726,18 @@
   "Helper function to make it easy to check the Sync state of a Pioneer
   device by passing just its number, or to turn Sync on or off by
   passing a second argument to specify the desired state."
-  ([device]
+  ([^Long device]
    (if-let [status (.getLatestStatusFor virtual-cdj device)]
      (.isSynced status)
      (throw (Exception. (str "Device " device " not found on network.")))))
-  ([device sync?]
+  ([^Long device ^Boolean sync?]
    (.sendSyncModeCommand virtual-cdj device sync?)))
 
 (defn master-device
   "Helper function to make it easy to check the Master state of a
   Pioneer device by passing its number. To assign a new Tempo Master,
   use `appoint-tempo-master`."
-  [device]
+  [^Long device]
   (if-let [status (.getLatestStatusFor virtual-cdj device)]
     (.isTempoMaster status)
     (throw (Exception. (str "Device " device " not found on network.")))))
@@ -728,5 +745,5 @@
 (defn appoint-master-device
   "Helper function to make it easy to tell a Pioneer device to become
   Tempo Master by passing its number."
-  [device]
+  [^Long device]
   (.appointTempoMaster virtual-cdj device))
