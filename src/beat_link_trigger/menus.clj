@@ -5,6 +5,8 @@
             [beat-link-trigger.help :as help]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.util :as util]
+            [clojure.java.browse]
+            [clojure.string]
             [cemerick.url :as url]
             [seesaw.core :as seesaw]
             [seesaw.util]
@@ -76,7 +78,7 @@
                             nil)))
 
 (defn non-mac-file-actions
-  "Return The actions which are automatically available in the
+  "Return the actions which are automatically available in the
   Application menu on the Mac, but must be added to the File menu on
   other platforms. This value will be empty when running on the Mac.
   `quit` the function that should be used to gracefully quit the
@@ -84,7 +86,7 @@
   [quit]
   (when-not (on-mac?)
     [(seesaw/separator)
-     (seesaw/action :handler (fn [e] (quit))
+     (seesaw/action :handler (fn [_] (quit))
                     :name "Exit")]))
 
 (defn mail-supported?
@@ -95,7 +97,8 @@
 
 (defn compose-mail
   "Launches the system email client to send a message with the supplied
-  initial subject and body. Use \\r\\n inside the body to separate lines."
+  initial subject and body. Use `\\r\\n` inside the body to separate
+  lines."
   [subject body]
   (let [uri (java.net.URI. (str "mailto:james@deepsymmetry.org?subject=" (url/url-encode subject)
                                 "&body=" (url/url-encode body)))]
@@ -143,8 +146,8 @@
   "If the system email client can be launched, composes an email with
   information useful for reporting an issue. If `text` is supplied it
   is used as the initial issue description (lines must be separated
-  using \\r\\n). The user can still edit the email and decide whether
-  or not they want to send it.
+  using `\\r\\n`). The user can still edit the email and decide
+  whether or not they want to send it.
 
   If we can't launch an email client, we simply try to open the
   project Issues page in a web browser and let the user take it from
@@ -160,6 +163,9 @@
      (clojure.java.browse/browse-url issues-url))))
 
 (defn send-greeting
+  "Puts together a template user greeting email and then
+  uses [[compose-mail]] to present it to the user for editing and
+  sending."
   []
   (compose-mail "Greetings from a Beat Link Trigger User"
                 (str "Hi, James!\r\n\r\n"

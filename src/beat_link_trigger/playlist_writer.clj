@@ -21,11 +21,15 @@
   writer-window (atom nil))
 
 (def ^VirtualCdj virtual-cdj
-  "The object which can obtain detailed player status information."
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
 (def ^MetadataFinder metadata-finder
-  "The object that can obtain track metadata."
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
   (MetadataFinder/getInstance))
 
 (def min-time-pref-key

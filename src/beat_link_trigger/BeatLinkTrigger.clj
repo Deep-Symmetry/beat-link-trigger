@@ -5,6 +5,7 @@
   initializing it. Otherwise, display a dialog explaining the issue
   and offering to take the user to the download page."
   (:require [clojure.java.browse :as browse]
+            [clojure.string]
             [clojure.tools.cli :as cli]
             [beat-link-trigger.util :as util])
   (:import [javax.swing JOptionPane])
@@ -59,7 +60,7 @@
                    "Newer Java Version Required"
                    JOptionPane/YES_NO_OPTION JOptionPane/ERROR_MESSAGE nil
                    options (aget options 0))]
-      (when (zero? choice) (browse/browse-url "https://java.com/inc/BrowserRedirect1.jsp")))
+      (when (zero? choice) (browse/browse-url "https://openjdk.java.net")))
     (System/exit 1))
 
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-options)]

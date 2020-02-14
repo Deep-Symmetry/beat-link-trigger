@@ -675,7 +675,7 @@
                        :bpm           (+ 4000 (rand-int 12000))}))
 
 (defn random-cdj-status
-  "Creates a [CdjStatus
+  "Creates a [`CdjStatus`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
   with random attributes for simulating expression calls. If provided,
   the supplied options are used to further configure the object."
@@ -697,7 +697,7 @@
 (defn random-beat-or-status
   "Creates either a [`Beat`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
-  or a [CdjStatus
+  or a [`CdjStatus`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
   with random attributes for simulating expression calls. If provided,
   the supplied options are used to further configure the `CdjStatus`

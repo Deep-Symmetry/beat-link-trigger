@@ -125,7 +125,12 @@
   downloaded, otherwise all tracks will be downloaded. Provides a
   progress bar during the download process, and allows the user to
   cancel it. Once the cache file is created, it is automatically
-  attached."
+  attached.
+
+  Now that [Crate
+  Digger](https://github.com/Deep-Symmetry/crate-digger#crate-digger)
+  is used to allow us to obtain metadata even when there are four CDJs
+  in use, this feature is not really needed."
   ([player slot ^File file]
    (create-metadata-cache player slot file 0))
   ([player slot ^File file playlist-id]
@@ -496,7 +501,7 @@
     (String/format java.util.Locale/ROOT format-string (to-array [pitch]))))
 
 (defn format-tempo
-  "Formats a tempo for display, showing an unloaded track as \" --.-\",
+  "Formats a tempo for display, showing an unloaded track as \"--.-\",
   and always using period as the decimal point, since that is the only
   separator available in the DSEG7 font."
   [tempo]

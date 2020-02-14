@@ -2,8 +2,10 @@
   "A namespace in which user-entered custom expressions will be
   evaluated, which provides support for making them easier to write."
   (:require [clojure.repl :refer :all]
+            [clojure.set]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
+            [clojure.walk]
             [beat-link-trigger.util :as util]
             [cemerick.pomegranate :as pomegranate]
             [cemerick.pomegranate.aether :as aether]
@@ -90,38 +92,53 @@
     cue-status
     (first cue-status)))
 
-(def device-finder
-  "A convenient reference to the DeviceFinder singleton."
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
   (DeviceFinder/getInstance))
 
-(def virtual-cdj
-  "A convenient reference to the VirtualCdj singleton."
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
   (VirtualCdj/getInstance))
 
-(def metadata-finder
-  "A convenient reference to the MetadataFinder singleton."
+(def ^MetadataFinder metadata-finder
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
   (MetadataFinder/getInstance))
 
-(def art-finder
-  "A convenient reference to the ArtFinder singleton."
+(def ^org.deepsymmetry.beatlink.data.ArtFinder art-finder
+  "A convenient reference to the [Beat Link
+  `ArtFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/ArtFinder.html)
+  singleton."
   (org.deepsymmetry.beatlink.data.ArtFinder/getInstance))
 
-(def beatgrid-finder
-  "A convenient reference to the BeatGridFinder singleton."
+(def ^org.deepsymmetry.beatlink.data.BeatGridFinder beatgrid-finder
+  "A convenient reference to the [Beat Link
+  `BeatGridFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGridFinder.html)
+  singleton."
   (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance))
 
-(def waveform-finder
-  "A convenient reference to the WaveformFinder singleton."
-  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
-
-(def signature-finder
-  "A convenient reference to the SingatureFinder singleton."
+(def ^SignatureFinder signature-finder
+  "A convenient reference to the [Beat Link
+  `SingatureFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/SignatureFinder.html)
+  singleton."
   (SignatureFinder/getInstance))
 
-(def time-finder
-  "A convenient reference to the TimeFinder singleton."
+(def ^TimeFinder time-finder
+  "A convenient reference to the [Beat Link
+  `TimeFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TimeFinder.html)
+  singleton."
   (TimeFinder/getInstance))
 
+(def ^org.deepsymmetry.beatlink.data.WaveformFinder waveform-finder
+  "A convenient reference to the [Beat Link
+  `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
+  singleton."
+  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
 
 ;;; The remainder of the functions in this namespace are used by the
 ;;; expression compiler, and are not intended for users to interact

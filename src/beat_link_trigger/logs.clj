@@ -1,6 +1,7 @@
 (ns beat-link-trigger.logs
   "Sets up logging and helps the user find the logs folder."
   (:require [beat-link-trigger.util :as util]
+            [clojure.string]
             [me.raynes.fs :as fs]
             [seesaw.core :as seesaw]
             [seesaw.util]
@@ -13,7 +14,7 @@
 
 (def logs-action
   "The menu action which opens the logs folder."
-  (seesaw/action :handler (fn [e]
+  (seesaw/action :handler (fn [_]
                             (.open (java.awt.Desktop/getDesktop) @log-path))
                  :name "Open Logs Folder"))
 
@@ -28,12 +29,12 @@
                                               :backlog backlog})}}))
 
 (defn output-fn
-  "Log format (fn [data]) -> string output fn.
+  "Log format `(fn [data])` -> string output fn.
   You can modify default options with `(partial default-output-fn <opts-map>)`.
   This is based on timbre's default, but removes the hostname."
   ([data] (output-fn nil data))
-  ([{:keys [no-stacktrace? stacktrace-fonts] :as opts} data]
-   (let [{:keys [level ?err_ vargs_ msg_ ?ns-str hostname_
+  ([{:keys [no-stacktrace?] :as opts} data]
+   (let [{:keys [level ?err_ msg_ ?ns-str
                  timestamp_ ?line]} data]
      (str
              @timestamp_       " "

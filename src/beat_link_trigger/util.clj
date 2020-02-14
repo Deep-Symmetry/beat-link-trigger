@@ -140,9 +140,10 @@
 (defn assign-unique-name
   "Picks a name for an element in a list (for example a cue in a track),
   given the names of all the other cues. If no base name is supplied,
-  picks Untitled or Untitled <n>; if a base name is given, appends \"
-  copy\" and a number if necessary to make it unique (although if the
-  name already ends with copy it is not added again)."
+  picks \"Untitled\" or \"Untitled <n>\"; if a base name is given,
+  appends \" copy\" and a number if necessary to make it
+  unique (although if the name already ends with copy it is not added
+  again)."
   ([existing-names]
    (assign-unique-name existing-names ""))
   ([existing-names base-name]
@@ -172,7 +173,7 @@
   "A function which will paint placeholder text in a text field if the
   user has not added any text of their own, since Swing does not have
   this ability built in. Takes the text of the placeholder, the
-  component into which it should be painted, and the graphics content
+  component into which it should be painted, and the graphics context
   in which painting is taking place."
   [^String text ^javax.swing.JTextField c ^java.awt.Graphics2D g]
   (when (zero? (.. c (getText) (length)))
@@ -188,7 +189,8 @@
   (.show popup target (.x (.getPoint event)) (.y (.getPoint event))))
 
 (defmacro case-enum
-  "Like `case`, but explicitly dispatch on Java enum ordinals."
+  "Like Clojure's built-in `case`, but can explicitly dispatch on Java
+  enum ordinals."
   {:style/indent 1}
   [e & clauses]
   (letfn [(enum-ordinal [e] `(let [^Enum e# ~e] (.ordinal e#)))]
@@ -201,8 +203,8 @@
             (list (last clauses)))))))
 
 (defmacro doseq-indexed
-  "Analogous to map-indexed for doseq: iterate for side-effects with an
-  index."
+  "Analogous to Clojure's `map-indexed` for `doseq`: iterate for
+  side-effects with an index."
   {:style/indent 2}
   [index-sym [item-sym coll] & body]
   `(doseq [[~index-sym ~item-sym] (map list (range) ~coll)]
@@ -490,7 +492,9 @@
     (java.net.DatagramPacket. buffer (count buffer) address port)))
 
 (defn simulate-beat
-  "Create a Beat object for simulating triggers."
+  "Create a [`Beat`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
+  for simulating triggers."
   ([]
    (simulate-beat {}))
   ([options]
@@ -507,7 +511,9 @@
      (org.deepsymmetry.beatlink.Beat. (create-device-update-packet buffer options)))))
 
 (defn simulate-player-status
-  "Create a CdjStatus object for simulating triggers."
+  "Create a [`CdjStatus`
+  object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
+  for simulating triggers."
   ([]
    (simulate-player-status {}))
   ([options]
