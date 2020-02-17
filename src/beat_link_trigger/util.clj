@@ -345,7 +345,7 @@
 (defn cue-preview-indicator-rectangle
   "Calculates the outline of a cue/loop's indicator within the
   coordinate system of the waveform preview component."
-  ^java.awt.Rectangle [^WaveformPreviewComponent preview ^CueList$Entry cue]
+  ^java.awt.geom.Rectangle2D [^WaveformPreviewComponent preview ^CueList$Entry cue]
   (let [x (.millisecondsToX preview (.cueTime cue))]
     (java.awt.geom.Rectangle2D$Double. (- x 4.0) 0.0 9.0 12.0)))
 

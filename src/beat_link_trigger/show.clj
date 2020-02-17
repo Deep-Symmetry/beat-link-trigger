@@ -24,6 +24,7 @@
             [taoensso.timbre :as timbre])
   (:import [java.awt Color Cursor Font Graphics2D Rectangle RenderingHints]
            [java.awt.event InputEvent MouseEvent WindowEvent]
+           [java.awt.geom Rectangle2D$Double]
            [java.io File]
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardCopyOption StandardOpenOption]
@@ -590,7 +591,7 @@
   waveform detail component at the top of the cues editor window,
   taking into account its lane assignment and cluster of neighbors.
   `track` and `cue` must be current."
-  ^Rectangle [track cue ^WaveformDetailComponent wave]
+  ^Rectangle2D$Double [track cue ^WaveformDetailComponent wave]
   (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
         lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
         x                (.getXForBeat wave (:start cue))
@@ -1063,7 +1064,7 @@
   waveform preview component in a track row of a show window, taking
   into account its lane assignment and cluster of neighbors. `track`
   and `cue` must be current."
-  ^Rectangle [track cue ^WaveformPreviewComponent preview]
+  ^Rectangle2D$Double [track cue ^WaveformPreviewComponent preview]
   (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
         lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
         x-for-beat       (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack ^BeatGrid (:grid track) beat)))
