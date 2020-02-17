@@ -43,8 +43,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --app-version $build_version
 
     # Remove the extra copy of libjli.dylib which causes notarization to fail
-    # TEMPORARY: Commented out for sharing with Apple Developer Support, this will fail!
-    #rm -r "$blt_name.app/Contents/runtime/Contents/MacOS/"
+    rm -r "$blt_name.app/Contents/runtime/Contents/MacOS/"
 
     # Code sign the application image more robustly than jpackage is currently able to, for Catalina.
     echo "Code signing the application image."
