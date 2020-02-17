@@ -13,8 +13,8 @@
             [clojure.string]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import java.awt.GraphicsEnvironment
-           javax.swing.UIManager
+  (:import [java.awt GraphicsEnvironment]
+           [javax.swing JFrame UIManager]
            [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj]))
 
 (def ^DeviceFinder device-finder
@@ -61,7 +61,7 @@
         scroll          (seesaw/scrollable network-label)
         panel           (seesaw/border-panel :border 10 :center scroll :south buttons
                                              :north (seesaw/progress-bar :indeterminate? true))
-        root            (seesaw/frame :title "No DJ Link Devices Found Yet..."
+        ^JFrame root    (seesaw/frame :title "No DJ Link Devices Found Yet..."
                                       :on-close :nothing
                                       :content panel)]
     (seesaw/pack! root)
