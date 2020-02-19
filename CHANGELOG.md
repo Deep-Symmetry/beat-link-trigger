@@ -23,7 +23,7 @@ This change log follows the conventions of
   [@drummerclint](https://github.com/drummerclint)), or could fail in
   subtler ways if rekordbox was running. Both are now gracefully
   reported.
-- The File→Exit menu option apparently never worked on Windwos or
+- The File→Exit menu option apparently never worked on Windows or
   Linux, I only discovered this when I started working on
   deep-dish-pi, my planned custom Raspberry Pi distribution with
   preconfigured BLT, Carabiner and other goodies... I wish someone had
