@@ -8,8 +8,10 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Added support for playlists built with track titles and comments,
+  #96.
 - Added type hints throughout so the Clojure compiler could avoid the
-  use of reflection, which will improve performance.
+  use of reflection, which will improve performance, #95.
 
 
 ## [0.6.1] - 2020-02-09

@@ -1506,6 +1506,19 @@
      (loadChildren [_]))
    false))
 
+;; Creates a menu item node for a rekordbox track and comment.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_COMMENT track-title-and-comment-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [comment (menu-item-label-2 item)] (str "—" comment))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
 ;; Creates a menu item node for a rekordbox track with BPM (which we ignore).
 (defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_BPM track-title-and-bpm-node
   [^Message item ^SlotReference slot-reference]
