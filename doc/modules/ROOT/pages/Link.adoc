@@ -2,12 +2,14 @@
 include::partial$PagePreamble.adoc[]
 
 With the help of
-https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner], Triggers
-can synchronize an Ableton Link session’s tempo, beats, and bars to
-the track playing on their watched player, or you can add Link as its
-own “player” that can become Tempo Master to the CDJs. Even without
-Carabiner, you can <<sync-control,control>> which players are Synced,
-and which is the Tempo Master.
+https://github.com/Deep-Symmetry/carabiner#carabiner[Carabiner] (which
+is built right in to Beat Link Trigger since version 0.6.1), you can
+synchronize an Ableton Link session’s tempo, beats, and bars to the a
+player (either the Tempo Master, or one chosen by a Trigger for more
+specialized needs), or you can add Link as its own “player” that can
+become Tempo Master to the CDJs. Even without enabling Carabiner, you
+can <<sync-control,control>> which players are Synced, and which is
+the Tempo Master.
 
 [[overview]]
 == Overview
@@ -71,6 +73,14 @@ of other Link-enabled programs (Link Peers) visible on the network.
 
 [[syncing-triggers]]
 == Syncing with Triggers
+
+NOTE: Although in the past Triggers were the only way that you could
+synchronize an Ableton Link session, newer Sync modes like
+<<#passive-sync,Passive>> and <<#full-sync,Full>> are much simpler to
+use, don't require you to set up any Triggers, and solve most common
+synchronization needs. I would suggest investigating those first, and
+coming back to explore using Triggers only if you have very specific
+reasons to.
 
 In order to allow triggers to influence the Link session, configure a
 trigger to send to Link by choosing menu:Message[Link] in the trigger
