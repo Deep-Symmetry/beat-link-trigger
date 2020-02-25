@@ -62,7 +62,7 @@ jobs:
       run: lein -U deps
 
     - name: Install antora
-      run: sudo npm i -g @antora/cli @antora/site-generator-default
+      run: sudo npm i -g @antora/cli antora-site-generator-lunr
 
     - name: Build überjar
       run: |
