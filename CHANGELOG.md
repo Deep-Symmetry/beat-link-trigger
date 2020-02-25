@@ -13,6 +13,13 @@ This change log follows the conventions of
 - Added type hints throughout so the Clojure compiler could avoid the
   use of reflection, which will improve performance, #95.
 
+### Added
+
+- The user guide now has a network troubleshooting guide for people
+  who are having trouble getting connected to their players.
+- The user guide now has a search feature, making it easier to find
+  content even if it is on a different page.
+
 
 ## [0.6.1] - 2020-02-09
 

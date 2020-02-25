@@ -20,14 +20,16 @@ Beat Link Trigger, is built automatically by netlify whenever changes
 are pushed to the relevant branches on GitHub. The netlify build
 command is:
 
-    npm i @antora/cli @antora/site-generator-default && \
-    $(npm bin)/antora --fetch doc/netlify.yml
+    npm i @antora/cli antora-site-generator-lunr && \
+    DOCSEARCH_ENABLED=true DOCSEARCH_ENGINE=lunr $(npm bin)/antora \
+    --fetch doc/netlify.yml --generator antora-site-generator-lunr
 
 And the publish directory is `doc/build/site`.
 
 An older workflow was to build the documentation site manually for
 hosting on the Deep Symmetry web site by running the following
-commands from the project root:
+commands from the project root (this also predated the integration of
+lunr search features):
 
     antora --fetch doc/ds.yml
     rsync -avz doc/build/site/ slice:/var/www/ds/beatlink/trigger/guide

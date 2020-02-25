@@ -120,6 +120,128 @@ and beat sync of the players, or display metadata for CD and other
 non-rekordbox tracks, you will need to use a real player number,
 which may require you to turn off one of the other players.
 
+[[fixing-network-problems]]
+== Fixing Network Problems
+
+If Beat Link Trigger reports that it can’t find any DJ Link devices
+when you try to take it online, this means there is a problem with
+your network. People often ask for a connection diagram, but there is
+really nothing to diagram: as long as you have your players and the
+computer running BLT on the same LAN, it will work.
+
+That could mean anything from plugging a single player directly into
+the LAN adapter of your computer (with a modern Ethernet adapter with
+https://en.wikipedia.org/wiki/Medium-dependent_interface#Auto_MDI-X[Auto-MDI-X]),
+to plugging everything into a fast hub, switch (which most things
+called “hubs” really are today), or router.
+
+By far the most common problems involve configuration issues with the
+network adapter on the computer running Beat Link Trigger. So here is
+a list of things to think about and watch out for.
+
+> If you are still stuck after following this advice, you can ask for
+> help on the https://gitter.im/brunchboy/beat-link-trigger[Gitter
+> channel].
+
+=== Use a Separate Network for your DJ gear
+
+The best scenario is to have a completely separate switch for only
+your DJ gear, and a secondary network adapter on the computer running
+BLT. Connect all the DJ gear and that network adapter to that one
+switch. Make sure that switch isn’t connected to other
+switches/routers, this can make the Pro-DJ Link traffic go bananas.
+
+If you still want to be able to access the Internet from the computer
+running Beat Link Trigger, you can do so by connecting its primary
+network adapter to another switch or router that is connected to the
+Internet. This way you can use the primary network adapter on your BLT
+computer to do anything that requires global connectivity, and the
+secondary adapter for BLT and the DJ Link network.
+
+If your computer has only one network adapter, then it is best not to
+attempt Internet connectivity, and connect only to the DJ gear network
+while running shows.
+
+=== IP Address Assignment
+
+
+The next major thing that needs to be correct for the players and Beat
+Link Trigger to be able to talk to each other is for them to have a
+shared understanding of what network they are on, and IP addresses and
+net masks that are mutually compatible.
+
+> Of course, you should check that the adapter is active at all, it
+> might have been disabled at the OS level, or there may be a problem
+> with the hardware or the cable.
+
+=== Self-Assigned Addresses (APIPA, auto-IP)
+
+In the simplest case there is no DHCP server on the DJ gear network,
+so the players will self-assign a
+https://en.wikipedia.org/wiki/Link-local_address[Link-Local Address]
+(further details in https://tools.ietf.org/html/rfc3927[RFC-3927]).
+This is an address of the form 169.254._x_._y_, and if you have left
+the network adapter settings at their default DHCP mode in macOS or
+Windows (and probably Linux), it will self-assign a compatible address
+in the same range. Windows calls this
+https://en.wikipedia.org/wiki/Link-local_address#IPv4[APIPA]. You can
+verify this has happened by looking at the list of networks that Beat
+Link Trigger displays when it is reporting it can’t find DJ Link
+devices. If the network adapter is not using an address that is in
+this range, then you’ll need to fix its configuration.
+
+* If the adapter is configured to a hard-coded address, either change
+  that address and net mask to match the Link-local network, or change
+  it to use DHCP so that it will fall back to using link-local
+  addressing when it finds no DHCP server.
+
+* If it is already configured to use DHCP, tell it to try to renew its
+  lease. (In Windows, `ipconfig /release` followed by `ipconfig
+  /renew`. In macOS, here are
+  https://support.apple.com/guide/mac-help/renew-ip-address-dhcp-server-mac-mchlp1545/10.15/mac/10.15[Apple’s
+  instructions] and a nice
+  https://osxdaily.com/2015/07/30/release-renew-dhcp-command-line-ipconfig/[osXdaily
+  article]. In Linux, you’ll generally want to
+  https://unix.stackexchange.com/questions/405229/how-to-release-and-renew-ip-address-from-dhcp-on-linux-systems[use
+  `dhclient`].)
+
+=== DHCP Managed Networks
+
+If you want to have more control over the IP address assignments and
+network parameters of your DJ network, and are running your own DHCP
+server, you will already know most of this information and
+troubleshooting steps. But:
+
+* Make sure the DHCP server has plenty of time to boot, and was ready
+  to respond before you power on the CDJs or attach the computer’s
+  network adapter. Otherwise they may time out waiting for the server
+  and self-assign IP addresses as described above.
+
+* Turning the CDJ off for a few seconds and then back on once you know
+  the DHCP server is ready will give the player a chance to get the
+  address you intended for it.
+
+* If the network adapter doesn’t show the correct address in Beat Link
+  Trigger’s troubleshooting window, follow the instructions in the
+  previous section for releasing and renewing your DHCP lease.
+
+=== Firewall and Anti-Virus Software
+
+
+You need to be sure that there is no firewall or anti-virus software
+on the host computer blocking Beat Link Trigger from communicating on
+the network adapter. Either of those things can prevent it from
+joining the DJ Link network.
+
+=== Other DJ Link Software (like rekordbox)
+
+Because of fundamental limitations in the design of the DJ Link
+protocol, only one program can connect to the DJ Link network on a
+given network adapter. So it is impossible to run Beat Link Trigger on
+the same computer as rekordbox, or any other software that wants to
+communicate with the DJ Link network.
+
+
 == Learning More
 
 ****

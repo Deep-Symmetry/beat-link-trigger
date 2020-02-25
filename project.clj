@@ -65,7 +65,10 @@
   ;; distributed archive. Then compile the adapter class we need to
   ;; work with the Radiance GUI look and feel, and set up the resource
   ;; that allows runtime access to the build version information.
-  :prep-tasks [["shell" "antora" "--fetch" "doc/embedded.yml"]
+  :shell {:env {"DOCSEARCH_ENABLED" "true"
+                "DOCSEARCH_ENGINE"  "lunr"}}
+  :prep-tasks [["shell" "antora" "--fetch" "doc/embedded.yml"
+                "--generator" "antora-site-generator-lunr"]
                "javac"
                "compile"
                ["v" "cache" "resources/beat_link_trigger" "edn"]]

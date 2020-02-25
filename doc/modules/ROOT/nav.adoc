@@ -1,5 +1,6 @@
 * xref:README.adoc[Startup]
 ** xref:README.adoc#checking-player-number[Checking Player Number]
+** xref:README.adoc#fixing-network-problems[Fixing Network Problems]
 ** xref:README.adoc#license[Licenses]
 * xref:Triggers.adoc[Triggers]
 ** xref:Triggers.adoc#watch-menu[Watch Menu]
