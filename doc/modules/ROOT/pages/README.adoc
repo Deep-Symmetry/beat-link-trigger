@@ -227,7 +227,6 @@ troubleshooting steps. But:
 
 === Firewall and Anti-Virus Software
 
-
 You need to be sure that there is no firewall or anti-virus software
 on the host computer blocking Beat Link Trigger from communicating on
 the network adapter. Either of those things can prevent it from
@@ -241,6 +240,26 @@ given network adapter. So it is impossible to run Beat Link Trigger on
 the same computer as rekordbox, or any other software that wants to
 communicate with the DJ Link network.
 
+=== Other Port Conflicts
+
+If you are running any software that happens to randomly use the same
+ports as the DJ Link protocol (one culprit in Windows turns out to be
+the https://anydesk.com/[AnyDesk remote desktop software]) this will
+also prevent Beat Link Trigger (or rekordbox) from starting up
+properly. You will want to look for conflicts on ports 50000, 50001,
+and 50002 (and remember you need to check the UDP protocol, not just
+TCP).
+
+* On macOS and Linux you can use, for example, `lsof -i :50000` to see
+  the process using port 50000. (You may need to install `lsof` using
+  your preferred package manager on Linux; it is preinstalled on
+  macOS. Other Linux alternatives are described
+  https://www.cyberciti.biz/faq/what-process-has-open-linux-port/[here].)
+
+* On Windows you can use the Resource Monitor GUI:
+  menu:Start menu[All Programs > Accessories > System Tools > Resource Monitor]
+  (or run `resmon.exe`). Remember to look for both UDP and TCP listeners and
+  connections.
 
 == Learning More
 
