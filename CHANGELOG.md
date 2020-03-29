@@ -8,6 +8,9 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Sends a newly-discovered byte in the Load Track command which is
+  necessary to tell the XDJ-XZ which deck you want the track loaded
+  into.
 - Added support for playlists built with track titles and comments,
   #96.
 - Added type hints throughout so the Clojure compiler could avoid the
