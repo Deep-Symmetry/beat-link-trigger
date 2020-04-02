@@ -318,20 +318,23 @@ include::partial$Footer.adoc[]
 
 == Library Licenses
 
-=== https://sourceforge.net/projects/remotetea/[Remote Tea]
+=== Remote Tea
 
-Used for communicating with the NFSv2 servers on players, licensed
-under the https://opensource.org/licenses/LGPL-2.0[GNU Library General
-Public License, version 2].
+https://sourceforge.net/projects/remotetea/[Remote Tea] is used for
+communicating with the NFSv2 servers on players, licensed under the
+https://opensource.org/licenses/LGPL-2.0[GNU Library General Public
+License, version 2].
 
-=== The http://kaitai.io[Kaitai Struct] Java runtime
+=== Kaitai Struct
 
-Used for parsing rekordbox exports and media analysis files, licensed
-under the https://opensource.org/licenses/MIT[MIT License].
+The http://kaitai.io[Kaitai Struct] Java runtime is used for parsing
+rekordbox exports and media analysis files, licensed under the
+https://opensource.org/licenses/MIT[MIT License].
 
-=== https://github.com/bobbylight/RSyntaxTextArea[RSyntaxtTextArea]
+=== RSyntaxtTextArea
 
-Used for editing Clojure expression code.
+https://github.com/bobbylight/RSyntaxTextArea[RSyntaxtTextArea] is
+used for editing Clojure expression code.
 
 Copyright © 2019, Robert Futrell.
 All rights reserved.
