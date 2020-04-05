@@ -934,52 +934,24 @@ ask on the Gitter channel. Clint and I worked with the developer to
 arrange for the project to support OSC commands that would allow Beat
 Link Trigger to control it.
 
-==== Controlling the Pi using a Trigger
+==== Controlling the Pi using a Show
 
 Once you have the Pi built and working, you can load this
-link:{attachmentsdir}/OrangePiSMPTE.blt[configuration file] in Beat
-Link Trigger, configure it to talk to the IP address of the Pi, and it
-will generate timecode that tracks the on-air master player.
+link:{attachmentsdir}/OrangePiSMPTE.bls[show file] in Beat Link
+Trigger.
 
-WARNING: Because it is a full configuration file, it will replace any
-triggers you have defined in Beat Link Trigger, so if you care about
-any of them, be sure to save your existing configuration to a separate
-file so you can reload them when you are done working with the Pi. You
-can also export individual triggers to files so you can import them
-into the Orange Pi configuration if you like.
+TIP: Even if you are more accustomed to using the older, low-level
+Triggers approach to working with Beat Link Trigger, a Show makes more
+sense for working with timecode, because it's going to be very
+track-specific. So this is a good chance to learn how this new feature
+can make your life easier in other contexts too!
 
 You will need to edit line 1 of the `Came Online` expression to match
 the IP address that the Pi is using, and the port number its OSC
-server is listening on, so BLT knows how to reach it. You can also
-specify the frame rate for the generated timecode on line 2.
+server is listening on, so BLT knows how to reach it.
 
 If you have changed the host name of your Orange Pi, you will need to
 edit line 3 of the `Shared Functions` to reflect the name you chose.
-
-Other than that, the expressions should work as they are, and you are
-free to explore them to see how they work.
-
-If your players aren't set up with a mixer that manages their on-air
-state, you will want to change the trigger's Enabled filter from
-`On-Air` to `Always`. And if you want to track a specific player
-instead of the Master player, you can change its Watch setting from
-`Master Player` to something else.
-
-==== Controlling the Pi using a Show
-
-If you only want to generate timecode when particular tracks are
-playing, instead of loading the configuration file described in the
-previous section, you can leave your overall configuration alone, and
-open this link:{attachmentsdir}/OrangePiSMPTE.bls[show file] instead.
-This is the more realistic and ideal approach, however you'd need to 
-have the tracks available beforehand so you can load them in.
-
-As with the trigger approach, you will need to edit line 1 of the
-`Came Online` expression to match the IP address that the Pi is using,
-and the port number its OSC server is listening on, so BLT knows how
-to reach it. And if you have changed the host name of your
-Orange Pi, you will need to edit line 3 of the `Shared Functions` to
-reflect the name you chose.
 
 The example track that's in the show, _A Heavy Abacus_, is just a
 placeholder so you can copy its `Loaded` and `Unloaded` expressions
@@ -1013,6 +985,40 @@ track at once, or even two different configured tracks playing on
 different players. Such refinements are possible, by making the code
 more sophisticated. If you would like help doing that, please ask on
 the https://gitter.im/brunchboy/beat-link-trigger[Gitter channel].
+
+
+==== Controlling the Pi using a Trigger
+
+If you really do want to use an older Triggers-based approach, you can
+load this link:{attachmentsdir}/OrangePiSMPTE.blt[configuration file]
+in Beat Link Trigger, configure it to talk to the IP address of the
+Pi, and it will generate timecode that tracks the on-air master
+player.
+
+WARNING: Because it is a full configuration file, it will replace any
+triggers you have defined in Beat Link Trigger, so if you care about
+any of them, be sure to save your existing configuration to a separate
+file so you can reload them when you are done working with the Pi. You
+can also export individual triggers to files so you can import them
+into the Orange Pi configuration if you like.
+
+As with the Show approach, you will need to edit line 1 of the `Came
+Online` expression to match the IP address that the Pi is using, and
+the port number its OSC server is listening on, so BLT knows how to
+reach it. You can also specify the frame rate for the generated
+timecode on line 2.
+
+If you have changed the host name of your Orange Pi, you will need to
+edit line 3 of the `Shared Functions` to reflect the name you chose.
+
+Other than that, the expressions should work as they are, and you are
+free to explore them to see how they work.
+
+If your players aren't set up with a mixer that manages their on-air
+state, you will want to change the trigger's Enabled filter from
+`On-Air` to `Always`. And if you want to track a specific player
+instead of the Master player, you can change its Watch setting from
+`Master Player` to something else.
 
 
 [[break-buddy]]
