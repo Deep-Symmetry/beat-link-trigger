@@ -34,6 +34,40 @@ Beat Link Trigger. Once you know what you are looking for, you can
 also dive right into it by jumping to the page you want using the
 navigation menu on the left.
 
+.Versions
+****
+ifdef::page-origin-worktree[]
+You are looking at the local (embedded) version of the User Guide. Its
+content will reflect exactly the version of the software that you are
+running, because it was built into it, and can be accessed even when
+you are disconnected from the Internet. Any links to external
+resources, however, will only work if you are online.
+endif::[]
+ifndef::page-origin-worktree[]
+ifeval::[{page.component.version} == "master"]
+You are looking at the **master** branch of the User Guide. This tries
+to keep up with the latest in-progress changes to the software, which
+are frequently made available as preview builds.
+
+To look at a version of the Guide that corresponds to a specfic
+release, choose it in the versions menu either at the top right (just
+before the **Edit this Page** link), or at the bottom left.
+endif::[]
+ifeval::[{page.component.version} != "master"]
+
+You are looking at version *{page-component-version}* of the User
+Guide, which corresponds to that release of the software.
+
+
+To look at a different version (including the master branch, which
+reflects ongoing development that is available as a preview release
+but not yet officially released), choose it in the Versions menu
+either at the top right (just before the **Edit this Page** link), or
+at the bottom left.
+endif::[]
+endif::[]
+****
+
 [[startup]]
 == Startup
 
