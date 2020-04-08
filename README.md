@@ -5,12 +5,15 @@
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
 An application to trigger MIDI events when CDJs start playing tracks,
-reach particular beats, or whatever else you can think of. Built
-using [beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
-There is more description and a video in
-a
-[DJ TechTools article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
+reach particular beats, or whatever else you can think of. Built using
+[beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
+There is more description and a video in a [DJ TechTools
+article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
 too!
+
+But the most important thing you need to read, after skimming the
+introduction below, is the [:notebook: user
+guide](https://blt-guide.deepsymmetry.org/).
 
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#license)
 
