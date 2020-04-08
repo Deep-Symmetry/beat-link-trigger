@@ -1050,6 +1050,20 @@ cue library, making it easy to create other cues in any track which
 send the same messages. See <<Shows#cue-library,The Cue Library>> for
 more details.
 
+****
+If the cue is already in the library, this menu option will be
+different. There are two separate cases:
+
+* If the cue is exactly the same as when it was added to the library,
+  then the menu option will be menu:Remove Cue from Library[], and
+  will do exactly that.
+* If the cue has been changed since it was added to the library, or
+  you have created a new cue with the same name as one in the library
+  but different content, the menu option will be
+  menu:Update Cue in Library[], and choosing it will redefine the
+  library cue to match the current one.
+****
+
 Finally, the menu:Delete Cue[] option does just what it sounds like,
 after confirming that you want to discard any expressions and settings
 you have configured for that Cue.
