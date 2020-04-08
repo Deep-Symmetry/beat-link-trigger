@@ -29,6 +29,7 @@
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardCopyOption StandardOpenOption]
            [javax.swing JComponent JFrame JMenu JMenuBar JPanel]
+           [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [javax.swing.text JTextComponent]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener
@@ -989,6 +990,16 @@
             (seesaw/hide! button)
             (seesaw/show! button)))))))
 
+(defn- add-cue-to-library
+  "Adds a cue to a show's cue library."
+  [show cue-name cue]
+  (swap-show! show assoc-in [:contents :cue-library cue-name] cue))
+
+(defn- add-cue-to-folder
+  "Adds a cue to a folder in the cue library."
+  [show folder cue-name]
+  (swap-show! show update-in [:contents :cue-library-folders folder] (fnil conj #{}) cue-name))
+
 (defn- library-cue-action
   "Creates the menu action which either adds a cue to the library, or
   removes or updates it after confirmation, if there is already a cue
@@ -1000,26 +1011,44 @@
     (if (clojure.string/blank? comment)
       (seesaw/action :name "Type a Comment to add Cue to Library" :enabled? false)
       (if-let [existing (cue-in-library? show comment content)]
+        ;; The cue is already in the library, either update or remove it.
         (case existing
-          :matches
-          (seesaw/action :handler (fn [_]
+          :matches  ; The cue exactly matches what's in the library, offer to remove it.
+          (seesaw/action :name "Remove Cue from Library"
+                         :handler (fn [_]
                                     (swap-show! show update-in [:contents :cue-library] dissoc comment)
-                                    (update-library-button-visibility show))
-                         :name "Remove Cue from Library")
+                                    (update-library-button-visibility show)))
 
-          :conflict
-          (seesaw/action :handler (fn [_]
+          :conflict ; The cue is different from what is in the library, offer to update it.
+          (seesaw/action :name "Update Cue in Library"
+                         :handler (fn [_]
                                     (when (seesaw/confirm panel (str "This will replace the existing library cue with "
                                                                      "the same name.\r\n"
                                                                      "If you want to keep both, rename this cue first "
                                                                      "and try again.")
                                                           :type :question :title "Replace Library Cue?")
-                                      (swap-show! show assoc-in [:contents :cue-library comment] content)))
-                         :name "Update Cue in Library"))
-        (seesaw/action :handler (fn [_]
-                                  (swap-show! show assoc-in [:contents :cue-library comment] content)
-                                  (update-library-button-visibility show))
-                       :name "Add Cue to Library")))))
+                                      (swap-show! show assoc-in [:contents :cue-library comment] content)))))
+        ;; The cue is not in the library, so offer to add it.
+        (let [folders (get-in show [:contents :cue-library-folders])]
+          (if (empty? folders)
+            ;; No folders, simply provide an action to add to top level.
+            (seesaw/action :name "Add Cue to Library"
+                           :handler (fn [_]
+                                      (add-cue-to-library show comment content)
+                                      (update-library-button-visibility show)))
+            ;; Provide a menu to add to each library folder or the top level.
+            (seesaw/menu :text "Add Cue to Library"
+                         :items (concat
+                                 (for [folder (sort (keys folders))]
+                                   (seesaw/action :name (str "In Folder " folder)
+                                                  :handler (fn [_]
+                                                             (add-cue-to-library show comment content)
+                                                             (add-cue-to-folder show folder comment)
+                                                             (update-library-button-visibility show))))
+                                 [(seesaw/action :name "At Top Level"
+                                                 :handler (fn [_]
+                                                            (add-cue-to-library show comment content)
+                                                            (update-library-button-visibility show)))]))))))))
 
 (defn hue-to-color
   "Returns a `Color` object of the given `hue` (in degrees, ranging from
@@ -1929,15 +1958,23 @@
 (defn- new-cue-folder
   "Opens a dialog in which a new cue folder can be created."
   [show]
+  ;; TODO: Implement, instead of this hardcoded version:
   (swap-show! show assoc-in [:contents :cue-library-folders "Pre-show"] #{}))
 
 (defn- rename-cue-folder
   "Opens a dialog in which a cue folder can be renamed."
-  [show folder])
+  [show folder]
+  ;; TODO: Implement!
+)
 
 (defn- remove-cue-folder
   "Opens a confirmation dialog for deleting a cue folder."
-  [show folder])
+  [show track folder]
+  (when (seesaw/confirm (get-in track [:cues-editor :frame])
+                        (str "Removing a cue library folder will move all of its cues\r\n"
+                             "back to the top level of the cue library.")
+                        :type :question :title (str "Remove Folder “" folder "”?"))
+    (swap-show! show update-in [:contents :cue-library-folders] dissoc folder)))
 
 (defn- build-cue-library-button-menu
   "Builds the menu that appears when you click in the cue library
@@ -1945,7 +1982,7 @@
   when right-clicking in the track waveform, but adds options at the
   end for managing cue folders in case you have a lot of cues."
   [track]
-  (let [[show]  (latest-show-and-track track)
+  (let [[show track]  (latest-show-and-track track)
         folders (sort (keys (get-in show [:contents :cue-library-folders])))]
     (concat
      (timbre/spy :info (vec (build-cue-library-popup-items track)))
@@ -1961,7 +1998,8 @@
                               (seesaw/menu :text "Remove"
                                            :items (for [folder folders]
                                                     (seesaw/action :name folder
-                                                                   :handler (fn [_] (remove-cue-folder show folder)))))]
+                                                                   :handler (fn [_]
+                                                                              (remove-cue-folder show track folder)))))]
                              )))])))
 
 (defn- create-cues-window
@@ -4107,8 +4145,8 @@
   and close the show if the Beat Link Trigger version is not at least
   the one passed as a `min-version`."
   [show min-version]
-  (when (neg? (.compareTo (org.apache.maven.artifact.versioning.DefaultArtifactVersion. (util/get-version))
-                          (org.apache.maven.artifact.versioning.DefaultArtifactVersion. min-version)))
+  (when (neg? (.compareTo (DefaultArtifactVersion. (util/get-version))
+                          (DefaultArtifactVersion. min-version)))
     (seesaw/invoke-later
      (seesaw/alert (:frame show) (str "<html>This show requires Beat Link Trigger version " min-version
                                       "<br>or later. It will now close.<br><br>")
