@@ -21,6 +21,8 @@ This change log follows the conventions of
 - Player Status window now distinguishes between players that in full
   Sync mode and those that have degraded to BPM Sync mode because the
   DJ did a pitch bend (e.g. by nudging the jog wheel).
+- You can create folders in the Cue Library of a Show to make it
+  easier to work with large numbers of Cues.
 - The user guide now has a network troubleshooting guide for people
   who are having trouble getting connected to their players.
 - The user guide now has a search feature, making it easier to find

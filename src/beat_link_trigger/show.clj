@@ -28,7 +28,7 @@
            [java.io File]
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardCopyOption StandardOpenOption]
-           [javax.swing JComponent JFrame JMenu JMenuBar JPanel]
+           [javax.swing JComponent JFrame JMenu JMenuBar JOptionPane JPanel]
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [javax.swing.text JTextComponent]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
@@ -1957,15 +1957,31 @@
 
 (defn- new-cue-folder
   "Opens a dialog in which a new cue folder can be created."
-  [show]
-  ;; TODO: Implement, instead of this hardcoded version:
-  (swap-show! show assoc-in [:contents :cue-library-folders "Pre-show"] #{}))
+  [show track]
+  (let [parent (get-in track [:cues-editor :frame])]
+    (when-let [new-name (seesaw/invoke-now
+                         (JOptionPane/showInputDialog parent "Choose the folder name:" "New Cue Library Folder"
+                                                      javax.swing.JOptionPane/QUESTION_MESSAGE))]
+      (when-not (clojure.string/blank? new-name)
+        (if (contains? (get-in show [:contents :cue-library-folders]) new-name)
+          (seesaw/alert parent (str "Folder “" new-name "” already exists.") :name "Duplicate Folder" :type :error)
+          (swap-show! show assoc-in [:contents :cue-library-folders new-name] #{}))))))
 
 (defn- rename-cue-folder
   "Opens a dialog in which a cue folder can be renamed."
-  [show folder]
-  ;; TODO: Implement!
-)
+  [show track folder]
+  (let [parent (get-in track [:cues-editor :frame])]
+    (when-let [new-name (seesaw/invoke-now
+                         (JOptionPane/showInputDialog parent "Choose new name:" (str "Rename Folder “" folder "”")
+                                                      javax.swing.JOptionPane/QUESTION_MESSAGE))]
+      (when-not (or (clojure.string/blank? new-name) (= new-name folder))
+        (if (contains? (get-in show [:contents :cue-library-folders]) new-name)
+          (seesaw/alert parent (str "Folder “" new-name "” already exists.") :name "Duplicate Folder" :type :error)
+          (swap-show! show (fn [current]
+                             (let [folder-contents (get-in current [:contents :cue-library-folders folder])]
+                               (-> current
+                                   (assoc-in [:contents :cue-library-folders new-name] folder-contents)
+                                   (update-in [:contents :cue-library-folders] dissoc folder))))))))))
 
 (defn- remove-cue-folder
   "Opens a confirmation dialog for deleting a cue folder."
@@ -1985,16 +2001,17 @@
   (let [[show track]  (latest-show-and-track track)
         folders (sort (keys (get-in show [:contents :cue-library-folders])))]
     (concat
-     (timbre/spy :info (vec (build-cue-library-popup-items track)))
+     (build-cue-library-popup-items track)
      [(seesaw/menu :text "Manage Folders"
                    :items (concat
                            [(seesaw/action :name "New Folder"
-                                           :handler (fn [_] (new-cue-folder show)))]
+                                           :handler (fn [_] (new-cue-folder show track)))]
                            (when (seq folders)
                              [(seesaw/menu :text "Rename"
                                            :items (for [folder folders]
                                                     (seesaw/action :name folder
-                                                                   :handler (fn [_] (rename-cue-folder show folder)))))
+                                                                   :handler (fn [_]
+                                                                              (rename-cue-folder show track folder)))))
                               (seesaw/menu :text "Remove"
                                            :items (for [folder folders]
                                                     (seesaw/action :name folder
