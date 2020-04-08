@@ -1602,6 +1602,61 @@
                              "Check the log file for details.")
                         :title "Exception during Clojure evaluation" :type :error))))))
 
+(defn- build-library-cue-action
+  "Creates an action that adds a cue from the library to the track."
+  [cue-name cue track]
+  (seesaw/action :name (str "New “" cue-name "” Cue")
+                         :handler (fn [_]
+                                    (try
+                                      (let [uuid        (java.util.UUID/randomUUID)
+                                            track       (latest-track track)
+                                            [start end] (get-in track [:cues-editor :selection] [1 2])
+                                            all-names   (map :comment (vals (get-in track [:contents :cues :cues])))
+                                            new-name    (if (some #(= cue-name %) all-names)
+                                                          (util/assign-unique-name all-names cue-name)
+                                                          cue-name)
+                                            new-cue     (merge cue {:uuid    uuid
+                                                                    :start   start
+                                                                    :end     end
+                                                                    :hue     (assign-cue-hue track)
+                                                                    :comment new-name})]
+                                        (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
+                                        (swap-track! track update :cues-editor dissoc :selection)
+                                        (update-track-gear-icon track)
+                                        (build-cues track)
+                                        (compile-cue-expressions track new-cue)
+                                        (scroll-wave-to-cue track new-cue)
+                                        (scroll-to-cue track new-cue true))
+                                      (catch Exception e
+                                        (timbre/error e "Problem adding Library Cue")
+                                        (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
+
+(defn build-cue-folder-menu
+  "Creates a menu for a folder in the cue library, containing actions
+  that add all the cues present in that folder to the track."
+  [show track folder-name cues-in-folder]
+  (let [cue-actions (filter identity
+                            (for [cue-name (sort cues-in-folder)]
+                              (when-let [cue (get-in (latest-show show) [:contents :cue-library cue-name])]
+                                (build-library-cue-action cue-name cue track))))]
+    (seesaw/menu :text folder-name
+                 :items (if (seq cue-actions)
+                          cue-actions
+                          [(seesaw/action :name "No Cues in Folder" :enabled? false)]))))
+
+(defn build-cue-folder-menus
+  "Creates a menu for each folder in the cue library, containing actions
+  that add the cues present in that folder to the track. Returns a
+  tuple of that menu along with a set of the names of all the cues
+  which were found in any folder, so they can be omitted from the
+  top-level menu."
+  [show track]
+  (reduce (fn [[menus cues-in-folders] [folder-name cues-in-folder]]
+            [(conj menus (build-cue-folder-menu show track folder-name cues-in-folder))
+             (clojure.set/union cues-in-folders cues-in-folder)])
+          [[] #{}]
+          (get-in (latest-show show) [:contents :cue-library-folders])))
+
 (defn- build-cue-library-popup-items
   "Creates the popup menu items allowing you to add cues from the
   library to a track."
@@ -1610,32 +1665,12 @@
         library      (sort-by first (vec (get-in show [:contents :cue-library])))]
     (if (empty? library)
       [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
-      (for [[comment contents] library]
-        (seesaw/action :name (str "New “" comment "” Cue")
-                       :handler (fn [_]
-                                  (try
-                                    (let [uuid        (java.util.UUID/randomUUID)
-                                          track       (latest-track track)
-                                          [start end] (get-in track [:cues-editor :selection] [1 2])
-                                          all-names   (map :comment (vals (get-in track [:contents :cues :cues])))
-                                          new-comment (if (some #(= comment %) all-names)
-                                                        (util/assign-unique-name all-names comment)
-                                                        comment)
-                                          new-cue     (merge contents {:uuid    uuid
-                                                                       :start   start
-                                                                       :end     end
-                                                                       :hue     (assign-cue-hue track)
-                                                                       :comment new-comment})]
-                                      (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
-                                      (swap-track! track update :cues-editor dissoc :selection)
-                                      (update-track-gear-icon track)
-                                      (build-cues track)
-                                      (compile-cue-expressions track new-cue)
-                                      (scroll-wave-to-cue track new-cue)
-                                      (scroll-to-cue track new-cue true))
-                              (catch Exception e
-                                (timbre/error e "Problem adding Library Cue")
-                                (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error)))))))))
+      (let [[folder-menus cues-in-folders] (build-cue-folder-menus show track)]
+        (concat folder-menus
+                (filter identity
+                        (for [[cue-name cue] library]
+                          (when-not (cues-in-folders cue-name)
+                            (build-library-cue-action cue-name cue track)))))))))
 
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
@@ -1891,6 +1926,44 @@
         (recur (:cues-editor (latest-track track)))))
     #_(timbre/info "Cues editor animation thread ending.")))
 
+(defn- new-cue-folder
+  "Opens a dialog in which a new cue folder can be created."
+  [show]
+  (swap-show! show assoc-in [:contents :cue-library-folders "Pre-show"] #{}))
+
+(defn- rename-cue-folder
+  "Opens a dialog in which a cue folder can be renamed."
+  [show folder])
+
+(defn- remove-cue-folder
+  "Opens a confirmation dialog for deleting a cue folder."
+  [show folder])
+
+(defn- build-cue-library-button-menu
+  "Builds the menu that appears when you click in the cue library
+  button, which includes the same cue popup menu that is available
+  when right-clicking in the track waveform, but adds options at the
+  end for managing cue folders in case you have a lot of cues."
+  [track]
+  (let [[show]  (latest-show-and-track track)
+        folders (sort (keys (get-in show [:contents :cue-library-folders])))]
+    (concat
+     (timbre/spy :info (vec (build-cue-library-popup-items track)))
+     [(seesaw/menu :text "Manage Folders"
+                   :items (concat
+                           [(seesaw/action :name "New Folder"
+                                           :handler (fn [_] (new-cue-folder show)))]
+                           (when (seq folders)
+                             [(seesaw/menu :text "Rename"
+                                           :items (for [folder folders]
+                                                    (seesaw/action :name folder
+                                                                   :handler (fn [_] (rename-cue-folder show folder)))))
+                              (seesaw/menu :text "Remove"
+                                           :items (for [folder folders]
+                                                    (seesaw/action :name folder
+                                                                   :handler (fn [_] (remove-cue-folder show folder)))))]
+                             )))])))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
   Must be supplied current versions of `show` and `track.`"
@@ -1910,7 +1983,7 @@
         auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (online?)
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
-        lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-popup-items track)))
+        lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-button-menu track)))
         top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
                                     :items [[(seesaw/button :text "New Cue"
                                                             :listen [:action-performed
