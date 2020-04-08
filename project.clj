@@ -6,11 +6,11 @@
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/core.async "1.0.567"]
+                 [org.clojure/core.async "1.1.587"]
                  [org.clojure/data.csv "1.0.0"]
                  [org.clojure/tools.cli "1.0.194"]
                  [clojure-humanize "0.2.2"]
-                 [com.fifesoft/rsyntaxtextarea "3.1.0"]
+                 [com.fifesoft/rsyntaxtextarea "3.1.1"]
                  [com.fifesoft/rstaui "3.1.0"]
                  [org.pushing-pixels/radiance-substance "1.0.2"]
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]
