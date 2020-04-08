@@ -44,7 +44,7 @@ you are disconnected from the Internet. Any links to external
 resources, however, will only work if you are online.
 endif::[]
 ifndef::page-origin-worktree[]
-ifeval::[{page-component-version} == "master"]
+ifeval::["{page-component-version}" == "master"]
 You are looking at the **master** branch of the User Guide. This tries
 to keep up with the latest in-progress changes to the software, which
 are frequently made available as preview builds.
@@ -53,7 +53,7 @@ To look at a version of the Guide that corresponds to a specfic
 release, choose it in the versions menu either at the top right (just
 before the **Edit this Page** link), or at the bottom left.
 endif::[]
-ifeval::[{page-component-version} != "master"]
+ifeval::["{page-component-version}" != "master"]
 You are looking at version *{page-component-version}* of the User
 Guide, which corresponds to that release of the software.
 
