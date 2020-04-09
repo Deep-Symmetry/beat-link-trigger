@@ -59,7 +59,7 @@ Guide, which corresponds to that release of the software.
 
 To look at a different version (including the master branch, which
 reflects ongoing development that is available as a preview release
-but not yet officially released), choose it in the Versions menu
+but not yet officially released), choose it in the versions menu
 either at the top right (just before the **Edit this Page** link), or
 at the bottom left.
 endif::[]
