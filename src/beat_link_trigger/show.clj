@@ -1040,7 +1040,7 @@
             (seesaw/menu :text "Add Cue to Library"
                          :items (concat
                                  (for [folder (sort (keys folders))]
-                                   (seesaw/action :name (str "In Folder " folder)
+                                   (seesaw/action :name (str "In Folder “" folder "”")
                                                   :handler (fn [_]
                                                              (add-cue-to-library show comment content)
                                                              (add-cue-to-folder show folder comment)

@@ -1140,6 +1140,7 @@ in any track by adding it to the Cue Library. To do that, choose
 menu:Add Cue to Library[] from the Cue
 <<Shows#cue-context-menu,context menu.>>
 
+[[cue-library-button]]
 As soon as you have a cue in the show's library, a kbd:[Library ▾]
 button appears next to the kbd:[New Cue] button in any Cue Editor
 windows you have open for tracks in the show. Clicking it gives you
@@ -1148,7 +1149,7 @@ choosing one creates a new cue (in the same location that the
 kbd:[New Cue] button would), based on the template cue that you put
 in the library:
 
-image:CueLibraryButton.png[Cue Library Button,961,453]
+image:CueLibraryButton.png[Cue Library Button,961,423]
 
 TIP: The names that appear in the Cue Library are the names (comments)
 of the cues that have been added to it, so it makes sense to make sure
@@ -1170,6 +1171,7 @@ The new cue will share any of the MIDI message configurations and
 Expressions that were present in the cue that was added to the show
 library.
 
+[[updating-library]]
 === Updating the Library
 
 If you already have a cue in the library, you  can update its content
@@ -1186,6 +1188,49 @@ If the current cue has exactly the same content as the cue of the
 same name in the library (ignoring incidental details like its
 position in the track or displayed hue), the menu option will read
 menu:Remove Cue from Library[], and choosing it will do just that.
+
+[[cue-library-folders]]
+=== Cue Library Folders
+
+If you collect a large number of cues in your library, the menu can
+get inconveniently large and make it hard to find the cue you are
+looking for. You can avoid that problem by organizing your cues into
+folders. At the bottom of the <<cue-library-button,Library button
+menu>> there is a menu:Manage Folders[] submenu.
+
+When you have no folders, the only option in that menu is
+menu:New Folder[]. Choosing it opens up a dialog in which you can enter
+the name of the folder you would like to create:
+
+image:NewCueFolder.png[New Cue Folder,453,204]
+
+As soon as you have created a folder, the menus for choosing library
+cues (both in the Library button and in the waveform context menu)
+expand to show all the folders as submenus before the non-folder cues:
+
+image:CueLibraryWithFolder.png[Cue Library with Folder,961,423]
+
+The context menu option for adding a cue to the library also
+transforms into a submenu allowing you to choose whether you want to
+add it to a folder or to the top level of the library.
+
+TIP: If you have existing cues in the library that you would like to
+move into folders, follow the steps described
+<<updating-library,above>> to remove them from the library and re-add
+them into the desired folder.
+
+image:AddCueToFolder.png[Cue Library Button,961,699]
+
+Once you have organized your cues into folders, finding and picking
+them out of the appropriate submenu can be easier and faster than
+scrolling through a single giant menu.
+
+Once you have folders, the menu:Manage Folders[] menu also allows you
+to rename or remove them. Removing a folder moves any cues you placed
+inside it back to the top level of the cue library.
+
+image:ManageFolders.png[Cue Library with Folder,961,464]
+
 
 == Learning More
 
