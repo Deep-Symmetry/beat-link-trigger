@@ -17,8 +17,15 @@
   "Do we seem to be running on a Mac?"
   []
   (-> (System/getProperty "os.name")
-      .toLowerCase
+      clojure.string/lower-case
       (clojure.string/includes? "mac")))
+
+(defn on-windows?
+  "Do we seem to be running on Windows?"
+  []
+  (-> (System/getProperty "os.name")
+      clojure.string/lower-case
+      (clojure.string/includes? "windows")))
 
 (defn install-mac-about-handler
   "If we are running on a Mac, install our About handler."

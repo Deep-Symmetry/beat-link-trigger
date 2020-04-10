@@ -2043,7 +2043,9 @@
                                     :items [[(seesaw/button :text "New Cue"
                                                             :listen [:action-performed
                                                                      (fn ([_] (new-cue track)))])]
-                                            [(seesaw/button :id :library :text "Library ▾"
+                                            [(seesaw/button :id :library
+                                                            :text (str "Library "
+                                                                       (if (menus/on-windows?) "▼" "▾"))
                                                             :visible? (seq (get-in show [:contents :cue-library]))
                                                             :listen [:mouse-pressed
                                                                      (fn ([e] (util/show-popup-from-button

@@ -13,6 +13,10 @@ This change log follows the conventions of
   into.
 - Added support for playlists built with track titles and comments,
   #96.
+- Use larger downward-pointing triangle in cue Library menu button on
+  Windows. It looks uglier than the small one, but that glyph is not
+  available in the Windows font, so a big triangle looks way better
+  than the “missing glyph” box.
 - Added type hints throughout so the Clojure compiler could avoid the
   use of reflection, which will improve performance, #95.
 
