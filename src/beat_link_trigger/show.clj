@@ -99,6 +99,10 @@
   access to the contents of the file, and the map describing them."}
   open-shows (atom {}))
 
+(defonce ^{:private true
+           :doc "Holds copied track content for pasting into other tracks."}
+  copied-track-content (atom nil))
+
 ;;; This section defines a bunch of utility functions that are used by
 ;;; both the Show and Cues windows.
 
@@ -3040,6 +3044,99 @@
         preview-width (max 408 (* text-width 3))]
     ["" (str "[]unrelated[fill, " text-width "]unrelated[fill, " preview-width "]")]))
 
+(defn- copy-track-content-action
+  "Creates the menu action which copies the content of a track."
+  [track]
+  (let [track (latest-track track)]
+    (seesaw/action :handler (fn [_] (reset! copied-track-content (select-keys track [:contents :metadata])))
+                   :name "Copy Track Content"
+                   :tip "Copies the current track configuration, expressions, and cues.")))
+
+(defn- crop-cues
+  "Given the cue map for a track, and the maximum beat number that
+  exists in the track, removes any cues that begin at or past the
+  final beat, and adjusts the ending beat of each cue to be no greater
+  than the final beat."
+  [cues max-beat]
+  (reduce (fn [result [uuid cue]]
+            (if (< (:start cue) max-beat)
+              (assoc result uuid (update cue :end min max-beat))
+              result))
+          {}
+          cues))
+
+(defn- update-track-comboboxes
+  "Called when a track row has been created in a show, or the track
+  contents have been replaced, to update the combo-box elements
+  to reflect the track's state."
+  [contents panel]
+  (seesaw/selection! (seesaw/select panel [:#outputs]) (or (:midi-device contents) (first (util/get-midi-outputs))))
+  (seesaw/selection! (seesaw/select panel [:#loaded-message]) (or (:loaded-message contents) "None"))
+  (seesaw/selection! (seesaw/select panel [:#playing-message]) (or (:playing-message contents) "None"))
+  (seesaw/selection! (seesaw/select panel [:#enabled]) (or (:enabled contents) "Default")))
+
+(defn parse-track-expressions
+  "Parses all of the expressions associated with a track and its cues.
+  `track` must be current."
+  [show track]
+  (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
+      (let [editor-info (get @editors/show-track-editors kind)]
+        (try
+          (swap-track! track assoc-in [:expression-fns kind]
+                       (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
+                                                          (editors/show-editor-title kind show track)))
+              (catch Exception e
+                (timbre/error e (str "Problem parsing " (:title editor-info)
+                                     " when loading Show. Expression:\n" expr "\n"))
+                (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                                   "Check the log file for details.")
+                              :title "Exception during Clojure evaluation" :type :error)))))
+  ;; Parse any custom expressions defined for cues in the track.
+  (doseq [cue (vals (get-in track [:contents :cues :cues]))]
+    (compile-cue-expressions track cue)))
+
+
+(defn- replace-track-contents
+  "Replaces the contents of the track with the supplied values, crops or
+  removes any cues which no longer fit, then updates the user
+  interface. `show` and `track` must be current."
+  [show track panel contents]
+  (when-let [editor (:cues-editor track)]
+    ((:close-fn editor) true)) ; Forcibly close any open cue editor window; we are replacing cues.
+  (let [max-beat (long (.beatCount ^BeatGrid (:grid track)))
+        cues     (crop-cues (get-in contents [:cues :cues]) max-beat)
+        contents (assoc-in contents [:cues :cues] cues)]
+    (swap-track! track assoc :contents contents  ; Install the copied and cropped contents.
+                 :creating true)  ; Disarm automatic editor popup while we are messing with the UI.
+    (build-cues track)
+
+    (update-track-gear-icon track)
+    (update-track-comboboxes contents panel)
+    (seesaw/value! (seesaw/select panel [:#loaded-note]) (:loaded-note contents))
+    (seesaw/value! (seesaw/select panel [:#loaded-channel]) (:loaded-channel contents))
+    (seesaw/value! (seesaw/select panel [:#playing-note]) (:playing-note contents))
+    (seesaw/value! (seesaw/select panel [:#playing-channel]) (:playing-channel contents))
+    (parse-track-expressions show (latest-track track))
+    (swap-track! track dissoc :creating)))  ; No longer suppress popup of expression editors.
+
+(defn- paste-track-content-action
+  "Creates the menu action which pastes copied content over a track."
+  [track panel]
+  (let [[show track] (latest-show-and-track track)
+        title        (get-in @copied-track-content [:metadata :title])]
+    (seesaw/action :handler (fn [_]
+                              (when (seesaw/confirm panel (str "This will irreversibly replace the configuration, "
+                                                               "expressions, and cues of this track with\r\n"
+                                                               "the ones you copied from “" title "”.\r\n\r\n"
+                                                               "Are you sure?")
+                                                    :type :question
+                                                    :title (str "Replace Content of “"
+                                                                (get-in track [:metadata :title]) "”?"))
+                                (replace-track-contents show track panel (:contents @copied-track-content))))
+                   :name "Paste Track Content"
+                   :tip "Replace the contents of this track with previously copied values."
+                   :enabled? (some? @copied-track-content))))
+
 (defn- edit-cues-action
   "Creates the menu action which opens the track's cue editor window."
   [track panel]
@@ -3404,12 +3501,16 @@
                :creating          true ; Suppress popup expression editors when reopening a show.
                :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
 
-        popup-fn (fn [_] (concat [(edit-cues-action track panel) (seesaw/separator)]
-                                 (track-editor-actions show track panel gear)
-                                 [(seesaw/separator) (track-simulate-menu track) (track-inspect-action track)
-                                  (seesaw/separator)]
-                                 (track-copy-actions track)
-                                 [(seesaw/separator) (delete-track-action show track panel)]))]
+        popup-fn (fn [e]  ; Creates the popup menu for the gear button or right-clicking in the track.
+                   (if (.isShiftDown e)
+                     [(copy-track-content-action track) ; The special track content copy/paste menu.
+                      (paste-track-content-action track panel)]
+                     (concat [(edit-cues-action track panel) (seesaw/separator)] ; The normal context menu.
+                             (track-editor-actions show track panel gear)
+                             [(seesaw/separator) (track-simulate-menu track) (track-inspect-action track)
+                              (seesaw/separator)]
+                             (track-copy-actions track)
+                             [(seesaw/separator) (delete-track-action show track panel)])))]
 
     (swap-show! show assoc-in [:tracks signature] track)
     (swap-show! show assoc-in [:panels panel] signature)
@@ -3436,10 +3537,7 @@
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
-    (seesaw/selection! (seesaw/select panel [:#outputs]) (or (:midi-device contents) (first outputs)))
-    (seesaw/selection! (seesaw/select panel [:#loaded-message]) (or (:loaded-message contents) "None"))
-    (seesaw/selection! (seesaw/select panel [:#playing-message]) (or (:playing-message contents) "None"))
-    (seesaw/selection! (seesaw/select panel [:#enabled]) (or (:enabled contents) "Default"))
+    (update-track-comboboxes contents panel)
 
     ;; In case this is the inital creation of the track, record the defaulted values of the numeric inputs too.
     ;; This will have no effect if they were loaded.
@@ -3452,25 +3550,8 @@
     (swap-signature! show signature
                      assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
 
-    ;; Parse any custom expressions defined for the track.
-    (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
-      (let [editor-info (get @editors/show-track-editors kind)]
-        (try
-          (swap-signature! show signature assoc-in [:expression-fns kind]
-                           (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                              (editors/show-editor-title kind show track)))
-              (catch Exception e
-                (timbre/error e (str "Problem parsing " (:title editor-info)
-                                     " when loading Show. Expression:\n" expr "\n"))
-                (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
-                                   "Check the log file for details.")
-                              :title "Exception during Clojure evaluation" :type :error)))))
-
     (build-cues track)
-
-    ;; Parse any custom expressions defined for cues in the track.
-    (doseq [cue (vals (get-in contents [:cues :cues]))]
-      (compile-cue-expressions track cue))
+    (parse-track-expressions show track)
 
     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
     ;; the user requests a custom message.

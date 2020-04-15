@@ -27,6 +27,12 @@ This change log follows the conventions of
   DJ did a pitch bend (e.g. by nudging the jog wheel).
 - You can create folders in the Cue Library of a Show to make it
   easier to work with large numbers of Cues.
+- By holding down the shift key when bringing up the Track context
+  menu, you can now copy the contents of one track (configuration,
+  expressions and cues) and paste them into another. This can be
+  especially helpful when you have made changes to a track in
+  rekordbox (such as fine-tuning the beat grid) and want to reconnect
+  your show to it.
 - The user guide now has a network troubleshooting guide for people
   who are having trouble getting connected to their players.
 - The user guide now has a search feature, making it easier to find
