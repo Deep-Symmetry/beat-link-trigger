@@ -433,9 +433,12 @@
   [^Path track-root]
   (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
     (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
-          beats (int-array (map int (nth grid-vec 0)))
-          times (long-array (nth grid-vec 1))]
-      (BeatGrid. dummy-reference beats times))))
+          beats    (int-array (map int (nth grid-vec 0)))
+          times    (long-array (nth grid-vec 1))
+          tempos   (if (> (count grid-vec) 2) ; Cope with older show beat grids that lack tempos.
+                     (int-array (map int (nth grid-vec 2))) ; We have real tempo values.
+                     (int-array (count beats)))] ; Just use zero for all tempos.
+      (BeatGrid. dummy-reference beats tempos times))))
 
 (defn read-preview
   "Re-creates a [`WaveformPreview`
@@ -2765,7 +2768,8 @@
   filesystem."
   [^Path track-root ^BeatGrid beat-grid]
   (let [grid-vec [(mapv #(.getBeatWithinBar beat-grid (inc %)) (range (.beatCount beat-grid)))
-                  (mapv #(.getTimeWithinTrack beat-grid (inc %)) (range (.beatCount beat-grid)))]]
+                  (mapv #(.getTimeWithinTrack beat-grid (inc %)) (range (.beatCount beat-grid)))
+                  (mapv #(.getBpm beat-grid (inc %)) (range (.beatCount beat-grid)))]]
     (write-edn-path grid-vec (.resolve track-root "beat-grid.edn"))))
 
 (defn write-preview
