@@ -141,6 +141,8 @@ window menu bar:
 
 image:ImportTrack.png[Import Track menu,790,568]
 
+==== Adding Tracks from a Player
+
 If you are currently Online, and there are any players on the network
 that have rekordbox tracks loaded that are not already part of the
 Show, you will see them as options in the menu. Choosing
@@ -158,6 +160,24 @@ is already part of the Show, the menu option is disabled and an
 explanation is added:
 
 image:ImportTrackAlready.png[Track already in Show,990,435]
+
+[[disconnected-tracks]]
+[TIP]
+====
+You should finish making any adjustments to your tracks in rekordbox,
+including fine-tuning their beat grids, _before_ you add them to your
+show. Beat Link Trigger recognizes tracks by
+https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/SignatureFinder.html[calculating
+a “signature”] that includes such details. If you change any of these
+things after importing the track, it will no longer be recognized, and
+your cues and other expressions will not work.
+
+If this happens, you can import the new version of the track,
+<<copying-track-contents,copy the contents>> of the old version of the
+track in your show into the new one, then remove the old version.
+====
+
+==== Adding Tracks from Offline Media
 
 To make it possible to set up your Show even when you don’t have
 access to your player network, you can also import Tracks directly
@@ -193,6 +213,8 @@ open; if you do need to eject it without quitting BLT, choose
 menu:Tracks[Import Track>from Offline Media], click kbd:[Change
 Media], and it will be closed so you can eject it. At that point you
 can click kbd:[Cancel] if you did not actually want to import a Track.
+
+==== Copying Tracks between Shows
 
 The final way to add a Track to a Show is to copy it from another
 Show. When you have multiple Show windows open, you can copy Tracks
@@ -1231,6 +1253,52 @@ inside it back to the top level of the cue library.
 
 image:ManageFolders.png[Cue Library with Folder,961,464]
 
+[[copying-track-contents]]
+== Copying Track Contents
+
+Although the cues you have created in a track are likely to be very
+specific to that track, there are times you might want to copy all the
+configuration, expressions, and cues you have set up in one track to
+another.
+
+One situation where this is certain to be useful is if you have made
+changes to your track after you imported it into the show, and this
+has caused it to <<disconnected-tracks,stop being recognized>>. In
+that case, you can import the track again, and copy the content from
+the old version to the new version before deleting the old version.
+
+There are other situations where this might be useful as well. Even if
+the tracks are different enough that you will need to move the cues
+around a lot, copying the overall track configuration, expressions, and
+sometimes even cues can save you time.
+
+To copy the contents of a track, hold down the kbd:[Shift] key while
+bringing up the Track context menu (clicking on the gear icon or
+right-clicking in the track row outside the waveform). This will bring
+up a special menu:
+
+image:CopyTrackContent.png[Copy Track Content,515,196]
+
+Once you have chosen menu:Copy Track Content[] on a track, when you
+use kbd:[Shift] to bring up this menu again on a track (in this show
+or any other), the option to paste that content will be enabled.
+
+Choosing menu:Paste Track Content[] will bring up a confirmation
+dialog because this is a destructive process which cannot be undone
+(unless you have saved a backup copy of your show):
+
+image:ReplaceTrackContent.png[Replace Track Content,740,240]
+
+If you click **OK**, all of the destination track's configuration (MIDI
+Output, Messages, Channel, and Enabled Default), its expressions, and
+its cues (including their own configuration and expressions) will be
+replaced by the ones that you copied earlier. Any cues that would
+extend past the end of the new track will be cropped to end on its
+final beat, and any which would have started after the end of the
+track will simply be removed.
+
+You can then proceed to adjust the cue positions if needed, and tweak
+other details to make the track work the way you want it to.
 
 == Learning More
 

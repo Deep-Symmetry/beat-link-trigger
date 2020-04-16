@@ -27,7 +27,7 @@ This change log follows the conventions of
   DJ did a pitch bend (e.g. by nudging the jog wheel).
 - You can create folders in the Cue Library of a Show to make it
   easier to work with large numbers of Cues.
-- By holding down the shift key when bringing up the Track context
+- By holding down the Shift key when bringing up the Track context
   menu, you can now copy the contents of one track (configuration,
   expressions and cues) and paste them into another. This can be
   especially helpful when you have made changes to a track in
