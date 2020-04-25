@@ -287,12 +287,21 @@ image:SymmetryContents.png[Example cache contents,850,480]
 [[loading-playing]]
 == Loading and Playing Tracks
 
-WARNING: Unless you are using a real player number, this feature will
+[WARNING]
+====
+Unless you are using a real player number, this feature will
 not work well for non-rekordbox media. Although Crate Digger can be
 used to provide a simplified and faster view of a player’s rekordbox
 media, browsing other kinds of media uses menu requests to the
 players, which will likely fail unless you are using a real player
 number.
+
+The XDJ-XZ does not allow any software other than rekordbox to tell it
+to load tracks, and it does not support Fader Start (which is needed
+to remotely start/stop tracks), so this section won't be useful to you
+if you have an XDJ-XZ, unless you also have some other CDJs linked to
+it, in which case you will be able to control those.
+====
 
 During pre-show and after-show situations, when there is no DJ on
 stage, it can be convenient to cue up and play tracks from Front of

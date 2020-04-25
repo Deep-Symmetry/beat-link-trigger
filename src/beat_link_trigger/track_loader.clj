@@ -1733,7 +1733,8 @@
         ^CdjStatus status (when number (.getLatestStatusFor virtual-cdj number))]
     (reset! selected-player {:number  number
                              :playing (and status (.isPlaying status))
-                             :cued    (and status (.isCued status))})))
+                             :cued    (and status (.isCued status))
+                             :xdj-xz  (clojure.string/starts-with? (.getDeviceName status) "XDJ-XZ")})))
 
 (defn- configure-partial-search-ui
   "Show (with appropriate content) or hide the label and buttons
@@ -1870,7 +1871,7 @@
      (if (seq valid-slots)
        (try
          (let [selected-track     (atom nil)
-               selected-player    (atom {:number nil :playing false :cued false})
+               selected-player    (atom {:number nil :playing false :cued false :xdj-xz false})
                searches           (atom {})
                ^JFrame root       (seesaw/frame :title "Load Track on a Player"
                                                 :on-close :dispose :resizable? true)
@@ -1883,13 +1884,15 @@
                update-load-ui     (fn []
                                     (let [playing (:playing @selected-player)
                                           cued    (:cued @selected-player)
+                                          xdj-xz  (:xdj-xz @selected-player)
                                           problem (cond (nil? @selected-track) "No track chosen."
                                                         playing                "Can't load while playing."
+                                                        xdj-xz                 "XDJ-XZ won't load tracks."
                                                         :else                  "")]
                                       (seesaw/value! problem-label problem)
                                       (seesaw/config! load-button :enabled? (empty? problem))
                                       (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))
-                                      (seesaw/config! play-button :enabled? (or playing cued))))
+                                      (seesaw/config! play-button :enabled? (and (not xdj-xz) (or playing cued)))))
                player-changed     (fn [e]
                                     (update-selected-player selected-player e)
                                     (update-load-ui))
