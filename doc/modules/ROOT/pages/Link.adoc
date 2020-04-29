@@ -487,14 +487,3 @@ the setting immediately:
 ```clojure
 (swap! globals dissoc :use-fixed-sync-bpm)
 ```
-
-== Learning More
-
-****
-
-* Continue to <<Debugging#debugging-and-sharing,Debugging and Sharing>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

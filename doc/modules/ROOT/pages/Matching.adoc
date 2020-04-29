@@ -173,14 +173,3 @@ Timestamp: 2017-03-18T18:22:07.713
    Artist: Faithless
     Title: insomnia 2008 (a1 electro mix)
 ```
-
-== Learning More
-
-****
-
-* Continue to <<Players#the-player-status-window,The Player Status Window>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

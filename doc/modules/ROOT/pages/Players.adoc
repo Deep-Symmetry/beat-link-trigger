@@ -411,14 +411,3 @@ environment isn’t correct to support the window:
 ```clojure
 (triggers/show-player-status)
 ```
-
-== Learning More
-
-****
-
-* Continue to <<Shows#shows,Shows>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

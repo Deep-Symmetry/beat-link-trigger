@@ -13,7 +13,7 @@ versions of them, or share them with friends and colleagues (or
 on the https://gitter.im/brunchboy/beat-link-trigger[Gitter chat]
 or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]
 to either get help from others, or share and show them off).
-+++<img src="_images/HelpMenu.png" width="250" height="205" alt="Help Menu" align="right"/>+++
++++<img src="_images/HelpMenu.png" width="250" height="205" alt="Help Menu" style="float:right"/>+++
 
 Help resources can be found in the menu:Help[] menu, along with an
 embedded copy of this User Guide, which can be used even if you are
@@ -396,14 +396,3 @@ total time they played.
 
 When you are done recording the playlist you can either click kbd:[Stop]
 or close the window, and the file will be closed out.
-
-== Learning More
-
-****
-
-* Continue to <<Integration#integration-examples,Integration Examples>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

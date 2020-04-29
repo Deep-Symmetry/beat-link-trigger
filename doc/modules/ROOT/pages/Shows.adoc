@@ -1299,14 +1299,3 @@ track will simply be removed.
 
 You can then proceed to adjust the cue positions if needed, and tweak
 other details to make the track work the way you want it to.
-
-== Learning More
-
-****
-
-* Continue to <<Link#working-with-ableton-link,Working with Ableton Link>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

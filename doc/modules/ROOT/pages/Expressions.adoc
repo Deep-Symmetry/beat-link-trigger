@@ -1318,14 +1318,3 @@ menu:Entered Message[] menu is set to `Custom`.
 
 If the track becomes disabled while there were players positioned
 inside this cue, this expression will be called at that point as well.
-
-== Learning More
-
-****
-
-* Continue to <<ShowInternals#show-internal-structures,Show Internal Structures>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

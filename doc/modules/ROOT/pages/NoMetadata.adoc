@@ -660,5 +660,3 @@ scientific apparatus!
   [source-key media-key rekordbox-id track-name & others]
   `(add-track* ~'globals ~source-key ~media-key ~rekordbox-id (hash-map :name ~track-name ~@others)))
 ```
-
-include::partial$Footer.adoc[]

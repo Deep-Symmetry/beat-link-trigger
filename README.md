@@ -1,7 +1,7 @@
 # beat-link-trigger
 
 [![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
- <img align="right" width="275" height="250" alt="Beat Link"
+ <img style="float:right" width="275" height="250" alt="Beat Link"
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
 An application to trigger MIDI events when CDJs start playing tracks,
@@ -99,10 +99,11 @@ offset the hundreds of hours of research, development, and writing
 that have already been invested. Or perhaps to facilitate future
 efforts, tools, toys, and time to explore.
 
-<a href="https://liberapay.com/deep-symmetry/donate"><img align="center" alt="Donate using Liberapay"
+<a href="https://liberapay.com/deep-symmetry/donate"><img style="vertical-align:middle" alt="Donate using Liberapay"
     src="https://liberapay.com/assets/widgets/donate.svg"></a> using Liberapay, or
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img align="center"
-    alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img
+    style="vertical-align:middle" alt="Donate"
+    src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 
 > If enough people jump on board, we may even be able to get a newer
 > CDJ to experiment with, although that&rsquo;s an unlikely stretch goal.
@@ -213,8 +214,8 @@ on, you will be able to run that copy by just double-clicking it.
 
 ## Licenses
 
-<a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
- src="doc/modules/ROOT/assets/images/DS-logo-bw-200-padded-left.png" width="216" height="123"></a>
+<a href="http://deepsymmetry.org"><img style="float:right;margin-left:1em" alt="Deep Symmetry"
+ src="doc/modules/ROOT/assets/images/DS-logo-bw-200.png" width="200" height="124"></a>
 
 Copyright © 2016&ndash;2020 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
@@ -370,7 +371,7 @@ within this project.
 
 
 <a href="https://www.netlify.com">
-  <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
+  <img style="float:right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
 </a>
 
 #### [Antora](https://antora.org)

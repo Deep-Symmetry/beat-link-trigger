@@ -254,7 +254,7 @@ communicate the current BPM:
 image:BeyondClockTrigger.png[Clock Trigger for BEYOND,806,202]
 
 +++<img src="_images/BeyondMIDIsynced.png" width="162" height="104"
-align="right" alt="BEYOND synced to MIDI Clock">+++
+style="float:right" alt="BEYOND synced to MIDI Clock">+++
 Once that trigger activates, the BPM display in BEYOND will turn
 yellow and will track the tempo of the track that activated the
 trigger, although not quite as precisely as it can using the PangoTalk
@@ -1893,18 +1893,3 @@ cross-fader). All it needs to do is call
 
 <2> And this function builds the channel fader controls themselves and
 hooks them up to the previous function.
-
-
-To be continued...
-
-
-== Learning More
-
-****
-
-* Continue to <<{guide-top}#what-next,What Next?>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]

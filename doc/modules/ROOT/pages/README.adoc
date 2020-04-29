@@ -1,26 +1,5 @@
 = Beat Link Trigger User Guide
 James Elliott <james@deepsymmetry.org>
-:icons: font
-:experimental:
-
-// Set up support for relative links on GitHub, and give it
-// usable icons for admonitions, w00t! Add more conditions
-// if you need to support other environments and extensions.
-ifdef::env-github[]
-:outfilesuffix: .adoc
-:tip-caption: :bulb:
-:note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
-:warning-caption: :warning:
-endif::env-github[]
-
-// Render section header anchors in a GitHub-compatible way when
-// building the embedded user guide.
-ifndef::env-github[]
-:idprefix:
-:idseparator: -
-endif::env-github[]
 
 This is an introduction to the Beat Link Trigger interface and
 expression programming environment. It shows some ways you can use it,
@@ -147,7 +126,7 @@ Most of the time you will want to be using Player 5, as shown here,
 because that is compatible with big shows where there are four real
 players in use. However, if you want to do things like letting an
 Ableton Link session become the Tempo Master and
-<<Link#full-sync-mode,control the speed>>
+<<Link#full-sync,control the speed>>
 and beat sync of the players, or display metadata for CD and other
 non-rekordbox tracks, you will need to use a real player number,
 which may require you to turn off one of the other players.
@@ -336,16 +315,28 @@ that have already been invested. Or perhaps to facilitate future
 efforts, tools, toys, and time to explore.
 
 +++
-<a href="https://liberapay.com/deep-symmetry/donate"><img align="center" alt="Donate using Liberapay"
+<a href="https://liberapay.com/deep-symmetry/donate"><img style="vertical-align:middle" alt="Donate using Liberapay"
     src="https://liberapay.com/assets/widgets/donate.svg"></a> using Liberapay, or
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img align="center"
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img
+    style="vertical-align:middle"
     alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 +++
 
 > If enough people jump on board, we may even be able to get a newer
 > CDJ to experiment with, although that’s an unlikely stretch goal.
 
-include::partial$Footer.adoc[]
+== License
+
++++<a href="http://deepsymmetry.org"><img src="_images/DS-logo-bw-200.png" style="float:right;margin-left:1em" alt="Deep Symmetry logo" width="200" height="124"></a>+++
+Copyright &copy; {page-copyright} http://deepsymmetry.org[Deep Symmetry, LLC]
+
+Distributed under the https://opensource.org/licenses/EPL-2.0[Eclipse
+Public License 2.0]. By using this software in any fashion, you are
+agreeing to be bound by the terms of this license. You must not remove
+this notice, or any other, from this software. A copy of the license
+can be found in
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
+within this project.
 
 
 == Library Licenses

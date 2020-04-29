@@ -1,9 +1,10 @@
 = Show Internal Structures
 include::partial$PagePreamble.adoc[]
 
-The data structures used internally by Beat Link Trigger to implement
-shows. Because some of the elements can be useful when writing your
-own expressions, they are made available to those expressions.
+These data structures are used internally by Beat Link Trigger to
+implement shows. Because some of the elements can be useful when
+writing your own expressions, they are made available to those
+expressions.
 
 [[show]]
 == The Show
@@ -384,14 +385,3 @@ object) that identifies this cue within the show, so it can be
 recognized in the lists of which players are positioned inside it,
 playing it, and so on, or looked up in a track's <<#cues-map,`:cues`
 map>>.
-
-== Learning More
-
-****
-
-* Continue to <<Matching#matching-tracks,Matching Tracks>>
-* Return to <<{guide-top}#beat-link-trigger-user-guide,Top>>
-
-****
-
-include::partial$Footer.adoc[]
