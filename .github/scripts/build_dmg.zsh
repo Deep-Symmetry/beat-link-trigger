@@ -56,7 +56,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     echo "Creating the disk image."
     mkdir Output
     mv "$blt_name.app" Output
-    hdiutil create -volname "$blt_name" -srcfolder Output/ -ov -format UDZO "$dmg_name"
+    hdiutil create -volname "$blt_name" -fs HFS+ -srcfolder Output/ -ov -format UDZO "$dmg_name"
 
     # Code sign the disk image as well.
     echo "Code signing the disk image."

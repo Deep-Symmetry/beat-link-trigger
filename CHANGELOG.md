@@ -40,6 +40,13 @@ This change log follows the conventions of
 - The user guide now has a search feature, making it easier to find
   content even if it is on a different page.
 
+### Changed
+
+- The macOS build process now creates HFS+ (MacOS Extended) disk
+  images rather than the default APFS filesystem that it was
+  previously using. This allows them to be opened on High Sierra
+  (10.12) and earlier.
+
 
 ## [0.6.1] - 2020-02-09
 
