@@ -398,8 +398,8 @@ smarter, so it only tries to open Player Status when already Online:
 
 [source,clojure,subs=attributes+]
 ----
-(when (.isRunning (VirtualCdj/getInstance))  {conum-guard-clojure} <1>
-  (beat-link-trigger.triggers/show-player-status))  {conum-guard-clojure} <2>
+(when (.isRunning (VirtualCdj/getInstance))  ;; <1>
+  (beat-link-trigger.triggers/show-player-status))  ;; <2>
 ----
 
 <1> A `when` clause in Clojure only executes its body if a test
@@ -428,13 +428,13 @@ protocol]:
 
 [source,clojure,subs=attributes+]
 ----
-(let [chamsys-address (InetSocketAddress.  {conum-guard-clojure} <1>
+(let [chamsys-address (InetSocketAddress.  ;; <1>
                        (InetAddress/getByName "172.16.42.255") 6553)
-      trigger-on (byte-array (map int "71,1H"))  {conum-guard-clojure} <2>
+      trigger-on (byte-array (map int "71,1H"))  ;; <2>
       trigger-off (byte-array (map int "71,0H"))]
-  (swap! globals assoc  {conum-guard-clojure} <3>
-         :chamsys-socket (DatagramSocket.)  {conum-guard-clojure} <4>
-         :chamsys-on (DatagramPacket. trigger-on (count trigger-on)  {conum-guard-clojure} <5>
+  (swap! globals assoc  ;; <3>
+         :chamsys-socket (DatagramSocket.)  ;; <4>
+         :chamsys-on (DatagramPacket. trigger-on (count trigger-on) ;; <5>
                                       chamsys-address)
          :chamsys-off (DatagramPacket. trigger-off (count trigger-off)
                                       chamsys-address)))
@@ -509,11 +509,11 @@ automatically open the Carabiner window and connect to it:
 
 [source,clojure,subs=attributes+]
 ----
-(beat-link-trigger.carabiner/show-window nil)  {conum-guard-clojure} <1>
-(beat-link-trigger.carabiner/connect)  {conum-guard-clojure} <2>
-(beat-link-trigger.carabiner/sync-mode :passive)  {conum-guard-clojure} <3>
-(beat-link-trigger.carabiner/sync-link true)  {conum-guard-clojure} <4>
-(beat-link-trigger.carabiner/align-bars true)  {conum-guard-clojure} <5>
+(beat-link-trigger.carabiner/show-window nil)  ;; <1>
+(beat-link-trigger.carabiner/connect)  ;; <2>
+(beat-link-trigger.carabiner/sync-mode :passive)  ;; <3>
+(beat-link-trigger.carabiner/sync-link true)  ;; <4>
+(beat-link-trigger.carabiner/align-bars true)  ;; <5>
 ----
 
 <1> Opens the Carabiner window.
@@ -697,9 +697,9 @@ it is watching is currently playing--so we wrap our expression in a
 
 [source,clojure,subs=attributes+]
 ----
-(when trigger-active?  {conum-guard-clojure} <1>
-  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  {conum-guard-clojure} <2>
-    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  {conum-guard-clojure} <3>
+(when trigger-active?  ;; <1>
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
+    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  ;; <3>
 ----
 
 <1> Skip this whole expression if the trigger isn’t active.
@@ -729,13 +729,13 @@ a new one when it is different. We will use a local named
 
 [source,clojure,subs=attributes+]
 ----
-(when trigger-active?  {conum-guard-clojure} <1>
-  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  {conum-guard-clojure} <2>
+(when trigger-active?  ;; <1>
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
-             (when (not= pitch old-pitch)  {conum-guard-clojure} <3>
-               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))  {conum-guard-clojure} <4>
-             pitch))))  {conum-guard-clojure} <5>
+             (when (not= pitch old-pitch)  ;; <3>
+               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))  ;; <4>
+             pitch))))  ;; <5>
 ----
 
 <1> Once again we are only doing anything when the trigger is active;
@@ -767,7 +767,7 @@ will report the new pitch value each time it is sent, like this:
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
              (when (not= pitch old-pitch)
-               (timbre/info "New pitch:" pitch)  {conum-guard-clojure} <1>
+               (timbre/info "New pitch:" pitch)  ;; <1>
                (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))
              pitch))))
 ----
@@ -845,10 +845,10 @@ enter the following code in the Beat Expression editor:
 
 [source,clojure,subs=attributes+]
 ----
-(.send (:chamsys-socket @locals) (:chamsys-on @locals))  {conum-guard-clojure} <1>
-(future  {conum-guard-clojure} <2>
-  (Thread/sleep (long (/ 30000 effective-tempo)))  {conum-guard-clojure} <3>
-  (.send (:chamsys-socket @locals) (:chamsys-off @locals)))  {conum-guard-clojure} <4>
+(.send (:chamsys-socket @locals) (:chamsys-on @locals))  ;; <1>
+(future  ;; <2>
+  (Thread/sleep (long (/ 30000 effective-tempo)))  ;; <3>
+  (.send (:chamsys-socket @locals) (:chamsys-off @locals)))  ;; <4>
 ----
 
 <1> Immediately send the UDP packet that tells MagicQ that the remote

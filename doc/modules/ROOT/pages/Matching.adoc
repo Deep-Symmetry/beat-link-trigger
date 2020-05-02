@@ -120,16 +120,16 @@ install the following Tracked Update Expression:
 
 [source,clojure,subs=attributes+]
 ----
-(when trigger-active?  {conum-guard-clojure} <1>
-  (when (not= track-metadata (:last-track @locals))  {conum-guard-clojure} <2>
-    (swap! locals assoc :last-track track-metadata)  {conum-guard-clojure} <3>
-    (when (some? track-metadata)  {conum-guard-clojure} <4>
-      (let [log-entry (with-out-str  {conum-guard-clojure} <5>
+(when trigger-active?  ;; <1>
+  (when (not= track-metadata (:last-track @locals))  ;; <2>
+    (swap! locals assoc :last-track track-metadata)  ;; <3>
+    (when (some? track-metadata)  ;; <4>
+      (let [log-entry (with-out-str  ;; <5>
                         (println "Timestamp:" (str (java.time.LocalDateTime/now)))
                         (println "   Artist:" track-artist)
                         (println "    Title:" track-title)
                         (println))]
-       (spit "/Users/james/Desktop/playlist.txt" log-entry :append true)))))  {conum-guard-clojure} <6>
+       (spit "/Users/james/Desktop/playlist.txt" log-entry :append true)))))  ;; <6>
 ----
 
 <1> Only proceed into the expression when there is a Master Player,
