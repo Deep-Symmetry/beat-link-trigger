@@ -1,7 +1,7 @@
 # beat-link-trigger
 
 [![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
- <img style="float:right" width="275" height="250" alt="Beat Link"
+ <img align="right" width="275" height="250" alt="Beat Link"
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
 An application to trigger MIDI events when CDJs start playing tracks,
@@ -214,7 +214,7 @@ on, you will be able to run that copy by just double-clicking it.
 
 ## Licenses
 
-<a href="http://deepsymmetry.org"><img style="float:right;margin-left:1em" alt="Deep Symmetry"
+<a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
  src="doc/modules/ROOT/assets/images/DS-logo-bw-200.png" width="200" height="124"></a>
 
 Copyright © 2016&ndash;2020 [Deep Symmetry, LLC](http://deepsymmetry.org)
@@ -371,7 +371,7 @@ within this project.
 
 
 <a href="https://www.netlify.com">
-  <img style="float:right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
+  <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
 </a>
 
 #### [Antora](https://antora.org)
