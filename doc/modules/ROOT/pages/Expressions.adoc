@@ -836,50 +836,40 @@ messages here, much like the Activation Expression.
 
 === Beat Expression
 
-This is called when any of the watched players reports the start of a
-new beat. Continuing the example started in the
+This is called when the player currently being tracked reports the
+start of a new beat. Continuing the example started in the
 <<global-setup-expression,Global Setup Expression>>, here is how you
 could synchronize the BPM of your ChamSys MagicQ console to the beats
-coming from your CDJs. Set the trigger to watch Any Player, and then
-within the Beat expression, we will react only to beat packets from
-the mixer, since it will always track the master player.
-
-NOTE: You may have realized we could also just set the trigger to
-watch the Master Player, but this shows an example of how to filter
-beat packets by the player number of the device sending them, and that
-you get beat packets from the mixer itself too, if it is a DJM.
+coming from your CDJs. Set the trigger to watch the Master Player, and
+enter the following code in the Beat Expression editor:
 
 [source,clojure,subs=attributes+]
 ----
-(when (= device-number 33)  {conum-guard-clojure} <1>
-  (.send (:chamsys-socket @locals) (:chamsys-on @locals))  {conum-guard-clojure} <2>
-  (future  {conum-guard-clojure} <3>
-    (Thread/sleep (long (/ 30000 effective-tempo)))  {conum-guard-clojure} <4>
-    (.send (:chamsys-socket @locals) (:chamsys-off @locals))))  {conum-guard-clojure} <5>
+(.send (:chamsys-socket @locals) (:chamsys-on @locals))  {conum-guard-clojure} <1>
+(future  {conum-guard-clojure} <2>
+  (Thread/sleep (long (/ 30000 effective-tempo)))  {conum-guard-clojure} <3>
+  (.send (:chamsys-socket @locals) (:chamsys-off @locals)))  {conum-guard-clojure} <4>
 ----
 
-<1> After checking that the packet came from the mixer (both the DJM 900
-nexus and the DJM 2000 nexus identify themselves as player number 33),
-
-<2> we immediately send the UDP packet that tells MagicQ that the remote
+<1> Immediately send the UDP packet that tells MagicQ that the remote
 trigger is on.
 
-<3> We want to later tell it that it is off, but it is
+<2> We want to later tell it that it is off, but it is
 critical that Beat Link Trigger expressions finish and return
 promptly, or they will back up the whole event distribution system,
 and cause other events to be delayed or lost. So we use Clojure’s
 http://clojuredocs.org/clojure.core/future[`future`] to send a block
 of code to be executed in the background on another thread.
 
-<4> The expression will return immediately, but in the background our
+<3> The expression will return immediately, but in the background our
 inner block of code sleeps for half a beat (we calculate that by
 dividing 30,000 milliseconds, or half a minute, by the number of beats
 per minute that the mixer reported it is running at).
 
-<5> When we wake up, halfway through the beat, we send the other UDP
+<4> When we wake up, halfway through the beat, we send the other UDP
 message that tells MagicQ the remote trigger is off again. So, by
 cycling those messages once per beat, the lighting console can be
-driven at the same BPM as the CDJs.
+driven at the same BPM as the master CDJ.
 
 [[show-shared-functions]]
 == Show Shared Functions
