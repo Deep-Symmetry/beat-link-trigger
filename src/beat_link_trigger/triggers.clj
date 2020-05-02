@@ -1012,7 +1012,7 @@
   "Organizes the portions of a trigger which are saved or exported."
   [trigger]
   (-> (seesaw/value trigger)
-             (dissoc :status :enabled-label :index)
+             (dissoc :status :channel-label :enabled-label :index)
              (merge (when-let [exprs (:expressions @(seesaw/user-data trigger))]
                       {:expressions exprs}))))
 
