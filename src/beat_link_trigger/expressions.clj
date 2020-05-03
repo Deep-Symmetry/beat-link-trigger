@@ -211,11 +211,15 @@
                                                  :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window."}}}
 
    Beat {:inherit  [DeviceUpdate]
-         :bindings {'tempo-master? {:code '(.isTempoMaster status)
+         :bindings {'beat-number   {:code '(or (when-let [position (playback-time status)]
+                                                 (when-let [grid (.getLatestBeatGridFor beatgrid-finder status)]
+                                                   (.findBeatAtTime grid position)))
+                                               -1)
+                                    :doc "Identifies the beat of the track that just played. This counter starts at beat 1 as the track is played, and increments on each beat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
+                    'tempo-master? {:code '(.isTempoMaster status)
                                     :doc  "Was this beat sent by the current tempo master?"}
                     'on-air?       {:code '(.isOnAir (.getLatestStatusFor (VirtualCdj/getInstance) status))
-                                    :doc
-                                    "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}}}
+                                    :doc  "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}}}
 
    MixerStatus {:inherit  [DeviceUpdate]
                 :bindings {'tempo-master? {:code '(.isTempoMaster status)
@@ -226,7 +230,7 @@
                                                :doc  "Is the player currently stopped at the end of a track?"}
                          'beat-number         {:code '(.getBeatNumber status)
                                                :doc
-                                               "Identifies the beat of the track that being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
+                                               "Identifies the beat of the track that is currently being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
                          'busy?               {:code '(.isBusy status)
                                                :doc  "Will be <code>true</code> if the player is doing anything."}
                          'cue-countdown       {:code '(.getCueCountdown status)

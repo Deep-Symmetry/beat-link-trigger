@@ -24,9 +24,9 @@ This change log follows the conventions of
 
 ### Added
 
-- Player Status window now distinguishes between players that in full
-  Sync mode and those that have degraded to BPM Sync mode because the
-  DJ did a pitch bend (e.g. by nudging the jog wheel).
+- Player Status window now distinguishes between players that are in
+  full Sync mode and those that have degraded to BPM Sync mode because
+  the DJ did a pitch bend (e.g. by nudging the jog wheel).
 - You can create folders in the Cue Library of a Show to make it
   easier to work with large numbers of Cues.
 - By holding down the Shift key when bringing up the Track context
@@ -35,6 +35,11 @@ This change log follows the conventions of
   especially helpful when you have made changes to a track in
   rekordbox (such as fine-tuning the beat grid) and want to reconnect
   your show to it.
+- The Beat Expression now gives you access to the current beat number
+  even though the protocol itself fails to include that vital
+  information in beat packets! This works as long as the TimeFinder is
+  running, which is almost always true since the creation of Crate
+  Digger.
 - The user guide now has a network troubleshooting guide for people
   who are having trouble getting connected to their players.
 - The user guide now has a search feature, making it easier to find
