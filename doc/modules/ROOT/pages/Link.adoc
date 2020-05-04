@@ -42,7 +42,7 @@ see at the bottom will depend on what is actually on your network):
 image:CarabinerWindow.png[Carabiner Connection window,396,447]
 
 NOTE: This window will also open whenever you choose `Link` in a
-trigger’s <<Triggers#message-menu,Message Menu>>, or load a trigger
+trigger’s <<Triggers.adoc#message-menu,Message Menu>>, or load a trigger
 that is configured that way, if Carabiner is not already connected.
 
 Set the `Carabiner Port` value to match the port on which your
@@ -76,7 +76,7 @@ of other Link-enabled programs (Link Peers) visible on the network.
 
 NOTE: Although in the past Triggers were the only way that you could
 synchronize an Ableton Link session, newer Sync modes like
-<<#passive-sync,Passive>> and <<#full-sync,Full>> are much simpler to
+<<passive-sync,Passive>> and <<full-sync,Full>> are much simpler to
 use, don't require you to set up any Triggers, and solve most common
 synchronization needs. I would suggest investigating those first, and
 coming back to explore using Triggers only if you have very specific
@@ -305,14 +305,14 @@ useful now that BLT can automatically run Carabiner for you when you
 connect, but you can also do it if you are running your own custom
 build of Carabiner and can guarantee it is running before BLT goes
 online), you can accomplish this using the
-<<Expressions#came-online-expression,Came Online Expression>>, and
+<<Expressions.adoc#came-online-expression,Came Online Expression>>, and
 there is an example of how to do this in the description of that
 expression.
 
 [[other-automation]]
 == Other Automation
 
-The example shown in the <<Expressions#came-online-expression,Came
+The example shown in the <<Expressions.adoc#came-online-expression,Came
 Online Expression>> illustrates that the Carabiner Connection window
 is designed for convenient use by your custom expression code. Here is
 a list of functions that you can call.
@@ -389,8 +389,8 @@ Once connected to Carabiner, you can choose a sync mode by calling
 `sync-mode`. With no arguments, it will return the current mode. To
 set a mode, pass a keyword argument with the value `:off`, `:trigger`,
 `:passive` or `:full`, which will turn Carabiner sync off, or set it
-to <<#syncing-triggers,Triggers>>, <<#passive-sync,Passive>>, or
-<<#full-sync,Full>> mode.
+to <<syncing-triggers,Triggers>>, <<passive-sync,Passive>>, or
+<<full-sync,Full>> mode.
 
 ```clojure
 (beat-link-trigger.carabiner/sync-mode :full)

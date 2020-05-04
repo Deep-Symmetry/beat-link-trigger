@@ -1,18 +1,13 @@
 = Matching Tracks
 include::partial$PagePreamble.adoc[]
 
-Configure your triggers to respond only when particular tracks are
-being played.
-
-== Overview
-
-As described in the <<Triggers#player-status-summary,Player Status
+As described in the <<Triggers.adoc#player-status-summary,Player Status
 Summary>> discussion, the most convenient way to match a track is
 using metadata obtained from the players, so Beat Link Trigger asks
 the player hosting the track for details like its title, artist, and
 so on. You can use this information to automatically write out a
 playlist during a performance, as described
-<<Matching#writing-a-playlist,below>>.
+<<writing-a-playlist,below>>.
 
 In earlier releases of Beat Link Trigger, automatically matching
 tracks was not nearly so easy or reliable, and required more tricky
@@ -22,7 +17,7 @@ is doing for you automatically.
 
 TIP: Rather than using the low-level approaches described in this
 section, you will almost always want to use the new, convenient
-<<Shows#shows,Show interface>> introduced in version 0.5. It gives you
+<<Shows.adoc#shows,Show interface>> introduced in version 0.5. It gives you
 an incredibly powerful graphical interface for matching tracks and
 defining cues on beat ranges within those tracks.
 
@@ -30,7 +25,7 @@ If, for some reason, you don’t want to use the Show interface, and you
 are unable to get metadata (although as of version 0.5.0 we can’t
 think of any situations where this might apply), you can prepare ahead
 of time by hard-coding the rekordbox ID numbers in your triggers, or
-you can set up a <<Players#caching-metadata,Metadata Cache>>.
+you can set up a <<Players.adoc#caching-metadata,Metadata Cache>>.
 
 == Manual Track Matching
 
@@ -111,7 +106,7 @@ fancier in terms of how you format the timestamps and what information
 you log.
 
 TIP: Starting with version 0.4.0, Beat Link Trigger has a built-in
-<<Debugging#writing-playlists,Playlist Writer window>> that does all
+<<Debugging.adoc#writing-playlists,Playlist Writer window>> that does all
 this for you, and more. This discussion has been left in as an example
 of the kinds of things you can do with your expression code.
 
