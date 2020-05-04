@@ -3,6 +3,7 @@
   evaluated, which provides support for making them easier to write."
   (:require [clojure.repl :refer :all]
             [clojure.set]
+            [clojure.string :as str]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [clojure.walk]
