@@ -99,8 +99,9 @@ themselves, which comes <<bb-cue-library,next>>.
   started-late expression, return the player number of the other
   player we are supposed to be mixing with."
   [cue-status]
-  (first (clojure.set/difference @bb-players-for-mixing
-                                 #{(.getDeviceNumber (extract-raw-cue-update cue-status))})))
+  (first (clojure.set/difference
+          @bb-players-for-mixing
+          #{(.getDeviceNumber (extract-raw-cue-update cue-status))})))
 
 (defn bb-start-player <3>
   "Tells the specified player number to start playing as long as it is
@@ -124,7 +125,8 @@ themselves, which comes <<bb-cue-library,next>>.
   [cue-status]
   (.sendSyncModeCommand virtual-cdj (bb-other-player cue-status) true)
   (.sendFaderStartCommand virtual-cdj
-                          #{(bb-other-player cue-status)} #{(bb-this-player cue-status)}))
+                          #{(bb-other-player cue-status)}
+                          #{(bb-this-player cue-status)}))
 
 (defn bb-load-track-on-other-player <4>
   "Tells the other player to load the track with the specified rekordbox ID
@@ -134,7 +136,8 @@ themselves, which comes <<bb-cue-library,next>>.
   [cue-status track-id]
   (let [status (.getLatestStatusFor virtual-cdj (bb-this-player cue-status))]
     (.sendLoadTrackCommand virtual-cdj (bb-other-player cue-status) track-id
-                           (.getTrackSourcePlayer status) (.getTrackSourceSlot status)
+                           (.getTrackSourcePlayer status)
+                           (.getTrackSourceSlot status)
                            (.getTrackType status)))
   (.appointTempoMaster virtual-cdj (bb-this-player cue-status)))
 
@@ -146,7 +149,8 @@ themselves, which comes <<bb-cue-library,next>>.
   [cue-status track-id]
   (let [status (.getLatestStatusFor virtual-cdj (bb-this-player cue-status))]
     (.sendLoadTrackCommand virtual-cdj (bb-this-player cue-status) track-id
-                           (.getTrackSourcePlayer status) (.getTrackSourceSlot status)
+                           (.getTrackSourcePlayer status)
+                           (.getTrackSourceSlot status)
                            (.getTrackType status))))
 ----
 
@@ -195,9 +199,9 @@ they enable clever cues to do just that:
 .Shared Functions, part 2
 [source,clojure]
 ----
-;; This last set of functions are when you want to be able to control tempo during your mixes,
-;; and will only work when you have Beat Link Trigger using a real player number (so there can't
-;; be more than three CDJs on the network).
+;; This last set of functions are when you want to be able to control tempo
+;; during your mixes, and will only work when you have Beat Link Trigger
+;; using a real player number.
 (defn bb-prepare-for-tempo-adjustments   ;; <1>
   "Gets the Virtual CDJ ready to tweak the tempo when Break Buddy cues
   need it to, or reports an error if BLT is not configured to use a real
@@ -207,8 +211,10 @@ they enable clever cues to do just that:
     (do
       (.setSynced virtual-cdj true)
       (.setPlaying virtual-cdj true))
-    (seesaw/alert "Beat Link Trigger needs use a real player number to make tempo adjustments."
-                  :title "Show Shared Functions prepare-for-tempo-adjustments failed" :type :error)))
+    (seesaw/alert
+     "Beat Link Trigger must use a real player number to adjust tempo."
+     :title "Show Shared Functions prepare-for-tempo-adjustments failed"
+     :type :error)))
 
 (defn bb-tempo-adjust-step   ;; <2>
   "Called periodically while we are adjusting tempo. Figures out what
@@ -216,7 +222,8 @@ they enable clever cues to do just that:
   [cue-status {:keys [start-time start-tempo tempo-distance time-distance]}]
   (when-let [current-time (playback-time (extract-raw-cue-update cue-status))]
     (let [time-passed (- current-time start-time)
-          new-tempo   (+ start-tempo (* tempo-distance (/ time-passed time-distance)))]
+          new-tempo   (+ start-tempo
+                         (* tempo-distance (/ time-passed time-distance)))]
       (.setTempo virtual-cdj new-tempo))))
 
 (defn bb-start-tempo-adjust   ;; <3>

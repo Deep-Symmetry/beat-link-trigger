@@ -1,0 +1,213 @@
+= Chauvet ShowXpress Live (SweetLight, QuickDMX)
+include::partial$PagePreamble.adoc[]
+
+https://github.com/PouleR[PouleR] pointed out that
+https://www.chauvetdj.com/showxpress/[this lighting control software],
+which goes by several different names, can be configured to respond to
+commands on a TCP socket, and asked for some help in figuring out how
+to take advantage of that from Beat Link Trigger. I was happy to do
+so, and it turns out to work quite well.
+
+To enable this integration, make sure that *External control* is
+turned on in the ShowXpress Live Preferences, and choose a password.
+Quit and relaunch the application if this was not turned on when you
+initially opened it.
+
+image:LiveExternalControl.png[ShowXpress Live Preferences,700,540]
+
+Then paste this block of code into Beat Link Trigger’s Shared
+Functions:
+
+```clojure
+(defn live-response-handler
+  "A loop that reads messages from ShowXpress Live and responds
+  appropriately."
+  []
+  (try
+    (loop [socket (get-in @globals [:live-connection :socket])]
+      (when (and socket (not (.isClosed socket)))
+        (let [buffer (byte-array 1024)
+              input  (.getInputStream socket)
+              n      (.read input buffer)]
+          (when (pos? n)  ; We got data, so the socket has not yet been closed.
+            (let [message (String. buffer 0 n "UTF-8")]
+              (timbre/info "Received from ShowXpress Live:" message)
+              (cond
+                (= message "HELLO\r\n")
+                (timbre/info "ShowXpress Live login successful.")
+
+                (= message "BEAT_ON\r\n")
+                (do (swap! globals assoc-in [:live-connection :beats-requested]
+                           true)
+                    (timbre/info
+                     "Beat message request from ShowXpress Live recorded."))
+
+                (= message "BEAT_OFF\r\n")
+                (do (swap! globals assoc-in [:live-connection :beats-requested]
+                           false)
+                    (timbre/info
+                     "Beat message request from ShowXpress Live removed."))
+
+                (.startsWith message "ERROR")
+                (timbre/warn "Error message from ShowXpress Live:" message)
+
+                :else
+                (timbre/info
+                 "Ignoring unrecognized ShowXpress message type.")))
+            (recur (get-in @globals [:live-connection :socket]))))))
+    (catch Throwable t
+      (timbre/error t "Problem reading from ShowXpress Live, loop aborted."))))
+
+(defn send-live-command
+  "Sends a command message to ShowXpress Live."
+  [message]
+  (let [socket (get-in @globals [:live-connection :socket])]
+    (if (and socket (not (.isClosed socket)))
+      (.write (.getOutputStream socket)
+              (.getBytes (str message "\r\n") "UTF-8"))
+      (timbre/warn
+       "Can't write to ShowXpress Live, no socket, discarding:" message))))
+
+(defn set-live-tempo
+  "Tells ShowXpress Live the current tempo if it is different than the
+  value we last reported. Rounds to the nearest beat per minute
+  because the protocol does not seem to accept any fractional values.
+  The expected way to use this is to include the following in a
+  trigger’s Tracked Update Expression:
+
+  `(when trigger-active? (set-live-tempo effective-tempo))`"
+  [bpm]
+  (let [bpm (Math/round bpm)]
+    (when-not (= bpm (get-in @globals [:live-connection :bpm]))
+      (send-live-command (str "BPM|" bpm))
+      (swap! globals assoc-in [:live-connection :bpm] bpm)
+      (timbre/info "ShowXpress Live tempo set to" bpm))))
+
+(defn send-live-beat
+  "Sends a beat command to ShowXpress Live if we have received a
+  request to do so. The expected way to use this is to include the
+  following in a trigger’s Beat Expresssion:
+
+  `(when trigger-active? (send-live-beat))`"
+  []
+  (when (get-in @globals [:live-connection :beats-requested])
+    (send-live-command "BEAT")))
+
+(defn send-button-press
+  "Sends a BUTTON PRESS command to ShowXpress Live."
+  [message]
+    (send-live-command (str "BUTTON_PRESS|" message)))
+
+(defn send-button-release
+  "Sends a BUTTON RELEASE command to ShowXpress Live."
+  [message]
+    (send-live-command (str "BUTTON_RELEASE|" message)))
+
+;; Attempt to connect to the Live external application port.
+;; Edit the variable definitions below to reflect your setup.
+(try
+  (let [live-address    "127.0.0.1"
+        live-port       7348
+        live-password   "pw"
+        connect-timeout 5000
+        socket-address  (InetSocketAddress. live-address live-port)
+        socket          (java.net.Socket.)]
+    (.connect socket socket-address connect-timeout)
+    (swap! globals assoc :live-connection {:socket socket})
+    (future (live-response-handler))
+    (send-live-command (str "HELLO|beat-link-trigger|" live-password)))
+  (catch Exception e
+    (timbre/error e "Unable to connect to ShowXpress Live")))
+```
+
+NOTE: You will want to edit the values assigned to `live-address`,
+`live-port`, and `live-password` to match your setup. This code
+assumes that ShowXpress Live already running and configured to listen
+on the specified port before you launch Beat Link Trigger. If nothing
+seems to be working, check the log file for error messages, and see if
+the login process was successful. Unfortunately, there is no friendly
+user interface to tell it to try again if it was not, but you can do
+so by editing the Global Setup Expression and saving it--even without
+making any changes, that will run both the shutdown and setup code
+again for you.
+
+Also paste this smaller block of code into the Global Shutdown
+Expression:
+
+```clojure
+;; Disconnect from the Live external application port.
+(when-let [socket (get-in @globals [:live-connection :socket])]
+  (.close socket)
+  (swap! globals dissoc :live-connection))
+```
+
+With these in place, Beat Link Trigger will maintain a connection to
+the ShowXpress Live external control port while it runs, and make
+a new set of functions available to all your trigger expressions which
+make it easy to send tempo information and cue commands.
+
+If you want to control the Live BPM, it is probably easiest to
+set up a single trigger to Watch the Master Player, and set its
+Tracked Update Expression to:
+
+```clojure
+(when trigger-active? (set-live-tempo effective-tempo))
+```
+
+Whenever you have this trigger enabled, it will slave the tempo in
+ShowXpress Live to the tempo of the Master Player.
+
+You may also want to set this trigger’s Beat Expression to:
+
+```clojure
+(when trigger-active? (send-live-beat))
+```
+
+That way, if Live has requested that we send `BEAT` messages on each
+beat, the triggers will do so when they are active. (But if it has not
+requested that, they will not.)
+
+NOTE: It is not entirely clear to me what the purpose of the BEAT
+messages is, so sending them might be redundant given that we are
+already sending BPM messages whenever the BPM value changes, rounded
+to the nearest integer, which is the most precision that the protocol
+seems to support.
+
+Of course you will also want to be able to trigger light cues when
+triggers activate, which is as simple as setting the trigger’s
+Activation Expression to something like:
+
+```clojure
+(send-button-press "Chill 3")
+```
+
+This causes the button labeled "Chill 3" in Live to be pressed when
+the trigger activates. To have the cue released when the trigger
+deactivates, as you might expect, you set the trigger’s Deactivation
+Expression to something like:
+
+```clojure
+(send-button-release "Chill 3")
+```
+
+And, as with all triggers, you can configure it to be active only when
+a CDJ is playing a particular track, or is within a particular range
+of beats within that track, as shown in
+<<Matching.adoc#matching-tracks,Matching Tracks>> earlier. This allows
+you to have certain looks called up automatically when the right parts
+of the right tracks are played.
+
+TIP: If you jumped to this section to learn about how to integrate the
+lighting controller with CDJs, and you think it looks promising, you
+will want to go back and read this entire user guide to get a better
+understanding of how to make your triggers activate, and the other
+things you can do with Beat Link Trigger.
+
+Additionally, you can send any other command supported by the external
+control protocol (documented
+http://forum.thelightingcontroller.com/viewtopic.php?f=72&t=4183[here]),
+like this, which would tell it to set fader number 2 to position 0:
+
+```clojure
+(send-live-command "FADER_CHANGE|2|0")
+```
