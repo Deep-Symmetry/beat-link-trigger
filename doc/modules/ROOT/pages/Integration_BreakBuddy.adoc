@@ -334,10 +334,11 @@ tempos in the expressions as needed for the details of your mix.
 
 image:BreakBuddyCueLibrary.png[Break Buddy Cue Library,912,712]
 
-See the <<Shows#cue-library,Cue Library guide>> if you need a reminder
-of how to place such cues in a show track. This section describes how
-three of them are used to perform a smooth, tempo-adjusted mix between
-_Concrete Angel_ and _Transcendence_ in this sample show.
+See the <<Shows_CueLibrary.adoc#,Cue Library guide>> if you need a
+reminder of how to place such cues in a show track. This section
+describes how three of them are used to perform a smooth,
+tempo-adjusted mix between _Concrete Angel_ and _Transcendence_ in
+this sample show.
 
 Because _Concrete Angel_ is designed to be the first track in the
 automatic mix, once playing it needs to load the track it is supposed

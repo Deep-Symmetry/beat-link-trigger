@@ -1,5 +1,4 @@
 James Elliott <james@deepsymmetry.org>
-
 // Render section header anchors in a GitHub-compatible way when
 // building the embedded user guide.
 ifndef::env-github[]

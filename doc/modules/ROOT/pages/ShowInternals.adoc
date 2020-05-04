@@ -189,7 +189,7 @@ so on, or looked up in the show's <<tracks-map,`:tracks` map>>.
 
 `:tripped`:: Will be `true` when the track is currently enabled and
 loaded on at least one player (the same conditions under which there
-will be a green dot showing in the <<Shows.adoc#loaded-status,**Loaded
+will be a green dot showing in the <<Shows_Tracks.adoc#loaded-status,**Loaded
 Status** indicator>> of the track row).
 
 
@@ -207,7 +207,7 @@ This can be used to filter visible tracks.
 track, as described <<cues-editor,below>>.
 
 `:enabled`:: The Enabled setting for the track, as configured with the
-track's <<Shows.adoc#enabled-menu,Enabled Menu>>.
+track's <<Shows_Tracks.adoc#enabled-menu,Enabled Menu>>.
 
 `:expressions`:: A map holding the source text of any track-level
 expressions that have been created, indexed by the keyword identifying
@@ -215,31 +215,31 @@ the expression type.
 
 `:loaded-channel`:: The MIDI channel on which Loaded and Unloaded
 messages are sent, as configured with the track's
-<<Shows.adoc#loaded-channel-spinner,Loaded Channel Spinner>>.
+<<Shows_Tracks.adoc#loaded-channel-spinner,Loaded Channel Spinner>>.
 
 `:loaded-message`:: The type of message that will be sent for Loaded
 and Unloaded events, as configured with the track's
-<<Shows.adoc#loaded-message,Loaded Message Menu>>.
+<<Shows_Tracks.adoc#loaded-message,Loaded Message Menu>>.
 
 `:loaded-note`:: The MIDI note (or controller number) used to send
 Loaded and Unloaded messages, as configured with the track's
-<<Shows.adoc#loaded-note-spinner,Loaded Note/Controller Spinner>>.
+<<Shows_Tracks.adoc#loaded-note-spinner,Loaded Note/Controller Spinner>>.
 
 `:midi-device`:: The MIDI device to which track messages will be sent,
-as configured with the track's <<Shows.adoc#track-midi-output,MIDI Output
-Menu>>.
+as configured with the track's
+<<Shows_Tracks.adoc#track-midi-output,MIDI Output Menu>>.
 
 `:playing-channel`:: The MIDI channel on which Playing and Stopped
 messages are sent, as configured with the track's
-<<Shows.adoc#playing-channel-spinner,Playing Channel Spinner>>.
+<<Shows_Tracks.adoc#playing-channel-spinner,Playing Channel Spinner>>.
 
 `:playing-message`:: The type of message that will be sent for Playing
 and Stopped events, as configured with the track's
-<<Shows.adoc#playing-message,Playing Message Menu>>.
+<<Shows_Tracks.adoc#playing-message,Playing Message Menu>>.
 
 `:playing-note`:: The MIDI note (or controller number) used to send
 Playing and Stopped messages, as configured with the track's
-<<Shows.adoc#playing-note-spinner,Playing Note/Controller Spinner>>.
+<<Shows_Tracks.adoc#playing-note-spinner,Playing Note/Controller Spinner>>.
 
 [[track-metadata]]
 === Track Metadata
@@ -348,15 +348,15 @@ track's beat grid at which the cue ends.
 three keys, `:entered`, `:started-on-beat`, and `started-late`, and
 each of those hold inner maps with keys `:message`, `:note`, and
 `:channel`. Jointly these record the choices the user has made in the
-cue's <<Shows.adoc#entered-message,Entered Message Menu>>,
-<<Shows.adoc#entered-note-spinner,Entered Note/Controller Spinner>>,
-<<Shows.adoc#entered-channel-spinner,Entered Channel Spinner>>,
-<<Shows.adoc#started-on-beat-menu,Started On-Beat Message Menu>>,
-<<Shows.adoc#started-on-beat-note-spinner,Started On-Beat Note/Controller
-Spinner>>, <<Shows.adoc#started-on-beat-channel-spinner,Started On-Beat
-Channel Spinner>>, <<Shows.adoc#started-late-menu,Started Late Message
-Menu>>, <<Shows.adoc#started-late-note-spinner,Started Late Note/Controller
-Spinner>>, and <<Shows.adoc#started-late-channel-spinner,Started Late
+cue's <<Shows_Cues.adoc#entered-message,Entered Message Menu>>,
+<<Shows_Cues.adoc#entered-note-spinner,Entered Note/Controller Spinner>>,
+<<Shows_Cues.adoc#entered-channel-spinner,Entered Channel Spinner>>,
+<<Shows_Cues.adoc#started-on-beat-menu,Started On-Beat Message Menu>>,
+<<Shows_Cues.adoc#started-on-beat-note-spinner,Started On-Beat Note/Controller
+Spinner>>, <<Shows_Cues.adoc#started-on-beat-channel-spinner,Started On-Beat
+Channel Spinner>>, <<Shows_Cues.adoc#started-late-menu,Started Late Message
+Menu>>, <<Shows_Cues.adoc#started-late-note-spinner,Started Late Note/Controller
+Spinner>>, and <<Shows_Cues.adoc#started-late-channel-spinner,Started Late
 Channel Spinner>> respectively.
 +
 To make this concrete, here is an example `:events` map:
