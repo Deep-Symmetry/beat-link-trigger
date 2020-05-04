@@ -1,0 +1,297 @@
+= MIDI Cues from rekordbox
+include::partial$PagePreamble.adoc[]
+
+http://www.netskymusic.com[Netsky] was setting up a
+<<Shows.adoc#,show>> to run lights during his live streams and came up
+with a terrific idea: might it be possible to have Beat Link Trigger
+send simple MIDI cues to his lighting controller based on hot cues
+created right within rekordbox, without the need to import the track
+into a show file and draw the cues there?
+
+Indeed, now that we know how to read cue names from the track analysis
+files, this can be done, and offers a very nice shortcut! Here's how
+it works. You can start by downloading the
+link:{attachmentsdir}/cueMidiSender.blt[configuration file] I created
+for him and opening that within Beat Link Trigger. That will set up a
+single trigger called "Cue-driven MIDI Sender" that watches the
+current Master player.
+
+WARNING: If you already have triggers of your own that you want to
+keep, be sure to save your configuration before opening another one!
+In that case you may want to export your triggers, or manually copy
+and paste the relevant pieces of code, <<shared-functions,shown
+below>>, into your Shared Functions and Expressions.
+
+[[trigger-window]]
+image:rbMidiTrigger.png[Cue-driven trigger,900,270]
+
+== Overview
+
+Once you have the functions, expressions, and trigger set up, using it
+is pretty simple! Within rekordbox, create a memory point or hot cue
+at the beat where you want a MIDI message to be sent, and then put the
+string `MIDI:` followed by the note number that you want to be sent
+when that beat is reached. For example, a hot cue with `MIDI:5`
+somewhere in its name would send note 5 when that beat is reached. The
+memory point or hot cue needs to be on a beat for this to work.
+
+If you already have a hot cue or memory point at the beat where
+you want the MIDI message sent, you can use it instead of creating
+another one there: just add the MIDI note request to its name.
+
+If you want more than one MIDI note to be sent when that beat is
+reached, you can list multiple numbers separated by commas (but no
+spaces or other characters), like `MIDI:5,42,100` which would send
+notes 5, 42, and 100 when reached.
+
+If you enter a number that is not a valid MIDI note (less than 1 or
+greater than 127), it will be ignored, and a warning about it will be
+added to the log file when that track is loaded.
+
+image:rbMidiTrack.png[Tracks with MIDI cues,620,850]
+
+TIP: If you don't want to only respond to cues being played on the
+Master player, you can change the player being watched by the trigger
+using the <<Triggers.adoc#watch-menu,Watch menu>>, and you can use the
+trigger's <<Triggers.adoc#context-menu,gear or context menu>> to
+export it to a file, then <<Triggers.adoc#,create new triggers>> and
+import that file into them, so you can have multiple copies watching
+different players.
+
+== Shared Code
+
+How does this all work? And if you don't want to blow away your
+configuration by loading the one linked above, how do you add these
+features to your existing configuration?
+
+This first set of expressions are configured using the menu:Triggers[]
+menu at the top of the window.
+
+[[shared-functions]]
+=== Shared Functions
+
+The first bit of magic happens by registering some code to watch for
+tracks to be loaded, and look for the special MIDI note markers in
+their cue lists. This is supported by a set of shared functions.
+
+If you loaded the configuration file, you don't need to type these,
+but may want to read them to learn more about how to create
+integrations like this. If you are keeping your existing configuration
+and want to add these new features, then copy and paste these at the
+end of your Triggers window Shared Functions:
+
+```clojure
+(defonce  ;; <1>
+ ^{:doc "Holds a map from player number to a map of cue times for that player.
+  The cue time maps are indexed by track position (in milliseconds),
+  and their values are sets of MIDI note numbers to send when we reach
+  a beat that is within 50 milliseconds of that time. This map is
+  built by `find-midi-cues` below whenever the track metadata for a
+  player changes."}
+  midi-cue-times (atom {}))
+
+(defn valid-midi-notes <2>
+  "Given a string containing a comma-delimited series of numbers,
+  returns a set consisting of all the numbers which correspond to
+  valid MIDI note numbers. Logs warnings for any which do not,
+  including the full name of the cue to help identify it."
+  [note-string cue-name]
+  (reduce (fn [result note]
+            (if (<= 1 note 127)  ; Check that the number is a valid MIDI note.
+              (conj result note)
+              (do  ; No, log warning and ignore this number.
+                (timbre/warn "Ignoring invalid MIDI note number" note
+                             "from cue" cue-name)
+                result)))
+          #{}
+          (map #(Long/valueOf %) (clojure.string/split note-string #","))))
+
+(defn find-midi-cues <3>
+  "Scans all the cues and loops found in the supplied track metadata
+  looking for any that contain the string MIDI: followed immediately
+  by a number. Returns a map whose keys are the track time at which
+  each such cue or loop begins, and whose values are sets of the
+  number that was found in the cue name(s) that started at that time.
+  If there is no track metadata, or it has no cue list, returns
+  `nil`."
+  [^TrackMetadata md]
+  (when md
+    (when-let [cue-list (.getCueList md)]
+      (reduce (fn [result cue]
+                (if-let [[_ notes] (re-find #"MIDI:(\d+(,\d+)*)"
+                                            (.-comment cue))]  ; Name matches.
+                  (update result (.-cueTime cue) (fnil clojure.set/union #{})
+                          (valid-midi-notes notes (.-comment cue)))
+                  result))
+              {} (.-entries cue-list)))))
+
+(def midi-cue-indexer <4>
+  "Responds to the coming and going of track metadata, and updates our
+  list of cue-defined beats on which MIDI messages need to be sent."
+  (reify org.deepsymmetry.beatlink.data.TrackMetadataListener
+    (metadataChanged [this md-update]
+      (swap! midi-cue-times assoc (.player md-update)
+                                  (find-midi-cues (.metadata md-update))))))
+
+(defn send-midi-cues-near-time <5>
+  "Finds all MIDI cues close enough to the specified time for the
+  specified device and sends the corresponding MIDI notes on the
+  specified MIDI output and channel."
+  [time device-number midi-output midi-channel]
+  (doseq [[_ notes] (filter (fn [[cue-time]]
+                             (> 50 (Math/abs (- time cue-time))))
+                            (get @midi-cue-times device-number))]
+        ;; Send note-on messages for each note specified by a cues we reached.
+        (doseq [note notes]
+          (midi/midi-note-on midi-output note 127 (dec midi-channel)))
+        ;; And then immediately send the corresponding note-off messages too.
+        (doseq [note notes]
+          (midi/midi-note-off midi-output note (dec midi-channel)))))
+```
+
+<1> This sets up an atom that will hold an index by player of any cues
+in that player's track whose name match the `MIDI:` pattern, their
+position within the track, and the MIDI notes that should be sent when
+the beat at that position is reached.
+
+<2> This splits the note-number part of the pattern we matched into a
+set of actual note numbers, rejecting and warning about any numbers
+that aren't valid MIDI notes.
+
+<3> This takes the metadata that describes a track that has been
+loaded into a player, and scans through all the hot cues, memory
+points, and loops in that track, looking for the pattern that
+identifies a request for MIDI notes. It builds the index structure for
+that track.
+
+<4> This creates an object that can be registered with the Beat Link
+library to update the MIDI cue index whenever there is new information
+about a track loaded in a player by calling the functions above.
+
+<5> This is a helper function called by the trigger whenever the track
+has moved to a new beat. It uses the index to see if it's supposed to
+send any MIDI notes, and sends them.
+
+=== Global Setup Expression
+
+When the configuration file is loaded, this arranges for the indexing
+function to be run as tracks come and go:
+
+```clojure
+(.addTrackMetadataListener metadata-finder midi-cue-indexer)
+```
+
+=== Global Shutdown Expression
+
+When the Triggers window is being closed, or a different configuration
+file is being loaded, this to unregistes our indexer:
+
+```clojure
+(.removeTrackMetadataListener metadata-finder midi-cue-indexer)
+```
+
+== Trigger Code
+
+The rest of the code goes in the trigger itself. If you didn't load
+the configuration file, create a new trigger, type "Cue-driven MIDI
+Sender" for its comment, set it to Watch the Master Player, set its
+Enabled filter to Always, and its Message to Custom, as shown
+<<trigger-window,above>>.
+
+TIP: You can close the Activation Expression editor that gets opened
+up without typing anything in there, because this is an unusual
+trigger that sends messages at times other than when it activates or
+deactivates. But we still want to have Message set to Custom because
+we don't want stray MIDI messages being sent just because the track
+started or stopped.
+
+Set the MIDI Output and Channel to where you want the MIDI messages to
+go. And then it's time for the final expressions that tie this all
+together. These are edited using the trigger's
+<<Triggers.adoc#context-menu,gear or context menu>>:
+
+=== Beat Expression
+
+This is run whenever a beat packet is received from the watched
+player, so it is a great place to check if it is time to send any MIDI
+cues using the helper function we looked at above:
+
+```clojure
+;; We can only run when a valid MIDI output is chosen,
+;; and the TimeFinder is running.
+(when (and trigger-output track-time-reached)
+  ;; Record that this beat has been handled, and
+  ;; the Tracked Update expression can ignore it.
+  (swap! midi-cue-times assoc-in [:sent device-number] beat-number)
+  ;; Send the MIDI cues, if any, falling on this beat.
+  (send-midi-cues-near-time track-time-reached device-number
+                            trigger-output trigger-channel))
+```
+
+If you read the comments in that code, they foreshadowed an issue: One
+thing that makes running shows based on the Pro DJ Link protocol
+challenging is that you don't always get beat messages when you want
+them. If you are playing through a track and pass over a beat, you're
+golden, you get the packet. But if you start the track at a beat, or
+jump to a hot cue that is at a beat, then sometimes you don't receive
+the beat packet, because the track was already a tiny bit past the
+precise beat moment.
+
+So that is what led to the most tricky code here (and in the Show
+feature). Here's how we work around it.
+
+=== Tracked Update Expression
+
+This is run whenever we get a status update from a player, which
+happens around five times per second. We can use it to see if we have
+started playing without getting a beat packet, or if we have jumped to
+a new beat because of a hot cue or memory point.
+
+```clojure
+;; We can only run when playing, a valid MIDI output is chosen,
+;; and the TimeFinder is running.
+(when (and playing? trigger-output track-time-reached)
+  ;; Do nothing if the current beat has already been handled.
+  (when (not= beat-number (get-in @midi-cue-times [:sent device-number]))
+    ;; Note that this beat's been handled for next time.
+    (swap! midi-cue-times assoc-in [:sent device-number] beat-number)
+    ;; Send the MIDI cues, if any, for the point where playback began.
+    ;; We assume playback began at the start of the current beat.
+    (let [grid    (.getLatestBeatGridFor beatgrid-finder device-number)
+          started (.getTimeWithinTrack grid beat-number)]
+      (send-midi-cues-near-time started device-number
+                                trigger-output trigger-channel))))
+```
+
+Both the Beat Expression and this Tracked Update expression make a
+special entry in the index atom to report when they have handled a
+particular beat, so this code doesn't send that beat's MIDI notes more
+than once.
+
+If the current beat hasn't been marked as already handled, this code
+finds the start time of the current beat, looks up any notes that
+should be sent for it, and sends them in the same way the Beat
+Expression did.
+
+With those two expressions in place, it doesn't matter how a beat is
+reached, its notes (if any) get sent.
+
+=== Deactivation Expression
+
+One final nice touch: if the DJ stops the track, we want to clear out
+the notion of what beat was handled, so that when the track starts up
+again, cues can get sent for it:
+
+```clojure
+;; Clear record of last beat handled since the player is stopping.
+;; If we restart in this same location, we should evaluate cues again.
+(swap! midi-cue-times update :sent dissoc device-number)
+```
+
+And that's all the code! Although there is a fair bit, considering how
+handy a new feature it implements, I was happy to see how compact and
+clean it could be.
+
+If you have any questions about using this, or ideas about new
+directions to take it, please raise them on the
+https://gitter.im/brunchboy/beat-link-trigger[Gitter channel].

@@ -40,6 +40,12 @@ when Beat Link Trigger is operating in Offline mode, and the ones that
 don’t make sense are simply hidden from view. This supports a flexible
 and convenient workflow.
 
+TIP: If you are managing your own tracks rather than working with one
+or more DJs, and just need a few cues triggered by MIDI notes when
+particular tracks reach particular places, you might be able to do
+something even easier than creating a show. Check out how to
+<<Integration_MIDI_rekordbox#,translate rekordbox cues to MIDI>>.
+
 [[creating]]
 == Creating a Show
 

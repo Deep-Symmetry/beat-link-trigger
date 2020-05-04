@@ -13,7 +13,8 @@ and loading that within Beat Link Trigger.
 WARNING: If you already have triggers of your own that you want to
 keep, be sure to save your configuration before opening another one!
 In that case you may want to export your triggers, or manually cut and
-paste the relevant pieces of code into your Shared Functions.
+paste the relevant pieces of code into your Triggers window Shared
+Functions.
 
 To begin with, paste this block of code into Beat Link Trigger’s
 Shared Functions:
