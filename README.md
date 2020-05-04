@@ -17,7 +17,7 @@ guide](https://blt-guide.deepsymmetry.org/).
 
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#license)
 
-> :boom* **Warning**: This does not yet work with files analyzed by
+> :boom: **Warning**: This does not yet work with files analyzed by
 > rekordbox 6. There have been changes to the database format that
 > will take us time to understand and cope with. Please stick to
 > rekordbox 5 and earlier until that can be done.
