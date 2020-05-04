@@ -10,7 +10,8 @@
   updated state of the show user data following a MIDI event."
   [state]
   (set (filter (fn [i]
-                 (>= (get state (keyword (str "channel-" i)) 0) xone-min-on-air-value))
+                 (>= (get state (keyword (str "channel-" i)) 0)
+                     xone-min-on-air-value))
                (range 1 5))))
 
 (defn xone-blocked-by-cross-fader  ;; <3>
@@ -20,8 +21,12 @@
   [state]
   (let [fader-position (:cross-fader state 0)]
     (cond
-      (< fader-position xone-min-on-air-value) (:y-channels state #{3 4})
-      (< (- 127 fader-position) xone-min-on-air-value) (:x-channels state #{1 2})
+      (< fader-position xone-min-on-air-value)
+      (:y-channels state #{3 4})
+
+      (< (- 127 fader-position) xone-min-on-air-value)
+      (:x-channels state #{1 2})
+
       :else #{})))
 
 (defn- xone-recompute-on-air  ;; <1>
@@ -46,19 +51,22 @@
   "Creates the vector of four labels identifying the channel faders."
   []
   (vec (for [i (range 4)]
-         (vec (concat [(seesaw/label (str (inc i))) (str "push 1" (when (= i 3) ", wrap"))])))))
+         (vec (concat [(seesaw/label (str (inc i)))
+                       (str "push 1" (when (= i 3) ", wrap"))])))))
 
 (defn xone-react-to-xy-change  ;; <1>
   "Handles a change in one of the tiny XY slider values, with `channel`
   holding the channel number controlled by the slider, and `v` is the
   new position."
   [show globals channel v]
-  (let [current (show/user-data show)        ; Find the current state of the X and Y channel assignments.
-        x       (:x-channels current #{1 2}) ; Apply the default assignments if they haven't yet been stored.
+  (let [current (show/user-data show)        ; Find state of X, Y assignments.
+        x       (:x-channels current #{1 2}) ; Apply defaults if none found.
         y       (:y-channels current #{3 4})
-        new-x   (if (neg? v) (conj x channel) (disj x channel))  ; Update assignments based on the new slider value.
+        ;; Update assignments based on the new slider value, and store in show.
+        new-x   (if (neg? v) (conj x channel) (disj x channel))
         new-y   (if (pos? v) (conj y channel) (disj y channel))
-        state   (show/swap-user-data! show assoc :x-channels new-x :y-channels new-y)]
+        state   (show/swap-user-data! show assoc :x-channels new-x
+                                      :y-channels new-y)]
     (xone-recompute-on-air state globals)))
 
 (defn xone-build-xy-sliders  ;; <2>
@@ -68,17 +76,18 @@
   (apply concat
          (for [i (range 1 5)]
            (let [state       (show/user-data show)
-                 saved-value (cond  ; See if the show has a saved position for this slider.
-                               ((:x-channels state #{1 2}) i) -1 ; Apply default positions if not found.
+                 saved-value (cond  ; Find show saved position for slider.
+                               ((:x-channels state #{1 2}) i) -1 ; Defaults.
                                ((:y-channels state #{3 4}) i) 1
                                :else 0)]
              [["X" "split 3, gapright 0"]
-              [(seesaw/slider :orientation :horizontal ; Build the slider UI object itself.
+              [(seesaw/slider :orientation :horizontal  ; Build UI object.
                               :min -1
                               :max 1
                               :value saved-value
-                              :listen [:state-changed #(xone-react-to-xy-change
-                                                        show globals i (seesaw/value %))])
+                              :listen [:state-changed
+                                       #(xone-react-to-xy-change
+                                         show globals i (seesaw/value %))])
                "width 45, gapright 0"]
               ["Y" (when (= i 4) "wrap")]]))))
 
@@ -93,13 +102,17 @@
   channel faders."
   [show globals]
   (vec (for [i (range 4)]
-         (let [k (keyword (str "channel-" (inc i)))]  ; Build the keyword identifying the slider.
-           (seesaw/slider :orientation :vertical      ; Build the slider UI object itself.
+         ;; Build the keyword identifying the slider.
+         (let [k (keyword (str "channel-" (inc i)))]
+           ;; Build the slider UI object itself.
+           (seesaw/slider :orientation :vertical
                           :min 0
                           :max 127
-                          :value (k (show/user-data show) 63)  ; Restore saved value, if one exists.
-                          :listen [:state-changed #(xone-react-to-slider-change
-                                                    show globals k (seesaw/value %))])))))
+                          ;; Restore saved value, if one exists.
+                          :value (k (show/user-data show) 63)
+                          :listen [:state-changed
+                                   #(xone-react-to-slider-change
+                                     show globals k (seesaw/value %))])))))
 
 (defn xone-wrap-channel-element
   "Creates the MIG Layout decription for one of the channel elements,

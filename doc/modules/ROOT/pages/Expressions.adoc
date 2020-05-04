@@ -33,9 +33,10 @@ happen than the language itself provides. It’s worth checking out.
 
 If you are working with the new Show interface, rather than low-level
 Triggers, then the expressions you’ll be using are at the
-<<Expressions#show-global-expressions,end of this section>>, but you
-should at least skim the Triggers expression explanations too, because
-they introduce some important concepts that are useful everywhere.
+<<Expressions.adoc#show-global-expressions,end of this section>>, but
+you should at least skim the Triggers expression explanations too,
+because they introduce some important concepts that are useful
+everywhere.
 
 === With Great Power comes Great Responsibility
 
@@ -102,9 +103,9 @@ examples of doing just that throughout this guide.
 
 The expression you are first likely to want to use with low-level
 Triggers is the Enabled Filter, which is found in each trigger’s
-<<Triggers#context-menu,context menu>>. In fact, as soon as you set a
-trigger’s menu:Enabled[] menu to Custom, Beat Link Trigger will pop
-open the editor for that expression for you, if you have not yet
+<<Triggers.adoc#context-menu,context menu>>. In fact, as soon as you
+set a trigger’s menu:Enabled[] menu to Custom, Beat Link Trigger will
+pop open the editor for that expression for you, if you have not yet
 created it:
 
 image:Editor.png[Enabled Filter Editor,912,828]
@@ -132,9 +133,10 @@ set the Enabled menu to Custom, and watch the Trigger Status indicator
 as you load and play different tracks to confirm that it works!
 
 Of course, as noted above, if you want something to happen when a
-particular track reaches a particular beat, the <<Shows#shows,Show
-interface>> is now a much easier and more powerful way to arrange
-that. Still, read on for more basic expression editing concepts.
+particular track reaches a particular beat, the
+<<Shows.adoc#shows,Show interface>> is now a much easier and more
+powerful way to arrange that. Still, read on for more basic expression
+editing concepts.
 
 [TIP]
 ====
@@ -142,7 +144,7 @@ As you use the editor, you will notice that it provides syntax
 coloring and parenthesis-matching help. But if you end up making a
 mistake in your expression, Beat Link Trigger will likely report an
 compilation error when you click kbd:[Update], and you can check the
-<<Debugging#logs,log>> for a more detailed stack trace. You can try
+<<Debugging.adoc#logs,log>> for a more detailed stack trace. You can try
 searching the web for information about the error, or looking in the
 Clojure https://clojure.org/guides/getting_started[documentation], but
 you can also ask for help in the Beat Link Trigger
@@ -161,7 +163,7 @@ when you right-click or control-click in the editor text area.
 
 And if you want to really get serious about learning Clojure and
 editing it in a powerful way, consider
-<<Debugging#advanced-coding,connecting an IDE>>.
+<<Debugging.adoc#advanced-coding,connecting an IDE>>.
 ====
 
 
@@ -232,8 +234,8 @@ Redefining a function is harmless, although make sure you have exactly
 the same definition in both places or you will confuse yourself!
 
 For a detailed (and amusing) look at defining and using shared
-functions in a show, check out the <<Integration#break-buddy,Break
-Buddy>> integration example.
+functions in a show, check out the
+<<Integration_BreakBuddy.adoc#,Break Buddy>> integration example.
 
 
 [[importing-libraries]]
@@ -520,9 +522,10 @@ automatically open the Carabiner window and connect to it:
 
 <2> Tries to connect to the Carabiner daemon.
 
-<3> <<Link#passive-sync,Allows>> the DJ Link network to become Tempo
-Master for Ableton Link. Other choices are `:off`,
-<<Link#syncing-triggers,`:triggers`>>, and <<Link#full-sync,`:full`>>.
+<3> <<Link.adoc#passive-sync,Allows>> the DJ Link network to become
+Tempo Master for Ableton Link. Other choices are `:off`,
+<<Link.adoc#syncing-triggers,`:triggers`>>, and
+<<Link.adoc#full-sync,`:full`>>.
 
 <4> Causes Ableton Link to actually follow the DJ Link Tempo Master.
 
@@ -575,7 +578,7 @@ shutdown expression finishes.
 == Trigger Expressions
 
 Each trigger has its own set of expressions which can be accessed from
-its <<Triggers#context-menu,context menu>>. In addition to the
+its <<Triggers.adoc#context-menu,context menu>>. In addition to the
 `globals` atom described above, these have access to a very similar
 `locals` atom which can be used to share values across expressions
 within the trigger itself (but not other triggers; each gets its own
@@ -626,8 +629,8 @@ example, and these examples still provide a useful context for
 understanding how expressions work in Beat Link Trigger, there is a
 better way to synchronize Resolume with your tracks today. It now
 https://resolume.com/support/en/link[supports Ableton Link], and
-<<Link#overview,so does BLT>>, so you can use that for easier, even
-more stable synchronization.
+<<Link.adoc#overview,so does BLT>>, so you can use that for easier,
+even more stable synchronization.
 
 [[shutdown-expression]]
 === Shutdown Expression
@@ -653,10 +656,11 @@ called whenever a status update packet is received from a watched
 player, and tells Beat Link Trigger if the trigger should be enabled
 or not. Often you will want a trigger to be enabled when a DJ has
 loaded a particular track, and a variety of strategies for achieving
-that are described in their own <<Matching#matching-tracks,section
-below>>, see that for lots of great ideas. Following some of its
-suggestions, our Resolume example could enable its trigger with a
-custom Enabled Filter along the lines of:
+that are described in their own
+<<Matching.adoc#matching-tracks,section below>>, see that for lots of
+great ideas. Following some of its suggestions, our Resolume example
+could enable its trigger with a custom Enabled Filter along the lines
+of:
 
 ```clojure
 (= track-title "Language")
@@ -678,7 +682,7 @@ This is similar to the Enabled Filter Expression, but even when a
 trigger is configured to potentially watch multiple players, it is
 called only for the player that is currently being tracked, which will
 be the one that is considered “best” as described in the
-<<Triggers#watch-menu,Watch Menu>> section above. Players which enable
+<<Triggers.adoc#watch-menu,Watch Menu>> section above. Players which enable
 the trigger are better than ones that don’t; within that group, it is
 better to be playing, and as a tie-breaker the lowest numbered player
 is chosen.
@@ -776,7 +780,7 @@ will report the new pitch value each time it is sent, like this:
 
 With this expression in place, when the trigger is active and you
 fiddle with the Pitch fader on the CDJ that is playing the track, you
-will see entries like this in the <<Debugging#logs,log file>>:
+will see entries like this in the <<Debugging.adoc#logs,log file>>:
 
 ```
 2016-Jul-24 23:21:31 INFO [beat-link-trigger.expressions:?] - New pitch: 0.475
@@ -899,8 +903,8 @@ is harmless, although make sure you have exactly the same definition
 in both places or you will confuse yourself!
 
 For a detailed (and amusing) look at defining and using shared
-functions in a show, check out the <<Integration#break-buddy,Break
-Buddy>> integration example.
+functions in a show, check out the
+<<Integration_BreakBuddy.adoc#,Break Buddy>> integration example.
 
 
 Also see the discussion of how you can <<importing-libraries,import
@@ -909,7 +913,7 @@ libraries>> for use in your expressions.
 [[show-global-expressions]]
 == Show Global Expressions
 
-Starting with version 0.5 you can use <<Shows#shows,Show files>> to
+Starting with version 0.5 you can use <<Shows.adoc#shows,Show files>> to
 more conveniently perform actions when specific sections of particular
 tracks are played. Shows have their own sets of expressions, which we
 cover next.
@@ -929,7 +933,7 @@ Triggers window globals atom, under the name `trigger-globals`.
 
 Also, all expressions that run in a show have access to a value `show`
 that contains everything Beat Link Trigger knows about the show, which
-can be <<ShowInternals#show,useful>>.
+can be <<ShowInternals.adoc#show,useful>>.
 
 [[show-global-setup-expression]]
 === Global Setup Expression
@@ -1007,15 +1011,15 @@ Each track you add to a show can have its own set of expressions which
 apply to that track, allowing you to take actions when the track is
 loaded on a player, starts or stops playing, and so on. To react to
 more specific regions of the track, see the
-<<Expressions#show-cue-expressions,Cue Expressions, below>>.
+<<Expressions.adoc#show-cue-expressions,Cue Expressions, below>>.
 
 The track expressions can be accessed from the track’s
-<<Shows#track-context-menu,context menu>>. In addition to the
+<<Shows.adoc#track-context-menu,context menu>>. In addition to the
 `globals` atom and `show` value described above, these have access to
 a very similar `locals` atom which can be used to share values across
 expressions within the track itself (but not other tracks; each gets
 its own `locals` map), a `track` value that contains everything Beat
-Link Trigger <<ShowInternals#track,knows about the track>>, and
+Link Trigger <<ShowInternals.adoc#track,knows about the track>>, and
 individual kinds of expressions will automatically have other values
 available to them which make sense in the context in which the
 expression is used.
@@ -1049,7 +1053,7 @@ configured cues are disabled.
 
 Note that you can also set the menu:Enabled[] menu to Default in order
 to run the Show-level Default Enabled Filter as described
-<<Shows#show-default-enable-filter-expression,above>>.
+<<Shows.adoc#show-default-enable-filter-expression,above>>.
 
 [[track-loaded-expression]]
 === Loaded Expression
@@ -1202,8 +1206,8 @@ The cue expressions can be accessed from the cue’s context menu. Cues
 have access to the same `globals` and `locals` atoms, and `show` and
 `track` values that track expressions in the cue’s track do. They also
 can use a `cue` value that contains everything Beat Link Trigger
-<<ShowInternals#cue,knows about the cue>>, and individual kinds of
-expressions will automatically have other values available to them
+<<ShowInternals.adoc#cue,knows about the cue>>, and individual kinds
+of expressions will automatically have other values available to them
 which make sense in the context in which the expression is used.
 
 TIP: The help text below the expression editor will list and explain

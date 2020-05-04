@@ -18,7 +18,8 @@
   updated state of the show globals following a MIDI event."
   [state]
   (set (filter (fn [num]
-                 (>= (get state (keyword (str "channel-" num))) xone-min-on-air-value))
+                 (>= (get state (keyword (str "channel-" num)))
+                     xone-min-on-air-value))
                (range 1 5))))
 
 (defn xone-blocked-by-cross-fader
@@ -49,12 +50,13 @@
       ;; It is, so update known mixer state with the current fader value, and
       ;; calculate which channels are now on-air.
       (let [state  (swap! globals assoc recognized (:velocity msg))
-            on-air (clojure.set/difference (xone-on-air-via-channel-faders state)
-                                           (xone-blocked-by-cross-fader state))]
+            on-air (clojure.set/difference
+                    (xone-on-air-via-channel-faders state)
+                    (xone-blocked-by-cross-fader state))]
 
         ;; If the Virtual CDJ is running (Beat Link Trigger itself is online),
         ;; send a Channels On Air message to update the actual CDJ's state.
-        ;; (We need to convert the values to integers, rather than the longs
-        ;; that Clojure uses natively, to be compatible with the Beat Link API.)
+        ;; We need to convert the values to integers, rather than the longs
+        ;; that Clojure uses natively, to be compatible with the Beat Link API.
         (when (.isRunning virtual-cdj)
           (.sendOnAirCommand virtual-cdj (set (map int on-air))))))))

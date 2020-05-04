@@ -19,6 +19,8 @@ This change log follows the conventions of
   Windows. It looks uglier than the small one, but that glyph is not
   available in the Windows font, so a big triangle looks way better
   than the “missing glyph” box.
+- Incorporates a number of fixes and improvements to the underlying
+  Beat Link library.
 - Added type hints throughout so the Clojure compiler could avoid the
   use of reflection, which will improve performance, #95.
 
