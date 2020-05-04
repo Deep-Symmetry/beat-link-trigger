@@ -1,6 +1,5 @@
 = Shows
 include::partial$PagePreamble.adoc[]
-:page-toclevels: 3
 
 Version 0.5 of Beat Link Trigger introduced a major new set of user
 interface features called the Show interface, developed in
@@ -82,7 +81,7 @@ downloaded, you can open it by choosing menu:File[Open Show] in the
 Beat Link Triggers window and navigating to the show file.
 ====
 
-=== Show Window Header Elements
+== Show Window Header Elements
 
 At the top of the Show window, above any Tracks that you have added to
 it, is a header that allows you to configure the default Enabled
@@ -133,7 +132,7 @@ The menu:Help[] Menu is the same as in the Triggers window, providing
 a variety of helpful information and shortcuts for getting support.
 
 [[adding-tracks]]
-=== Adding Tracks to a Show
+== Adding Tracks to a Show
 
 Shows don’t do anything until they include at least one Track. There
 are a number of different ways you can add Tracks to your Show. Most
@@ -142,7 +141,7 @@ window menu bar:
 
 image:ImportTrack.png[Import Track menu,790,568]
 
-==== Adding Tracks from a Player
+=== Adding Tracks from a Player
 
 If you are currently Online, and there are any players on the network
 that have rekordbox tracks loaded that are not already part of the
@@ -178,7 +177,7 @@ If this happens, you can import the new version of the track,
 track in your show into the new one, then remove the old version.
 ====
 
-==== Adding Tracks from Offline Media
+=== Adding Tracks from Offline Media
 
 To make it possible to set up your Show even when you don’t have
 access to your player network, you can also import Tracks directly
@@ -215,7 +214,7 @@ menu:Tracks[Import Track>from Offline Media], click kbd:[Change
 Media], and it will be closed so you can eject it. At that point you
 can click kbd:[Cancel] if you did not actually want to import a Track.
 
-==== Copying Tracks between Shows
+=== Copying Tracks between Shows
 
 The final way to add a Track to a Show is to copy it from another
 Show. When you have multiple Show windows open, you can copy Tracks
@@ -229,7 +228,7 @@ TIP: If you don’t see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
 
 [[copying-track-contents]]
-==== Copying Track Contents
+=== Copying Track Contents
 
 Although the cues you have created in a track are likely to be very
 specific to that track, there are times you might want to copy all the

@@ -1,10 +1,14 @@
 = Triggers
 include::partial$PagePreamble.adoc[]
-:toclevels: 3
+:page-toclevels: 3
 
-Watch for specific activity on one or more CDJs, and send things
-like MIDI or OSC messages in response. Recognize tracks and synchronize
-external systems to them using MIDI clock or Ableton Link.
+Triggers were the first mechanism that existed for building
+integrations in Beat Link Trigger, and the Triggers window is still
+the primary one that opens when the program is first launched.
+Triggers watch for specific activity on one or more CDJs, and send
+things like MIDI or OSC messages in response. They can recognize
+tracks and synchronize external systems to them using MIDI clock or
+Ableton Link.
 
 
 == Overview
@@ -30,6 +34,10 @@ players, at a very low level. For the common case of wanting to make
 something happen when a particular part of a specific track is played,
 the new <<Shows#shows,Show Interface>> added in version 0.5 is much
 easier and more convenient to use, so you may want to start with that!
+And for an even faster way to get started, you may wan to explore the
+integration example that shows how to use
+<<Integration_MIDI_rekordbox#,rekordbox cue names>> to trigger
+specific MIDI messages.
 
 == Trigger Elements
 
