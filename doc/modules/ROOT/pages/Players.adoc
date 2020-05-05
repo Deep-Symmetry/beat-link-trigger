@@ -1,17 +1,14 @@
 = The Player Status Window
 include::partial$PagePreamble.adoc[]
 
-Get a detailed view of what is happening on each player, what is
-coming up next, and even load and play tracks during pre-show.
-
-[[overview]]
-== Overview
-
 Beat Link Trigger can take advantage of track metadata and related
 information from the players to provide you a rich view of what is
-happening right now on all the decks. As shown in the example view
-below, this can be an invaluable resoure on its own for running
-visuals for a show, even if you don’t have any triggers set up:
+happening right now on all the decks. It can also tell the decks to
+load media available anywhere on the network (in one of the player
+slots or a computer running rekordbox in export mode). As shown in the
+example view below, this can be an invaluable resource on its own for
+running visuals for a show, even if you don’t have any triggers set
+up:
 
 image:PlayerStatus.png[Player Status Window,599,842]
 
@@ -85,7 +82,7 @@ connected to, then you can use the "On-Air" indication above the
 player number as an additional hint about when you need to pay
 attention to it.
 
-=== Larger Waveform Windows
+== Larger Waveform Windows
 
 If you would like to display an even more detailed view of a track
 waveform, for example because you are live streaming a performance and
@@ -100,7 +97,7 @@ will find it configured the same way. If the window is already open
 when you click on the waveform in the Player Status window, it will
 simply be brought to the front if it was hidden.
 
-=== Non-rekordbox Metadata
+== Non-rekordbox Metadata
 
 The Player Status window is a lot less useful if non-rekordbox tracks
 are being played, because no waveform information or beat grids will
@@ -122,167 +119,11 @@ require you to briefly go offline to switch numbers. If you have four
 players on the network, you will also have to turn one of them off and
 leave it off, unfortunately.
 
-NOTE: It is also not yet possible to create metadata caches for
-non-rekordbox media. Since that metadata is so much less useful, this
-is not likely to be implemented unless you have a really compelling
-use case, and let us know about it.
-
-[[caching-metadata]]
-== Caching Metadata
-
-TIP: This is probably no longer necessary with version 0.5.0 or later,
-since we can now get metadata for rekordbox tracks even when four
-players are in use. This section (and the feature) may be removed in a
-future release once we have some experience in the field with the new
-metadata approach.
-
-To create a metadata cache, have your DJ insert her (rekordbox only)
-media into a player before the show begins (and before four players
-are in use), and then click on the gear button next to the
-corresponding player slot, choosing the Create Metadata Cache File
-option:
-
-image:CreateCache.png[Create Metadata Cache option,370,288]
-
-This will open a dialog where you can choose to cache either all the
-tracks present on the media, or only those associated with a
-particular playlist. If you have limited time available, and the DJ
-will be using a particular playlist for the tracks that you need
-metadata for, the playlist option can save you a lot of time.
-
-NOTE: Creating a cache from a playlist means that only tracks in that
-playlist will have metadata available when you attach the cache. Beat
-Link Trigger will not attempt to query the player directly for tracks
-that are not present in an attached cache file. So only use this
-approach when you have prearranged with your DJ to be certain that
-you only need the metadata for tracks on the chosen playlist.
-
-Also choose the file where you want to save the cache:
-
-image:CreateCache2.png[Create Metadata Cache window,613,635]
-
-When you click kbd:[Save], Beat Link Trigger will download the metadata,
-artwork, cue list, beat grid, and waveform information about all the
-tracks you specified, creating a zip file that can be used to retrieve
-them when needed, instead of querying the player itself. This takes a
-couple of seconds per track, so it can be a time-consuming operation
-for large amounts of media.
-
-NOTE: If you are creating a cache while a performance is taking place,
-you should check the `Performance Priority` checkbox in the middle of
-the cache creation dialog, to tell Beat Link Trigger to pause a second
-between adding each track to the cache. This greatly slows down the
-process, but it avoids interfering with the players. Failing to do
-this can cause playback to stutter if the DJ jumps directly to the
-middle of a track, for example. Don’t check the box if the player is
-idle and you want to quickly cache a lot of tracks.
-
-image:CreateCache3.png[Creating Metadata Cache,526,198]
-
-Once the cache is created, it will automatically be attached to that
-player slot, so Beat Link Trigger will use the cache instead of asking
-the player for metadata. If the media is ejected from the slot, the
-cache is automatically detached. You can also manually detach or
-attach caches using the gear button next to any player media slot. The
-gear will be filled in when a cache is attached, and the cache file
-information displayed next to it, as shown here:
-
-image:CreateCache4.png[Metadata Cache Attached,350,234]
-
-NOTE: If the media seems to have changed since the cache was created,
-you will see a warning about that when the cache is attached. If the
-cache was created by a version of Beat Link Trigger older than 0.4.1,
-this check cannot be performed, nor will you be prevented from
-attaching a cache to the wrong media, but you will be given a warning
-that suggests you re-create the cache using a current version of Beat
-Link Trigger to avoid these risks.
-
-== Auto-Attaching Metadata Caches
-
-If you have created a metadata cache and want it to automatically be
-attached to the appropriate player slot whenever your DJ inserts the
-corresponding media (since it can be hard to predict where it will end
-up in a busy show), you can ask Beat Link Trigger to watch for media
-that matches the cache, and automatically attach it. To do this,
-choose `Auto-Attach Metadata Caches` in the `File` menu.
-
-image:AutoAttach.png[Auto-Attach option,314,210]
-
-This will open a window where you can configure the cache files that
-should be watched for. Click kbd:[Add File] to add one:
-
-image:AutoAttach2.png[Auto-Attach window,433,232]
-
-This will open a file chooser dialog you can use to find the file or
-files that you want to be watched, and they will appear in the window.
-Whenever a new media stick or SD card is inserted into one of the
-players, it will be checked to see if it has the same number of tracks
-as one of the caches (or, if the cache was created from a playlist, if
-the media has a playlist with the same ID and the same number of
-tracks). If so, a random sampling of the tracks will be examined in
-both the cache and the player, and if the metadata of those tracks
-match exactly, the media cache will be attached to that slot.
-
-NOTE: The playlist (or all tracks) must match *exactly*, so if the
-media has been modified in rekordbox since the cache was created, an
-all-tracks cache will need to be re-created. A playlist cache will
-continue to match unless that specific playlist has been altered.
-
-image:AutoAttach3.png[Auto-Attach window with some files,433,232]
-
-If you no longer want one of the files to be watched for, simply click
-the kbd:[Remove] button next to it.
-
-The icon next to the kbd:[Remove] button lets you see information
-about the metadata cache file. If the file was created by Beat Link
-Trigger 0.4.1 or later, the icon will be an “i” in a blue circle, and
-clicking it will give you information about the media from which the
-cache was created as well as the contents of the cache itself:
-
-image:AutoAttach4.png[Metadata Cache Details,604,227]
-
-
-TIP: If you have any older metadata cache files, it would be a good
-idea to re-create them using a current release of Beat Link Trigger so
-you can benefit from the new media-detection abilities.
-
-If the file was created by an older version of Beat Link Trigger, you
-will be warned when adding it to the auto-attach list that it is
-missing the media details information, which will make it harder to
-match with mounted media, and the icon will be an exclamation point
-inside a yellow triangle. Clicking that brings up the warning again,
-which also shows information about the contents of the cache itself.
-
-NOTE: It does not make sense to try to auto-attach multiple files
-created from the same media, for example from different playlists.
-Beat Link Trigger will always give priority to files created from all
-tracks over files created from a playlist when considering matches,
-but it is unpredictable which file will be chosen if more than one
-playlist cache from the same media is being matched. Starting with
-version 0.4.1, Beat Link keeps track of the media that was used to
-create a cache, and uses that for more reliable matching; it will
-only allow you to have one file from a given piece of media on the
-auto-attach list at a given time. When you try to add a second, it
-will replace the first. If you are using older caches, though, you
-might run into this kind of unpredictability.
-
-== Viewing Metadata Cache Contents
-
-If you want to work on trigger definitions while you don’t have access
-to CDJs or the media containing the tracks that you want to base them
-on, you can look at the contents of a metadata cache to find out the
-rekordbox IDs of the tracks you want your triggers to match.
-
-To do this, choose `View Metadata Cache Contents` in the `File` menu.
-
-image:ViewCacheContents.png[View Cache option,314,210]
-
-This will open a file chooser dialog you can use to find the file
-containing the cache that you want to examine. Once you choose one, a
-window will open containing a row for each entry in the metadata
-cache, showing its rekordbox ID, title, and artist:
-
-image:SymmetryContents.png[Example cache contents,850,480]
+NOTE: It is also not yet possible to create metadata caches (see
+<<caching-metadata,below>>) for non-rekordbox media. Since such
+metadata is so much less useful, and metadata caches are essentially
+deprecated anyway, this is not likely to be implemented unless you
+have a really compelling use case, and let us know about it.
 
 [[loading-playing]]
 == Loading and Playing Tracks
@@ -379,6 +220,22 @@ string instead:
 
 image:LoadTrackSearch2.png[Load Track: Searching,785,667]
 
+[[auto-open]]
+== Automatically Opening Player Status
+
+If you always want the Player Status window to open when you launch
+Beat Link Trigger, add the following form to your
+<<Expressions#came-online-expression,Came Online Expression>>, and
+whenever Beat Link Trigger successfully connects to a DJ Link network,
+it will also try to open the Player Status Window. It does this the
+same way as when you choose menu:Network[Show Player Status], so you
+will get all the necessary error dialogs and coaching if the
+environment isn’t correct to support the window:
+
+```clojure
+(triggers/show-player-status)
+```
+
 [[keep-open]]
 == Keeping Player Status Always Visible
 
@@ -396,18 +253,159 @@ your <<Expressions#global-setup-expression,Global Setup Expression>>:
 If the window was already open when you set up this entry, you can make
 it take effect by choosing menu:Network[Show Player Status] again.
 
-[[auto-open]]
-== Automatically Opening Player Status
+[[caching-metadata]]
+== Caching Metadata
 
-If you always want the Player Status window to open when you launch
-Beat Link Trigger, add the following form to your
-<<Expressions#came-online-expression,Came Online Expression>>, and
-whenever Beat Link Trigger successfully connects to a DJ Link network,
-it will also try to open the Player Status Window. It does this the
-same way as when you choose menu:Network[Show Player Status], so you
-will get all the necessary error dialogs and coaching if the
-environment isn’t correct to support the window:
+TIP: This is probably no longer necessary with version 0.5.0 or later,
+since we can now get metadata for rekordbox tracks even when four
+players are in use. This section (and the feature) may be removed in a
+future release once we have some experience in the field with the new
+metadata approach.
 
-```clojure
-(triggers/show-player-status)
-```
+To create a metadata cache, have your DJ insert her (rekordbox only)
+media into a player before the show begins (and before four players
+are in use), and then click on the gear button next to the
+corresponding player slot, choosing the Create Metadata Cache File
+option:
+
+image:CreateCache.png[Create Metadata Cache option,370,288]
+
+This will open a dialog where you can choose to cache either all the
+tracks present on the media, or only those associated with a
+particular playlist. If you have limited time available, and the DJ
+will be using a particular playlist for the tracks that you need
+metadata for, the playlist option can save you a lot of time.
+
+NOTE: Creating a cache from a playlist means that only tracks in that
+playlist will have metadata available when you attach the cache. Beat
+Link Trigger will not attempt to query the player directly for tracks
+that are not present in an attached cache file. So only use this
+approach when you have prearranged with your DJ to be certain that
+you only need the metadata for tracks on the chosen playlist.
+
+Also choose the file where you want to save the cache:
+
+image:CreateCache2.png[Create Metadata Cache window,613,635]
+
+When you click kbd:[Save], Beat Link Trigger will download the metadata,
+artwork, cue list, beat grid, and waveform information about all the
+tracks you specified, creating a zip file that can be used to retrieve
+them when needed, instead of querying the player itself. This takes a
+couple of seconds per track, so it can be a time-consuming operation
+for large amounts of media.
+
+NOTE: If you are creating a cache while a performance is taking place,
+you should check the `Performance Priority` checkbox in the middle of
+the cache creation dialog, to tell Beat Link Trigger to pause a second
+between adding each track to the cache. This greatly slows down the
+process, but it avoids interfering with the players. Failing to do
+this can cause playback to stutter if the DJ jumps directly to the
+middle of a track, for example. Don’t check the box if the player is
+idle and you want to quickly cache a lot of tracks.
+
+image:CreateCache3.png[Creating Metadata Cache,526,198]
+
+Once the cache is created, it will automatically be attached to that
+player slot, so Beat Link Trigger will use the cache instead of asking
+the player for metadata. If the media is ejected from the slot, the
+cache is automatically detached. You can also manually detach or
+attach caches using the gear button next to any player media slot. The
+gear will be filled in when a cache is attached, and the cache file
+information displayed next to it, as shown here:
+
+image:CreateCache4.png[Metadata Cache Attached,350,234]
+
+NOTE: If the media seems to have changed since the cache was created,
+you will see a warning about that when the cache is attached. If the
+cache was created by a version of Beat Link Trigger older than 0.4.1,
+this check cannot be performed, nor will you be prevented from
+attaching a cache to the wrong media, but you will be given a warning
+that suggests you re-create the cache using a current version of Beat
+Link Trigger to avoid these risks.
+
+=== Auto-Attaching Metadata Caches
+
+If you have created a metadata cache and want it to automatically be
+attached to the appropriate player slot whenever your DJ inserts the
+corresponding media (since it can be hard to predict where it will end
+up in a busy show), you can ask Beat Link Trigger to watch for media
+that matches the cache, and automatically attach it. To do this,
+choose `Auto-Attach Metadata Caches` in the `File` menu.
+
+image:AutoAttach.png[Auto-Attach option,314,210]
+
+This will open a window where you can configure the cache files that
+should be watched for. Click kbd:[Add File] to add one:
+
+image:AutoAttach2.png[Auto-Attach window,433,232]
+
+This will open a file chooser dialog you can use to find the file or
+files that you want to be watched, and they will appear in the window.
+Whenever a new media stick or SD card is inserted into one of the
+players, it will be checked to see if it has the same number of tracks
+as one of the caches (or, if the cache was created from a playlist, if
+the media has a playlist with the same ID and the same number of
+tracks). If so, a random sampling of the tracks will be examined in
+both the cache and the player, and if the metadata of those tracks
+match exactly, the media cache will be attached to that slot.
+
+NOTE: The playlist (or all tracks) must match *exactly*, so if the
+media has been modified in rekordbox since the cache was created, an
+all-tracks cache will need to be re-created. A playlist cache will
+continue to match unless that specific playlist has been altered.
+
+image:AutoAttach3.png[Auto-Attach window with some files,433,232]
+
+If you no longer want one of the files to be watched for, simply click
+the kbd:[Remove] button next to it.
+
+The icon next to the kbd:[Remove] button lets you see information
+about the metadata cache file. If the file was created by Beat Link
+Trigger 0.4.1 or later, the icon will be an “i” in a blue circle, and
+clicking it will give you information about the media from which the
+cache was created as well as the contents of the cache itself:
+
+image:AutoAttach4.png[Metadata Cache Details,604,227]
+
+
+TIP: If you have any older metadata cache files, it would be a good
+idea to re-create them using a current release of Beat Link Trigger so
+you can benefit from the new media-detection abilities.
+
+If the file was created by an older version of Beat Link Trigger, you
+will be warned when adding it to the auto-attach list that it is
+missing the media details information, which will make it harder to
+match with mounted media, and the icon will be an exclamation point
+inside a yellow triangle. Clicking that brings up the warning again,
+which also shows information about the contents of the cache itself.
+
+NOTE: It does not make sense to try to auto-attach multiple files
+created from the same media, for example from different playlists.
+Beat Link Trigger will always give priority to files created from all
+tracks over files created from a playlist when considering matches,
+but it is unpredictable which file will be chosen if more than one
+playlist cache from the same media is being matched. Starting with
+version 0.4.1, Beat Link keeps track of the media that was used to
+create a cache, and uses that for more reliable matching; it will
+only allow you to have one file from a given piece of media on the
+auto-attach list at a given time. When you try to add a second, it
+will replace the first. If you are using older caches, though, you
+might run into this kind of unpredictability.
+
+=== Viewing Metadata Cache Contents
+
+If you want to work on trigger definitions while you don’t have access
+to CDJs or the media containing the tracks that you want to base them
+on, you can look at the contents of a metadata cache to find out the
+rekordbox IDs of the tracks you want your triggers to match.
+
+To do this, choose `View Metadata Cache Contents` in the `File` menu.
+
+image:ViewCacheContents.png[View Cache option,314,210]
+
+This will open a file chooser dialog you can use to find the file
+containing the cache that you want to examine. Once you choose one, a
+window will open containing a row for each entry in the metadata
+cache, showing its rekordbox ID, title, and artist:
+
+image:SymmetryContents.png[Example cache contents,850,480]
