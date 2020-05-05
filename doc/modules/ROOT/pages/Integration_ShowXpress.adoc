@@ -192,10 +192,9 @@ Expression to something like:
 
 And, as with all triggers, you can configure it to be active only when
 a CDJ is playing a particular track, or is within a particular range
-of beats within that track, as shown in
-<<Matching.adoc#matching-tracks,Matching Tracks>> earlier. This allows
-you to have certain looks called up automatically when the right parts
-of the right tracks are played.
+of beats within that track, as shown in <<Matching.adoc#,Matching
+Tracks>> earlier. This allows you to have certain looks called up
+automatically when the right parts of the right tracks are played.
 
 TIP: If you jumped to this section to learn about how to integrate the
 lighting controller with CDJs, and you think it looks promising, you

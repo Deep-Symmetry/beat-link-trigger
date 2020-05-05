@@ -1,0 +1,35 @@
+= Show Shared Functions
+include::partial$PagePreamble.adoc[]
+
+Just like in the Triggers window, if you start writing complex
+expressions in your Show, you will find yourself repeating common
+pieces of code over and over again in multiple expressions. The best
+way to deal with that is to pull out the repetetive part and write it
+as a function, which can then be called from any expression that wants
+to use it. In Clojure, you use `defn` to define a function, and
+choosing menu:Tracks[Edit Shared Functions] brings up an editor window
+that is where you should organize all of the shared functions you want
+your Show expressions to use.
+
+The Shared Functions will be loaded before any of your expressions are
+compiled.
+
+TIP: If you are going to be using the functions only in Triggers
+expressions, define them using menu:Triggers[Edit Shared Functions] in
+the Triggers window instead. Even though they get compiled into the
+same `beat-link-triggers.expressions` namespace, putting them in the
+Triggers window means they will be saved independently of the Show,
+and will work even if the Show was never opened, or if you share the
+Triggers with someone else. If you need them in both your Show and
+Triggers expressions, put them in both places. Redefining a function
+is harmless, although make sure you have exactly the same definition
+in both places or you will confuse yourself!
+
+For a detailed (and amusing) look at defining and using shared
+functions in a show, check out the
+<<Integration_BreakBuddy.adoc#,Break Buddy>> integration example.
+
+
+Also see the discussion of how you can
+<<ImportingLibraries.adoc#,import libraries>> for use in your
+expressions.

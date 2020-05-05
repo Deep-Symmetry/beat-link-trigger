@@ -170,7 +170,7 @@ until you change the Carabiner settings.
 
 [TIP]
 ====
-If you are using Passive or <<full-sync-mode,Full>> Sync Mode, and
+If you are using Passive or <<full-sync,Full>> Sync Mode, and
 would still like a trigger to control the Ableton Link transport
 (playing/stopped) state, you can do it by calling functions in your
 trigger expressions. Use
@@ -306,17 +306,18 @@ useful now that BLT can automatically run Carabiner for you when you
 connect, but you can also do it if you are running your own custom
 build of Carabiner and can guarantee it is running before BLT goes
 online), you can accomplish this using the
-<<Expressions.adoc#came-online-expression,Came Online Expression>>, and
-there is an example of how to do this in the description of that
-expression.
+<<Expressions_TriggerGlobal.adoc#came-online-expression,Came Online
+Expression>>, and there is an example of how to do this in the
+description of that expression.
 
 [[other-automation]]
 == Other Automation
 
-The example shown in the <<Expressions.adoc#came-online-expression,Came
-Online Expression>> illustrates that the Carabiner Connection window
-is designed for convenient use by your custom expression code. Here is
-a list of functions that you can call.
+The example shown in the
+<<Expressions_TriggerGlobal.adoc#came-online-expression,Came Online
+Expression>> illustrates that the Carabiner Connection window is
+designed for convenient use by your custom expression code. Here is a
+list of functions that you can call.
 
 === Player Sync Control Functions
 

@@ -326,7 +326,7 @@ looking at some actual cues.
 == The Break Buddy Cue Library
 
 To make it easy to get all the pieces right, Break Buddy takes
-advantage of the <<Shows#cue-library,Cue Library>> feature of Beat
+advantage of the <<Shows_CueLibrary#,Cue Library>> feature of Beat
 Link Trigger shows. It includes some cues that are already set up with
 the right code in their Expressions to make this magic work; you just
 need to paint them on your tracks, and then edit the track IDs or

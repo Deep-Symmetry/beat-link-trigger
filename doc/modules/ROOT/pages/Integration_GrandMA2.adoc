@@ -149,15 +149,15 @@ Deactivation Expression to:
 
 If you have other things that you want to happen when particular
 tracks start or stop playing or reach particular sections, then you
-want to set up a <<Shows.adoc#show,Show>>. If you really want to do it
-the older, more complicated way, then you can set up other triggers
-that send whatever commands you like in their Activation and
-Deactivation expressions using the `send-gm-command` function that was
-created by the Global Setup Expression, and configure them to be
-active only when a CDJ is playing a particular track, or is within a
-particular range of beats within that track, as shown in
-<<Matching.adoc#matching-tracks,Matching Tracks>>. This allows you to have
-certain looks called up automatically when the right parts of the
+want to set up a <<Shows.adoc#,Show>>. If you really want to do it the
+older, more complicated way, then you can set up other triggers that
+send whatever commands you like in their Activation and Deactivation
+expressions using the `send-gm-command` function that was created by
+the Global Setup Expression, and configure them to be active only when
+a CDJ is playing a particular track, or is within a particular range
+of beats within that track, as shown in
+<<Matching.adoc#matching-tracks,Matching Tracks>>. This allows you to
+have certain looks called up automatically when the right parts of the
 right tracks are played. But honestly, learn about Shows, they are so
 much easier to set up, and do all that work for you!
 

@@ -139,7 +139,7 @@ disabled.
 
 Custom:: When this option is chosen, you can send any kind of message
 you want when the Track loads and/or unloads, by writing code as
-described in the <<Expressions.adoc#show-track-expressions,Expressions>>
+described in the <<Expressions_ShowTrack.adoc#,Expressions>>
 section. This gives you the most flexibility because in addition to
 MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need. The expression editors for the Loaded
@@ -239,7 +239,7 @@ disabled.
 
 Custom:: When this option is chosen, you can send any kind of message
 you want when the Track starts and/or stops, by writing code as
-described in the <<Expressions.adoc#track-playing-expression,Expressions>>
+described in the <<Expressions_ShowTrack.adoc#track-playing-expression,Expressions>>
 section. This gives you the most flexibility because in addition to
 MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
@@ -300,7 +300,7 @@ last expression in your filter returns a `true` value, the Track will
 be enabled. This lets you apply sophisticated logic, like enabling the
 Track when another track is loaded into a different player, or only
 during particular times of day. Expressions are further explained in
-the <<Expressions.adoc#track-enabled-filter-expression,Expressions>>
+the <<Expressions_ShowTrack.adoc#track-enabled-filter-expression,Expressions>>
 section. If you choose `Custom` and have not yet written an Enabled
 Filter expression, the expression editor will be opened to let you do
 that. You can always open that editor using the Track Context Menu,
@@ -317,11 +317,11 @@ accessed by right-clicking (or control-clicking) anywhere on the row’s
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the Track, as
-described in the <<Expressions.adoc#show-track-expressions,Expressions
-section>>. The gear icon next to an expression will be filled in if
-that expression has a value, and the gear in the button will be filled
-in if any expression associated with the Track has a value, or if
-there are any Cues in the Track.
+described in the <<Expressions_ShowTrack.adoc#,Expressions section>>.
+The gear icon next to an expression will be filled in if that
+expression has a value, and the gear in the button will be filled in
+if any expression associated with the Track has a value, or if there
+are any Cues in the Track.
 
 image:TrackContextMenu.png[Context Menu,1005,604]
 

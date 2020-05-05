@@ -276,7 +276,7 @@ TCP).
 
 ****
 
-* Continue to <<Triggers#triggers,Triggers>>
+* Continue to <<Triggers#,Triggers>>
 
 ****
 

@@ -1,0 +1,215 @@
+= Triggers Global Expressions
+include::partial$PagePreamble.adoc[]
+
+The Triggers menu at the top of the window lets you define two
+expressions that can manage values you want to make available to all
+your other Trigger expressions.
+
+To support that, all Trigger expressions have access to a Clojure
+http://clojure.org/reference/atoms[atom] named `globals` that is
+shared with all other Trigger expressions, so that’s a great place to
+put things for them to find. The atom starts out holding an empty
+http://clojure.org/reference/data_structures#Maps[map], which allows
+you to add key/value pairs to organize the information you want to
+share across expressions.
+
+[[global-setup-expression]]
+== Global Setup Expression
+
+This is run when Beat Link Trigger starts up, or when you open a new
+Trigger file, so it runs before any of your individual trigger
+expressions. As a simple example of what you might want to do, here is
+an expression opens the Player Status window:
+
+[source,clojure,subs=attributes+]
+----
+(beat-link-trigger.triggers/show-player-status)
+----
+
+Setting this as your Global Setup Expression will automatically open
+the Player Status window whenever Beat Link Trigger launches. (This
+also makes sure subsystems like the `TimeFinder` are running, which
+can be helpful if you are writing other expressions that depend on
+knowing the playback position of tracks.)
+
+If you ever start up BLT in offline mode with this Global Setup
+Expression in place, however, you will be presented with an error
+dialog, complaining "`Must be Online to show Player Status window.`"
+To avoid being inconvenienced by that, we can make the expression
+smarter, so it only tries to open Player Status when already Online:
+
+[source,clojure,subs=attributes+]
+----
+(when (.isRunning (VirtualCdj/getInstance))  ;; <1>
+  (beat-link-trigger.triggers/show-player-status))  ;; <2>
+----
+
+<1> A `when` clause in Clojure only executes its body if a test
+expression returns a true value. In this case we ask the Beat Link
+`VirtualCdj` object if it is running, which is only true when Beat
+Link Trigger is online.
+
+<2> This means the expression body, which is the same as our first
+attempt at opening Player Status, is only run when it is safe to do
+so.
+
+But there is an even better way to do this, now that version 0.5.4 has
+added the <<came-online-expression,Came Online Expression>> which runs
+once Beat Link Trigger has successfully connected to a DJ Link
+network. Using that expression to show the Player Status window means
+it will always be safe to try, and -- even better -- the window will
+be reopened every time you go back online, not just when initially
+starting the program.
+
+Here is an even more sophisticated example that creates a
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
+for sending a remote trigger command to the ChamSys MagicQ lighting
+control software using its
+https://secure.chamsys.co.uk/help/documentation/magicq/ch31.html[remote
+protocol]:
+
+[source,clojure,subs=attributes+]
+----
+(let [chamsys-address (InetSocketAddress.  ;; <1>
+                       (InetAddress/getByName "172.16.42.255") 6553)
+      trigger-on (byte-array (map int "71,1H"))  ;; <2>
+      trigger-off (byte-array (map int "71,0H"))]
+  (swap! globals assoc  ;; <3>
+         :chamsys-socket (DatagramSocket.)  ;; <4>
+         :chamsys-on (DatagramPacket. trigger-on (count trigger-on) ;; <5>
+                                      chamsys-address)
+         :chamsys-off (DatagramPacket. trigger-off (count trigger-off)
+                                      chamsys-address)))
+----
+
+This begins with a `let` binding which sets up some values that will
+be used later in the expression.
+
+<1> `chamsys-address` gets set to a
+https://docs.oracle.com/javase/8/docs/api/java/net/SocketAddress.html[`SocketAddress`]
+representing port 6553 (the default port used by MagicQ) on the
+broadcast address for the Deep Symmetry show network (you will need to
+use the value appropriate for your own network).
+
+<2> `trigger-on` and `trigger-off` are arrays of bytes containing the
+characters that make up the commands for turning a MagicQ remote
+programming trigger on and off.
+
+<3> Those values are then used in the
+http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/swap![`swap!`]
+call, which is the way you modify a Clojure atom. In this case we are
+modifying the map in `globals` by using
+http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/assoc[`assoc`]
+to add some new key-value pairs to it:
+
+<4> `:chamsys-socket` gets associated with a newly-allocated
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
+that triggers will be able to use for sending UDP messages to MagicQ,
+
+<5> and the actual command packets are created as
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramPacket.html[`DatagramPacket`]
+objects preconfigured with the correct command bytes and destination
+address and port, in `:chamsys-on` and `:chamsys-off`.
+
+The <<Expressions_ShowTrack.adoc#track-beat-expression,Beat Expression>> below shows how these
+globals are actually used.
+
+[[came-online-expression]]
+== Came Online Expression
+
+This is run whenever Beat Link Trigger has successfully connected to a
+DJ Link network, either at initial startup or when you have told it
+manually to go online. At initial startup, or whenever you open a new
+Triggers file, it will run after the <<global-setup-expression,Global
+Setup expression>> as long as you are online. It runs by itself when
+you choose menu:Network[Online?] to successfully transition from an
+offline to an online state.
+
+You have access to the expression globals if you need to use anything
+in them.
+
+This is the perfect place to take actions that can only succeed when
+Beat Link Trigger is online, such as opening the Player Status window.
+The simplest approach described <<global-setup-expression,above>> is
+safe to use in this expression, unlike in the Global Setup expression:
+
+[source,clojure,subs=attributes+]
+----
+(beat-link-trigger.triggers/show-player-status)
+----
+
+With this in place, every time you successfully go online, either at
+startup or using menu:Network[Online?], the Player Status window will
+open for you.
+
+Another example came up in the
+https://gitter.im/brunchboy/beat-link-trigger[community chat room],
+from a user who wanted to set up a turn-key lighting system that
+automatically started Beat Link Trigger and Carabiner. If you are in a
+situation like that, you can set up a Came Online Expression to
+automatically open the Carabiner window and connect to it:
+
+[source,clojure,subs=attributes+]
+----
+(beat-link-trigger.carabiner/show-window nil)  ;; <1>
+(beat-link-trigger.carabiner/connect)  ;; <2>
+(beat-link-trigger.carabiner/sync-mode :passive)  ;; <3>
+(beat-link-trigger.carabiner/sync-link true)  ;; <4>
+(beat-link-trigger.carabiner/align-bars true)  ;; <5>
+----
+
+<1> Opens the Carabiner window.
+
+<2> Tries to connect to the Carabiner daemon.
+
+<3> <<Link.adoc#passive-sync,Allows>> the DJ Link network to become
+Tempo Master for Ableton Link. Other choices are `:off`,
+<<Link.adoc#syncing-triggers,`:triggers`>>, and
+<<Link.adoc#full-sync,`:full`>>.
+
+<4> Causes Ableton Link to actually follow the DJ Link Tempo Master.
+
+<5> Aligns Ableton Link and the DJ Link network at the level of entire
+four-beat measures, rather than simple beat alignment.
+
+NOTE: If you are using the above Carabiner configuration functions in
+an expression, you need to perform the first three steps in the order
+they are shown, because each will only work when the preceding step
+has been succesfully accomplished. Functions 4 and 5 can be called in
+any order.
+
+[[going-offline-expression]]
+== Going Offline Expression
+
+This is run whenever Beat Link Trigger is online and you manually take
+it offline by choosing menu:Network[Online?], exit the program, open a
+new Trigger file, or choose to delete all triggers. In any of the
+situations where you are doing more than just going offline, it runs
+right before the <<global-shutdown-expression,Global Shutdown
+expression>>. It gives you a chance to gracefully close any
+connections and release any system resources you allocated in your
+<<came-online-expression,Came Online Expression>>.
+
+You have access to the expression globals if you need to use anything
+in them.
+
+[[global-shutdown-expression]]
+== Global Shutdown Expression
+
+This is run when Beat Link Trigger is exiting, or before it opens a
+new Trigger file (or when you choose to delete all triggers). It gives
+you a chance to close any connections and release any system resources
+that you allocated in your <<global-setup-expression,Global Setup
+Expression>>. Here is how we would do that for the ChamSys MagicQ
+example we started above:
+
+```clojure
+(.close (:chamsys-socket @globals))
+```
+
+This simply looks up the
+https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
+that was created in the setup expression, and closes it. There is no
+need to remove the key/value pairs themselves from the `globals` atom
+because Beat Link Trigger will reset it to hold an empty map once the
+shutdown expression finishes.

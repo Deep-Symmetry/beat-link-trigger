@@ -47,7 +47,7 @@ very limited. You may not want to dive too deep into this unless you
 are, or have access to, a Max/MSP expert.
 
 Also please keep in mind the warning in the
-<<Players.adoc#the-player-status-window,Player Status Window section>>
+<<Players.adoc#,Player Status Window section>>
 about how time information can only be reliable when tracks are being
 played forwards, without loops.
 ====
@@ -213,7 +213,7 @@ author of the firmware described below, and Clint may be able to help
 https://gitter.im/brunchboy/beat-link-trigger[Gitter channel]).
 
 Also please keep in mind the warning in the
-<<Players.adoc#the-player-status-window,Player Status Window section>>
+<<Players.adoc#,Player Status Window section>>
 about how time information can only be reliable when tracks are being
 played forwards, without loops.
 ====

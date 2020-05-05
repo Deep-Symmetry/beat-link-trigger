@@ -119,7 +119,7 @@ choose menu:File[Close].
 The menu:Tracks[] Menu allows you to add tracks to the show, as
 discussed in the <<Shows.adoc#adding-tracks,next section>>, and to
 edit expressions that customize the show as a whole, as described in
-the <<Expressions.adoc#show-global-expressions,Expressions section>>.
+the <<Expressions_ShowGlobal.adoc#,Expressions section>>.
 
 image:ShowTracksMenu.png[Show Tracks Menu,320,200]
 

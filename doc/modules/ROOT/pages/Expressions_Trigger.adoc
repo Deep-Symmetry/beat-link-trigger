@@ -1,0 +1,303 @@
+= Trigger Expressions
+include::partial$PagePreamble.adoc[]
+
+Each trigger has its own set of expressions which can be accessed from
+its <<Triggers.adoc#context-menu,context menu>>. In addition to the
+`globals` atom described above, these have access to a very similar
+`locals` atom which can be used to share values across expressions
+within the trigger itself (but not other triggers; each gets its own
+`locals` map), and individual kinds of expressions will automatically
+have other values available to them which make sense in the context in
+which the expression is used.
+
+TIP: The help text below the expression editor will list and explain
+the values that are automatically available for use in that kind of
+expression.
+
+== Setup Expression
+
+This is like the Global Setup Expression described
+<<Expressions_TriggerGlobal.adoc#global-setup-expression,above>>, but
+it is used to set up the `locals` atom, which is shared only with
+other expressions on the same trigger. It is called when the trigger
+is loaded, and when Beat Link Trigger starts up, after the Global
+Setup Expression.
+
+To illustrate how different expressions in a trigger can work together
+using `locals`, suppose you have a single trigger that wants to send
+pitch information to https://resolume.com[Resolume] Arena 5 so that a
+clip you are triggering runs at the same speed as the track playing on
+the CDJ. Beat Link Trigger embeds Project Overtone’s
+https://github.com/rosejn/osc-clj[osc-clj] library and aliases it to
+`osc` within the context of expressions to make it easy to send Open
+Sound Control messages. Assuming your copy of Arena 5 is running on
+the same machine, and listening for OSC messages on port 9801, here is
+how you could set things up so your other expressions on this trigger
+can communicate with it:
+
+```clojure
+(swap! locals assoc :resolume (osc/osc-client "localhost" 9801))
+```
+
+This uses
+http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/swap![`swap!`]
+to modify the map in `locals` by using
+http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/assoc[`assoc`]
+to add the key `:resolume`, which will hold an OSC client that can be
+used to send Open Sound Control messages to Arena 5 on the local
+machine. See the Enabled Filter Expression <<enabled-filter-expression,below>> for
+how we use it. And keep this setup in mind, because it will be
+built on throughout the rest of this section.
+
+TIP: Even though we use speed control in Resolume as a running
+example, and these examples still provide a useful context for
+understanding how expressions work in Beat Link Trigger, there is a
+better way to synchronize Resolume with your tracks today. It now
+https://resolume.com/support/en/link[supports Ableton Link], and
+<<Link.adoc#,so does BLT>>, so you can use that for easier,
+even more stable synchronization.
+
+[[shutdown-expression]]
+== Shutdown Expression
+
+This is used to release any system resources
+(open connections or files) that were allocated by the Setup
+Expression. It is called when the trigger is deleted, and when Beat
+Link Trigger is exiting, before the Global Shutdown Expression.
+
+Continuing our example, here is how we would clean up the OSC client
+we created to talk to Resolume when the trigger is going away:
+
+```clojure
+(osc/osc-close (:resolume @locals))
+```
+
+[[enabled-filter-expression]]
+== Enabled Filter Expression
+
+As described in the
+<<Expressions.adoc#editing-expressions,introduction>> to this section,
+this is used when you set a trigger’s menu:Enabled[] menu to Custom.
+It is called whenever a status update packet is received from a
+watched player, and tells Beat Link Trigger if the trigger should be
+enabled or not. Often you will want a trigger to be enabled when a DJ
+has loaded a particular track, and a variety of strategies for
+achieving that are described in their own
+<<Matching.adoc#matching-tracks,section below>>, see that for lots of
+great ideas. Following some of its suggestions, our Resolume example
+could enable its trigger with a custom Enabled Filter along the lines
+of:
+
+```clojure
+(= track-title "Language")
+```
+
+TIP: Since this expression is called every time we get a status update from
+a watched player, you might think it could be useful even when you
+don’t need a custom Enabled state for the trigger, to relay ongoing
+state information to other systems like Resolume. But because it is
+called to decide which player to track when your trigger is set to
+watch Any Player, it will be called more times than you might expect,
+so there is a better expression to use for that kind of integration:
+the Tracked Update Expression, discussed next.
+
+
+== Tracked Update Expression
+
+This is similar to the Enabled Filter Expression, but even when a
+trigger is configured to potentially watch multiple players, it is
+called only for the player that is currently being tracked, which will
+be the one that is considered “best” as described in the
+<<Triggers.adoc#watch-menu,Watch Menu>> section above. Players which enable
+the trigger are better than ones that don’t; within that group, it is
+better to be playing, and as a tie-breaker the lowest numbered player
+is chosen.
+
+TIP: The Tracked Update expression is the ideal place to adjust the
+track description displayed in the Player Status section of the
+trigger by storing values in the `:track-description` and/or
+`:metadata-summary` keys of the trigger locals.
+
+Continuing our example, we can use a Tracked Update Expression to
+update the playback speed within Arena 5 to stay synced with the
+current tempo of the CDJ. We want to send messages to Resolume only
+when the trigger is active--which means it is enabled and the player
+it is watching is currently playing--so we wrap our expression in a
+`when` clause like this:
+
+[source,clojure,subs=attributes+]
+----
+(when trigger-active?  ;; <1>
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
+    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  ;; <3>
+----
+
+<1> Skip this whole expression if the trigger isn’t active.
+
+<2> We need to do a little bit of silly math because Beat Link Trigger
+represents the current pitch multiplier in a fairly straightforward
+way (a range where 0.0 means stopped, 1.0 means normal speed, and 2.0
+means double time), while Resolume squashes that whole range into 0.0
+to 1.0, slightly off-center.
+
+<3> With that calculation accomplished, we can simply send the
+appropriate OSC message to tell it the speed at which it should be
+playing. (The OSC path was found by Editing the OSC Applicaton Map
+within Arena 5 and clicking on the parameter I wanted to control, as
+described in the
+https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
+
+There is one more improvement we can make, though. Our code as it
+stands sends an OSC message to Resolume for every status packet from
+the watched player, even when the pitch is not changing. That’s
+inefficient; it puts needless traffic on the network, and makes
+Resolume waste time processing messages that don’t change anything. By
+adding a little more sophistication to our Tracked Update Expression,
+we can keep track of the last value we sent to Resolume, and only send
+a new one when it is different. We will use a local named
+`:resolume-pitch` to keep track of the last value we sent:
+
+[source,clojure,subs=attributes+]
+----
+(when trigger-active?  ;; <1>
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
+    (swap! locals update-in [:resolume-pitch]
+           (fn [old-pitch]
+             (when (not= pitch old-pitch)  ;; <3>
+               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))  ;; <4>
+             pitch))))  ;; <5>
+----
+
+<1> Once again we are only doing anything when the trigger is active;
+the rest of the expression will be ignored otherwise.
+
+<2> Using the math described above, we calculate the current pitch
+value in the way Resolume thinks about it.
+
+<3> We compare the current calculated pitch value with the value that
+was found in the `locals` map under `:resolume-pitch` (this is the
+value, if any, we most recently sent to Resolume; see step 5).
+
+<4> Only if they are different does `osc-send` get called to notify
+Resolume of the new value.
+
+<5> Finally we store the calculated value at `:resolume-pitch` so that
+it is available for comparison when we get the next status update. The
+first time this runs, there will be no comparison value found in
+`locals`, so we will always send an initial pitch message to Resolume
+when the right track loads for the first time.
+
+If you want to watch this happening, you can add a log statement that
+will report the new pitch value each time it is sent, like this:
+
+[source,clojure,subs=attributes+]
+----
+(when trigger-active?
+  (let [pitch (/ (- pitch-multiplier 0.05) 2)]
+    (swap! locals update-in [:resolume-pitch]
+           (fn [old-pitch]
+             (when (not= pitch old-pitch)
+               (timbre/info "New pitch:" pitch)  ;; <1>
+               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))
+             pitch))))
+----
+
+<1> Here is the log statement we are adding.
+
+With this expression in place, when the trigger is active and you
+fiddle with the Pitch fader on the CDJ that is playing the track, you
+will see entries like this in the <<Debugging.adoc#logs,log file>>:
+
+```
+2016-Jul-24 23:21:31 INFO [beat-link-trigger.expressions:?] - New pitch: 0.475
+2016-Jul-24 23:22:18 INFO [beat-link-trigger.expressions:?] - New pitch: 0.4782496452331543
+2016-Jul-24 23:22:18 INFO [beat-link-trigger.expressions:?] - New pitch: 0.4802499771118164
+```
+
+== Activation Expression
+
+This is called when the trigger trips (in other words, when it would
+send a MIDI message reporting that its watched player has started to
+play). You can send additional MIDI messages here, or use the Clojure
+and Java networking infrastructure to send a different kind of message
+entirely. If this is all you want the trigger to do, you can set its
+menu:Message[] menu to Custom, to suppress the default MIDI messages
+that it would otherwise send.
+
+Continuing our Resolume example, here is an Activation expression that
+would use OSC to trigger the clip that our Tracked Update expression
+was adjusting the pitch for:
+
+```clojure
+(osc/osc-send (:resolume @locals) "/layer3/clip3/connect/" (int 1))
+```
+
+You can also use the Activation expression to send MIDI messages that
+differ from the ones available through the graphical interface. Beat
+Link Trigger embeds Project Overtone’s
+https://github.com/rosejn/midi-clj[midi-clj] library and aliases it to
+`midi` within the context of expressions to make it easy to send MIDI
+messages. The trigger’s chosen MIDI output is available as
+`trigger-output` (but may be `nil` if the device is currently not
+available). So as an example of how you could send a Note On message
+with velocity 42 on the note and channel chosen in the trigger window:
+
+```clojure
+(when trigger-output
+  (midi/midi-note-on trigger-output trigger-note 42 (dec trigger-channel)))
+```
+
+Note that the user-oriented channel number displayed in the Trigger’s
+Channel menu is actually one larger than the value you actually need
+to send in the MIDI protocol (Channel 1 is represented in protocol by
+the number 0, and Channel 16 by the number 15, so that the channel can
+fit into four bits). So you need to decrement the value of
+`trigger-channel` before passing it to the midi library, as shown
+above.
+
+
+== Deactivation Expression
+
+This is called when the player that the
+trigger is watching stops playing, or when the trigger becomes
+disabled if it had been active. (This is when a Note Off message, or
+Control Change with value zero, is sent.) You can send your own custom
+messages here, much like the Activation Expression.
+
+== Beat Expression
+
+This is called when the player currently being tracked reports the
+start of a new beat. Continuing the example started in the
+<<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup
+Expression>>, here is how you could synchronize the BPM of your
+ChamSys MagicQ console to the beats coming from your CDJs. Set the
+trigger to watch the Master Player, and enter the following code in
+the Beat Expression editor:
+
+[source,clojure,subs=attributes+]
+----
+(.send (:chamsys-socket @locals) (:chamsys-on @locals))  ;; <1>
+(future  ;; <2>
+  (Thread/sleep (long (/ 30000 effective-tempo)))  ;; <3>
+  (.send (:chamsys-socket @locals) (:chamsys-off @locals)))  ;; <4>
+----
+
+<1> Immediately send the UDP packet that tells MagicQ that the remote
+trigger is on.
+
+<2> We want to later tell it that it is off, but it is
+critical that Beat Link Trigger expressions finish and return
+promptly, or they will back up the whole event distribution system,
+and cause other events to be delayed or lost. So we use Clojure’s
+http://clojuredocs.org/clojure.core/future[`future`] to send a block
+of code to be executed in the background on another thread.
+
+<3> The expression will return immediately, but in the background our
+inner block of code sleeps for half a beat (we calculate that by
+dividing 30,000 milliseconds, or half a minute, by the number of beats
+per minute that the mixer reported it is running at).
+
+<4> When we wake up, halfway through the beat, we send the other UDP
+message that tells MagicQ the remote trigger is off again. So, by
+cycling those messages once per beat, the lighting console can be
+driven at the same BPM as the master CDJ.

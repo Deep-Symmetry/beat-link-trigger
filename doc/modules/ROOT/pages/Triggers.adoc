@@ -32,7 +32,7 @@ image:TriggersMenu.png[Triggers Menu,355,225]
 TIP: Triggers allow you to build all kinds of integrations with your
 players, at a very low level. For the common case of wanting to make
 something happen when a particular part of a specific track is played,
-the new <<Shows#shows,Show Interface>> added in version 0.5 is much
+the new <<Shows#,Show Interface>> added in version 0.5 is much
 easier and more convenient to use, so you may want to start with that!
 And for an even faster way to get started, you may wan to explore the
 integration example that shows how to use
@@ -50,8 +50,8 @@ purpose of the trigger, to remind you when you later come back to it.
 Apart from the trigger index, a number by which Beat Link Trigger
 identifies the trigger when it is reporting errors or naming related
 windows (like expression editors, described in the
-<<Expressions#expressions,Expressions section>>), the comment takes up
-the entire width of the first line of the trigger row.
+<<Expressions#,Expressions section>>), the comment takes up the entire
+width of the first line of the trigger row.
 
 [[watch-menu]]
 === Watch Menu
@@ -99,7 +99,7 @@ replaced. IDs are not unique across players and slots.
 
 These three pieces of information can be used to identify the track
 and set up fairly sophisticated custom filter expressions, as
-described <<Matching#matching-tracks,below>>. If one of your
+described <<Matching.adoc#,below>>. If one of your
 expressions recognizes a track, it can tell Beat Link Trigger to
 display its name (or any other text you like) instead of the normal
 track description by storing your desired description string under the
@@ -131,7 +131,7 @@ expressions include `track-artist`, `track-comment`, `track-genre`,
 `track-title`.
 
 Powerful ways to take advantage of this metadata capability are explored
-in the <<Matching#matching-tracks,Matching Tracks>> section.
+in the <<Matching.adoc#,Matching Tracks>> section.
 
 ==== Playlist Position
 
@@ -217,10 +217,10 @@ messages at all. Instead, when activated, it tries to synchronize an
 Ableton Link session to the tempo and beat grid being established by
 the player that it is watching. For this to work, you need to have
 Carabiner installed, running, and connected, as described in
-<<Link#working-with-ableton-link,Working with Ableton Link>>. You can
-also use expressions, as described <<Expressions#expressions,below>>,
+<<Link.adoc#,Working with Ableton Link>>. You can
+also use expressions, as described <<Expressions.adoc#,below>>,
 to send additional messages over MIDI or other communication
-protocols. As with MIDI clock, you can <<Link#ignoring-track-bpm,ignore
+protocols. As with MIDI clock, you can <<Link.adoc#ignoring-track-bpm,ignore
 the track tempo>> for special-case integrations.
 +
 [TIP]
@@ -229,10 +229,10 @@ the track tempo>> for special-case integrations.
 If you are interested in synchronizing an Ableton Link session with
 the tempo and beat grid of your CDJs, you no longer need to use
 triggers to do so. With Carabiner running, you can use
-<<Link#passive-sync-mode,Passive Sync Mode>> to have Ableton Link
+<<Link.adoc#passive-sync,Passive Sync Mode>> to have Ableton Link
 follow the CDJs, and you can even let Ableton Link be the Tempo Master
 and control the tempo and beat sync of the CDJs using
-<<Link#full-sync-mode,Full Sync Mode>>.
+<<Link#full-sync,Full Sync Mode>>.
 
 ====
 

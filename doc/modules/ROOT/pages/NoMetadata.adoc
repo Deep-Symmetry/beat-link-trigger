@@ -20,17 +20,17 @@ for reference in situations that justify that effort.
 
 == Recognizing Tracks
 
-As described in the <<README#player-status-summary,Player Status
-Summary>> discussion, the most reliable way to match a track is using
-the `rekordbox-id` value, which uniquely identifies the track within
-the media (USB stick or SD card) from which it was loaded. However,
-these IDs are not unique across media--each attached USB stick or SD
-card will number its tracks with IDs that start at 1 and increment
-from there, so as soon as you have multiple media attached to one or
-more players, there will multiple different tracks with the same
-`rekordbox-id` value. To be safe you will also need to consider the
-`track-source-player` value, which tells you the player from which the
-track was loaded, and the `track-source-slot` value, which will be
+As described in the <<Triggers.adoc#player-status-summary,Player
+Status Summary>> discussion, the most reliable way to match a track is
+using the `rekordbox-id` value, which uniquely identifies the track
+within the media (USB stick or SD card) from which it was loaded.
+However, these IDs are not unique across media--each attached USB
+stick or SD card will number its tracks with IDs that start at 1 and
+increment from there, so as soon as you have multiple media attached
+to one or more players, there will multiple different tracks with the
+same `rekordbox-id` value. To be safe you will also need to consider
+the `track-source-player` value, which tells you the player from which
+the track was loaded, and the `track-source-slot` value, which will be
 `:sd-slot` for tracks loaded from SD cards, and `:usb-slot` for tracks
 loaded from USB drives.
 
@@ -269,11 +269,11 @@ matched. But in this new approach, we have only a single trigger for
 each player, and that trigger will activate whenever the player loads
 a track that is listed in the `:watched-tracks` map. So, without
 memorizing all the track IDs, how will you be able to tell which one
-has been matched? Well, as described <<README#player-status,above>>, the
-Enabled filter can tell Beat Link Trigger to display the name of the
-track it has matched by copying the `:name` string to the key
-`:track-description` in the trigger `locals` atom. Let’s look at the
-Enabled filter’s code now:
+has been matched? Well, as described
+<<Triggers.adoc#player-status-summary,above>>, the Enabled filter can
+tell Beat Link Trigger to display the name of the track it has matched
+by copying the `:name` string to the key `:track-description` in the
+trigger `locals` atom. Let’s look at the Enabled filter’s code now:
 
 TIP: :sparkles: Don’t worry if this looks a little long--this first
 version shows how you could do it all on your own, so we can explain
@@ -533,7 +533,7 @@ values were invented for this example; you can store whatever keys and
 values you need for your own purposes in your track entries.
 
 Finally, here is an example of using the
-<<README#inspecting-locals-and-globals,Globals Inspector>> to dive into the
+<<Debugging.adoc#inspecting,Globals Inspector>> to dive into the
 structure we have created, illustrating its hierarchical nature:
 
 image:InspectingTrackMap.png[Inspecting our Track Map, 566]

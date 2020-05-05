@@ -17,7 +17,7 @@ is doing for you automatically.
 
 TIP: Rather than using the low-level approaches described in this
 section, you will almost always want to use the new, convenient
-<<Shows.adoc#shows,Show interface>> introduced in version 0.5. It gives you
+<<Shows.adoc#,Show interface>> introduced in version 0.5. It gives you
 an incredibly powerful graphical interface for matching tracks and
 defining cues on beat ranges within those tracks.
 

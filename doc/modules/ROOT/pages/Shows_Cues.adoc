@@ -20,14 +20,14 @@ explore the features available at the top of the window.
 At the top of the Cues window, above any Cues that you have added to
 it, is a header that shows a scrollable and zoomable view of the track
 waveform and beat grid, much like the one that appears in the
-<<Players.adoc#overview,Player Status Window>>, except that you can
-manually scroll this one to the section you want to see regardless of
-whether any players are currently playing it. If any are, you will
-see their playback position(s) marked on the waveform as illustrated
-above, but they will not cause the waveform to scroll to follow them
-unless you check the `Auto-Scroll` checkbox. Although you won’t want
-to do that when you are editing cues, it can be nice when running a
-show, as it makes it easy to follow along as Cues approach and run.
+<<Players.adoc#,Player Status Window>>, except that you can manually
+scroll this one to the section you want to see regardless of whether
+any players are currently playing it. If any are, you will see their
+playback position(s) marked on the waveform as illustrated above, but
+they will not cause the waveform to scroll to follow them unless you
+check the `Auto-Scroll` checkbox. Although you won’t want to do that
+when you are editing cues, it can be nice when running a show, as it
+makes it easy to follow along as Cues approach and run.
 
 The kbd:[New Cue] button creates a new cue on the first beat of the
 Track, unless you have selected a beat range first as described below.
@@ -215,7 +215,7 @@ inside the Cue moves back out of it, or the Track is disabled.
 
 Custom:: When this option is chosen, you can send any kind of message
 you want when the Cue is entered and/or exited, by writing code as
-described in the <<Expressions.adoc#show-cue-expressions,Expressions>>
+described in the <<Expressions_ShowCue.adoc#,Expressions>>
 section. This gives you the most flexibility because in addition to
 MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need. The expression editors for the Entered
@@ -311,7 +311,7 @@ disabled (as long as the Cue started playing from its first beat).
 Custom:: When this option is chosen, you can send any kind of message
 you want when the Cue is started on-beat and/or ended from that state,
 by writing code as described in the
-<<Expressions.adoc#show-cue-expressions,Expressions>> section. This gives
+<<Expressions_ShowCue.adoc#,Expressions>> section. This gives
 you the most flexibility because in addition to MIDI messages, you can
 send arbitrary UDP packets, HTTP requests, or whatever you might need.
 The expression editors for the Started Expression and Ended Expression
@@ -399,18 +399,18 @@ Track is disabled (as long as the Cue started playing after its first
 beat).
 
 Custom:: When this option is chosen, you can send any kind of message
-you want when the Cue is started late and/or ended from that state,
-by writing code as described in the
-<<Expressions.adoc#show-cue-expressions,Expressions>> section. This gives
-you the most flexibility because in addition to MIDI messages, you can
-send arbitrary UDP packets, HTTP requests, or whatever you might need.
-The expression editors for the Started Expression and Ended Expression
-are accessed through the <<cue-context-menu,cue context menu>>.
+you want when the Cue is started late and/or ended from that state, by
+writing code as described in the
+<<Expressions_ShowCue.adoc#,Expressions>> section. This gives you the
+most flexibility because in addition to MIDI messages, you can send
+arbitrary UDP packets, HTTP requests, or whatever you might need. The
+expression editors for the Started Expression and Ended Expression are
+accessed through the <<cue-context-menu,cue context menu>>.
 +
-If you choose `Custom` and have not yet written a Started Late
-expression, the expression editor will be opened to let you do that.
-You can also open that editor using the <<cue-context-menu,cue
-context menu>>.
+If you
+choose `Custom` and have not yet written a Started Late expression,
+the expression editor will be opened to let you do that. You can also
+open that editor using the <<cue-context-menu,cue context menu>>.
 
 [[started-late-note-spinner]]
 ==== Started Late Note/Controller Spinner
@@ -436,10 +436,10 @@ by right-clicking (or control-clicking) anywhere on the row’s
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the Cue, as
-described in the <<Expressions.adoc#show-cue-expressions,Expressions
-section>>. The gear icon next to an expression will be filled in if
-that expression has a value, and the gear in the button will be filled
-in if any expression associated with the Cue has a value.
+described in the <<Expressions_ShowCue.adoc#,Expressions section>>.
+The gear icon next to an expression will be filled in if that
+expression has a value, and the gear in the button will be filled in
+if any expression associated with the Cue has a value.
 
 image:CueContextMenu.png[Context Menu,912,613]
 

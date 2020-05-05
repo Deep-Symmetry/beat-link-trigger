@@ -182,7 +182,7 @@ The first is done by choosing menu:Triggers[Inspect Expression
 Globals]. This opens a window showing you all the keys and values that
 have been created in the `globals` atom shared by all triggers. Here
 is what that looks like after the example code shown in the
-<<Expressions#global-expressions,Global Expressions section>> has run:
+<<Expressions_TriggerGlobal.adoc#,Global Expressions section>> has run:
 
 image:ExpressionGlobals.png[Expression Globals,872,462]
 
@@ -226,7 +226,7 @@ image:Save.png[Save option,314,210]
 [[exporting-and-importing]]
 === Exporting and Importing Triggers
 
-As mentioned in the <<Triggers#context-menu,Triggers Context Menu>>
+As mentioned in the <<Triggers.adoc#context-menu,Triggers Context Menu>>
 section, individual triggers can be exported on their own, and
 imported into other trigger configurations.
 
@@ -237,7 +237,7 @@ If you are in a situation where it is important to keep detailed
 records of the music being played (for example, a radio station that
 needs to pay royalties), the built in Playlist Writer can help. It
 builds on the ideas described in the
-<<Matching#writing-a-playlist,Matching Tracks>> section to give you a
+<<Matching.adoc#writing-a-playlist,Matching Tracks>> section to give you a
 robust, convenient solution.
 
 Start by choosing menu:File[Write Playlist]. This will bring up the
