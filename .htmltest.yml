@@ -1,5 +1,3 @@
-# Before running https://github.com/wjdp/htmltest, run:
-# DOCSEARCH_ENABLED=true DOCSEARCH_ENGINE=lunr antora --fetch doc/htmltest.yml --generator antora-site-generator-lunr
 DirectoryPath: "doc/build/site"
 IgnoreDirs:
   - "0.5.3"
