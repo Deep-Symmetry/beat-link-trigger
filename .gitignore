@@ -3,6 +3,7 @@
 /checkouts
 /doc/build
 /resources/beat_link_trigger/version.edn
+/tmp/.htmltest
 pom.xml
 pom.xml.asc
 *.jar
