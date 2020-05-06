@@ -51,7 +51,7 @@ matching are listed in the expression documentation you can scroll
 through in the bottom half of the expression editor window, and other
 metadata-based values include `track-comment`, `track-genre`,
 `track-key`, and `track-length`. The entire
-http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/TrackMetadata.html[`TrackMetadata`]
+https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackMetadata.html[`TrackMetadata`]
 object is available as `track-metadata`, if you want to use
 http://clojure.org/reference/java_interop[Clojure Java Interop] to
 work with it.

@@ -204,7 +204,7 @@ things you can do with Beat Link Trigger.
 
 Additionally, you can send any other command supported by the external
 control protocol (documented
-http://forum.thelightingcontroller.com/viewtopic.php?f=72&t=4183[here]),
+http://download.thelightingcontroller.com/software/External_Application/Protocol.pdf[here]),
 like this, which would tell it to set fader number 2 to position 0:
 
 ```clojure

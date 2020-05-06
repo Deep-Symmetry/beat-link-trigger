@@ -128,7 +128,7 @@ as you load and play different tracks to confirm that it works!
 
 Of course, as noted above, if you want something to happen when a
 particular track reaches a particular beat, the
-<<Shows.adoc#shows,Show interface>> is now a much easier and more
+<<Shows.adoc#,Show interface>> is now a much easier and more
 powerful way to arrange that. Still, read on for more basic expression
 editing concepts.
 

@@ -1,0 +1,15 @@
+# This is used for locally building the latest site version for running htmltest to check
+# for broken links.
+site:
+  title: Beat Link Trigger User Guide
+  url: https://blt-guide.deepsymmetry.org/
+  start_page: beat-link-trigger::README.adoc
+content:
+  sources:
+  - url: ./..
+    branches: HEAD
+    start_path: doc
+ui:
+  bundle:
+    url: https://deepsymmetry.org/media/antora/ui-bundle.zip
+    snapshot: true

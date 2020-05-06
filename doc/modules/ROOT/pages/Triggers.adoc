@@ -32,11 +32,11 @@ image:TriggersMenu.png[Triggers Menu,355,225]
 TIP: Triggers allow you to build all kinds of integrations with your
 players, at a very low level. For the common case of wanting to make
 something happen when a particular part of a specific track is played,
-the new <<Shows#,Show Interface>> added in version 0.5 is much
+the new <<Shows.adoc#,Show Interface>> added in version 0.5 is much
 easier and more convenient to use, so you may want to start with that!
 And for an even faster way to get started, you may wan to explore the
 integration example that shows how to use
-<<Integration_MIDI_rekordbox#,rekordbox cue names>> to trigger
+<<Integration_MIDI_rekordbox.adoc#,rekordbox cue names>> to trigger
 specific MIDI messages.
 
 == Trigger Elements
@@ -50,7 +50,7 @@ purpose of the trigger, to remind you when you later come back to it.
 Apart from the trigger index, a number by which Beat Link Trigger
 identifies the trigger when it is reporting errors or naming related
 windows (like expression editors, described in the
-<<Expressions#,Expressions section>>), the comment takes up the entire
+<<Expressions.adoc#,Expressions section>>), the comment takes up the entire
 width of the first line of the trigger row.
 
 [[watch-menu]]
@@ -186,7 +186,7 @@ check box to the right of the menu is checked, it will either send a
 Start or Continue message (as chosen in the following menu) when the
 watched player starts playing, and if the Stop box is checked, it will
 send a Stop message when the watched player stops. In special cases,
-you can also <<Link#ignoring-track-bpm,ignore the track tempo>> and
+you can also <<Link.adoc#ignoring-track-bpm,ignore the track tempo>> and
 respond only to pitch changes.
 +
 [WARNING]
@@ -232,14 +232,14 @@ triggers to do so. With Carabiner running, you can use
 <<Link.adoc#passive-sync,Passive Sync Mode>> to have Ableton Link
 follow the CDJs, and you can even let Ableton Link be the Tempo Master
 and control the tempo and beat sync of the CDJs using
-<<Link#full-sync,Full Sync Mode>>.
+<<Link.adoc#full-sync,Full Sync Mode>>.
 
 ====
 
 Custom:: When this option is chosen, the trigger will not send any
 messages on its own, and it is up to you to send them in code you
 write in the trigger expressions, as described in the
-<<Expressions#expressions,Expressions>> section.
+<<Expressions.adoc#,Expressions>> section.
 This gives you the most flexibility because in addition to MIDI
 messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
@@ -286,7 +286,7 @@ trigger will be enabled. This lets you apply sophisticated logic, like
 enabling the trigger when a particular track is loaded into the
 player, and it has reached a particular beat during playback.
 Expressions are further explained in the
-<<Expressions#expressions,Expressions>> section.
+<<Expressions.adoc#,Expressions>> section.
 If you choose `Custom` and have not yet written an Enabled Filter
 expression, the expression editor will be opened to let you do that.
 
@@ -326,7 +326,7 @@ accessed by right-clicking (or control-clicking) anywhere on the row’s
 background, but you can also open the context menu with a regular
 mouse click on the button with a gear icon in it. Most of the menu is
 devoted to editing various expressions to customize the trigger, as
-described <<Expressions#expressions,below>>. The gear icon next to an
+described <<Expressions.adoc#,below>>. The gear icon next to an
 expression will be filled in if that expression has a value, and the
 gear in the button will be filled in if any expression associated with
 the trigger has a value.
@@ -339,7 +339,7 @@ to test your MIDI mappings and custom expressions as described in the
 
 The menu:Inspect Expression Locals[] option allows you to explore any
 values that have been set up by expressions in the Trigger to re-use
-or share with each other. See <<Debugging#inspecting,Inspecting Locals
+or share with each other. See <<Debugging.adoc#inspecting,Inspecting Locals
 and Globals>> for more details.
 
 After that are options with which you can import an exported trigger

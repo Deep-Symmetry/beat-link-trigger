@@ -83,7 +83,7 @@ watched player, and tells Beat Link Trigger if the trigger should be
 enabled or not. Often you will want a trigger to be enabled when a DJ
 has loaded a particular track, and a variety of strategies for
 achieving that are described in their own
-<<Matching.adoc#matching-tracks,section below>>, see that for lots of
+<<Matching.adoc#,section below>>, see that for lots of
 great ideas. Following some of its suggestions, our Resolume example
 could enable its trigger with a custom Enabled Filter along the lines
 of:

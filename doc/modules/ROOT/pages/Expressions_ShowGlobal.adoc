@@ -1,6 +1,6 @@
 == Show Global Expressions
 
-Starting with version 0.5 you can use <<Shows.adoc#shows,Show files>> to
+Starting with version 0.5 you can use <<Shows.adoc#,Show files>> to
 more conveniently perform actions when specific sections of particular
 tracks are played. Shows have their own sets of expressions, which we
 cover next.
