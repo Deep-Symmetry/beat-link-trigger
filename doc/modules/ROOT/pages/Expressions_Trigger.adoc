@@ -116,20 +116,69 @@ is chosen.
 TIP: The Tracked Update expression is the ideal place to adjust the
 track description displayed in the Player Status section of the
 trigger by storing values in the `:track-description` and/or
-`:metadata-summary` keys of the trigger locals.
+`:metadata-summary` keys of the trigger locals, although you almost
+never need to do that now that we can get track metadata from the
+players.
 
-Continuing our example, we can use a Tracked Update Expression to
-update the playback speed within Arena 5 to stay synced with the
-current tempo of the CDJ. We want to send messages to Resolume only
-when the trigger is active--which means it is enabled and the player
-it is watching is currently playing--so we wrap our expression in a
-`when` clause like this:
+As a simple standalone example, Netsky wanted to send a MIDI note to
+his lighting software whenever a different deck became tempo master,
+to switch to a different look for each new track in his mix. We
+accomplished that by setting up a trigger to watch the Master Player,
+with the following Tracked Update Expression:
+
+```clojure
+(let [[old new] (swap-vals! locals assoc :master device-number)]  ;; <1>
+  (when (not= (:master old) (:master new))  ; The master has changed.
+    (when trigger-output  ; The trigger has a valid MIDI output chosen.
+      (case trigger-message  ;; <2>
+        "Note" (do (midi/midi-note-on trigger-output trigger-note 127
+                                      (dec trigger-channel))
+                   (midi/midi-note-off trigger-output trigger-note
+                                      (dec trigger-channel))
+        "CC"   (do (midi/midi-control trigger-output trigger-note 127
+                                      (dec trigger-channel))
+                   (midi/midi-control trigger-output trigger-note 0
+                                      (dec trigger-channel)))
+        nil))))  ;; <3>
+```
+
+<1> This code grabs the device number (if any) we last saw as tempo
+master, and the current one, and saves the current one for next time.
+That allows us to tell when a new deck becomes master, and thus when
+to run the rest of the expression.
+
+<2> This part is fancier than it needs to be, in order to allow the
+user to configure whether to send a Note or CC message, as well as the
+note/controller number and MIDI channel to send it on, using the
+normal Trigger window user interface elements. Depending on the
+settings, it sends the corresponding Note On message with a velocity
+of 127, followed immediately by a Note Off message, or it sends A CC
+with value 127 followed by another with value 0.
+
+<3> If the user picked something other than *Note* or *CC* in the
+*Message* menu, this default case prevents the `case` statement from
+throwing an exception; it tells it to just not do anything.
+
+Although it might seem strange, you want to leave this trigger's
+*Enabled* setting at *Never*, because you don't want it sending MIDI
+when a track starts or stops playing. That way, the only messages that
+get sent are the ones from the above expression, and so whenever a new
+deck becomes tempo master, the chosen message will be sent.
+
+Continuing our more complex multi-expression Resolume example, we can
+also use a Tracked Update Expression to update the playback speed
+within Arena 5 to stay synced with the current tempo of the CDJ. We
+want to send messages to Resolume only when the trigger is
+active--which means it is enabled and the player it is watching is
+currently playing--so we wrap our expression in a `when` clause like
+this:
 
 [source,clojure,subs=attributes+]
 ----
 (when trigger-active?  ;; <1>
   (let [pitch (/ (- pitch-multiplier 0.05) 2)]  ;; <2>
-    (osc/osc-send (:resolume @locals) "/activeclip/audio/pitch/values" pitch))))  ;; <3>
+    (osc/osc-send (:resolume @locals)
+                  "/activeclip/audio/pitch/values" pitch))))  ;; <3>
 ----
 
 <1> Skip this whole expression if the trigger isn’t active.
@@ -164,7 +213,8 @@ a new one when it is different. We will use a local named
     (swap! locals update-in [:resolume-pitch]
            (fn [old-pitch]
              (when (not= pitch old-pitch)  ;; <3>
-               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))  ;; <4>
+               (osc/osc-send (:resolume @locals)
+                             "/layer3/clip3/audio/pitch/values" pitch))  ;; <4>
              pitch))))  ;; <5>
 ----
 
@@ -198,7 +248,8 @@ will report the new pitch value each time it is sent, like this:
            (fn [old-pitch]
              (when (not= pitch old-pitch)
                (timbre/info "New pitch:" pitch)  ;; <1>
-               (osc/osc-send (:resolume @locals) "/layer3/clip3/audio/pitch/values" pitch))
+               (osc/osc-send (:resolume @locals)
+                             "/layer3/clip3/audio/pitch/values" pitch))
              pitch))))
 ----
 
@@ -301,3 +352,38 @@ per minute that the mixer reported it is running at).
 message that tells MagicQ the remote trigger is off again. So, by
 cycling those messages once per beat, the lighting console can be
 driven at the same BPM as the master CDJ.
+
+Alternately, if you want to send a MIDI message whenever the master
+player plays a down beat (the first beat of a bar), you could use this
+Beat Expression:
+
+```clojure
+(when (and trigger-output (= 1 beat-within-bar))  ;; <1>
+  (case trigger-message
+    "Note" (do (midi/midi-note-on trigger-output trigger-note 127
+                                  (dec trigger-channel))
+               (midi/midi-note-off trigger-output trigger-note
+                                   (dec trigger-channel)))
+    "CC"   (do (midi/midi-control trigger-output trigger-note 127
+                                  (dec trigger-channel))
+               (midi/midi-control trigger-output trigger-note 0
+                                  (dec trigger-channel)))
+    nil))
+```
+
+<1> This checks the trigger has a valid MIDI output, and that the beat
+we just received was a down beat.
+
+This a bit more code than you might expect, but it allows the user to
+configure whether to send a Note or CC message, as well as the
+note/controller number and MIDI channel to send it on, using the
+normal Trigger window user interface elements. Depending on the
+settings, it sends the corresponding Note On message with a velocity
+of 127, followed immediately by a Note Off message, or it sends A CC
+with value 127 followed by another with value 0.
+
+Although it might seem strange, you want to leave this trigger's
+*Enabled* setting at *Never*, because you don't want it sending MIDI
+when a track starts or stops playing. That way, the only messages that
+get sent are the ones from the above expression, which is whenever the
+master player plays the first beat of a measure.
