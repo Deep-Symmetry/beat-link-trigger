@@ -37,6 +37,10 @@ This change log follows the conventions of
   especially helpful when you have made changes to a track in
   rekordbox (such as fine-tuning the beat grid) and want to reconnect
   your show to it.
+- The Beat Link library now fully implements the startup and device
+  number assignment phase of the protocol, so if you attach Beat Link
+  Trigger to a port on a mixer that is dedicate to a particular
+  channel, it will correctly be assigned that channel number.
 - The Beat Expression now gives you access to the current beat number
   even though the protocol itself fails to include that vital
   information in beat packets! This works as long as the TimeFinder is
