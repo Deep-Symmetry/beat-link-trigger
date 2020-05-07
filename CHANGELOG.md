@@ -50,6 +50,9 @@ This change log follows the conventions of
   who are having trouble getting connected to their players.
 - The user guide now has a search feature, making it easier to find
   content even if it is on a different page.
+- Navigation in the user guide is much improved, taking advantage of
+  several new [Antora](https://antora.org) features, which also
+  allowed it to be split into more reasonably sized pages.
 
 ### Changed
 
