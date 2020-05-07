@@ -20,7 +20,10 @@ guide](https://blt-guide.deepsymmetry.org/).
 > :boom: **Warning**: This does not yet work with files analyzed by
 > rekordbox 6. There have been changes to the database format that
 > will take us time to understand and cope with. Please stick to
-> rekordbox 5 and earlier until that can be done.
+> rekordbox 5 and earlier until that can be done. I hope to start
+> working on this as soon as the current release is finished. In the
+> mean time, issues with log files, packet captures, and track
+> analysis files are welcome!
 
 ## Usage
 
