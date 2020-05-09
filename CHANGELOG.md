@@ -8,19 +8,21 @@ This change log follows the conventions of
 
 ### Fixed
 
-- Sends a newly-discovered byte in the Load Track command which is
-  necessary to tell the XDJ-XZ which deck you want the track loaded
-  into.
 - Added support for playlists built with track titles and comments,
   #96.
+- Fixes to the Beat Link and Crate Digger libraries allow them to work
+  properly with new formats for data that rekordbox 6 sends. We may
+  find more problems in the future, because testing with this new
+  version has been limited, but it is already working much better than
+  it did at first.
 - Updated the Track Loader window to forewarn you that the XDJ-XZ
   can't be told to load tracks or to play/cue.
 - Use larger downward-pointing triangle in cue Library menu button on
   Windows. It looks uglier than the small one, but that glyph is not
   available in the Windows font, so a big triangle looks way better
   than the “missing glyph” box.
-- Incorporates a number of fixes and improvements to the underlying
-  Beat Link library.
+- Incorporates a number of other fixes and improvements to the
+  underlying Beat Link, Crate Digger, and Beat Carabiner libraries.
 - Added type hints throughout so the Clojure compiler could avoid the
   use of reflection, which will improve performance, #95.
 
