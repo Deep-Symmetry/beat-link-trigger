@@ -142,9 +142,9 @@ daemon.
 
 If you have Max/MSP and want to study and perhaps modify the
 implementation of the daemon itself, you can find the patch that
-builds the application at
-http://deepsymmetry.org/media/SMPTE%20daemon.maxpat.zip (here is what
-it looks like in patcher mode, unlocked):
+builds the application on the
+http://deepsymmetry.org/media/SMPTE%20daemon.maxpat.zip[Deep Symmetry
+website] (here is what it looks like in patcher mode, unlocked):
 
 image:SMPTEpatch.png[SMPTE patcher,661,784]
 
@@ -159,13 +159,14 @@ Once people discovered the single stream implementation, it turned out
 that another common desire was to be able to generate two SMPTE
 streams at the same time, to sync to two different active players. So
 I eventually created a modified version of my daemon that supports
-this scenario. You can download the dual-stream daemon app at
-http://deepsymmetry.org/media/smpted-dual.zip and the corresponding
-triggers at http://deepsymmetry.org/media/SMPTE-Left.bltx and
-http://deepsymmetry.org/media/SMPTE-Right.bltx (please read the
-single-stream explanation above for details about how to import the
-trigger files, and about audio configuration of the daemon, which is
-the same here).
+this scenario. You can download the
+http://deepsymmetry.org/media/smpted-dual.zip[dual-stream daemon app]
+and the corresponding
+http://deepsymmetry.org/media/SMPTE-Left.bltx[left channel] and
+http://deepsymmetry.org/media/SMPTE-Right.bltx[right channel] triggers
+from the Deep Symmetry web site (please read the single-stream
+explanation above for details about how to import the trigger files,
+and about audio configuration of the daemon, which is the same here).
 
 As downloaded, the left trigger is configured to watch Player 2, and
 the right trigger to watch Player 3, but you can change that using the
@@ -186,9 +187,10 @@ each.
 
 Again, you can study the trigger expressions to learn more about how
 they work, and if you have Max/MSP and want to study or modify the
-daemon itself, the patch source for it is at
-http://deepsymmetry.org/media/SMPTE%20dual%20daemon.maxpat.zip (here
-is what it looks like in patcher mode, unlocked):
+daemon itself, the patch source for it is also on the
+http://deepsymmetry.org/media/SMPTE%20dual%20daemon.maxpat.zip[Deep
+Symmetry website] (here is what it looks like in patcher mode,
+unlocked):
 
 image:SMPTEdualPatch.png[Dual SMPTE patcher,1290,840]
 
@@ -229,7 +231,10 @@ ask on the Gitter channel. Clint and I worked with the developer to
 arrange for the project to support OSC commands that would allow Beat
 Link Trigger to control it.
 
-Clint's written a guide to getting started with the Orange Pi project in the wiki section.  You can check it out here: https://github.com/Deep-Symmetry/beat-link-trigger/wiki/Guide:-Building-the-Orange-Pi-LTC-SMPTE-Timecode-Reader,-Converter-&-Generator
+Clint's written a guide to getting started with the Orange Pi project
+in the Beat Link Trigger Wiki. You can check it out
+https://github.com/Deep-Symmetry/beat-link-trigger/wiki/Guide:-Building-the-Orange-Pi-LTC-SMPTE-Timecode-Reader,-Converter-&-Generator[here
+(internet connection required)].
 
 === Controlling the Pi using a Show
 
