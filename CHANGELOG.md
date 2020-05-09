@@ -8,13 +8,13 @@ This change log follows the conventions of
 
 ### Fixed
 
-- Added support for playlists built with track titles and comments,
-  #96.
 - Fixes to the Beat Link and Crate Digger libraries allow them to work
   properly with new formats for data that rekordbox 6 sends. We may
   find more problems in the future, because testing with this new
   version has been limited, but it is already working much better than
   it did at first.
+- Added support for playlists built with track titles and comments,
+  [#96](https://github.com/Deep-Symmetry/beat-link-trigger/issues/96).
 - Updated the Track Loader window to forewarn you that the XDJ-XZ
   can't be told to load tracks or to play/cue.
 - Use larger downward-pointing triangle in cue Library menu button on
@@ -24,7 +24,8 @@ This change log follows the conventions of
 - Incorporates a number of other fixes and improvements to the
   underlying Beat Link, Crate Digger, and Beat Carabiner libraries.
 - Added type hints throughout so the Clojure compiler could avoid the
-  use of reflection, which will improve performance, #95.
+  use of reflection, which will improve performance,
+  [#95](https://github.com/Deep-Symmetry/beat-link-trigger/issues/95).
 
 ### Added
 

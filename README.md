@@ -17,13 +17,14 @@ guide](https://blt-guide.deepsymmetry.org/).
 
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#license)
 
-> :boom: **Warning**: This does not yet work with files analyzed by
-> rekordbox 6. There have been changes to the database format that
-> will take us time to understand and cope with. Please stick to
-> rekordbox 5 and earlier until that can be done. I hope to start
-> working on this as soon as the current release is finished. In the
-> mean time, issues with log files, packet captures, and track
-> analysis files are welcome!
+> :boom: **Warning**: This may not yet work with rekordbox 6. There
+> have been changes to the protocol and database format that will take
+> us time to understand and cope with. We have already found and fixed
+> two, and things seem to be working more or less, but it will be
+> safer if you can stick to rekordbox 5 and earlier if you need BLT to
+> work. If you can do any testing with rekordbox 6, please share
+> status reports and (even more important) open issues with log files,
+> packet captures, and track analysis files if you run into problems!
 
 ## Usage
 
