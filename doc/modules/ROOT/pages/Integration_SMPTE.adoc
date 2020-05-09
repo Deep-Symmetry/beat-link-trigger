@@ -15,7 +15,7 @@ https://github.com/x42/libltc[libltc library]. However, they got busy
 with other projects, and it is unclear when they (or anyone) will have
 time to finish and release their solution.
 
-So in the mean time I am shared some very experimental daemons that
+So in the mean time I am sharing some very experimental daemons that
 can be used for this purpose, built using
 https://cycling74.com/products/max/[Max/MSP]. Because these embed
 https://github.com/MattijsKneppers[Mattijs Kneppers]’
@@ -212,6 +212,7 @@ author of the firmware described below, and Clint may be able to help
 (he is `@drummerclint` on the
 https://gitter.im/brunchboy/beat-link-trigger[Gitter channel]).
 
+
 Also please keep in mind the warning in the
 <<Players.adoc#,Player Status Window section>>
 about how time information can only be reliable when tracks are being
@@ -227,6 +228,8 @@ compatible options. Look on the project page for more information, or
 ask on the Gitter channel. Clint and I worked with the developer to
 arrange for the project to support OSC commands that would allow Beat
 Link Trigger to control it.
+
+Clint's written a guide to getting started with the Orange Pi project in the wiki section.  You can check it out here: https://github.com/Deep-Symmetry/beat-link-trigger/wiki/Guide:-Building-the-Orange-Pi-LTC-SMPTE-Timecode-Reader,-Converter-&-Generator
 
 === Controlling the Pi using a Show
 
