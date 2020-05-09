@@ -16,7 +16,8 @@ This change log follows the conventions of
 - Added support for playlists built with track titles and comments,
   [#96](https://github.com/Deep-Symmetry/beat-link-trigger/issues/96).
 - Updated the Track Loader window to forewarn you that the XDJ-XZ
-  can't be told to load tracks or to play/cue.
+  can't be told to load tracks without rekordbox on the network, or to
+  play/cue under any circumstance.
 - Use larger downward-pointing triangle in cue Library menu button on
   Windows. It looks uglier than the small one, but that glyph is not
   available in the Windows font, so a big triangle looks way better

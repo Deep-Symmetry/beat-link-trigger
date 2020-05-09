@@ -1561,7 +1561,7 @@
                  (zero? raw)  "File"
                  (< raw 0x10) "Player "
                  (< raw 0x20) "Computer "
-                 (> raw 40)   "Mobile "
+                 (> raw 0x28) "Mobile "
                  :else        "Mixer ")
         base   (str kind number
                     (util/case-enum (.slot slot-reference)
@@ -1856,6 +1856,19 @@
       (configure-partial-search-ui search-partial search-button total (.getChildCount node))
       (.nodesWereInserted ^DefaultTreeModel (.getModel tree) node (int-array (range loaded (+ loaded batch-size)))))))
 
+(defn- xdj-xz-load-problem
+  "The XDJ-XZ can only be told to load a track if rekordbox or rekordbox
+  mobile is on the network. This checks for that, and reports the
+  problem if it is not true."
+  []
+  (if (empty? (filter (fn [device]
+                        (let [number (.getDeviceNumber device)]
+                          (or (< 0x10 number 0x20)
+                              (< 0x28 number 0x30))))
+                      (.getCurrentDevices device-finder)))
+    "XDJ-XZ won't load tracks without rekordbox on network."
+    ""))
+
 (defn- create-window
   "Builds an interface in which the user can choose a track and load it
   into a player. If `slot` is not `nil`, the corresponding slot will
@@ -1887,11 +1900,14 @@
                                           xdj-xz  (:xdj-xz @selected-player)
                                           problem (cond (nil? @selected-track) "No track chosen."
                                                         playing                "Can't load while playing."
-                                                        xdj-xz                 "XDJ-XZ won't load tracks."
+                                                        xdj-xz                 (xdj-xz-load-problem)
                                                         :else                  "")]
                                       (seesaw/value! problem-label problem)
                                       (seesaw/config! load-button :enabled? (empty? problem))
-                                      (seesaw/config! play-button :text (if playing "Stop and Cue" "Play if Cued"))
+                                      (seesaw/config! play-button :text
+                                                      (if playing
+                                                        (if xdj-xz "XDJ-XZ can't Stop" "Stop and Cue")
+                                                        (if xdj-xz "XDJ-XZ can't Play" "Play if Cued")))
                                       (seesaw/config! play-button :enabled? (and (not xdj-xz) (or playing cued)))))
                player-changed     (fn [e]
                                     (update-selected-player selected-player e)
