@@ -15,6 +15,13 @@ This change log follows the conventions of
   it did at first.
 - Added support for playlists built with track titles and comments,
   [#96](https://github.com/Deep-Symmetry/beat-link-trigger/issues/96).
+- The colors assigned to ordinary memory points and loops are now
+  displayed correctly (previously this worked only for hot cues).
+  Thanks to [@ehendrikd](https://github.com/ehendrikd) for
+  [discovering
+  how](https://github.com/Deep-Symmetry/crate-digger/pull/13#issuecomment-626240309).
+- Incorporates a number of other fixes and improvements to the
+  underlying Beat Link, Crate Digger, and Beat Carabiner libraries.
 - Updated the Track Loader window to forewarn you that the XDJ-XZ
   can't be told to load tracks without rekordbox on the network, or to
   play/cue under any circumstance.
@@ -22,8 +29,6 @@ This change log follows the conventions of
   Windows. It looks uglier than the small one, but that glyph is not
   available in the Windows font, so a big triangle looks way better
   than the “missing glyph” box.
-- Incorporates a number of other fixes and improvements to the
-  underlying Beat Link, Crate Digger, and Beat Carabiner libraries.
 - Added type hints throughout so the Clojure compiler could avoid the
   use of reflection, which will improve performance,
   [#95](https://github.com/Deep-Symmetry/beat-link-trigger/issues/95).
