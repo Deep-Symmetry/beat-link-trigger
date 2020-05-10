@@ -128,7 +128,7 @@
   network (ignoring our virtual player, and any mixers or rekordbox
   instances)."
   []
-  (filter #(< % 16) (map (fn [^DeviceAnnouncement device] (.getNumber device))
+  (filter #(< % 16) (map (fn [^DeviceAnnouncement device] (.getDeviceNumber device))
                          (.getCurrentDevices (DeviceFinder/getInstance)))))
 
 (defn remove-blanks

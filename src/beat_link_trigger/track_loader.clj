@@ -427,7 +427,7 @@
   (let [reports (map (fn [{:keys [^DefaultMutableTreeNode node item]}]
                        (let [entry ^IMenuEntry (.getUserObject node)
                              player (.. entry getSlot player)
-                             device (.. device-finder (getLatestAnnouncementFrom player) getName)
+                             device (.. device-finder (getLatestAnnouncementFrom player) getDeviceName)
                              menu   (clojure.string/join "->" (get-parent-list node))]
                          (str "When loading menu " menu " from device named " device ", don't understand: " item)))
                      unrecognized)]
@@ -1571,7 +1571,9 @@
                       CdjStatus$TrackSourceSlot/NO_TRACK ""))
         extra  (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
                  (str (when-let [name (if (= kind "Computer")
-                                        (.getName (.getLatestAnnouncementFrom device-finder (.player slot-reference)))
+                                        (.. device-finder
+                                            (getLatestAnnouncementFrom (.player slot-reference))
+                                            getDeviceName)
                                         (.name details))] (str ": " name))
                       (util/media-contents details)))]
     (str base extra)))
@@ -1721,7 +1723,7 @@
   "Sets up the initial content of the destination player combo box."
   [^javax.swing.JComboBox players]
   (doseq [^DeviceAnnouncement announcement (.getCurrentDevices device-finder)]
-    (add-device players (.getNumber announcement)))
+    (add-device players (.getDeviceNumber announcement)))
   (.setSelectedIndex players 0))
 
 (defn- update-selected-player
@@ -1940,10 +1942,10 @@
                                        (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
                dev-listener       (reify DeviceAnnouncementListener
                                     (deviceFound [this announcement]
-                                      (seesaw/invoke-later (add-device players (.getNumber announcement))))
+                                      (seesaw/invoke-later (add-device players (.getDeviceNumber announcement))))
                                     (deviceLost [this announcement]
                                       (seesaw/invoke-later
-                                       (remove-device players (.getNumber announcement) stop-listener))))
+                                       (remove-device players (.getDeviceNumber announcement) stop-listener))))
                mount-listener     (reify MountListener
                                     (mediaMounted [this slot]
                                       (seesaw/invoke-later (add-slot-node slots-tree slot)))

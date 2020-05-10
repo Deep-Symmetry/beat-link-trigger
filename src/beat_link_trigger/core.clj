@@ -149,7 +149,7 @@
 
               (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
                 (let [descriptions (map (fn [^DeviceAnnouncement device]
-                                          (str (.getName device) " (" (.getHostAddress (.getAddress device)) ")"))
+                                          (str (.getDeviceName device) " (" (.getHostAddress (.getAddress device)) ")"))
                                         unreachables)]
                   (seesaw/invoke-now
                    (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"

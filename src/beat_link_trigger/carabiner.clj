@@ -396,9 +396,9 @@
   device-announcement-listener
   (reify DeviceAnnouncementListener
     (deviceFound [this announcement]
-      (update-device-visibility (.getNumber announcement) true))
+      (update-device-visibility (.getDeviceNumber announcement) true))
     (deviceLost [this announcement]
-      (update-device-visibility (.getNumber announcement) false))))
+      (update-device-visibility (.getDeviceNumber announcement) false))))
 
 (defn- link-sync-state-changed
   "Event handler for when the Link Sync checkbox has changed state.

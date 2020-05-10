@@ -19,7 +19,7 @@ This change log follows the conventions of
   displayed correctly (previously this worked only for hot cues).
   Thanks to [@ehendrikd](https://github.com/ehendrikd) for
   [discovering
-  how](https://github.com/Deep-Symmetry/crate-digger/pull/13#issuecomment-626240309).
+  how](https://github.com/Deep-Symmetry/crate-digger/pull/13).
 - Incorporates a number of other fixes and improvements to the
   underlying Beat Link, Crate Digger, and Beat Carabiner libraries.
 - Updated the Track Loader window to forewarn you that the XDJ-XZ

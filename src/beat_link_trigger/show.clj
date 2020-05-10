@@ -3926,7 +3926,7 @@
   [^DeviceAnnouncement announcement show visible?]
   (let [show                           (latest-show show)
         ^javax.swing.JMenu import-menu (:import-menu show)
-        player                         (.getNumber announcement)]
+        player                         (.getDeviceNumber announcement)]
     (when (and (< player 5)  ; Ignore non-players, and attempts to make players visible when we are offline.
                (or (online?) (not visible?)))
       #_(timbre/info "Updating player" player "menu item visibility to" visible?)

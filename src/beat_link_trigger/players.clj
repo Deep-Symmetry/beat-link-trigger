@@ -601,7 +601,7 @@
 #_(defn- no-players-found
   "Returns true if there are no visible players for us to display."
   []
-  (empty? (filter #(<= 1 (.getNumber %) 4) (.getCurrentDevices device-finder))))
+  (empty? (filter #(<= 1 (.getDeviceNumber %) 4) (.getCurrentDevices device-finder))))
 
 (defn- extract-label
   "Given a `SearchableItem` from track metadata, extracts the string
@@ -969,7 +969,7 @@
   XDJ-XZ, which has two USB slots instead."
   [cell ^DeviceAnnouncement device]
   (seesaw/invoke-soon
-   (if (= (.getName device) "XDJ-XZ")
+   (if (= (.getDeviceName device) "XDJ-XZ")
      (do
        (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
