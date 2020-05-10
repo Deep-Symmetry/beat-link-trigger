@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+
+## [0.6.2] - 2020-05-10
+
 ### Fixed
 
 - Fixes to the Beat Link and Crate Digger libraries allow them to work
@@ -1080,7 +1085,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.1...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.4...v0.6.0
 [0.5.4]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.3...v0.5.4
