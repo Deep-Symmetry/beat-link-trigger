@@ -559,29 +559,8 @@
   "Return an image that can be used as generic album artwork for the
   type of media being played in the specified player number."
   [^Long n]
-  (let [^CdjStatus status (.getLatestStatusFor virtual-cdj n)]
-    (if (nil? status)
-      (ImageIO/read (clojure.java.io/resource "images/NoTrack.png"))
-      (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
-        (ImageIO/read (clojure.java.io/resource "images/CDDAlogo.png"))
-        (util/case-enum (.getTrackSourceSlot status)
-
-          CdjStatus$TrackSourceSlot/CD_SLOT
-          (ImageIO/read (clojure.java.io/resource "images/CD_data_logo.png"))
-
-          CdjStatus$TrackSourceSlot/COLLECTION
-          (ImageIO/read (clojure.java.io/resource "images/Collection_logo.png"))
-
-          CdjStatus$TrackSourceSlot/NO_TRACK
-          (ImageIO/read (clojure.java.io/resource "images/NoTrack.png"))
-
-          CdjStatus$TrackSourceSlot/SD_SLOT
-          (ImageIO/read (clojure.java.io/resource "images/SD.png"))
-
-          CdjStatus$TrackSourceSlot/USB_SLOT
-          (ImageIO/read (clojure.java.io/resource "images/USB.png"))
-
-          (ImageIO/read (clojure.java.io/resource "images/UnknownMedia.png")))))))
+  (let [resource (util/generic-media-resource n)]
+    (ImageIO/read (clojure.java.io/resource resource))))
 
 (defn- paint-art
   "Draws the album art for a player. Arguments are player number, the

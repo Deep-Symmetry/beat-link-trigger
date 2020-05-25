@@ -7,7 +7,8 @@
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw])
-  (:import [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder MediaDetails]
+  (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
+            DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
            [org.deepsymmetry.beatlink.data CueList$Entry WaveformPreviewComponent]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            [java.io File]
@@ -330,6 +331,36 @@
     (str (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
          (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists")))
     ""))
+
+(defn generic-media-resource
+  "Returns the path to a PNG image resource that can be used as generic
+  album artwork for the type of media being played in the specified
+  player number, if any."
+  [player]
+  (let [^CdjStatus status (.getLatestStatusFor (VirtualCdj/getInstance) player)]
+    (if (nil? status)
+      "images/NoTrack.png"
+      (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
+        "images/CDDAlogo.png"
+
+        (case-enum (.getTrackSourceSlot status)
+
+          CdjStatus$TrackSourceSlot/CD_SLOT
+          "images/CD_data_logo.png"
+
+          CdjStatus$TrackSourceSlot/COLLECTION
+          "images/Collection_logo.png"
+
+          CdjStatus$TrackSourceSlot/NO_TRACK
+          "images/NoTrack.png"
+
+          CdjStatus$TrackSourceSlot/SD_SLOT
+          "images/SD.png"
+
+          CdjStatus$TrackSourceSlot/USB_SLOT
+          "images/USB.png"
+
+          "images/UnknownMedia.png")))))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of

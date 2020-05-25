@@ -2,10 +2,11 @@
   "Serves a customizable overlay page for use with OBS Studio."
   (:require [clojure.java.browse :as browse]
             [clojure.java.io :as io]
-            [compojure.route :as route]
             [compojure.core :as compojure]
+            [compojure.route :as route]
             [ring.util.response :as response]
             [ring.middleware.content-type]
+            [ring.middleware.params]
             [org.httpkit.server :as server]
             [selmer.parser :as parser]
             [beat-link-trigger.expressions :as expr]
@@ -116,6 +117,28 @@
         response/response
         (response/content-type "text/css"))))
 
+(defn return-artwork
+  "Returns the artwork associated with the track on the specified
+  player, or a transparent image if there is none. If the query
+  parameter `icons` was passed with the value `true`, then instad of a
+  simple transparent image, missing track artwork is replaced by an
+  icon representing the media type of the track."
+  [player icons]
+  (println player icons)
+  (let [player (Long/valueOf player)
+        icons  (Boolean/valueOf icons)]
+    (if-let [art (.getLatestArtFor expr/art-finder player)]
+      (let [baos (java.io.ByteArrayOutputStream.)]
+        (javax.imageio.ImageIO/write (.getImage art) "jpg" baos)
+        (-> (java.io.ByteArrayInputStream. (.toByteArray baos))
+            response/response
+            (response/content-type "image/jpeg")))
+      (let [missing-image-path (if icons
+                                 (util/generic-media-resource player)
+                                 "images/NoArt.png")]
+        (-> (response/resource-response missing-image-path)
+            (response/content-type "image/png"))))))
+
 (defn- build-routes
   "Builds the set of routes that will handle requests for the server
   under construction."
@@ -123,6 +146,7 @@
   (compojure/routes
    (compojure/GET "/" [] (build-overlay config))
    (compojure/GET "/styles.css" []  (build-styles config))
+   (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
    (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))
 
@@ -148,7 +172,9 @@
                 :css      (resolve-resource css "beat_link_trigger/styles.css")
                 :public   (or public "public")}
         routes (build-routes config)
-        app    (ring.middleware.content-type/wrap-content-type routes)
+        app    (-> routes
+                   ring.middleware.content-type/wrap-content-type
+                   ring.middleware.params/wrap-params)
         server (server/run-server app {:port port})]
     (println config)
     (when show (browse/browse-url (str "http://127.0.0.1:" port "/")))
