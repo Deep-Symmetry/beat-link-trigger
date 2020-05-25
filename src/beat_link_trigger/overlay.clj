@@ -5,6 +5,7 @@
             [compojure.route :as route]
             [compojure.core :as compojure]
             [ring.util.response :as response]
+            [ring.middleware.content-type]
             [org.httpkit.server :as server]
             [selmer.parser :as parser]
             [beat-link-trigger.expressions :as expr]
@@ -122,6 +123,7 @@
   (compojure/routes
    (compojure/GET "/" [] (build-overlay config))
    (compojure/GET "/styles.css" []  (build-styles config))
+   (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))
 
 (defn- resolve-resource
@@ -140,11 +142,15 @@
   be served as `/styles.css` instead of the defaults. You can later
   shut down the server by pasing the value that was returned by this
   function to `stop-server`."
-  [port & {:keys [template css show]}]
+  [port & {:keys [template css show public]}]
   (let [config {:port     port
                 :template (resolve-resource template "beat_link_trigger/overlay.html")
-                :css      (resolve-resource css "beat_link_trigger/styles.css")}
-        server (server/run-server (build-routes config) {:port port})]
+                :css      (resolve-resource css "beat_link_trigger/styles.css")
+                :public   (or public "public")}
+        routes (build-routes config)
+        app    (ring.middleware.content-type/wrap-content-type routes)
+        server (server/run-server app {:port port})]
+    (println config)
     (when show (browse/browse-url (str "http://127.0.0.1:" port "/")))
     (assoc config :stop server)))
 
