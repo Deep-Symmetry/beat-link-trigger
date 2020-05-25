@@ -6,7 +6,7 @@
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/core.async "1.1.587"]
+                 [org.clojure/core.async "1.2.603"]
                  [org.clojure/data.csv "1.0.0"]
                  [org.clojure/tools.cli "1.0.194"]
                  [clojure-humanize "0.2.2"]
@@ -31,6 +31,7 @@
                  [http-kit "2.3.0"]
                  [ring/ring-core "1.8.1"]
                  [compojure "1.6.1"]
+                 [selmer "1.12.25"]
                  [nrepl "0.7.0"]
                  [cider/cider-nrepl "0.24.0"]
                  [com.cemerick/pomegranate "1.1.0"]

@@ -71,6 +71,7 @@
     CdjStatus$TrackType/NO_TRACK         :no-track
     CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
     CdjStatus$TrackType/REKORDBOX        :rekordbox
+    CdjStatus$TrackType/UNANALYZED       :unanalyzed
     :unknown))
 
 (defn playback-time

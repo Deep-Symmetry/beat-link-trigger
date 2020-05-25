@@ -1,7 +1,7 @@
 (ns beat-link-trigger.help
   "Serves the embedded copy of the user guide, and offers network
   troubleshooting assistance."
-  (:require [clojure.string]
+  (:require [clojure.string :as str]
             [clojure.java.browse]
             [compojure.route :as route]
             [compojure.core :as compojure]
@@ -79,9 +79,9 @@
   [^java.net.NetworkInterface interface]
   (let [candidates (filter #(.getBroadcast ^java.net.InterfaceAddress %) (.getInterfaceAddresses interface))]
     (if (seq candidates)
-      (clojure.string/join ", " (map (fn [^java.net.InterfaceAddress addr]
-                                       (str (.getHostAddress (.getAddress addr)) "/" (.getNetworkPrefixLength addr)))
-                                     candidates))
+      (str/join ", " (map (fn [^java.net.InterfaceAddress addr]
+                            (str (.getHostAddress (.getAddress addr)) "/" (.getNetworkPrefixLength addr)))
+                          candidates))
       "No IPv4 addresses")))
 
 (defn- describe-interface
