@@ -80,7 +80,43 @@
      :original-artist (item-label (.getOriginalArtist metadata))
      :rating          (.getRating metadata)
      :remixer         (.getRemixer metadata)
+     :starting-tempo  (/ (.getTempo metadata) 100.0)
      :year            (.getYear metadata)}))
+
+(defn describe-status
+  "Builds a parameter map with useful information obtained from the
+  latest status packet received from the specified device number."
+  [number]
+  (when-let [status (.getLatestStatusFor expr/virtual-cdj number)]
+    (let [bpm       (.getBpm status)
+          bpm-valid (not= bpm 65535)]
+      {:beat-number           (.getBeatNumber status)
+       :beat-within-bar       (when (.isBeatWithinBarMeaningful status) (.getBeatWithinBar status))
+       :track-bpm             (when bpm-valid (/ bpm 100.0))
+       :cue-countdown         (.getCueCountdown status)
+       :cue-countdown-display (.formatCueCountdown status)
+       :tempo                 (when bpm-valid (.getEffectiveTempo status))
+       :firmware-version      (.getFirmwareVersion status)
+       :pitch                 (Util/pitchToPercentage (.getPitch status))
+       :pitch-multiplier      (Util/pitchToMultiplier (.getPitch status))
+       :track-number          (.getTrackNumber status)
+       :track-source-player   (.getTrackSourcePlayer status)
+       :is-at-end             (.isAtEnd status)
+       :is-bpm-only-synced    (.isBpmOnlySynced status)
+       :is-busy               (.isBusy status)
+       :is-cued               (.isCued status)
+       :is-looping            (.isLooping status)
+       :is-on-air             (.isOnAir status)
+       :is-paused             (.isPaused status)
+       :is-playing            (.isPlaying status)
+       :is-playing-backwards  (.isPlayingBackwards status)
+       :is-playing-cdj-mode   (.isPlayingCdjMode status)
+       :is-playing-forwards   (.isPlayingForwards status)
+       :is-playing-vinyl-mode (.isPlayingVinylMode status)
+       :is-searching          (.isSearching status)
+       :is-synced             (.isSynced status)
+       :is-tempo-master       (.isTempoMaster status)
+       :is-track-loaded       (.isTrackLoaded status)})))
 
 (defn describe-device
   "Builds a template parameter map entry describing a device found on
@@ -91,9 +127,10 @@
                     :name   (.getDeviceName device)
                     :address (.. device getAddress getHostAddress)}
                    (when-let [metadata (format-metadata number)]
-                     {:track metadata}))}))
+                     {:track metadata})
+                   (describe-status number))}))
 
-(defn- build-params
+(defn build-params
   "Sets up the overlay template parameters based on the current playback
   state."
   []
