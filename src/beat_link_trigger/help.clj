@@ -44,7 +44,7 @@
           (reset! running-server {:port port
                                   :stop (server/run-server all-routes {:port port})})
           (catch java.net.BindException _))  ; We will just retry until we are out of ports.
-        (when (and (not @running-server) (< port 65536))
+        (when (and (not @running-server) (< port 65535))
           (recur (inc port)))))
     (:port @running-server)))
 
