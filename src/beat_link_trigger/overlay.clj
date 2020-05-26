@@ -145,14 +145,11 @@
         response/response
         (response/content-type "text/html; charset=utf-8"))))
 
-(defn- build-styles
-  "Builds a handler that renders the stylesheet template configured for
-  the server being built."
-  [config]
-  (fn [_]
-    (-> (parser/render-file (:css config) {})
-        response/response
-        (response/content-type "text/css"))))
+(defn- return-styles
+  "A handler that renders the default embedded stylesheet."
+  []
+  (-> (response/resource-response "beat_link_trigger/styles.css")
+      (response/content-type "text/css")))
 
 (defn return-artwork
   "Returns the artwork associated with the track on the specified
@@ -182,7 +179,7 @@
   [config]
   (compojure/routes
    (compojure/GET "/" [] (build-overlay config))
-   (compojure/GET "/styles.css" []  (build-styles config))
+   (compojure/GET "/styles.css" [] (return-styles))
    (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
    (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))
@@ -199,14 +196,14 @@
 (defn start-server
   "Creates, starts, and returns an overlay server on the specified port.
   Optional keyword arguments allow you to supply a `:template` file
-  that will be used to render the overlay and a `:css` file that will
-  be served as `/styles.css` instead of the defaults. You can later
-  shut down the server by pasing the value that was returned by this
-  function to `stop-server`."
-  [port & {:keys [template css show public]}]
+  that will be used to render the overlay and a `:public` directory
+  that will be served as `/public` instead of the defaults which come
+  from inside the application resources. You can later shut down the
+  server by pasing the value that was returned by this function to
+  `stop-server`."
+  [port & {:keys [template public show]}]
   (let [config {:port     port
                 :template (resolve-resource template "beat_link_trigger/overlay.html")
-                :css      (resolve-resource css "beat_link_trigger/styles.css")
                 :public   (or public "public")}
         routes (build-routes config)
         app    (-> routes
@@ -214,6 +211,7 @@
                    ring.middleware.params/wrap-params)
         server (server/run-server app {:port port})]
     (println config)
+    ;; TODO: Get rid of this, make it a separate function we call from the UI.
     (when show (browse/browse-url (str "http://127.0.0.1:" port "/")))
     (assoc config :stop server)))
 
