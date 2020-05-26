@@ -10,8 +10,16 @@
             [org.httpkit.server :as server]
             [selmer.parser :as parser]
             [beat-link-trigger.expressions :as expr]
-            [beat-link-trigger.util :as util])
-  (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Util
+            [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
+            [seesaw.core :as seesaw]
+            [seesaw.chooser :as chooser]
+            [seesaw.mig :as mig]
+            [inspector-jay.core :as inspector]
+            [taoensso.timbre :as timbre]
+            [clojure.string :as str])
+  (:import [javax.swing JFrame]
+           [org.deepsymmetry.beatlink LifecycleListener VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
@@ -226,7 +234,7 @@
   from inside the application resources. You can later shut down the
   server by pasing the value that was returned by this function to
   `stop-server`."
-  [port & {:keys [template public show]}]
+  [port & {:keys [template public]}]
   (let [config {:port     port
                 :template (resolve-resource template "beat_link_trigger/overlay.html")
                 :public   (or public "public")}
@@ -235,9 +243,6 @@
                    ring.middleware.content-type/wrap-content-type
                    ring.middleware.params/wrap-params)
         server (server/run-server app {:port port})]
-    (println config)
-    ;; TODO: Get rid of this, make it a separate function we call from the UI.
-    (when show (browse/browse-url (str "http://127.0.0.1:" port "/")))
     (assoc config :stop server)))
 
 (defn stop-server
@@ -245,3 +250,250 @@
   started by `start-server`)."
   [server]
   ((:stop server)))
+
+
+;; This secton provides the user interface for configuring and running
+;; the overlay web server.
+
+(defn- online?
+  "Check whether we are in online mode, with all the required
+  beat-link finder objects running."
+  []
+  (and (.isRunning expr/device-finder) (.isRunning expr/virtual-cdj)))
+
+(defonce ^{:private true
+           :doc     "Holds the overlay web server when it is running."}
+  server (atom nil))
+
+(defonce ^{:private true
+           :doc     "Holds the frame allowing the user to configure and
+  control the overlay web server."}
+  window (atom nil))
+
+(defn- current-port
+  "Finds the currently chosen port number."
+  []
+  (let [port-spinner (seesaw/select @window [:#port])]
+    (seesaw/selection port-spinner)))
+
+(defn- browse
+  "Opens a browser window on the overlay server."
+  []
+  (try
+    (browse/browse-url (str "http://127.0.0.1:" (current-port) "/"))
+    (catch Exception e
+      (timbre/warn e "Unable to open browser window on overlay web server")
+      (javax.swing.JOptionPane/showMessageDialog
+       @window
+       (str "Unable to open browser window on OBS overlay web server: " e)
+       "Overlay server browse failed"
+       javax.swing.JOptionPane/WARNING_MESSAGE))))
+
+(defn- inspect
+  "Opens up a window to inspect the parameters currently being given to
+  the overlay template, as a coding aid."
+  []
+  (try
+    (inspector/inspect (build-params) :window-name "OBS Overlay Template Parameters")
+    (catch Throwable t
+      (util/inspect-failed t))))
+
+(defn- start
+  "Try to start the configured overlay web server."
+  []
+  (swap! server (fn [oldval]
+                  (or oldval
+                      (let [port-spinner (seesaw/select @window [:#port])
+                            port         (seesaw/selection port-spinner)
+                            template     (get-in (prefs/get-preferences) [:overlay :template])
+                            public       (get-in (prefs/get-preferences) [:overlay :public])]
+                        (try
+                          (let [server (start-server port :template template :public public)]
+                            (seesaw/config! port-spinner :enabled? false)
+                            (seesaw/config! (seesaw/select @window [:#choose-template]) :enabled? false)
+                            (seesaw/config! (seesaw/select @window [:#choose-public]) :enabled? false)
+                            (seesaw/config! (seesaw/select @window [:#browse]) :enabled? true)
+                            (seesaw/config! (seesaw/select @window [:#inspect]) :enabled? true)
+                            server)
+                          (catch Exception e
+                            (timbre/warn e "Unable to start overlay web server")
+                            (future
+                              (seesaw/invoke-later
+                               (javax.swing.JOptionPane/showMessageDialog
+                                @window
+                                "Unable to start OBS overlay web server on the chosen port, is another process using it?"
+                                "Overlay server startup failed"
+                                javax.swing.JOptionPane/WARNING_MESSAGE)))
+                            (seesaw/value! (seesaw/select @window [:#run]) false)
+                            nil)))))))
+
+(defn- stop
+  "Try to stop the configured overlay web server."
+  []
+  (swap! server (fn [oldval]
+                  (when oldval
+                    (try
+                      (stop-server oldval)
+                      (catch Exception e
+                        (timbre/warn e "Problem stopping overlay web server")
+                            (future
+                              (seesaw/invoke-later
+                               (javax.swing.JOptionPane/showMessageDialog
+                                @window
+                                "Problem stopping OBS overlay web server, check the log file for details."
+                                "Overlay server shutdown failed"
+                                javax.swing.JOptionPane/WARNING_MESSAGE)))))
+                    (seesaw/config! (seesaw/select @window [:#choose-template]) :enabled? true)
+                    (seesaw/config! (seesaw/select @window [:#choose-public]) :enabled? true)
+                    (seesaw/config! (seesaw/select @window [:#browse]) :enabled? false)
+                    (seesaw/config! (seesaw/select @window [:#inspect]) :enabled? false)
+                    (seesaw/config! (seesaw/select @window [:#port]) :enabled? true))
+                  nil)))
+
+(defn- run-choice
+  "Handles user toggling the Run checkbox."
+  [checked]
+  (if checked
+    (start)
+    (stop)))
+
+(defn- choose-template
+  "Allows the user to select a template file, updating the prefs and UI."
+  []
+  (when-let [file (chooser/choose-file
+                   @window
+                   :all-files? false
+                   :filters [["HTML files" ["html" "htm" "djhtml"]]
+                             (chooser/file-filter "All files" (constantly true))])]
+    (if (.canRead file)
+      (let [path (.getCanonicalPath file)]
+        (prefs/put-preferences
+         (assoc-in (prefs/get-preferences) [:overlay :template] path))
+        (seesaw/value! (seesaw/select @window [:#template]) path)
+        (seesaw/pack! @window))
+      (javax.swing.JOptionPane/showMessageDialog
+       @window
+       "The selected file could not be read, Template has not been changed."
+       "Template File Unreadable"
+       javax.swing.JOptionPane/ERROR_MESSAGE))))
+
+(defn- choose-public-folder
+  "Allows the user to select a folder whose contents will be served,
+  updating the prefs and UI."
+  []
+  (when-let [folder (chooser/choose-file
+                     @window
+                     :selection-mode :dirs-only)]
+    (if (.canRead folder)
+      (let [path (.getCanonicalPath folder)]
+        (prefs/put-preferences
+         (assoc-in (prefs/get-preferences) [:overlay :public] path))
+        (seesaw/value! (seesaw/select @window [:#public]) path)
+        (seesaw/pack! @window))
+      (javax.swing.JOptionPane/showMessageDialog
+       @window
+       "The selected folder could not be read, Public Folder has not been changed."
+       "Public Folder Unreadable"
+       javax.swing.JOptionPane/ERROR_MESSAGE))))
+
+(defonce ^{:private true
+           :doc "Used to detect the `VirtualCdj` starting and stopping so we can react properly."}
+  vcdj-lifecycle-listener
+  (reify LifecycleListener
+    (started [this _]  ; We are online, so the server can be started.
+      (seesaw/invoke-later
+       (seesaw/config! (seesaw/select @window [:#run]) :enabled? true)))
+    (stopped [this _]  ; We are offline, kill the server if it was running, and disable the Run button.
+      (seesaw/invoke-later
+       (let [run (seesaw/select @window [:#run])]
+         (when (seesaw/value run)
+           (seesaw/value! run false))
+         (seesaw/config! run :enabled? false))))))
+
+(defn- make-window-visible
+  "Ensures that the overlay server window is in front, and shown."
+  [parent]
+  (let [^JFrame our-frame @window]
+    (util/restore-window-position our-frame :overlay parent)
+    (seesaw/show! our-frame)
+    (.toFront our-frame)
+
+    ;; Validate template and public directory, report errors and clear values if needed.
+    (when-not (.canRead (clojure.java.io/file (get-in (prefs/get-preferences) [:overlay :template])))
+      (prefs/put-preferences (update (prefs/get-preferences) :overlay dissoc :template))
+      (seesaw/value! (seesaw/select our-frame [:#template]) "")
+      (javax.swing.JOptionPane/showMessageDialog
+       our-frame
+       "The selected Template file can no longer be read, and has been cleared."
+       "Template File Unreadable"
+       javax.swing.JOptionPane/WARNING_MESSAGE))
+    (let [public (clojure.java.io/file (get-in (prefs/get-preferences) [:overlay :public]))]
+      (when-not (and (.canRead public) (.isDirectory public))
+        (prefs/put-preferences (update (prefs/get-preferences) :overlay dissoc :public))
+        (seesaw/value! (seesaw/select our-frame [:#public]) "")
+        (javax.swing.JOptionPane/showMessageDialog
+         our-frame
+         "The selected Public Folder can no longer be read, and has been cleared."
+         "Public Folder Unreadable"
+         javax.swing.JOptionPane/WARNING_MESSAGE)))))
+
+(defn- create-window
+  "Creates the overlay server window."
+  [trigger-frame]
+  (try
+    (let [^JFrame root (seesaw/frame :title "OBS Overlay Web Server"
+                                     :on-close :hide)
+          port         (get-in (prefs/get-preferences) [:overlay :port] 17081)
+          template     (get-in (prefs/get-preferences) [:overlay :template])
+          public       (get-in (prefs/get-preferences) [:overlay :public])
+          panel        (mig/mig-panel
+                        :background "#ccc"
+                        :items [[(seesaw/label :text "Server Port:") "align right"]
+                                [(seesaw/spinner :id :port
+                                                 :model (seesaw/spinner-model port :from 1 :to 32767)
+                                                 :listen [:selection (fn [e]
+                                                                       (prefs/put-preferences
+                                                                        (assoc-in (prefs/get-preferences)
+                                                                                  [:overlay :port]
+                                                                                  (seesaw/selection e))))])]
+                                [(seesaw/button :id :browse :text "Open in Browser" :enabled? false
+                                                :listen [:action (fn [_] (browse))])
+                                 "gap unrelated, align center"]
+                                [(seesaw/checkbox :id :run :text "Run"
+                                                  :listen [:item-state-changed (fn [e] (run-choice (seesaw/value e)))])
+                                 "gap unrelated, wrap"]
+
+                                [(seesaw/label :text "Template:") "align right"]
+                                [(seesaw/label :id :template :text template) "span 2"]
+                                [(seesaw/button :id :choose-template :text "Choose"
+                                                :listen [:action (fn [_] (choose-template))])
+                                 "gap unrelated, wrap"]
+
+                                [(seesaw/label :text "Public Folder:") "align right"]
+                                [(seesaw/label :id :public :text public) "span 2"]
+                                [(seesaw/button :id :choose-public :text "Choose"
+                                                :listen [:action (fn [_] (choose-public-folder))])
+                                 "gap unrelated, wrap"]
+
+                                [(seesaw/button :id :inspect :text "Inspect Template Parameters" :enabled? false
+                                                :listen [:action (fn [_] (inspect))])
+                                 "span 4, align center"]])]
+
+      ;; Assemble the window
+      (seesaw/config! root :content panel)
+      (seesaw/pack! root)
+      (.setResizable root false)
+      (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :overlay true)))
+      (reset! window root)
+      (.addLifecycleListener expr/virtual-cdj vcdj-lifecycle-listener)
+      (seesaw/config! (seesaw/select root [:#run]) :enabled? (online?))
+      (make-window-visible trigger-frame))
+    (catch Exception e
+      (timbre/error e "Problem creating nREPL window."))))
+
+(defn show-window
+  "Make the overlay sever window visible, creating it if necessary."
+  [trigger-frame]
+  (if @window
+    (make-window-visible trigger-frame)
+    (create-window trigger-frame)))

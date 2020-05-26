@@ -8,6 +8,7 @@
             [beat-link-trigger.nrepl :as nrepl]
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as writer]
+            [beat-link-trigger.overlay :as overlay]
             [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.show :as show]
             [beat-link-trigger.auto-cache :as auto]
@@ -1380,6 +1381,18 @@
                                                    :title "Beat Link Trigger is Offline" :type :error)))
                         :name "Write Playlist" :enabled? false)))
 
+(defonce ^{:private true
+           :doc "The action which opens the OBS overlay web server window."}
+  overlay-server-action
+  (delay (seesaw/action :handler (fn [_]
+                                   (if (.isRunning virtual-cdj)
+                                     (overlay/show-window @trigger-frame)
+                                     (seesaw/alert "Must be Online to show Overlay Server window."
+                                                   :title "Beat Link Trigger is Offline" :type :error)))
+                        :name "OBS Overlay Web Server" :enabled? false)))
+
+
+
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
   using a valid player number. If we are not using a valid player
@@ -1491,7 +1504,7 @@
                                                  (seesaw/separator)
                                                  @player-status-action @load-track-action
                                                  (seesaw/separator)
-                                                 @carabiner-action @nrepl-action]
+                                                 @carabiner-action @overlay-server-action @nrepl-action]
                                          :id :network-menu)
                             (menus/build-help-menu)])))
 
@@ -1552,7 +1565,8 @@
   []
   (seesaw/invoke-soon
    (try
-     (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action] :enabled? (online?))
+     (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action @overlay-server-action]
+                     :enabled? (online?))
      (.setText (online-menu-item) (online-menu-name))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))

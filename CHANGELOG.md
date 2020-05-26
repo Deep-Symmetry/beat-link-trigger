@@ -6,8 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
 
+- A new embedded web server configured to flexibly support
+  overlay templates for [OBS Studio](https://obsproject.com), for
+  creatively enhancing streamed mixing sessions.
 
 ## [0.6.2] - 2020-05-10
 
