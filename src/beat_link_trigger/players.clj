@@ -419,8 +419,8 @@
   "Figure out the number of milliseconds left to play for a given
   player, given the player number and time played so far."
   [^Long n played]
-  (let [detail (.getLatestDetailFor waveform-finder n)]
-    (when detail (max 0 (- (.getTotalTime detail) played)))))
+  (when-let [detail (.getLatestDetailFor waveform-finder n)]
+    (max 0 (- (.getTotalTime detail) played))))
 
 (defn- format-time
   "Formats a number for display as a two-digit time value, or -- if it

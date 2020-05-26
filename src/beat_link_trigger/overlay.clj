@@ -118,6 +118,30 @@
        :is-tempo-master       (.isTempoMaster status)
        :is-track-loaded       (.isTrackLoaded status)})))
 
+(defn format-time
+  "Given a track time in milliseconds, explodes it into a map that also
+  includes minutes, seconds, frames, and frame-tenths, as displayed on
+  a CDJ."
+  [ms]
+  (let [half-frames (mod (Util/timeToHalfFrame ms) 150)]
+    {:milliseconds ms
+     :minutes      (long (/ ms 60000))
+     :seconds      (long (/ (mod ms 60000) 1000))
+     :frames       (long (/ half-frames 2))
+     :frame-tenths (if (even? half-frames) 0 5)}))
+
+(defn describe-times
+  "Builds a parameter map with information about the playback and
+  remaining time for the specified player, when available."
+  [number]
+  (when (.isRunning expr/time-finder)
+    (let [played (.getTimeFor expr/time-finder number)]
+      (when-not (neg? played)
+        (merge {:time-played (format-time played)}
+               (when-let [detail (.getLatestDetailFor expr/waveform-finder number)]
+                 (let [remain (max 0 (- (.getTotalTime detail) played))]
+                   {:time-remaining (format-time remain)})))))))
+
 (defn describe-device
   "Builds a template parameter map entry describing a device found on
   the network."
@@ -128,7 +152,8 @@
                     :address (.. device getAddress getHostAddress)}
                    (when-let [metadata (format-metadata number)]
                      {:track metadata})
-                   (describe-status number))}))
+                   (describe-status number)
+                   (describe-times number))}))
 
 (defn build-params
   "Sets up the overlay template parameters based on the current playback
