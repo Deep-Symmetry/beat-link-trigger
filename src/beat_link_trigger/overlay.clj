@@ -18,12 +18,17 @@
             [inspector-jay.core :as inspector]
             [taoensso.timbre :as timbre]
             [clojure.string :as str])
-  (:import [javax.swing JFrame]
+  (:import [java.awt Graphics]
+           [java.awt.image BufferedImage]
+           [java.io ByteArrayInputStream ByteArrayOutputStream]
+           [javax.imageio ImageIO]
+           [javax.swing JFrame]
            [org.deepsymmetry.beatlink LifecycleListener VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
-            PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt ColorItem SearchableItem]))
+            PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt ColorItem SearchableItem
+            WaveformDetailComponent WaveformPreviewComponent]))
 
 (defn format-source-slot
   "Converts the Java enum value representing the slot from which a track
@@ -228,13 +233,12 @@
   simple transparent image, missing track artwork is replaced by an
   icon representing the media type of the track."
   [player icons]
-  (println player icons)
   (let [player (Long/valueOf player)
         icons  (Boolean/valueOf icons)]
     (if-let [art (.getLatestArtFor expr/art-finder player)]
-      (let [baos (java.io.ByteArrayOutputStream.)]
-        (javax.imageio.ImageIO/write (.getImage art) "jpg" baos)
-        (-> (java.io.ByteArrayInputStream. (.toByteArray baos))
+      (let [baos (ByteArrayOutputStream.)]
+        (ImageIO/write (.getImage art) "jpg" baos)
+        (-> (ByteArrayInputStream. (.toByteArray baos))
             response/response
             (response/content-type "image/jpeg")
             (response/header "Cache-Control" "max-age=1")))
@@ -245,6 +249,40 @@
             (response/content-type "image/png")
             (response/header "Cache-Control" "max-age=1"))))))
 
+(defn- safe-parse-int
+  "Tries to parse a value as an integer; if the value is missing or the
+  parse fails, returns the supplied default value."
+  [value default]
+  (if value
+    (try
+      (Integer/valueOf value)
+      (catch Throwable _
+        default))
+    default))
+
+(defn return-wave-preview
+  "Returns the waveform preview image associated with the specified
+  player. Renders at the specified size, unless it is smaller than the
+  minimum. If omitted, uses default size of 408 by 56 pixels."
+  [player width height]
+  (let [player    (Integer/valueOf player)
+        width     (safe-parse-int width 408)
+        height    (safe-parse-int height 56)
+        component (WaveformPreviewComponent. player)
+        min-size  (.getMinimumSize component)]
+    (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+    (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
+          g    (.createGraphics bi)
+          baos (ByteArrayOutputStream.)]
+      (.paint component g)
+      (.dispose g)
+      (.setMonitoredPlayer component 0)
+      (ImageIO/write bi "png" baos)
+      (-> (ByteArrayInputStream. (.toByteArray baos))
+          response/response
+          (response/content-type "image/png")
+          (response/header "Cache-Control" "no-store")))))
+
 (defn- build-routes
   "Builds the set of routes that will handle requests for the server
   under construction."
@@ -254,6 +292,7 @@
    (compojure/GET "/styles.css" [] (return-styles))
    (compojure/GET "/font/:font" [font] (return-font font))
    (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
+   (compojure/GET "/wave-preview/:player{[0-9]+}" [player width height] (return-wave-preview player width height))
    (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))
 
