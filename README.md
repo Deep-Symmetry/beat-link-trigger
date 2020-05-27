@@ -140,10 +140,15 @@ releases of hardware or even firmware updates from Pioneer.
 any project like it, on the same machine that you are running
 rekordbox, because they will compete over access to network ports.
 
-:white_check_mark: Beat Link Trigger seems to work great with CDJ-2000
-Nexus gear, and works fairly well (with less information available)
-with older CDJ-2000s. It has also been reported to work with XDJ-1000
-gear, and (starting with version 0.6.0) with the XDJ-XZ as well. If
+:white_check_mark: Beat Link Trigger seems to work great with Nexus
+gear and DJ-Link hardware released after that. Pre-Nexus gear is
+missing many important features, so functionality is very degraded
+when working with it (less information available, no ability to infer
+time code, and the hardware completely lacks tempo Sync or Master
+capabilities, so no beat-based triggers or synchronization with
+Ableton Link are possible with such older hardware). 
+It has been reported to work well with XDJ-1000 gear, and
+(starting with version 0.6.0) with the XDJ-XZ as well. If
 you can try it with anything else, *please* let us know what you learn
 in the [Gitter chat
 room](https://gitter.im/brunchboy/beat-link-trigger), or if you have
