@@ -150,24 +150,39 @@
                  (let [remain (max 0 (- (.getTotalTime detail) played))]
                    {:time-remaining (format-time remain)})))))))
 
+(defn device-kind
+  "Returns a keyword identifying the type of a device on a DJ Link
+  network, given its number. Used for grouping in the template, since
+  generally it will care only about players, rather than mixers or
+  rekordbox collections."
+  [number]
+  (cond
+    (< number 0x10) :players
+    (or (< number 0x20) (> number 0x28)) :collections
+    :else :mixers))
+
 (defn describe-device
   "Builds a template parameter map entry describing a device found on
   the network."
   [^DeviceAnnouncement device]
   (let [number (.getDeviceNumber device)]
-    {number (merge {:number number
-                    :name   (.getDeviceName device)
-                    :address (.. device getAddress getHostAddress)}
-                   (when-let [metadata (format-metadata number)]
-                     {:track metadata})
-                   (describe-status number)
-                   (describe-times number))}))
+    (merge {:number  number
+            :name    (.getDeviceName device)
+            :address (.. device getAddress getHostAddress)
+            :kind    (device-kind number)}
+           (when-let [metadata (format-metadata number)]
+             {:track metadata})
+           (describe-status number)
+           (describe-times number))))
 
 (defn build-params
   "Sets up the overlay template parameters based on the current playback
   state."
   []
-  {:players (apply merge (map describe-device (.getCurrentDevices expr/device-finder)))})
+  (reduce (fn [result device]
+            (assoc-in result [(:kind device) (:number device)] device))
+          {}
+          (map describe-device (.getCurrentDevices expr/device-finder))))
 
 (defn- build-overlay
   "Builds a handler that renders the overlay template configured for
