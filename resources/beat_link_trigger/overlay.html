@@ -4,6 +4,10 @@
     <link rel="stylesheet" type="text/css" href="styles.css">
   </head>
   <body>
+<!--
+This is an example of how you can explicitly pull out information for specific players,
+but generally you will want to use the loop approach below to get all players found on
+the network.
     <p>
       Player 1: {{players.1.track.title}}—{{players.1.track.artist}}.
       <img src="artwork/1?icons=true" width="80" height="80">
@@ -12,5 +16,22 @@
       Player 2: {{players.2.track.title}}—{{players.2.track.artist}}.
       <img src="artwork/2?icons=true" width="80" height="80">
     </p>
+-->
+    {% for number, player in players|sort %}
+    <p>
+      <span class="player">Player {{number}}:</span> {{player.track.title}}—{{player.track.artist}}.
+      <img src="artwork/{{number}}?icons=true" width="80" height="80">
+      {% if player.time-played %}
+      <span class="timeLabel">Played</span>
+      <span class="time">{{player.time-played.minutes|number-format:%02d}}</span><span class="timeSegmentLabel">M&thinsp;</span><span class="time">:{{player.time-played.seconds|number-format:%02d}}</span><span class="timeSegmentLabel">S&thinsp;</span><span class="time">:{{player.time-played.frames|number-format:%02d}}&thinsp;.&thinsp;</span><span class="timeFraction">{{player.time-played.frame-tenths}}</span><span class="timeSegmentLabel">F</span>
+      {% endif %}
+      {% if player.time-remaining %}
+      <span class="remain">
+        <span class="timeLabel">&nbsp;&nbsp;Remain</span>
+        <span class="time">{{player.time-remaining.minutes|number-format:%02d}}</span><span class="timeSegmentLabel">M&thinsp;</span><span class="time">:{{player.time-remaining.seconds|number-format:%02d}}</span><span class="timeSegmentLabel">S&thinsp;</span><span class="time">:{{player.time-remaining.frames|number-format:%02d}}&thinsp;.&thinsp;</span><span class="timeFraction">{{player.time-remaining.frame-tenths}}</span><span class="timeSegmentLabel">F</span>
+      </span>
+      {% endif %}
+    </p>
+    {% endfor %}
   </body>
 </html>

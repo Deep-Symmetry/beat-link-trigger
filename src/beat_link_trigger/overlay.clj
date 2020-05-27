@@ -199,6 +199,21 @@
   (-> (response/resource-response "beat_link_trigger/styles.css")
       (response/content-type "text/css")))
 
+(defn- return-font
+  "A handler that returns one of the embedded fonts, given the shorthand
+  name by which we offer it."
+  [font]
+  (if-let [path (case font
+                  "dseg7"         "DSEG/DSEG7Classic-Regular.ttf"
+                  "orbitron"      "Orbitron/Orbitron-Black.ttf"
+                  "orbitron-bold" "Orbitron/Orbitron-Bold.ttf"
+                  "teko"          "Teko/Teko-Regular.ttf"
+                  "teko-bold"     "Teko/Teko-SemiBold.ttf"
+                  nil)]
+    (-> (response/resource-response (str "fonts/" path))
+        (response/content-type "font/ttf"))
+    (response/not-found)))
+
 (defn return-artwork
   "Returns the artwork associated with the track on the specified
   player, or a transparent image if there is none. If the query
@@ -228,6 +243,7 @@
   (compojure/routes
    (compojure/GET "/" [] (build-overlay config))
    (compojure/GET "/styles.css" [] (return-styles))
+   (compojure/GET "/font/:font" [font] (return-font font))
    (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
    (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))

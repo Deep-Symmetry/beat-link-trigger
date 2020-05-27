@@ -1,3 +1,54 @@
 body {
     background-color: rgba(0, 0, 0, 0);
 }
+
+@font-face {
+    font-family: dseg7;
+    src: url(font/dseg7);
+}
+
+@font-face {
+    font-family: orbitron;
+    src: url(font/orbitron);
+}
+@font-face {
+    font-family: orbitron;
+    src: url(font/orbitron-bold);
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: teko;
+    src: url(font/teko);
+}
+@font-face {
+    font-family: teko;
+    src: url(font/teko-bold);
+    font-weight: bold;
+}
+
+
+.player {
+    font-family: orbitron;
+}
+
+.timeLabel {
+    font-family: teko;
+    font-size: 16pt;
+}
+.time {
+    font-family: dseg7;
+    font-size: 18pt;
+}
+.timeFraction {
+    font-family: dseg7;
+    font-size: 12pt;
+}
+.timeSegmentLabel {
+    font-family: teko;
+    font-weight: bold;
+    font-size: 10pt;
+}
+.remain {
+    color: red;
+}
