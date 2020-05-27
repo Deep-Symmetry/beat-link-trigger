@@ -179,10 +179,13 @@
   "Sets up the overlay template parameters based on the current playback
   state."
   []
-  (reduce (fn [result device]
-            (assoc-in result [(:kind device) (:number device)] device))
-          {}
-          (map describe-device (.getCurrentDevices expr/device-finder))))
+  (merge
+   (reduce (fn [result device]
+             (assoc-in result [(:kind device) (:number device)] device))
+           {}
+           (map describe-device (.getCurrentDevices expr/device-finder)))
+   (when-let [master (.getTempoMaster expr/virtual-cdj)]
+     {:master (describe-device (.getLatestAnnouncementFrom expr/device-finder (.getDeviceNumber master)))})))
 
 (defn- build-overlay
   "Builds a handler that renders the overlay template configured for
