@@ -20,8 +20,12 @@ the network.
 
     {% for number, player in players|sort %}
     <p>
-      <span class="player">Player {{number}}:</span> {{player.track.title}}—{{player.track.artist}}.
-      <img src="artwork/{{number}}?icons=true" width="80" height="80">
+      <span class="player">Player {{number}}:</span>
+      <img src="artwork/{{number}}?icons=true" width="80" height="80" align="middle">
+      {{player.track.title}}—{{player.track.artist}}.
+
+      <br><br>
+      <img src="wave-detail/{{number}}?width=500">
 
       {% if player.time-played %}
       <br>
