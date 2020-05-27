@@ -236,12 +236,14 @@
         (javax.imageio.ImageIO/write (.getImage art) "jpg" baos)
         (-> (java.io.ByteArrayInputStream. (.toByteArray baos))
             response/response
-            (response/content-type "image/jpeg")))
+            (response/content-type "image/jpeg")
+            (response/header "Cache-Control" "max-age=1")))
       (let [missing-image-path (if icons
                                  (util/generic-media-resource player)
                                  "images/NoArt.png")]
         (-> (response/resource-response missing-image-path)
-            (response/content-type "image/png"))))))
+            (response/content-type "image/png")
+            (response/header "Cache-Control" "max-age=1"))))))
 
 (defn- build-routes
   "Builds the set of routes that will handle requests for the server
