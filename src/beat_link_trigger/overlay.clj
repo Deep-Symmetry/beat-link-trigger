@@ -268,15 +268,50 @@
   (let [player    (Integer/valueOf player)
         width     (safe-parse-int width 408)
         height    (safe-parse-int height 56)
-        component (WaveformPreviewComponent. player)
+        track     (.getLatestMetadataFor expr/metadata-finder player)
+        position  (.getLatestPositionFor expr/time-finder player)
+        component (WaveformPreviewComponent. (.getLatestPreviewFor expr/waveform-finder player) track)
         min-size  (.getMinimumSize component)]
     (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+    (.setPlaybackState component player (.-milliseconds position) (.-playing position))
     (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
           g    (.createGraphics bi)
           baos (ByteArrayOutputStream.)]
       (.paint component g)
       (.dispose g)
-      (.setMonitoredPlayer component 0)
+      (ImageIO/write bi "png" baos)
+      (-> (ByteArrayInputStream. (.toByteArray baos))
+          response/response
+          (response/content-type "image/png")
+          (response/header "Cache-Control" "no-store")))))
+
+(defn return-wave-detail
+  "Returns the waveform detail image associated with the specified
+  player. Renders at the specified `width` and `height`, unless they
+  are smaller than the minimum. If not specified, uses the minimum
+  size supported by the component that draws the graphics. If `scale`
+  is provided, sets the amount by which the waveform should be zoomed
+  in: 1 means full size, 2 is half size, and so on. The default scale
+  is 4."
+  [player width height scale]
+  (let [player    (Integer/valueOf player)
+        width     (safe-parse-int width 0)
+        height    (safe-parse-int height 0)
+        scale     (safe-parse-int scale 4)
+        track     (.getLatestMetadataFor expr/metadata-finder player)
+        position  (.getLatestPositionFor expr/time-finder player)
+        component (WaveformDetailComponent. (.getLatestDetailFor expr/waveform-finder player)
+                                            (when track (.getCueList track))
+                                            (.getLatestBeatGridFor expr/beatgrid-finder player))
+        min-size  (.getMinimumSize component)]
+    (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+    (.setScale component scale)
+    (.setPlaybackState component player (.-milliseconds position) (.-playing position))
+    (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
+          g    (.createGraphics bi)
+          baos (ByteArrayOutputStream.)]
+      (.paint component g)
+      (.dispose g)
       (ImageIO/write bi "png" baos)
       (-> (ByteArrayInputStream. (.toByteArray baos))
           response/response
@@ -293,6 +328,8 @@
    (compojure/GET "/font/:font" [font] (return-font font))
    (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
    (compojure/GET "/wave-preview/:player{[0-9]+}" [player width height] (return-wave-preview player width height))
+   (compojure/GET "/wave-detail/:player{[0-9]+}" [player width height scale]
+                  (return-wave-detail player width height scale))
    (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))
 
