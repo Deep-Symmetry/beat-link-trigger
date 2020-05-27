@@ -139,18 +139,25 @@ releases of hardware or even firmware updates from Pioneer.
 :x: You should also not expect to be able to run Beat Link Trigger, or
 any project like it, on the same machine that you are running
 rekordbox, because they will compete over access to network ports.
+Also, as noted above, the XDJ-RX and XDJ-RX2 do not support the full
+DJ Link protocol, and so will not work with software like this. And,
+of course, controllers which don't even have Link (Ethernet) jacks
+can't work either.
+
+:unamused: Pre-Nexus gear (hardware older than the CDJ-900 nexus) is
+missing many important features, so BLT's capabilities are very
+degraded when working with such gear: much less information is
+available, we can't infer playback position/time code, and the
+hardware completely lacks tempo Sync or Master capabilities, so
+beat-based triggers are impossible, as is synchronization with Ableton
+Link. You can see what tracks are loaded, and whether the player is
+playing, but little more.
 
 :white_check_mark: Beat Link Trigger seems to work great with Nexus
-gear and DJ-Link hardware released after that. Pre-Nexus gear is
-missing many important features, so functionality is very degraded
-when working with it (less information available, no ability to infer
-time code, and the hardware completely lacks tempo Sync or Master
-capabilities, so no beat-based triggers or synchronization with
-Ableton Link are possible with such older hardware). 
-It has been reported to work well with XDJ-1000 gear, and
-(starting with version 0.6.0) with the XDJ-XZ as well. If
-you can try it with anything else, *please* let us know what you learn
-in the [Gitter chat
+gear and DJ-Link hardware released after that. It has been reported to
+work well with XDJ-1000 gear, and (starting with version 0.6.0) with
+the XDJ-XZ as well. If you can try it with anything else, *please* let
+us know what you learn in the [Gitter chat
 room](https://gitter.im/brunchboy/beat-link-trigger), or if you have
 worked out actionable details about something that could be improved,
 [open an
