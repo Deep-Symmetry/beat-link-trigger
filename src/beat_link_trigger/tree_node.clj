@@ -1,6 +1,8 @@
 (ns beat-link-trigger.tree-node
   "Defines the interfaces used in rendering the tree views of available
-  playlists, dbserver menus, and Crate Digger database file entries.
+  playlists, dbserver menus, Crate Digger database file entries, and
+  overlay template parameter subtrees.
+
   In its own namespace to avoid problems of class incompatibility when
   the namespaces using it are reloaded during development.")
 
@@ -17,3 +19,6 @@
 
 (definterface ISearchEntry
   (^org.deepsymmetry.cratedigger.Database getDatabase []))
+
+(definterface ITemplateParent
+  (contents []))

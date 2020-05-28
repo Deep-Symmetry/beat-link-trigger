@@ -15,14 +15,14 @@
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
-            [inspector-jay.core :as inspector]
             [taoensso.timbre :as timbre]
             [clojure.string :as str])
-  (:import [java.awt Graphics]
+  (:import [beat_link_trigger.tree_node ITemplateParent]
            [java.awt.image BufferedImage]
            [java.io ByteArrayInputStream ByteArrayOutputStream]
            [javax.imageio ImageIO]
-           [javax.swing JFrame]
+           [javax.swing JFrame JTree]
+           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel]
            [org.deepsymmetry.beatlink LifecycleListener VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
@@ -96,6 +96,15 @@
      :starting-tempo  (/ (.getTempo metadata) 100.0)
      :year            (.getYear metadata)}))
 
+(defn format-pitch
+  "Formats a pitch as it is displayed on a player."
+  [pitch]
+  (let [abs-pitch     (Math/abs pitch)
+        format-string (if (< abs-pitch 20.0) "%5.2f" "%5.1f")
+        formatted     (String/format java.util.Locale/ROOT format-string (to-array [abs-pitch]))
+        sign          (if (= formatted " 0.00") " " (if (neg? pitch) "-" "+"))]
+    (str sign formatted "%")))
+
 (defn describe-status
   "Builds a parameter map with useful information obtained from the
   latest status packet received from the specified device number."
@@ -105,13 +114,14 @@
           bpm-valid (not= bpm 65535)]
       (merge
        ;; First the basic information available from any status update.
-       {:beat-within-bar       (when (.isBeatWithinBarMeaningful status) (.getBeatWithinBar status))
-        :track-bpm             (when bpm-valid (/ bpm 100.0))
-        :tempo                 (when bpm-valid (.getEffectiveTempo status))
-        :pitch                 (Util/pitchToPercentage (.getPitch status))
-        :pitch-multiplier      (Util/pitchToMultiplier (.getPitch status))
-        :is-synced             (.isSynced status)
-        :is-tempo-master       (.isTempoMaster status)}
+       {:beat-within-bar  (when (.isBeatWithinBarMeaningful status) (.getBeatWithinBar status))
+        :track-bpm        (when bpm-valid (/ bpm 100.0))
+        :tempo            (when bpm-valid (.getEffectiveTempo status))
+        :pitch            (Util/pitchToPercentage (.getPitch status))
+        :pitch-display    (format-pitch (Util/pitchToPercentage (.getPitch status)))
+        :pitch-multiplier (Util/pitchToMultiplier (.getPitch status))
+        :is-synced        (.isSynced status)
+        :is-tempo-master  (.isTempoMaster status)}
        (when (instance? CdjStatus status)
          ;; We can add a bunch more stuff that only CDJs provide.
          {:beat-number           (.getBeatNumber status)
@@ -140,12 +150,17 @@
   includes minutes, seconds, frames, and frame-tenths, as displayed on
   a CDJ."
   [ms]
-  (let [half-frames (mod (Util/timeToHalfFrame ms) 150)]
-    {:milliseconds ms
-     :minutes      (long (/ ms 60000))
-     :seconds      (long (/ (mod ms 60000) 1000))
-     :frames       (long (/ half-frames 2))
-     :frame-tenths (if (even? half-frames) 0 5)}))
+  (let [half-frames  (mod (Util/timeToHalfFrame ms) 150)
+        minutes      (long (/ ms 60000))
+        seconds      (long (/ (mod ms 60000) 1000))
+        frames       (long (/ half-frames 2))
+        frame-tenths (if (even? half-frames) 0 5)]
+    {:raw-milliseconds ms
+     :minutes          minutes
+     :seconds          seconds
+     :frames           frames
+     :frame-tenths     frame-tenths
+     :display          (format "%02d:%02d:%02d.%d" minutes seconds frames frame-tenths)}))
 
 (defn describe-times
   "Builds a parameter map with information about the playback and
@@ -405,15 +420,6 @@
        "Overlay server browse failed"
        javax.swing.JOptionPane/WARNING_MESSAGE))))
 
-(defn- inspect
-  "Opens up a window to inspect the parameters currently being given to
-  the overlay template, as a coding aid."
-  []
-  (try
-    (inspector/inspect (build-params) :window-name "OBS Overlay Template Parameters")
-    (catch Throwable t
-      (util/inspect-failed t))))
-
 (defn- start
   "Try to start the configured overlay web server."
   []
@@ -526,6 +532,59 @@
            (seesaw/value! run false))
          (seesaw/config! run :enabled? false))))))
 
+(defn- expand-node
+  "Handles tree expansion of one of our parameter nodes. If its children
+  have not yet been created, does so."
+  [^DefaultMutableTreeNode node]
+  (when (zero? (.getChildCount node))
+    (let [^ITemplateParent entry (.getUserObject node)
+          contents               (.contents entry)]
+      (doseq [[k v] (sort contents)]
+        (.add node
+              (if (map? v)
+                (DefaultMutableTreeNode.  ; This is a subtree.
+                 (proxy [Object ITemplateParent] []
+                   (toString [] (if (keyword? k) (name k) (str k)))
+                   (contents [] v))
+                 true)
+                (DefaultMutableTreeNode.  ; This is a simple value.
+                 (proxy [Object ITemplateParent] []
+                   (toString [] (str (if (keyword? k) (name k) k) ": " v))
+                   (contents [] v))
+                 false)))))))
+
+(defn root-node
+  "Creates the root node for the template parameter inspection tree.
+  Expands it before returning, since there is no expansion UI for it."
+  []
+  (let [node (DefaultMutableTreeNode.
+              (proxy [Object ITemplateParent] []
+                (toString [] (str "Overlay Template Parameters:"))
+                (contents [] (build-params)))
+              true)]
+    (expand-node node)
+    node))
+
+(defn inspect-params
+  "Opens a simplified tree inspector for viewing the current parameter
+  values being supplied to the template."
+  []
+  (let [root          (root-node)
+        model         (DefaultTreeModel. root true)
+        ^JTree tree   (seesaw/tree :model model)
+        scroll        (seesaw/scrollable tree)
+        ^JFrame frame (seesaw/frame :content scroll :width 500 :height 600 :title "OBS Overlay Template Parameters"
+                                    :on-close :dispose)]
+    (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+    (seesaw/listen tree
+                   :tree-will-expand
+                   (fn [^javax.swing.event.TreeExpansionEvent e]
+                     (expand-node (.. e (getPath) (getLastPathComponent)))))
+    (.setRootVisible tree false)
+    (.setShowsRootHandles tree true)
+    (.setLocationRelativeTo frame @window)
+    (seesaw/show! frame)))
+
 (defn- make-window-visible
   "Ensures that the overlay server window is in front, and shown."
   [parent]
@@ -592,7 +651,7 @@
                                  "gap unrelated, wrap"]
 
                                 [(seesaw/button :id :inspect :text "Inspect Template Parameters" :enabled? false
-                                                :listen [:action (fn [_] (inspect))])
+                                                :listen [:action (fn [_] (inspect-params))])
                                  "span 4, align center"]])]
 
       ;; Assemble the window

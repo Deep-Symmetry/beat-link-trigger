@@ -16,7 +16,7 @@
             [seesaw.chooser :as chooser]
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.tree_node IMenuEntry ISearchEntry]
-           beat_link_trigger.util.PlayerChoice
+           [beat_link_trigger.util PlayerChoice]
            [java.awt.event WindowEvent]
            [java.io File]
            [java.util.concurrent.atomic AtomicInteger]
