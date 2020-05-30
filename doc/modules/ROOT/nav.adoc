@@ -22,6 +22,7 @@
 ** xref:Integration_ShowXpress.adoc[Chauvet ShowXpress Live, SweetLight, QuickDMX]
 ** xref:Integration_GrandMA2.adoc[MA Lighting grandMA2]
 ** xref:Integration_MIDI_rekordbox.adoc[MIDI cues from rekordbox]
+** xref:ObsOverlay.adoc[OBS Overlays for Streaming]
 ** xref:Integration_BeyondAdvanced.adoc[Pangolin BEYOND Advanced]
 ** xref:Integration_BeyondEssentials.adoc[Pangolin BEYOND Essentials]
 ** xref:Integration_SMPTE.adoc[SMPTE Linear Timecode]

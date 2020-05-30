@@ -1,0 +1,348 @@
+= OBS Overlays for Twitch Streaming
+include::partial$PagePreamble.adoc[]
+:page-toclevels: 3
+
+For some time now people have been using Beat Link Trigger to add fun
+elements to mixes streamed on Twitch by creatively screen-grabbing
+parts of the <<Players.adoc#,Player Status window>> (and the
+<<Players.adoc#waveform-windows,large waveform windows>> feature was
+added to support that). But for even longer, there has been a request
+to enable custom overlays based on data from Beat Link, and this is
+finally possible.
+
+By opening menu:Network[OBS Overlay Web Server] you can configure and
+launch an embedded web server that renders an HTML template that can
+contain the content of your choice, arranged and styled however you
+like, to work with the
+https://obsproject.com/forum/resources/browser-plugin.115/[Browser
+Plugin] that is bundled with https://obsproject.com[OBS Studio].
+
+image:ObsOverlay.png[OBS Overlay Server Window,550,250]
+
+The **Server Port** spinner allows you to choose the port on which the
+web server will operate. You can pick any port that is not in use; the
+default of 17,081 is likely to work just fine. The **Run** checkbox
+starts and stops the server. Once it is running you can click **Open
+in Browser** to take a look at how the configured template renders the
+current player state, and to give you an easy way to copy the overlay
+URL from the browser address bar for pasting into OBS Studio.
+
+Beat Link Trigger ships with a default template that is served unless
+you specify your own template file, which you can do by clicking
+**Choose** on the **Template** row. It will allow you to navigate to
+and select any file on your system whose name ends in `.html`, `.htm`,
+or `.djhtml` (HTML, or Django HTML Template, the format supported for
+inserting and formatting player information into the overlay). If your
+file has a different extension you can change the **Files of Type**
+dropdown from “HTML Files” to “All Files” in order to select it.
+
+Once you have chosen a template, that is stored in your preferences,
+and it will automatically be used the next time you run Beat Link
+Trigger (unless the file no longer exists, in which case a warning
+will be displayed when you open this window, and the default template
+will be used again).
+
+In designing your template, you are likely to want to use graphics,
+fonts, CSS, and possibly scripts and other resources. If these are
+already on the Internet, you can reference them using URLs in your
+template. But if you want to access them locally, you can gather them
+all into any folder, and configure that as a **Public Folder** for the
+overlay server by clicking the **Choose** button in that row, and
+navigating to and selecting that folder. Once you have done that, any
+file in that folder can be referenced from your template simply by
+using a URL of the format `/public/` followed by the filename. (And,
+just like the template itself, your chosen public folder is stored in
+the preferences, and will be used on subsequent runs of Beat Link
+Trigger until you change the chosen folder, or it can no longer be
+found.)
+
+[#writing-template]
+== Writing Templates
+
+Hopefully eventually users will be sharing templates on the
+https://github.com/Deep-Symmetry/beat-link-trigger/wiki[Wiki], and you
+can download them to use, but until then (or if you want to make
+changes to one you have downloaded), you’ll use your favorite text
+editor to create and edit overlay templates, which are HTML files that
+get processed by https://github.com/yogthos/Selmer#selmer[Selmer], so
+you can interpolate all kinds of information about the current tracks
+being played.
+
+[#variables]
+=== Variables
+
+Template variables look like this: `{{ variable }}`. When Selmer
+encounters a variable like this, it looks up the value of that
+variable, and inserts the value into the template in place of the
+variable. There are many variables available to you, which are
+described here, and you can also examine their actual values for the
+current state of your players by clicking the **Inspect Template
+Parameters** button when the overlay server is running:
+
+image:ObsParams.png[OBS Overlay Template Parameters,530,890]
+
+Notice that the variables are grouped into a hierarchy. You specify
+the value you want by starting at the outer name, and separating names
+at each level with `.`, so at the moment captured by the above screen
+shot, if your template contained `{{ players.2.pitch-display }}` the
+value `- 3.40%` is what would appear in the overlay, showing the
+current pitch value displayed on Player 2.
+
+You can expand sections of the parameter inspector by clicking on the
+kbd:[+] buttons, and collapse them by clicking on the kbd:[-] buttons,
+or simply double-click on those rows to toggle the expanded state.
+
+Some variables may not be in the exact format that you want to display
+them, but you can use <<filters,Filters>> to reformat them in flexible
+ways. And other variables may not be something you want to display at
+all, but you can use them to control which sections of your template
+are displayed using <<tags,Tags>>.
+
+.Top Level Variables
+[cols="1l,4",options="header"]
+|===
+|Variable
+|Value
+
+|collections
+|Present when there are any computers or mobile devices running rekordbox on the network, this holds the device numbers assigned to each, and under each device number, the <<player-state,Player State>> of that rekordbox instance. Values are accessed like `{{ collections.17.name }}`.
+
+|master
+|Present if there is currently a Tempo Mater on the network, this holds the <<player-state,Player State>> of that player. Values are accessed like `{{ master.track.title }}`.
+
+|mixers
+|Present if there are any DJM mixers (or an XDJ-XZ) on the network, this holds the device numbers of each mixer, and under each device number, the <<player-state,Player State>> of that mixer. Values are accessed like `{{ mixers.33.name }}`.
+
+|players
+|Holds the device numbers of player on the network, and under each device number, the <<player-state,Player State>> of that player. Values are accessed like `{{ players.1.track.title }}`.
+
+|===
+
+NOTE: Not all values will always be present. Some devices (like mixers and rekordbox) provide very little information, and even CDJs will only provide full details when a reordbox-analyzed track is loaded. Even then, most DJs do not fill in all details about tracks. When information is not available, an entry may be entirely missing, or it may simply have an empty value.
+
+[#player-state]
+==== Player State
+
+.Player State Contents
+[cols="1l,4",options="header"]
+|===
+|Element
+|Value
+
+|address
+|The IP address at which the player can be found on the network.
+
+|beat-number
+|The beat currently playing, if known. The first beat of the track is beat 1, and they increment steadily from there.
+
+
+|beat-within-bar
+|Tracks progress through measures of the song. The first (down) beat of a measure has the value 1, then it grows to 4 before jumping back to 1 at the start of the next bar.
+
+|cue-countdown
+|Tracks how many beats remain until the next hot cue or memory point in the track. If there are no cues left in the track, or if the next one is more than 64 bars from now, this has the value `511`. If there is a cue coming up within 64 bars (256 beats), this will count down those beats, from the value 256 to 0, meaning we have reached the cue. As soon as the next beat arrives, it will start tracking the next hot cue or memory point.
+
+|cue-countdown-display
+|This interprets the value of the `cue-countdown` reported by the player, showing how it appears on the player display. The value `511` is displayed as “`--.-`” (meaning “no information”), while values representing a countdown show two digits of bars, a decimal point, and the number of beats (1 through 4). So it starts at “`63.4`” at the furthest possible distance, then counts down to “`00.1`” on the final beat before the cue, and “`00.0`” when it is reached.
+
+|firmware-version
+|Reports the version of the firmware running the player.
+
+|is-at-end
+|Indicates whether the player has reached the end of its track and stopped playing.
+
+|is-bpm-only-synced
+|Indicates that the player was in Sync mode, but the DJ has nudged the jog wheel to adjust track alignment, so it is now only following the tempo of the master player, and is no longer slaved to the precise beat locations the master is reporting.
+
+|is-busy
+|Indicates if the player is currently playing, loading, or searching a track.
+
+|is-cued
+|Indicates whether the player is paused at the current Cue point.
+
+|is-looping
+|Indicates whether the player is repeating a loop.
+
+|is-on-air
+|Indicates that the player is attached to a live mixer channel (one that is currently audible in the mix). This works only with DJM mixers, and when properly configured.
+
+|is-paused
+|Indicates that the player is waiting for the DJ to start playback.
+
+|is-playing
+|Indicates that the player is currently playing a track.
+p
+|is-playing-backwards
+|Indicates that the player is playing a track in Reverse mode.
+
+|is-playing-cdj-mode
+|Indicates that the player is currently playing a track and the jog wheel is set to CDJ mode.
+
+|is-playing-forwards
+|Indicates that the player is currently playing a track and Reverse mode is not active.
+
+|is-playing-vinyl-mode
+|Indicates that the player is currently playing a track and the jog wheel is set to Vinyl mode.
+
+|is-searching
+|Indicates that the DJ is currently fast-forwarding or rewinding through a track.
+
+|is-synced
+|Indicates that the player is staying aligned to the tempo and beats of the current Tempo Master.
+
+|is-tempo-master
+|Indicates that the player has been set as the current tempo master, so any players in Sync (or BPM-Only Sync) are following it.
+
+|is-track-loaded
+|Indicates that there is a track loaded in the player.
+
+|kind
+|Either `:collections`, `:mixers`, or `:players`, used to group players in their proper top-level variable.
+
+|name
+|The name reported by the player, e.g. “CDJ-2000nexus”, “XDJ-XZ”.
+
+|number
+|The channel number assigned to the player.
+
+|pitch
+|The current playback pitch adjustment. Zero means normal speed, 100 means double speed (100% faster), -100 means slowed to a stop. This is a floating point value, so you will probably want to format it. TODO: link to format filter!
+
+|pitch-display
+|Reflects the way the current `pitch` value is displayed on the player: a `+` or `-` sign followed by a formatted percentage, with 1 or 2 digits after the decimal point. (Normal speed is shown without a sign, as “0.00%”.)
+
+|pitch-multiplier
+|A convenient way to relate the playback pitch to track tempo. Normal speed is 1.0, and multiplying this value by `track-bpm` is how `tempo` is calculated.
+
+|tempo
+|The current effective tempo of the track: the natural track tempo adjusted by the current playback pitch. Can be calculated by multiplying `track-bpm` and `pitch-multiplier`.
+
+|time-played
+|How much time of the track has been played. (This reflects distance into the track when played at normal speed; it will move slower or faster than real time if the playback pitch has been adjusted.) This is a <<time-value,Time Value>> with multiple parts used like `{{ master.time-played.minutes }}` or `{{ players.3.time-played.display }}`.
+
+|time-remaining
+|How much time of the track is left to play. (This reflects how long it would take when played at normal speed; it will move slower or faster than real time if the playback pitch has been adjusted.) This is a <<time-value,Time Value>> with multiple parts used like `{{ master.time-remaining.raw-milliseconds }}` or `{{ players.2.time-played.frames }}`.
+
+|track
+|Another multi-part value, holding <<track-details,Track Details>> about the currently loaded rekordbox track.
+
+|track-bpm
+|The natural tempo of the current section of the track; this is how many beats per minute would be heard when played at normal speed.
+
+|track-number
+|The position of the track within its playlist, or menu category, or CD.
+
+|track-source-player
+|The channel number of the player (or rekordbox instance) from which the track was loaded.
+
+|===
+
+
+[#time-value]
+==== Time Values
+
+.Time Value Contents
+[cols="2l,7",options="header"]
+|===
+|Element
+|Value
+
+|display
+|The full time details as displayed on a player, formatted as mm:ss:ff.f (`minutes`, `seconds`, `frames`, and `frame-tenths`).
+
+|frame-tenths
+|The current half-frame being played. (There are 75 frames played per second, and the players track position by half-frame, so this alternates between the values `0` and `5`.)
+
+|frames
+|How many frames have been played (or remain) in the current second, ranges from `0` to `74`.
+
+|minutes
+|How many minutes have been played (or remain).
+
+|raw-milliseconds
+|This is the value that is used to compute all the others. It starts at zero at the beginning of the track, and counts up by a thousand for each second played. (For remaining time, it counts down from the length of the track to zero.)
+
+|seconds
+|How many seconds have been played (or remain) in the current minute, ranges from `0` to `59`.
+
+|===
+
+
+[#track-details]
+==== Track Details
+
+.Track Detail Contents
+[,cols="1l,4",options="header"]
+|===
+|Element
+|Value
+
+|added
+|When the track was added to the DJ's collection, a date in the form `yyyy-mm-dd`.
+
+|album
+|The title of the album to which the track belongs.
+
+|artist
+|The name of the performer of the track.
+
+|color
+|The CSS color code (`#rrggbb`) of the color the DJ assigned the track.
+
+|color-name
+|The name of the color the DJ assigned the track.
+
+|comment
+|The comment string the DJ wrote about the track.
+
+|duration
+|How long, in seconds, the track will play at normal speed.
+
+|genre
+|The musical genre the DJ assigned the track.
+
+|id
+|The rekordbox ID that identifies the track in the current database.
+
+|key
+|The musical key of the track.
+
+|label
+|The recording label that issued the track.
+
+|original-artist
+|The artist who first recorded the track.
+
+|rating
+|The star rating (0-5) the DJ assigned the track.
+
+|remixer
+|The person who remixed this track.
+
+|slot
+|The slot from which the track was loaded (`No Track`, `CD Slot`, `SD Slot`, `USB Slot`, or `rekordbox`).
+
+|starting-tempo
+|How many beats per minute are heard at the start of the track, when played at normal speed.
+
+|title
+|The name of the track itself.
+
+|type
+|The kind of track that was loaded (`No Track`, `CD Digital Audio`, `rekordbox`, or `Unanalyzed`).
+
+|year
+|When the track was recorded.
+
+|===
+
+
+[#filters]
+=== Filters
+
+TODO: List and explain the filters people are likely to use.
+
+[#tags]
+=== Tags
+
+TODO: List and explain the tags people are likely to use.

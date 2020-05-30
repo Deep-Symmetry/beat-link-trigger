@@ -82,6 +82,7 @@ connected to, then you can use the "On-Air" indication above the
 player number as an additional hint about when you need to pay
 attention to it.
 
+[#waveform-windows]
 == Larger Waveform Windows
 
 If you would like to display an even more detailed view of a track
@@ -96,6 +97,11 @@ you have sized and positioned it so that the next time you open it you
 will find it configured the same way. If the window is already open
 when you click on the waveform in the Player Status window, it will
 simply be brought to the front if it was hidden.
+
+TIP: You can now also access waveform data (along with far more
+information than is displayed in the Player Status window) to build
+your own custom stream overlay using the new
+<<ObsOverlay.adoc#,embedded overlay server>>.
 
 == Non-rekordbox Metadata
 

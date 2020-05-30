@@ -35,7 +35,7 @@ To work with Carabiner and Link, bring up the Carabiner Connection
 window by choosing `Ableton Link: Carabiner Connection` in the
 `Network` menu:
 
-image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,160]
+image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,365,184]
 
 This will open the Carabiner Connection window (the set of devices you
 see at the bottom will depend on what is actually on your network):
@@ -231,7 +231,7 @@ In order to do this, Beat Link must be using a standard player number,
 so it can fully participate as a Tempo Master. You turn this on by
 checking menu:Network[Use Real Player Number].
 
-image:RealPlayerNumber.png[Using a Real Player Number,360,160]
+image:RealPlayerNumber.png[Using a Real Player Number,365,184]
 ====
 
 Once you successfully activate Full Sync Mode, the entire Ableton Link

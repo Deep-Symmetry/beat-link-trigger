@@ -44,7 +44,7 @@ showing how to configure your own, as described below.
   player number by checking menu:Network[Use Real Player Number] (you
   will have to turn off one of your CDJs first, if you have four).
 +
-image:RealPlayerNumber.png[Using a Real Player Number,360,160]
+image:RealPlayerNumber.png[Using a Real Player Number,365,184]
 
 * It would not hurt to put the players into Sync mode when you are
   about to start using the show, but the show's shared functions will

@@ -49,7 +49,7 @@
   (util/case-enum track
     CdjStatus$TrackType/NO_TRACK         "No Track"
     CdjStatus$TrackType/CD_DIGITAL_AUDIO "CD Digital Audio"
-    CdjStatus$TrackType/REKORDBOX        "Rekordbox"
+    CdjStatus$TrackType/REKORDBOX        "rekordbox"
     CdjStatus$TrackType/UNANALYZED       "Unanalyzed"
     "Unknown"))
 

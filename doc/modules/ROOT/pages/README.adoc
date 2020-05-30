@@ -120,7 +120,7 @@ see what Player Number it is using by looking at the menu:Network[Online?]
 menu option without toggling it again. Whenever it is checked, the
 Player Number being used by Beat Link is shown there.
 
-image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,160]
+image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,365,184]
 
 Most of the time you will want to be using Player 5, as shown here,
 because that is compatible with big shows where there are four real
