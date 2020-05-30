@@ -1,6 +1,7 @@
 /target
 /classes
 /checkouts
+/node_modules
 /doc/build
 /resources/beat_link_trigger/version.edn
 /tmp/.htmltest
