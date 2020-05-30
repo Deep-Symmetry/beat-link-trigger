@@ -24,13 +24,18 @@ one, I recommend installing a current version of the
 [OpenJDK](http://openjdk.java.net).
 
 > Starting with version 0.5.3, you also need to have
-> [Antora](https://antora.org) installed because it is used to build the
-> embedded copy of the User Guide when building and running from source.
-> If you are impatient to get started without doing that, you can
-> temporarily comment out the section of `project.clj` that does this.
-> Add a semicolon to the `:prep-tasks` line so that it looks like this:
+> [Antora](https://antora.org) installed because it is used to build
+> the embedded copy of the User Guide when building and running from
+> source. It uses `npm` to install and run itself, so you will need to
+> have a recent `node` version installed, and run `npm install` within
+> this directory to get that set up.
 >
->  `  :prep-tasks [ ; ["shell" "antora" "doc/embedded.yml"]`
+> If you are impatient to get started without doing that, you can
+> temporarily comment out the section of `project.clj` that needs it.
+> Add a semicolon to the `:prep-tasks` line so that it looks like
+> this:
+>
+>  `  :prep-tasks [ ; ["shell" "npm" "run" "local-docs"]`
 >
 > But keep in mind that if you do this, the built-in user guide will
 > not work, and you will not be able to create a release-worthy build

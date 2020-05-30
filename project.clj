@@ -68,8 +68,7 @@
   ;; that allows runtime access to the build version information.
   :shell {:env {"DOCSEARCH_ENABLED" "true"
                 "DOCSEARCH_ENGINE"  "lunr"}}
-  :prep-tasks [["shell" "antora" "--fetch" "doc/embedded.yml"
-                "--generator" "antora-site-generator-lunr"]
+  :prep-tasks [["shell" "npm" "run" "local-docs"]
                "javac"
                "compile"
                ["v" "cache" "resources/beat_link_trigger" "edn"]]
