@@ -290,25 +290,31 @@
   player. Renders at the specified size, unless it is smaller than the
   minimum. If omitted, uses default size of 408 by 56 pixels."
   [player width height]
-  (let [player    (Integer/valueOf player)
-        width     (safe-parse-int width 408)
-        height    (safe-parse-int height 56)
-        track     (.getLatestMetadataFor expr/metadata-finder player)
-        position  (.getLatestPositionFor expr/time-finder player)
-        component (WaveformPreviewComponent. (.getLatestPreviewFor expr/waveform-finder player) track)
-        min-size  (.getMinimumSize component)]
-    (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
-    (.setPlaybackState component player (.-milliseconds position) (.-playing position))
-    (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
-          g    (.createGraphics bi)
-          baos (ByteArrayOutputStream.)]
-      (.paint component g)
-      (.dispose g)
-      (ImageIO/write bi "png" baos)
-      (-> (ByteArrayInputStream. (.toByteArray baos))
-          response/response
+  (let [player   (Integer/valueOf player)
+        width    (safe-parse-int width 408)
+        height   (safe-parse-int height 56)
+        track    (.getLatestMetadataFor expr/metadata-finder player)
+        position (.getLatestPositionFor expr/time-finder player)
+        preview  (.getLatestPreviewFor expr/waveform-finder player)]
+    (if preview  ; Only try to render when there is a waveform preview available.
+      (let [component (WaveformPreviewComponent. preview track)
+            min-size  (.getMinimumSize component)]
+        (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+        (when position
+          (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
+        (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
+              g    (.createGraphics bi)
+              baos (ByteArrayOutputStream.)]
+          (.paint component g)
+          (.dispose g)
+          (ImageIO/write bi "png" baos)
+          (-> (ByteArrayInputStream. (.toByteArray baos))
+              response/response
+              (response/content-type "image/png")
+              (response/header "Cache-Control" "no-store"))))
+      (-> (response/resource-response "images/NoArt.png")  ; No waveform preview available, return a transparent image.
           (response/content-type "image/png")
-          (response/header "Cache-Control" "no-store")))))
+          (response/header "Cache-Control" "max-age=1")))))
 
 (defn return-wave-detail
   "Returns the waveform detail image associated with the specified
@@ -325,23 +331,30 @@
         scale     (safe-parse-int scale 4)
         track     (.getLatestMetadataFor expr/metadata-finder player)
         position  (.getLatestPositionFor expr/time-finder player)
-        component (WaveformDetailComponent. (.getLatestDetailFor expr/waveform-finder player)
-                                            (when track (.getCueList track))
-                                            (.getLatestBeatGridFor expr/beatgrid-finder player))
-        min-size  (.getMinimumSize component)]
-    (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
-    (.setScale component scale)
-    (.setPlaybackState component player (.-milliseconds position) (.-playing position))
-    (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
-          g    (.createGraphics bi)
-          baos (ByteArrayOutputStream.)]
-      (.paint component g)
-      (.dispose g)
-      (ImageIO/write bi "png" baos)
-      (-> (ByteArrayInputStream. (.toByteArray baos))
-          response/response
+        detail (.getLatestDetailFor expr/waveform-finder player)]
+    (if detail  ; Only try to render when there is a waveform detail available.
+      (let [component (WaveformDetailComponent. detail
+                                                (when track (.getCueList track))
+                                                (.getLatestBeatGridFor expr/beatgrid-finder player))
+            min-size  (.getMinimumSize component)]
+        (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+        (.setScale component scale)
+        (when position
+          (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
+        (let [bi   (BufferedImage. (.. component getSize width)
+                                   (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
+              g    (.createGraphics bi)
+              baos (ByteArrayOutputStream.)]
+          (.paint component g)
+          (.dispose g)
+          (ImageIO/write bi "png" baos)
+          (-> (ByteArrayInputStream. (.toByteArray baos))
+              response/response
+              (response/content-type "image/png")
+              (response/header "Cache-Control" "no-store"))))
+      (-> (response/resource-response "images/NoArt.png")  ; No waveform detail available, return a transparent image.
           (response/content-type "image/png")
-          (response/header "Cache-Control" "no-store")))))
+          (response/header "Cache-Control" "max-age=1")))))
 
 (defn- build-routes
   "Builds the set of routes that will handle requests for the server
