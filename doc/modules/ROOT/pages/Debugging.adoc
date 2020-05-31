@@ -300,7 +300,7 @@ operate at full power.
 
 To do this, choose menu:Network[nREPL: Clojure IDE connection]:
 
-image:ReplMenu.png[nREPL menu option,360,160]
+image:ReplMenu.png[nREPL menu option,368,185]
 
 This will open a small window which allows you to configure and start
 the nREPL server the IDEs can use:
