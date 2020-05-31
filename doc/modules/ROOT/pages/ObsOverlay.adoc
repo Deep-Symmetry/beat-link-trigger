@@ -60,13 +60,13 @@ the preferences, and will be used on subsequent runs of Beat Link
 Trigger until you choose a different folder, or it can no longer be
 found.
 
-NOTE: Although you can set the same folder as your Templates Folde and
-Public Folder, this is not recommended, because it will expose your
-raw templates. In that configuration, accessing `/public/overlay.html`
-will serve the overlay template without performing any of the variable
-substitutions that add information about the tracks currently playing.
-Beat Link Trigger will let you set things up this way, but will warn
-you when you do.
+NOTE: Although you can set the same folder as your Templates Folder
+and Public Folder, this is not recommended, because it will expose
+your raw templates. In that configuration, accessing
+`/public/overlay.html` will serve the overlay template without
+performing any of the variable substitutions that add information
+about the tracks currently playing. Beat Link Trigger will let you set
+things up this way, but will warn you when you do.
 
 [#writing-template]
 == Writing Templates
