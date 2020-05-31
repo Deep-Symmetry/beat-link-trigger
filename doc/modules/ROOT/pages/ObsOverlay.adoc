@@ -17,7 +17,7 @@ like, to work with the
 https://obsproject.com/forum/resources/browser-plugin.115/[Browser
 Plugin] that is bundled with https://obsproject.com[OBS Studio].
 
-image:ObsOverlay.png[OBS Overlay Server Window,550,250]
+image:ObsOverlay.png[OBS Overlay Server Window,560,250]
 
 The **Server Port** spinner allows you to choose the port on which the
 web server will operate. You can pick any port that is not in use; the
@@ -28,19 +28,20 @@ current player state, and to give you an easy way to copy the overlay
 URL from the browser address bar for pasting into OBS Studio.
 
 Beat Link Trigger ships with a default template that is served unless
-you specify your own template file, which you can do by clicking
-**Choose** on the **Template** row. It will allow you to navigate to
-and select any file on your system whose name ends in `.html`, `.htm`,
-or `.djhtml` (HTML, or Django HTML Template, the format supported for
-inserting and formatting player information into the overlay). If your
-file has a different extension you can change the **Files of Type**
-dropdown from “HTML Files” to “All Files” in order to select it.
+you specify your own templates folder, which you can do by clicking
+**Choose** on the **Templates Folder** row. It will allow you to
+navigate to and select any folder your system, as long as there is a
+readable `overlay.html` file in that folder. This file will be used as
+the template rendered by the overlay server. It can reference other
+templates in that folder using whatever names you give them, either by
+extending or including them, as discussed below. TODO: make this a
+link to relevant section once written.
 
-Once you have chosen a template, that is stored in your preferences,
-and it will automatically be used the next time you run Beat Link
-Trigger (unless the file no longer exists, in which case a warning
-will be displayed when you open this window, and the default template
-will be used again).
+Once you have chosen a templates folder, that is stored in your
+preferences, and it will automatically be used the next time you run
+Beat Link Trigger (unless the folder no longer contains a readable
+`overlay.html`, in which case a warning will be displayed when you
+open this window, and the default template will be used again).
 
 In designing your template, you are likely to want to use graphics,
 fonts, CSS, and possibly scripts and other resources. If these are
@@ -50,11 +51,22 @@ all into any folder, and configure that as a **Public Folder** for the
 overlay server by clicking the **Choose** button in that row, and
 navigating to and selecting that folder. Once you have done that, any
 file in that folder can be referenced from your template simply by
-using a URL of the format `/public/` followed by the filename. (And,
-just like the template itself, your chosen public folder is stored in
+using a URL of the format `/public/` followed by the filename. So for
+example if you have a file `logo.png` in your public folder, a
+template can use it by referencing the URL `/public/logo.png`.
+
+Just like the templates folder, your chosen public folder is stored in
 the preferences, and will be used on subsequent runs of Beat Link
-Trigger until you change the chosen folder, or it can no longer be
-found.)
+Trigger until you choose a different folder, or it can no longer be
+found.
+
+NOTE: Although you can set the same folder as your Templates Folde and
+Public Folder, this is not recommended, because it will expose your
+raw templates. In that configuration, accessing `/public/overlay.html`
+will serve the overlay template without performing any of the variable
+substitutions that add information about the tracks currently playing.
+Beat Link Trigger will let you set things up this way, but will warn
+you when you do.
 
 [#writing-template]
 == Writing Templates
@@ -67,6 +79,12 @@ editor to create and edit overlay templates, which are HTML files that
 get processed by https://github.com/yogthos/Selmer#selmer[Selmer], so
 you can interpolate all kinds of information about the current tracks
 being played.
+
+TIP: While these instructions are being written, you can learn the
+basics of the templating language by looking at the
+https://docs.djangoproject.com/en/3.0/ref/templates/language/[Django
+documentation], but some details are quite different in Selmer and
+Beat Link Trigger, which is why this page is being worked on.
 
 [#variables]
 === Variables
@@ -346,3 +364,8 @@ TODO: List and explain the filters people are likely to use.
 === Tags
 
 TODO: List and explain the tags people are likely to use.
+
+[#graphics-resources]
+=== Graphics Resources
+
+TODO: List and explain the URLs you can use to obtain track artwork and waveforms.

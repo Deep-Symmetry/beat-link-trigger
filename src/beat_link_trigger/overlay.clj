@@ -30,6 +30,16 @@
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt ColorItem SearchableItem
             WaveformDetailComponent WaveformPreviewComponent]))
 
+(def overlay-template-name
+  "The file name of the overlay template which renders the root folder
+  of the overlay web server."
+  "overlay.html")
+
+(def default-templates-path
+  "The resource path within our jar from which templates are loaded
+  until the user specifies their own template path."
+  (clojure.java.io/resource "beat_link_trigger/templates"))
+
 (defn format-source-slot
   "Converts the Java enum value representing the slot from which a track
   was loaded to a nice human-readable string."
@@ -214,9 +224,9 @@
 (defn- build-overlay
   "Builds a handler that renders the overlay template configured for
   the server being built."
-  [config]
+  []
   (fn [_]
-    (-> (parser/render-file (:template config) (build-params))
+    (-> (parser/render-file overlay-template-name (build-params))
         response/response
         (response/content-type "text/html; charset=utf-8"))))
 
@@ -338,7 +348,7 @@
   under construction."
   [config]
   (compojure/routes
-   (compojure/GET "/" [] (build-overlay config))
+   (compojure/GET "/" [] (build-overlay))
    (compojure/GET "/styles.css" [] (return-styles))
    (compojure/GET "/font/:font" [font] (return-font font))
    (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
@@ -348,26 +358,17 @@
    (route/files "/public/" {:root (:public config)})
    (route/not-found "<p>Page not found.</p>")))
 
-(defn- resolve-resource
-  "Handles the optional resource overrides when starting the server. If
-  one has been supplied, treat it as a file. Otherwise resolve
-  `default-path` within our class path."
-  [override default-path]
-  (if override
-    (.toURL (.toURI (io/file override)))
-    default-path))
-
 (defn start-server
   "Creates, starts, and returns an overlay server on the specified port.
-  Optional keyword arguments allow you to supply a `:template` file
-  that will be used to render the overlay and a `:public` directory
-  that will be served as `/public` instead of the defaults which come
-  from inside the application resources. You can later shut down the
-  server by pasing the value that was returned by this function to
-  `stop-server`."
-  [port & {:keys [template public]}]
+  Optional keyword arguments allow you to supply a `:templates`
+  directory that will contain the Selmer templates including the base
+  `overlay.html`, and a `:public` directory that will be served as
+  `/public`, instead of the defaults which come from inside the
+  application resources. You can later shut down the server by pasing
+  the value that was returned by this function to `stop-server`."
+  [port & {:keys [templates public]}]
+  (selmer.parser/set-resource-path! (or templates default-templates-path))
   (let [config {:port     port
-                :template (resolve-resource template "beat_link_trigger/overlay.html")
                 :public   (or public "public")}
         routes (build-routes config)
         app    (-> routes
@@ -427,12 +428,12 @@
                   (or oldval
                       (let [port-spinner (seesaw/select @window [:#port])
                             port         (seesaw/selection port-spinner)
-                            template     (get-in (prefs/get-preferences) [:overlay :template])
+                            templates    (get-in (prefs/get-preferences) [:overlay :templates])
                             public       (get-in (prefs/get-preferences) [:overlay :public])]
                         (try
-                          (let [server (start-server port :template template :public public)]
+                          (let [server (start-server port :templates templates :public public)]
                             (seesaw/config! port-spinner :enabled? false)
-                            (seesaw/config! (seesaw/select @window [:#choose-template]) :enabled? false)
+                            (seesaw/config! (seesaw/select @window [:#choose-templates]) :enabled? false)
                             (seesaw/config! (seesaw/select @window [:#choose-public]) :enabled? false)
                             (seesaw/config! (seesaw/select @window [:#browse]) :enabled? true)
                             (seesaw/config! (seesaw/select @window [:#inspect]) :enabled? true)
@@ -465,7 +466,7 @@
                                 "Problem stopping OBS overlay web server, check the log file for details."
                                 "Overlay server shutdown failed"
                                 javax.swing.JOptionPane/WARNING_MESSAGE)))))
-                    (seesaw/config! (seesaw/select @window [:#choose-template]) :enabled? true)
+                    (seesaw/config! (seesaw/select @window [:#choose-templates]) :enabled? true)
                     (seesaw/config! (seesaw/select @window [:#choose-public]) :enabled? true)
                     (seesaw/config! (seesaw/select @window [:#browse]) :enabled? false)
                     (seesaw/config! (seesaw/select @window [:#inspect]) :enabled? false)
@@ -479,24 +480,42 @@
     (start)
     (stop)))
 
-(defn- choose-template
-  "Allows the user to select a template file, updating the prefs and UI."
+(defn- warn-about-shared-folders
+  "Displays a warning explaining the confusion that can occur if the
+  public and templates folders are the same."
   []
-  (when-let [file (chooser/choose-file
-                   @window
-                   :all-files? false
-                   :filters [["HTML files" ["html" "htm" "djhtml"]]
-                             (chooser/file-filter "All files" (constantly true))])]
-    (if (.canRead file)
-      (let [path (.getCanonicalPath file)]
-        (prefs/put-preferences
-         (assoc-in (prefs/get-preferences) [:overlay :template] path))
-        (seesaw/value! (seesaw/select @window [:#template]) path)
-        (seesaw/pack! @window))
+  (let [config                     (-> (prefs/get-preferences)
+                                       :overlay)
+        {:keys [public templates]} config]
+    (when (and public (= public templates))
       (javax.swing.JOptionPane/showMessageDialog
        @window
-       "The selected file could not be read, Template has not been changed."
-       "Template File Unreadable"
+       (str "You have chosen the same folder for templates and public resources.\r\n"
+            "Although this can work fine, it means that your templates will be\r\n"
+            "accessible as, for example, /public/overlay.html, and when accessed\r\n"
+            "like this, no variable substitutions will be performed.")
+       "Templates mixed with Public Resources"
+       javax.swing.JOptionPane/WARNING_MESSAGE))))
+
+(defn- choose-templates-folder
+  "Allows the user to select a template folder, updating the prefs and
+  UI."
+  []
+  (when-let [folder (chooser/choose-file
+                     @window
+                     :selection-mode :dirs-only)]
+    (if (.canRead (clojure.java.io/file folder overlay-template-name))
+      (let [path (.getCanonicalPath folder)]
+        (prefs/put-preferences
+         (assoc-in (prefs/get-preferences) [:overlay :templates] path))
+        (seesaw/value! (seesaw/select @window [:#templates]) path)
+        (seesaw/pack! @window)
+        (warn-about-shared-folders))
+      (javax.swing.JOptionPane/showMessageDialog
+       @window
+       (str "Could not read file “" overlay-template-name "” in the chosen folder,\r\n"
+            "Templates Folder has not been changed.")
+       "Overlay Template Not Found"
        javax.swing.JOptionPane/ERROR_MESSAGE))))
 
 (defn- choose-public-folder
@@ -511,7 +530,8 @@
         (prefs/put-preferences
          (assoc-in (prefs/get-preferences) [:overlay :public] path))
         (seesaw/value! (seesaw/select @window [:#public]) path)
-        (seesaw/pack! @window))
+        (seesaw/pack! @window)
+        (warn-about-shared-folders))
       (javax.swing.JOptionPane/showMessageDialog
        @window
        "The selected folder could not be read, Public Folder has not been changed."
@@ -588,29 +608,36 @@
 (defn- make-window-visible
   "Ensures that the overlay server window is in front, and shown."
   [parent]
-  (let [^JFrame our-frame @window]
+  (let [^JFrame our-frame          @window
+        config                     (-> (prefs/get-preferences)
+                                       :overlay)
+        {:keys [public templates]} config]
     (util/restore-window-position our-frame :overlay parent)
     (seesaw/show! our-frame)
     (.toFront our-frame)
 
-    ;; Validate template and public directory, report errors and clear values if needed.
-    (when-not (.canRead (clojure.java.io/file (get-in (prefs/get-preferences) [:overlay :template])))
-      (prefs/put-preferences (update (prefs/get-preferences) :overlay dissoc :template))
-      (seesaw/value! (seesaw/select our-frame [:#template]) "")
+    ;; Validate templates and public directory, report errors and clear values if needed.
+    (when (and templates
+               (not (.canRead (clojure.java.io/file (str templates "/" overlay-template-name)))))
+      (prefs/put-preferences (update (prefs/get-preferences) :overlay dissoc :templates))
+      (seesaw/value! (seesaw/select our-frame [:#templates]) "")
+      (selmer.parser/set-resource-path! default-templates-path)
       (javax.swing.JOptionPane/showMessageDialog
        our-frame
-       "The selected Template file can no longer be read, and has been cleared."
-       "Template File Unreadable"
+       (str "The selected Templates folder no longer contains a readable “" overlay-template-name "”,\r\n"
+            "and has been cleared.")
+       "Template File Not Found"
        javax.swing.JOptionPane/WARNING_MESSAGE))
-    (let [public (clojure.java.io/file (get-in (prefs/get-preferences) [:overlay :public]))]
-      (when-not (and (.canRead public) (.isDirectory public))
-        (prefs/put-preferences (update (prefs/get-preferences) :overlay dissoc :public))
-        (seesaw/value! (seesaw/select our-frame [:#public]) "")
-        (javax.swing.JOptionPane/showMessageDialog
-         our-frame
-         "The selected Public Folder can no longer be read, and has been cleared."
-         "Public Folder Unreadable"
-         javax.swing.JOptionPane/WARNING_MESSAGE)))))
+    (when public
+      (let [public-dir (clojure.java.io/file public)]
+        (when-not (and (.canRead public-dir) (.isDirectory public-dir))
+          (prefs/put-preferences (update (prefs/get-preferences) :overlay dissoc :public))
+          (seesaw/value! (seesaw/select our-frame [:#public]) "")
+          (javax.swing.JOptionPane/showMessageDialog
+           our-frame
+           "The selected Public Folder can no longer be read, and has been cleared."
+           "Public Folder Unreadable"
+           javax.swing.JOptionPane/WARNING_MESSAGE))))))
 
 (defn- create-window
   "Creates the overlay server window."
@@ -619,7 +646,7 @@
     (let [^JFrame root (seesaw/frame :title "OBS Overlay Web Server"
                                      :on-close :hide)
           port         (get-in (prefs/get-preferences) [:overlay :port] 17081)
-          template     (get-in (prefs/get-preferences) [:overlay :template])
+          templates    (get-in (prefs/get-preferences) [:overlay :templates])
           public       (get-in (prefs/get-preferences) [:overlay :public])
           panel        (mig/mig-panel
                         :background "#ccc"
@@ -638,10 +665,10 @@
                                                   :listen [:item-state-changed (fn [e] (run-choice (seesaw/value e)))])
                                  "gap unrelated, wrap"]
 
-                                [(seesaw/label :text "Template:") "align right"]
-                                [(seesaw/label :id :template :text template) "span 2"]
-                                [(seesaw/button :id :choose-template :text "Choose"
-                                                :listen [:action (fn [_] (choose-template))])
+                                [(seesaw/label :text "Templates Folder:") "align right"]
+                                [(seesaw/label :id :templates :text templates) "span 2"]
+                                [(seesaw/button :id :choose-templates :text "Choose"
+                                                :listen [:action (fn [_] (choose-templates-folder))])
                                  "gap unrelated, wrap"]
 
                                 [(seesaw/label :text "Public Folder:") "align right"]
