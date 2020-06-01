@@ -1,6 +1,5 @@
 = OBS Overlays for Twitch Streaming
 include::partial$PagePreamble.adoc[]
-:page-toclevels: 3
 
 For some time now people have been using Beat Link Trigger to add fun
 elements to mixes streamed on Twitch by creatively screen-grabbing
@@ -91,7 +90,7 @@ Django, but that document is aimed at Clojure programmers adding
 Selmer to their projects, so it will likely be hard to follow.
 
 [#variables]
-=== Variables
+== Variables
 
 Variables allow you to insert information from the current state of
 your players into the template.
@@ -157,7 +156,7 @@ you are interested in doing that.
 NOTE: Not all values will always be present. Some devices (like mixers and rekordbox) provide very little information, and even CDJs will only provide full details when a reordbox-analyzed track is loaded. Even then, most DJs do not fill in all details about tracks. When information is not available, an entry may be entirely missing, or it may simply have an empty value.
 
 [#player-state]
-==== Player State
+=== Player State
 
 .Player State Contents
 [cols="1l,4",options="header"]
@@ -275,7 +274,7 @@ p
 
 
 [#time-value]
-==== Time Values
+=== Time Values
 
 .Time Value Contents
 [cols="2l,7",options="header"]
@@ -305,7 +304,7 @@ p
 
 
 [#track-details]
-==== Track Details
+=== Track Details
 
 .Track Detail Contents
 [,cols="1l,4",options="header"]
@@ -374,7 +373,7 @@ p
 
 
 [#filters]
-=== Filters
+== Filters
 
 You can change the way variables are displayed by using filters.
 
@@ -416,7 +415,7 @@ https://github.com/yogthos/Selmer#built-in-filters-1[Selmer
 documentation].
 
 [#filter-abbreviate]
-==== abbreviate
+=== abbreviate
 
 Abbreviate the input string to given width if it exceeds a maxium
 width. If only a maximum width is given, abbreviated and maximum width
@@ -432,7 +431,7 @@ an argument containing the indicator you want to use in front of the
 just before an `abbreviate` filter.
 
 [#filter-add]
-==== add
+=== add
 
 Adds the value and all the filter's arguments together. If they are
 all numbers, calculates their sums. If any is a non-numeric string,
@@ -442,7 +441,7 @@ corresponding arithmetic operation on the value (they only work with
 numbers).
 
 [#filter-count]
-==== count, count-is
+=== count, count-is
 
 `count` counts the letters in a string, or the number of elements in a
 collection (such as the players). `count-is` checks whether that count
@@ -457,7 +456,7 @@ on the network, for example:
 ```
 
 [#filter-default]
-==== default
+=== default
 
 Allows you to specify a value to display when a variable is empty or
 missing. Normally, in such situations the variable just disappears
@@ -471,7 +470,7 @@ Notice that we had to quote the filter's argument because our value
 had a space in it.
 
 [#filter-double-format]
-==== double-format
+=== double-format
 
 Rounds a number to a specified number of decimal places. This is
 useful when working with pitch values, since we usually only want two
@@ -487,7 +486,7 @@ even specifying an ISO-639 two-letter locale specifier as its second
 argument.
 
 [#filter-empty]
-==== empty?, not-empty
+=== empty?, not-empty
 
 Check whether the specified value is empty or not (both filters return
 `true` or `false`). These are again useful combined with teh
@@ -500,25 +499,25 @@ Check whether the specified value is empty or not (both filters return
 ```
 
 [#filter-lower]
-==== lower
+=== lower
 
 Convert a value to lower-case.
 
 [#filter-upper]
-==== upper
+=== upper
 
 Convert a value to upper-case. (There are also two variants:
 `capitalize` converts only the first character to upper-case, while
 `title` converts the first letter of each word to upper-case.)
 
 [#filter-replace]
-==== replace
+=== replace
 
 Takes two string arguments, and replaces any instances of the first
 string found in the value with the second string.
 
 [#filter-sort]
-==== sort
+=== sort
 
 Sorts the elements of the value. You will generally want to apply this
 filter when you are <<tag-for,looping>> over the values in `players`
@@ -527,7 +526,7 @@ order.
 
 
 [#tags]
-=== Tags
+== Tags
 
 Tags allow you to get fairly sophisticated with your templates,
 supporting things like looping and conditionals. There are two
@@ -542,7 +541,7 @@ https://github.com/yogthos/Selmer#built-in-tags-1[Selmer
 documentation].
 
 [#tag-if]
-==== if
+=== if
 
 Conditionally renders the body only if the argument is true.
 
@@ -569,7 +568,7 @@ if”. For more examples, see the
 https://github.com/yogthos/Selmer#if[Selmer documentation].
 
 [#tag-cycle]
-==== cycle
+=== cycle
 
 Picks the next value from a list of values each time through a loop.
 Here is an example of this tag combined with the <<tag-for,`for` tag>>
@@ -586,18 +585,18 @@ between `blue` and `white`:
     </ul>
 
 [#tag-for]
-==== for
+=== for
 TODO: Document the `for` tag, and possibly `sum` and `now`.
 
 [#tag-include]
-==== include
+=== include
 
 Replaces itself with the contents of the referenced template.
 
    {% include "player.html" %}
 
 [#tag-block]
-==== block
+=== block
 
 Specifies a block of content that can be overwritten using Selmer's
 https://github.com/yogthos/Selmer#template-inheritance[template
@@ -606,7 +605,7 @@ inheritance] mechanism.
     {% block track-information %}This will be replaced.{% endblock %}
 
 [#tag-extends]
-==== extends
+=== extends
 
 This tag is used to reference a parent template, which provides the
 outer structure that gets rendered. The <<tag-block,blocks>> in the
@@ -617,12 +616,12 @@ inheritance] mechanism.
 
 
 [#graphics-resources]
-=== Graphics Resources
+== Graphics Resources
 
 TODO: List and explain the URLs you can use to obtain track artwork and waveforms.
 
 [#json-parameters]
-=== JSON Parameters
+== JSON Parameters
 
 If you are more comfortable developing your overlay in the style of a
 JavaScript Single-Page Application, the server supports that too.
