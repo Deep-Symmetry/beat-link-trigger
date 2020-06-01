@@ -93,12 +93,15 @@ Selmer to their projects, so it will likely be hard to follow.
 [#variables]
 === Variables
 
+Variables allow you to insert information from the current state of
+your players into the template.
+
 Template variables look like this: `{{ variable }}`. When Selmer
 encounters a variable like this, it looks up the value of that
 variable, and inserts the value into the template in place of the
 variable. There are many variables available to you, which are
-described here, and you can also examine their actual values for the
-current state of your players by clicking the **Inspect Template
+described just below, and you can also examine their actual values for
+the current state of your players by clicking the **Inspect Template
 Parameters** button when the overlay server is running:
 
 image:ObsParams.png[OBS Overlay Template Parameters,530,890]
@@ -373,12 +376,245 @@ p
 [#filters]
 === Filters
 
-TODO: List and explain the filters people are likely to use.
+You can change the way variables are displayed by using filters.
+
+Template filters look like this: `{{ master.track.title|lower }}`. Use
+a vertical bar (`|`) between a value and the filter you want to apply
+to it. This example displays the value of the `master.track.title`
+variable modified by the <<filter-lower,`lower` filter>>, which
+converts text to lower-case.
+
+Some filters take arguments that adjust their behavior. Use a colon
+(`:`) to introduce a filter argument. The
+<<filter-abbreviate,`abbreviate` filter>> makes sure a value fits in a
+maximum number of characters. Suppose the master player is playing the
+Skrillex track _With You, Friends (Long Drive)_. We can make sure it
+fits in twenty characters in our template like so:
+
+    {{ master.track.title|abbreviate:20 }}
+
+This would insert `With You, Friends...` into the template.
+
+Filters can take multiple arguments, in which case you will have
+multiple colons in between them.
+
+Filters can also be “chained”: you can apply another filter to the
+result of the previous one. Just add another `|` and type the next
+filter. So, with the same track playing, we could write:
+
+    {{ master.track.title|lower|abbreviate:20 }}
+
+And this would insert `with you, friends...` into the template.
+
+TIP: If your filter argument is a string, and it has any spaces in it,
+you need to quote it. See the <<filter-default,`default` filter>> for
+an example.
+
+Here are the filters you are most likely fo find useful. The full list
+can be found in the
+https://github.com/yogthos/Selmer#built-in-filters-1[Selmer
+documentation].
+
+[#filter-abbreviate]
+==== abbreviate
+
+Abbreviate the input string to given width if it exceeds a maxium
+width. If only a maximum width is given, abbreviated and maximum width
+are the same. The first parameter is the maximum width, the optional
+second parameter the abbreviated width.
+
+You can control where the abbreviation happens by putting an
+`abbr-left`, `abbr-middle`, or `abbr-right` filter before the
+`abbreviate` filter. You can also use something other than `...` as
+the abbreviation indicator by putting and `abbr-ellipsis` filter with
+an argument containing the indicator you want to use in front of the
+`abbreviate` filter. These special `abbr-` filters can only be used
+just before an `abbreviate` filter.
+
+[#filter-add]
+==== add
+
+Adds the value and all the filter's arguments together. If they are
+all numbers, calculates their sums. If any is a non-numeric string,
+concatenates the arguments. There are also `multiply` and `divide`
+filters which take only a single argument, and perform the
+corresponding arithmetic operation on the value (they only work with
+numbers).
+
+[#filter-count]
+==== count, count-is
+
+`count` counts the letters in a string, or the number of elements in a
+collection (such as the players). `count-is` checks whether that count
+matches its argument. You can use it with the <<tag-if,`if` tag>> to
+conditionally display content if there are a certain number of players
+on the network, for example:
+
+```html
+{% if players|count-is:4 %}
+<p>All Players are in use!</p>
+{% endif %}
+```
+
+[#filter-default]
+==== default
+
+Allows you to specify a value to display when a variable is empty or
+missing. Normally, in such situations the variable just disappears
+from the template (it is replaced by an empty string). If there is no
+track loaded on player 2, this expression will result in the string
+`No track`:
+
+    {{ players.2.track.title|default:"No track" }}
+
+Notice that we had to quote the filter's argument because our value
+had a space in it.
+
+[#filter-double-format]
+==== double-format
+
+Rounds a number to a specified number of decimal places. This is
+useful when working with pitch values, since we usually only want two
+places after the decimal point:
+
+    {{ master.pitch|double-format:2 }}
+
+There is also a `round` filter which rounds all the way to the nearest
+integer, and `number-format` which lets you use a
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Formatter.html#syntax[Java
+format string] to get full control of the way you format the number,
+even specifying an ISO-639 two-letter locale specifier as its second
+argument.
+
+[#filter-empty]
+==== empty?, not-empty
+
+Check whether the specified value is empty or not (both filters return
+`true` or `false`). These are again useful combined with teh
+<<tag-if,`if` tag>> to conditionally render content:
+
+```html
+{% if players|empty? %}
+<p>No Players Found!</p>
+{% endif %}
+```
+
+[#filter-lower]
+==== lower
+
+Convert a value to lower-case.
+
+[#filter-upper]
+==== upper
+
+Convert a value to upper-case. (There are also two variants:
+`capitalize` converts only the first character to upper-case, while
+`title` converts the first letter of each word to upper-case.)
+
+[#filter-replace]
+==== replace
+
+Takes two string arguments, and replaces any instances of the first
+string found in the value with the second string.
+
+[#filter-sort]
+==== sort
+
+Sorts the elements of the value. You will generally want to apply this
+filter when you are <<tag-for,looping>> over the values in `players`
+because they are otherwise not going to necessarily be in numerical
+order.
+
 
 [#tags]
 === Tags
 
-TODO: List and explain the tags people are likely to use.
+Tags allow you to get fairly sophisticated with your templates,
+supporting things like looping and conditionals. There are two
+fundamental variants: simple, inline tags like `include` or `extends`,
+which exist on their own, and more complex tags which affect text in
+between them (and may include intermediate tags), like `if`, `else`,
+and `endif`.
+
+Here are the tags you are most likely fo find useful. The full list
+can be found in the
+https://github.com/yogthos/Selmer#built-in-tags-1[Selmer
+documentation].
+
+[#tag-if]
+==== if
+
+Conditionally renders the body only if the argument is true.
+
+    {% if players.3.is-on-air %}
+    <img src="/public/on-air.png">
+    {% else %}
+    <img src="/public/off-air.png">
+    {% endif %}
+
+You can reverse the meaning of the conditional argument by preceding
+it with the `not` operator, or combine multiple conditional arguments
+with the `all` or `any` operators. You can also perform numeric
+comparisons using the `=`, `<`, `>`, `\<=`, and `>=` operators, or
+string comparison using `=`.
+
+    {% if players|count < 4 %}Another player can be connected!{% endif %}
+
+(Notice that the above example shows that <<filters,filters>> can be
+applied to the conditions.)
+
+In addition to the `if`, `else` and `endif` tags, you can have as many
+`elif` tags as you need between the `else` and `endif`, meaning “else
+if”. For more examples, see the
+https://github.com/yogthos/Selmer#if[Selmer documentation].
+
+[#tag-cycle]
+==== cycle
+
+Picks the next value from a list of values each time through a loop.
+Here is an example of this tag combined with the <<tag-for,`for` tag>>
+to create a list item for the player number and track title of each
+player found on the network, and alternating the CSS classes of each
+between `blue` and `white`:
+
+    <ul>
+    {% for number, player in players|sort %}
+    <li class={% cycle "blue" "white" %}>
+      {{ number }}: {{ player.track.title }}
+    </li>
+    {% endfor %}
+    </ul>
+
+[#tag-for]
+==== for
+TODO: Document the `for` tag, and possibly `sum` and `now`.
+
+[#tag-include]
+==== include
+
+Replaces itself with the contents of the referenced template.
+
+   {% include "player.html" %}
+
+[#tag-block]
+==== block
+
+Specifies a block of content that can be overwritten using Selmer's
+https://github.com/yogthos/Selmer#template-inheritance[template
+inheritance] mechanism.
+
+    {% block track-information %}This will be replaced.{% endblock %}
+
+[#tag-extends]
+==== extends
+
+This tag is used to reference a parent template, which provides the
+outer structure that gets rendered. The <<tag-block,blocks>> in the
+parent are recursively overridden by the blocks from child templates,
+using Selmer's
+https://github.com/yogthos/Selmer#template-inheritance[template
+inheritance] mechanism.
+
 
 [#graphics-resources]
 === Graphics Resources
