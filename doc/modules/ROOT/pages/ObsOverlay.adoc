@@ -598,9 +598,9 @@ Replaces itself with the contents of the referenced template.
 [#tag-block]
 === block
 
-Specifies a block of content that can be overwritten using Selmer's
-https://github.com/yogthos/Selmer#template-inheritance[template
-inheritance] mechanism.
+Specifies a block of content that can be overwritten using
+https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritance[template
+inheritance].
 
     {% block track-information %}This will be replaced.{% endblock %}
 
@@ -610,9 +610,9 @@ inheritance] mechanism.
 This tag is used to reference a parent template, which provides the
 outer structure that gets rendered. The <<tag-block,blocks>> in the
 parent are recursively overridden by the blocks from child templates,
-using Selmer's
-https://github.com/yogthos/Selmer#template-inheritance[template
-inheritance] mechanism.
+using
+https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritance[template
+inheritance].
 
 
 [#graphics-resources]
