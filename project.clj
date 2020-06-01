@@ -31,6 +31,7 @@
                  [http-kit "2.3.0"]
                  [ring/ring-core "1.8.1"]
                  [compojure "1.6.1"]
+                 [cheshire "5.10.0"]
                  [selmer "1.12.25"]
                  [nrepl "0.7.0"]
                  [cider/cider-nrepl "0.24.0"]

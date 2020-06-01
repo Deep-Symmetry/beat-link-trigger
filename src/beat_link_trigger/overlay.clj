@@ -10,6 +10,7 @@
             [ring.middleware.params]
             [org.httpkit.server :as server]
             [selmer.parser :as parser]
+            [cheshire.core :as json]
             [beat-link-trigger.expressions :as expr]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show :as show]
@@ -375,6 +376,12 @@
   (-> (response/resource-response "beat_link_trigger/styles.css")
       (response/content-type "text/css")))
 
+(defn- return-params
+  "A handler that renders the current template parameters as JSON."
+  []
+  (-> (response/response (json/encode (build-params)))
+      (response/content-type "application/json")))
+
 (defn- return-font
   "A handler that returns one of the embedded fonts, given the shorthand
   name by which we offer it."
@@ -587,6 +594,7 @@
   (compojure/routes
    (compojure/GET "/" [] (build-overlay))
    (compojure/GET "/styles.css" [] (return-styles))
+   (compojure/GET "/params.json" [] (return-params))
    (compojure/GET "/font/:font" [font] (return-font font))
    (compojure/GET "/artwork/:player{[0-9]+}" [player icons] (return-artwork player icons))
    (compojure/GET "/wave-preview/:player{[0-9]+}" [player width height] (return-wave-preview player width height))

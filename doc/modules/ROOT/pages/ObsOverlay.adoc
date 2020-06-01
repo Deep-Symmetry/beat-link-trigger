@@ -384,3 +384,14 @@ TODO: List and explain the tags people are likely to use.
 === Graphics Resources
 
 TODO: List and explain the URLs you can use to obtain track artwork and waveforms.
+
+[#json-parameters]
+=== JSON Parameters
+
+If you are more comfortable developing your overlay in the style of a
+JavaScript Single-Page Application, the server supports that too.
+Whenever your page requests the URL `/params.json`, it sends a JSON
+response containing all the current template parameters. You can set
+up a timeout function to retrieve them at whatever frame rate you
+would like to update your template, and your code can process the
+results and render itself as desired.
