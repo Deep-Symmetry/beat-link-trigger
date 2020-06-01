@@ -1385,11 +1385,8 @@
            :doc "The action which opens the OBS overlay web server window."}
   overlay-server-action
   (delay (seesaw/action :handler (fn [_]
-                                   (if (.isRunning virtual-cdj)
-                                     (overlay/show-window @trigger-frame)
-                                     (seesaw/alert "Must be Online to show Overlay Server window."
-                                                   :title "Beat Link Trigger is Offline" :type :error)))
-                        :name "OBS Overlay Web Server" :enabled? false)))
+                                   (overlay/show-window @trigger-frame))
+                        :name "OBS Overlay Web Server" :enabled? true)))
 
 
 
@@ -1565,8 +1562,7 @@
   []
   (seesaw/invoke-soon
    (try
-     (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action @overlay-server-action]
-                     :enabled? (online?))
+     (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action] :enabled? (online?))
      (.setText (online-menu-item) (online-menu-name))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))

@@ -412,7 +412,7 @@
           (recur (conj byte-buffers next-buffer) (inc idx))
           byte-buffers))))
 
-(defn- read-cue-list
+(defn read-cue-list
   "Re-creates a CueList object from an imported track. Returns `nil` if
   none is found."
   [^Path track-root]
@@ -433,49 +433,64 @@
 (defn read-beat-grid
   "Re-creates a [`BeatGrid`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html)
-  from an imported track. Returns `nil` if none is found."
-  [^Path track-root]
-  (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
-    (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
-          beats    (int-array (map int (nth grid-vec 0)))
-          times    (long-array (nth grid-vec 1))
-          tempos   (if (> (count grid-vec) 2) ; Cope with older show beat grids that lack tempos.
-                     (int-array (map int (nth grid-vec 2))) ; We have real tempo values.
-                     (int-array (count beats)))] ; Just use zero for all tempos.
-      (BeatGrid. dummy-reference beats tempos times))))
+  from an imported track. Returns `nil` if none is found. If it should
+  have a particular simulated source, you can pass `data-reference`,
+  otherwise a meaningless dummy one is used."
+  ([^Path track-root]
+   (read-beat-grid track-root dummy-reference))
+  ([^Path track-root ^DataReference data-reference]
+   (when (Files/isReadable (.resolve track-root "beat-grid.edn"))
+     (let [grid-vec (read-edn-path (.resolve track-root "beat-grid.edn"))
+           beats    (int-array (map int (nth grid-vec 0)))
+           times    (long-array (nth grid-vec 1))
+           tempos   (if (> (count grid-vec) 2) ; Cope with older show beat grids that lack tempos.
+                      (int-array (map int (nth grid-vec 2))) ; We have real tempo values.
+                      (int-array (count beats)))] ; Just use zero for all tempos.
+       (BeatGrid. data-reference beats tempos times)))))
 
 (defn read-preview
   "Re-creates a [`WaveformPreview`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformPreview.html)
-  from an imported track. Returns `nil` if none is found."
-  [^Path track-root]
-  (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
-                        [(.resolve track-root "preview-color.data") true]
-                        [(.resolve track-root "preview.data") false])]
-    (when (Files/isReadable path)
-      (let [bytes (Files/readAllBytes path)]
-        (WaveformPreview. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
+  from an imported track. Returns `nil` if none is found. If it should
+  have a particular simulated source, you can pass `data-reference`,
+  otherwise a meaningless dummy one is used."
+  ([^Path track-root]
+   (read-preview track-root dummy-reference))
+  ([^Path track-root ^DataReference data-reference]
+   (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
+                         [(.resolve track-root "preview-color.data") true]
+                         [(.resolve track-root "preview.data") false])]
+     (when (Files/isReadable path)
+       (let [bytes (Files/readAllBytes path)]
+         (WaveformPreview. data-reference (java.nio.ByteBuffer/wrap bytes) color?))))))
 
 (defn read-detail
   "Re-creates a [`WaveformDetail`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformDetail.html)
-  from an imported track. Returns `nil` if none is found."
-  [^Path track-root]
-  (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
-                        [(.resolve track-root "detail-color.data") true]
-                        [(.resolve track-root "detail.data") false])]
-    (when (Files/isReadable path)
-      (let [bytes (Files/readAllBytes path)]
-        (WaveformDetail. dummy-reference (java.nio.ByteBuffer/wrap bytes) color?)))))
+  from an imported track. Returns `nil` if none is found. If it should
+  have a particular simulated source, you can pass `data-reference`,
+  otherwise a meaningless dummy one is used."
+  ([^Path track-root]
+   (read-detail track-root dummy-reference))
+  ([^Path track-root ^DataReference data-reference]
+   (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
+                         [(.resolve track-root "detail-color.data") true]
+                         [(.resolve track-root "detail.data") false])]
+     (when (Files/isReadable path)
+       (let [bytes (Files/readAllBytes path)]
+         (WaveformDetail. data-reference (java.nio.ByteBuffer/wrap bytes) color?))))))
 
 (defn read-art
   "Loads album art for an imported track. Returns `nil` if none is
-  found."
-  [^Path track-root]
-  (let [path (.resolve track-root "art.jpg")]
-    (when (Files/isReadable path)
-      (let [bytes (Files/readAllBytes path)]
-        (AlbumArt. dummy-reference (java.nio.ByteBuffer/wrap bytes))))))
+  found. If it should have a particular simulated source, you can pass
+  `data-reference`, otherwise a meaningless dummy one is used."
+  ([^Path track-root]
+   (read-art track-root dummy-reference))
+  ([^Path track-root ^DataReference data-reference]
+   (let [path (.resolve track-root "art.jpg")]
+     (when (Files/isReadable path)
+       (let [bytes (Files/readAllBytes path)]
+         (AlbumArt. data-reference (java.nio.ByteBuffer/wrap bytes)))))))
 
 (defn- build-track-path
   "Creates an up-to-date path into the current show filesystem for the

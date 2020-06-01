@@ -1,6 +1,7 @@
 (ns beat-link-trigger.overlay
   "Serves a customizable overlay page for use with OBS Studio."
-  (:require [clojure.java.browse :as browse]
+  (:require [clojure.edn :as edn]
+            [clojure.java.browse :as browse]
             [clojure.java.io :as io]
             [compojure.core :as compojure]
             [compojure.route :as route]
@@ -11,6 +12,7 @@
             [selmer.parser :as parser]
             [beat-link-trigger.expressions :as expr]
             [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.show :as show]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
@@ -26,9 +28,13 @@
            [org.deepsymmetry.beatlink LifecycleListener VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
+           [org.deepsymmetry.beatlink.data DataReference TimeFinder MetadataFinder SignatureFinder
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt ColorItem SearchableItem
             WaveformDetailComponent WaveformPreviewComponent]))
+
+(defonce ^{:private true
+           :doc     "Holds the overlay web server when it is running."}
+  server (atom nil))
 
 (def overlay-template-name
   "The file name of the overlay template which renders the root folder
@@ -62,6 +68,55 @@
     CdjStatus$TrackType/REKORDBOX        "rekordbox"
     CdjStatus$TrackType/UNANALYZED       "Unanalyzed"
     "Unknown"))
+
+(defn- reformat-sample-metadata
+  "Adjusts track metadata from the form stored in a show file to the
+  form reported by the overlay server, for sample data purposes."
+  [metadata ^DataReference data-reference]
+  (-> metadata
+      (assoc :added (:data-added metadata)
+             :id (.-rekordboxId data-reference)
+             :slot (format-source-slot (.-slot data-reference))
+             :starting-tempo (/ (:tempo metadata) 100.0)
+             :type "rekordbox"
+             :year (+ (rand-int 100) 1920))
+      (dissoc :date-added :tempo)))
+
+(defn read-sample-track
+  "Reads the sample track data stored for the given player number."
+  [player]
+  (let [path (java.nio.file.Paths/get (.toURI (.getResource VirtualCdj (str "/beat_link_trigger/sampleTracks/"
+                                                                            player))))
+        ref  (DataReference. player
+                             (rand-nth [CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT])
+                             (inc (rand-int 3000)))]
+    {:art       (show/read-art path ref)
+     :beat-grid (show/read-beat-grid path ref)
+     :cue-list  (show/read-cue-list path)
+     :detail    (show/read-detail path ref)
+     :preview   (show/read-preview path ref)
+     :metadata  (-> (.getResourceAsStream VirtualCdj (str "/beat_link_trigger/sampleTracks/" player "/metadata.edn"))
+                    slurp
+                    edn/read-string
+                    (reformat-sample-metadata ref))}))
+
+(def sample-track-data
+  "Holds the simulated data used to help people work on overlays when
+  they can't go online. Delayed so we don't build it until the first
+  time it's needed."
+  (delay
+   (into {} (for [player (range 1 3)]
+              [player (read-sample-track player)]))))
+
+(def simulated-players
+  "A map from player number to simulated track number used when
+  building dummy data for working on overlay templates while offline.
+  This can be changed to reflect your actual player setup. Currently
+  there are only two simulated tracks, numbered 1 and 2 available.
+  They can be loaded in multiple players, or a player can be marked as
+  present but empty by setting its track number to `nil`."
+  (atom {1 1
+         2 2}))
 
 (defn item-label
   "Given a searchable item, if it is not nil, returns its label."
@@ -209,17 +264,101 @@
            (describe-status number)
            (describe-times number))))
 
+(defn simulate-cdj-status
+  "Creates randomized sample data describing status information for a
+  player with the specified number and loaded track (which can be
+  `nil`). `master` is the number of the simulated tempo master
+  device, so our status will be set accordingly."
+  [number track master]
+  (let [position         (when-let [metadata (:metadata track)]
+                           (rand-int (* 1000 (dec (:duration metadata)))))
+        beat-grid        (:beat-grid track)
+        beat             (when (and beat-grid position) (.findBeatAtTime beat-grid position))
+        bar-beat         (when beat (.getBeatWithinBar beat-grid beat))
+        pitch            (+ 1048576 (- (rand-int 200000) 100000))
+        pitch-multiplier (Util/pitchToMultiplier pitch)
+        track-bpm        (get-in track [:metadata :starting-tempo])]
+    (merge {:beat-within-bar       (or bar-beat (inc (rand-int 4)))
+            :tempo                 (* (or track-bpm 128.0) pitch-multiplier)
+            :pitch                 (Util/pitchToPercentage pitch)
+            :pitch-display         (format-pitch (Util/pitchToPercentage pitch))
+            :pitch-multiplier      (Util/pitchToMultiplier pitch)
+            :is-synced             false
+            :is-tempo-master       (= number master)
+            :beat-number           (or beat 0)
+            :cue-countdown         511
+            :cue-countdown-display "--.-"
+            :firmware-version      "0.42"
+            :track-number          (if track (inc (rand-int 50)) 0)
+            :track-source-player   (if track number 0)
+            :is-at-end             false
+            :is-bpm-only-synced    false
+            :is-busy               false
+            :is-cued               false
+            :is-looping            false
+            :is-on-air             (rand-nth [true false])
+            :is-paused             true
+            :is-playing            false
+            :is-playing-backwards  false
+            :is-playing-cdj-mode   false
+            :is-playing-forwards   false
+            :is-playing-vinyl-mode false
+            :is-searching          false
+            :is-track-loaded       (boolean track)}
+           (when track-bpm
+             {:track-bpm track-bpm})
+           (when position
+             {:time-played (format-time position)})
+           (when (and position (:detail track))
+             {:time-remaining (format-time (max 0 (- (.getTotalTime (:detail track)) position)))}))))
+
+(defn simulate-player
+  "Creates randomized sample data describing a player with the specified
+  number and loaded track (which can be `nil`)."
+  [number track master]
+  (merge
+   {:number  number
+    :name    (rand-nth ["CDJ-900nexus" "CDJ-2000nexus" "CDJ-900nxs2" "CDJ-2000nxs2" "XDJ-XZ"])
+    :address "127.0.0.1"
+    :kind    :players}
+   (when track
+     {:track (:metadata track)})
+   (simulate-cdj-status number track master)))
+
+(defn- build-simulated-players
+  "Creates the player entries corresponding to the configuration in
+  `simulated-players`. `master` specifies the number of the player
+  that should be the tempo master, or 0 if none should."
+  [master]
+  (into {}
+        (for [[number track] @simulated-players]
+          [number (simulate-player number (get @sample-track-data track) master)])))
+
+(defn build-simulated-params
+  "Creates dummy overlay template parameters to support working on
+  templates when you can't be online with actual hardware."
+  []
+  (let [potential-masters (map first (filter (fn [[_ track]]
+                                               (some? (get @sample-track-data track))) @simulated-players))
+        master            (rand-nth (conj potential-masters 0))
+        players           (build-simulated-players master)]
+    (merge {:players players}
+           (when (pos? master)
+             {:master (get players master)}))))
+
 (defn build-params
   "Sets up the overlay template parameters based on the current playback
   state."
   []
-  (merge
-   (reduce (fn [result device]
-             (assoc-in result [(:kind device) (:number device)] device))
-           {}
-           (map describe-device (.getCurrentDevices expr/device-finder)))
-   (when-let [master (.getTempoMaster expr/virtual-cdj)]
-     {:master (describe-device (.getLatestAnnouncementFrom expr/device-finder (.getDeviceNumber master)))})))
+  (if (.isRunning expr/virtual-cdj)
+    (merge  ; We can return actual data.
+     (reduce (fn [result device]
+               (assoc-in result [(:kind device) (:number device)] device))
+             {}
+             (map describe-device (.getCurrentDevices expr/device-finder)))
+     (when-let [master (.getTempoMaster expr/virtual-cdj)]
+       {:master (describe-device (.getLatestAnnouncementFrom expr/device-finder (.getDeviceNumber master)))}))
+    (:simulated-params @server)))
 
 (defn- build-overlay
   "Builds a handler that renders the overlay template configured for
@@ -260,7 +399,9 @@
   [player icons]
   (let [player (Long/valueOf player)
         icons  (Boolean/valueOf icons)]
-    (if-let [art (.getLatestArtFor expr/art-finder player)]
+    (if-let [art (if (.isRunning expr/art-finder)
+                   (.getLatestArtFor expr/art-finder player)
+                   (get-in @sample-track-data [(get @simulated-players player) :art]))]
       (let [baos (ByteArrayOutputStream.)]
         (ImageIO/write (.getImage art) "jpg" baos)
         (-> (ByteArrayInputStream. (.toByteArray baos))
@@ -268,7 +409,9 @@
             (response/content-type "image/jpeg")
             (response/header "Cache-Control" "max-age=1")))
       (let [missing-image-path (if icons
-                                 (util/generic-media-resource player)
+                                 (if (.isRunning expr/virtual-cdj)
+                                   (util/generic-media-resource player)
+                                   (rand-nth ["images/USB.png" "images/SD.png" "images/CD_data_logo.png"] ))
                                  "images/NoArt.png")]
         (-> (response/resource-response missing-image-path)
             (response/content-type "image/png")
@@ -285,24 +428,28 @@
         default))
     default))
 
-(defn return-wave-preview
+(defn simulate-wave-preview
   "Returns the waveform preview image associated with the specified
-  player. Renders at the specified size, unless it is smaller than the
-  minimum. If omitted, uses default size of 408 by 56 pixels."
+  simulated player when running offline. Renders at the specified
+  size, unless it is smaller than the minimum. If omitted, uses
+  default size of 408 by 56 pixels."
   [player width height]
-  (let [player   (Integer/valueOf player)
+  (let [player   (Long/valueOf player)
         width    (safe-parse-int width 408)
         height   (safe-parse-int height 56)
-        track    (.getLatestMetadataFor expr/metadata-finder player)
-        position (.getLatestPositionFor expr/time-finder player)
-        preview  (.getLatestPreviewFor expr/waveform-finder player)]
-    (if preview  ; Only try to render when there is a waveform preview available.
-      (let [component (WaveformPreviewComponent. preview track)
+        params   (get-in @server [:simulated-params :players player])
+        position (get-in params [:time-played :raw-milliseconds])
+        samples  (get @sample-track-data (get @simulated-players player))
+        cue-list (:cue-list samples)
+        preview  (:preview samples)]
+    (if (and preview cue-list)  ; Only try to render when the data we need is available.
+      (let [component (WaveformPreviewComponent. preview (get-in params [:track :duration]) cue-list)
             min-size  (.getMinimumSize component)]
         (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
         (when position
-          (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
-        (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
+          (.setPlaybackState component player position false))
+        (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height)
+                                   BufferedImage/TYPE_INT_ARGB)
               g    (.createGraphics bi)
               baos (ByteArrayOutputStream.)]
           (.paint component g)
@@ -316,31 +463,66 @@
           (response/content-type "image/png")
           (response/header "Cache-Control" "max-age=1")))))
 
-(defn return-wave-detail
+(defn return-wave-preview
+  "Returns the waveform preview image associated with the specified
+  player. Renders at the specified size, unless it is smaller than the
+  minimum. If omitted, uses default size of 408 by 56 pixels."
+  [player width height]
+  (if (.isRunning expr/metadata-finder)
+    (let [player   (Integer/valueOf player)  ; We can return real data.
+          width    (safe-parse-int width 408)
+          height   (safe-parse-int height 56)
+          track    (.getLatestMetadataFor expr/metadata-finder player)
+          position (.getLatestPositionFor expr/time-finder player)
+          preview  (.getLatestPreviewFor expr/waveform-finder player)]
+      (if preview  ; Only try to render when there is a waveform preview available.
+        (let [component (WaveformPreviewComponent. preview track)
+              min-size  (.getMinimumSize component)]
+          (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+          (when position
+            (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
+          (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height)
+                                     BufferedImage/TYPE_INT_ARGB)
+                g    (.createGraphics bi)
+                baos (ByteArrayOutputStream.)]
+            (.paint component g)
+            (.dispose g)
+            (ImageIO/write bi "png" baos)
+            (-> (ByteArrayInputStream. (.toByteArray baos))
+                response/response
+                (response/content-type "image/png")
+                (response/header "Cache-Control" "no-store"))))
+        (-> (response/resource-response "images/NoArt.png")  ; No waveform preview available, return a transparent image.
+            (response/content-type "image/png")
+            (response/header "Cache-Control" "max-age=1"))))
+    (simulate-wave-preview player width height)))
+
+(defn simulate-wave-detail
   "Returns the waveform detail image associated with the specified
-  player. Renders at the specified `width` and `height`, unless they
-  are smaller than the minimum. If not specified, uses the minimum
-  size supported by the component that draws the graphics. If `scale`
-  is provided, sets the amount by which the waveform should be zoomed
-  in: 1 means full size, 2 is half size, and so on. The default scale
-  is 4."
+  simulated player when running offline. Renders at the specified
+  `width` and `height`, unless they are smaller than the minimum. If
+  not specified, uses the minimum size supported by the component that
+  draws the graphics. If `scale` is provided, sets the amount by which
+  the waveform should be zoomed in: 1 means full size, 2 is half size,
+  and so on. The default scale is 4."
   [player width height scale]
   (let [player    (Integer/valueOf player)
         width     (safe-parse-int width 0)
         height    (safe-parse-int height 0)
         scale     (safe-parse-int scale 4)
-        track     (.getLatestMetadataFor expr/metadata-finder player)
-        position  (.getLatestPositionFor expr/time-finder player)
-        detail (.getLatestDetailFor expr/waveform-finder player)]
+        params    (get-in @server [:simulated-params :players player])
+        position  (get-in params [:time-played :raw-milliseconds])
+        samples   (get @sample-track-data (get @simulated-players player))
+        cue-list  (:cue-list samples)
+        beat-grid (:beat-grid samples)
+        detail    (:detail samples)]
     (if detail  ; Only try to render when there is a waveform detail available.
-      (let [component (WaveformDetailComponent. detail
-                                                (when track (.getCueList track))
-                                                (.getLatestBeatGridFor expr/beatgrid-finder player))
+      (let [component (WaveformDetailComponent. detail cue-list beat-grid)
             min-size  (.getMinimumSize component)]
         (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
         (.setScale component scale)
         (when position
-          (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
+          (.setPlaybackState component player position false))
         (let [bi   (BufferedImage. (.. component getSize width)
                                    (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
               g    (.createGraphics bi)
@@ -355,6 +537,48 @@
       (-> (response/resource-response "images/NoArt.png")  ; No waveform detail available, return a transparent image.
           (response/content-type "image/png")
           (response/header "Cache-Control" "max-age=1")))))
+
+(defn return-wave-detail
+  "Returns the waveform detail image associated with the specified
+  player. Renders at the specified `width` and `height`, unless they
+  are smaller than the minimum. If not specified, uses the minimum
+  size supported by the component that draws the graphics. If `scale`
+  is provided, sets the amount by which the waveform should be zoomed
+  in: 1 means full size, 2 is half size, and so on. The default scale
+  is 4."
+  [player width height scale]
+  (if (.isRunning expr/metadata-finder)
+    (let [player    (Integer/valueOf player)  ; We can return actual data.
+          width     (safe-parse-int width 0)
+          height    (safe-parse-int height 0)
+          scale     (safe-parse-int scale 4)
+          track     (.getLatestMetadataFor expr/metadata-finder player)
+          position  (.getLatestPositionFor expr/time-finder player)
+          detail (.getLatestDetailFor expr/waveform-finder player)]
+      (if detail  ; Only try to render when there is a waveform detail available.
+        (let [component (WaveformDetailComponent. detail
+                                                  (when track (.getCueList track))
+                                                  (.getLatestBeatGridFor expr/beatgrid-finder player))
+              min-size  (.getMinimumSize component)]
+          (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+          (.setScale component scale)
+          (when position
+            (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
+          (let [bi   (BufferedImage. (.. component getSize width)
+                                     (.. component getSize height) BufferedImage/TYPE_INT_ARGB)
+                g    (.createGraphics bi)
+                baos (ByteArrayOutputStream.)]
+            (.paint component g)
+            (.dispose g)
+            (ImageIO/write bi "png" baos)
+            (-> (ByteArrayInputStream. (.toByteArray baos))
+                response/response
+                (response/content-type "image/png")
+                (response/header "Cache-Control" "no-store"))))
+        (-> (response/resource-response "images/NoArt.png")  ; No waveform detail available, return a transparent image.
+            (response/content-type "image/png")
+            (response/header "Cache-Control" "max-age=1"))))
+    (simulate-wave-detail player width height scale)))
 
 (defn- build-routes
   "Builds the set of routes that will handle requests for the server
@@ -381,8 +605,9 @@
   the value that was returned by this function to `stop-server`."
   [port & {:keys [templates public]}]
   (selmer.parser/set-resource-path! (or templates default-templates-path))
-  (let [config {:port     port
-                :public   (or public "public")}
+  (let [config {:port             port
+                :public           (or public "public")
+                :simulated-params (build-simulated-params)}
         routes (build-routes config)
         app    (-> routes
                    ring.middleware.content-type/wrap-content-type
@@ -405,10 +630,6 @@
   beat-link finder objects running."
   []
   (and (.isRunning expr/device-finder) (.isRunning expr/virtual-cdj)))
-
-(defonce ^{:private true
-           :doc     "Holds the overlay web server when it is running."}
-  server (atom nil))
 
 (defonce ^{:private true
            :doc     "Holds the frame allowing the user to configure and
@@ -551,20 +772,6 @@
        "Public Folder Unreadable"
        javax.swing.JOptionPane/ERROR_MESSAGE))))
 
-(defonce ^{:private true
-           :doc "Used to detect the `VirtualCdj` starting and stopping so we can react properly."}
-  vcdj-lifecycle-listener
-  (reify LifecycleListener
-    (started [this _]  ; We are online, so the server can be started.
-      (seesaw/invoke-later
-       (seesaw/config! (seesaw/select @window [:#run]) :enabled? true)))
-    (stopped [this _]  ; We are offline, kill the server if it was running, and disable the Run button.
-      (seesaw/invoke-later
-       (let [run (seesaw/select @window [:#run])]
-         (when (seesaw/value run)
-           (seesaw/value! run false))
-         (seesaw/config! run :enabled? false))))))
-
 (defn- expand-node
   "Handles tree expansion of one of our parameter nodes. If its children
   have not yet been created, does so."
@@ -700,8 +907,6 @@
       (.setResizable root false)
       (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :overlay true)))
       (reset! window root)
-      (.addLifecycleListener expr/virtual-cdj vcdj-lifecycle-listener)
-      (seesaw/config! (seesaw/select root [:#run]) :enabled? (online?))
       (make-window-visible trigger-frame))
     (catch Exception e
       (timbre/error e "Problem creating nREPL window."))))

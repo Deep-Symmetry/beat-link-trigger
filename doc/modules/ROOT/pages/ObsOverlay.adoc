@@ -84,7 +84,11 @@ TIP: While these instructions are being written, you can learn the
 basics of the templating language by looking at the
 https://docs.djangoproject.com/en/3.0/ref/templates/language/[Django
 documentation], but some details are quite different in Selmer and
-Beat Link Trigger, which is why this page is being worked on.
+Beat Link Trigger, which is why this page is being worked on. You can
+also consult the https://github.com/yogthos/Selmer#selmer[Selmer]
+documentation for details about how its template language differs from
+Django, but that document is aimed at Clojure programmers adding
+Selmer to their projects, so it will likely be hard to follow.
 
 [#variables]
 === Variables
@@ -115,6 +119,17 @@ them, but you can use <<filters,Filters>> to reformat them in flexible
 ways. And other variables may not be something you want to display at
 all, but you can use them to control which sections of your template
 are displayed using <<tags,Tags>>.
+
+TIP: You can start the overlay server even if Beat Link Trigger is not
+currently online with a DJ Link network. When you do that, it will
+serve simulated data for two players, with Gareth Emery’s _Concrete
+Angel_ loaded in player 1 and Lindsey Stirling’s _Transcendence_ in
+player 2, so you can work on your template design even when you don’t
+have actual player hardware handy. Even though those are the only two
+simulated tracks available, you can configure them to be in more or
+different players if your template design requires; ask for help on
+the https://gitter.im/brunchboy/beat-link-trigger[Gitter channel] if
+you are interested in doing that.
 
 .Top Level Variables
 [cols="1l,4",options="header"]

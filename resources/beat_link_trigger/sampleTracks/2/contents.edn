@@ -1,0 +1,8 @@
+{:midi-device #beat_link_trigger.util.MidiChoice{:full-name "CoreMIDI4J - IAC Driver Bus 1"},
+ :loaded-message "None",
+ :playing-message "None",
+ :enabled "Default",
+ :loaded-note 127,
+ :loaded-channel 1,
+ :playing-note 127,
+ :playing-channel 1}
