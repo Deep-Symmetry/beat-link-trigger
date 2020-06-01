@@ -83,14 +83,13 @@
              :year (+ (rand-int 100) 1920))
       (dissoc :date-added :tempo)))
 
-(defn read-sample-track
-  "Reads the sample track data stored for the given player number."
-  [player]
-  (let [path (java.nio.file.Paths/get (.toURI (.getResource VirtualCdj (str "/beat_link_trigger/sampleTracks/"
-                                                                            player))))
-        ref  (DataReference. player
-                             (rand-nth [CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT])
-                             (inc (rand-int 3000)))]
+(defn- read-sample-track-internal
+  "Once we have obtained a proper path (dependent on if we are running
+  from a jar or the filesystem), reads the sample track data from it."
+  [player ^java.nio.file.Path path]
+  (let [ref (DataReference. player
+                            (rand-nth [CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT])
+                            (inc (rand-int 3000)))]
     {:art       (show/read-art path ref)
      :beat-grid (show/read-beat-grid path ref)
      :cue-list  (show/read-cue-list path)
@@ -100,6 +99,20 @@
                     slurp
                     edn/read-string
                     (reformat-sample-metadata ref))}))
+
+(defn read-sample-track
+  "Reads the sample track data stored for the given player number."
+  [player]
+  (let [url (.getResource VirtualCdj (str "/beat_link_trigger/sampleTracks/" player))
+        uri (.toURI url)]
+    (if (= (.getScheme uri) "jar")
+      (let [conn          (.openConnection url) ; Running from a jar, need to open a jar filesystem.
+            jar-file-path (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
+            entry-name    (.getEntryName conn)]
+        (with-open [jar-filesystem (java.nio.file.FileSystems/newFileSystem jar-file-path nil)]
+          (read-sample-track-internal player (.getPath jar-filesystem entry-name (into-array String [])))))
+      ;; We are not running from a jar, and can build the path to the sample track directly.
+      (read-sample-track-internal player (java.nio.file.Paths/get uri)))))
 
 (def sample-track-data
   "Holds the simulated data used to help people work on overlays when
