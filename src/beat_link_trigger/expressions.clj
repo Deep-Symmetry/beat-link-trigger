@@ -31,69 +31,6 @@
   (merge aether/maven-central
          {"clojars" "https://clojars.org/repo"}))
 
-(defn add-library
-  "Allow expression code to add a new Maven dependency at runtime by
-  specifying its coordinate, and optionally the repositories to
-  search."
-  [coordinate & {:keys [repositories] :or {repositories default-repositories}}]
-  (pomegranate/add-dependencies :coordinates [coordinate] :repositories repositories))
-
-(defn add-libraries
-  "Allow expression code to add multiple new Maven dependency at runtime
-  by specifying their coordinates, and optionally the repositories to
-  search."
-  [coordinates & {:keys [repositories] :or {repositories default-repositories}}]
-  (pomegranate/add-dependencies :coordinates coordinates :repositories repositories))
-
-(defn extend-classpath
-  "Allow expression code to add a local Jar file or directory to the
-  classpath at runtime."
-  [jar-or-dir]
-  (pomegranate/add-classpath jar-or-dir))
-
-(defn track-source-slot
-  "Converts the Java enum value representing the slot from which a track
-  was loaded to a more convenient Clojure keyword."
-  [^CdjStatus status]
-  (util/case-enum (.getTrackSourceSlot status)
-    CdjStatus$TrackSourceSlot/NO_TRACK   :no-track
-    CdjStatus$TrackSourceSlot/CD_SLOT    :cd-slot
-    CdjStatus$TrackSourceSlot/SD_SLOT    :sd-slot
-    CdjStatus$TrackSourceSlot/USB_SLOT   :usb-slot
-    CdjStatus$TrackSourceSlot/COLLECTION :collection
-    :unknown))
-
-(defn track-type
-  "Converts the Java enum value representing the type of track that
-  was loaded to a more convenient Clojure keyword."
-  [^CdjStatus status]
-  (util/case-enum (.getTrackType status)
-    CdjStatus$TrackType/NO_TRACK         :no-track
-    CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
-    CdjStatus$TrackType/REKORDBOX        :rekordbox
-    CdjStatus$TrackType/UNANALYZED       :unanalyzed
-    :unknown))
-
-(defn playback-time
-  "Obtains the current playback time of the player that sent the
-  supplied device update, or `nil` if we don't know."
-  [^DeviceUpdate device-update]
-  (let [time-finder (TimeFinder/getInstance)]
-    (when (.isRunning time-finder)
-      (let [result (.getTimeFor time-finder device-update)]
-        (when-not (neg? result)
-          result)))))
-
-(defn extract-raw-cue-update
-  "Given a status value from a show cue's started-on-beat or
-  started-late expression, returns the raw device update object
-  associated with it, which will be the first element of a tuple in
-  the case of the started-on-beat expression."
-  [cue-status]
-  (if (instance? DeviceUpdate cue-status)
-    cue-status
-    (first cue-status)))
-
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
   `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
@@ -141,6 +78,68 @@
   `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
   singleton."
   (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
+
+(defn add-library
+  "Allow expression code to add a new Maven dependency at runtime by
+  specifying its coordinate, and optionally the repositories to
+  search."
+  [coordinate & {:keys [repositories] :or {repositories default-repositories}}]
+  (pomegranate/add-dependencies :coordinates [coordinate] :repositories repositories))
+
+(defn add-libraries
+  "Allow expression code to add multiple new Maven dependency at runtime
+  by specifying their coordinates, and optionally the repositories to
+  search."
+  [coordinates & {:keys [repositories] :or {repositories default-repositories}}]
+  (pomegranate/add-dependencies :coordinates coordinates :repositories repositories))
+
+(defn extend-classpath
+  "Allow expression code to add a local Jar file or directory to the
+  classpath at runtime."
+  [jar-or-dir]
+  (pomegranate/add-classpath jar-or-dir))
+
+(defn track-source-slot
+  "Converts the Java enum value representing the slot from which a track
+  was loaded to a more convenient Clojure keyword."
+  [^CdjStatus status]
+  (util/case-enum (.getTrackSourceSlot status)
+    CdjStatus$TrackSourceSlot/NO_TRACK   :no-track
+    CdjStatus$TrackSourceSlot/CD_SLOT    :cd-slot
+    CdjStatus$TrackSourceSlot/SD_SLOT    :sd-slot
+    CdjStatus$TrackSourceSlot/USB_SLOT   :usb-slot
+    CdjStatus$TrackSourceSlot/COLLECTION :collection
+    :unknown))
+
+(defn track-type
+  "Converts the Java enum value representing the type of track that
+  was loaded to a more convenient Clojure keyword."
+  [^CdjStatus status]
+  (util/case-enum (.getTrackType status)
+    CdjStatus$TrackType/NO_TRACK         :no-track
+    CdjStatus$TrackType/CD_DIGITAL_AUDIO :cd-digital-audio
+    CdjStatus$TrackType/REKORDBOX        :rekordbox
+    CdjStatus$TrackType/UNANALYZED       :unanalyzed
+    :unknown))
+
+(defn playback-time
+  "Obtains the current playback time of the player that sent the
+  supplied device update, or `nil` if we don't know."
+  [^DeviceUpdate device-update]
+  (when (.isRunning time-finder)
+    (let [result (.getTimeFor time-finder device-update)]
+      (when-not (neg? result)
+        result))))
+
+(defn extract-raw-cue-update
+  "Given a status value from a show cue's started-on-beat or
+  started-late expression, returns the raw device update object
+  associated with it, which will be the first element of a tuple in
+  the case of the started-on-beat expression."
+  [cue-status]
+  (if (instance? DeviceUpdate cue-status)
+    cue-status
+    (first cue-status)))
 
 (defn set-overlay-background-color
   "Sets the color that will be used to draw the background in the
