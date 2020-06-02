@@ -689,7 +689,91 @@ inheritance].
 [#graphics-resources]
 == Graphics Resources
 
-TODO: List and explain the URLs you can use to obtain track artwork and waveforms.
+In addition to the template itself, there are a variety of URLs you
+can use with `<img>` tags in your template to display things like the
+album artwork or track waveforms associated with a player.
+
+=== Album Art
+
+You can look up the album art for the track loaded in a particular
+player using a URL like `/art/1` (replace the `1` with another number
+to get the art for the player on a different channel). If there is
+artwork, this will return an 80x80 pixel JPEG image. If there is no
+art, or no track loaded, it will return an 80x80 transparent PNG
+image.
+
+[TIP]
+====
+If you are using a <<tag-for,for loop>> to display your players, you
+can use template substitution to set up your URL:
+
+    <img src="/art/{{ number }}" width="80" height="80">
+====
+
+If you would like to display more information about why there is no
+artwork, the way Beat Link Trigger does, you can add a query string to
+the request: `/art/3?icons=true`. With `icons` set to `true`, when the
+art is missing, you will receive a PNG image that describes why. If
+there is no track loaded, it will read "No Track". Otherwise, it will
+be an icon describing where the track was loaded from: USB, SD, CD
+Digital Audio, CD Data, or rekordbox.
+
+NOTE: The missing-artwork icons returned are larger than 80x80 pixels
+so they can be displayed in higher resolution on high-DPI displays, so
+you should be sure to render your artwork at a fixed width and height
+of 80 pixels using the HTML or CSS of your template, so the layout
+doesn't change depending on whether artwork is present.
+
+=== Waveform Previews
+
+You can access the whole-waveform preview (as is displayed at the
+bottom of a CDJ screen) for the track loaded on a particular player
+using a URL like `/wave-preview/2`. If you request it that way, it
+will be rendered at a default width and height, but you can specify
+the size you want using query parameters:
+
+    <img src="/wave-preview/{{ number }}?width=500&height=100">
+
+This image will show the current playback position of the player as a
+bar moving along the image, and will have small triangles marking hot
+cues and memory points.
+
+If there is no waveform available for the specified player, a
+transparent image will be returned.
+
+NOTE: The lack of waveform data will result in a smaller image being
+returned, so as with album art you should always make sure your image
+is rendered at a fixed size using the HTML or CSS of your template, to
+avoid layout changes when data availability changes.
+
+=== Scrolling Waveform Details
+
+You can access the scrolling detailed waveform (as is displayed at the
+top of a CDJ screen) for the track loaded on a particular player using
+a URL like `/wave-detail/4`. If you request it that way, it will be
+rendered at a default width and height, but you can request a specific
+width and height using query parameters like with the waveform
+preview. You can also control the scale (zoom level) with which the
+waveform is rendered. The default scale is 4, meaning each column of
+the image is an average of four half-frames of audio. Setting scale to
+1 shows the full detail available, while larger values let you see
+more of the waveform at once.
+
+    <img src="/wave-detail/{{ number }}?width=800&scale=2">
+
+The image will show the current playback position of the player as a
+bar centered in the image, and the waveform will scroll as playback
+occurs. Hot cues and memory points will be drawn (including their
+labels and if they have been assigned), and loops will be visible.
+
+If there is no waveform available for the specified player, a
+transparent image will be returned.
+
+NOTE: The lack of waveform data will result in a smaller image being
+returned, so as with album art you should always make sure your image
+is rendered at a fixed size using the HTML or CSS of your template, to
+avoid layout changes when data availability changes.
+
 
 [#json-parameters]
 == JSON Parameters
