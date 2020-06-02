@@ -636,9 +636,6 @@ information about the looping process:
 
 |forloop.length
 |Holds the number of times the loop will iterate.
-
-|forloop.parentloop
-|If this loop is nested inside another `for` loop, you can access the outer loop's special variables using (for example) `forloop.parentloop.counter`.
 |===
 
 
