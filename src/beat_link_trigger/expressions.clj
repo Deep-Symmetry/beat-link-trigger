@@ -20,6 +20,7 @@
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt]
+           [java.awt Color]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
 

@@ -746,6 +746,59 @@ returned, so as with album art you should always make sure your image
 is rendered at a fixed size using the HTML or CSS of your template, to
 avoid layout changes when data availability changes.
 
+[#custom-colors]
+==== Custom Background Colors
+
+If you are creating a lighter interface, you might want the background
+behind the waveform to be drawn in a color other than black. You can
+achieve that by adding a line like this to your
+<<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup
+Expression>>:
+
+```clojure
+(set-overlay-background-color (Color/white))
+```
+
+That will set the background color to white, using the constant color
+value in the
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/java/awt/Color.html[`java.awt.Color`
+class]. You can use any of the other constants defined in that class,
+or construct your own color. Here is another way to get white:
+
+```clojure
+(set-overlay-background-color (Color. 255 255 255))
+```
+
+That sets the background color by constructing a color whose red,
+green, and blue components are all 255 (out of 255), so it is white.
+
+You can also use the constructor with four arguments to make your
+color partly (or completely) transparent by passing an alpha value
+from 0 (transparent) to 255 (opaque). This would use a
+fully-transparent background color (so the first three numbers don't
+matter):
+
+```clojure
+(set-overlay-background-color (Color. 0 0 0 0))
+```
+
+If you change the background from black to white, you will almost
+certainly also want to change the color used to draw the playback
+position and tick marks (which is normally white, and so they will be
+invisible on your new background). You can do that with
+`set-overlay-indicator-color`. A black indicator color works well with
+a white background:
+
+```clojure
+(set-overlay-background-color (Color/white))
+(set-overlay-indicator-color (Color/black))
+```
+
+You can even change the color used to draw down beats and active
+playback position markers (which are normally red) using
+`set-overlay-emphasis-color`.
+
+
 === Scrolling Waveform Details
 
 You can access the scrolling detailed waveform (as is displayed at the
@@ -773,6 +826,10 @@ NOTE: The lack of waveform data will result in a smaller image being
 returned, so as with album art you should always make sure your image
 is rendered at a fixed size using the HTML or CSS of your template, to
 avoid layout changes when data availability changes.
+
+As noted above, if you are creating an overlay with a light
+background, you might want to <<custom-colors,change the waveform
+background color>>.
 
 
 [#json-parameters]
