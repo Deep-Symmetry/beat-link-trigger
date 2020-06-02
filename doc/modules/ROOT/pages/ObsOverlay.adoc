@@ -33,8 +33,8 @@ navigate to and select any folder your system, as long as there is a
 readable `overlay.html` file in that folder. This file will be used as
 the template rendered by the overlay server. It can reference other
 templates in that folder using whatever names you give them, either by
-extending or including them, as discussed below. TODO: make this a
-link to relevant section once written.
+<<tag-extends,extending>> or <<tag-include,including>> them, as
+discussed below.
 
 Once you have chosen a templates folder, that is stored in your
 preferences, and it will automatically be used the next time you run
@@ -79,15 +79,17 @@ get processed by https://github.com/yogthos/Selmer#selmer[Selmer], so
 you can interpolate all kinds of information about the current tracks
 being played.
 
-TIP: While these instructions are being written, you can learn the
-basics of the templating language by looking at the
+TIP: While these instructions cover most of the features that will be
+useful in the context of Beat Link Trigger, you can learn more about
+the basics of the templating language by looking at the
 https://docs.djangoproject.com/en/3.0/ref/templates/language/[Django
-documentation], but some details are quite different in Selmer and
-Beat Link Trigger, which is why this page is being worked on. You can
-also consult the https://github.com/yogthos/Selmer#selmer[Selmer]
-documentation for details about how its template language differs from
-Django, but that document is aimed at Clojure programmers adding
-Selmer to their projects, so it will likely be hard to follow.
+documentation], but keep in mind some details are quite different in
+Selmer and Beat Link Trigger. You can also consult the
+https://github.com/yogthos/Selmer#selmer[Selmer] documentation for
+details about how its template language differs from Django, and to
+learn about filters and tags that didn't make the cut for explaining
+here, but that document is aimed at Clojure programmers adding Selmer
+to their projects, so it might be a little hard to follow.
 
 [#variables]
 == Variables
@@ -241,7 +243,7 @@ p
 |The channel number assigned to the player.
 
 |pitch
-|The current playback pitch adjustment. Zero means normal speed, 100 means double speed (100% faster), -100 means slowed to a stop. This is a floating point value, so you will probably want to format it. TODO: link to format filter!
+|The current playback pitch adjustment. Zero means normal speed, 100 means double speed (100% faster), -100 means slowed to a stop. This is a floating point value, so you will probably want to <<filter-double-format,format it>>.
 
 |pitch-display
 |Reflects the way the current `pitch` value is displayed on the player: a `+` or `-` sign followed by a formatted percentage, with 1 or 2 digits after the decimal point. (Normal speed is shown without a sign, as “0.00%”.)
@@ -307,7 +309,7 @@ p
 === Track Details
 
 .Track Detail Contents
-[,cols="1l,4",options="header"]
+[cols="1l,4",options="header"]
 |===
 |Element
 |Value
@@ -489,7 +491,7 @@ argument.
 === empty?, not-empty
 
 Check whether the specified value is empty or not (both filters return
-`true` or `false`). These are again useful combined with teh
+`true` or `false`). These are again useful combined with the
 <<tag-if,`if` tag>> to conditionally render content:
 
 ```html
@@ -567,6 +569,79 @@ In addition to the `if`, `else` and `endif` tags, you can have as many
 if”. For more examples, see the
 https://github.com/yogthos/Selmer#if[Selmer documentation].
 
+[#tag-for]
+=== for
+
+Loops over each item in an array or map, making the item available in
+a variable of your choice inside the loop. Beat Link Trigger uses
+nested maps rather than arrays for its template parameters, and you
+can loop over entries in the map assigning the key and value of each
+entry to separate variables:
+
+    {% for number, player in players|sort %}
+    <p>{{ number }}: {{ player.track.title }}--{{player.track.artist }}</p>
+    {% endfor %}
+
+The above example loops over all the players that are found on the
+network. Each time through the loop, `number` is set to the channel
+number of the player and `player` is set to the map of parameters
+describing the state of that player, so the loop outputs a paragraph
+for each player, showing the channel number, a colon, the title of the
+track being played on that player, and the artist that recorded it.
+
+Notice that the body of the loop is ended by an `endfor` tag, and that
+we were able to use the `sort` filter on the `players` map to make
+sure we got them in order of increasing channel number.
+
+After the `endfor` tag, the `number` and `player` variables introduced
+by the loop go away.
+
+You can also place an `empty` tag between `for` and `endfor`, and the
+content within that section will be rendered if the variable you were
+trying to loop over had no values:
+
+    {% for number, player in players|sort %}
+    <p>{{ number }}: {{ player.track.title }}--{{ player.track.artist }}</p>
+    {% empty %}
+    <p>No players found!</p>
+    {% endfor %}
+
+In addition to the variables you requested, the `for` tag always adds
+several others that allow you to respond to or display additional
+information about the looping process:
+
+.Special Loop Variables
+[cols="3l,7",options="header"]
+|===
+|Variable
+|Description
+
+|forloop.counter
+|Holds the number of this iteration of the loop, starting at 1 the first time through.
+
+|forloop.counter0
+|Holds the number of this iteration of the loop, starting at 0 the first time through.
+
+|forloop.revcounter
+|Starts at `forloop.length` and counts down to 1 for each iteration of the loop.
+
+|forloop.revcounter0
+|Starts at `forloop.length`−1 and counts down to 0 for each iteration of the loop.
+
+|forloop.first
+|Is `true` if this is the first iteration of the loop.
+
+|forloop.last
+|Is `true` if this is the final iteration of the loop.
+
+|forloop.length
+|Holds the number of times the loop will iterate.
+
+|forloop.parentloop
+|If this loop is nested inside another `for` loop, you can access the outer loop's special variables using (for example) `forloop.parentloop.counter`.
+|===
+
+
 [#tag-cycle]
 === cycle
 
@@ -583,10 +658,6 @@ between `blue` and `white`:
     </li>
     {% endfor %}
     </ul>
-
-[#tag-for]
-=== for
-TODO: Document the `for` tag, and possibly `sum` and `now`.
 
 [#tag-include]
 === include
