@@ -21,6 +21,7 @@
             [taoensso.timbre :as timbre]
             [clojure.string :as str])
   (:import [beat_link_trigger.tree_node ITemplateParent]
+           [java.awt Color]
            [java.awt.image BufferedImage]
            [java.io ByteArrayInputStream ByteArrayOutputStream]
            [javax.imageio ImageIO]
@@ -46,6 +47,54 @@
   "The resource path within our jar from which templates are loaded
   until the user specifies their own template path."
   (clojure.java.io/resource "beat_link_trigger/templates"))
+
+(defonce ^{:private true
+           :doc     "Holds the color that will be used to draw the background in the
+  waveform views, can be changed to support different template
+  designs."}
+  wave-background-color
+  (atom Color/BLACK))
+
+(defonce ^{:private true
+          `:doc "Holds the color that will be used to draw tick marks and paused
+  playback indicators in the waveform views, can be changed to support
+  different template designs."}
+  wave-indicator-color
+  (atom Color/WHITE))
+
+(defonce ^{:private true
+           :doc "Holds the color that will be used to draw down beats and active
+  playback indicators in the waveform views, can be changed to support
+  different template designs."}
+  wave-emphasis-color
+  (atom Color/RED))
+
+(defn set-wave-background-color
+  "Sets the color that will be used to draw the background in the
+  waveform views, can be changed to support different template
+  designs."
+  [color]
+  (if (instance? Color color)
+    (reset! wave-background-color color)
+    (throw (IllegalArgumentException. (str "color must be a java.awt.Color, got: " color)))))
+
+(defn set-wave-indicator-color
+  "Sets the color that will be used to draw tick marks and paused
+  playback indicators in the waveform views, can be changed to support
+  different template designs."
+  [color]
+  (if (instance? Color color)
+    (reset! wave-indicator-color color)
+    (throw (IllegalArgumentException. (str "color must be a java.awt.Color, got: " color)))))
+
+(defn set-wave-emphasis-color
+  "Sets the color that will be used to draw down beats and active
+  playback indicators in the waveform views, can be changed to support
+  different template designs."
+  [color]
+  (if (instance? Color color)
+    (reset! wave-emphasis-color color)
+    (throw (IllegalArgumentException. (str "color must be a java.awt.Color, got: " color)))))
 
 (defn format-source-slot
   "Converts the Java enum value representing the slot from which a track
@@ -466,6 +515,9 @@
       (let [component (WaveformPreviewComponent. preview (get-in params [:track :duration]) cue-list)
             min-size  (.getMinimumSize component)]
         (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+        (.setBackgroundColor component @wave-background-color)
+        (.setIndicatorColor component @wave-indicator-color)
+        (.setEmphasisColor component @wave-emphasis-color)
         (when position
           (.setPlaybackState component player position false))
         (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height)
@@ -499,6 +551,9 @@
         (let [component (WaveformPreviewComponent. preview track)
               min-size  (.getMinimumSize component)]
           (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+          (.setBackgroundColor component @wave-background-color)
+          (.setIndicatorColor component @wave-indicator-color)
+          (.setEmphasisColor component @wave-emphasis-color)
           (when position
             (.setPlaybackState component player (.-milliseconds position) (.-playing position)))
           (let [bi   (BufferedImage. (.. component getSize width) (.. component getSize height)
@@ -540,6 +595,9 @@
       (let [component (WaveformDetailComponent. detail cue-list beat-grid)
             min-size  (.getMinimumSize component)]
         (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+        (.setBackgroundColor component @wave-background-color)
+        (.setIndicatorColor component @wave-indicator-color)
+        (.setEmphasisColor component @wave-emphasis-color)
         (.setScale component scale)
         (when position
           (.setPlaybackState component player position false))
@@ -581,6 +639,9 @@
                                                   (.getLatestBeatGridFor expr/beatgrid-finder player))
               min-size  (.getMinimumSize component)]
           (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
+          (.setBackgroundColor component @wave-background-color)
+          (.setIndicatorColor component @wave-indicator-color)
+          (.setEmphasisColor component @wave-emphasis-color)
           (.setScale component scale)
           (when position
             (.setPlaybackState component player (.-milliseconds position) (.-playing position)))

@@ -142,6 +142,27 @@
   singleton."
   (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
 
+(defn set-overlay-background-color
+  "Sets the color that will be used to draw the background in the
+  waveform views served by the OBS overlay server, can be changed to
+  support different template designs."
+  [color]
+  ((requiring-resolve 'beat-link-trigger.overlay/set-wave-background-color) color))
+
+(defn set-overlay-indicator-color
+  "Sets the color that will be used to draw tick marks and paused
+  playback indicators in waveform views served by the OBS overlay
+  server, can be changed to support different template designs."
+  [color]
+  ((requiring-resolve 'beat-link-trigger.overlay/set-wave-indicator-color) color))
+
+(defn set-overlay-emphasis-color
+  "Sets the color that will be used to draw tick marks and paused
+  playback indicators in waveform views served by the OBS overlay
+  server, can be changed to support different template designs."
+  [color]
+  ((requiring-resolve 'beat-link-trigger.overlay/set-wave-emphasis-color) color))
+
 ;;; The remainder of the functions in this namespace are used by the
 ;;; expression compiler, and are not intended for users to interact
 ;;; with directly.
