@@ -2,6 +2,16 @@
   <head>
     <title>OBS Overlay</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
+    <script>
+      function animateImage(id, interval) {
+          let element = document.getElementById(id);
+          let refresher = function() {
+              element.src = element.src;
+              setTimeout(refresher, interval);
+          }
+          setTimeout(refresher, interval);
+      }
+    </script>
   </head>
   <body>
 <!--
@@ -21,11 +31,13 @@ the network.
     {% for number, player in players|sort %}
     <p>
       <span class="player">Player {{number}}:</span>
-      <img src="artwork/{{number}}?icons=true" width="80" height="80" align="middle">
+      <img id="art-{{number}}" src="artwork/{{number}}?icons=true" width="80" height="80" align="middle">
+      <script>animateImage('art-{{number}}', 1000);</script>
       {{player.track.title}}—{{player.track.artist}}.
 
       <br><br>
-      <img src="wave-detail/{{number}}?width=500">
+      <img id="wd-{{number}}" src="wave-detail/{{number}}?width=500">
+      <script>animateImage('wd-{{number}}', 100);</script>
 
       {% if player.time-played %}
       <br>
@@ -41,7 +53,8 @@ the network.
       {% endif %}
 
       <br>
-      <img src="wave-preview/{{number}}">
+      <img id="wp-{{number}}" src="wave-preview/{{number}}">
+      <script>animateImage('wp-{{number}}', 250);</script>
     </p>
     {% endfor %}
   </body>

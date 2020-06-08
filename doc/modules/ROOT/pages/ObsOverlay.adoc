@@ -91,6 +91,11 @@ learn about filters and tags that didn't make the cut for explaining
 here, but that document is aimed at Clojure programmers adding Selmer
 to their projects, so it might be a little hard to follow.
 
+You can find the source for the latest version of the basic template
+that is built in to Beat Link Trigger
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/resources/beat_link_trigger/templates/overlay.html[on
+GitHub].
+
 [#variables]
 == Variables
 
