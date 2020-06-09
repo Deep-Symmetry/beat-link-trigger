@@ -3,14 +3,177 @@
     <title>OBS Overlay</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
     <script>
-      function animateImage(id, interval) {
-          let element = document.getElementById(id);
-          let refresher = function() {
-              element.src = element.src;
-              setTimeout(refresher, interval);
-          }
-          setTimeout(refresher, interval);
+      /** How often to check for changes when no player is playing. */
+      const idleInterval = 500;
+
+      /** Keeps track of the previous player state, so we can look for changes. */
+      var lastState;
+
+      /**
+       * Check whether there is any player currently playing a track.
+       *
+       * @param state the player parameters object returned by params.json.
+       * @return true if at least one player is playing something.
+       */
+      function isAnyPlayerPlaying(state) {
+        return state && Object.values(state.players).find(player => player["is-playing"]) !== undefined;
       }
+
+      /**
+       * Calculate how long to wait before next performing an action, depending on player state.
+       * If no player is active, return whichever is larger of idleInterval and activeInterval.
+       * Otherwise return interval.
+       *
+       * @param activeInterval how many milliseconds to wait if at least one player is playing.
+       * @return the number of milliseconds after which an activity should reschedule itself.
+       */
+      function nextInterval(activeInterval) {
+        if (isAnyPlayerPlaying(lastState)) {
+          return activeInterval;
+        }
+        return (idleInterval > activeInterval)? idleInterval : activeInterval;
+      }
+
+      /**
+       * Reloads the image with the specified ID at the interval. If no player is playing, then
+       * idleInterval will be used instead, unless the specified interval is already longer.
+       *
+       * @param id the DOM ID of the image to be periodically reloaded.
+       * @param interval the number of milliseconds that should elapse between reloads.
+       */
+      function animateImage(id, interval) {
+        let element = document.getElementById(id);
+        let refresher = function() {
+          element.src = element.src;
+          setTimeout(refresher, nextInterval(interval));
+        }
+        setTimeout(refresher, nextInterval(interval));
+      }
+
+      /**
+       * Given an old and new value for a text element on the page,
+       * if they differ, updates the corresponding DOM element to contain
+       * the new text.
+       *
+       * @param number the channel number associated with the element being updated.
+       * @param idPrefix the DOM id of the element to be updated, minus its channel number.
+       * @param current what the new value for this element should be.
+       * @param last the previous value of the element.
+       */
+      function updateIfChanged(number, idPrefix, current, last) {
+        if (current !== last) {
+          document.getElementById(idPrefix + number).textContent = current;
+        }
+      }
+
+      /**
+       * Given an element for a player time object, formats it for display,
+       * showing a missing value as "--", and otherwise adding a leading zero
+       * if necessary to make it two digits long.
+       *
+       * @param time the value received, which may be missing.
+       */
+      function formatTime(time) {
+        if (time == 0) {
+          return '00';
+        }
+        if (!time) {
+          return '--';
+        }
+        if (time < 10) {
+          return '0' + time;
+        }
+        return time;
+      }
+
+      /**
+       * Given a frame-tenths value for a player time object, formats it for display,
+       * showing a missing value as "-".
+       *
+       * @param tenths the value received, which may be missing.
+       */
+      function formatFrameTenths(tenths) {
+        if (tenths == 0) {
+          return tenths;
+        }
+        if (!tenths) {
+          return '-';
+        }
+        return tenths;
+      }
+
+      /**
+       * Compares the elements of played or remaining time information for a single player
+       * from the most recent state update with the previous state, and updates any page
+       * text elements whose values need to be changed.
+       *
+       * @param number the channel number of the player being compared.
+       * @param kind either `time-played` or `time-remaining`, the time elements to update.
+       * @param currentPlayer the most recently received status for the specified player.
+       * @param lastPlayer the previous status for the specified player.
+       */
+      function applyTimeChanges(number, kind, currentPlayer, lastPlayer) {
+        const current = currentPlayer && currentPlayer[kind];
+        const last = lastPlayer && lastPlayer[ kind];
+        updateIfChanged(number, kind + '-minutes-', current && formatTime(current.minutes),
+                        last && formatTime(last.minutes));
+        updateIfChanged(number, kind + '-seconds-', current && ':' + formatTime(current.seconds),
+                        last && ':' + formatTime(last.seconds));
+        updateIfChanged(number, kind + '-frames-', current && ':' + formatTime(current.frames),
+                        last && ':' + formatTime(last.frames));
+        updateIfChanged(number, kind + '-frame-tenths-', current && '.' + formatFrameTenths(current['frame-tenths']),
+                        last && '.' + formatFrameTenths(last['frame-tenths']));
+      }
+
+      /**
+       * Compares the most recently received server state with the previous one, and updates
+       * any page text elements whose values need to be be changed.
+       *
+       * @param state the new server state object.
+       */
+      function applyChanges(state) {
+        for (let [number, player] of Object.entries(state.players)) {
+          const lastPlayer = lastState && lastState.players && lastState.players[number];
+          const track = player.track;
+          const lastTrack = lastPlayer && lastPlayer.track;
+          updateIfChanged(number, 'artist-', track && track.artist, lastTrack && lastTrack.artist);
+          updateIfChanged(number, 'title-', track && track.title, lastTrack && lastTrack.title);
+          applyTimeChanges(number, 'time-played', player, lastPlayer);
+          applyTimeChanges(number, 'time-remaining', player, lastPlayer);
+        }
+      }
+
+      /**
+       * Periodically determines the current player state, and updates the page appropriately.
+       *
+       * @param interval how often the should be updated, in milliseconds, when a player is active.
+       */
+      function updateState(interval) {
+        let updater = function() {
+          fetch('params.json')
+            .then(response => {
+              if (response.status == 200) {
+                response.json()
+                  .then(state => {
+                    applyChanges(state);
+                    lastState = state;
+                    setTimeout(updater, nextInterval(interval));
+                  })
+              } else {
+                console.error('Problem updating OBS overlay parameters', response);
+                setTimeout(updater, 5000);
+              }})
+            .catch(error => {
+              // TODO: Show something on the page itself.
+              console.error('Problem communicating with OBS overlay server', error);
+              setTimeout(updater, 30000);
+            });
+        }
+        updater();
+      }
+
+      updateState(66);
+
     </script>
   </head>
   <body>
@@ -33,7 +196,8 @@ the network.
       <span class="player">Player {{number}}:</span>
       <img id="art-{{number}}" src="artwork/{{number}}?icons=true" width="80" height="80" align="middle">
       <script>animateImage('art-{{number}}', 1000);</script>
-      {{player.track.title}}—{{player.track.artist}}.
+      <span id="title-{{number}}">{{player.track.title}}</span>—<span
+            id="artist-{{number}}">{{player.track.artist}}</span>.
 
       <br><br>
       <img id="wd-{{number}}" src="wave-detail/{{number}}?width=500">
@@ -42,13 +206,13 @@ the network.
       {% if player.time-played %}
       <br>
       <span class="timeLabel">Played</span>
-      <span class="time">{{player.time-played.minutes|number-format:%02d}}</span><span class="timeSegmentLabel">M&thinsp;</span><span class="time">:{{player.time-played.seconds|number-format:%02d}}</span><span class="timeSegmentLabel">S&thinsp;</span><span class="time">:{{player.time-played.frames|number-format:%02d}}&thinsp;.&thinsp;</span><span class="timeFraction">{{player.time-played.frame-tenths}}</span><span class="timeSegmentLabel">F</span>
+      <span id="time-played-minutes-{{number}}" class="time">{{player.time-played.minutes|number-format:%02d}}</span><span class="timeSegmentLabel">M&thinsp;</span><span id="time-played-seconds-{{number}}" class="time">:{{player.time-played.seconds|number-format:%02d}}</span><span class="timeSegmentLabel">S&thinsp;</span><span id="time-played-frames-{{number}}" class="time">:{{player.time-played.frames|number-format:%02d}}&thinsp;.&thinsp;</span><span id="time-played-frame-tenths-{{number}}" class="timeFraction">{{player.time-played.frame-tenths}}</span><span class="timeSegmentLabel">F</span>
       {% endif %}
 
       {% if player.time-remaining %}
       <span class="remain">
         <span class="timeLabel">&nbsp;&nbsp;Remain</span>
-        <span class="time">{{player.time-remaining.minutes|number-format:%02d}}</span><span class="timeSegmentLabel">M&thinsp;</span><span class="time">:{{player.time-remaining.seconds|number-format:%02d}}</span><span class="timeSegmentLabel">S&thinsp;</span><span class="time">:{{player.time-remaining.frames|number-format:%02d}}&thinsp;.&thinsp;</span><span class="timeFraction">{{player.time-remaining.frame-tenths}}</span><span class="timeSegmentLabel">F</span>
+        <span id="time-remaining-minutes-{{number}}" class="time">{{player.time-remaining.minutes|number-format:%02d}}</span><span class="timeSegmentLabel">M&thinsp;</span><span id="time-remaining-seconds-{{number}}" class="time">:{{player.time-remaining.seconds|number-format:%02d}}</span><span class="timeSegmentLabel">S&thinsp;</span><span id="time-remaining-frames-{{number}}" class="time">:{{player.time-remaining.frames|number-format:%02d}}&thinsp;.&thinsp;</span><span id="time-remaining-frame-tenths-{{number}}" class="timeFraction">{{player.time-remaining.frame-tenths}}</span><span class="timeSegmentLabel">F</span>
       </span>
       {% endif %}
 
