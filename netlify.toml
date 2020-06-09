@@ -13,3 +13,15 @@
 
   # Default build command.
   command = "doc/build.sh"
+
+[[plugins]]
+package = "netlify-plugin-cache-nextjs"
+
+	# Cache the directory at `${NETLIFY_BASE}/tmp
+	[plugins.inputs]
+
+	# The path to the build directory
+	#build_dir_path = "frontend"
+
+	# htmltest build directory
+	custom_build_dir_name = "tmp"
