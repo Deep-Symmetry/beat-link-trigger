@@ -126,8 +126,8 @@ jobs:
     - name: Cache bundled OpenJDK runtime
       uses: actions/cache@v1
       with:
-        path: Runtime
-        key: ${{ runner.os }}-bundled-jdk-v2
+        path: jdk-14.0.1.jdk
+        key: ${{ runner.os }}-bundled-jdk-14-0-1
 
     - name: Build Windows Installer
       run: .\.github\scripts\build_msi.ps1
