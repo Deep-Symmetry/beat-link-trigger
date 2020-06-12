@@ -3,7 +3,7 @@ name: Create überjar and native installers
 on:
   push:
     branches:
-      - Master
+      - master
 
 env:
   blt_name: Beat Link Trigger
