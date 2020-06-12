@@ -3,7 +3,7 @@ name: Create überjar and native installers
 on:
   push:
     branches:
-      - master
+      - Add-Firewall-Exceptions-WIX-Template
 
 env:
   blt_name: Beat Link Trigger
