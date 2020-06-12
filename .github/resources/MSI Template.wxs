@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:fw="http://schemas.microsoft.com/wix/FirewallExtension">
     <Product Id="*" Name="$(var.AppName)" Language="1033" Version="$(var.AppVersion)" Manufacturer="$(var.AppVendor)" UpgradeCode="$(var.AppUpgradeCode)">
         <Package InstallerVersion="200" Compressed="yes" Platform="x64" Description="$(var.AppDescription)" Manufacturer="$(var.AppVendor)" />
         <Upgrade Id="$(var.AppUpgradeCode)" />
