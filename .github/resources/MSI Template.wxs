@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:fw="http://schemas.microsoft.com/wix/FirewallExtension">
     <Product Id="*" Name="$(var.AppName)" Language="1033" Version="$(var.AppVersion)" Manufacturer="$(var.AppVendor)" UpgradeCode="$(var.AppUpgradeCode)">
         <Package InstallerVersion="200" Compressed="yes" Platform="x64" Description="$(var.AppDescription)" Manufacturer="$(var.AppVendor)" />
         <Upgrade Id="$(var.AppUpgradeCode)" />
@@ -20,9 +20,19 @@
                 <Directory Id="App_Vendor_Folder" Name="$(var.AppVendorFolder)">
                 </Directory>
 			</Directory>
-        </Directory>
+        	<Component Id="ChangeFirewall" Guid="560e2183-a570-4c38-b434-7a33b3a62ebf" KeyPath="yes">
+				<fw:FirewallException Id="FirewallException"
+					Name="Beat Link Trigger"
+					Description="Allow all incomming traffic for Beat Link Trigger"
+					Scope="any"
+					Profile="all"
+					Program="[App_Vendor_Folder][ProductName]\[ProductName].EXE"
+					IgnoreFailure='yes' />
+			</Component>
+		</Directory>
         <Feature Id="DefaultFeature" Title="Main Feature" Level="1">
             <ComponentRef Id="StartMenuShortcuts" />
+			<ComponentRef Id="ChangeFirewall" />
 			<ComponentGroupRef Id="Application_Folder" />
         </Feature>
         <UI />

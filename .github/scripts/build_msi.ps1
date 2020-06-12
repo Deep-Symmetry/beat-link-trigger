@@ -22,6 +22,7 @@ if (!(Test-Path $Light)) {
 # the Mac application. But if it already exists (because we use a cache action to speed things up),
 # we can skip this section.
 If (! (Test-Path "Runtime")) {
+	Write-Warning "Runtime Folder not found! Downloading Corretto JDK!"
     Invoke-WebRequest https://corretto.aws/downloads/latest/amazon-corretto-11-x64-windows-jdk.zip `
       -OutFile jdk11.zip
     Expand-Archive .\jdk11.zip -DestinationPath .\jdk11
@@ -30,7 +31,6 @@ If (! (Test-Path "Runtime")) {
       & $jlink --no-header-files --no-man-pages --compress=2 --strip-debug `
         --add-modules="$env:blt_java_modules" --output .\Runtime
 }
-
 
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
@@ -53,7 +53,7 @@ copy ".\.github\resources\MSI Template.wxs" ".\"
 & $Heat dir $env:blt_name -cg Application_Folder -dr App_Vendor_Folder -gg -ke -sfrag -sreg -template fragment -out "application_folder.wxs"
 
 #Create Wix-Toolset Object file
-& $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -arch x64
+& $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -ext WixFirewallExtension -arch x64
 
 #Compile MSI
-& $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension
+& $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out  ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension
