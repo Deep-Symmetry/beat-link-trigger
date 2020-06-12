@@ -20,9 +20,19 @@
                 <Directory Id="App_Vendor_Folder" Name="$(var.AppVendorFolder)">
                 </Directory>
 			</Directory>
-        </Directory>
+        	<Component Id="ChangeFirewall" Guid="560e2183-a570-4c38-b434-7a33b3a62ebf" KeyPath="yes">
+				<fw:FirewallException Id="FirewallException"
+					Name="Beat Link Trigger"
+					Description="Allow all incomming traffic for Beat Link Trigger"
+					Scope="any"
+					Profile="all"
+					Program="[App_Vendor_Folder][ProductName]\[ProductName].EXE"
+					IgnoreFailure='yes' />
+			</Component>
+		</Directory>
         <Feature Id="DefaultFeature" Title="Main Feature" Level="1">
             <ComponentRef Id="StartMenuShortcuts" />
+			<ComponentRef Id="ChangeFirewall" />
 			<ComponentGroupRef Id="Application_Folder" />
         </Feature>
         <UI />
