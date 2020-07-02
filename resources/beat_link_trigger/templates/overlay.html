@@ -42,8 +42,8 @@
        * @param interval the number of milliseconds that should elapse between reloads.
        */
       function animateImage(id, interval) {
-        let element = document.getElementById(id);
-        let refresher = function() {
+        const element = document.getElementById(id);
+        const refresher = function() {
           element.src = element.src;
           setTimeout(refresher, nextInterval(interval));
         }
@@ -149,7 +149,7 @@
        * @param interval how often the should be updated, in milliseconds, when a player is active.
        */
       function updateState(interval) {
-        let updater = function() {
+        const updater = function() {
           fetch('params.json')
             .then(response => {
               if (response.status == 200) {

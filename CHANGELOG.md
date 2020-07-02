@@ -12,6 +12,12 @@ This change log follows the conventions of
   overlay templates for [OBS Studio](https://obsproject.com), for
   creatively enhancing streamed mixing sessions.
 
+### Changed
+
+- Updated embedded version of Carabiner to 1.1.4 to support versions
+  of macOS back to 10.12 (and get updated versions of the Ableton Link
+  and gflags libraries).
+
 ## [0.6.2] - 2020-05-10
 
 ### Fixed
