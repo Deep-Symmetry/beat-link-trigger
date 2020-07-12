@@ -34,7 +34,7 @@
                  [cheshire "5.10.0"]
                  [selmer "1.12.27"]
                  [nrepl "0.7.0"]
-                 [cider/cider-nrepl "0.24.0"]
+                 [cider/cider-nrepl "0.25.2"]
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.apache.maven/maven-artifact "3.6.3"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}

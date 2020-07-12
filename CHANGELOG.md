@@ -12,6 +12,11 @@ This change log follows the conventions of
   overlay templates for [OBS Studio](https://obsproject.com), for
   creatively enhancing streamed mixing sessions.
 
+### Fixed
+
+- Incorporated new version of Beat Link which fixes the handling of
+  Unicode strings when working with downloaded database export files.
+
 ### Changed
 
 - Updated embedded version of Carabiner to 1.1.4 to support versions
