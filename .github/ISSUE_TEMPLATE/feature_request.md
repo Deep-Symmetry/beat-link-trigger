@@ -16,5 +16,8 @@ A clear and concise description of what you want to happen.
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you’ve considered.
 
+**Current Beat Link Trigger Version**
+What version were you working with when you had this idea (in case a later or preview release has already started solving it)? [Replace this text by copying from the top left corner of the About window or the start of the log file.]
+
 **Additional context**
 Add any other context or screenshots about the feature request here.
