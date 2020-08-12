@@ -20,8 +20,10 @@ set up your environment. Fork and clone the repo and install
 [Leiningen](https://leiningen.org) (to manage the project dependencies
 and builds). Both of these rely on having a working Java runtime; if
 the mechanism you used to install them did not automatically include
-one, I recommend installing a current version of the
-[OpenJDK](http://openjdk.java.net).
+one, I recommend installing a current long-term-support version of the
+[OpenJDK](http://openjdk.java.net) which as of this writing is OpenJDK 11.
+Most Beat Link Trigger development uses [Amazon Corretto 11][corretto],
+although the building of notarized macOS disk images relies on OpenJDK 14.
 
 > Starting with version 0.5.3, you also need to have
 > [Antora](https://antora.org) installed because it is used to build
@@ -107,6 +109,7 @@ software.
 [contributions-released]: https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license
 [covenant]: http://contributor-covenant.org/
 [clojure]: https://clojure.org
+[corretto]: https://aws.amazon.com/corretto/
 [leiningen]: https://leiningen.org
 [emacs]: https://www.gnu.org/software/emacs/
 [cider]: http://www.cider.mx/en/latest/
