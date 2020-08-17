@@ -1690,7 +1690,7 @@
             (when (> (.getPathCount result) 2)
               (recur (.getParentPath result)))))))))
 
-(defn- add-device
+(defn add-device
   "Adds a newly-found player to the destination player combo box,
   keeping entries sorted."
   [^javax.swing.JComboBox players number]
@@ -1705,7 +1705,7 @@
               (recur (inc index))))
           (.insertElementAt model player index))))))  ; We go at the end of the list.
 
-(defn- remove-device
+(defn remove-device
   "Removes a newly-departed player from the destination player combo
   box. If that leaves us with no players, close the window."
   [^javax.swing.JComboBox players number ^LifecycleListener stop-listener]
@@ -1719,7 +1719,7 @@
   (when (zero? (.getItemCount players))  ; No players left, close the window.
     (.stopped stop-listener metadata-finder)))
 
-(defn- build-device-choices
+(defn build-device-choices
   "Sets up the initial content of the destination player combo box."
   [^javax.swing.JComboBox players]
   (doseq [^DeviceAnnouncement announcement (.getCurrentDevices device-finder)]

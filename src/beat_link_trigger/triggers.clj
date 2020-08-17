@@ -10,6 +10,7 @@
             [beat-link-trigger.playlist-writer :as writer]
             [beat-link-trigger.overlay :as overlay]
             [beat-link-trigger.track-loader :as track-loader]
+            [beat-link-trigger.settings-loader :as settings-loader]
             [beat-link-trigger.show :as show]
             [beat-link-trigger.auto-cache :as auto]
             [beat-link-trigger.view-cache :as view-cache]
@@ -988,6 +989,12 @@
                         :name "Load Track on Player" :enabled? false)))
 
 (defonce ^{:private true
+           :doc "The menu action which opens the Load Settings window."}
+  load-settings-action
+  (delay (seesaw/action :handler (fn [_] (settings-loader/show-dialog))
+                        :name "Load Settings on Player" :enabled? false)))
+
+(defonce ^{:private true
            :doc     "The menu action which empties the Trigger list."}
   clear-triggers-action
   (delay
@@ -1499,7 +1506,7 @@
                             (seesaw/menu :text "Network"
                                          :items [online-item real-item
                                                  (seesaw/separator)
-                                                 @player-status-action @load-track-action
+                                                 @player-status-action @load-track-action @load-settings-action
                                                  (seesaw/separator)
                                                  @carabiner-action @overlay-server-action @nrepl-action]
                                          :id :network-menu)
@@ -1562,7 +1569,8 @@
   []
   (seesaw/invoke-soon
    (try
-     (seesaw/config! [@playlist-writer-action @load-track-action @player-status-action] :enabled? (online?))
+     (seesaw/config! [@playlist-writer-action @load-track-action @load-settings-action @player-status-action]
+                     :enabled? (online?))
      (.setText (online-menu-item) (online-menu-name))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))
