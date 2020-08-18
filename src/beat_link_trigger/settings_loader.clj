@@ -3,14 +3,20 @@
   sending it to players found on the network."
   (:require [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.track-loader :as track-loader]
+            [clojure.string :as str]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt.event WindowEvent]
-           [org.deepsymmetry.beatlink CdjStatus DeviceAnnouncement DeviceAnnouncementListener DeviceFinder
-            DeviceUpdate DeviceUpdateListener LifecycleListener PlayerSettings PlayerSettings$PlayMode
-            PlayerSettings$Toggle VirtualCdj]))
+           [org.deepsymmetry.beatlink CdjStatus DeviceAnnouncementListener DeviceFinder
+            DeviceUpdateListener LifecycleListener PlayerSettings PlayerSettings$AutoCueLevel
+            PlayerSettings$AutoLoadMode PlayerSettings$Illumination
+            PlayerSettings$JogMode PlayerSettings$JogWheelDisplay
+            PlayerSettings$LcdBrightness PlayerSettings$Language
+            PlayerSettings$PadButtonBrightness PlayerSettings$PhaseMeterType PlayerSettings$PlayMode
+            PlayerSettings$QuantizeMode PlayerSettings$TempoRange PlayerSettings$TimeDisplayMode
+            PlayerSettings$Toggle PlayerSettings$VinylSpeedAdjust VirtualCdj]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to adjust settings
@@ -70,14 +76,14 @@
   (seesaw/invoke-later
    (try
      (let [selected-player  (atom {:number nil :playing false})
-           root             (seesaw/frame :title "My Settings" :on-close :dispose :resizable? false)
+           root             (seesaw/frame :title "My Settings" :on-close :dispose :resizable? true)
            load-button      (seesaw/button :text "Load" :enabled? false)
            problem-label    (seesaw/label :text "" :foreground "red")
            update-load-ui   (fn []
                               (let [playing (:playing @selected-player)
-                                    problem (if playing "Can't load while playing." "")]
+                                    problem (if playing "Playing." "")]
                                 (seesaw/value! problem-label problem)
-                                (seesaw/config! load-button :enabled? (empty? problem))))
+                                (seesaw/config! load-button :enabled? (str/blank? problem))))
            player-changed   (fn [e]
                               (let [^Long number      (when-let [^PlayerChoice selection (seesaw/selection e)]
                                                         (.number selection))
@@ -88,15 +94,103 @@
                                              :listen [:item-state-changed player-changed])
            player-panel     (mig/mig-panel :background "#ddd"
                                            :items [[(seesaw/label :text "Load on:")]
-                                                   [players] [load-button] [problem-label "push"]])
+                                                   [players "gap unrelated"]
+                                                   [problem-label "push, gap unrelated"]
+                                                   [load-button]])
            settings         (PlayerSettings.)
            defaults         (:my-settings (prefs/get-preferences))
-           settings-panel   (mig/mig-panel
-                             :items [[(seesaw/label :text "Play Mode:")]
+           settings-panel   (mig/mig-panel  ; Starts with DJ Settings
+                             :items [[(seesaw/label :text "Play Mode:") "align right"]
                                      [(enum-picker PlayerSettings$PlayMode settings defaults "autoPlayMode") "wrap"]
-                                     [(seesaw/label :text "Eject/Load Lock:")]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "ejectLoadLock") "wrap"]])
-           layout           (seesaw/border-panel :center settings-panel :south player-panel)
+
+                                     [(seesaw/label :text "Eject/Load Lock:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "ejectLoadLock") "wrap"]
+
+                                     [(seesaw/label :text "Needle Lock:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "needleLock") "wrap"]
+
+                                     [(seesaw/label :text "Quantize Beat Value:") "align right"]
+                                     [(enum-picker PlayerSettings$QuantizeMode settings defaults "quantizeBeatValue")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Hot Cue Auto Load:") "align right"]
+                                     [(enum-picker PlayerSettings$AutoLoadMode settings defaults "autoLoadMode")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Hot Cue Color:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "hotCueColor") "wrap"]
+
+                                     [(seesaw/label :text "Auto Cue Level:") "align right"]
+                                     [(enum-picker PlayerSettings$AutoCueLevel settings defaults "autoCueLevel") "wrap"]
+
+                                     [(seesaw/label :text "Time Display Mode:") "align right"]
+                                     [(enum-picker PlayerSettings$TimeDisplayMode settings defaults "timeDisplayMode")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Auto Cue:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "autoCue") "wrap"]
+
+                                     [(seesaw/label :text "Jog Mode:") "align right"]
+                                     [(enum-picker PlayerSettings$JogMode settings defaults "jogMode") "wrap"]
+
+                                     [(seesaw/label :text "Tempo Range:") "align right"]
+                                     [(enum-picker PlayerSettings$TempoRange settings defaults "tempoRange") "wrap"]
+
+                                     [(seesaw/label :text "Master Tempo:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "masterTempo") "wrap"]
+
+                                     [(seesaw/label :text "Quantize:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "quantize") "wrap"]
+
+                                     [(seesaw/label :text "Sync:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "sync") "wrap"]
+
+                                     [(seesaw/label :text "Phase Meter:") "align right"]
+                                     [(enum-picker PlayerSettings$PhaseMeterType settings defaults "phaseMeterType")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Vinyl Speed Adjust:") "align right"]
+                                     [(enum-picker PlayerSettings$VinylSpeedAdjust settings defaults "vinylSpeedAdjust")
+                                      "wrap unrelated"]
+
+                                     ;; Display (LCD) settings
+                                     [(seesaw/label :text "Language:") "align right"]
+                                     [(enum-picker PlayerSettings$Language settings defaults "language") "wrap"]
+
+                                     [(seesaw/label :text "LCD Brightness:") "align right"]
+                                     [(enum-picker PlayerSettings$LcdBrightness settings defaults "lcdBrightness")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Jog Wheel LCD Brightness:") "align right"]
+                                     [(enum-picker PlayerSettings$LcdBrightness settings defaults
+                                                   "jogWheelLcdBrightness") "wrap"]
+
+                                     [(seesaw/label :text "Jog Wheel Display Mode:") "align right"]
+                                     [(enum-picker PlayerSettings$JogWheelDisplay settings defaults "jogWheelDisplay")
+                                      "wrap unrelated"]
+
+                                     ;; Display (Indicator) settings
+                                     [(seesaw/label :text "Slip Flashing:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "slipFlashing") "wrap"]
+
+                                     [(seesaw/label :text "On Air Display:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "onAirDisplay") "wrap"]
+
+                                     [(seesaw/label :text "Jog Ring Brightness:") "align right"]
+                                     [(enum-picker PlayerSettings$Illumination settings defaults "jogRingIllumination")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Jog Ring Indicator:") "align right"]
+                                     [(enum-picker PlayerSettings$Toggle settings defaults "jogRingIndicator") "wrap"]
+
+                                     [(seesaw/label :text "Disc Slot Illumination:") "align right"]
+                                     [(enum-picker PlayerSettings$Illumination settings defaults "discSlotIllumination")
+                                      "wrap"]
+
+                                     [(seesaw/label :text "Pad/Button Brightness:") "align right"]
+                                     [(enum-picker PlayerSettings$PadButtonBrightness settings defaults
+                                                   "padButtonBrightness") "wrap"]])
+           layout           (seesaw/border-panel :center (seesaw/scrollable settings-panel) :south player-panel)
            stop-listener    (reify LifecycleListener
                               (started [this _]) ; Nothing to do, we exited as soon as a stop happened anyway.
                               (stopped [this _]  ; Close our window if VirtualCdj stops (we need it).

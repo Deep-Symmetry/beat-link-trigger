@@ -11,10 +11,12 @@ This change log follows the conventions of
 - A new embedded web server configured to flexibly support
   overlay templates for [OBS Studio](https://obsproject.com), for
   creatively enhancing streamed mixing sessions.
+- A new window which allows you to configure your My Settings (player
+  settings) preferences, and send them to players on the network.
 
 ### Fixed
 
-- Incorporated new version of Beat Link which fixes the handling of
+- Incorporated a new version of Beat Link which fixes the handling of
   Unicode strings when working with downloaded database export files.
 
 ### Changed
@@ -22,6 +24,7 @@ This change log follows the conventions of
 - Updated embedded version of Carabiner to 1.1.4 to support versions
   of macOS back to 10.12 (and get updated versions of the Ableton Link
   and gflags libraries).
+
 
 ## [0.6.2] - 2020-05-10
 
