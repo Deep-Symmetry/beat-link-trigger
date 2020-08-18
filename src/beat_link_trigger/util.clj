@@ -267,10 +267,7 @@
                            "/fonts/Orbitron/Orbitron-Black.ttf"
                            "/fonts/Orbitron/Orbitron-Bold.ttf"
                            "/fonts/Teko/Teko-Regular.ttf"
-                           "/fonts/Teko/Teko-SemiBold.ttf"
-                           "/fonts/Bitter/Bitter-Bold.ttf"
-                           "/fonts/Bitter/Bitter-Italic.ttf"
-                           "/fonts/Bitter/Bitter-Regular.ttf"]]
+                           "/fonts/Teko/Teko-SemiBold.ttf"]]
             (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
                                                (.getResourceAsStream MidiChoice font-file))))
         (reset! fonts-loaded true))))
