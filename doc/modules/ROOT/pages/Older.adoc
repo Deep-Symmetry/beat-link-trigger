@@ -1,0 +1,20 @@
+= Older Approaches
+include::partial$PagePreamble.adoc[]
+
+This section groups techniques that were developed using older
+versions of Beat Link Trigger, before many important discoveries and
+advances were made. They still work, but are usually not necessary;
+there are easier ways of doing things today.
+
+For example, because Crate Digger now makes it possible to get track
+metadata even when there are four CDJs in use, there is not any reason
+to go to the trouble of working with a DJ to set up a metadata cache
+before a show.
+
+The fact that we now can rely on metadata like this made it worth
+building the Show interface to do the work of matching tracks and
+arranging cues on them, which eliminates the need for the kinds of
+clever tricks we previously used to try to manually recognize them.
+And there's now a built-in playlist writer that does a more thorough
+job than the sample code shown at the end of the Matching Tracks
+section.

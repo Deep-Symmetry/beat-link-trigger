@@ -237,8 +237,8 @@ If you are in a situation where it is important to keep detailed
 records of the music being played (for example, a radio station that
 needs to pay royalties), the built in Playlist Writer can help. It
 builds on the ideas described in the
-<<Matching.adoc#writing-a-playlist,Matching Tracks>> section to give you a
-robust, convenient solution.
+<<Matching.adoc#writing-a-playlist,Matching Tracks Manually>> section
+to give you a robust, convenient solution.
 
 Start by choosing menu:File[Write Playlist]. This will bring up the
 Playlist Writer window.

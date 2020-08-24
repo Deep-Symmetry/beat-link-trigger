@@ -25,7 +25,7 @@ If, for some reason, you don’t want to use the Show interface, and you
 are unable to get metadata (although as of version 0.5.0 we can’t
 think of any situations where this might apply), you can prepare ahead
 of time by hard-coding the rekordbox ID numbers in your triggers, or
-you can set up a <<Players.adoc#caching-metadata,Metadata Cache>>.
+you can set up a <<CachingMetadata.adoc#,Metadata Cache>>.
 
 == Manual Track Matching
 
