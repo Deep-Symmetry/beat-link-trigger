@@ -1481,7 +1481,8 @@
 
 (defn- set-auto-scroll
   "Update the cues UI so that the waveform automatically tracks the
-  furthest position played."
+  furthest position played if `auto?` is `true` and we are connected
+  to a DJ Link network."
   [track ^WaveformDetailComponent wave auto?]
   (swap-track! track assoc-in [:contents :cues :auto-scroll] auto?)
   (.setAutoScroll wave (and auto? (online?)))
@@ -1489,10 +1490,18 @@
 
 (defn- set-zoom
   "Updates the cues UI so that the waveform is zoomed out by the
-  specified factor."
-  [track ^WaveformDetailComponent wave zoom]
+  specified factor, while trying to preserve the current context if
+  the scroll positon is not being controlled by the DJ Link network."
+  [track ^WaveformDetailComponent wave zoom ^javax.swing.JScrollPane pane]
   (swap-track! track assoc-in [:contents :cues :zoom] zoom)
-  (.setScale wave zoom))
+  (let [bar     (.getHorizontalScrollBar pane)
+        old-val (.getValue bar)
+        old-max (.getMaximum bar)]
+    (.setScale wave zoom)
+    (when-not (.getAutoScroll wave)
+      (seesaw/invoke-later
+       #_(timbre/info "set-zoom" old-val old-max (.getMaximum bar) (.getVisibleAmount bar))
+       (.setValue bar (int (* (/ old-val old-max) (.getMaximum bar))))))))
 
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
@@ -2052,8 +2061,7 @@
                                                ^CueList (read-cue-list track-root)
                                                ^BeatGrid (:grid track))
         max-zoom     64
-        zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4)
-                                    :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
+        zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4))
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (online?)
                                       :selected? (boolean (get-in track [:contents :cues :entered-only]))
@@ -2062,6 +2070,12 @@
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
         lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-button-menu track)))
+        wave-scroll  (proxy [javax.swing.JScrollPane] [wave]
+                       (processMouseWheelEvent [e]
+                         (if (.isShiftDown e)
+                           (proxy-super processMouseWheelEvent e)
+                           (let [zoom (min max-zoom (max 1 (+ (.getScale wave) (.getWheelRotation e))))]
+                             (seesaw/value! zoom-slider zoom)))))
         top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
                                     :items [[(seesaw/button :text "New Cue"
                                                             :listen [:action-performed
@@ -2083,14 +2097,7 @@
                                             [auto-scroll "hidemode 3"]
                                             [zoom-slider]
                                             [(seesaw/label :text "Zoom") "wrap"]
-                                            [(proxy [javax.swing.JScrollPane] [wave]
-                                               (processMouseWheelEvent [e]
-                                                 (if (.isShiftDown e)
-                                                   (proxy-super processMouseWheelEvent e)
-                                                   (let [zoom (min max-zoom (max 1 (+ (.getScale wave)
-                                                                                      (.getWheelRotation e))))]
-                                                     (seesaw/value! zoom-slider zoom)))))
-                                             "span, width 100%"]])
+                                            [wave-scroll "span, width 100%"]])
         cues         (seesaw/vertical-panel :id :cues)
         cues-scroll  (seesaw/scrollable cues)
         layout       (seesaw/border-panel :north top-panel :center cues-scroll)
@@ -2131,6 +2138,8 @@
                    :mouse-pressed (fn [e] (handle-wave-click track wave e))
                    :mouse-dragged (fn [e] (handle-wave-drag track wave e))
                    :mouse-released (fn [e] (handle-wave-release track wave e)))
+    (seesaw/listen zoom-slider
+                   :state-changed (fn [e] (set-zoom track wave (seesaw/value e) wave-scroll)))
 
     (seesaw/config! root :content layout)
     (build-cues track)

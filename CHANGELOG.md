@@ -19,12 +19,20 @@ This change log follows the conventions of
   still scroll the waveform. If you don't have a horizontal scroll
   wheel you can still scroll by holding down the Shift key with your
   vertical scroll wheel. If this proves to be annoying to people, I
-  will add a configuration option to control it.
+  will add a configuration option to control it, or may simply change
+  paths to using something like alt/option drag instead of the scroll
+  wheel to support panning and zooming.
 
 ### Fixed
 
 - Incorporated a new version of Beat Link which fixes the handling of
   Unicode strings when working with downloaded database export files.
+- The scroll position of show cue waveforms is more stable when
+  zooming in and out. Now the left edge of the waveform is kept at
+  approximately the same place. As work proceeds on being able to
+  scroll the window by clicking in the track overview in the show
+  window, this may be improved further, to keeping the center of the
+  waveform in place.
 
 ### Changed
 
