@@ -2051,7 +2051,8 @@
         wave         (WaveformDetailComponent. ^WaveformDetail (read-detail track-root)
                                                ^CueList (read-cue-list track-root)
                                                ^BeatGrid (:grid track))
-        zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value (get-in track [:contents :cues :zoom] 4)
+        max-zoom     64
+        zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4)
                                     :listen [:state-changed #(set-zoom track wave (seesaw/value %))])
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (online?)
@@ -2082,7 +2083,14 @@
                                             [auto-scroll "hidemode 3"]
                                             [zoom-slider]
                                             [(seesaw/label :text "Zoom") "wrap"]
-                                            [(seesaw/scrollable wave) "span, width 100%"]])
+                                            [(proxy [javax.swing.JScrollPane] [wave]
+                                               (processMouseWheelEvent [e]
+                                                 (if (.isShiftDown e)
+                                                   (proxy-super processMouseWheelEvent e)
+                                                   (let [zoom (min max-zoom (max 1 (+ (.getScale wave)
+                                                                                      (.getWheelRotation e))))]
+                                                     (seesaw/value! zoom-slider zoom)))))
+                                             "span, width 100%"]])
         cues         (seesaw/vertical-panel :id :cues)
         cues-scroll  (seesaw/scrollable cues)
         layout       (seesaw/border-panel :north top-panel :center cues-scroll)

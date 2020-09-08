@@ -13,6 +13,13 @@ This change log follows the conventions of
   creatively enhancing streamed mixing sessions.
 - A new window which allows you to configure your My Settings (player
   settings) preferences, and send them to players on the network.
+- You can now zoom the waveform in the cues window for a show track by
+  using your trackpad's vertical scroll gesture or a vertical scroll
+  wheel on your mouse. Horizontal scroll gestures and scroll wheels
+  still scroll the waveform. If you don't have a horizontal scroll
+  wheel you can still scroll by holding down the Shift key with your
+  vertical scroll wheel. If this proves to be annoying to people, I
+  will add a configuration option to control it.
 
 ### Fixed
 
