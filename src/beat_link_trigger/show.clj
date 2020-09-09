@@ -1490,18 +1490,19 @@
 
 (defn- set-zoom
   "Updates the cues UI so that the waveform is zoomed out by the
-  specified factor, while trying to preserve the current context if
-  the scroll positon is not being controlled by the DJ Link network."
-  [track ^WaveformDetailComponent wave zoom ^javax.swing.JScrollPane pane]
+  specified factor, while trying to preserve the section of the wave
+  at the specified x coordinate within the scroll pane if the scroll
+  positon is not being controlled by the DJ Link network."
+  [track ^WaveformDetailComponent wave zoom ^javax.swing.JScrollPane pane anchor-x]
   (swap-track! track assoc-in [:contents :cues :zoom] zoom)
-  (let [bar     (.getHorizontalScrollBar pane)
-        old-val (.getValue bar)
-        old-max (.getMaximum bar)]
+  (let [bar   (.getHorizontalScrollBar pane)
+        bar-x (.getValue bar)
+        time  (.getTimeForX wave (+ anchor-x bar-x))]
     (.setScale wave zoom)
     (when-not (.getAutoScroll wave)
       (seesaw/invoke-later
-       #_(timbre/info "set-zoom" old-val old-max (.getMaximum bar) (.getVisibleAmount bar))
-       (.setValue bar (int (* (/ old-val old-max) (.getMaximum bar))))))))
+       (let [time-x (.millisecondsToX wave time)]
+         (.setValue bar (- time-x anchor-x)))))))
 
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
@@ -2070,11 +2071,13 @@
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
         lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-button-menu track)))
+        zoom-anchor  (atom nil)  ; The x coordinate we want to keep the wave anchored at when zooming.
         wave-scroll  (proxy [javax.swing.JScrollPane] [wave]
                        (processMouseWheelEvent [e]
                          (if (.isShiftDown e)
                            (proxy-super processMouseWheelEvent e)
                            (let [zoom (min max-zoom (max 1 (+ (.getScale wave) (.getWheelRotation e))))]
+                             (reset! zoom-anchor (.getX e))
                              (seesaw/value! zoom-slider zoom)))))
         top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
                                     :items [[(seesaw/button :text "New Cue"
@@ -2139,7 +2142,9 @@
                    :mouse-dragged (fn [e] (handle-wave-drag track wave e))
                    :mouse-released (fn [e] (handle-wave-release track wave e)))
     (seesaw/listen zoom-slider
-                   :state-changed (fn [e] (set-zoom track wave (seesaw/value e) wave-scroll)))
+                   :state-changed (fn [e]
+                                    (set-zoom track wave (seesaw/value e) wave-scroll (or @zoom-anchor 0))
+                                    (reset! zoom-anchor nil)))
 
     (seesaw/config! root :content layout)
     (build-cues track)
