@@ -29,10 +29,9 @@ This change log follows the conventions of
   Unicode strings when working with downloaded database export files.
 - The scroll position of show cue waveforms is more stable when
   zooming in and out. Now the left edge of the waveform is kept at
-  approximately the same place. As work proceeds on being able to
-  scroll the window by clicking in the track overview in the show
-  window, this may be improved further, to keeping the center of the
-  waveform in place.
+  approximately the same place when you are zooming via the slider,
+  and the portion under the mouse is kept in place when using the
+  scroll wheel or trackpad scroll gesture, which is a nice, stable UX.
 
 ### Changed
 
