@@ -1131,7 +1131,8 @@
 
 (defn- paint-preview-cues
   "Draws the cues, if any, on top of the preview waveform. If there is
-  an open cues editor window, also shows its current view of the wave."
+  an open cues editor window, also shows its current view of the wave,
+  unless it is in auto-scroll mode."
   [show signature ^WaveformPreviewComponent preview ^Graphics2D graphics]
   (let [show           (latest-show show)
         ^Graphics2D g2 (.create graphics)
@@ -1146,17 +1147,18 @@
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-preview-rectangle track cue preview)))
     (when-let [editor (:cues-editor track)]
-      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
-      (.setPaint g2 Color/white)
-      (.setStroke g2 (java.awt.BasicStroke. 3))
-      (let [{:keys [wave scroll]} editor
-            view-rect             (.getViewRect (.getViewport scroll))
-            start-time            (.getTimeForX wave (.-x view-rect))
-            end-time              (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
-            x                     (.millisecondsToX preview start-time)
-            width                 (- (.millisecondsToX preview end-time) x)]
-        (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
-                                                     (double width) (double (dec (.getHeight preview)))))))))
+      (let [{:keys [wave scroll]} editor]
+        (when-not (.getAutoScroll wave)
+          (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
+          (.setPaint g2 Color/white)
+          (.setStroke g2 (java.awt.BasicStroke. 3))
+          (let [view-rect  (.getViewRect (.getViewport scroll))
+                start-time (.getTimeForX wave (.-x view-rect))
+                end-time   (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
+                x          (.millisecondsToX preview start-time)
+                width      (- (.millisecondsToX preview end-time) x)]
+            (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
+                                                         (double width) (double (dec (.getHeight preview)))))))))))
 
 (defn- get-current-selection
   "Returns the starting and ending beat of the current selection in the
@@ -1499,6 +1501,7 @@
   [track ^WaveformDetailComponent wave auto?]
   (swap-track! track assoc-in [:contents :cues :auto-scroll] auto?)
   (.setAutoScroll wave (and auto? (online?)))
+  (repaint-preview track)  ; Show or hide the editor viewport overlay if needed.
   (seesaw/scroll! wave :to [:point 0 0]))
 
 (defn- set-zoom
