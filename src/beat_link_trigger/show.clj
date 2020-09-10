@@ -1124,8 +1124,14 @@
         y                (double (* lane (/ (.getHeight preview) num-lanes)))]
     (java.awt.geom.Rectangle2D$Double. (double x) y (double w) lane-height)))
 
+(def selection-opacity
+  "The degree to which the active selection replaces the underlying
+  waveform colors."
+  (float 0.5))
+
 (defn- paint-preview-cues
-  "Draws the cues, if any, on top of the preview waveform."
+  "Draws the cues, if any, on top of the preview waveform. If there is
+  an open cues editor window, also shows its current view of the wave."
   [show signature ^WaveformPreviewComponent preview ^Graphics2D graphics]
   (let [show           (latest-show show)
         ^Graphics2D g2 (.create graphics)
@@ -1138,12 +1144,19 @@
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
-      (.fill g2 (cue-preview-rectangle track cue preview)))))
-
-(def selection-opacity
-  "The degree to which the active selection replaces the underlying
-  waveform colors."
-  (float 0.5))
+      (.fill g2 (cue-preview-rectangle track cue preview)))
+    (when-let [editor (:cues-editor track)]
+      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
+      (.setPaint g2 Color/white)
+      (.setStroke g2 (java.awt.BasicStroke. 3))
+      (let [{:keys [wave scroll]} editor
+            view-rect             (.getViewRect (.getViewport scroll))
+            start-time            (.getTimeForX wave (.-x view-rect))
+            end-time              (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
+            x                     (.millisecondsToX preview start-time)
+            width                 (- (.millisecondsToX preview end-time) x)]
+        (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
+                                                     (double width) (double (dec (.getHeight preview)))))))))
 
 (defn- get-current-selection
   "Returns the starting and ending beat of the current selection in the
@@ -2120,7 +2133,8 @@
                              (cleanup-cue true track cue))
                            (seesaw/invoke-later
                             ;; Gives windows time to close first, so they don't recreate a broken editor.
-                            (swap-track! track dissoc :cues-editor))
+                            (swap-track! track dissoc :cues-editor)
+                            (repaint-preview track))  ; Removes the editor viewport overlay.
                            (.removeKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)
                                                       key-spy)
                            (.dispose root)
@@ -2128,8 +2142,13 @@
     (swap-track! track assoc :cues-editor {:frame    root
                                            :panel    top-panel
                                            :wave     wave
+                                           :scroll   wave-scroll
                                            :close-fn close-fn})
     (.addKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager) key-spy)
+    (.addChangeListener (.getViewport wave-scroll)
+                        (proxy [javax.swing.event.ChangeListener] []
+                          (stateChanged [_]
+                            (repaint-preview track))))
     (.setScale wave (seesaw/value zoom-slider))
     (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
     (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
@@ -2156,6 +2175,7 @@
                    :window-closing (fn [_] (close-fn false))
                    #{:component-moved :component-resized} (fn [_] (save-cue-window-position track root)))
     (start-animation-thread show track)
+    (repaint-preview track)  ; Show the editor viewport overlay.
     (seesaw/show! root)))
 
 (defn- open-cues
