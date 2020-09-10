@@ -1573,6 +1573,23 @@
                      (or (when cue (or (:comment cue) "Unnamed Cue"))
                          (when rb-cue (util/describe-cue rb-cue))))))
 
+(defn- handle-preview-press
+  "Processes a mouse press over the softly-held waveform preview
+  component. If there is an editor window open on the track, and it is
+  not in auto-scroll mode, centers the editor on the region of the
+  track that was clicked."
+  [track preview-loader ^MouseEvent e]
+  (let [point (.getPoint e)
+        track (latest-track track)]
+    (when-let [editor (:cues-editor track)]
+      (let [{:keys [wave scroll]} editor]
+        (when-not (.getAutoScroll wave)
+          (let [^WaveformPreviewComponent preview (preview-loader)
+                target-time                       (.getTimeForX preview (.-x point))
+                center-x                          (.millisecondsToX wave target-time)
+                scroll-bar                        (.getHorizontalScrollBar scroll)]
+            (.setValue scroll-bar (- center-x (/ (.getVisibleAmount scroll-bar) 2)))))))))
+
 (defn- find-cue-under-mouse
   "Checks whether the mouse is currently over any cue, and if so returns
   it as the first element of a tuple. Always returns the latest
@@ -3584,7 +3601,9 @@
                                       (util/show-popup-from-button gear popup e))))
     (update-track-gear-icon track gear)
 
-    (seesaw/listen soft-preview :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e)))
+    (seesaw/listen soft-preview
+                   :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
+                   :mouse-pressed (fn [e] (handle-preview-press track preview-loader e)))
 
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
