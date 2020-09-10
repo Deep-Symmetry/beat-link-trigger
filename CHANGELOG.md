@@ -13,7 +13,7 @@ This change log follows the conventions of
   creatively enhancing streamed mixing sessions.
 - A new window which allows you to configure your My Settings (player
   settings) preferences, and send them to players on the network.
-- You can now zoom the waveform in the cues window for a show track by
+- You can now zoom the waveform in the cues editor for a show track by
   using your trackpad's vertical scroll gesture or a vertical scroll
   wheel on your mouse. Horizontal scroll gestures and scroll wheels
   still scroll the waveform. If you don't have a horizontal scroll
@@ -22,6 +22,11 @@ This change log follows the conventions of
   will add a configuration option to control it, or may simply change
   paths to using something like alt/option drag instead of the scroll
   wheel to support panning and zooming.
+- When you have a cues editor open on a show track, you can see an
+  outline in the track's preview in the show window that displays the
+  area of that waveform that is visible in the cues editor, and you
+  can click and drag in the preview waveform to pan and zoom the
+  editor waveform.
 
 ### Fixed
 

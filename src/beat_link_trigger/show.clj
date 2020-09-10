@@ -1590,6 +1590,30 @@
                 scroll-bar                        (.getHorizontalScrollBar scroll)]
             (.setValue scroll-bar (- center-x (/ (.getVisibleAmount scroll-bar) 2)))))))))
 
+(def max-zoom
+  "The largest extent to which we can zoom out on the waveform in the
+  cues editor window."
+  64)
+
+(defn- handle-preview-drag
+  "Processes a mouse drag over the softly-held waveform preview
+  compoenent. If there is an editor window open on the track, and it
+  is not in auto-scroll mode, centers the editor on the region of the
+  track that was dragged to, and then if the user has dragged up or
+  down, zooms out or in by a correspinding amount."
+  [track preview-loader ^MouseEvent e drag-origin]
+  (let [track (latest-track track)]
+    (when-let [editor (:cues-editor track)]
+      (let [{:keys [wave frame]} editor]
+        (when-not (.getAutoScroll wave)
+          (when-not (:zoom @drag-origin)
+            (swap! drag-origin assoc :zoom (.getScale wave)))
+          (let [zoom-slider          (seesaw/select frame [:#zoom])
+                {:keys [point zoom]} @drag-origin
+                new-zoom                 (min max-zoom (max 1 (+ zoom (/ (- (.y point) (.y (.getPoint e))) 2))))]
+            (seesaw/value! zoom-slider new-zoom))
+          (handle-preview-press track preview-loader e))))))
+
 (defn- find-cue-under-mouse
   "Checks whether the mouse is currently over any cue, and if so returns
   it as the first element of a tuple. Always returns the latest
@@ -2094,7 +2118,6 @@
         wave         (WaveformDetailComponent. ^WaveformDetail (read-detail track-root)
                                                ^CueList (read-cue-list track-root)
                                                ^BeatGrid (:grid track))
-        max-zoom     64
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4))
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (online?)
@@ -3587,7 +3610,8 @@
                              [(seesaw/separator) (track-simulate-menu track) (track-inspect-action track)
                               (seesaw/separator)]
                              (track-copy-actions track)
-                             [(seesaw/separator) (delete-track-action show track panel)])))]
+                             [(seesaw/separator) (delete-track-action show track panel)])))
+        drag-origin (atom nil)]
 
     (swap-show! show assoc-in [:tracks signature] track)
     (swap-show! show assoc-in [:panels panel] signature)
@@ -3603,7 +3627,10 @@
 
     (seesaw/listen soft-preview
                    :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
-                   :mouse-pressed (fn [e] (handle-preview-press track preview-loader e)))
+                   :mouse-pressed (fn [e]
+                                    (reset! drag-origin {:point (.getPoint e)})
+                                    (handle-preview-press track preview-loader e))
+                   :mouse-dragged (fn [e] (handle-preview-drag track preview-loader e drag-origin)))
 
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
