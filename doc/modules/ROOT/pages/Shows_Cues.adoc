@@ -578,7 +578,7 @@ Maddix] inspired some features that can help a lot:
   without moving out of the waveform down to the scroll bar.
 
 * Finally, whenever there is a cues editor open on a track (as long as
-  it is not in Auto-Scroll mode), The section of that track's waveform
+  it is not in Auto-Scroll mode), the section of that track's waveform
   that is currently visible in the cues editor is highlighted with a
   white outline on the track overview in the Show window:
 +
