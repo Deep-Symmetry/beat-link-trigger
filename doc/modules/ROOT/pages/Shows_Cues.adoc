@@ -10,6 +10,7 @@ menu:Edit Track Cues[] in the Track’s context menu, as described in the
 previous section. That will open a new window for viewing and editing
 details about that Track’s Cues:
 
+[#cues-window]
 image:CuesWindow.png[Cues Window,912,461]
 
 Before introducing the various ways to add Cues to the track, let’s
@@ -551,3 +552,43 @@ working with a large number of cues.
 * Finally, as noted in the Context Menu section above, you can use a
   Cue’s context menu to scroll the waveform to reveal the cue within
   the track beat grid.
+
+=== Scrolling and Zooming
+
+Unless you happen to be using Auto-Scroll mode to have the cues editor
+waveform follow the track's playback on a CDJ, you can of course use
+the normal scroll bar to choose the part you want to see, and the Zoom
+slider at the <<#cues-window,top of the window>> to control how much
+of the waveform is visible at once. But if you have a great many cues
+to enter or edit, you might want faster ways to get around without
+having to lose your context and focus. http://maddix.it[Nicholas
+Maddix] inspired some features that can help a lot:
+
+* If you are using mouse with a vertical scroll wheel, rolling it
+  while the mouse is inside the cues editor waveform will zoom the
+  track in or out, keeping the same section under the mouse pointer if
+  possible.
+
+* If you are using a multi-touch track pad, you can use the vertical
+  scroll gesture to zoom in and out while keeping the context under
+  the mouse pointer fixed in the same way as with a scroll wheel.
+
+* A horizontal scroll wheel (less common), or trackpad horizontal
+  scrolling gesture, can be used to scroll the waveform left or right
+  without moving out of the waveform down to the scroll bar.
+
+* Finally, whenever there is a cues editor open on a track (as long as
+  it is not in Auto-Scroll mode), The section of that track's waveform
+  that is currently visible in the cues editor is highlighted with a
+  white outline on the track overview in the Show window:
++
+image:CuesViewportOutline.png[Cues viewport outline,700,160]
++
+When you click anywhere in this full-track preview, the cues editor
+waveform will scroll to center the section you clicked on. Dragging to
+the left or right will scroll the cues editor waveform to the
+corresponding point, and dragging up or down will zoom the cues editor
+waveform out and in.
+
+Learning these options will enable you to quickly get to exactly the
+part of the waveform where you want to work on cues.
