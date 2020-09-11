@@ -14,7 +14,8 @@ reach particular beats, or whatever else you can think of. Built using
 > Denon gear but I'm locked into Pioneer because of BLT despite Denon
 > being just as good if not a little better feature-wise.“
 >
-> —[Nicholas Maddix](http://maddix.it)
+> —[Nicholas Maddix](http://maddix.it) on the project [Gitter
+> channel](https://gitter.im/brunchboy/beat-link-trigger)
 
 There is more description and a video in a [DJ TechTools
 article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
