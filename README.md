@@ -7,6 +7,15 @@
 An application to trigger MIDI events when CDJs start playing tracks,
 reach particular beats, or whatever else you can think of. Built using
 [beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
+
+> ”It's a shame Pioneer doesn't support this project, even
+> unofficially. It's such a huge value add for them. When I was
+> looking to buy my XDJ-XZ, lots of people were trying to sell me nice
+> Denon gear but I'm locked into Pioneer because of BLT despite Denon
+> being just as good if not a little better feature-wise.“
+>
+> —[Nicholas Maddix](http://maddix.it)
+
 There is more description and a video in a [DJ TechTools
 article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
 too!
