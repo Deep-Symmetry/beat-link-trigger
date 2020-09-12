@@ -3483,13 +3483,13 @@
                         :constraints (track-panel-constraints (.getWidth ^JFrame (:frame show)))
                         :items [[(create-track-art show signature) "spany 4"]
                                 [(seesaw/label :text (or (:title metadata) "[no title]")
-                                               :font (util/get-display-font :bitter Font/ITALIC 14)
+                                               :font (Font. "serif" Font/ITALIC 14)
                                                :foreground :yellow)
                                  "width 60:120"]
                                 [soft-preview "spany 4, wrap"]
 
                                 [(seesaw/label :text (format-artist-album metadata)
-                                               :font (util/get-display-font :bitter Font/BOLD 13)
+                                               :font (Font. "serif" Font/BOLD 13)
                                                :foreground :green)
                                  "width 60:120, wrap"]
 

@@ -757,8 +757,8 @@
         tempo          (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
         last-tempo     (atom nil)
         title-label    (seesaw/label :text "[track metadata not available]"
-                                     :font (util/get-display-font :bitter Font/ITALIC 14) :foreground :yellow)
-        artist-label   (seesaw/label :text "" :font (util/get-display-font :bitter Font/BOLD 12) :foreground :green)
+                                     :font (Font. "serif" Font/ITALIC 14) :foreground :yellow)
+        artist-label   (seesaw/label :text "" :font (Font. "serif" Font/BOLD 12) :foreground :green)
         usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
                                       :popup (partial slot-popup n :usb))
         usb-label      (seesaw/label :id :usb-label :text "USB:")

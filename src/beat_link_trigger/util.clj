@@ -267,10 +267,7 @@
                            "/fonts/Orbitron/Orbitron-Black.ttf"
                            "/fonts/Orbitron/Orbitron-Bold.ttf"
                            "/fonts/Teko/Teko-Regular.ttf"
-                           "/fonts/Teko/Teko-SemiBold.ttf"
-                           "/fonts/Bitter/Bitter-Bold.ttf"
-                           "/fonts/Bitter/Bitter-Italic.ttf"
-                           "/fonts/Bitter/Bitter-Regular.ttf"]]
+                           "/fonts/Teko/Teko-SemiBold.ttf"]]
             (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
                                                (.getResourceAsStream MidiChoice font-file))))
         (reset! fonts-loaded true))))
@@ -306,18 +303,16 @@
 
 (defn get-display-font
   "Find one of the fonts configured for use by keyword, which must be
-  one of `:bitter`, `:orbitron`, `:segment`, or `:teko`. The `style`
+  one of `:orbitron`, `:segment`, or `:teko`. The `style`
   argument is a `java.awt.Font` style constant, and `size` is point
   size.
 
-  Bitter is available in plain, bold, or italic. Orbitron is only
-  available in bold, but asking for bold gives you Orbitron Black.
-  Segment is only available in plain. Teko is available in plain and
-  bold (but we actually deliver the semibold version, since that looks
-  nicer in the UI)."
+  Orbitron is only available in bold, but asking for bold gives you
+  Orbitron Black. Segment is only available in plain. Teko is available
+  in plain and bold (but we actually deliver the semibold version,
+  since that looks nicer in the UI)."
   [k style size]
   (case k
-    :bitter (Font. "Bitter" style size)
     :orbitron (Font. (if (= style Font/BOLD) "Orbitron Black" "Orbitron") Font/BOLD size)
     :segment (Font. "DSEG7 Classic" Font/PLAIN size)
     :teko (Font. (if (= style Font/BOLD) "Teko SemiBold" "Teko") Font/PLAIN size)))
