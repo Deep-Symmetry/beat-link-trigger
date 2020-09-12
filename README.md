@@ -211,11 +211,11 @@ least lets you run the program.
 
 If you are on a Mac, your best option nowadays is to download the disk
 image installer. It contains Beat Link Trigger packaged as a native
-Mac application, with an embedded Java 11 runtime, so you don&rsquo;t
+Mac application, with an embedded Java runtime, so you don&rsquo;t
 need to worry about installing or managing Java if you don&rsquo;t use
-it for other purposes. It is code-signed by Deep Symmetry, so your Mac
-should be happy to install and run it without complaint (although
-under Catalina this may be an issue again).
+it for other purposes. It is code-signed and notarized by Deep
+Symmetry, so your Mac should be happy to install and run it without
+complaint.
 
 <img src="doc/modules/ROOT/assets/images/DMG-Installer.png" width="640" height="435"
      alt="Installer window">
