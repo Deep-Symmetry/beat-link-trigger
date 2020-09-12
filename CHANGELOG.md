@@ -32,6 +32,10 @@ This change log follows the conventions of
 
 - Incorporated a new version of Beat Link which fixes the handling of
   Unicode strings when working with downloaded database export files.
+- Changed the font used for titles and artists in the Player Status
+  window to one that supports a wider variety of language scripts (in
+  particular Asian scripts did not previously display properly).
+  Thanks to [@procx](https://github.com/procx) (xcorp) for this!
 - The scroll position of show cue waveforms is more stable when
   zooming in and out. Now the left edge of the waveform is kept at
   approximately the same place when you are zooming via the slider,
