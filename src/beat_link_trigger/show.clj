@@ -28,7 +28,7 @@
            [java.io File]
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardCopyOption StandardOpenOption]
-           [javax.swing JComponent JFrame JMenu JMenuBar JOptionPane JPanel]
+           [javax.swing JComponent JFrame JMenu JMenuBar JOptionPane JPanel JScrollPane]
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [javax.swing.text JTextComponent]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
@@ -1147,7 +1147,7 @@
       (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-preview-rectangle track cue preview)))
     (when-let [editor (:cues-editor track)]
-      (let [{:keys [wave scroll]} editor]
+      (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
         (when-not (.getAutoScroll wave)
           (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
           (.setPaint g2 Color/white)
@@ -1509,7 +1509,7 @@
   specified factor, while trying to preserve the section of the wave
   at the specified x coordinate within the scroll pane if the scroll
   positon is not being controlled by the DJ Link network."
-  [track ^WaveformDetailComponent wave zoom ^javax.swing.JScrollPane pane anchor-x]
+  [track ^WaveformDetailComponent wave zoom ^JScrollPane pane anchor-x]
   (swap-track! track assoc-in [:contents :cues :zoom] zoom)
   (let [bar   (.getHorizontalScrollBar pane)
         bar-x (.getValue bar)
@@ -1582,7 +1582,7 @@
   (let [point (.getPoint e)
         track (latest-track track)]
     (when-let [editor (:cues-editor track)]
-      (let [{:keys [wave scroll]} editor]
+      (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
         (when-not (.getAutoScroll wave)
           (let [^WaveformPreviewComponent preview (preview-loader)
                 target-time                       (.getTimeForX preview (.-x point))
@@ -1604,13 +1604,13 @@
   [track preview-loader ^MouseEvent e drag-origin]
   (let [track (latest-track track)]
     (when-let [editor (:cues-editor track)]
-      (let [{:keys [wave frame]} editor]
+      (let [{:keys [^WaveformDetailComponent wave frame]} editor]
         (when-not (.getAutoScroll wave)
           (when-not (:zoom @drag-origin)
             (swap! drag-origin assoc :zoom (.getScale wave)))
-          (let [zoom-slider          (seesaw/select frame [:#zoom])
-                {:keys [point zoom]} @drag-origin
-                new-zoom                 (min max-zoom (max 1 (+ zoom (/ (- (.y point) (.y (.getPoint e))) 2))))]
+          (let [zoom-slider (seesaw/select frame [:#zoom])
+                {:keys [^java.awt.Point point zoom]} @drag-origin
+                new-zoom (min max-zoom (max 1 (+ zoom (/ (- (.y point) (.y (.getPoint e))) 2))))]
             (seesaw/value! zoom-slider new-zoom))
           (handle-preview-press track preview-loader e))))))
 
@@ -2129,7 +2129,7 @@
         lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-button-menu track)))
         zoom-anchor  (atom nil)  ; The x coordinate we want to keep the wave anchored at when zooming.
         wave-scroll  (proxy [javax.swing.JScrollPane] [wave]
-                       (processMouseWheelEvent [e]
+                       (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
                          (if (.isShiftDown e)
                            (proxy-super processMouseWheelEvent e)
                            (let [zoom (min max-zoom (max 1 (+ (.getScale wave) (.getWheelRotation e))))]
@@ -3601,7 +3601,7 @@
                :creating          true ; Suppress popup expression editors when reopening a show.
                :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
 
-        popup-fn (fn [e]  ; Creates the popup menu for the gear button or right-clicking in the track.
+        popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the track.
                    (if (.isShiftDown e)
                      [(copy-track-content-action track) ; The special track content copy/paste menu.
                       (paste-track-content-action track panel)]
@@ -3627,7 +3627,7 @@
 
     (seesaw/listen soft-preview
                    :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
-                   :mouse-pressed (fn [e]
+                   :mouse-pressed (fn [^MouseEvent e]
                                     (reset! drag-origin {:point (.getPoint e)})
                                     (handle-preview-press track preview-loader e))
                    :mouse-dragged (fn [e] (handle-preview-drag track preview-loader e drag-origin)))

@@ -488,7 +488,7 @@
   to BPM-only."
   [^Long n]
   (when-let [^DeviceUpdate u (when (.isRunning time-finder) (.getLatestUpdateFor time-finder n))]
-    (let [cdj-status (.getLatestStatusFor virtual-cdj n)]
+    (let [^CdjStatus cdj-status (.getLatestStatusFor virtual-cdj n)]
       [(org.deepsymmetry.beatlink.Util/pitchToPercentage (.getPitch u))
        (when (not= 65535 (.getBpm u)) (.getEffectiveTempo u))  ; Detect when tempo is not valid
        (.isTempoMaster u)

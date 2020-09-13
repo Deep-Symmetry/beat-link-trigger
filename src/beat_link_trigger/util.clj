@@ -327,12 +327,18 @@
          (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists")))
     ""))
 
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
+  (VirtualCdj/getInstance))
+
 (defn generic-media-resource
   "Returns the path to a PNG image resource that can be used as generic
   album artwork for the type of media being played in the specified
   player number, if any."
-  [player]
-  (let [^CdjStatus status (.getLatestStatusFor (VirtualCdj/getInstance) player)]
+  [^Long player]
+  (let [^CdjStatus status (.getLatestStatusFor virtual-cdj player)]
     (if (nil? status)
       "images/NoTrack.png"
       (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
