@@ -3,12 +3,23 @@ include::partial$PagePreamble.adoc[]
 
 Beat Link Trigger can take advantage of track metadata and related
 information from the players to provide you a rich view of what is
-happening right now on all the decks. It can also tell the decks to
-load media available anywhere on the network (in one of the player
-slots or a computer running rekordbox in export mode). As shown in the
-example view below, this can be an invaluable resource on its own for
-running visuals for a show, even if you don’t have any triggers set
-up:
+happening right now on all the decks; to see this, choose
+menu:Network[Show Player Status] once you are online with a DJ Link
+network.
+
+BLT can also tell the decks to load tracks from media found anywhere
+on the network (in one of the player slots, or on a computer or mobile
+device running rekordbox in export mode). The Player Status window
+offers a shortcut for doing this from the media loaded in each player,
+or you can choose menu:Network[Load Track on Player] to find tracks
+anywhere. You can also adjust many player settings, for example to
+establish a standard configuration in between DJ sets, by choosing
+menu:Network[Load Settings on Player]. These options are described in
+more depth later in this section
+
+As shown in the example view below, the Player Status window can be an
+invaluable resource on its own for running visuals for a show, even if
+you don’t have any triggers set up:
 
 image:PlayerStatus.png[Player Status Window,599,842]
 
@@ -165,9 +176,11 @@ image:LoadTrackContext.png[Load Track from Player Status Window,500,355]
 Either method opens the interface shown below; the advantage of
 starting from a media slot’s popup menu is that the corresponding
 section of the loader interface will be automatically opened for you.
-If there are any computers running rekordbox on the network, they
-will also show up as places that you can tell players to load
-tracks from.
+
+TIP: If there are any computers or mobile devices running rekordbox on
+the network, they will also show up as places that you can tell
+players to load tracks from, even though they aren't visible in the
+Player Status window.
 
 image:LoadTrackWindow.png[Load Track Window,565,484]
 
@@ -226,6 +239,33 @@ your best bet is probably to use a longer and more selective search
 string instead:
 
 image:LoadTrackSearch2.png[Load Track: Searching,785,667]
+
+[.right]
+image:MySettings.png[My Settings window,465,915]
+
+[[loading-settings]]
+== Loading Player Settings
+
+If you would like to apply a standard group of settings to a player,
+for example you always want to have DJs find your gear in a particular
+state when they are starting to mix, regardless of what the previous
+DJ may have adjusted, you can choose menu:Network[Load Settings on
+Player] to bring up the My Settings window.
+
+This window displays all of the DJ preference settings that can be
+configured on a player over the network. (Not all players will
+necessarily support all of these features; consult the player and
+rekordbox manuals for details about them, although to be honest it
+took some experimenting for me to figure out what some of them meant).
+
+Beat Link Trigger remembers the settings you have chosen as part of
+the Triggers window configuration, so they will persist between times
+you run the program.
+
+Once you have the settings configured the way you want them, you can
+choose a currently-connected player in the menu:Load on:[] menu, and
+click the kbd:[Load] button to tell it to load them. The player will
+instantly apply any of the settings that it understands.
 
 [[auto-open]]
 == Automatically Opening Player Status
