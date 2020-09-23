@@ -70,18 +70,40 @@ things up this way, but will warn you when you do.
 [#writing-template]
 == Writing Templates
 
-Hopefully eventually users will be sharing templates on the
-https://github.com/Deep-Symmetry/beat-link-trigger/wiki[Wiki], and you
-can download them to use, but until then (or if you want to make
-changes to one you have downloaded), you’ll use your favorite text
-editor to create and edit overlay templates, which are HTML files that
-get processed by https://github.com/yogthos/Selmer#selmer[Selmer], so
-you can interpolate all kinds of information about the current tracks
-being played.
+You can find the source for the latest version of the basic template
+that is built in to Beat Link Trigger
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/resources/beat_link_trigger/templates/overlay.html[on
+GitHub].
 
-TIP: While these instructions cover most of the features that will be
-useful in the context of Beat Link Trigger, you can learn more about
-the basics of the templating language by looking at the
+Templates developed or modified by other users can be found on the
+https://github.com/Deep-Symmetry/beat-link-trigger/wiki[Wiki], and you
+can download them to use or modify using your favorite text editor.
+Overlay templates are HTML files that get processed by
+https://github.com/yogthos/Selmer#selmer[Selmer], so you can
+interpolate all kinds of information about the current tracks being
+played.
+
+[TIP]
+====
+Don't worry too much about the details of the templating
+language, because it turns out that trying to render the whole page up
+front doesn't work well in the OBS browser plugin anyway. Configuring
+the page to refresh itself periodically, which would re-render the
+templates, was the original plan for this feature, but it turns out
+the OBS browser plugin does not use double-buffering, so that approach
+caused the overlay to flicker in a very unpleasant way. To get a nice
+looking overlay that updates itself smoothly, write JavaScript code
+that periodically fetches the current player state as
+<<#json-parameters,JSON parameters>>, and then updates any changed
+elements using DOM manipulation by ID. That is how templates,
+including the built-in one, are working today.
+
+If you still want to have the original page contents render correctly,
+before the first JavaScript update changes them, you can learn how the
+Selmer templates work. While these instructions cover most of the
+features that will be useful in the context of Beat Link Trigger, you
+can learn more about the basics of the templating language by looking
+at the
 https://docs.djangoproject.com/en/3.0/ref/templates/language/[Django
 documentation], but keep in mind some details are quite different in
 Selmer and Beat Link Trigger. You can also consult the
@@ -90,11 +112,7 @@ details about how its template language differs from Django, and to
 learn about filters and tags that didn't make the cut for explaining
 here, but that document is aimed at Clojure programmers adding Selmer
 to their projects, so it might be a little hard to follow.
-
-You can find the source for the latest version of the basic template
-that is built in to Beat Link Trigger
-https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/resources/beat_link_trigger/templates/overlay.html[on
-GitHub].
+====
 
 [#variables]
 == Variables
@@ -691,12 +709,44 @@ https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritan
 inheritance].
 
 
+
+[#json-parameters]
+== JSON Parameters
+
+As noted above, it turns out that using elaborate template expressions
+to render custom and conditional content doesn't make a lot of sense
+in the context of the OBS browser plugin, because of flickering when
+you try to re-render the whole page to get updated values. So a better
+approach, as shown by the built-in template, is to simply render the
+page once using a simple template, and assign IDs to the elements that
+will change over time, so you can use JavaScript code to periodically
+poll the BLT overlay server for the current player state, and update
+the page accordingly.
+
+In order to support this approach, whenever your page requests the URL
+`/params.json`, BLT sends a JSON response containing all the current
+template parameters. You can set up a timeout function to retrieve
+them at whatever frame rate you would like to update your overlay,
+and your code can process the results and render itself as desired.
+
+The content and meaning of the JSON response is detailed in the
+<<#variables,Variables>> section above, but ignore the discussion of
+how to use Selmer syntax to navigate the variables; you will be using
+normal JavaScript syntax once you have parsed the JSON. You can see
+the exact details of the current JSON value being returned by using
+the **Open in Browser** button in the OBS Overlay Server window, and
+then adding `/params.json` at the end of your browser's URL bar. The
+**Inspect Template Parameters** button also offers a nice hierarchical
+way to explore them.
+
+
 [#graphics-resources]
 == Graphics Resources
 
 In addition to the template itself, there are a variety of URLs you
-can use with `<img>` tags in your template to display things like the
-album artwork or track waveforms associated with a player.
+can use with `<img>` tags in your template (or from your JavaScript
+update code) to display things like the album artwork or track
+waveforms associated with a player.
 
 === Album Art
 
@@ -835,15 +885,3 @@ avoid layout changes when data availability changes.
 As noted above, if you are creating an overlay with a light
 background, you might want to <<custom-colors,change the waveform
 background color>>.
-
-
-[#json-parameters]
-== JSON Parameters
-
-If you are more comfortable developing your overlay in the style of a
-JavaScript Single-Page Application, the server supports that too.
-Whenever your page requests the URL `/params.json`, it sends a JSON
-response containing all the current template parameters. You can set
-up a timeout function to retrieve them at whatever frame rate you
-would like to update your template, and your code can process the
-results and render itself as desired.
