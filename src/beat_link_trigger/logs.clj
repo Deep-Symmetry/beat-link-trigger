@@ -54,13 +54,12 @@
      (uncaughtException [_ thread e]
        (timbre/error e "Uncaught exception on" (.getName thread)))))
   (timbre/set-config!
-   {:level    :info ; #{:trace :debug :info :warn :error :fatal :report}
-    :enabled? true
+   {:min-level :info #_ [["taoensso.*" :error] ["*" :debug]]
+    :enabled?  true
 
     ;; Control log filtering by namespaces/patterns. Useful for turning off
     ;; logging in noisy libraries, etc.:
-    :ns-whitelist [] #_ ["my-app.foo-ns"]
-    :ns-blacklist [] #_ ["taoensso.*"]
+    :ns-filter #{"*"} #_{:deny #{"taoensso.*"} :allow #{"*"}}
 
     :middleware [] ; (fns [data]) -> ?data, applied left->right
 
