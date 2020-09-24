@@ -26,7 +26,7 @@
                  [overtone/osc-clj "0.9.0"]
                  [seesaw "1.5.0"]
                  [thi.ng/color "1.4.0"]
-                 [uk.co.xfactory-librarians/coremidi4j "1.4"]
+                 [uk.co.xfactory-librarians/coremidi4j "1.5-SNAPSHOT"]
                  [com.cemerick/url "0.1.1"]
                  [http-kit "2.4.0"]
                  [ring/ring-core "1.8.1"]
