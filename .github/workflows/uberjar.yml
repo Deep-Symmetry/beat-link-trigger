@@ -98,17 +98,17 @@ jobs:
     - name: Determine überjar name, build version, MSI name, artifact name, and snapshot status
       run: |
         $uberjarName = "beat-link-trigger-$env:git_version.jar"
-        echo "::set-env name=uberjar_name::$uberjarName"
+        echo "uberjar_name=$uberjarName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         $buildVersion = ($env:release_tag).replace("-SNAPSHOT","").replace("v","")
-        echo "::set-env name=build_version::$buildVersion"
+        echo "build_version=$buildVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         $msiName = "Beat Link Trigger-$buildVersion.msi"
-        echo "::set-env name=msi_name::$msiName"
+        echo "msi_name=$msiName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         $artifactName = "Beat-Link-Trigger-$env:git_version-Win64.msi"
-        echo "::set-env name=artifact_name::$artifactName"
+        echo "artifact_name=$artifactName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         If ($env:release_tag -like '*-SNAPSHOT') {
-          echo "::set-env name=release_snapshot::true"
+          echo "release_snapshot=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         } Else {
-          echo "::set-env name=release_snapshot::false"
+          echo "release_snapshot=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         }
 
     - uses: actions/setup-java@v1
