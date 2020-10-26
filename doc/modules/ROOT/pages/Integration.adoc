@@ -569,7 +569,7 @@ like this, which would tell it to set fader number 2 to position 0:
 
 http://lxhues.com[Alex Hughes] inquired if it would be possible to use
 a trigger to synchronize a speed master for effects on a
-http://www.malighting.com/en/products/control/control/ma-lighting/grandma2-full-size/120111-grandma2-full-size.html[grandMA2]
+https://www.malighting.com/product-archive/products/grandma2/[grandMA2]
 lighting control system. With his help and pointers to the relevant
 documentation, we were able to achieve that. The approach is described
 and explained in detail below, or you can start by downloading the
