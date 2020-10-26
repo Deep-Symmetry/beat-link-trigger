@@ -42,12 +42,12 @@ jobs:
 
     - name: Determine überjar name from git version, and snapshot status
       run: |
-        echo "::set-env name=uberjar_name::beat-link-trigger-$git_version.jar"
+        echo "uberjar_name=beat-link-trigger-$git_version.jar" >> $GITHUB_ENV
         if [[ release_tag =~ .*-SNAPSHOT ]]
         then
-          echo "::set-env name=release_snapshot::true"
+          echo "release_snapshot=true" >> $GITHUB_ENV
         else
-          echo "::set-env name=release_snapshot::false"
+          echo "release_snapshot=false" >> $GITHUB_ENV
         fi
 
     - name: Cache Leiningen dependencies
@@ -161,19 +161,19 @@ jobs:
     - name: Determine überjar name, build version, disk image name, artifact name, and snapshot status
       run: |
         uberjarName="beat-link-trigger-$git_version.jar"
-        echo "::set-env name=uberjar_name::$uberjarName"
+        echo "uberjar_name=$uberjarName" >>$GITHUB_ENV
         buildVersion=${release_tag%-SNAPSHOT}
         buildVersion=${buildVersion#v}
-        echo "::set-env name=build_version::$buildVersion"
+        echo "build_version=$buildVersion" >>$GITHUB_ENV
         dmgName="Beat Link Trigger-$buildVersion.dmg"
-        echo "::set-env name=dmg_name::$dmgName"
+        echo "dmg_name=$dmgName" >>$GITHUB_ENV
         artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
-        echo "::set-env name=artifact_name::$artifactName"
+        echo "artifact_name=$artifactName" >>$GITHUB_ENV
         if [[ $release_tag =~ .*-SNAPSHOT ]]
         then
-          echo "::set-env name=release_snapshot::true"
+          echo "release_snapshot=true" >>$GITHUB_ENV
         else
-          echo "::set-env name=release_snapshot::false"
+          echo "release_snapshot=false" >>$GITHUB_ENV
         fi
 
     - uses: actions/setup-java@v1
