@@ -30,6 +30,12 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The way MIDI device names were being searched for [was not
+  correct](https://github.com/Deep-Symmetry/beat-link-trigger/issues/113),
+  and this led to problems especially in Linux where they often
+  contained square brackets, but could have been an issue with any
+  device name. Thanks to [@whoman321](https://github.com/whoman321)
+  for reporting this and helping investigate the problem.
 - Incorporated a new version of Beat Link which fixes the handling of
   Unicode strings when working with downloaded database export files.
 - Changed the font used for titles and artists in the Player Status
