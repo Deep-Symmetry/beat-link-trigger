@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [0.6.3] - 2020-12-28
+
 ### Added
 
 - A new embedded web server configured to flexibly support
@@ -60,7 +64,7 @@ This change log follows the conventions of
 
 ### Changed
 
-- Updated embedded version of Carabiner to 1.1.4 to support versions
+- Updated embedded version of Carabiner to 1.1.5 to support versions
   of macOS back to 10.12 (and get updated versions of the Ableton Link
   and gflags libraries).
 
@@ -1141,7 +1145,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.2...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.5.4...v0.6.0
