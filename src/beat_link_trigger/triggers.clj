@@ -782,15 +782,17 @@
 (defn- create-trigger-row
   "Create a row for watching a player in the trigger window. If `m` is
   supplied, it is a map containing values to recreate the row from a
-  saved version."
+  saved version. If `index` is supplied, it is the initial index to
+  assign the trigger (so exceptions logged during load can be
+  meaningful), otherwise 1 is assumed."
   ([]
-   (create-trigger-row nil))
-  ([m]
+   (create-trigger-row nil 1))
+  ([m index]
    (let [outputs (util/get-midi-outputs)
          gear    (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
          panel   (mig/mig-panel
                   :id :panel
-                  :items [[(seesaw/label :id :index :text "1.") "align right"]
+                  :items [[(seesaw/label :id :index :text (str index ".")) "align right"]
                           [(seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment"))
                            "span, grow, wrap"]
 
@@ -1330,8 +1332,9 @@
     (update-global-expression-icons)
     (let [triggers (:triggers m)]
       (if (seq triggers)
-        (vec (for [trigger triggers]
-               (create-trigger-row (translate-custom-enabled trigger))))
+        (vec (map-indexed (fn [index trigger]
+                            (create-trigger-row (translate-custom-enabled trigger) (inc index)))
+                          triggers))
         [(create-trigger-row)]))))
 
 (defn build-global-editor-action

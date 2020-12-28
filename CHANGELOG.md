@@ -47,6 +47,12 @@ This change log follows the conventions of
   approximately the same place when you are zooming via the slider,
   and the portion under the mouse is kept in place when using the
   scroll wheel or trackpad scroll gesture, which is a nice, stable UX.
+- If a setup expression crashed while loading triggers, although the
+  dialog that popped up reporting the problem showed the correct
+  trigger number, the log file would always report that the problem
+  was [associated with Trigger
+  1](https://github.com/Deep-Symmetry/beat-link-trigger/issues/115)
+  even if it actually was a different trigger number.
 
 ### Changed
 
