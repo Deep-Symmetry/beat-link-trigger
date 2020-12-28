@@ -53,6 +53,10 @@ This change log follows the conventions of
   was [associated with Trigger
   1](https://github.com/Deep-Symmetry/beat-link-trigger/issues/115)
   even if it actually was a different trigger number.
+- The embedded user guide search interface was broken because part of
+  it had not been updated when the rest of it was. (If you are still
+  having problems with search, you may need to clear your browser
+  caches.)
 
 ### Changed
 

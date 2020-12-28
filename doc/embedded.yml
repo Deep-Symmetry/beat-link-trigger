@@ -1,6 +1,6 @@
 site:
   title: Beat Link Trigger User Guide
-  url: http:/guide
+  url: /guide
   start_page: beat-link-trigger::README.adoc
 content:
   edit_url: false
