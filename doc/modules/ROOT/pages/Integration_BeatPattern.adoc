@@ -1,0 +1,181 @@
+= Beat Pattern Editor User Interface
+include::partial$PagePreamble.adoc[]
+
+This started out as a request for assistance and grew into a tool that
+may be useful to many people. https://github.com/Kevinnns[@Kevinnns]
+built some chases that he wanted Beat Link Trigger to advance on
+appropriate beats, and of course found that different tracks looked
+better when different beats were used (some looked good advancing on
+even beats, others on odd beats, others on all beats). Looking for
+ways to help automate this, first we set up a
+link:{attachmentsdir}/BeatSender.bltx[BeatSender trigger] that uses a
+global to control the beats on which a message is sent to the lighting
+software to advance the chase. Then Kevin could configure tracks in a
+show to set those variables appropriately when they were playing as
+tempo master, by configuring the track to be Enabled when Master, and
+setting the Playing expression to something like this:
+
+.Track Playing Expression to configure BeatSender
+[source,clojure]
+----
+(swap! trigger-globals assoc :beat-pattern #{1 3})
+----
+
+The track using the above code wants the chase to advance on the odd
+beats only, so those are the only numbers included in the Clojure set
+constant being assigned to the `:beat-pattern` trigger global that the
+trigger responds to (using code that will be shown below). If a track
+wanted the chase to move on every beat the set `\#{1 2 3 4}` would be
+used instead. Any subset of those four numbers can be set in the
+global, and the trigger will act accordingly. The empty set `#{}`
+would pause the chase completely for that track.
+
+== The Beat Sender Trigger
+
+The trigger is configured to watch the Master Player, and to send a
+Custom activation message (in our case we left that expression empty
+because we don't actually want it to send anything when the track
+starts and stops, just on the beats themseves).
+
+image:BeatSender.png[Configurable Beat Sender trigger,758,104]
+
+The brains of the trigger are in its Beat Expression, which we will
+examine now, although this is just to explain how it works. You can
+link:{attachmentsdir}/BeatSender.bltx[download] the trigger and import
+it using menu:Import Trigger[] in a Trigger context (gear) menu to get
+all the code and configuration in one easy step.
+
+.BeatSender Beat Expression: MIDI Notes
+[source,clojure]
+----
+(when (and trigger-output ((:beat-pattern @globals #{}) beat-within-bar)) ;; <1>
+  (midi/midi-note-on trigger-output trigger-note 127  ;; <2>
+                     (dec trigger-channel))
+  (midi/midi-note-off trigger-output trigger-note  ;; <3>
+                      (dec trigger-channel)))
+----
+
+This version of the trigger sends a MIDI note on appropriate beats,
+allowing the user to control the note and channel numbers through the
+normal Message section in the Trigger GUI.
+
+<1> This is where the configuration global gets used. We first check
+that there is a valid MIDI output to use (by ensuring that
+`trigger-output` has a value), and then check whether the beat that
+was just reported by the player is present in the set found in
+`:beat-pattern` in the trigger globals. If both of those things are
+true, it's time to send our message.
++
+The `trigger-output` value will contain the MIDI output device chosen
+in the trigger's dropdown list, as long as that device is currently
+connected and available. Skipping the check in the `when` statement
+would cause exceptions to be logged on each beat where we were trying
+to advance the chase, because the `midi-note-on` function would be
+unable to send to a `nil` output device.
+
+<2> Here, once we know that the beat should advance the chase, we send
+a MIDI note. We can't use the trigger Message menu to decide whether
+to send a Note or CC message, because we need to leave that set to
+Custom so that trigger activation and deactivation messages don't mess
+with the chase. But we can use the `trigger-note` and
+`trigger-channel` values which get set by the corresponding Trigger UI
+spinners, to control the actual note and MIDI channel we use.
++
+We need to use `dec` to subtract 1 from the channel number, because
+even though MIDI talks about channels 1 through 16, they are actually
+sent over the wire using the numbers 0 thrrough 15.
+
+<3> And, to be polite even though most software doesn't require it,
+we follow our note-on message with a matching note-off message.
+
+If your lighting desk or software works better with a MIDI Controller
+Change message, you can swap out the Beat Expression code for this
+variant:
+
+.BeatSender Beat Expression: MIDI Controller Changes
+[source,clojure]
+----
+(when (and trigger-output ((:beat-pattern @globals #{}) beat-within-bar)) ;; <1>
+  (midi/midi-control trigger-output trigger-note 127  ;; <2>
+                     (dec trigger-channel))
+  (midi/midi-control trigger-output trigger-note 0
+                     (dec trigger-channel)))
+----
+
+<1> The logic to decide when to advance the chase is the same as
+before: we have a connected MIDI device chosen, and the beat that just
+happened is one of the ones the chase is supposed to respond to.
+
+<2> But this time we send a Controller Change message instead of a
+Note. Like before, we send a non-zero value followed by a zero value
+to mark this as a transient event.
+
+Or, you may not want to use MIDI at all. In fact, in Kevin's case, it
+was easier to control his software using OSC, so the actual Beat
+Expression he is using looks like this:
+
+.BeatSender Beat Expression: OSC
+[source,clojure]
+----
+(when ((:beat-pattern @globals #{}) beat-within-bar)  ;; <1>
+  (osc/osc-send (:magic @globals) "/magic/0" 1))  ;; <2>
+----
+
+<1> We no longer need to worry about the selected MIDI device in our
+`when` condition, all we care about is that the beat is one we're
+supposed to respond to.
+
+<2> This sends an OSC message to the OSC client found at the key
+`:magic` in the trigger globals. The OSC client needs to be opened in
+the trigger Global Setup Expression, and closed in the Global Shutdown
+Expression, like in the examples shown in the
+<<Expressions_Trigger.adoc#setup-expression,Trigger Expressions>>
+section, which demonstrate how to configure a client to talk to
+Resolume Arena and store it under the key `:resolume`.
+
+== Adding a Beat Pattern GUI
+
+The system we've built so far works great when all the tracks being
+played are already preconfigured in a Beat Link show with code to
+automatically set the beat pattern when they are recognized. But
+that's not a realistic situation under most circumstances! It would be
+nice to have an easy way to configure the beat pattern while listening
+to the track the DJ is playing, to tweak the chase to look good on the
+fly. So that's what I built, taking advantage of Beat Link Trigger's
+ability for shows to define their own GUI components. Here's a
+detailed look at how the resulting
+link:{attachmentsdir}/BeatPattern.bls[BeatPattern show] looks and
+works.
+
+image:BeatPattern.png[Beat Pattern Show,479,317]
+
+Instead of showing a list of tracks, the show window is taken up by a
+grid of buttons. Pressing one of the big buttons sets the beat pattern
+correspondingly. Pressing one of the individual beat buttons toggles
+that beat active or inactive. If toggling a beat button lands you on a
+pattern that matches one of the big buttons, the big button lights up
+too. You can make the window as big as you want and the buttons will
+grow, for easier targets to mash during a show. Or you can use the
+expanded version of the show described <<adding-mapping,below>> to map
+a physical MIDI controller, giving you nice physical buttons to push,
+which can also light up to provide feedback about which beats or
+patterns are active.
+
+The buttons also react when other code changes the beat pattern (for
+example if a track in another show is configured to change the
+`:beat-pattern` trigger global when it starts playing as tempo
+master). So this window gives you a good look at what beats are going
+to advance your chase when the Beat Sender trigger is enabled, and
+lets you quickly change them to better suit what you are hearing and
+seeing while a track plays.
+
+You can read on to see exactly how this was done, or you can just
+link:{attachmentsdir}/BeatPattern.bls[download] the show and open it
+whenever you want to use it.
+
+To be continued!
+
+[[adding-mapping]]
+== Adding MIDI Mapping
+
+To be written!
