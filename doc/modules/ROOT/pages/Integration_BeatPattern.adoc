@@ -72,6 +72,20 @@ connected and available. Skipping the check in the `when` statement
 would cause exceptions to be logged on each beat where we were trying
 to advance the chase, because the `midi-note-on` function would be
 unable to send to a `nil` output device.
++
+The expression `(:beat-pattern @globals \#{})` is a terse Clojure way
+of saying “Look up the current values in the trigger globals, and find
+the value stored under the key `:beat-pattern`. If there is nothing
+there, return the empty set, `#{}`.” That last part is to protect us
+against crashes if nobody has yet stored a beat pattern in the trigger
+globals; we will just interpret that as a set with no beats in it, and
+do nothing.
++
+We then call that set as a function, passing it the current beat
+number. Clojure sets can be used as functions like this, and will
+return a true value if the current beat is a member of the set. This
+is how the beat pattern controls the `when` statement to decide which
+beats should send a message.
 
 <2> Here, once we know that the beat should advance the chase, we send
 a MIDI note. We can't use the trigger Message menu to decide whether
