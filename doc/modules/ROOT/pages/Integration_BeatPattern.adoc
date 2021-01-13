@@ -491,4 +491,13 @@ longer be a user interface to update when the beat pattern changes.
 [[adding-mapping]]
 == Adding MIDI Mapping
 
-To be written!
+Clicking big buttons on a computer screen is fine, but it's nicer to
+be able to control shows using physical buttons. To support that, I
+built link:{attachmentsdir}/BeatPatternMapped.bls[an extended version]
+of the show which adds another layer of UI allowing each button to be
+mapped to a physical MIDI controller button. To set up that mapping,
+just right-click (or control-click on a Mac) in the button, and a MIDI
+mapping interface for that button will appear.
+
+To be continued, with details about how to use that interface, and a
+look at the new code that makes it all work!
