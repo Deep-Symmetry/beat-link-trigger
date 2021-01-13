@@ -170,7 +170,7 @@ that beat active or inactive. If toggling a beat button lands you on a
 pattern that matches one of the big buttons, the big button lights up
 too. You can make the window as big as you want and the buttons will
 grow, for easier targets to mash during a show. Or you can use the
-expanded version of the show described <<adding-mapping,below>> to map
+fancier version of the show described <<adding-mapping,below>> to map
 a physical MIDI controller, giving you nice physical buttons to push,
 which can also light up to provide feedback about which beats or
 patterns are active.
@@ -187,7 +187,306 @@ You can read on to see exactly how this was done, or you can just
 link:{attachmentsdir}/BeatPattern.bls[download] the show and open it
 whenever you want to use it.
 
-To be continued!
+=== Shared Functions
+
+Most of the code required to build and power this interface is defined
+as a set of shared functions, which you can examine by choosing
+menu:Expressions[Edit Shared Functions]. Because shared functions are
+shared between shows, and with expressions in the Triggers window as
+well, all of the ones defined by this show have names that begin with
+`beat-pattern-`, so they don't conflict with functions defined
+elsewhere.
+
+The first function is the one that builds the click handler to be run
+when one of the UI buttons is clicked. It's used when creating each of
+the buttons.
+
+.Responding to button clicks
+[source,clojure]
+----
+(defn beat-pattern-button-action
+  "Builds a click handler for one of the UI buttons which updates the
+  trigger globals to reflect the pattern of beats managed by the
+  button. For buttons which manage more than one beat, we replace the
+  current beats with the button's pattern. For individual beats, we
+  just turn that beat on or off. Returns a function which takes the
+  button, and updates the beat pattern appropriately given the state
+  to which that button is transitioning."
+  [trigger-globals pattern]  ;; <1>
+  (fn [button]  ;; <2>
+    (if (> (count pattern) 1)  ;; <3>
+      (swap! trigger-globals assoc :beat-pattern  ;; <4>
+             (if (seesaw/value button) pattern #{}))
+      (swap! trigger-globals update :beat-pattern  ;; <5>
+             (fnil (if (seesaw/value button)
+                     clojure.set/union
+                     clojure.set/difference)
+                   #{})  ;; <6>
+             pattern))))
+----
+
+<1> The builder function itself takes the trigger globals as an
+argument so that the function it returns has access to update them
+when a button is clicked, and the beat pattern assigned to the button.
+As noted in the doc string that describes the function, buttons that
+manage a single beat behave differently than buttons responsible for a
+pattern of multiple beats.
+
+<2> This is the function that is being returned by the action builder.
+It takes a single argument, the button that has just been clicked, so
+it can check whether the button has been turned on or off by the
+click.
+
+<3> Here is where we check whether the beat pattern has more than one
+beat in it, which determines how we respond to the button click.
+
+<4> If the button manages more than one beat, then turning the button
+on sets the whole beat pattern to match the pattern assigned to the
+button, and turning the button off turns off all beats.
+
+<5> If the button manages just one beat, then turning the button on or
+off does the same thing to that beat alone.
+
+<6> To protect ourselves against the situation where the beat pattern
+has not yet been established before the button was clicked, we use
+https://clojuredocs.org/clojure.core/fnil[`fnil`] inside the
+https://clojuredocs.org/clojure.core/update[`update`] call to replace
+a missing (`nil`) value with the empty set. This is an important
+Clojure technique, but
+https://clojure.org/guides/higher_order_functions[higher-order
+functions] like this take some getting used to for people who haven't
+done a lot of functional programming.
+
+.Creating the actual buttons
+[source,clojure]
+----
+(defn beat-pattern-button
+  "Constructs a toggle button for use in the UI, with the specified id,
+  text, and beat pattern."
+  [trigger-globals id text pattern]
+  (seesaw/toggle :id id :text text  ;; <1>
+                 :listen [:action (beat-pattern-button-action
+                                    trigger-globals pattern)]))  ;; <2>
+----
+
+This function is pretty short because it can use the action builder we
+just looked at to do most of its work. Given the trigger globals, an
+ID to assign the new button, the text to use for its user-visible
+label, and the pattern (set) of beats it is responsible for, it
+creates a button to manage those beats.
+
+<1> We tell Seesaw to create a
+https://daveray.github.io/seesaw/seesaw.core-api.html#seesaw.core/toggle[toggle]
+button, which is a button that stays on until clicked again, as
+opposed to a normal momentary-action button.
+
+<2> And we tell the button to call an action handler we build using
+the previous function, that will update the beat pattern appropriately
+when clicked.
+
+That's all the helpers we need to build the user interface.
+
+.Putting together the whole UI
+[source,clojure]
+----
+(defn beat-pattern-build-ui
+  "Creates the custom user interface for the beat pattern chooser."
+  [trigger-globals]  ;; <1>
+  (let [every (beat-pattern-button trigger-globals :every  ;; <2>
+                                   "Every Beat" #{1 2 3 4})
+        evens (beat-pattern-button trigger-globals :evens "Evens" #{2 4})
+        odds  (beat-pattern-button trigger-globals :odds "Odds" #{1 3})
+        one   (beat-pattern-button trigger-globals :b-1 "1" #{1})
+        two   (beat-pattern-button trigger-globals :b-2 "2" #{2})
+        three (beat-pattern-button trigger-globals :b-3 "3" #{3})
+        four  (beat-pattern-button trigger-globals :b-4 "4" #{4})
+        panel (seesaw/form-panel  ;; <3>
+               :id :pattern-panel
+               :background "#aad"
+               :items [[every :weightx 1.0 :weighty 1.0 :fill :both  ;; <4>
+                        :gridwidth :remainder]
+
+                       [(seesaw/label :text "") :gridwidth 1]  ;; <5>
+                       [evens :gridwidth :remainder]
+
+                       [odds :gridwidth 3]  ;; <6>
+                       [(seesaw/label :text "") :gridwidth :remainder]
+
+                       [one :gridwidth 1] [two] [three] [four]])]  ;; <7>
+    panel))  ;; <8>
+----
+
+<1> To build the UI, we need to know how to find the trigger globals,
+because the buttons need to manipulate the beat pattern that is stored
+in them.
+
+<2> The bulk of this function just calls the button-creator function
+we just saw seven times to create the seven buttons that make up the
+beat pattern selector, giving them each appropriate IDs, labels, and
+sets of beats to manage (as well as access to the trigger globals).
+
+<3> Even though the Seesaw
+https://daveray.github.io/seesaw/seesaw.core-api.html#seesaw.core/form-panel[documentation]
+calls the
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/java/awt/GridBagLayout.html[`GridBagLayout`]
+that `form-panel` creates an “abomination” it is exactly the kind of
+simple-minded grid our buttons need.
+
+<4> The `:items` list populates the grid. The first button we add is
+the Every Beat button, and the weights and `:fill both` tell the
+layout that the buttons should always grow to take up the entire
+allocated space when the window is resized. (These values get passed
+on to the next item, so setting them once is enough.) We also say that
+this button should take up the remainder of its row by specifying
+`:gridwidth :remainder`. (Yes, `GridBagLayout` is cryptic, but we got
+it to work.)
+
+<5> For the next row of the grid, we leave an empty cell (by puting an
+empty label in it, with `:gridwidth 1`) so the Evens button can line
+up over the even beats. Then we place that button, again telling it to
+take the rest of its row.
+
+<6> The Odds button is similar, but it goes at the start of its row
+and uses `:gridwidth 3` so it lines up over the 1 and 3 beats. We
+finish that row with another empty cell, at the end this time.
+
+<7> The last row of individual beat buttons is simpler. We set
+`:gridwidth 1` because these buttons all take a single cell, and then
+we just list them all.
+
+<8> Finally, we return the panel of buttons we have created, which we
+will tell the show to install as its UI, in the global setup
+expression that is coming up <<global-setup,shortly>>.
+
+There's one last shared function to look at first though. As noted
+earlier, we want the buttons to update themselves if other code (like
+another show recognizing a track) changes the beat pattern. Also, one
+button may change multiple beats, and we want all the buttons state to
+reflect that. Another part of the <<global-setup,global setup
+expression>> arranges for the following function to be called whenever
+the beat pattern has been changed, no matter what caused that.
+
+.Responding to Pattern Changes
+[source,clojure]
+----
+(defn beat-pattern-changed
+  "Called when the beat pattern has changed to update the state of each
+  button in the UI to reflect the new pattern."
+  [show new-pattern]  ;; <1>
+  (let [buttons [[:#odds #{1 3}]  ;; <2>
+                 [:#evens #{2 4}]
+                 [:#every #{1 2 3 4}]
+                 [:#b-1 1]
+                 [:#b-2 2]
+                 [:#b-3 3]
+                 [:#b-4 4]]]
+    (seesaw/invoke-later  ;; <3>
+     (doseq [[id on-pattern] buttons]  ;; <4>
+       (let [button (seesaw/select (:frame show) [id])]  ;; <5>
+         (if (set? on-pattern)  ;; <6>
+           (seesaw/value! button (= new-pattern on-pattern))  ;; <7>
+           (seesaw/value! button (contains? new-pattern on-pattern))))))))  ;; <8>
+----
+
+<1> We need access to the show, so we can find the UI and update
+button states, and we need to know what beats are now active, so we
+can know what the button states should be.
+
+<2> This list pairs a Seesaw selector (that can be used to find the
+right button) with the beats that button is responsible for. In this
+function, a set means the button should be active only when
+`new-pattern` has exactly the same set of beats in it, where as an
+individual beat number means that button should be on whenever that
+beat is part of the `new-pattern` set.
+
+<3> To interact safely with user interface objects, Java requires your
+code to be running in a special
+https://en.wikipedia.org/wiki/Event_dispatching_thread[“event dispatch
+thread”]. Since we can't be sure this function was called from that
+thread, `invoke-later` arranges for its body to be run on that thread.
+We didn't have to worry about this in, for example, our button action
+handler, because those functions are already always called on the
+event dispatch thread.
+
+<4> This loops over the pairs of button ``id``s and `on-pattern`
+values we set up above.
+
+<5> Using the button `id` we are able to look up the actual button
+object inside the show's UI.
+
+<6> Then we check whether we are dealing with a set (beat pattern) or
+individual beat.
+
+<7> If it's a set, then we turn the button on if the new pattern
+matches the pattern of the button exactly, and turn it off otherwise.
+
+<8> If it's an individual beat, we turn the button on if that beat is
+present in `new-pattern`, and off otherwise.
+
+[[global-setup]]
+=== Global Setup Expression
+
+With those handy shared functions in place, we can build and install
+the show's special GUI. The global setup expression runs when the show
+is opened, so it is the perfect place to do that.
+
+[source,clojure]
+----
+;; Set up the beat pattern selection UI for the show.
+(show/block-tracks show (beat-pattern-build-ui trigger-globals)) ;; <1>
+
+;; Arrange for the checkbox state to be automatically updated if any other
+;; code (such as a show track) changes the beat mode.
+(add-watch trigger-globals :beat-pattern-watcher  ;; <2>
+           (fn [_ _ old-state new-state]
+             (let [old-pattern (:beat-pattern old-state)   ;; <3>
+                   new-pattern (:beat-pattern new-state)]
+               (when (not= old-pattern new-pattern)  ;; <4>
+                 (beat-pattern-changed show new-pattern)))))
+
+;; Finally, make sure the buttons start out reflecting the current beat mode.
+(seesaw/invoke-later  ;; <5>
+ (when (seq (:beat-pattern @trigger-globals))  ; At least one beat is on.
+    (beat-pattern-changed show (:beat-pattern @trigger-globals))))
+----
+
+<1> This is how you set your own custom UI for a show. We pass the
+trigger globals to the UI builder function described above, and call
+`show/block-tracks` with the show and the UI we built, and Beat Link
+Trigger puts it in place, hiding the track UI that would otherwise be
+there.
+
+<2> This cool Clojure trick lets us update the UI regardless of how
+the beat pattern changes. We register a watch function on the
+`trigger-globals` atom. Whenever any code changes that atom, our watch
+gets called, with the old and new state of the atom.
+
+<3> We only care if our `:beat-pattern` key changed, so we pull that
+out of both the old and new global states.
+
+<4> If the old pattern and new pattern are different, we know the beat
+pattern changed, so we call the shared function we saw earlier that
+updates the UI to match the new beat pattern.
+
+<5> And just in case someone already set up a beat pattern before we
+opened this show, we check for that possibility and use the same
+shared function to set up the intitial user interface state if needed.
+
+Putting this all together makes for a very nice user interface for
+managing beat patterns in lighting chases. The only thing left to do
+is be good citizens, and clean up after ourselves when the show is
+closed.
+
+=== Global Shutdown Expression
+
+The global shutdown expression is run when the show is closing. We
+want to remove our watch on the trigger globals, since there will no
+longer be a user interface to update when the beat pattern changes.
+
+[source,clojure]
+----
+(remove-watch trigger-globals :beat-pattern-watcher)
+----
 
 [[adding-mapping]]
 == Adding MIDI Mapping
