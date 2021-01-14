@@ -565,4 +565,45 @@ well for a while, I will probably move that plumbing into Beat Link
 Trigger, to make it easier to write similar shows in the future, and
 allow them to share code with each other.
 
+.Cleanup functions
+[source,clojure]
+----
+(defn beat-pattern-close-mapper  ;; <1>
+  "Closes the MIDI mapping window, if any, associated with the supplied
+  button, as part of cleanup when the show is shutting down."
+  [button]
+  (when-let [frame (:frame @(seesaw/user-data button))]
+    (.dispatchEvent frame (java.awt.event.WindowEvent.
+                           frame java.awt.event.WindowEvent/WINDOW_CLOSING))))
+
+(defn beat-pattern-close-input  ;; <2>
+  "Closes the MIDI input, if any, associated with the supplied button.
+  Used whenever a new device has been chosen, and as part of cleanup
+  when the show is shutting down."
+  [button]
+  (swap! (seesaw/user-data button) update :input
+         (fn [old-input]  ; Close existing connection if there was one.
+           (when old-input
+             (try
+               (.close (:transmitter old-input))
+               (catch Exception e
+                 (timbre/warn e "Problem closing old mapped MIDI input."))))
+           nil)))
+----
+
+<1> This function is called by the <<midi-global-shutdown,global
+shutdown expression>> for each beat pattern button to check if that
+button has an open MIDI mapping window and close it, as part of
+closing the show.
+
+<2> And this function is called at the same time to close any MIDI
+input that was opened for each button. We don't need to worry about
+closing MIDI outputs because those are shared with other Beat Link
+Trigger expressions, and stay open as long as the device is connected.
+
 To be continued!
+
+[[midi-global-shutdown]]
+=== Global Shutdown Expression
+
+To be written!
