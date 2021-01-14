@@ -187,6 +187,7 @@ You can read on to see exactly how this was done, or you can just
 link:{attachmentsdir}/BeatPattern.bls[download] the show and open it
 whenever you want to use it.
 
+[[shared-functions]]
 === Shared Functions
 
 Most of the code required to build and power this interface is defined
@@ -477,6 +478,7 @@ managing beat patterns in lighting chases. The only thing left to do
 is be good citizens, and clean up after ourselves when the show is
 closed.
 
+[[global-shutdown]]
 === Global Shutdown Expression
 
 The global shutdown expression is run when the show is closing. We
@@ -497,7 +499,70 @@ built link:{attachmentsdir}/BeatPatternMapped.bls[an extended version]
 of the show which adds another layer of UI allowing each button to be
 mapped to a physical MIDI controller button. To set up that mapping,
 just right-click (or control-click on a Mac) in the button, and a MIDI
-mapping interface for that button will appear.
+mapping interface for that button will appear:
 
-To be continued, with details about how to use that interface, and a
-look at the new code that makes it all work!
+image:BeatPatternMap.png[MIDI mapping interface,909,227]
+
+There are two rows in the MIDI mapper. The top row is for configuring
+the MIDI Note or Control Change message that will activate the beat
+pattern button when it is sent to Beat Link Trigger, and the bottom
+row is for configuring a feedback message to be sent out by Beat Link
+Trigger whenever the button state changes. To begin with, both are
+disabled by having their menu:Message[] dropdown set to None. (As soon
+as you choose a message other than None, the disabled elements of the
+row will become enabled for you to configure the details.)
+
+=== Input Mapping
+
+The first step is to choose the MIDI device that you want to respond
+to. Make sure it is connected to your system and powered on, then
+choose it in the menu:MIDI Input[] dropdown. Once you've done that, if
+you know the message, note (or controller number) and channel that you
+want the button to respond to, you can choose or enter them directly.
+Otherwise, you can click the Learn button to activate it, and then
+press the button on the MIDI controller that you want to use, and Beat
+Link Trigger will update the message, note/controller number and
+channel to match the first Note On or Controller Change message it
+receives from the chosen MIDI input. (If you change your mind, you can
+cancel Learn mode by toggling the Learn button back off before such a
+message is received.)
+
+=== Output Mapping
+
+If your controller has LEDs, you can use the feedback mapping to
+illuminate them to reflect the current state of each mapped button. To
+do that, select the device that you want to send the feedback messages
+to in the menu:MIDI Output[] dropdown (again, once it is connected to
+your system and powered on). In most cases you probably want to choose
+the same device you are receiving input from, but it is also possible
+to send the button state to a different device for display.
+
+If you used Learn to find out the message, note/controller change
+number and channel for the received message, those will also have been
+copied to the feedback message, but you are free to override them to
+send feedback in a different way.
+
+Also, by default the feedback message uses a velocity of 127 to
+indicate a button has been turned on and 0 to indicate that it has
+been turned off, but you can change those to whatever values look best
+on your controller.
+
+Once you are happy with your MIDI mapping for a button, you can simply
+close the mapping window. The configuration is automatically saved
+inside the show.
+
+[[midi-shared-functions]]
+=== Shared Functions
+
+It turns out that it required far more code to implement the MIDI
+mapping features than it did to implement the beat pattern editor
+itself! Part of that is simply because there are a lot more user
+interface elements in the MIDI Mapping window than there are in the
+beat pattern window. But it is also true that Beat Link Trigger itself
+does not respond to MIDI input, so there was a fair bit of plumbing
+that needed to be able to written to support that. If this show works
+well for a while, I will probably move that plumbing into Beat Link
+Trigger, to make it easier to write similar shows in the future, and
+allow them to share code with each other.
+
+To be continued!
