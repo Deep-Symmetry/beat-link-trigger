@@ -693,6 +693,97 @@ messed with its contents.
 
 <8> And we do the same things for the MIDI output dropdown.
 
+The next function is called whenever a new MIDI input has been chosen
+in the dropdown menu. It registers a handler function to be called
+when MIDI events arrive from that input, which is how we can respond
+to them. It implements both the Learn button, and toggling the button
+in response to the learned or configured event.
+
+.Responding to MIDI events
+[source,clojure]
+----
+(defn beat-pattern-attach-midi-handler
+  "Installs a function to be called whenever there is MIDI input from a
+  button's newly selected device, to check whether it is mapped to a
+  button action, or if a mapping is currently being learned."
+  [button show new-input]
+  (let [handler (fn [message]  ;; <1>
+    (let [learned (atom false)] ; So we don't react to something just learned.
+      ;; First handle "Learn" mode if that is active.
+      (when-let [mapper (:frame @(seesaw/user-data button))]  ;; <2>
+        (let [learn (seesaw/select mapper [:#learn])]
+          (when (and (seesaw/value learn)  ;; <3>
+                     (#{:note-on :control-change} (:status message)))
+            (seesaw/invoke-later  ;; <4>
+             (let [note? (= :note-on (:status message))]  ;; <5>
+               (seesaw/value! (seesaw/select mapper [:#message])
+                              (if note? "Note" "CC"))
+               (seesaw/value! (seesaw/select mapper [:#feedback-message])
+                              (if note? "Note" "CC")))
+             (seesaw/value! (seesaw/select mapper [:#note])
+                            (long (:note message)))
+             (seesaw/value! (seesaw/select mapper [:#feedback-note])
+                            (long (:note message)))
+             (seesaw/value! (seesaw/select mapper [:#channel])
+                            (long (inc (:channel message))))
+             (seesaw/value! (seesaw/select mapper [:#feedback-channel])
+                            (long (inc (:channel message))))
+             (seesaw/value! learn false)  ;; <6>
+             (reset! learned true)))))
+      ;; Then, if we didn't just learn this message, see if it matches
+      ;; the button mappings, and if so, toggle it.
+      (when-not @learned  ;; <7>
+        (let [mapping (get-in (show/user-data show)
+                              [:mappings (seesaw/id-for button)])]
+          (when (and (or (and (= :note-on (:status message))
+                              (= "Note" (:message mapping)))
+                         (and (= :control-change (:status message))
+                              (= "CC" (:message mapping))))
+                     (pos? (:velocity message))
+                     (= (:note message) (:note mapping 1))
+                     (= (inc (:channel message)) (:channel mapping 1)))
+            (seesaw/invoke-later (.doClick button)))))))]  ;; <8>
+    (midi/midi-handle-events new-input handler)))  ;; <9>
+----
+
+<1> First we build the function that we'll register as our MIDI handler.
+
+<2> In responding to each MIDI event we check if the button has an
+open MIDI mapper, in case Learn mode is active. If there is no mapper
+window open, the function skips the whole Learn section.
+
+<3> If the Learn button is active and we have received a Note On or
+Controller Change event, then it's time to learn it!
+
+<4> Because we are about to make changes to GUI objects, we need to do
+that on the Swing event dispatch thread.
+
+<5> We check if we got a Note or Controller Change, then use that
+information to populate the various dropdowns and number spinners in
+the mapping window so they will recognize when the same note or
+controller is sent in the future. We need to use `inc` to add 1 to the
+channel number, because even though MIDI talks about channels 1
+through 16 (so we want to display them to the user that way), they are
+actually sent over the wire using the numbers 0 thrrough 15.
+
+<6> Then we turn off the Learn button, since we have successfully
+learned our mapping, and record that we did learn something to
+suppress the rest of the function this time, because we don't want to
+also respond to an event that we learned.
+
+<7> Unless we just learned the current event, we check to see if it
+matches our assigned mapping (is the right type of event, has a
+non-zero velocity, is the right note or controller, and on the right
+channel).
+
+<8> If all of those checks passed, we pretend the user clicked the
+button (which again needs to be done on the Swing event dispatch
+thread).
+
+<9> This attaches the `handler` function we just finished building to
+the MIDI input device, so it will be called whenever there is input
+from that device.
+
 To be continued!
 
 [[midi-global-setup]]
