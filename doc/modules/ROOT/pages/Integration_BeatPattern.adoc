@@ -551,6 +551,11 @@ Once you are happy with your MIDI mapping for a button, you can simply
 close the mapping window. The configuration is automatically saved
 inside the show.
 
+> If all you want is to use the show, that's all you need to know. Go
+> ahead, link:{attachmentsdir}/BeatPatternMapped.bls[download] and
+> open it. But if you want to understand how it works on the inside,
+> read on!
+
 [[midi-shared-functions]]
 === Shared Functions
 
@@ -601,7 +606,99 @@ input that was opened for each button. We don't need to worry about
 closing MIDI outputs because those are shared with other Beat Link
 Trigger expressions, and stay open as long as the device is connected.
 
+.Listing MIDI inputs
+[source,clojure]
+----
+(defn beat-pattern-midi-inputs
+  "Returns all the suitable choices for a MIDI input component."
+  []
+  (map #(beat_link_trigger.util.MidiChoice. (:name %))
+       (filter util/usable-midi-device? (sort-by :name (midi/midi-sources)))))
+----
+
+This short function is something that really needs to be added to Beat
+Link Trigger itself. It produces a list of `MidiChoice` objects that
+can be used to build a dropdown menu showing all input devices that
+are currently available. When running on a Mac, it filters out the
+broken versions offered by the standard Java MIDI implementation,
+since there are fixed versions offered instead by our embedded
+https://github.com/DerekCook/CoreMidi4J[CoreMIDI4J library].
+
+BLT already has a function like this for MIDI outputs,
+`util/get-midi-outputs`, but since it doesn't have any use for MIDI
+inputs itself, this was never included. Because expression code and
+show GUIs like this one are occasionally going to need it, I expect I
+will add this version to the `util` namespace soon.
+
+.Updating the device menus
+[source,clojure]
+----
+(defn beat-pattern-update-mapper-devices
+  "If the supplied button has an active MIDI mapping window, updates the
+  menus of MIDI inputs and outputs to reflect a change in the MIDI
+  environment. If a device which disappeared was chosen in a menu,
+  however, it is kept in the menu and kept selected, so that it can be
+  reconnected automatically if and when the device reappears."
+  [button]
+  (when-let [frame (:frame @(seesaw/user-data button))]  ;; <1>
+    (let [new-inputs  (beat-pattern-midi-inputs)  ;; <2>
+          input-menu  (seesaw/select frame [:#inputs])  ;; <3>
+          old-input   (seesaw/selection input-menu)  ;; <4>
+          new-outputs (util/get-midi-outputs)  ;; <5>
+          output-menu (seesaw/select frame [:#outputs])
+          old-output  (seesaw/selection output-menu)]
+      (seesaw/config! input-menu :model  ;; <6>
+                      (concat new-inputs
+                              (when-not ((set new-inputs) old-input)
+                                        [old-input])))
+      (seesaw/selection! input-menu old-input)  ;; <7>
+      (seesaw/config! output-menu :model  ;; <8>
+                      (concat new-outputs
+                              (when-not ((set new-outputs) old-output)
+                                        [old-output])))
+      (seesaw/selection! output-menu old-output))))
+----
+
+One of the ways that BLT tries to be friendly is by updating all of
+its dropdown menus of MIDI devices whenever a device is attached or
+detached while it is running. This function is hooked up to be called
+whenever CoreMIDI4J reports a change in the MIDI environment by our
+<<midi-global-setup,global setup expression>>.
+
+<1> The first thing the function checks is whether there is a MIDI
+mapping window open for the button, which is tracked under the
+`:frame` key of that button's user data. If not, there is nothing we
+need to do, and the rest of the body is skipped.
+
+<2> Having found a MIDI mapping window to update, we find the set of
+MIDI inputs that are now available.
+
+<3> Then we look up the MIDI input dropdown menu inside the mapping
+window by searching for the ID we used when creating it.
+
+<4> And we find what device the user has currently chosen in that menu.
+
+<5> The next three lines do the same things for the MIDI output
+dropdown.
+
+<6> Here we update the MIDI input dropdown to contain only the devices
+currently available, but we keep around the currently-chosen device at
+the end of the list even if it is no longer actually available, so it
+will automatically work right away if it gets reconnected. This is a
+user-friendliness feature to rescue people from losing configuration
+if they forget to connect their MIDI controller before launching BLT.
+
+<7> Then we restore the selection that the dropdown had before we
+messed with its contents.
+
+<8> And we do the same things for the MIDI output dropdown.
+
 To be continued!
+
+[[midi-global-setup]]
+=== Global Setup Expression
+
+To be written!
 
 [[midi-global-shutdown]]
 === Global Shutdown Expression
