@@ -784,14 +784,81 @@ thread).
 the MIDI input device, so it will be called whenever there is input
 from that device.
 
-To be continued!
+That's one of the most complex functions we've looked at, but it does
+do a lot of the core work of supporting the MIDI mapping. The next two
+are simpler.
+
+.Tracking the chosen MIDI input
+[source,clojure]
+----
+(defn beat-pattern-change-input
+  "Record the MIDI input from which messages should be received for a
+  given button by storing it as that button's user data. Opens a
+  private connection to it so we can add our own event handler that
+  will stop being called when we close this connetion. Stores `nil`
+  if the input can not currently be found (it was disconnected, or
+  present in a loaded file but not on this system)."
+  [button show]
+  (beat-pattern-close-input button)  ;; <1>
+  (when-let [selection (get-in (show/user-data show)
+                       [:mappings (seesaw/id-of button) :inputs])]  ;; <2>
+    (let [device-name (.full_name selection)]  ;; <3>
+      (try
+        (let [new-input (midi/midi-in
+                         (java.util.regex.Pattern/quote device-name))] ;; <4>
+          (beat-pattern-attach-midi-handler button show new-input)  ;; <5>
+          (swap! (seesaw/user-data button) assoc :input new-input))  ;; <6>
+        (catch IllegalArgumentException e  ;; <7>
+          ;; The chosen output is not currently available
+          (timbre/debug e "MIDI mapping using nonexisting MIDI input"
+                        device-name))
+        (catch Exception e  ; Some other problem opening the device
+          (timbre/error e "Problem opening device" device-name
+                        "(treating as unavailable)"))))))
+----
+
+This function is called whenever the MIDI input dropdown is changed in
+a button's mapping window.
+
+<1> The first thing to do is close whatever MIDI input was previously
+being used by this button, using one of the first shared functions we
+looked at. This means we will no longer receive, and thus respond to,
+events from the previously-chosen input.
+
+<2> Then we look at what device has now been chosen. The actual code
+has a type hint in front of `selection`,
+`^beat_link_trigger.util.MidiChoice`, which tells the Clojure compiler
+what Java class we expect to find, and allows it to write slightly
+more efficient code, but that is not required for it to work
+correctly.
+
+<3> Assuming we found a selection, we get the device name from it, and
+try to open that MIDI device.
+
+<4> Because `midi-clj` allows you to use regular expressions to search
+for devices, and Windows MIDI device names sometimes contain square
+brackets which get interpreted as regular expression ranges, we quote
+the device name and prevent any such misinterpretations from causing
+problems.
+
+<5> We then build and attach the event handler function to the
+newly-opened device, using the function we just examined above.
+
+<6> And we keep track of this open MIDI connection so we can close it
+later, like in step ①, or when the show itself closes.
+
+<7> We want to gracefully handle an unavailable device being chosen,
+because that is expected to occur often and not a big deal. Other
+kinds of problems, if they occur, get logged as errors.
+
+> To be continued!
 
 [[midi-global-setup]]
 === Global Setup Expression
 
-To be written!
+> To be written!
 
 [[midi-global-shutdown]]
 === Global Shutdown Expression
 
-To be written!
+> To be written!
