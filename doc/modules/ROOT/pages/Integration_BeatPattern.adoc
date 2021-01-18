@@ -1264,4 +1264,35 @@ buttons' MIDI connections and install their MIDI event handlers.
 [[midi-global-shutdown]]
 === Global Shutdown Expression
 
-> To be written!
+[source,clojure]
+----
+;; Stop reacting to changes to the trigger globals.
+(remove-watch trigger-globals :beat-pattern-watcher)  ;; <1>
+
+;; Stop reacting to changes to the MIDI environment.
+(CoreMidiDeviceProvider/removeNotificationListener (:listener @globals))  ;; <2>
+
+;; Close any MIDI inputs the buttons were using, and any MIDI mapper
+;; windows they had open.
+(doseq [id (keys beat-pattern-buttons)]  ;; <3>
+  (let [button (seesaw/select (:frame show) [id])]
+    (beat-pattern-close-input button)
+    (beat-pattern-close-mapper button)))
+----
+
+<1> This is what was in the global shutdown expression for the
+non-mappable show, and has not changed.
+
+<2> This is what we just mentioned in ⑧ above, the code to tell
+CoreMIDI4J to stop telling our listener when MIDI devices are added to
+or removed from the system.
+
+<3> Here we loop over all the beat pattern buttons in the UI, so we
+can be a good citizen and close any open MIDI mapping windows they
+might have, and any MIDI devices they were listening to, as part of
+the show closing.
+
+So, as promised, a _lot_ more code was added in order to support the
+MIDI mapping capability. But it was worth it, and hopefully this makes
+sense and can inspire you to create other great user interfaces as
+Beat Link Trigger shows!
