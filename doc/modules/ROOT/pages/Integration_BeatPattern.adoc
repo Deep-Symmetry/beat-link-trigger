@@ -45,7 +45,7 @@ link:{attachmentsdir}/BeatSender.bltx[download] the trigger and import
 it using menu:Import Trigger[] in a Trigger context (gear) menu to get
 all the code and configuration in one easy step.
 
-.BeatSender Beat Expression: MIDI Notes
+.BeatSender Beat Expression: MIDI notes
 [source,clojure]
 ----
 (when (and trigger-output ((:beat-pattern @globals #{}) beat-within-bar)) ;; <1>
@@ -106,7 +106,7 @@ If your lighting desk or software works better with a MIDI Controller
 Change message, you can swap out the Beat Expression code for this
 variant:
 
-.BeatSender Beat Expression: MIDI Controller Changes
+.BeatSender Beat Expression: MIDI controller changes
 [source,clojure]
 ----
 (when (and trigger-output ((:beat-pattern @globals #{}) beat-within-bar)) ;; <1>
@@ -147,7 +147,7 @@ Expression, like in the examples shown in the
 section, which demonstrate how to configure a client to talk to
 Resolume Arena and store it under the key `:resolume`.
 
-== Adding a Beat Pattern GUI
+== Adding a beat pattern GUI
 
 The system we've built so far works great when all the tracks being
 played are already preconfigured in a Beat Link show with code to
@@ -367,7 +367,7 @@ reflect that. Another part of the <<global-setup,global setup
 expression>> arranges for the following function to be called whenever
 the beat pattern has been changed, no matter what caused that.
 
-.Responding to Pattern Changes
+.Responding to pattern changes
 [source,clojure]
 ----
 (defn beat-pattern-changed
@@ -943,7 +943,7 @@ MIDI mapping GUI, and there are a lot of elements in the window.
                                                 (not ((set inputs)
                                                        (:inputs data)))))
                                            [(:inputs data)]))
-                           :listen [:item-state-changed
+                           :listen [:item-state-changed  ;; <4>
                                     (fn [e]
                                       (save e)
                                       (beat-pattern-change-input button
@@ -997,13 +997,13 @@ MIDI mapping GUI, and there are a lot of elements in the window.
                          [(seesaw/spinner :id :feedback-off
                            :model (seesaw/spinner-model 0 :from 0 :to 127)
                            :listen [:state-changed save] :enabled? false)]])
-        root (seesaw/frame :title (str "MIDI Map " (seesaw/text button))
+        root (seesaw/frame :title (str "MIDI Map " (seesaw/text button))  ;; <5>
                            :content panel
                            :on-close :nothing
                            :listen [:window-closing close])]
-    (swap! (seesaw/user-data button) assoc :frame root)
-    (seesaw/value! panel data)
-    (seesaw/pack! root)
+    (swap! (seesaw/user-data button) assoc :frame root)  ;; <6>
+    (seesaw/value! panel data)  ;; <7>
+    (seesaw/pack! root)  ;; <8>
     (.setLocationRelativeTo root button)
     (seesaw/show! root)))
 ----
@@ -1014,25 +1014,86 @@ between runs of Beat Link Trigger.
 
 <2> We define some helper functions: `save` updates the show user data
 with the new state of a user interface element, to record user actions
-for next time. `enable` lets us enable or disable a group of UI
-elements in response to the user choosing None or some other value in
-the menu:Message[] menu. And `close` is used when closing the window,
-to let the show know the window is gone before actually closing it.
+so the MIDI event handler can honor them, and so they can be restored
+the next time the show is opened. `enable` lets us enable or disable a
+group of UI elements in response to the user choosing None or some
+other value in the menu:Message[] menu. And `close` is used when
+closing the window, to let the button know the window is gone before
+actually closing it.
 
 <3> We get the current sets of MIDI input and output choices, and
 proceed to build the panel that contains all the GUI elements. As we
-did when updating the input/output menus, we take care to include the
-previously-chosen device in the menu (if there was one) even if that
-device is not currently available.
+did when updating the input/output menus in responses to changes in
+the MIDI environment (in `beat-pattern-update-mapper-devices`), we
+take care to include the previously-chosen device in the menu (if
+there was one) even if that device is not currently available.
 
-> To be continued!
+<4> We add GUI event listeners to call our helper functions when the
+user makes changes. In this case, we both save the new choice in the
+show, and open the MIDI device and hook up our MIDI event handler.
+Other elements will also save, and sometimes call other helpers like
+`enable` as appropriate.
+
+<5> Here we create the actual window, setting the panel we just built
+as its content, and arrange to call our `close` helper when the user
+asks to close it.
+
+<6> We tell the button that it now has a MIDI mapper window open for
+it, which many of the functions we saw above rely on.
+
+<7> We initialize the content of all our UI elements with whatever was
+saved in the show, so that the window opens up showing the correct
+current values.
+
+<8> Finally we tell the window to take whatever size best fits its
+contents, position it centered over the button it belongs to, and make
+it appear on the screen.
 
 The function `beat-pattern-button-action` remains unchanged from the
 earlier version of the show, believe it or not! We do need to tweak
 the function that creates the button itself slightly, though, to add
 the context menu that opens the MIDI mapping window:
 
-> To be continued!
+.Creating the buttons (with MIDI mapping support)
+[source,clojure]
+----
+(defn beat-pattern-button
+  "Constructs a toggle button for use in the UI, with the specified id,
+  text, and beat pattern."
+  [trigger-globals show id text pattern]
+  (seesaw/toggle :id id :text text
+   :user-data (atom {})  ; Holds MIDI input and mapping window when open.
+   :listen [:action (beat-pattern-button-action trigger-globals pattern)]
+   :popup (fn [event]  ;; <1>
+            [(seesaw/action :name "MIDI Map"
+              :tip "Link this button to a MIDI controller."
+              :handler (fn [_]
+                         (if-let [mapper (:frame @(seesaw/user-data event))]
+                           (seesaw/show! mapper)  ;; <2>
+                           (beat-pattern-midi-map (seesaw/to-widget event)  ;; <3>
+                                                  show))))])))
+----
+
+<1> This popup is the only thing we needed to add to the previous
+version. It makes a "MIDI Map" option appear when someone right-clicks
+(or control-clicks) on the button, and calls the embedded handler
+function when that option is chosen.
+
+<2> The handler first checks to see if there is already a MIDI mapper
+open for the button, and if there is, this line just selects that
+window and brings it to the front if needed.
+
+<3> Otherwise, we call the big function we just looked at which builds
+the MIDI mapper window for this button, makes a note of the fact that
+it is open (so logic like the above can work), and displays it.
+
+The `beat-pattern-build-ui` function, which creates the main show user
+interface (holding the grid of beat pattern buttons) is essentially
+the same as the version we examined for the non-mappable show. The
+only difference is that it needs to take the `show` as an argument, so
+it can pass it along to the new version of `beat-pattern-button` each
+time we call that, because access to the show is needed when calling
+the new `beat-pattern-midi-map` function.
 
 [[midi-global-setup]]
 === Global Setup Expression
