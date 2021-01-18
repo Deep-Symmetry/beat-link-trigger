@@ -1095,10 +1095,171 @@ it can pass it along to the new version of `beat-pattern-button` each
 time we call that, because access to the show is needed when calling
 the new `beat-pattern-midi-map` function.
 
+In the non-mappable version of `beat-pattern-changed`, we embedded a
+local value that listed all the button selectors and the beat patterns
+they managed. This time we need that information in more than one
+function, so we pull it out as a shared variable named
+`beat-pattern-buttons`:
+
+.Describing the beat pattern buttons
+[source,clojure]
+----
+(def beat-pattern-buttons
+  "The selectors of buttons which make up the beat-pattern UI, and the
+  beat patterns they map to. Sets are applied or removed as a whole,
+  individual beat values are toggled independently."
+  {:#odds  #{1 3}
+   :#evens #{2 4}
+   :#every #{1 2 3 4}
+   :#b-1   1
+   :#b-2   2
+   :#b-3   3
+   :#b-4   4})
+----
+
+And here is the updated version of `beat-pattern-changed` which has a
+new responsibility. In addition to updating the GUI button states in
+response to the new beat pattern, it also sends MIDI feedback for any
+buttons which are configured to do that, so that the MIDI controller
+LEDs can also be updated:
+
+.Responding to pattern changes with MIDI feedback
+[source,clojure]
+----
+(defn beat-pattern-changed
+  "Called when the beat pattern has changed to update the state of each
+  button in the UI to reflect the new pattern, as well as sending any
+  MIDI feedback messages which buttons may have mapped."
+  [show new-pattern]
+  (seesaw/invoke-later
+   (doseq [[id on-pattern] beat-pattern-buttons]  ;; <1>
+     (let [button (seesaw/select (:frame show) [id])]
+       (if (set? on-pattern)
+         (seesaw/value! button (= new-pattern on-pattern))
+         (seesaw/value! button (contains? new-pattern on-pattern)))
+       (let [mapping  (get-in (show/user-data show)  ;; <2>
+                              [:mappings (seesaw/id-for button)])
+             velocity (if (seesaw/value button)  ;; <3>
+                          (:feedback-on mapping 127)
+                          (:feedback-off mapping 0))]
+         (when-let [output (beat-pattern-chosen-output button show)]  ;; <4>
+           (when (= "Note" (:feedback-message mapping))  ;; <5>
+             (if (pos? velocity)
+               (midi/midi-note-on output (:feedback-note mapping 1) velocity
+                                  (dec (:feedback-channel mapping 1)))
+               (midi/midi-note-off output (:feedback-note mapping 1)
+                                   (dec (:feedback-channel mapping 1)))))
+           (when (= "CC" (:feedback-message mapping))  ;; <6>
+             (midi/midi-control output (:feedback-note mapping 1) velocity
+                                (dec (:feedback-channel mapping 1))))))))))
+----
+
+<1> Here's where we use the new shared `beat-pattern-buttons` variable
+instead of embedding the raw data. Oherwise this function is so far
+unchanged.
+
+<2> And here is the new part of the function, for sending feedback to
+configured MIDI devices. We start by looking up the button's MIDI
+mappings.
+
+<3> If the button is now active, we look up the velocity the user
+configured as feedback for the "on" state, otherwise we use the value
+configured for the "off" state.
+
+<4> We check that the button's configured MIDI output is currently
+connected. If not, the rest of the function is skipped.
+
+<5> If the button is configured to send feedback as MIDI notes, we
+send a Note On if the feedback velocity is non-zero, and a Note Off
+if it is zero. In either case, we send it to the configured note.
+
+<6> For controller changes, it doesn't matter what the velocity is, we
+always just send a controller change message with that velocity to the
+configured controller.
+
 [[midi-global-setup]]
 === Global Setup Expression
 
-> To be written!
+Much of this is familiar from the non-mapped example, we just have a
+few additions to support MIDI mapping.
+
+[source,clojure]
+----
+;; Set up the beat pattern selection UI for the show.
+(show/block-tracks show (beat-pattern-build-ui trigger-globals show))  ;; <1>
+
+;; Arrange for the checkbox state to be automatically updated if any other
+;; code (such as a show track) changes the beat mode.
+(add-watch trigger-globals :beat-pattern-watcher  ;; <2>
+           (fn [_ _ old-state new-state]
+             (let [old-pattern (:beat-pattern old-state)
+                   new-pattern (:beat-pattern new-state)]
+               (when (not= old-pattern new-pattern)
+                 (beat-pattern-changed show new-pattern)))))
+
+;; Register a function to reconnect any mapped buttons and refresh any
+;; feedback state whenever the MIDI environment changes, in case a
+;; mapped controller has suddenly become available. Also, call the
+;; UI-refresh function once now to set things up as they should
+;; initially appear.
+(let [refresh-ui (fn []  ;; <3>
+                   (seesaw/invoke-later
+                    (doseq [id (keys beat-pattern-buttons)]  ;; <4>
+                      (let [button (seesaw/select (:frame show) [id])]
+                        (beat-pattern-update-mapper-devices button)  ;; <5>
+                        (beat-pattern-change-input button show)))  ;; <6>
+                    (beat-pattern-changed show
+                                          (:beat-pattern @trigger-globals))))
+      listener (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
+                 (midiSystemUpdated [_this]  ;; <7>
+                   (refresh-ui)))]
+  (swap! globals assoc :listener listener)  ;; <8>
+  (CoreMidiDeviceProvider/addNotificationListener listener)  ;; <9>
+  (refresh-ui))
+----
+
+<1> As noted in the discussion of the changes to
+`beat-pattern-build-ui`, we also pass the `show` as an argument now,
+because it's needed when building the MIDI mapper windows.
+
+<2> This is completely identical to the older version. All the new
+smarts are built into `beat-pattern-changed`.
+
+<3> In the old version, we only had to update the UI once, when the
+show loaded. Now we want to do it whenever a MIDI device gets attached
+or detached as well, because we need to update the MIDI device menus
+in any open MIDI mapping windows, open the MIDI connections if any
+buttons are configured to listen to a newly-attached device, send
+feedback to any newly-attached devices that are configured to receive
+it. This defines a function that we will call to do those things.
+
+<4> We loop over the button information we stored in
+`beat-pattern-buttons`, and look up each button within the show GUI.
+
+<5> This updates the button's MIDI device menus if it has a mapping
+window open.
+
+<6> This opens the now-chosen input device for the button, in case
+that has changed as a result of the MIDI environment change. (Since we
+call this function once when the show opens, this is also how we
+initially open the button's configured input.) This also installs our
+MIDI event handler function so the button responds properly to MIDI
+events received from that input.
+
+<7> We create a listener object that can be called when changes to the
+MIDI environment are detected. Our implementation just calls the
+`refresh-ui` function we defined above.
+
+<8> We store a reference to this listener object in the show globals
+so that we can unregister it when the show is closed.
+
+<9> And finally, we register it with `CoreMidi4J` so that it will be
+informed whenever MIDI devices are added to or removed from the
+system. And, as noted above, we call `refresh-ui` one time ourselves,
+to set up the intial state of the beat pattern buttons in both the GUI
+window and on any attached feedback controllers, and to open the
+buttons' MIDI connections and install their MIDI event handlers.
+
 
 [[midi-global-shutdown]]
 === Global Shutdown Expression
