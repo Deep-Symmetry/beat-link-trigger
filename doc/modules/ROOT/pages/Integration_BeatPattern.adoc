@@ -788,7 +788,7 @@ That's one of the most complex functions we've looked at, but it does
 do a lot of the core work of supporting the MIDI mapping. The next two
 are simpler.
 
-.Tracking the chosen MIDI input
+.Tracking a button's chosen MIDI input
 [source,clojure]
 ----
 (defn beat-pattern-change-input
@@ -850,6 +850,187 @@ later, like in step ①, or when the show itself closes.
 <7> We want to gracefully handle an unavailable device being chosen,
 because that is expected to occur often and not a big deal. Other
 kinds of problems, if they occur, get logged as errors.
+
+We handle MIDI outputs differently, because those can be shared across
+many different shows and expressions, and we never need to worry about
+closing them. Beat Link Trigger keeps track of a list of opened
+outputs for reuse, and closes them when the devices disappear, so all
+we need to do is use that list if we can, and update it if we are the
+first people to open an output.
+
+So whenever we need to know what output is associated with a button,
+for the purpose of sending feedback, we call the followign function:
+
+.Finding a button's chosen MIDI output
+[source,clojure]
+----
+(defn beat-pattern-chosen-output
+  "Return the MIDI output to which feedback messages should be sent for
+  a given button, opening it if this is the first time we are using
+  it, or reusing it if we already opened it. Returns `nil` if the
+  output can not currently be found (it was disconnected, or present
+  in a loaded file but not on this system)."
+  [button show]
+  (when-let [selection (or (get-in (show/user-data show)  ;; <1>
+                                 [:mappings (seesaw/id-for button) :outputs])
+                           (first (util/get-midi-outputs)))]
+    (let [device-name (.full_name selection)]  ;; <2>
+      (or (get @util/opened-outputs device-name)  ;; <3>
+          (try
+            (let [new-output (midi/midi-out  ;; <4>
+                              (java.util.regex.Pattern/quote device-name))]
+              (swap! util/opened-outputs assoc device-name new-output)
+              new-output)
+            (catch IllegalArgumentException e  ;; <5>
+              ;; The chosen output is not currently available.
+              (timbre/debug e "MIDI mapping using nonexisting MIDI output"
+                            device-name))
+            (catch Exception e  ; Some other problem opening the device.
+              (timbre/error e "Problem opening device" device-name
+                            "(treating as unavailable)")))))))
+----
+
+<1> The first thing we need to do is determine what output the user
+has chosen. If they have not explicitly chosen any, we default to the
+first device in the list of available outputs, which is what the
+dropdown will be displaying too.
+
+<2> Then we find the name of the chosen device.
+
+<3> If that device is already open, we can use it.
+
+<4> Otherwise we try to open it, using the same precautions about
+regular expression quoting as we needed in the preceding function, and
+store it as an opened output for future use, either by us, or the rest
+of BLT.
+
+<5> And as before, if the device is not found, that means it was a
+choice made in the past when the device was connected, so we
+gracefully just return `nil`, which will turn off feedback attempts.
+If some other problem occurred, we log it, and again return `nil`.
+
+The next function is another long one, because it creates the entire
+MIDI mapping GUI, and there are a lot of elements in the window.
+
+.Creating the MIDI mapping window
+[source,clojure]
+----
+(defn beat-pattern-midi-map
+  "The action which brings up a window for mapping a MIDI controller to
+  one of the beat pattern buttons."
+  [button show]
+  (let [data    (get-in (show/user-data show)  ;; <1>
+                        [:mappings (seesaw/id-of button)])
+        save    (fn [e] (show/swap-user-data!  ;; <2>
+                         show assoc-in
+                         [:mappings (seesaw/id-of button) (seesaw/id-of e)]
+                         (seesaw/value e)))
+        enable  (fn [e & selectors]
+                  (seesaw/config! (map #(seesaw/select (seesaw/to-root e) [%])
+                                       selectors)
+                                  :enabled? (not= "None" (seesaw/value e))))
+        close   (fn [e]
+                  (swap! (seesaw/user-data button) dissoc :frame)
+                  (.dispose (seesaw/to-root e)))
+        outputs (util/get-midi-outputs)  ;; <3>
+        inputs  (beat-pattern-midi-inputs)
+        panel   (seesaw.mig/mig-panel
+                 :items [["MIDI Input:" "alignx trailing"]
+                         [(seesaw/combobox :id :inputs
+                           :model (concat inputs
+                                     ;; Add selection even if not available.
+                                     (when (and (:inputs data)
+                                                (not ((set inputs)
+                                                       (:inputs data)))))
+                                           [(:inputs data)]))
+                           :listen [:item-state-changed
+                                    (fn [e]
+                                      (save e)
+                                      (beat-pattern-change-input button
+                                                                 show))])]
+                         ["Message:" "gap unrelated"]
+                         [(seesaw/combobox :id message
+                           :model ["None" "Note" "CC"]
+                           :listen [:item-state-changed
+                                    (fn [e]
+                                      (save e)
+                                      (enable e :#note :#channel))])]
+                         [(seesaw/spinner :id :note
+                           :model (seesaw/spinner-model 1 :from 1 :to 127)
+                           :listen [:state-changed save] :enabled? false)]
+                         ["Channel:" "gap unrelated"]
+                         [(seesaw/spinner :id :channel
+                           :model (seesaw/spinner-model 1 :from 1 :to 16)
+                           :listen [:state-changed save] :enabled? false)]
+                         [(seesaw/toggle :id :learn :text "Learn")
+                          "gap unrelated, span 2, wrap unrelated"]
+                         ["MIDI Output:" "alignx trailing"]
+                         [(seesaw/combobox :id :outputs
+                           :model (concat outputs
+                                   ;; Add selection even if not available.
+                                   (when (and (:outputs data)
+                                   (not ((set outputs) (:outputs data))))
+                                   [(:outputs data)]))
+                            :listen [:item-state-changed save])]
+                         ["Message:" "gap unrelated"]
+                         [(seesaw/combobox :id :feedback-message
+                           :model ["None" "Note" "CC"]
+                           :listen [:item-state-changed
+                                    (fn [e]
+                                      (save e)
+                                      (enable e :#feedback-note
+                                              :#feedback-channel
+                                              :#feedback-on
+                                              :#feedback-off))])]
+                         [(seesaw/spinner :id :feedback-note
+                           :model (seesaw/spinner-model 1 :from 1 :to 127)
+                           :listen [:state-changed save] :enabled? false)]
+                         ["Channel:" "gap unrelated"]
+                         [(seesaw/spinner :id :feedback-channel
+                           :model (seesaw/spinner-model 1 :from 1 :to 16)
+                           :listen [:state-changed save] :enabled? false)]
+                         ["On:" "gap unrelated"]
+                         [(seesaw/spinner :id :feedback-on
+                           :model (seesaw/spinner-model 127 :from 0 :to 127)
+                           :listen [:state-changed save] :enabled? false)]
+                         ["Off:" "gap unrelated"]
+                         [(seesaw/spinner :id :feedback-off
+                           :model (seesaw/spinner-model 0 :from 0 :to 127)
+                           :listen [:state-changed save] :enabled? false)]])
+        root (seesaw/frame :title (str "MIDI Map " (seesaw/text button))
+                           :content panel
+                           :on-close :nothing
+                           :listen [:window-closing close])]
+    (swap! (seesaw/user-data button) assoc :frame root)
+    (seesaw/value! panel data)
+    (seesaw/pack! root)
+    (.setLocationRelativeTo root button)
+    (seesaw/show! root)))
+----
+
+<1> We start by looking up the current configuration of the window,
+which is stored in the show's user data, so that it will persist
+between runs of Beat Link Trigger.
+
+<2> We define some helper functions: `save` updates the show user data
+with the new state of a user interface element, to record user actions
+for next time. `enable` lets us enable or disable a group of UI
+elements in response to the user choosing None or some other value in
+the menu:Message[] menu. And `close` is used when closing the window,
+to let the show know the window is gone before actually closing it.
+
+<3> We get the current sets of MIDI input and output choices, and
+proceed to build the panel that contains all the GUI elements. As we
+did when updating the input/output menus, we take care to include the
+previously-chosen device in the menu (if there was one) even if that
+device is not currently available.
+
+> To be continued!
+
+The function `beat-pattern-button-action` remains unchanged from the
+earlier version of the show, believe it or not! We do need to tweak
+the function that creates the button itself slightly, though, to add
+the context menu that opens the MIDI mapping window:
 
 > To be continued!
 
