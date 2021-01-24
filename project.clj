@@ -19,7 +19,7 @@
                  [fipp "0.6.23"]
                  [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
                  [me.raynes/fs "1.4.6"]
-                 [org.deepsymmetry/beat-link "0.6.3"]
+                 [org.deepsymmetry/beat-link "0.7.0-SNAPSHOT"]
                  [org.deepsymmetry/electro "0.1.4"]
                  [beat-carabiner "0.2.3"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
@@ -34,7 +34,7 @@
                  [cheshire "5.10.0"]
                  [selmer "1.12.31"]
                  [nrepl "0.8.3"]
-                 [cider/cider-nrepl "0.25.6"]
+                 [cider/cider-nrepl "0.25.7"]
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.apache.maven/maven-artifact "3.6.3"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
