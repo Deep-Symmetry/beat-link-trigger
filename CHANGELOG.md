@@ -6,7 +6,20 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- The Player Status window can now handle up to six players, to work
+  with CDJ-3000 setups.
+- You can also [change how many
+  columns](https://blt-guide.deepsymmetry.org/beat-link-trigger/players#change-num-columns)
+  the Player Status window uses if you don't like the defaults.
+
+### Fixed
+
+- We incorporate a new version of the Beat Link library, which can
+  handle the new extended Channels on Air packets sent by the DJM-V10,
+  which report six channels. This eliminates a bunch of warnings from
+  the log files when such a mixer is found on the network.
 
 ## [0.6.3] - 2020-12-28
 

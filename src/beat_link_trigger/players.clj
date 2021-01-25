@@ -922,7 +922,7 @@
   visible when the last player disappears, and invisible when the
   first one appears, to alert the user what is going on."
   [shutdown-chan]
-  (map (partial create-player-cell shutdown-chan) (range 1 5)))
+  (map (partial create-player-cell shutdown-chan) (range 1 7)))
 
 (defn- make-window-visible
   "Ensures that the Player Status window is in front, not too far off
@@ -956,13 +956,61 @@
        (seesaw/value! (seesaw/select cell [:#sd-label]) "SD:")
        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB:")))))
 
+(defn- default-column-calculator
+  "The function to use to calculate the number of columns the player
+  status window should have if the user hasn't expressed their own
+  preferences via the `:player-status-columns` trigger global. Use a
+  single column until we exceed two players, then two columns until we
+  exceed four players."
+  [num-players]
+  (inc (quot (dec num-players) 2)))
+
+(defn- player-columns
+  "Determine how many columns the player status window should have,
+  given the number of players that is visible on the network. Checks
+  the value, if any, stored under the key `:player-status-columns` in
+  the trigger globals. If that is an integer, uses it. If it is a
+  function, calls it with the number of visible players, and if it
+  returns an integer, uses that. Otherwise (or if there is a problem
+  calling the function, uses `default-column-calculator`."
+  [visible-players]
+  (let [num-players     (count visible-players)
+        default-columns (default-column-calculator num-players)]
+    (if-let [cols (:player-status-columns @@(resolve 'beat-link-trigger.triggers/expression-globals))]
+      (cond
+        (integer? cols)
+        cols
+
+        (ifn? cols)
+        (try
+          (let [result (cols num-players)]
+            (if (integer? result)
+              result
+              (do
+                (timbre/warn ":player-status-columns function returned non-integer result, using default rules."
+                             "Ignoring returned result:" result)
+                default-columns)))
+          (catch Throwable t
+            (timbre/error t "Problem running :player-status-columns function, using default rules.")
+            default-columns))
+
+        :else
+        (do
+          (timbre/warn ":player-status-columns holds neither an integer nor a function, using default rules.")
+          default-columns))
+      default-columns)))
+
 (defn- players-present
-  "Builds a grid to contain only the players which are currently
-  visible on the netowrk, and if there are none, to contain the
-  no-players indicator. If there are two or fewer players, the grid
-  will have a single column, otherwise it will have two. This is
-  friendlier to the smaller screens that are often available front of
-  house.
+  "Builds a grid to contain only the players which are currently visible
+  on the netowrk, and if there are none, to contain the no-players
+  indicator. If there are two or fewer players, the grid will have a
+  single column, which is friendlier to the smaller screens that are
+  often available front of house. If there ae four or fewer, which
+  will be the case for setups prior to the CDJ-3000 and DJM-V10, then
+  the grid will have two columns. And if there are more than four
+  players, the grid will have three columns. The user can override
+  this default logic by setting a value under the key
+  `:player-status-columns` in the trigger globals.
 
   Also updates the USB/SD labels in case the device is an XDJ-XZ,
   which has two USB slots instead."
@@ -972,7 +1020,7 @@
                                           (update-slot-labels player device)
                                           player))
                                       players)
-        grid (seesaw/grid-panel :id players :columns (if (< (count visible-players) 3) 1 2))]
+        grid (seesaw/grid-panel :id players :columns (player-columns visible-players))]
 
     (seesaw/config! grid :items (or (seq visible-players) [no-players]))
     grid))

@@ -28,7 +28,7 @@ guide](https://blt-guide.deepsymmetry.org/).
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#license)
 
 > :boom: **Warning**: This may not yet work with the new CDJ-3000s.
-> There will definitely be changes required to accommodate more than
+> We have started making the changes required to work with more than
 > four players, and we don't know what else might be needed. If you
 > can do any testing with this new hardware, please share status
 > reports and (even more important) open issues with log files, packet

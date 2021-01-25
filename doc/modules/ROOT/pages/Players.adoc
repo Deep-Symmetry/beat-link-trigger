@@ -300,3 +300,52 @@ Setup Expression>>:
 
 If the window was already open when you set up this entry, you can make
 it take effect by choosing menu:Network[Show Player Status] again.
+
+[[change-num-columns]]
+== Changing the Number of Columns used
+
+Normally Beat Link Trigger tries to keep the Player Status window
+small, to accommodate the smaller and lower-resolution screens often
+found in Front-of-House lighting stations. It will use a single column
+if there are fewer than three players, two columns if there are fewer
+than five players, and three columns if there are five or six players
+(a full CDJ-3000 and DJM-V10 setup).
+
+If you would like to change this, you can create a global variable
+entry with the key `:player-status-columns` before showing the window,
+which you can do in your
+<<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup
+Expression>>.
+
+If this value is an integer, the Player Status window will always use
+that many columns. So to fix the window at two columns wide, add the
+following form to your Global Setup Expression:
+
+```clojure
+(swap! globals assoc :player-status-columns 2)
+```
+
+If you still want the window to adjust its columns based on how many
+players are found on the network, but want to use your own rules, you
+can set the value of `:player-status-columns` to a function. Beat Link
+Trigger will then call that function when it is setting up the Player
+Status window, and will pass it the number of players that are visible
+on the network. As long as the function returns an integer, BLT will
+use the value it returned as the number of columns in the window.
+
+Here is an example of how you would implement the built-in logic that
+BLT already uses, but you can change it to use whatever logic you
+prefer:
+
+```clojure
+(swap! globals assoc :player-status-columns
+       (fn [num-players]
+         (inc (quot (dec num-players) 2))))
+```
+
+This function decrements the number of players it was passed
+(subtracts one from it), then takes the integer quotient of dividing
+that by two, and finally increments that (adds one) and returns it as
+the number of columns to use. So the results are 1 column for 0, 1, or
+2 players, 2 columns for 3 or 4 players, and 3 columns for 4 or 5
+players.
