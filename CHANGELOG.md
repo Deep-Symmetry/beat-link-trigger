@@ -12,7 +12,9 @@ This change log follows the conventions of
   with CDJ-3000 setups.
 - You can also [change how many
   columns](https://blt-guide.deepsymmetry.org/beat-link-trigger/players#change-num-columns)
-  the Player Status window uses if you don't like the defaults.
+  the Player Status window uses if you don't like the defaults.]
+- The Carabiner Connection window also handles Player 5 and Player 6
+  now.
 
 ### Fixed
 
