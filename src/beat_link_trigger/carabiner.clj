@@ -260,12 +260,23 @@
                             "then go offline and back online to enable them.")
                 :title "Beat Link Trigger isn't sending Status Packets" :type :error))
 
+(def syncable-devices
+  "The list of device numbers for which we will generate sync rows.
+  Contains player numbers 1 through 6 (since CDJ-3000s can now use
+  channels 5 and 6), and the mixer, which uses 33."
+  [1 2 3 4 5 6 33])
+
+(def syncable-device-set
+  "A set containing the numbers of all syncable devices, so we can
+  efficiently check whether a device we heard from is a member."
+  (set syncable-devices))
+
 (defn- enable-pioneer-sync-controls
   "Updates the Pioneer device sync/master control buttons to reflect
   whether we are currently online, which controls whether they are
   functional."
   [enabled]
-  (doseq [i [1 2 3 4 33]]
+  (doseq [i syncable-devices]
     (seesaw/config! (seesaw/select @carabiner-window [(keyword (str "#sync-" i))]) :enabled? enabled)
     (seesaw/config! (seesaw/select @carabiner-window [(keyword (str "#master-" i))]) :enabled? enabled)))
 
@@ -282,7 +293,7 @@
 (defn- update-device-visibility
   "Shows or hides the sync control row corresponding to a device, given its number."
   [device visible?]
-  (when (#{1 2 3 4 33} device)
+  (when (syncable-device-set device)
     (letfn [(update-elem [prefix]
               (let [target [(keyword (str "#" prefix "-" device))]]
                 (seesaw/visible! (seesaw/select @carabiner-window target) visible?)))]
@@ -316,7 +327,7 @@
           (seesaw/invoke-later
            ;; First update the states of the actual device rows
            (doseq [^DeviceUpdate status (filter (fn [^DeviceUpdate status]
-                                                  (#{1 2 3 4 33} (long (.getDeviceNumber status))))
+                                                  (syncable-device-set (long (.getDeviceNumber status))))
                                                 (.getLatestStatus virtual-cdj))]
              (let [device                      (long (.getDeviceNumber status))
                    ^JRadioButton master-button (seesaw/select frame [(keyword (str "#master-" device))])
@@ -380,7 +391,7 @@
   should belong."
   [group]
   (apply concat
-         (for [device [1 2 3 4 33]]
+         (for [device syncable-devices]
            (let [label (if (= device 33) "Mixer:" (str "Player " device " :"))]
              [[(seesaw/label :id (keyword (str "player-" device)) :text label) "align right"]
               [(seesaw/checkbox :id (keyword (str "sync-" device)) :text "Sync"
@@ -602,7 +613,7 @@
       (.addLifecycleListener virtual-cdj virtual-cdj-lifecycle-listener)
       (enable-pioneer-sync-controls (.isRunning virtual-cdj))  ; Set proper initial state.
       (.addDeviceAnnouncementListener device-finder device-announcement-listener)
-      (doseq [device [1 2 3 4 33]]  ; Set proper initial state
+      (doseq [device syncable-devices]  ; Set proper initial state
         (update-device-visibility device (and (.isRunning device-finder)
                                               (some? (.getLatestAnnouncementFrom device-finder device)))))
       (start-sync-state-updates root)
