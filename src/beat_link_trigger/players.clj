@@ -1,7 +1,6 @@
 (ns beat-link-trigger.players
   "Provides the user interface for seeing the status of active
-  players, as well as creating metadata caches and assigning them to
-  particular player slots."
+  players, as well as telling players to load tracks."
   (:require [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
@@ -21,16 +20,15 @@
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate
             LifecycleListener MediaDetails MediaDetailsListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener ArtFinder MetadataCache
-            MetadataCacheCreationListener MetadataCacheListener MetadataFinder MountListener
-            SearchableItem SlotReference TimeFinder TrackMetadata TrackMetadataListener
+           [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener ArtFinder MetadataFinder
+            MountListener SearchableItem SlotReference TimeFinder TrackMetadata TrackMetadataListener
             WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message NumberField StringField]
            [beat_link_trigger.tree_node IPlaylistEntry]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to view player state
-  and create and assign metadata caches to player slots."}
+  and instruct them to load tracks."}
   player-window (atom nil))
 
 (defonce ^{:private true
@@ -118,79 +116,6 @@
                         "in the <strong>Network</strong> menu.</html>")
                    :title "Beat Link Trigger isn't using a real Player Number" :type :warning))))
 
-(defn create-metadata-cache
-  "Downloads metadata for the specified player and media slot,
-  creating a cache in the specified file. If `playlist-id` is
-  supplied (and not zero), only the playlist with that ID will be
-  downloaded, otherwise all tracks will be downloaded. Provides a
-  progress bar during the download process, and allows the user to
-  cancel it. Once the cache file is created, it is automatically
-  attached.
-
-  Now that [Crate
-  Digger](https://github.com/Deep-Symmetry/crate-digger#crate-digger)
-  is used to allow us to obtain metadata even when there are four CDJs
-  in use, this feature is not really needed."
-  ([player slot ^File file]
-   (create-metadata-cache player slot file 0))
-  ([player slot ^File file playlist-id]
-   (let [continue?    (atom true)
-         slot-ref     (SlotReference/getSlotReference player slot)
-         progress     (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
-         latest       (seesaw/label :text "Gathering tracks…")
-         panel        (mig/mig-panel
-                       :items [[(seesaw/label :text
-                                              (str "<html>Creating " (if (pos? playlist-id) "playlist" "full")
-                                                   " metadata cache for player " player
-                                                   ", " (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD")
-                                                   " slot, in file <strong>" (.getName file) "</strong>:</html>"))
-                                "span, wrap"]
-                               [latest "span, wrap 20"]
-                               [progress "grow, span, wrap 16"]
-                               [(seesaw/button :text "Cancel"
-                                               :listen [:action-performed (fn [e]
-                                                                            (reset! continue? false)
-                                                                            (seesaw/config! e :enabled? false
-                                                                                            :text "Canceling…"))])
-                                "span, align center"]])
-         ^JFrame root (seesaw/frame :title "Downloading Metadata" :on-close :dispose :content panel)
-         trim-name    (fn [^TrackMetadata track]
-                        (let [title (.getTitle track)]
-                          (if (< (count title) 40)
-                            title
-                            (str (subs title 0 39) "…"))))
-         listener     (reify MetadataCacheCreationListener
-                        (cacheCreationContinuing [this last-track finished-count total-count]
-                          (seesaw/invoke-later
-                           (seesaw/config! progress :max total-count :indeterminate? false)
-                           (seesaw/value! progress finished-count)
-                           (seesaw/config! latest :text (str "Added " finished-count " of " total-count
-                                                             ": " (trim-name last-track)))
-                           (when (or (not @continue?) (>= finished-count total-count))
-                             (when @continue?  ; We finished without being canceled, so attach the cache
-                               (future
-                                 (try
-                                   (Thread/sleep 100)  ; Give the file a chance to be closed and flushed
-                                   (.attachMetadataCache (MetadataFinder/getInstance) slot-ref file)
-                                   (catch Exception e
-                                     (timbre/error e "Problem attaching just-created metadata cache")))))
-                             (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
-                          @continue?))]
-     (seesaw/listen root :window-closed (fn [_] (reset! continue? false)))
-     (.pack root)
-     (.setLocationRelativeTo root nil)
-     (seesaw/show! root)
-     (future
-       (try
-         ;; To load all tracks we pass a playlist ID of 0
-         (MetadataCache/createMetadataCache slot-ref playlist-id file listener)
-         (catch Exception e
-           (timbre/error e "Problem creating metadata cache.")
-           (seesaw/alert (str "<html>Problem gathering metadata: " (.getMessage e)
-                              "<br><br>Check the log file for details.</html>")
-                         :title "Exception creating metadata cache" :type :error)
-           (seesaw/invoke-later (.dispose root))))))))
-
 (defn- playlist-node
   "Create a node in the playlist selection tree that can lazily load
   its children if it is a folder."
@@ -221,106 +146,6 @@
     (.add root (playlist-node player slot "All Tracks", 0, false))
     (.add root playlists)
     root))
-
-(defn- explain-creation-failure
-  "Called when the user has asked to create a metadata cache, and
-  metadata cannot be requested. Try to explain the issue to the
-  user."
-  [^Exception e]
-  (timbre/error e "Problem Creating Metadata Cache")
-  (let [device (.getDeviceNumber (VirtualCdj/getInstance))]
-    (if (> device 4)
-      (seesaw/alert (str "<html>Beat Link Trigger is using device number " device ". "
-                         "To collect metadata<br>from the current players, "
-                         "it needs to use number 1, 2, 3, or 4.<br>"
-                         "Please use the <strong>Network</strong> menu in the "
-                         "<strong>Triggers</strong> window to go offline,<br>"
-                         "make sure the <strong>Request Track Metadata?</strong> option is checked,<br>"
-                         "then go back online and try again."
-                         (when (>= (count (util/visible-player-numbers)) 4)
-                           (str
-                            "<br><br>Since there are currently four real players on the network, you<br>"
-                            "will get more reliable results if you are able to turn one of them<br>"
-                            "off before coming back online.")))
-                    :title "Unable to Request Metadata" :type :error)
-      (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
-                         "<br><br>See the log file for more details.")
-                     :title "Problem Creating Cache" :type :error))))
-
-(defn show-cache-creation-dialog
-  "Presents an interface in which the user can choose which playlist
-  to cache and specify the destination file."
-  [player slot]
-  (seesaw/invoke-later
-   (try
-     (let [selected-id           (atom nil)
-           ^JFrame root          (seesaw/frame :title (str "Create Metadata Cache for Player " player " "
-                                                           (if (= slot CdjStatus$TrackSourceSlot/USB_SLOT) "USB" "SD"))
-                                               :on-close :dispose :resizable? false)
-           extension             (util/extension-for-file-type :metadata)
-           ^JFileChooser chooser (@#'chooser/configure-file-chooser (JFileChooser.)
-                                  {:all-files? false
-                                   :filters    [["BeatLink metadata cache" [extension]]]})
-           heading               (seesaw/label :text "Choose what to cache and where to save it:")
-           ^JTree tree           (seesaw/tree :model (DefaultTreeModel. (build-playlist-nodes player slot) true)
-                                              :root-visible? false)
-           speed                 (seesaw/checkbox :text "Performance Priority (cache slowly to avoid playback gaps)")
-           panel                 (mig/mig-panel :items [[heading "wrap, align center"]
-                                                        [(seesaw/scrollable tree) "grow, wrap"]
-                                                        [speed "wrap, align center"]
-                                                        [chooser]])
-           failed                (atom false)
-           ready-to-save?        (fn []
-                                   (or (some? @selected-id)
-                                       (seesaw/alert "You must choose a playlist to save or All Tracks."
-                                                     :title "No Cache Source Chosen" :type :error)))]
-       (.setSelectionMode (.getSelectionModel tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
-       (seesaw/listen tree
-                      :tree-will-expand
-                      (fn [^javax.swing.event.TreeExpansionEvent e]
-                        (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
-                              ^IPlaylistEntry entry        (.getUserObject node)]
-                          (.loadChildren entry node)))
-                      :selection
-                      (fn [^javax.swing.event.TreeSelectionEvent e]
-                        (reset! selected-id
-                                (when (.isAddedPath e)
-                                  (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
-                                        ^IPlaylistEntry entry        (.getUserObject node)]
-                                    (when-not (.isFolder entry)
-                                      (.getId entry)))))))
-       (.setVisibleRowCount tree 10)
-       (try
-         (.expandRow tree 1)
-         (catch IllegalStateException e
-           (explain-creation-failure e)
-           (reset! failed true)))
-
-       (when-let [[file-filter _] (seq (.getChoosableFileFilters chooser))]
-         (.setFileFilter chooser file-filter))
-       (.setDialogType chooser JFileChooser/SAVE_DIALOG)
-       (seesaw/listen chooser
-                      :action-performed
-                      (fn [^java.awt.event.ActionEvent action]
-                        (if (= (.getActionCommand action) JFileChooser/APPROVE_SELECTION)
-                          (when (ready-to-save?)  ; Ignore the save attempt if no playlist chosen.
-                            (@#'chooser/remember-chooser-dir chooser)
-                            (when-let [file (util/confirm-overwrite-file (.getSelectedFile chooser) extension nil)]
-                              (MetadataCache/setCachePauseInterval (if (seesaw/value speed) 1000 50))
-                              (seesaw/invoke-later (create-metadata-cache player slot file @selected-id)))
-                            (.dispose root))
-                          (.dispose root))))  ; They chose cancel.
-       (seesaw/config! root :content panel)
-       (seesaw/pack! root)
-       (.setLocationRelativeTo root nil)
-       (if @failed
-         (.dispose root)
-         (seesaw/show! root)))
-     (catch Exception e
-       (timbre/error e "Problem Creating Metadata Cache")
-       (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
-                          "<br><br>See the log file for more details.")
-                     :title "Problem Creating Cache" :type :error)))))
 
 (defn time-played
   "If possible, returns the number of milliseconds of track the
@@ -642,17 +467,6 @@
                   (not (sending-status?)))
          (report-limited-metadata @player-window player))))))
 
-(defn- suggest-updating-cache
-  "Warn the user that the cache they have just attached lacks media details."
-  []
-  (seesaw/alert @player-window (str "<html>This metadata cache file was created by an older version of<br>"
-                                    "Beat Link Trigger, and has no media details recorded in it.<br>"
-                                    "It was attached successfully, but there is no way to be sure<br>"
-                                    "it came from the same media, or that it is not outdated.<br><br>"
-                                    "The sooner you can re-create it using the current version,<br>"
-                                    "the more reliably you can use cached metadata.")
-                :title "Cache is Missing Media Details" :type :warning))
-
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
   player media slot. Arguments are the player number, slot
@@ -662,58 +476,10 @@
     (let [slot           (case slot
                            :usb CdjStatus$TrackSourceSlot/USB_SLOT
                            :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
-          slot-reference (SlotReference/getSlotReference (int n) slot)
-          rekordbox?     (when-let [details (.getMediaDetailsFor metadata-finder slot-reference)]
-                           (= CdjStatus$TrackType/REKORDBOX (.mediaType details)))
-          extension      (util/extension-for-file-type :metadata)]
+          slot-reference (SlotReference/getSlotReference (int n) slot)]
       (filter identity
               [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
-                              :name "Load Track from Here on a Player")
-               (when rekordbox?
-                 (seesaw/action :handler (fn [_] (show-cache-creation-dialog n slot))
-                                :name "Create Metadata Cache File"))
-               (seesaw/separator)
-               (when (.getMetadataCache metadata-finder slot-reference)
-                 (seesaw/action :handler (fn [_] (.detachMetadataCache metadata-finder slot-reference))
-                                :name "Detach Metadata Cache File"))
-               (when rekordbox?
-                 (seesaw/action :handler (fn [_]
-                                           (when-let [file (chooser/choose-file
-                                                            @player-window
-                                                            :all-files? false
-                                                            :filters [["BeatLink metadata cache" [extension]]])]
-                                             (try
-                                               (.attachMetadataCache metadata-finder slot-reference file)
-                                               (let [cache (.getMetadataCache metadata-finder slot-reference)]
-                                                 (when (nil? (.-sourceMedia cache))
-                                                   (suggest-updating-cache)))
-                                               (catch Exception e
-                                                 (timbre/error e "Problem attaching" file)
-                                                 (seesaw/alert (str "<html>Unable to Attach Metadata Cache.<br><br>"
-                                                                    (.getMessage e)
-                                                                    "<br><br>See the log file for more details.")
-                                                               :title "Problem Attaching File" :type :error)))))
-                                :name "Attach Metadata Cache File"))]))))
-
-(defn- describe-cache
-  "Format information about an attached cache file that is short
-  enough to fit in the window."
-  [^MetadataCache cache]
-  (str "Cached" (when (pos? (.-sourcePlaylist cache)) " (playlist)") ": "
-       (.getName (clojure.java.io/file (.getName cache))) ", "
-       (.-trackCount cache) " tracks"))
-
-(defn- warn-about-stale-cache
-  "Warn the user that a cache that has just attached seems outdated."
-  [^java.util.zip.ZipFile zip-file ^MediaDetails media-details]
-  (let [raw-file (clojure.java.io/file (.getName zip-file))]
-    (seesaw/alert @player-window
-                  (str "<html>The metadata cache file “" (.getName raw-file) "” that was just attached<br>"
-                       "for “" (.name media-details) "” is outdated; the media seems to have changed<br>"
-                       "since it was created.<br><br>"
-                       "It was attached successfully, but there are likely to be missing tracks.<br><br>"
-                       "You should re-create it from the current media as soon as you can.")
-                  :title "Metadata Cache is Stale" :type :warning)))
+                              :name "Load Track from Here on a Player")]))))
 
 (defn- handle-preview-move
   "Mouse movement listener for a wave preview component; shows a tool
@@ -826,23 +592,6 @@
                                  [_ label] (slot-elems slot-reference)]
                              (when label
                                (seesaw/invoke-later
-                                (seesaw/config! label :text (media-description slot-reference)))))))
-        cache-listener (reify MetadataCacheListener
-                         (cacheAttached [this slot-reference cache]
-                           (let [[button label] (slot-elems slot-reference)]
-                             (when button
-                               (seesaw/invoke-soon
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-icon.png") :enabled? true)
-                                (seesaw/config! label :text (describe-cache cache))
-                                (let [cache-details   (.-sourceMedia cache)
-                                      current-details (.getMediaDetailsFor metadata-finder slot-reference)]
-                                  (when (and cache-details current-details (.hasChanged current-details cache-details))
-                                    (warn-about-stale-cache cache current-details)))))))
-                         (cacheDetached [this slot-reference]
-                           (let [[button label] (slot-elems slot-reference)]
-                             (when button
-                               (seesaw/invoke-soon
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
                                 (seesaw/config! label :text (media-description slot-reference)))))))]
 
     ;; Display the magnify cursor over the waveform detail component,
@@ -850,7 +599,7 @@
     (.setCursor detail @magnify-cursor)
     (seesaw/listen detail :mouse-clicked (fn [_] (open-waveform-window n detail)))
 
-    ;; Show the slot cache popup menus on ordinary mouse presses on the buttons too.
+    ;; Show the slot track loading menus on ordinary mouse presses on the buttons too.
     (seesaw/listen usb-gear
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (slot-popup n :usb e))]
@@ -867,22 +616,18 @@
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
     (.addAlbumArtListener art-finder art-listener)  ; React to artwork changes.
     (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
-    (.addCacheListener metadata-finder cache-listener)  ; React to metadata cache changes.
 
     ;; Set the initial state of the interface.
     (when detail (.setScale detail (seesaw/value zoom-slider)))
     (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) n title-label artist-label)
     (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
-      (.mediaMounted mount-listener slot-reference)
-      (when-let [cache (.getMetadataCache metadata-finder slot-reference)]
-        (.cacheAttached cache-listener slot-reference cache)))
+      (.mediaMounted mount-listener slot-reference))
 
     (async/go  ; Arrange to clean up when the window closes.
       (<! shutdown-chan)  ; Parks until the window is closed.
       (.removeTrackMetadataListener metadata-finder md-listener)
       (.removeAlbumArtListener art-finder art-listener)
       (.removeMountListener metadata-finder mount-listener)
-      (.removeCacheListener metadata-finder cache-listener)
       (.setMonitoredPlayer preview (int 0))
       (when detail (.setMonitoredPlayer detail (int 0))))
     (async/go  ; Animation loop

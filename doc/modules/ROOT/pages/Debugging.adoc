@@ -219,7 +219,7 @@ to do this, and you might lose work. If you are concerned about that
 happening, you can periodically manually save your current trigger
 configuration by choosing menu:File[Save].
 
-image:Save.png[Save option,314,210]
+image:Save.png[Save option,189,156]
 
 ====
 

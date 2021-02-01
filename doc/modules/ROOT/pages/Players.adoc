@@ -136,12 +136,6 @@ require you to briefly go offline to switch numbers. If you have four
 players on the network, you will also have to turn one of them off and
 leave it off, unfortunately.
 
-NOTE: It is also not yet possible to create metadata caches (as
-described in <<CachingMetadata.adoc#,Older Approaches>>) for
-non-rekordbox media. Since such metadata is so much less useful, and
-metadata caches are essentially deprecated anyway, this is not likely
-to be implemented unless you have a really compelling use case, and
-let us know about it.
 
 [[loading-playing]]
 == Loading and Playing Tracks

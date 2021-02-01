@@ -23,6 +23,22 @@ This change log follows the conventions of
   which report six channels. This eliminates a bunch of warnings from
   the log files when such a mixer is found on the network.
 
+### Removed
+
+- The ability to create and use metadata caches has not been useful
+  for a couple of years now, since we figured out how to use Crate
+  Digger to reliably obtain track metadata even when there are a full
+  set of real players on the network. So this has been removed, and
+  the complicated code in Beat Link which supported it has been
+  removed as well, rather than trying to update it to keep up with new
+  features like phrase analysis.
+
+### Changed
+
+- The versioning numbering scheme has been made more reasonable. This
+  is now version 7.0.0 instead of 0.7.0, to reflect the fact that
+  there have been many releases in active production use.
+
 ## [0.6.3] - 2020-12-28
 
 ### Added

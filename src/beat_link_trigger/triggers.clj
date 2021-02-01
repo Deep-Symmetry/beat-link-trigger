@@ -12,8 +12,6 @@
             [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.settings-loader :as settings-loader]
             [beat-link-trigger.show :as show]
-            [beat-link-trigger.auto-cache :as auto]
-            [beat-link-trigger.view-cache :as view-cache]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [beat-carabiner.core :as beat-carabiner]
@@ -1129,19 +1127,6 @@
                   :name "Load from File"
                   :key "menu L")))
 
-(defonce ^{:private true
-           :doc "The menu action which allows configuration of auto-attached metadata cache files."}
-  auto-action
-  (delay (seesaw/action :handler (fn [_] (auto/show-window @trigger-frame))
-                        :name "Auto-Attach Metadata Caches"
-                        :key "menu M")))
-
-(defonce ^{:private true
-           :doc "The menu action which allows the user to view the contents of a metadata cache file."}
-  view-cache-action
-  (delay (seesaw/action :handler (fn [_] (view-cache/choose-file @trigger-frame))
-                        :name "View Metadata Cache Contents")))
-
 (defn- midi-environment-changed
   "Called when CoreMidi4J reports a change to the MIDI environment, so we can update the menu of
   available MIDI outputs."
@@ -1495,7 +1480,6 @@
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [@save-action @save-as-action @load-action
                                                          (seesaw/separator) new-show-action open-show-action
-                                                         (seesaw/separator) @auto-action @view-cache-action
                                                          (seesaw/separator) @playlist-writer-action]
                                                         (menus/non-mac-file-actions quit)))
                             (seesaw/menu :text "Triggers"
