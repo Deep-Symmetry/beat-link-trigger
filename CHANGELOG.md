@@ -21,7 +21,10 @@ This change log follows the conventions of
 - We incorporate a new version of the Beat Link library, which can
   handle the new extended Channels on Air packets sent by the DJM-V10,
   which report six channels. This eliminates a bunch of warnings from
-  the log files when such a mixer is found on the network.
+  the log files when such a mixer is found on the network. It also
+  adds support for reading song structure information (for tracks on
+  which DJs have performed phrase analysis), which is the basis of the
+  major new phrase-based cue feature.
 
 ### Removed
 
