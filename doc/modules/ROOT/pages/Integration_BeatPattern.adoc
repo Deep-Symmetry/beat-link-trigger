@@ -276,9 +276,10 @@ ID to assign the new button, the text to use for its user-visible
 label, and the pattern (set) of beats it is responsible for, it
 creates a button to manage those beats.
 
-<1> We tell Seesaw to create a toggle button, which is a button that
-stays on until clicked again, as opposed to a normal momentary-action
-button.
+<1> We tell Seesaw to
+create a http://clj-commons.org/seesaw/seesaw.core-api.html#seesaw.core/toggle[toggle]
+button, which is a button that stays on until clicked again, as
+opposed to a normal momentary-action button.
 
 <2> And we tell the button to call an action handler we build using
 the previous function, that will update the beat pattern appropriately
@@ -325,7 +326,9 @@ we just saw seven times to create the seven buttons that make up the
 beat pattern selector, giving them each appropriate IDs, labels, and
 sets of beats to manage (as well as access to the trigger globals).
 
-<3> Even though the Seesaw documentation calls the
+<3> Even though the Seesaw
+http://clj-commons.org/seesaw/seesaw.core-api.html#seesaw.core/form-panel[documentation]
+calls the
 https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/java/awt/GridBagLayout.html[`GridBagLayout`]
 that `form-panel` creates an “abomination” it is exactly the kind of
 simple-minded grid our buttons need.
