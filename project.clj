@@ -5,7 +5,7 @@
   :license {:name "Eclipse Public License 2.0"
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.10.2"]
                  [org.clojure/core.async "1.3.610"]
                  [org.clojure/data.csv "1.0.0"]
                  [org.clojure/tools.cli "1.0.194"]
@@ -14,7 +14,7 @@
                  [com.fifesoft/rstaui "3.1.1"]
                  [org.pushing-pixels/radiance-substance "1.0.2"]
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]
-                 [com.taoensso/timbre "5.1.0"]
+                 [com.taoensso/timbre "5.1.1"]
                  [com.fzakaria/slf4j-timbre "0.3.20"]
                  [fipp "0.6.23"]
                  [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
@@ -32,9 +32,9 @@
                  [ring/ring-core "1.8.2"]
                  [compojure "1.6.2"]
                  [cheshire "5.10.0"]
-                 [selmer "1.12.31"]
+                 [selmer "1.12.33"]
                  [nrepl "0.8.3"]
-                 [cider/cider-nrepl "0.25.7"]
+                 [cider/cider-nrepl "0.25.8"]
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.apache.maven/maven-artifact "3.6.3"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
