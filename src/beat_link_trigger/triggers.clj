@@ -31,8 +31,8 @@
            [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data ArtFinder BeatGridFinder CrateDigger MetadataFinder SearchableItem
-            SignatureFinder TimeFinder TrackMetadata WaveformFinder]
+           [org.deepsymmetry.beatlink.data AnalysisTagFinder ArtFinder BeatGridFinder CrateDigger MetadataFinder
+            SearchableItem SignatureFinder TimeFinder TrackMetadata WaveformFinder]
            [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.electro Metronome]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider]))
@@ -1574,6 +1574,7 @@
   (.start (TimeFinder/getInstance))
   (.setFindDetails (WaveformFinder/getInstance) true)
   (.start (WaveformFinder/getInstance))
+  (.start (AnalysisTagFinder/getInstance))
   (reflect-online-state))
 
 (defn start

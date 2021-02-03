@@ -13,6 +13,8 @@ This change log follows the conventions of
 - You can also [change how many
   columns](https://blt-guide.deepsymmetry.org/beat-link-trigger/players#change-num-columns)
   the Player Status window uses if you don't like the defaults.]
+- Song structure (phrase analysis) is now displayed on waveforms when
+  it is available.
 - The Carabiner Connection window also handles Player 5 and Player 6
   now.
 
