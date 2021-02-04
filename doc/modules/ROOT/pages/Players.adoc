@@ -26,7 +26,7 @@ image:PlayerStatus.png[Player Status Window,599,842]
 Only players currently visible on the network will appear in this
 window. The player number will be bright green if it is currently
 playing, and gray if it is stopped. (The playback position indicators
-in both the full track preview and, if you have it showing, the
+in both the full track preview and--if you have it showing--the
 scrolling wave detail view, will also be white when playing and red
 when stopped.)
 
@@ -217,8 +217,8 @@ NOTE: Limitations in the Fader Start protocol, which is used to start
 and stop players, make it impossible to start a player that is stopped
 anywhere other than the current Cue point.
 
-The easiest way to find a track, if you know its title, artist, or
-album name, is to use the Search interface. As soon as you click on
+The easiest way to find a track--if you know its title, artist, or
+album name--is to use the Search interface. As soon as you click on
 the `SEARCH` section of a media entry, the search interface opens at
 the top of the window, and you can start typing. As you add to your
 search string, the results are narrowed down. Once you can see what
