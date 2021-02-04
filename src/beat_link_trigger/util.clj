@@ -3,7 +3,7 @@
   (:require [clojure.edn]
             [clojure.java.io]
             [clojure.set]
-            [clojure.string]
+            [clojure.string :as str]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw])
@@ -47,8 +47,8 @@
   (let [a-class    (class get-version)
         class-name (str (.getSimpleName a-class) ".class")
         class-path (str (.getResource a-class class-name))]
-    (when (clojure.string/starts-with? class-path "jar")
-      (let [manifest-path (str (subs class-path 0 (inc (clojure.string/last-index-of class-path "!")))
+    (when (str/starts-with? class-path "jar")
+      (let [manifest-path (str (subs class-path 0 (inc (str/last-index-of class-path "!")))
                                "/META-INF/MANIFEST.MF")]
         (with-open [stream (.openStream (java.net.URL. manifest-path))]
           (let [manifest   (java.util.jar.Manifest. stream)
@@ -135,7 +135,7 @@
 (defn remove-blanks
   "Converts an empty string to a `nil` value so `or` will reject it."
   [s]
-  (when-not (clojure.string/blank? s)
+  (when-not (str/blank? s)
     s))
 
 (defn assign-unique-name
@@ -148,15 +148,15 @@
   ([existing-names]
    (assign-unique-name existing-names ""))
   ([existing-names base-name]
-   (let [base-name      (clojure.string/trim base-name)
-         without-number (if (clojure.string/blank? base-name)
+   (let [base-name      (str/trim base-name)
+         without-number (if (str/blank? base-name)
                           "Untitled"
-                          (clojure.string/replace base-name #"\s+\d*$" ""))
-         with-copy      (if (clojure.string/blank? base-name)
+                          (str/replace base-name #"\s+\d*$" ""))
+         with-copy      (if (str/blank? base-name)
                           without-number
                           (or (re-matches #"(?i).*\s+copy$" without-number)
                               (str base-name " Copy")))
-         template       (clojure.string/lower-case with-copy)
+         template       (str/lower-case with-copy)
          quoted         (java.util.regex.Pattern/quote template)
          largest-number (reduce (fn [result name]
                                   (if (= template name)
@@ -165,7 +165,7 @@
                                       (max result (Long/valueOf n))
                                       result)))
                                 0
-                                (map (comp clojure.string/trim clojure.string/lower-case #(or % "")) existing-names))]
+                                (map (comp str/trim str/lower-case #(or % "")) existing-names))]
      (if (zero? largest-number)
        with-copy
        (str with-copy " " (inc largest-number))))))
@@ -227,7 +227,7 @@
 ;; tells Swing how to display it, so we can suppress the CoreMidi4J prefix.
 (defrecord MidiChoice [full-name]
   Object
-  (toString [_] (clojure.string/replace full-name #"^CoreMIDI4J - " "")))
+  (toString [_] (str/replace full-name #"^CoreMIDI4J - " "")))
 
 (defonce ^{:doc "Tracks window positions so we can try to restore them
   in the configuration the user had established."}

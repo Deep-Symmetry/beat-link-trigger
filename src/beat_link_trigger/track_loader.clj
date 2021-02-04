@@ -6,8 +6,8 @@
   for loading tracks into players. When working with the local
   filesytem we provide a simple track selection interface so they can
   be added to show windows."
-  (:require [clojure.java.io]
-            [clojure.string]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
@@ -175,7 +175,7 @@
                                     (when show-artist (.get (.artistIndex database) (.artistId track)))]
                            (Database/getText (.name artist)))]
          (str (Database/getText (.title track))
-              (when-not (clojure.string/blank? artist-name)
+              (when-not (str/blank? artist-name)
                 (str "—" artist-name)))))
      (getId [] (int (.id track)))
      (getSlot [] slot)
@@ -428,14 +428,14 @@
                        (let [entry ^IMenuEntry (.getUserObject node)
                              player (.. entry getSlot player)
                              device (.. device-finder (getLatestAnnouncementFrom player) getDeviceName)
-                             menu   (clojure.string/join "->" (get-parent-list node))]
+                             menu   (str/join "->" (get-parent-list node))]
                          (str "When loading menu " menu " from device named " device ", don't understand: " item)))
                      unrecognized)]
     (doseq [report reports] (timbre/warn report))  ; First log them.
     (seesaw/invoke-later  ; Then alert the user and ask them to take action.
      (if (menus/mail-supported?)
        ;; Compose an email with all the details.
-       (let [body    (clojure.string/replace (clojure.string/join "\n\n" reports) "\n" "\r\n")
+       (let [body    (str/replace (str/join "\n\n" reports) "\n" "\r\n")
              message (str "While trying to load the menu from the player, a value was received\n"
                           "that we don't know how to handle. Would you like to send the details\n"
                           "to Deep Symmetry to help fix this?\n\n"
@@ -1317,7 +1317,7 @@
   "Formats a numeric rating as a string of zero through five stars in a
   field of periods."
   [rating]
-  (clojure.string/join (take 5 (concat (take rating (repeat "*")) (repeat ".")))))
+  (str/join (take 5 (concat (take rating (repeat "*")) (repeat ".")))))
 
 ;; Creates a menu item node for a rating node.
 (defmethod menu-item-node Message$MenuItemType/RATING rating-node
@@ -1736,7 +1736,7 @@
     (reset! selected-player {:number  number
                              :playing (and status (.isPlaying status))
                              :cued    (and status (.isCued status))
-                             :xdj-xz  (clojure.string/starts-with? (.getDeviceName status) "XDJ-XZ")})))
+                             :xdj-xz  (str/starts-with? (.getDeviceName status) "XDJ-XZ")})))
 
 (defn- configure-partial-search-ui
   "Show (with appropriate content) or hide the label and buttons
@@ -1769,7 +1769,7 @@
   [^Database database ^SlotReference slot text]
   (mapcat (fn [^java.util.Map$Entry title-entry]
             (let [title (.getKey title-entry)]
-              (when (clojure.string/includes? (clojure.string/lower-case title) text)
+              (when (str/includes? (str/lower-case title) text)
                 (map (fn [track-id]
                        (file-track-node database (.get (.trackIndex database) track-id) slot true))
                      (.getValue title-entry)))))
@@ -1781,7 +1781,7 @@
   [^Database database ^SlotReference slot text]
   (mapcat (fn [^java.util.Map$Entry name-entry]
             (let [artist-name (.getKey name-entry)]
-              (when (clojure.string/includes? (clojure.string/lower-case artist-name) text)
+              (when (str/includes? (str/lower-case artist-name) text)
                 (map (fn [artist-id]
                        (file-artist-node database (.get (.artistIndex database) artist-id) slot))
                      (.getValue name-entry)))))
@@ -1793,7 +1793,7 @@
   [^Database database ^SlotReference slot text]
   (mapcat (fn [^java.util.Map$Entry name-entry]
             (let [album-name (.getKey name-entry)]
-              (when (clojure.string/includes? (clojure.string/lower-case album-name) text)
+              (when (str/includes? (str/lower-case album-name) text)
                 (map (fn [album-id]
                        (file-album-node database (.get (.albumIndex database) album-id) slot))
                      (.getValue name-entry)))))
@@ -1803,12 +1803,12 @@
   "Run a search on an exported rekordbox database file. We always return
   complete results because the search is running locally."
   [^Database database ^SlotReference slot text ^AtomicInteger total]
-  (let [text (clojure.string/lower-case text)
+  (let [text (str/lower-case text)
         results      (concat (file-track-matches database slot text)
                              (file-artist-matches database slot text)
                              (file-album-matches database slot text))]
     (.set total (count results))
-    (sort #(compare (clojure.string/lower-case (str %1)) (clojure.string/lower-case (str %2))) results)))
+    (sort #(compare (str/lower-case (str %1)) (str/lower-case (str %2))) results)))
 
 (defn- search-text-changed
   "Start a new search because the user has changed the search text,
@@ -1822,7 +1822,7 @@
           total                        (AtomicInteger. 25)
           ^ISearchEntry entry          (.getUserObject node)
           database                     (.getDatabase entry)
-          results                      (when-not (clojure.string/blank? text)
+          results                      (when-not (str/blank? text)
                                          (if database
                                            (file-search database slot-reference text total)
                                            (.requestSearchResultsFrom menu-loader (.player slot-reference)
@@ -1831,7 +1831,7 @@
       (.removeAllChildren node)
       (if (empty? results)
         (do
-          (.add node (if (clojure.string/blank? text) (empty-search-node) (empty-node "[No matches.]")))
+          (.add node (if (str/blank? text) (empty-search-node) (empty-node "[No matches.]")))
           (swap! searches update slot-reference dissoc :total)
           (configure-partial-search-ui search-partial search-button nil 0))
         (do
@@ -2091,7 +2091,7 @@
   the root of some media containing a rekordbox export, or the
   pathname of such a file."
   ^File [media-root]
-  (let [pdb (clojure.java.io/file media-root "PIONEER" "rekordbox" "export.pdb")]
+  (let [pdb (io/file media-root "PIONEER" "rekordbox" "export.pdb")]
     (when (.canRead pdb)
       pdb)))
 
@@ -2261,7 +2261,7 @@
               (> (count candidates) 1)
               (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
                                         "Please pick a specific media export:\n"
-                                        (clojure.string/join "\n" (map describe-pdb-media candidates)))
+                                        (str/join "\n" (map describe-pdb-media candidates)))
                             :title "Ambiguous Database Choice" :type :error)
 
               :else
