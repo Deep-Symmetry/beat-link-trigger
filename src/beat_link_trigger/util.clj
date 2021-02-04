@@ -338,30 +338,38 @@
   album artwork for the type of media being played in the specified
   player number, if any."
   [^Long player]
-  (let [^CdjStatus status (.getLatestStatusFor virtual-cdj player)]
-    (if (nil? status)
+  (let [^CdjStatus status (.getLatestStatusFor virtual-cdj player)
+        xdj-xz            (when status (str/starts-with? (.getDeviceName status) "XDJ-XZ"))
+        slot              (.getTrackSourceSlot status)]
+    (cond
+      (nil? status)
       "images/NoTrack.png"
-      (if (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
-        "images/CDDAlogo.png"
 
-        (case-enum (.getTrackSourceSlot status)
+      (= CdjStatus$TrackType/CD_DIGITAL_AUDIO (.getTrackType status))
+      "images/CDDAlogo.png"
 
-          CdjStatus$TrackSourceSlot/CD_SLOT
-          "images/CD_data_logo.png"
+      (and xdj-xz (= slot CdjStatus$TrackSourceSlot/SD_SLOT))
+      "images/USB.png"  ; The XDJ-XZ has two USB slots, one pretends to be SD for backwards compatibility.
 
-          CdjStatus$TrackSourceSlot/COLLECTION
-          "images/Collection_logo.png"
+      :else
+      (case-enum slot
 
-          CdjStatus$TrackSourceSlot/NO_TRACK
-          "images/NoTrack.png"
+        CdjStatus$TrackSourceSlot/CD_SLOT
+        "images/CD_data_logo.png"
 
-          CdjStatus$TrackSourceSlot/SD_SLOT
-          "images/SD.png"
+        CdjStatus$TrackSourceSlot/COLLECTION
+        "images/Collection_logo.png"
 
-          CdjStatus$TrackSourceSlot/USB_SLOT
-          "images/USB.png"
+        CdjStatus$TrackSourceSlot/NO_TRACK
+        "images/NoTrack.png"
 
-          "images/UnknownMedia.png")))))
+        CdjStatus$TrackSourceSlot/SD_SLOT
+        "images/SD.png"
+
+        CdjStatus$TrackSourceSlot/USB_SLOT
+        "images/USB.png"
+
+        "images/UnknownMedia.png"))))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of
