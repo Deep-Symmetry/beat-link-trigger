@@ -6,25 +6,19 @@
             [clojure.core.async :as async :refer [<! >!!]]
             [clojure.java.io]
             [clojure.string]
-            [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import beat_link_trigger.tree_node.IPlaylistEntry
-           [java.awt Color Font Graphics2D RenderingHints]
+  (:import [java.awt Color Font Graphics2D RenderingHints]
            [java.awt.event MouseEvent WindowEvent]
-           [java.io File]
            [javax.imageio ImageIO]
-           [javax.swing JFileChooser JFrame JLabel JTree]
-           [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel]
+           [javax.swing JFrame JLabel]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate
-            LifecycleListener MediaDetails MediaDetailsListener VirtualCdj]
+            LifecycleListener MediaDetailsListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener ArtFinder MetadataFinder
             MountListener SearchableItem SlotReference TimeFinder TrackMetadata TrackMetadataListener
-            WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
-           [org.deepsymmetry.beatlink.dbserver Message NumberField StringField]
-           [beat_link_trigger.tree_node IPlaylistEntry]))
+            WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to view player state
@@ -115,37 +109,6 @@
                         "track in Player " player " unless you enable <strong>Use Real Player Number?</strong><br>"
                         "in the <strong>Network</strong> menu.</html>")
                    :title "Beat Link Trigger isn't using a real Player Number" :type :warning))))
-
-(defn- playlist-node
-  "Create a node in the playlist selection tree that can lazily load
-  its children if it is a folder."
-  ^DefaultMutableTreeNode [player slot title id folder?]
-  (let [unloaded (atom true)]
-    (DefaultMutableTreeNode.
-     (proxy [Object IPlaylistEntry] []
-       (toString [] (str title))
-       (getId [] (int id))
-       (isFolder [] (true? folder?))
-       (loadChildren [^DefaultMutableTreeNode node]
-         (when (and folder? @unloaded)
-           (reset! unloaded false)
-           (timbre/info "requesting playlist folder" id)
-           (doseq [^Message entry (.requestPlaylistItemsFrom (MetadataFinder/getInstance) player slot 0 id true)]
-             (let [entry-name (.getValue ^StringField (nth (.arguments entry) 3))
-                   entry-kind (.getValue ^NumberField (nth (.arguments entry) 6))
-                   entry-id   (.getValue ^NumberField (nth (.arguments entry) 1))]
-               (.add node (playlist-node player slot entry-name (int entry-id) (true? (= entry-kind 1)))))))))
-     (true? folder?))))
-
-(defn- build-playlist-nodes
-  "Create the top-level playlist nodes, which will lazily load any
-  child playlists from the player when they are expanded."
-  [player slot]
-  (let [root      (playlist-node player slot "root", 0, true)
-        playlists (playlist-node  player slot "Playlists", 0, true)]
-    (.add root (playlist-node player slot "All Tracks", 0, false))
-    (.add root playlists)
-    root))
 
 (defn time-played
   "If possible, returns the number of milliseconds of track the
