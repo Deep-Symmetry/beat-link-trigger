@@ -10,11 +10,15 @@
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
            [org.deepsymmetry.beatlink.data CueList$Entry WaveformPreviewComponent]
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$TrackMood
+            RekordboxAnlz$TrackBank]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            [java.io File]
            [javax.sound.midi Sequencer Synthesizer]
            [javax.swing JDialog JFrame]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]
+           [jiconfont.icons.font_awesome FontAwesome]
+           [jiconfont.swing IconFontSwing]))
 
 (def ^:private project-version
   (delay (if-let [version-data-file (clojure.java.io/resource "beat_link_trigger/version.edn")]
@@ -270,6 +274,7 @@
                            "/fonts/Teko/Teko-SemiBold.ttf"]]
             (.registerFont ge (Font/createFont Font/TRUETYPE_FONT
                                                (.getResourceAsStream MidiChoice font-file))))
+        (IconFontSwing/register (FontAwesome/getIconFont))
         (reset! fonts-loaded true))))
 
 (defn save-window-position
@@ -370,6 +375,30 @@
         "images/USB.png"
 
         "images/UnknownMedia.png"))))
+
+(defn track-bank-name
+  "Given a song structure tag parsed from a track, returns the bank that
+  was assigned to the track in a nicely formatted way."
+  [^RekordboxAnlz$SongStructureTag tag]
+  (case-enum (.bank (.body tag))
+    RekordboxAnlz$TrackBank/CLUB_1  "Club 1"
+    RekordboxAnlz$TrackBank/CLUB_2  "Club 2"
+    RekordboxAnlz$TrackBank/COOL    "Cool"
+    RekordboxAnlz$TrackBank/DEFAULT "(Cool)"
+    RekordboxAnlz$TrackBank/HOT     "Hot"
+    RekordboxAnlz$TrackBank/NATURAL "Natural"
+    RekordboxAnlz$TrackBank/SUBTLE  "Subtle"
+    RekordboxAnlz$TrackBank/VIVID   "Vivid"
+    RekordboxAnlz$TrackBank/WARM    "Warm"))
+
+(defn track-mood-name
+  "Given a song structure tag parsed from a track, returns the mood that
+  was detected for the track in a nicely formatted way."
+  [^RekordboxAnlz$SongStructureTag tag]
+  (case-enum (.mood (.body tag))
+    RekordboxAnlz$TrackMood/HIGH "High"
+    RekordboxAnlz$TrackMood/MID "Mid"
+    RekordboxAnlz$TrackMood/LOW "Low"))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of

@@ -16,9 +16,11 @@
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackSourceSlot CdjStatus$TrackType
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate
             LifecycleListener MediaDetailsListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener ArtFinder MetadataFinder
-            MountListener SearchableItem SlotReference TimeFinder TrackMetadata TrackMetadataListener
-            WaveformDetailComponent WaveformFinder WaveformPreviewComponent]))
+           [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener AnalysisTagFinder AnalysisTagListener
+            ArtFinder MetadataFinder MountListener SearchableItem SlotReference TimeFinder
+            TrackMetadata TrackMetadataListener WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
+           [jiconfont.icons.font_awesome FontAwesome]
+           [jiconfont.swing IconFontSwing]))
 
 (defonce ^{:private true
            :doc "Holds the frame allowing the user to view player state
@@ -71,6 +73,12 @@
   `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
   singleton."
   (WaveformFinder/getInstance))
+
+(def ^AnalysisTagFinder analysis-finder
+  "A convenient reference to the [Beat Link
+  `AnalysisTagFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/AnalysisTagFinder.html)
+  singleton."
+  (AnalysisTagFinder/getInstance))
 
 (def ^ArtFinder art-finder
   "A convenient reference to the [Beat Link
@@ -430,6 +438,17 @@
                   (not (sending-status?)))
          (report-limited-metadata @player-window player))))))
 
+(defn update-phrase-labels
+  "Updates the track mood and bank when the phrase analysis results have
+  changed."
+  [tag mood-label bank-label]
+  (seesaw/invoke-soon
+   (if tag
+     (do
+       (seesaw/config! mood-label :visible? true :text (util/track-mood-name tag))
+       (seesaw/config! bank-label :visible? true :text (util/track-bank-name tag)))
+     (seesaw/config! [mood-label bank-label] :visible? false))))
+
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
   player media slot. Arguments are the player number, slot
@@ -502,12 +521,18 @@
                                         :listen [:state-changed (fn [e]
                                                                   (.setScale detail (seesaw/value e)))]))
         zoom-label     (when @should-show-details (seesaw/label :id :zoom-label :text "Zoom"))
+        mood-icon      (IconFontSwing/buildIcon FontAwesome/BOLT 13.0 Color/white)
+        mood-label     (seesaw/label :id :mood-label :text "High" :icon mood-icon :halign :right :visible? false)
+        bank-icon      (IconFontSwing/buildIcon FontAwesome/SLIDERS 13.0 Color/white)
+        bank-label     (seesaw/label :id :bank-label :text "Natural 2" :icon bank-icon :halign :right :visible? false)
         row            (mig/mig-panel
                         :id (keyword (str "player-" n))
                         :background (Color/BLACK)
-                        :items (concat [[title-label "width 340!, push, span 3"]
+                        :items (concat [[title-label "width 280!, push, span 3, split 2"]
+                                        [mood-label "right"]
                                         [art "right, spany 4, wrap, hidemode 2"]
-                                        [artist-label "width 340!, span 3, wrap unrelated"]
+                                        [artist-label "width 280!, span 3, split 2"]
+                                        [bank-label "right, wrap unrelated"]
                                         [usb-gear "split 2, right"] [usb-label "right"]
                                         [usb-name "width 280!, span 2, wrap"]
                                         [sd-gear "split 2, right"] [sd-label "right"]
@@ -524,6 +549,12 @@
                            (when (= n (.player md-update))
                              (update-metadata-labels (.metadata md-update) n title-label artist-label)
                              (seesaw/repaint! art))))  ; In case we still have no art but need a new generic image.
+        ss-listener    (reify AnalysisTagListener
+                         (analysisChanged [this tag-update]
+                           (when (= n (.player tag-update))
+                             (let [wrapped (when-let [wrapper (.taggedSection tag-update)]
+                                             (.body wrapper))]
+                               (update-phrase-labels wrapped mood-label bank-label)))))
         art-listener   (reify AlbumArtListener
                          (albumArtChanged [this art-update]
                            (when (= n (.player art-update))
@@ -577,18 +608,22 @@
 
     ;; Set up all our listeners to automatically update the interface when the environment changes.
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
+    (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")  ; React to song structure changes.
     (.addAlbumArtListener art-finder art-listener)  ; React to artwork changes.
     (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
 
     ;; Set the initial state of the interface.
     (when detail (.setScale detail (seesaw/value zoom-slider)))
     (update-metadata-labels (.getLatestMetadataFor metadata-finder (int n)) n title-label artist-label)
+    (when-let [tag (.getLatestTrackAnalysisFor analysis-finder (int n) ".EXT" "PSSI")]
+      (update-phrase-labels (.body tag) mood-label bank-label))
     (doseq [slot-reference (.getMountedMediaSlots metadata-finder)]
       (.mediaMounted mount-listener slot-reference))
 
     (async/go  ; Arrange to clean up when the window closes.
       (<! shutdown-chan)  ; Parks until the window is closed.
       (.removeTrackMetadataListener metadata-finder md-listener)
+      (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
       (.removeAlbumArtListener art-finder art-listener)
       (.removeMountListener metadata-finder mount-listener)
       (.setMonitoredPlayer preview (int 0))
