@@ -345,7 +345,7 @@
   [^Long player]
   (let [^CdjStatus status (.getLatestStatusFor virtual-cdj player)
         xdj-xz            (when status (str/starts-with? (.getDeviceName status) "XDJ-XZ"))
-        slot              (.getTrackSourceSlot status)]
+        slot              (when status (.getTrackSourceSlot status))]
     (cond
       (nil? status)
       "images/NoTrack.png"
