@@ -9,7 +9,6 @@
             [seesaw.core :as seesaw])
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
-           [org.deepsymmetry.beatlink.data CueList$Entry WaveformPreviewComponent]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$TrackMood
             RekordboxAnlz$TrackBank]
            [java.awt Color Font GraphicsEnvironment RenderingHints]

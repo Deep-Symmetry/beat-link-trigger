@@ -34,15 +34,16 @@
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener
             LifecycleListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference MetadataFinder
-            SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder
+           [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder BeatGrid CueList DataReference
+            MetadataFinder SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder
             TrackMetadata TrackPositionUpdate
             WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
            [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.cratedigger Database]
-           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow]
-           [io.kaitai.struct RandomAccessFileKaitaiStream]))
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
+            RekordboxAnlz$TaggedSection RekordboxAnlz$SongStructureTag]
+           [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]))
 
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
@@ -85,6 +86,12 @@
   `TimeFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TimeFinder.html)
   singleton."
   (TimeFinder/getInstance))
+
+(def ^AnalysisTagFinder analysis-finder
+  "A convenient reference to the [Beat Link
+  `AnalysisTagFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/AnalysisTagFinder.html)
+  singleton."
+  (AnalysisTagFinder/getInstance))
 
 (def ^org.deepsymmetry.beatlink.data.WaveformFinder waveform-finder
   "A convenient reference to the [Beat Link
@@ -492,6 +499,15 @@
        (let [bytes (Files/readAllBytes path)]
          (AlbumArt. data-reference (java.nio.ByteBuffer/wrap bytes)))))))
 
+(defn read-song-structure
+  "Loads song structure (phrase analysis information) for an imported
+  track. Returns `nil` if none is found. Otherwise, the raw bytes from
+  which it can be recreated."
+  [^Path track-root]
+  (let [path (.resolve track-root "song-structure.kaitai")]
+    (when (Files/isReadable path)
+      (Files/readAllBytes path))))
+
 (defn- build-track-path
   "Creates an up-to-date path into the current show filesystem for the
   content of the track with the given signature."
@@ -858,10 +874,11 @@
         (update-in [:cues-editor :panels] dissoc uuid))))
 
 (defn- close-cue-editors?
-  "Tries closing all open expression for the cue. If `force?` is true,
-  simply closes them even if they have unsaved changes. Otherwise
-  checks whether the user wants to save any unsaved changes. Returns
-  truthy if there are none left open the user wants to deal with."
+  "Tries closing all open expression editors for the cue. If `force?` is
+  true, simply closes them even if they have unsaved changes.
+  Otherwise checks whether the user wants to save any unsaved changes.
+  Returns truthy if there are none left open the user wants to deal
+  with."
   [force? track cue]
   (let [track (latest-track track)]
     (every? (partial editors/close-editor? force?)
@@ -1260,9 +1277,9 @@
                                            cue    (find-cue track cue)]
                                        (when (and (= "Custom" choice)
                                                   (not (:creating cue))
-                                                  (clojure.string/blank? (get-in cue [:expressions event]))
-                                                  (editors/show-cue-editor event track cue panel
-                                                                           #(update-cue-gear-icon track cue gear))))))))
+                                                  (clojure.string/blank? (get-in cue [:expressions event])))
+                                         (editors/show-cue-editor event track cue panel
+                                                                  #(update-cue-gear-icon track cue gear)))))))
 
 (defn- attach-cue-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
@@ -2113,6 +2130,8 @@
         wave         (WaveformDetailComponent. ^WaveformDetail (read-detail track-root)
                                                ^CueList (read-cue-list track-root)
                                                ^BeatGrid (:grid track))
+        song-structure (when-let [bytes (read-song-structure track-root)]
+                         (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. bytes)))
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4))
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
         entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (online?)
@@ -2193,6 +2212,7 @@
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                (paintOverlay [component graphics]
                                  (paint-cues-and-beat-selection track component graphics))))
+    (.setSongStructure wave song-structure)
     (seesaw/listen wave
                    :mouse-moved (fn [e] (handle-wave-move track wave e))
                    :mouse-pressed (fn [e] (handle-wave-click track wave e))
@@ -2896,6 +2916,13 @@
     (.. art getRawBytes (get bytes))
     (Files/write (.resolve track-root "art.jpg") bytes empty-open-options)))
 
+(defn write-song-structure
+  "Writes the song structure (phrase analysis information) for a track
+  being imported to the show filesystem, given the bytes from which
+  the song structure was parsed."
+  [^Path track-root bytes]
+  (Files/write (.resolve track-root "song-structure.kaitai") bytes empty-open-options))
+
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color
   of its label based on whether the currently-selected MIDI output can
@@ -3104,10 +3131,16 @@
      (let [track-root (build-track-path show signature)
            preview    (read-preview track-root)
            cue-list   (read-cue-list track-root)
+           beat-grid  (read-beat-grid track-root)
+           raw-ss     (read-song-structure track-root)
            component  (WaveformPreviewComponent. preview (:duration metadata) cue-list)]
+       (.setBeatGrid component beat-grid)
        (.setOverlayPainter component (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                        (paintOverlay [component graphics]
                                          (paint-preview-cues show signature component graphics))))
+       (when raw-ss
+         (let [song-structure (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss))]
+           (.setSongStructure component song-structure)))
        component))))
 
 (defn- create-track-preview
@@ -3328,16 +3361,18 @@
                    (when (and (not= (:file show) (:file other-show))
                               (not (:block-tracks? other-show))
                               (not (get-in other-show [:tracks (:signature track)])))
-                     (seesaw/action :handler (fn [_]
-                                               (let [new-track (merge (select-keys track [:signature :metadata
-                                                                                          :contents])
-                                                                      {:cue-list  (read-cue-list track-root)
-                                                                       :beat-grid (read-beat-grid track-root)
-                                                                       :preview   (read-preview track-root)
-                                                                       :detail    (read-detail track-root)
-                                                                       :art       (read-art track-root)})]
-                                                 (import-track other-show new-track)
-                                                 (refresh-signatures other-show)))
+                     (seesaw/action :handler
+                                    (fn [_]
+                                      (let [new-track (merge (select-keys track [:signature :metadata
+                                                                                 :contents])
+                                                             {:cue-list       (read-cue-list track-root)
+                                                              :beat-grid      (read-beat-grid track-root)
+                                                              :preview        (read-preview track-root)
+                                                              :detail         (read-detail track-root)
+                                                              :art            (read-art track-root)
+                                                              :song-structure (read-song-structure track-root)})]
+                                        (import-track other-show new-track)
+                                        (refresh-signatures other-show)))
                                     :name (str "Copy to Show \"" (fs/base-name (:file other-show) true) "\""))))
                  (vals @open-shows)))))
 
@@ -3695,10 +3730,11 @@
                     (str "<html>Unable to import track, missing required elements:<br>"
                          (clojure.string/join ", " (map name missing-elements)))
                     :title "Track Import Failed" :type :error)
-      (let [{:keys [filesystem]}                   show
+      (let [{:keys [filesystem]}                 show
             {:keys [signature metadata cue-list
-                    beat-grid preview detail art]} track
-            track-root                             (build-filesystem-path filesystem "tracks" signature)]
+                    beat-grid preview detail art
+                    song-structure]}             track
+            track-root                           (build-filesystem-path filesystem "tracks" signature)]
         (Files/createDirectories track-root (make-array java.nio.file.attribute.FileAttribute 0))
         (write-edn-path metadata (.resolve track-root "metadata.edn"))
         (when cue-list
@@ -3707,6 +3743,7 @@
         (when preview (write-preview track-root preview))
         (when detail (write-detail track-root detail))
         (when art (write-art track-root art))
+        (when song-structure (write-song-structure track-root song-structure))
         (when-let [track-contents (:contents track)]  ; In case this is being copied from an existing show.
           (write-edn-path track-contents (.resolve track-root "contents.edn")))
         (create-track-panel show track-root)
@@ -3724,23 +3761,26 @@
     (if (track-present? show signature)
       (seesaw/alert (:frame show) (str "Track on Player " player " is already in the Show.")
                     :title "Can’t Re-import Track" :type :error)
-      (let [metadata  (.getLatestMetadataFor metadata-finder player)
-            cue-list  (.getCueList metadata)
-            beat-grid (.getLatestBeatGridFor beatgrid-finder player)
-            preview   (.getLatestPreviewFor waveform-finder player)
-            detail    (.getLatestDetailFor waveform-finder player)
-            art       (.getLatestArtFor art-finder player)]
+      (let [metadata        (.getLatestMetadataFor metadata-finder player)
+            cue-list        (.getCueList metadata)
+            beat-grid       (.getLatestBeatGridFor beatgrid-finder player)
+            preview         (.getLatestPreviewFor waveform-finder player)
+            detail          (.getLatestDetailFor waveform-finder player)
+            art             (.getLatestArtFor art-finder player)
+            structure-tag   (.getLatestTrackAnalysisFor analysis-finder player ".EXT" "PSSI")
+            structure-bytes (when structure-tag (._raw_body structure-tag))]
         (if (not= signature (.getLatestSignatureFor signature-finder player))
           (seesaw/alert (:frame show) (str "Track on Player " player " Changed during Attempted Import.")
                         :title "Track Import Failed" :type :error)
           (do
-            (import-track show {:signature signature
-                                :metadata  (extract-metadata metadata)
-                                :cue-list  cue-list
-                                :beat-grid beat-grid
-                                :preview   preview
-                                :detail    detail
-                                :art       art})
+            (import-track show {:signature      signature
+                                :metadata       (extract-metadata metadata)
+                                :cue-list       cue-list
+                                :beat-grid      beat-grid
+                                :preview        preview
+                                :detail         detail
+                                :art            art
+                                :song-structure structure-bytes})
             (update-player-item-signature (SignatureUpdate. player signature) show)))))))
 
 (defn- find-anlz-file
@@ -3779,6 +3819,15 @@
               data-ref (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION art-id)]
           (AlbumArt. data-ref art-file))))))
 
+(defn- find-song-structure
+  "Helper function to find the raw bytes of the song structure tag, if
+  one is present in the extended track analysis file."
+  [ext]
+  (when-let [^RekordboxAnlz$SongStructureTag tag (->> (.sections ext)
+                                                      (filter #(instance? RekordboxAnlz$SongStructureTag (.body %)))
+                                                      first)]
+    (._raw_body tag)))
+
 (defn- import-from-media
   "Imports a track that has been parsed from a local media export, being
   very careful to close the underlying track analysis files no matter
@@ -3786,8 +3835,8 @@
   [show database ^RekordboxPdb$TrackRow track-row]
   (let [anlz-file (find-anlz-file database track-row false)
         ext-file  (find-anlz-file database track-row true)
-        anlz-atom       (atom nil)
-        ext-atom        (atom nil)]
+        anlz-atom (atom nil)
+        ext-atom  (atom nil)]
     (try
       (let [^RekordboxAnlz anlz (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
                                                     (RekordboxAnlz.
@@ -3803,18 +3852,20 @@
             preview             (find-waveform-preview data-ref anlz ext)
             detail              (when ext (WaveformDetail. data-ref ext))
             art                 (find-art database track-row)
+            song-structure      (when ext (find-song-structure ext))
             signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
                                                         (.getDuration metadata) detail beat-grid)]
         (if (and signature (track-present? show signature))
           (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
                         :title "Can’t Re-import Track" :type :error)
-          (import-track show {:signature signature
-                              :metadata  (extract-metadata metadata)
-                              :cue-list  cue-list
-                              :beat-grid beat-grid
-                              :preview   preview
-                              :detail    detail
-                              :art       art}))
+          (import-track show {:signature      signature
+                              :metadata       (extract-metadata metadata)
+                              :cue-list       cue-list
+                              :beat-grid      beat-grid
+                              :preview        preview
+                              :detail         detail
+                              :art            art
+                              :song-structure song-structure}))
         (refresh-signatures show))
       (finally
         (try
@@ -4233,7 +4284,7 @@
         (.close filesystem)
         (throw t)))))
 
-;;; External API for creating, opening, reopeining, and closing shows:
+;;; External API for creating, opening, reopening, and closing shows:
 
 (defn- open-internal
   "Opens a show file. If it is already open, just brings the window to
