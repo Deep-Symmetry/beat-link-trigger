@@ -1563,15 +1563,10 @@
         ^WaveformPreviewComponent preview (preview-loader)
         cue                               (first (filter (fn [cue]
                                                            (.contains (cue-preview-rectangle track cue preview) point))
-                                                         (vals (get-in track [:contents :cues :cues]))))
-        rb-cues                           (.. preview getCueList entries)
-        rb-cue                            (last (filter (fn [cue]
-                                                          (.contains (util/cue-preview-indicator-rectangle preview cue)
-                                                                     point))
-                                                        rb-cues))]
+                                                         (vals (get-in track [:contents :cues :cues]))))]
     (.setToolTipText ^JComponent soft-preview
                      (or (when cue (or (:comment cue) "Unnamed Cue"))
-                         (when rb-cue (util/describe-cue rb-cue))))))
+                         (.toolTipText preview point)))))
 
 (defn- handle-preview-press
   "Processes a mouse press over the softly-held waveform preview

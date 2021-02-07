@@ -411,24 +411,6 @@
           #{}
           player-map))
 
-(defn cue-preview-indicator-rectangle
-  "Calculates the outline of a cue/loop's indicator within the
-  coordinate system of the waveform preview component."
-  ^java.awt.geom.Rectangle2D [^WaveformPreviewComponent preview ^CueList$Entry cue]
-  (let [x (.millisecondsToX preview (.cueTime cue))]
-    (java.awt.geom.Rectangle2D$Double. (- x 4.0) 0.0 9.0 12.0)))
-
-(defn describe-cue
-  "Produces a brief textual description of a cue/loop suitable for a
-  tooltip."
-  ^String [^CueList$Entry cue]
-  (let [comment (.comment cue)
-        hot     (.hotCueNumber cue)
-        kind    (if (pos? hot)
-                  (str "Hot " (if (.isLoop cue) "Loop " "Cue ") (char (+ 64 hot)))
-                  (if (.isLoop cue) "Loop" "Memory"))]
-    (str kind (when (seq comment) (str ": " comment)))))
-
 (defn inspect-overflowed
   "Tell the user their attempt to inspect something has resulted in a
   stack overflow, which probably means there is a cycle and they need

@@ -467,14 +467,10 @@
   "Mouse movement listener for a wave preview component; shows a tool
   tip with a cue/loop description if the mouse is hovering over the
   marker for one. Will include the DJ-assigned comment if we have
-  found one."
-  [^WaveformPreviewComponent preview ^Long n ^MouseEvent e]
-  (let [point    (.getPoint e)
-        data     (.getLatestMetadataFor metadata-finder n)
-        cue-list (when data (.getCueList data))
-        cues     (when cue-list (.entries cue-list))
-        cue      (last (filter (fn [cue] (.contains (util/cue-preview-indicator-rectangle preview cue) point)) cues))]
-    (.setToolTipText preview (when cue (util/describe-cue cue)))))
+  found one. Also identifies the phrase labels when hovering over
+  a phrase analyis color bar (again, if we have one)."
+  [^WaveformPreviewComponent preview ^MouseEvent e]
+  (.setToolTipText preview (.toolTipText preview (.getPoint e))))
 
 (defn- media-description
   "Builds a description with as much information as we have available
@@ -604,7 +600,7 @@
                                       (util/show-popup-from-button sd-gear popup e))))
 
     ;; Show tooltips for cue/loop markers in the track preview.
-    (seesaw/listen preview :mouse-moved (fn [e] (handle-preview-move preview n e)))
+    (seesaw/listen preview :mouse-moved (fn [e] (handle-preview-move preview e)))
 
     ;; Set up all our listeners to automatically update the interface when the environment changes.
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
