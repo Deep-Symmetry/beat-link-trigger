@@ -32,17 +32,17 @@
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [javax.swing.text JTextComponent]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
-            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener
+            DeviceAnnouncement DeviceAnnouncementListener DeviceUpdateListener DeviceFinder
             LifecycleListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder BeatGrid CueList DataReference
-            MetadataFinder SearchableItem SignatureFinder SignatureListener SignatureUpdate TimeFinder
-            TrackMetadata TrackPositionUpdate
+           [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder AnalysisTagListener AnalysisTagUpdate
+            BeatGrid CueList DataReference MetadataFinder SearchableItem
+            SignatureFinder SignatureListener SignatureUpdate TimeFinder TrackMetadata TrackPositionUpdate
             WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
            [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
-            RekordboxAnlz$TaggedSection RekordboxAnlz$SongStructureTag]
+            RekordboxAnlz$SongStructureTag RekordboxAnlz$TaggedSection]
            [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]))
 
 (def ^DeviceFinder device-finder
@@ -2796,6 +2796,28 @@
           (assoc-in [:tracks signature :tripped] (boolean (enabled? show track))))
       show)))
 
+(declare write-song-structure)
+
+(defn- upgrade-song-structure
+  "When we have learned about newly available phrase analysis
+  information, see if it is for a track in the show which currently
+  lacks any, and if so, add it to that track. This must only be called
+  when both `tag` and `signature` are not `null`."
+  [show ^RekordboxAnlz$TaggedSection tag signature]
+  (let [show (latest-show show)]
+    (when-let [track (get (:tracks show) signature)]
+      (let [track-path (build-track-path show signature)]
+        (when-not (read-song-structure track-path)
+          (let [ss-bytes (._raw_body tag)]
+            (write-song-structure track-path ss-bytes)
+            (flush-show show)
+            (let [song-structure (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. ss-bytes))]
+              (when-let [preview-loader (:preview track)]
+                (when-let [^WaveformPreviewComponent preview (preview-loader)]
+                  (.setSongStructure preview song-structure)))
+              (when-let [^WaveformDetailComponent wave (get-in track [:cues-editor :wave])]
+                (.setSongStructure wave song-structure)))))))))
+
 (defn- update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
   an explanation), given the track signature that has just been
@@ -2824,7 +2846,10 @@
                                   (set-incoming-trip-state signature player))))
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
-      (deliver-change-events show signature track player nil))))
+      (deliver-change-events show signature track player nil))
+    (when signature
+      (when-let [^RekordboxAnlz$TaggedSection ss-tag (.getLatestTrackAnalysisFor analysis-finder player ".EXT" "PSSI")]
+        (upgrade-song-structure show ss-tag signature)))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -3823,9 +3848,9 @@
   "Helper function to find the raw bytes of the song structure tag, if
   one is present in the extended track analysis file."
   [ext]
-  (when-let [^RekordboxAnlz$SongStructureTag tag (->> (.sections ext)
-                                                      (filter #(instance? RekordboxAnlz$SongStructureTag (.body %)))
-                                                      first)]
+  (when-let [^RekordboxAnlz$TaggedSection tag (->> (.sections ext)
+                                                   (filter #(instance? RekordboxAnlz$SongStructureTag (.body %)))
+                                                   first)]
     (._raw_body tag)))
 
 (defn- import-from-media
@@ -4186,6 +4211,11 @@
                               (signatureChanged [this sig-update]
                                 (update-player-item-signature sig-update show)
                                 (seesaw/invoke-later (update-track-visibility show))))
+            ss-listener     (reify AnalysisTagListener  ; Add newly-available phrase analysis info to tracks.
+                              (analysisChanged [this tag-update]
+                                (when-let [song-structure (.taggedSection tag-update)]
+                                  (when-let [signature (.getLatestSignatureFor signature-finder (.player tag-update))]
+                                    (upgrade-song-structure show song-structure signature)))))
             update-listener (reify DeviceUpdateListener
                               (received [this status]
                                 (try
@@ -4213,6 +4243,7 @@
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
                                   (.removeLifecycleListener metadata-finder mf-listener)
                                   (.removeSignatureListener signature-finder sig-listener)
+                                  (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true track))
                                   (when (online?) (run-global-function show :offline nil (not force?)))
@@ -4237,6 +4268,7 @@
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
+        (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
         (.addUpdateListener virtual-cdj update-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
