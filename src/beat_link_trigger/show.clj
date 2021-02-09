@@ -43,7 +43,9 @@
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
             RekordboxAnlz$SongStructureTag RekordboxAnlz$TaggedSection]
-           [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]))
+           [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]
+           [jiconfont.icons.font_awesome FontAwesome]
+           [jiconfont.swing IconFontSwing]))
 
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
@@ -1328,6 +1330,14 @@
      :channel       channel
      :channel-label channel-label}))
 
+(defn link-button-icon
+  "Returns the proper icon to use for a cue's link button, depending on
+  its current link state."
+  [cue]
+  (if (:link cue)
+    (IconFontSwing/buildIcon FontAwesome/LINK 16.0 Color/white)
+    (IconFontSwing/buildIcon FontAwesome/CHAIN_BROKEN 16.0 Color/white)))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -1340,6 +1350,7 @@
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment cue) :listen [:document update-comment])
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        link           (seesaw/button :id :link :icon (link-button-icon cue))
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
                                              :to (long (.beatCount ^BeatGrid (:grid track))))
@@ -1391,7 +1402,7 @@
                        [(get-in event-components [:entered :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:entered :channel]) "hidemode 2, wrap"]
 
-                       [""]
+                       [link]
                        ["Started:" "gap unrelated, align right"]
                        [(seesaw/canvas :id :started-state :size [18 :by 18] :opaque? false
                                        :tip "Outer ring shows track enabled, inner light when player(s) playing inside cue."
