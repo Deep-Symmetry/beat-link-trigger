@@ -1338,6 +1338,81 @@
     (IconFontSwing/buildIcon FontAwesome/LINK 16.0 Color/white)
     (IconFontSwing/buildIcon FontAwesome/CHAIN_BROKEN 16.0 Color/white)))
 
+(defn build-cue-folder-menu
+  "Creates a menu for a folder in the cue library, containing actions
+  that add all the cues present in that folder to the track.
+  `cue-action-builder-fn` is the function that will be called to
+  create the action associated with a cue in the menu. It will be
+  called with the cue name, cue contents, and track."
+  [show track folder-name cues-in-folder cue-action-builder-fn]
+  (let [cue-actions (filter identity
+                            (for [cue-name (sort cues-in-folder)]
+                              (when-let [cue (get-in (latest-show show) [:contents :cue-library cue-name])]
+                                (cue-action-builder-fn cue-name cue track))))]
+    (seesaw/menu :text folder-name
+                 :items (if (seq cue-actions)
+                          cue-actions
+                          [(seesaw/action :name "No Cues in Folder" :enabled? false)]))))
+
+(defn build-cue-folder-menus
+  "Creates a menu for each folder in the cue library, containing actions
+  that do something appropriate when a cue is chosen. Returns a tuple
+  of that menu along with a set of the names of all the cues which
+  were found in any folder, so they can be omitted from the top-level
+  menu. `cue-action-builder-fn` is the function that will be called to
+  create the action associated with a cue in the menu. It will be
+  called with the cue name, cue contents, and track."
+  [show track cue-action-builder-fn]
+  (reduce (fn [[menus cues-in-folders] [folder-name cues-in-folder]]
+            [(conj menus (build-cue-folder-menu show track folder-name cues-in-folder cue-action-builder-fn))
+             (clojure.set/union cues-in-folders cues-in-folder)])
+          [[] #{}]
+          (get-in (latest-show show) [:contents :cue-library-folders])))
+
+(defn- build-cue-library-popup-items
+  "Creates the popup menu items allowing you to do something with cues
+  in the library. `cue-action-builder-fn` is the function that will be
+  called to create the action associated with a cue in the menu. It
+  will be called with the cue name, cue contents, and track."
+  [track cue-action-builder-fn]
+  (let [[show track] (latest-show-and-track track)
+        library      (sort-by first (vec (get-in show [:contents :cue-library])))]
+    (if (empty? library)
+      [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
+      (let [[folder-menus cues-in-folders] (build-cue-folder-menus show track cue-action-builder-fn)]
+        (concat folder-menus
+                (filter identity
+                        (for [[cue-name cue] library]
+                          (when-not (cues-in-folders cue-name)
+                            (cue-action-builder-fn cue-name cue track)))))))))
+
+(defn- build-link-cue-action
+  "Creates an action that links an existing cue to a library cue."
+  [existing-cue button library-cue-name library-cue track]
+  (seesaw/action :name library-cue-name
+                 :handler (fn [_]
+                            ;; TODO: Confirm rewriting contents if they differ, and do it, updating the cue panel.
+                            (swap-cue! track existing-cue assoc :link library-cue-name)
+                            (seesaw/config! button :icon (link-button-icon (find-cue track existing-cue))))))
+
+(defn- build-cue-link-button-menu
+  "Builds the menu that appears when you click in a cue's Link button,
+  either offering to link or unlink the cue as appropriate, or telling
+  you the library is empty."
+  [track cue button]
+  (let [[show track] (latest-show-and-track track)
+        cue          (find-cue track cue)
+        library      (sort-by first (vec (get-in show [:contents :cue-library])))]
+    (if (empty? library)
+      [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
+      (if-let [link (:link cue)]
+        [(seesaw/action :name (str "Unlink from Library Cue “" link "”")
+                         :handler (fn [_]
+                                    (swap-cue! track cue dissoc :link)
+                                    (seesaw/config! button :icon (link-button-icon (find-cue track cue)))))]
+        [(seesaw/menu :text "Link to Library Cue"
+                      :items (build-cue-library-popup-items track (partial build-link-cue-action cue button)))]))))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -1435,6 +1510,13 @@
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
     (update-cue-gear-icon track cue gear)
+
+    ;; Attach the link menu to the link button, both as a normal and right click.
+    (seesaw/config! [link] :popup (build-cue-link-button-menu track cue link))
+    (seesaw/listen link
+                   :mouse-pressed (fn [e]
+                                    (let [popup (seesaw/popup :items (build-cue-link-button-menu track cue link))]
+                                      (util/show-popup-from-button link popup e))))
 
     (seesaw/listen swatch
                    :mouse-pressed (fn [_]
@@ -1766,47 +1848,6 @@
                                         (timbre/error e "Problem adding Library Cue")
                                         (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
 
-(defn build-cue-folder-menu
-  "Creates a menu for a folder in the cue library, containing actions
-  that add all the cues present in that folder to the track."
-  [show track folder-name cues-in-folder]
-  (let [cue-actions (filter identity
-                            (for [cue-name (sort cues-in-folder)]
-                              (when-let [cue (get-in (latest-show show) [:contents :cue-library cue-name])]
-                                (build-library-cue-action cue-name cue track))))]
-    (seesaw/menu :text folder-name
-                 :items (if (seq cue-actions)
-                          cue-actions
-                          [(seesaw/action :name "No Cues in Folder" :enabled? false)]))))
-
-(defn build-cue-folder-menus
-  "Creates a menu for each folder in the cue library, containing actions
-  that add the cues present in that folder to the track. Returns a
-  tuple of that menu along with a set of the names of all the cues
-  which were found in any folder, so they can be omitted from the
-  top-level menu."
-  [show track]
-  (reduce (fn [[menus cues-in-folders] [folder-name cues-in-folder]]
-            [(conj menus (build-cue-folder-menu show track folder-name cues-in-folder))
-             (clojure.set/union cues-in-folders cues-in-folder)])
-          [[] #{}]
-          (get-in (latest-show show) [:contents :cue-library-folders])))
-
-(defn- build-cue-library-popup-items
-  "Creates the popup menu items allowing you to add cues from the
-  library to a track."
-  [track]
-  (let [[show track] (latest-show-and-track track)
-        library      (sort-by first (vec (get-in show [:contents :cue-library])))]
-    (if (empty? library)
-      [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
-      (let [[folder-menus cues-in-folders] (build-cue-folder-menus show track)]
-        (concat folder-menus
-                (filter identity
-                        (for [[cue-name cue] library]
-                          (when-not (cues-in-folders cue-name)
-                            (build-library-cue-action cue-name cue track)))))))))
-
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
   a track."
@@ -1816,7 +1857,7 @@
                       (let [panel    (get-in track [:cues-editor :panels (:uuid cue)])
                             popup-fn (:popup (seesaw/user-data panel))]
                         (popup-fn e))
-                      (build-cue-library-popup-items track))]
+                      (build-cue-library-popup-items track build-library-cue-action))]
     (util/show-popup-from-button wave (seesaw/popup :items popup-items) e)))
 
 (defn- handle-wave-move
@@ -2107,7 +2148,7 @@
   (let [[show track]  (latest-show-and-track track)
         folders (sort (keys (get-in show [:contents :cue-library-folders])))]
     (concat
-     (build-cue-library-popup-items track)
+     (build-cue-library-popup-items track build-library-cue-action)
      [(seesaw/menu :text "Manage Folders"
                    :items (concat
                            [(seesaw/action :name "New Folder"
@@ -2122,8 +2163,7 @@
                                            :items (for [folder folders]
                                                     (seesaw/action :name folder
                                                                    :handler (fn [_]
-                                                                              (remove-cue-folder show track folder)))))]
-                             )))])))
+                                                                              (remove-cue-folder show track folder)))))])))])))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified show and track.
