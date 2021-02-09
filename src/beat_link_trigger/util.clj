@@ -127,13 +127,31 @@
               (seesaw/dispose! confirm)
               result))))))
 
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
+  (DeviceFinder/getInstance))
+
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
+  (VirtualCdj/getInstance))
+
+(defn online?
+  "Check whether we are in online mode, with all the required
+  beat-link finder objects running."
+  []
+  (and (.isRunning device-finder) (.isRunning virtual-cdj)))
+
 (defn visible-player-numbers
   "Return the list of players numbers currently visible on the
   network (ignoring our virtual player, and any mixers or rekordbox
   instances)."
   []
   (filter #(< % 16) (map (fn [^DeviceAnnouncement device] (.getDeviceNumber device))
-                         (.getCurrentDevices (DeviceFinder/getInstance)))))
+                         (.getCurrentDevices device-finder))))
 
 (defn remove-blanks
   "Converts an empty string to a `nil` value so `or` will reject it."
@@ -330,12 +348,6 @@
     (str (when (pos? (.trackCount details)) (str ", " (.trackCount details) " tracks"))
          (when (pos? (.playlistCount details)) (str ", " (.playlistCount details) " playlists")))
     ""))
-
-(def ^VirtualCdj virtual-cdj
-  "A convenient reference to the [Beat Link
-  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
-  singleton."
-  (VirtualCdj/getInstance))
 
 (defn generic-media-resource
   "Returns the path to a PNG image resource that can be used as generic

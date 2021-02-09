@@ -34,7 +34,7 @@
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceUpdateListener DeviceFinder
             LifecycleListener VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder AnalysisTagListener AnalysisTagUpdate
+           [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder AnalysisTagListener
             BeatGrid CueList DataReference MetadataFinder SearchableItem
             SignatureFinder SignatureListener SignatureUpdate TimeFinder TrackMetadata TrackPositionUpdate
             WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
@@ -112,12 +112,6 @@
 
 ;;; This section defines a bunch of utility functions that are used by
 ;;; both the Show and Cues windows.
-
-(defn online?
-  "A helper function that checks if we are currently online with a DJ
-  Link network."
-  []
-  (.isRunning metadata-finder))
 
 (defn- build-filesystem-path
   "Construct a path in the specified filesystem; translates from
@@ -1469,7 +1463,7 @@
 (defn- update-cue-visibility
   "Determines the cues that should be visible given the filter text (if
   any) and state of the Only Entered checkbox if we are online.
-  Updates the tracks cues editor's `:visible` key to hold a vector of
+  Updates the track's cues editor's `:visible` key to hold a vector of
   the visible cue UUIDs, sorted by their start and end beats followed
   by their comment and UUID. Then uses that to update the contents of
   the `cues` panel appropriately. Safely does nothing if the track has
@@ -1480,7 +1474,7 @@
       (let [cues          (seesaw/select (:frame editor) [:#cues])
             panels        (get-in track [:cues-editor :panels])
             text          (get-in track [:contents :cues :filter])
-            entered-only? (and (online?) (get-in track [:contents :cues :entered-only]))
+            entered-only? (and (util/online?) (get-in track [:contents :cues :entered-only]))
             entered       (when entered-only? (reduce clojure.set/union (vals (:entered track))))
             old-visible   (get-in track [:cues-editor :visible])
             visible-cues  (filter identity
@@ -1517,7 +1511,7 @@
   to a DJ Link network."
   [track ^WaveformDetailComponent wave auto?]
   (swap-track! track assoc-in [:contents :cues :auto-scroll] auto?)
-  (.setAutoScroll wave (and auto? (online?)))
+  (.setAutoScroll wave (and auto? (util/online?)))
   (repaint-preview track)  ; Show or hide the editor viewport overlay if needed.
   (seesaw/scroll! wave :to [:point 0 0]))
 
@@ -2134,10 +2128,10 @@
                          (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. bytes)))
         zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4))
         filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
-        entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (online?)
+        entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (util/online?)
                                       :selected? (boolean (get-in track [:contents :cues :entered-only]))
                                       :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
-        auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (online?)
+        auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (util/online?)
                                       :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
                                       :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
         lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-button-menu track)))
@@ -2208,7 +2202,7 @@
                             (repaint-preview track))))
     (.setScale wave (seesaw/value zoom-slider))
     (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
-    (.setAutoScroll wave (and (seesaw/value auto-scroll) (online?)))
+    (.setAutoScroll wave (and (seesaw/value auto-scroll) (util/online?)))
     (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                (paintOverlay [component graphics]
                                  (paint-cues-and-beat-selection track component graphics))))
@@ -2608,7 +2602,7 @@
           (now-loaded show player track false)
           (when is-playing (now-playing show player track status false))))
 
-      (and (not= (:tripped old-track) (:tripped track)))
+      (not= (:tripped old-track) (:tripped track))
       (do  ; This is an overall activation/deactivation.
         (timbre/info "Track changing tripped to " (:tripped track))
         (if (:tripped track)
@@ -3058,7 +3052,7 @@
         visible-tracks (filter (fn [track]
                                  (and
                                   (or (clojure.string/blank? text) (clojure.string/includes? (:filter track) text))
-                                  (or (not loaded-only?) (not (online?))
+                                  (or (not loaded-only?) (not (util/online?))
                                       ((set (vals (.getSignatures signature-finder))) (:signature track)))))
                                (vals (:tracks show)))
         sorted-tracks  (sort-by (juxt #(clojure.string/lower-case (or (get-in % [:metadata :title]) ""))
@@ -4058,12 +4052,12 @@
   (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show) nil (:frame show)
                                                             (fn []
                                                               (when (= :setup kind)
-                                                                (when (online?)
+                                                                (when (util/online?)
                                                                   (run-global-function show :offline nil true))
                                                                 (run-global-function show :shutdown nil true)
                                                                 (reset! (:expression-globals show) {})
                                                                 (run-global-function show :setup nil true)
-                                                                (when (online?)
+                                                                (when (util/online?)
                                                                   (run-global-function show :online nil true)))
                                                               (update-tracks-global-expression-icons show))))
                  :name (str "Edit " (get-in @editors/global-show-editors [kind :title]))
@@ -4105,7 +4099,7 @@
         ^javax.swing.JMenu import-menu (:import-menu show)
         player                         (.getDeviceNumber announcement)]
     (when (and (< player 5)  ; Ignore non-players, and attempts to make players visible when we are offline.
-               (or (online?) (not visible?)))
+               (or (util/online?) (not visible?)))
       #_(timbre/info "Updating player" player "menu item visibility to" visible?)
       (let [^javax.swing.JMenuItem item (.getItem import-menu (dec player))]
         (when visible?  ; If we are becoming visible, first update the signature information we'd been ignoring before.
@@ -4148,7 +4142,7 @@
   "Create and show a new show window on the specified file."
   [^File file]
   (util/load-fonts)
-  (when (online?)  ; Start out the finders that aren't otherwise guaranteed to be running.
+  (when (util/online?)  ; Start out the finders that aren't otherwise guaranteed to be running.
     (.start time-finder)
     (.start signature-finder))
   (let [[^FileSystem filesystem contents] (open-show-filesystem file)]
@@ -4174,7 +4168,7 @@
                                              :listen [:item-state-changed
                                                       #(set-enabled-default show (seesaw/selection %))])
             loaded-only     (seesaw/checkbox :id :loaded-only :text "Loaded Only"
-                                             :selected? (boolean (:loaded-only contents)) :visible? (online?)
+                                             :selected? (boolean (:loaded-only contents)) :visible? (util/online?)
                                              :listen [:item-state-changed #(set-loaded-only show (seesaw/value %))])
             filter-field    (seesaw/text (:filter contents ""))
             top-panel       (mig/mig-panel :background "#aaa"
@@ -4246,7 +4240,7 @@
                                   (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true track))
-                                  (when (online?) (run-global-function show :offline nil (not force?)))
+                                  (when (util/online?) (run-global-function show :offline nil (not force?)))
                                   (run-global-function show :shutdown nil (not force?))
                                   (try
                                     (save-show show false)
@@ -4307,7 +4301,7 @@
                            (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
         (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root))
         (run-global-function show :setup nil true)
-        (when (online?) (run-global-function show :online nil true))
+        (when (util/online?) (run-global-function show :online nil true))
         (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
         (seesaw/show! root))

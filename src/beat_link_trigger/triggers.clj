@@ -514,12 +514,6 @@
            :else (str ", beat " beat " (" (inc (quot (dec beat) 4)) "." (inc (rem (dec beat) 4)) ")"))
          (when using-metadata? (format-metadata metadata metadata-summary)))))
 
-(defn- online?
-  "Check whether we are in online mode, with all the required
-  beat-link finder objects running."
-  []
-  (and (.isRunning device-finder) (.isRunning virtual-cdj)))
-
 (defn- show-device-status
   "Set the device satus label for a trigger outside of the context of
   receiving an update from the device (for example, the user chose a
@@ -538,18 +532,18 @@
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
-        (let [found  (when (online?) (.getLatestAnnouncementFrom device-finder (int (.number selection))))
-              status (when (online?) (.getLatestStatusFor virtual-cdj (int (.number selection))))]
+        (let [found  (when (util/online?) (.getLatestAnnouncementFrom device-finder (int (.number selection))))
+              status (when (util/online?) (.getLatestStatusFor virtual-cdj (int (.number selection))))]
           (if (nil? found)
             (do (seesaw/config! status-label :foreground "red")
-                (seesaw/value! status-label (if (online?) "Player not found." "Offline."))
+                (seesaw/value! status-label (if (util/online?) "Player not found." "Offline."))
                 (update-player-state trigger false false nil))
             (if (instance? CdjStatus status)
               (do (seesaw/config! status-label :foreground "cyan")
                   (seesaw/value! status-label (build-status-label status track-description metadata-summary)))
               (do (seesaw/config! status-label :foreground "red")
                   (seesaw/value! status-label (cond (some? status)  "Non-Player status received."
-                                                    (not (online?)) "Offline."
+                                                    (not (util/online?)) "Offline."
                                                     :else           "No status received."))))))))
     (catch Exception e
       (timbre/error e "Problem showing Trigger Player status."))))
@@ -700,7 +694,7 @@
              (every? (partial editors/close-editor? force?) (vals (:expression-editors @trigger-prefs))))
     (doseq [trigger (get-triggers)]
       (delete-trigger true trigger))
-    (when (online?) (run-global-function :offline))
+    (when (util/online?) (run-global-function :offline))
     (run-global-function :shutdown)
     (reset! expression-globals {})
     (reset! trigger-prefs (initial-trigger-prefs))
@@ -1118,7 +1112,7 @@
                                      (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                      :items (recreate-trigger-rows))
                                      (adjust-triggers)
-                                     (when (online?) (run-global-function :online)))
+                                     (when (util/online?) (run-global-function :online)))
                                    (catch Exception e
                                      (timbre/error e "Problem loading" file)
                                      (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
@@ -1219,7 +1213,7 @@
       (rebuild-all-device-status))
     (deviceLost [this announcement]
       (rebuild-all-device-status)
-      (when (and (online?) (empty? (.getCurrentDevices device-finder)))
+      (when (and (util/online?) (empty? (.getCurrentDevices device-finder)))
         ;; We are online but lost the last DJ Link device. Switch back to looking for the network.
         (future
           (seesaw/invoke-now  ; Go offline.
@@ -1395,7 +1389,7 @@
   running on the other players, so we can request things like CD-Text
   based information that Crate Digger can't obtain."
   []
-  (when (online?)
+  (when (util/online?)
     (if (> (.getDeviceNumber virtual-cdj) 4)
       (let [players (count (util/visible-player-numbers))
             options (to-array ["Cancel" "Go Offline"])
@@ -1426,7 +1420,7 @@
   player number if we are online."
   []
   (str "Online?"
-       (when (online?)
+       (when (util/online?)
          (str "  [We are Player " (.getDeviceNumber virtual-cdj) "]"))))
 
 (defn- build-trigger-menubar
@@ -1450,7 +1444,7 @@
                                         :tip "Opens an already-created show interface."
                                         :key "menu O")
         using-playlists? (:tracks-using-playlists? @trigger-prefs)
-        online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (online?))
+        online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (util/online?))
         real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status
                                                     :selected? (real-player?))
         bg               (seesaw/button-group)
@@ -1557,7 +1551,7 @@
   (seesaw/invoke-soon
    (try
      (seesaw/config! [@playlist-writer-action @load-track-action @load-settings-action @player-status-action]
-                     :enabled? (online?))
+                     :enabled? (util/online?))
      (.setText (online-menu-item) (online-menu-name))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))
@@ -1626,11 +1620,11 @@
          (.stop virtual-cdj)
          (.setSelected (online-menu-item) false))))
     (.setPassive metadata-finder true)  ; Start out conservatively
-    (when (online?)
+    (when (util/online?)
       (start-other-finders)
       (.addLifecycleListener virtual-cdj vcdj-lifecycle-listener))  ; React when VirtualCdj shuts down unexpectedly.
     (when (real-player?) (actively-send-status))
-    (when (online?)
+    (when (util/online?)
       (run-global-function :online)
       (show/run-show-online-expressions))
 
@@ -1646,7 +1640,7 @@
   problems, we want to be able to run expressions and do proper
   cleanup."
   ([]
-   (go-offline (online?)))
+   (go-offline (util/online?)))
   ([was-online?]
    (.removeLifecycleListener virtual-cdj vcdj-lifecycle-listener)  ; No longer care when it stops.
    (when was-online?  ; Don't do all this if we got here from a failed attempt to go online.
@@ -1669,6 +1663,6 @@
   (future
     (seesaw/invoke-now (seesaw/hide! @trigger-frame))
     ((resolve 'beat-link-trigger.core/try-going-online))
-    (when-not (online?)
+    (when-not (util/online?)
       (seesaw/invoke-now  ; We failed to go online, so update the menu to reflect that.
        (.setSelected (online-menu-item) false)))))

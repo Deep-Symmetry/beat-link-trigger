@@ -18,8 +18,7 @@
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre]
-            [clojure.string :as str])
+            [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.tree_node ITemplateParent]
            [java.awt Color]
            [java.awt.image BufferedImage]
@@ -706,12 +705,6 @@
 
 ;; This secton provides the user interface for configuring and running
 ;; the overlay web server.
-
-(defn- online?
-  "Check whether we are in online mode, with all the required
-  beat-link finder objects running."
-  []
-  (and (.isRunning expr/device-finder) (.isRunning expr/virtual-cdj)))
 
 (defonce ^{:private true
            :doc     "Holds the frame allowing the user to configure and
