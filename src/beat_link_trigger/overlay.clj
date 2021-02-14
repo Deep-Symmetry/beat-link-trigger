@@ -13,7 +13,7 @@
             [cheshire.core :as json]
             [beat-link-trigger.expressions :as expr]
             [beat-link-trigger.prefs :as prefs]
-            [beat-link-trigger.show :as show]
+            [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
@@ -138,11 +138,11 @@
   (let [ref (DataReference. player
                             (rand-nth [CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT])
                             (inc (rand-int 3000)))]
-    {:art       (show/read-art path ref)
-     :beat-grid (show/read-beat-grid path ref)
-     :cue-list  (show/read-cue-list path)
-     :detail    (show/read-detail path ref)
-     :preview   (show/read-preview path ref)
+    {:art       (show-util/read-art path ref)
+     :beat-grid (show-util/read-beat-grid path ref)
+     :cue-list  (show-util/read-cue-list path)
+     :detail    (show-util/read-detail path ref)
+     :preview   (show-util/read-preview path ref)
      :metadata  (-> (.getResourceAsStream VirtualCdj (str "/beat_link_trigger/sampleTracks/" player "/metadata.edn"))
                     slurp
                     edn/read-string

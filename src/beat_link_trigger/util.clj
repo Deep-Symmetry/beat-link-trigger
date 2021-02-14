@@ -9,6 +9,7 @@
             [seesaw.core :as seesaw])
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
+           [org.deepsymmetry.beatlink.data TimeFinder]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$TrackMood
             RekordboxAnlz$TrackBank]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
@@ -138,6 +139,12 @@
   `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
   singleton."
   (VirtualCdj/getInstance))
+
+(def ^TimeFinder time-finder
+  "A convenient reference to the [Beat Link
+  `TimeFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TimeFinder.html)
+  singleton."
+  (TimeFinder/getInstance))
 
 (defn online?
   "Check whether we are in online mode, with all the required
