@@ -487,6 +487,19 @@
   [show folder cue-name]
   (swap-show! show update-in [:contents :cue-library-folders folder] (fnil conj #{}) cue-name))
 
+(defn- cue-library-add-handler
+  "Helper function to perform the common actions needed when a user has
+  chosen to add a cue to a library folder. All arguments must be
+  current, and `folder` can be `nil` to add the cue to the top level,
+  or if folders are not in use."
+  [show track original-cue cue-name content folder]
+  (let [panel   (get-in track [:cues-editor :panels (:uuid original-cue)])]
+    (add-cue-to-library show cue-name content)
+    (when folder (add-cue-to-folder show folder cue-name))
+    (swap-cue! track original-cue assoc :linked cue-name)
+    (update-cue-link-icon track original-cue (seesaw/select panel [:#link]))
+    (update-library-button-visibility show)))
+
 (defn- cue-library-action
   "Creates the menu action which either adds a cue to the library, or
   removes or updates it after confirmation, if there is already a cue
@@ -509,24 +522,17 @@
             ;; No folders, simply provide an action to add to top level.
             (seesaw/action :name "Add Cue to Library"
                            :handler (fn [_]
-                                      (add-cue-to-library show comment content)
-                                      (swap-cue! track cue assoc :linked comment)
-                                      (update-library-button-visibility show)))
+                                      (cue-library-add-handler show track cue comment content nil)))
             ;; Provide a menu to add to each library folder or the top level.
             (seesaw/menu :text "Add Cue to Library"
                          :items (concat
                                  (for [folder (sort (keys folders))]
                                    (seesaw/action :name (str "In Folder “" folder "”")
-                                                  :handler (fn [_]
-                                                             (add-cue-to-library show comment content)
-                                                             (add-cue-to-folder show folder comment)
-                                                             (swap-cue! track cue assoc :linked comment)
-                                                             (update-library-button-visibility show))))
+                                                  :handler (fn [_] (cue-library-add-handler
+                                                                    show track cue comment content folder))))
                                  [(seesaw/action :name "At Top Level"
-                                                 :handler (fn [_]
-                                                            (add-cue-to-library show comment content)
-                                                            (swap-cue! track cue assoc :linked comment)
-                                                            (update-library-button-visibility show)))]))))))))
+                                                 :handler (fn [_] (cue-library-add-handler
+                                                                    show track cue comment content nil)))]))))))))
 
 (defn cue-preview-rectangle
   "Calculates the outline of a cue within the coordinate system of the
@@ -1356,6 +1362,76 @@
                                                        update-in [:contents :cues :cues (:uuid other-cue)]
                                                        assoc :linked new-name)))))))))))
 
+(defn describe-unlinking-cues
+  "Called when we are reporting that a track contains cues that are
+  about to be unlinked if the user proceeds with the deletion of a
+  library cue. Lists their names in quotation marks up to a limit."
+  [names max-cues]
+  (str (str/join "," (map #(str "“" % "”") (take max-cues names)))
+       (when (seq (drop max-cues names))
+         ", and others.")))
+
+(defn- describe-unlinking
+  "Called when the user is deleting a library cue. Warns about any
+  linked cues which will be unlinked if they proceed. `show` must be
+  current."
+  [cue-name show]
+  (let [tracks     (filter identity
+                           (for [track (vals (:tracks show))]
+                             (let [cues (filter #(= (:linked %) cue-name)
+                                                (vals (get-in track [:contents :cues :cues])))]
+                               (when (seq cues)
+                                 [(get-in track [:metadata :title]) (map :comment cues)]))))
+        max-tracks 4
+        max-cues   4]
+    (when (seq tracks)
+      (str
+       (apply str "\r\nThere are cues linked to this, and all will be unlinked if you proceed:\r\n"
+              (map (fn [[track cues]]
+                     (str "  In Track: “" track "”\r\n"
+                          "      Cues: " (describe-unlinking-cues cues max-cues) "\r\n"))
+                   (take max-tracks tracks)))
+       (when (seq (drop max-tracks tracks))
+         "  …and other tracks.")))))
+
+(defn- delete-library-cue-action
+  "Creates an action that allows a cue in the library to be deleted,
+  breaking any links to it, after confirming the user really wants
+  this to happen."
+  [cue-name _cue track]
+  (let [[show track] (latest-show-and-track track)
+        parent       (get-in track [:cues-editor :frame])]
+    (seesaw/action :name (str "Delete “" cue-name "”")
+                   :handler (fn [_]
+                              (when (seesaw/confirm parent
+                                                    (str "Deleting this library cue will discard all its "
+                                                         "configuration and expressions\r\n"
+                                                         "and cannot be undone.\r\n"
+                                                         (describe-unlinking cue-name show))
+                                                    :type :question
+                                                    :title (str "Delete Library Cue "
+                                                                (full-library-cue-name show cue-name) "?"))
+                                ;; Remove the cue from the library itself.
+                                (swap-show! show update-in [:contents :cue-library] dissoc cue-name)
+                                ;; Remove it from any folder to which it belonged.
+                                (doseq [[folder-name folder] (get-in show [:contents :cue-library-folders])]
+                                  (when (folder cue-name)
+                                    (swap-show! show update-in [:contents :cue-library-folders folder-name]
+                                                disj cue-name)))
+                                ;; Unlink any cues that had been linked to it.
+                                (doseq [other-track (vals (:tracks show))
+                                        other-cue   (vals (get-in other-track [:contents :cues :cues]))]
+                                  (when (= cue-name (:linked other-cue))
+                                    (swap-track! other-track
+                                                 update-in [:contents :cues :cues (:uuid other-cue)]
+                                                 dissoc :linked)
+                                    ;; If there is an editor open for that cue, update its link button icon.
+                                    (when-let [panel (get-in other-track [:cues-editor :panels (:uuid other-cue)])]
+                                      (update-cue-link-icon other-track other-cue
+                                                            (seesaw/select panel [:#link])))))
+                                ;; Finally, if we deleted the last library cue, make all the library buttons vanish.
+                                (update-library-button-visibility show))))))
+
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
   a track."
@@ -1662,7 +1738,9 @@
                            [(seesaw/menu :text "Move"
                                          :items (build-cue-library-popup-items track build-library-cue-move-submenu))
                             (seesaw/menu :text "Rename"
-                                         :items (build-cue-library-popup-items track rename-library-cue-action))]))
+                                         :items (build-cue-library-popup-items track rename-library-cue-action))
+                            (seesaw/menu :text "Delete"
+                                         :items (build-cue-library-popup-items track delete-library-cue-action))]))
       (seesaw/menu :text "Manage Folders"
                    :items (concat
                            [(seesaw/action :name "New Folder"
