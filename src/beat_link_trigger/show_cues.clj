@@ -174,18 +174,6 @@
   [track cue kind]
   (clojure.string/blank? (get-in (find-cue track cue) [:expressions kind])))
 
-(defn cue-editor-actions
-  "Creates the popup menu actions corresponding to the available
-  expression editors for a given cue."
-  [track cue panel gear]
-  (for [[kind spec] @editors/show-track-cue-editors]
-    (let [update-fn (fn [] (update-cue-gear-icon track cue gear))]
-      (seesaw/action :handler (fn [_] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
-                     :name (str "Edit " (:title spec))
-                     :tip (:tip spec)
-                     :icon (if (cue-missing-expression? track cue kind)
-                             "images/Gear-outline.png"
-                             "images/Gear-icon.png")))))
 (declare send-cue-messages)
 
 (defn- cue-event-enabled?
@@ -687,6 +675,61 @@
   ([event suffix hash]
    (keyword (str (when hash "#") (name event) "-" suffix))))
 
+(defn- update-cue-panel-from-linked
+  "Updates all the user elements of a cue to reflect the values that
+  have changed due to a linked library cue. Does nothing if the cue
+  has no editor panel open."
+  [track cue]
+  (let [cue   (find-cue track cue)
+        panel (get-in track [:cues-editor :panels (:uuid cue)])]
+    (when panel
+      (swap-cue! track cue assoc :creating true)  ; Suppress repropagation and opening of editor windows.
+      (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))
+      (doseq [[event elems] (:events cue)]
+        (doseq [[elem value] elems]
+          (let [id     (cue-event-component-id event (name elem) true)
+                widget (seesaw/select panel [id])]
+            (seesaw/value! widget value))))
+      (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))
+      (swap-cue! track cue dissoc :creating))))
+
+(defn update-all-linked-cues
+  "Called when a cue has changed. If it is linked to a library cue,
+  updates that, then also updates any cues in the show which are
+  linked to the same library cue, and if they have an editor panel
+  open, updates that as well."
+  [track cue]
+  (let [[show track] (latest-show-and-track track)
+        cue          (find-cue track cue)
+        uuid         (:uuid cue)
+        content      (select-keys cue [:expressions :events]) ; The parts to update.
+        linked       (:linked cue)]
+    (when-let [library-cue (when (and linked (not (:creating cue))) (get-in show [:contents :cue-library linked]))]
+      (when (not= content (select-keys library-cue [:expressions :events]))
+        (swap-show! show update-in [:contents :cue-library linked]
+                    (fn [library-cue] (merge (dissoc library-cue :expressions :events) content)))
+        (doseq [[_ track] (:tracks show)]
+          (doseq [[linked-uuid linked-cue] (get-in track [:contents :cues :cues])]
+            (when (and (= linked (:linked linked-cue)) (not= uuid linked-uuid))
+              (swap-cue! track linked-cue
+                         (fn [linked-cue] (merge (dissoc linked-cue :expressions :events) content)))
+              (update-cue-panel-from-linked track linked-cue))))))))
+
+(defn cue-editor-actions
+  "Creates the popup menu actions corresponding to the available
+  expression editors for a given cue."
+  [track cue panel gear]
+  (for [[kind spec] @editors/show-track-cue-editors]
+    (let [update-fn (fn []
+                      (update-all-linked-cues track cue)
+                      (update-cue-gear-icon track cue gear))]
+      (seesaw/action :handler (fn [_] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
+                     :name (str "Edit " (:title spec))
+                     :tip (:tip spec)
+                     :icon (if (cue-missing-expression? track cue kind)
+                             "images/Gear-outline.png"
+                             "images/Gear-icon.png")))))
+
 (defn- attach-cue-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
   to Custom, if there is not already an expession of the appropriate
@@ -733,23 +776,26 @@
                                                 ["None" "Note" "CC" "Custom"])
                                        :selected-item nil  ; So update in create-cue-panel saves default.
                                        :listen [:item-state-changed
-                                                #(swap-cue! track cue
-                                                            assoc-in [:events event :message]
-                                                            (seesaw/selection %))])
+                                                (fn [e]
+                                                  (swap-cue! track cue assoc-in [:events event :message]
+                                                             (seesaw/selection e))
+                                                  (update-all-linked-cues track cue))])
         note          (seesaw/spinner :id (cue-event-component-id event "note")
                                       :model (seesaw/spinner-model (or (get-in cue [:events event :note]) default-note)
                                                                    :from 1 :to 127)
                                       :listen [:state-changed
-                                               #(swap-cue! track cue
-                                                           assoc-in [:events event :note]
-                                                           (seesaw/value %))])
+                                               (fn [e]
+                                                 (swap-cue! track cue assoc-in [:events event :note]
+                                                            (seesaw/value e))
+                                                 (update-all-linked-cues track cue))])
         channel       (seesaw/spinner :id (cue-event-component-id event "channel")
                                       :model (seesaw/spinner-model (or (get-in cue [:events event :channel]) 1)
                                                                    :from 1 :to 16)
                                       :listen [:state-changed
-                                               #(swap-cue! track cue
-                                                           assoc-in [:events event :channel]
-                                                           (seesaw/value %))])
+                                               (fn [e]
+                                                 (swap-cue! track cue assoc-in [:events event :channel]
+                                                            (seesaw/value e))
+                                                 (update-all-linked-cues track cue))])
         channel-label (seesaw/label :id (cue-event-component-id event "channel-label") :text "Channel:")]
     {:message       message
      :note          note
@@ -817,20 +863,6 @@
   [show library-cue-name]
   (str (when-let [folder (library-cue-folder show library-cue-name)] (str "“" folder "” → "))
        "“" library-cue-name "”"))
-
-(defn- update-cue-panel-from-linked
-  "Updates all the user elements of a cue to reflect the values that
-  have changed due to a linked library cue."
-  [track cue]
-  (let [cue   (find-cue track cue)
-        panel (get-in track [:cues-editor :panels (:uuid cue)])]
-    (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))
-    (doseq [[event elems] (:events cue)]
-      (doseq [[elem value] elems]
-        (let [id     (cue-event-component-id event (name elem) true)
-              widget (seesaw/select panel [id])]
-          (seesaw/value! widget value))))
-    (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))))
 
 (defn- build-link-cue-action
   "Creates an action that links an existing cue to a library cue. All
@@ -991,7 +1023,10 @@
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
-    (swap-cue! track cue assoc :creating true)  ; Don't pop up expression editors while recreating the cue row.
+    ;; Start by suppresing the automatic opening of expression editors while recreating the cue row.
+    ;; This flag is also used to suppress propagation of changes to linked cues during row creation
+    ;; and when the row is itself being updated because of a change to a linked cue.
+    (swap-cue! track cue assoc :creating true)
     (doseq [event cue-events]
       ;; Update visibility when a Message selection changes. Also sets them up to automagically open the
       ;; expression editor for the Custom Enabled Filter if "Custom" is chosen as the Message.
