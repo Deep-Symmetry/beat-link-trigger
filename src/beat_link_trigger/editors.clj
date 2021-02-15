@@ -1522,15 +1522,37 @@ a {
       (show-util/swap-track! track assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
       result)))
 
+(defn- find-linked-cue-editor
+  "If the supplied cue is linked, scans the show for any linked cue that
+  already has an editor window open of the specified kind, and returns
+  the matching window if one is found."
+  [kind track cue]
+  (let [[show] (show-util/latest-show-and-track track)
+        cue    (show-util/find-cue track cue)
+        linked (:linked cue)]
+    (when linked
+      (some (fn [other-track]
+              (some (fn [other-cue]
+                      (when (= linked (:linked other-cue))
+                        (get-in other-track [:cues-editor :expression-editors (:uuid other-cue) kind])))
+                    (vals (get-in other-track [:contents :cues :cues]))))
+            (vals (:tracks show))))))
+
 (defn show-cue-editor
   "Find or create the editor for the specified kind of expression
   associated with the specified cue (belonging to the specified show
   track), make it visible, and add it to the track's list of active
   editors. Register an update function to be invoked with no arguments
-  when the user has successfully updated the expression."
+  when the user has successfully updated the expression.
+
+  If the cue is a linked cue, scan the entire show for any cues linked
+  to it which already have an editor window open on this expression,
+  and if one is found, bring that to the front rather than opening a
+  new one."
   [kind track cue parent-frame update-fn]
   (try
     (let [editor (or (get-in track [:cues-editor :expression-editors (:uuid cue) kind])
+                     (find-linked-cue-editor kind track cue)
                      (create-cue-editor-window kind track cue parent-frame update-fn))]
       (show editor))
     (catch Throwable t
