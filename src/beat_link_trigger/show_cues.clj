@@ -1257,31 +1257,77 @@
   "Creates an action that adds a cue from the library to the track."
   [cue-name cue track]
   (seesaw/action :name (str "New “" cue-name "” Cue")
-                         :handler (fn [_]
-                                    (try
-                                      (let [uuid        (java.util.UUID/randomUUID)
-                                            track       (latest-track track)
-                                            [start end] (get-in track [:cues-editor :selection] [1 2])
-                                            all-names   (map :comment (vals (get-in track [:contents :cues :cues])))
-                                            new-name    (if (some #(= cue-name %) all-names)
-                                                          (util/assign-unique-name all-names cue-name)
-                                                          cue-name)
-                                            new-cue     (merge cue {:uuid    uuid
-                                                                    :start   start
-                                                                    :end     end
-                                                                    :hue     (assign-cue-hue track)
-                                                                    :comment new-name
-                                                                    :linked  cue-name})]
-                                        (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
-                                        (swap-track! track update :cues-editor dissoc :selection)
-                                        (su/update-track-gear-icon track)
-                                        (build-cues track)
-                                        (compile-cue-expressions track new-cue)
-                                        (scroll-wave-to-cue track new-cue)
-                                        (scroll-to-cue track new-cue true))
-                                      (catch Exception e
-                                        (timbre/error e "Problem adding Library Cue")
-                                        (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
+                 :handler (fn [_]
+                            (try
+                              (let [uuid        (java.util.UUID/randomUUID)
+                                    track       (latest-track track)
+                                    [start end] (get-in track [:cues-editor :selection] [1 2])
+                                    all-names   (map :comment (vals (get-in track [:contents :cues :cues])))
+                                    new-name    (if (some #(= cue-name %) all-names)
+                                                  (util/assign-unique-name all-names cue-name)
+                                                  cue-name)
+                                    new-cue     (merge cue {:uuid    uuid
+                                                            :start   start
+                                                            :end     end
+                                                            :hue     (assign-cue-hue track)
+                                                            :comment new-name
+                                                            :linked  cue-name})]
+                                (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
+                                (swap-track! track update :cues-editor dissoc :selection)
+                                (su/update-track-gear-icon track)
+                                (build-cues track)
+                                (compile-cue-expressions track new-cue)
+                                (scroll-wave-to-cue track new-cue)
+                                (scroll-to-cue track new-cue true))
+                              (catch Exception e
+                                (timbre/error e "Problem adding Library Cue")
+                                (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
+
+(defn- rename-library-cue-action
+  "Creates an action that allows a cue in the library to be renamed,
+  preserving any links to it."
+  [cue-name _cue track]
+  (seesaw/action :name (str "Rename “" cue-name "”")
+                 :handler (fn [_]
+                            (let [[show track] (latest-show-and-track track)
+                                  parent       (get-in track [:cues-editor :frame])]
+                              (when-let [new-name
+                                         (seesaw/invoke-now
+                                          (JOptionPane/showInputDialog parent "Choose new name:"
+                                                                       (str "Rename Cue "
+                                                                            (full-library-cue-name show cue-name))
+                                                                       javax.swing.JOptionPane/QUESTION_MESSAGE))]
+                                (when-not (or (clojure.string/blank? new-name) (= new-name cue-name))
+                                  (if (contains? (get-in show [:contents :cue-library]) new-name)
+                                    (seesaw/alert parent (str "Cue " (full-library-cue-name show new-name)
+                                                              " already exists.")
+                                                  :name "Duplicate Cue" :type :error)
+                                    (do
+                                      ;; Update the name in the library itself.
+                                      (swap-show! show
+                                                  (fn [current]
+                                                    (let [updated-cue (assoc (get-in current [:contents :cue-library
+                                                                                              cue-name])
+                                                                             :comment new-name)]
+                                                      (update-in current [:contents :cue-library]
+                                                                 (fn [library]
+                                                                   (-> library
+                                                                       (dissoc cue-name)
+                                                                       (assoc new-name updated-cue)))))))
+                                      ;; Update the name in any folder to which the cue belongs.
+                                      (doseq [[folder-name folder] (get-in show [:contents :cue-library-folders])]
+                                        (when (folder cue-name)
+                                          (swap-show! show update-in [:contents :cue-library-folders folder-name]
+                                                      (fn [contents] (-> contents
+                                                                         (disj cue-name)
+                                                                         (conj new-name))))))
+                                      ;; Update any linked cues to link to the new name.
+                                      (doseq [other-track (vals (:tracks show))
+                                              other-cue   (vals (get-in other-track [:contents :cues :cues]))]
+                                        (when (= cue-name (:linked other-cue))
+                                          (swap-track! other-track
+                                                       update-in [:contents :cues :cues (:uuid other-cue)]
+                                                       assoc :linked new-name)))))))))))
 
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
@@ -1584,7 +1630,11 @@
         folders (sort (keys (get-in show [:contents :cue-library-folders])))]
     (concat
      (build-cue-library-popup-items track build-library-cue-action)
-     [(seesaw/menu :text "Manage Folders"
+     [(seesaw/menu :text "Manage Cues"
+                   :items (concat
+                           [(seesaw/menu :text "Rename"
+                                         :items (build-cue-library-popup-items track rename-library-cue-action))]))
+      (seesaw/menu :text "Manage Folders"
                    :items (concat
                            [(seesaw/action :name "New Folder"
                                            :handler (fn [_] (new-cue-folder show track)))]
