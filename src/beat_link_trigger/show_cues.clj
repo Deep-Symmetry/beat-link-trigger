@@ -56,10 +56,25 @@
   filled in, depending on whether any expressions have been assigned
   to it."
   [track cue gear]
-  (seesaw/config! gear :icon (let [cue (find-cue track cue)]
-                               (if (every? clojure.string/blank? (vals (:expressions cue)))
+  (let [cue (find-cue track cue)]
+    (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
                                  (seesaw/icon "images/Gear-outline.png")
                                  (seesaw/icon "images/Gear-icon.png")))))
+
+(defn link-button-icon
+  "Returns the proper icon to use for a cue's link button, depending on
+  its current link state."
+  [cue]
+  (if (:linked cue)
+    (IconFontSwing/buildIcon FontAwesome/LINK 16.0 Color/white)
+    (IconFontSwing/buildIcon FontAwesome/CHAIN_BROKEN 16.0 Color/white)))
+
+(defn update-cue-link-icon
+  "Determines whether the link button for a cue should be connected or
+  broken, depending on whether it is linked to a library cue."
+  [track cue link]
+  (let [cue (find-cue track cue)]
+    (seesaw/config! link :icon (link-button-icon cue))))
 
 (defn repaint-cue-states
   "Causes the two cue state indicators to redraw themselves to reflect a
@@ -439,7 +454,13 @@
   Returns a tuple of the name by which it will be stored, and the
   content to be stored (or compared to see if it matches another cue)."
   [cue]
-  [(:comment cue) (dissoc cue :uuid :start :end :hue)])
+   [(:comment cue) (dissoc cue :uuid :start :end :hue :linked)])
+
+(defn linked-cues-equal?
+  "Checks whether all the supplied cues have the same values for any
+  elements that would be tied together if they were linked cues."
+  [& cues]
+  (apply = (map #(select-keys % [:events :expressions]) cues)))
 
 (defn- cue-in-library?
   "Checks whether there is a cue matching the specified name is already
@@ -731,14 +752,6 @@
      :channel       channel
      :channel-label channel-label}))
 
-(defn link-button-icon
-  "Returns the proper icon to use for a cue's link button, depending on
-  its current link state."
-  [cue]
-  (if (:link cue)
-    (IconFontSwing/buildIcon FontAwesome/LINK 16.0 Color/white)
-    (IconFontSwing/buildIcon FontAwesome/CHAIN_BROKEN 16.0 Color/white)))
-
 (defn build-cue-folder-menu
   "Creates a menu for a folder in the cue library, containing actions
   that add all the cues present in that folder to the track.
@@ -787,14 +800,54 @@
                           (when-not (cues-in-folders cue-name)
                             (cue-action-builder-fn cue-name cue track)))))))))
 
+(defn- library-cue-folder
+  "Returns the name of the folder, if any, that a library cue was filed
+  in. Returns `nil` for top-level cues. `show` must be current."
+  [show library-cue-name]
+  (some (fn [[folder cues]] (when (cues library-cue-name) folder)) (get-in show [:contents :cue-library-folders])))
+
+(defn- full-library-cue-name
+  "Returns the name of the cue surrounded by curly quotation marks. If
+  the cue is in a folder, it is preceded by the folder name (also in
+  quotes) and an arrow. Arguments must be current."
+  [show library-cue-name]
+  (str (when-let [folder (library-cue-folder show library-cue-name)] (str "“" folder "” → "))
+       "“" library-cue-name "”"))
+
+(defn- update-cue-panel-from-linked
+  "Updates all the user elements of a cue to reflect the values that
+  have changed due to a linked library cue."
+  [track cue]
+  (let [cue   (find-cue track cue)
+        panel (get-in track [:cues-editor :panels (:uuid cue)])]
+    (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))
+    (doseq [[event elems] (:events cue)]
+      (doseq [[elem value] elems]
+        (let [id     (cue-event-component-id event (name elem) true)
+              widget (seesaw/select panel [id])]
+          (seesaw/value! widget value))))
+    (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))))
+
 (defn- build-link-cue-action
-  "Creates an action that links an existing cue to a library cue."
-  [existing-cue button library-cue-name library-cue track]
+  "Creates an action that links an existing cue to a library cue. All
+  arguments must be current."
+  [show existing-cue button library-cue-name library-cue track]
   (seesaw/action :name library-cue-name
                  :handler (fn [_]
-                            ;; TODO: Confirm rewriting contents if they differ, and do it, updating the cue panel.
-                            (swap-cue! track existing-cue assoc :link library-cue-name)
-                            (seesaw/config! button :icon (link-button-icon (find-cue track existing-cue))))))
+                            (when (or (linked-cues-equal? library-cue existing-cue)
+                                      (seesaw/confirm button (str "Linking will replace the contents of this cue with"
+                                                                  "\r\nthe contents of library cue "
+                                                                  (full-library-cue-name show library-cue-name) ".")
+                                                      :type :question
+                                                      :title (str "Link Cue “" (:comment existing-cue) "”?")))
+                              (swap-cue! track existing-cue
+                                         (fn [cue]
+                                           (-> cue
+                                               (dissoc :expressions)
+                                               (merge (dissoc library-cue :comment)
+                                                      {:linked library-cue-name}))))
+                              (update-cue-panel-from-linked track existing-cue)
+                              (update-cue-link-icon track existing-cue button)))))
 
 (defn- build-cue-link-button-menu
   "Builds the menu that appears when you click in a cue's Link button,
@@ -806,13 +859,13 @@
         library      (sort-by first (vec (get-in show [:contents :cue-library])))]
     (if (empty? library)
       [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
-      (if-let [link (:link cue)]
-        [(seesaw/action :name (str "Unlink from Library Cue “" link "”")
+      (if-let [link (:linked cue)]
+        [(seesaw/action :name (str "Unlink from Library Cue " (full-library-cue-name show link))
                          :handler (fn [_]
-                                    (swap-cue! track cue dissoc :link)
-                                    (seesaw/config! button :icon (link-button-icon (find-cue track cue)))))]
+                                    (swap-cue! track cue dissoc :linked)
+                                    (update-cue-link-icon track cue button)))]
         [(seesaw/menu :text "Link to Library Cue"
-                      :items (build-cue-library-popup-items track (partial build-link-cue-action cue button)))]))))
+                      :items (build-cue-library-popup-items track (partial build-link-cue-action show cue button)))]))))
 
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
