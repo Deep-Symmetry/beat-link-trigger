@@ -4,6 +4,7 @@
   (:require [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.util :as util]
             [clojure.java.browse]
             [clojure.java.io]
@@ -52,13 +53,6 @@
   [exprs]
   (concat (filter #(= :shared (first %)) exprs) (filter #(= :setup (first %)) exprs)
           (filter #(not (#{:shared :setup} (first %))) exprs)))
-
-(defmacro ^:private show-call
-  "Calls a function in the show namespace, without a compile-time
-  dependency on it. We can rely on the fact that the namespace will
-  have been compiled by the time this function is invoked."
-  [f & args]
-  `((ns-resolve 'beat-link-trigger.show '~f) ~@args))
 
 (def trigger-bindings
   "Identifies symbols which can be used inside any trigger expression,
@@ -855,7 +849,7 @@
   type for the specified show and track. If `track` is `nil`, `kind`
   refers to a global expression."
   [kind show track]
-  (get-in (show-call latest-show show) (if track
+  (get-in (show-util/latest-show show) (if track
                                          [:tracks (:signature track) :contents :expressions kind]
                                          [:contents :expressions kind])))
 
@@ -864,7 +858,7 @@
   expression type for the specified show and track. If `track` is
   `nil`, `kind` refers to a global expression."
   [kind show track]
-  (get-in (show-call latest-show show) (if track
+  (get-in (show-util/latest-show show) (if track
                                          [:tracks (:signature track) :expression-editors kind]
                                          [:expression-editors kind])))
 
@@ -883,8 +877,8 @@
   If `update-fn` is not nil, it will be called with no arguments."
   [kind show track text update-fn]
   (if track
-    (show-call swap-track! track update :expression-fns dissoc kind) ; In case parse fails, leave nothing there.
-    (show-call swap-show! show update :expression-fns dissoc kind))
+    (show-util/swap-track! track update :expression-fns dissoc kind) ; In case parse fails, leave nothing there.
+    (show-util/swap-show! show update :expression-fns dissoc kind))
   (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
         editor-info (get (if track @show-track-editors @global-show-editors) kind)]
     (try
@@ -894,16 +888,16 @@
           (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
                                                             (show-editor-title kind show track))]
             (if track
-              (show-call swap-track! track assoc-in [:expression-fns kind] compiled)
-              (show-call swap-show! show assoc-in [:expression-fns kind] compiled)))))
+              (show-util/swap-track! track assoc-in [:expression-fns kind] compiled)
+              (show-util/swap-show! show assoc-in [:expression-fns kind] compiled)))))
       (when-let [editor (find-show-expression-editor kind show track)]
         (dispose editor)  ; Close the editor
         (if track
-          (show-call swap-track! track update :expression-editors dissoc kind)
-          (show-call swap-show! show update :expression-editors dissoc kind)))
+          (show-util/swap-track! track update :expression-editors dissoc kind)
+          (show-util/swap-show! show update :expression-editors dissoc kind)))
       (if track
-        (show-call swap-track! track assoc-in [:contents :expressions kind] text)
-        (show-call swap-show! show assoc-in [:contents :expressions kind] text))  ; Save the new text.
+        (show-util/swap-track! track assoc-in [:contents :expressions kind] text)
+        (show-util/swap-show! show assoc-in [:contents :expressions kind] text))  ; Save the new text.
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
@@ -921,13 +915,13 @@
   "Returns the source code, if any, of the specified cue expression
   type for the specified track and cue."
   [kind track cue]
-  (get-in (show-call find-cue track cue) [:expressions kind]))
+  (get-in (show-util/find-cue track cue) [:expressions kind]))
 
 (defn- find-cue-expression-editor
   "Returns the open editor window, if any, for the specified show
   expression type for the specified track and cue."
   [kind track cue]
-  (get-in (show-call latest-track track) [:cues-editor :expression-editors (:uuid cue) kind]))
+  (get-in (show-util/latest-track track) [:cues-editor :expression-editors (:uuid cue) kind]))
 
 (defn cue-editor-title
   "Determines the title for a cue expression editor window."
@@ -941,19 +935,19 @@
   edited. If `update-fn` is not nil, it will be called with no
   arguments."
   [kind track cue text update-fn]
-  (show-call swap-track! track update-in [:cues :expression-fns (:uuid cue)]
+  (show-util/swap-track! track update-in [:cues :expression-fns (:uuid cue)]
              dissoc kind)  ; Clean up any old value first in case the parse fails.
   (let [text        (clojure.string/trim text) ; Remove whitespace on either end
         editor-info (get @show-track-cue-editors kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it
-        (show-call swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
+        (show-util/swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
                    (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
                                                       (cue-editor-title kind track cue))))
       (when-let [editor (find-cue-expression-editor kind track cue)]
         (dispose editor)  ; Close the editor
-        (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)] dissoc kind))
-      (show-call swap-cue! track cue assoc-in [:expressions kind] text)  ; Save the new text
+        (show-util/swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)] dissoc kind))
+      (show-util/swap-cue! track cue assoc-in [:expressions kind] text)  ; Save the new text
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
@@ -1382,8 +1376,8 @@ a {
         update-action   (build-update-action editor save-fn)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
         close-fn        (fn [] (if track
-                                 (show-call swap-track! track update :expression-editors dissoc kind)
-                                 (show-call swap-show! show update :expression-editors dissoc kind)))]
+                                 (show-util/swap-track! track update :expression-editors dissoc kind)
+                                 (show-util/swap-show! show update :expression-editors dissoc kind)))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
@@ -1435,8 +1429,8 @@ a {
               (close-fn)
               (seesaw/dispose! root)))]
       (if track
-        (show-call swap-track! track assoc-in [:expression-editors kind] result)
-        (show-call swap-show! show assoc-in [:expression-editors kind] result))
+        (show-util/swap-track! track assoc-in [:expression-editors kind] result)
+        (show-util/swap-show! show assoc-in [:expression-editors kind] result))
       result)))
 
 (defn show-show-editor
@@ -1473,7 +1467,7 @@ a {
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn        (fn [] (show-call swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
+        close-fn        (fn [] (show-util/swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
                                           dissoc kind))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
@@ -1525,7 +1519,7 @@ a {
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
-      (show-call swap-track! track assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
+      (show-util/swap-track! track assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
       result)))
 
 (defn show-cue-editor
