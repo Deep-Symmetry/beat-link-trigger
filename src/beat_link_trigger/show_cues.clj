@@ -1253,6 +1253,33 @@
                              "Check the log file for details.")
                         :title "Exception during Clojure evaluation" :type :error))))))
 
+(defn- move-cue-to-folder
+  "Helper method that moves a cue to the specified folder, or the top
+  level if `folder` is `nil`. Arguments must be current."
+  [show cue-name new-folder-name]
+  (doseq [[folder-name folder] (get-in show [:contents :cue-library-folders])]
+    (when (folder cue-name)  ; Remove from any folder it used to be in.
+      (swap-show! show update-in [:contents :cue-library-folders folder-name] disj cue-name))
+    (when (= folder-name new-folder-name)  ; Add to the new folder it belongs in.
+      (swap-show! show update-in [:contents :cue-library-folders folder-name] conj cue-name))))
+
+(defn- build-library-cue-move-submenu
+  "Creates a submenu for moving a library cue to a different folder."
+  [cue-name _cue track]
+  (let [[show]  (latest-show-and-track track)
+        folders (get-in show [:contents :cue-library-folders])
+        current (library-cue-folder show cue-name)]
+    (seesaw/menu :text (str "“" cue-name "” to")
+                 :items (concat (filter identity
+                                        (for [folder (sort (keys folders))]
+                                          (when (not= folder current)
+                                            (seesaw/action :name (str "Folder “" folder "”")
+                                                           :handler (fn [_]
+                                                                      (move-cue-to-folder show cue-name folder))))))
+                                (when current
+                                  [(seesaw/action :name "Top Level"
+                                                  :handler (fn [_] (move-cue-to-folder show cue-name nil)))])))))
+
 (defn- build-library-cue-action
   "Creates an action that adds a cue from the library to the track."
   [cue-name cue track]
@@ -1632,7 +1659,9 @@
      (build-cue-library-popup-items track build-library-cue-action)
      [(seesaw/menu :text "Manage Cues"
                    :items (concat
-                           [(seesaw/menu :text "Rename"
+                           [(seesaw/menu :text "Move"
+                                         :items (build-cue-library-popup-items track build-library-cue-move-submenu))
+                            (seesaw/menu :text "Rename"
                                          :items (build-cue-library-popup-items track rename-library-cue-action))]))
       (seesaw/menu :text "Manage Folders"
                    :items (concat
