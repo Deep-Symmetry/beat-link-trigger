@@ -432,21 +432,25 @@
     true))
 
 (defn- delete-cue-action
-  "Creates the menu action which deletes a cue after confirmation."
+  "Creates the menu action which deletes a cue, after confirmation if
+  it's not linked to a library cue."
   [track cue panel]
   (seesaw/action :handler (fn [_]
-                            (when (seesaw/confirm panel (str "This will irreversibly remove the cue, losing any\r\n"
+                            (let [cue (find-cue track cue)]
+                              (when (or (:linked cue)
+                                        (seesaw/confirm panel
+                                                        (str "This will irreversibly remove the cue, losing any\r\n"
                                                              "configuration and expressions created for it.")
-                                                  :type :question
-                                                  :title (str "Delete Cue “" (:comment (find-cue track cue)) "”?"))
-                              (try
-                                (cleanup-cue true track cue)
-                                (swap-track! track expunge-deleted-cue cue)
-                                (su/update-track-gear-icon track)
-                                (build-cues track)
-                                (catch Exception e
-                                  (timbre/error e "Problem deleting cue")
-                                  (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error)))))
+                                                        :type :question
+                                                        :title (str "Delete Cue “" (:comment cue) "”?")))
+                                (try
+                                  (cleanup-cue true track cue)
+                                  (swap-track! track expunge-deleted-cue cue)
+                                  (su/update-track-gear-icon track)
+                                  (build-cues track)
+                                  (catch Exception e
+                                    (timbre/error e "Problem deleting cue")
+                                    (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
                  :name "Delete Cue"))
 
 (defn- sanitize-cue-for-library
@@ -1239,7 +1243,8 @@
                                                                     :start   start
                                                                     :end     end
                                                                     :hue     (assign-cue-hue track)
-                                                                    :comment new-name})]
+                                                                    :comment new-name
+                                                                    :linked  cue-name})]
                                         (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
                                         (swap-track! track update :cues-editor dissoc :selection)
                                         (su/update-track-gear-icon track)
