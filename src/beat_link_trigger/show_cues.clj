@@ -487,34 +487,22 @@
   [show folder cue-name]
   (swap-show! show update-in [:contents :cue-library-folders folder] (fnil conj #{}) cue-name))
 
-(defn- library-cue-action
+(defn- cue-library-action
   "Creates the menu action which either adds a cue to the library, or
   removes or updates it after confirmation, if there is already a cue
   of the same name in the library."
-  [track cue panel]
+  [track cue]
   (let [[show track]      (latest-show-and-track track)
         cue               (find-cue track cue)
         [comment content] (sanitize-cue-for-library cue)]
     (if (clojure.string/blank? comment)
       (seesaw/action :name "Type a Comment to add Cue to Library" :enabled? false)
-      (if-let [existing (cue-in-library? show comment content)]
-        ;; The cue is already in the library, either update or remove it.
-        (case existing
-          :matches  ; The cue exactly matches what's in the library, offer to remove it.
-          (seesaw/action :name "Remove Cue from Library"
-                         :handler (fn [_]
-                                    (swap-show! show update-in [:contents :cue-library] dissoc comment)
-                                    (update-library-button-visibility show)))
+      (if (cue-in-library? show comment content)
+        ;; The cue is already in the library, we now just report that. (There are new menu options
+        ;; for managing library cues, and the old mechanisms made no sense now that cues can be
+        ;; linked.
+        (seesaw/action :name "Library Contains a Cue with this name" :enabled? false)
 
-          :conflict ; The cue is different from what is in the library, offer to update it.
-          (seesaw/action :name "Update Cue in Library"
-                         :handler (fn [_]
-                                    (when (seesaw/confirm panel (str "This will replace the existing library cue with "
-                                                                     "the same name.\r\n"
-                                                                     "If you want to keep both, rename this cue first "
-                                                                     "and try again.")
-                                                          :type :question :title "Replace Library Cue?")
-                                      (swap-show! show assoc-in [:contents :cue-library comment] content)))))
         ;; The cue is not in the library, so offer to add it.
         (let [folders (get-in show [:contents :cue-library-folders])]
           (if (empty? folders)
@@ -522,6 +510,7 @@
             (seesaw/action :name "Add Cue to Library"
                            :handler (fn [_]
                                       (add-cue-to-library show comment content)
+                                      (swap-cue! track cue assoc :linked comment)
                                       (update-library-button-visibility show)))
             ;; Provide a menu to add to each library folder or the top level.
             (seesaw/menu :text "Add Cue to Library"
@@ -531,11 +520,14 @@
                                                   :handler (fn [_]
                                                              (add-cue-to-library show comment content)
                                                              (add-cue-to-folder show folder comment)
+                                                             (swap-cue! track cue assoc :linked comment)
                                                              (update-library-button-visibility show))))
                                  [(seesaw/action :name "At Top Level"
                                                  :handler (fn [_]
                                                             (add-cue-to-library show comment content)
+                                                            (swap-cue! track cue assoc :linked comment)
                                                             (update-library-button-visibility show)))]))))))))
+
 (defn cue-preview-rectangle
   "Calculates the outline of a cue within the coordinate system of the
   waveform preview component in a track row of a show window, taking
@@ -987,7 +979,7 @@
         popup-fn (fn [_] (concat (cue-editor-actions track cue panel gear)
                                  [(seesaw/separator) (cue-simulate-menu track cue) (su/track-inspect-action track)
                                   (seesaw/separator) (scroll-wave-to-cue-action track cue) (seesaw/separator)
-                                  (duplicate-cue-action track cue) (library-cue-action track cue panel)
+                                  (duplicate-cue-action track cue) (cue-library-action track cue)
                                   (delete-cue-action track cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
