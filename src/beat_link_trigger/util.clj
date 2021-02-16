@@ -128,6 +128,25 @@
               (seesaw/dispose! confirm)
               result))))))
 
+(defn confirm
+  "Replacement for `seesaw/confirm` which understands that pressing the
+  ESC key means the user wants to cancel, not proceed.
+
+  Returns truthy if operation should proceed. If a non-`nil` window is
+  passed in `parent`, the confirmation dialog will be centered over
+  it."
+  [parent text & {:keys [type option-type title]
+                  :or   {type        :question
+                         option-type :ok-cancel}}]
+  (let [^JDialog confirm (seesaw/dialog
+                          :content text
+                          :type type :option-type option-type :title title)]
+    (.pack confirm)
+    (.setLocationRelativeTo confirm parent)
+    (let [result (= :success (seesaw/show! confirm))]
+      (seesaw/dispose! confirm)
+      result)))
+
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
   `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)

@@ -426,11 +426,10 @@
   (seesaw/action :handler (fn [_]
                             (let [cue (find-cue track cue)]
                               (when (or (:linked cue)
-                                        (seesaw/confirm panel
-                                                        (str "This will irreversibly remove the cue, losing any\r\n"
-                                                             "configuration and expressions created for it.")
-                                                        :type :question
-                                                        :title (str "Delete Cue “" (:comment cue) "”?")))
+                                        (util/confirm panel
+                                                      (str "This will irreversibly remove the cue, losing any\r\n"
+                                                           "configuration and expressions created for it.")
+                                                      :title (str "Delete Cue “" (:comment cue) "”?")))
                                 (try
                                   (cleanup-cue true track cue)
                                   (swap-track! track expunge-deleted-cue cue)
@@ -869,11 +868,11 @@
   (seesaw/action :name library-cue-name
                  :handler (fn [_]
                             (when (or (linked-cues-equal? library-cue existing-cue)
-                                      (seesaw/confirm button (str "Linking will replace the contents of this cue with"
-                                                                  "\r\nthe contents of library cue "
-                                                                  (full-library-cue-name show library-cue-name) ".")
-                                                      :type :question
-                                                      :title (str "Link Cue “" (:comment existing-cue) "”?")))
+                                      (util/confirm (seesaw/to-frame button)
+                                                    (str "Linking will replace the contents of this cue with\r\n"
+                                                         "the contents of library cue "
+                                                         (full-library-cue-name show library-cue-name) ".")
+                                                    :title (str "Link Cue “" (:comment existing-cue) "”?")))
                               (swap-cue! track existing-cue
                                          (fn [cue]
                                            (-> cue
@@ -1400,17 +1399,18 @@
   this to happen."
   [cue-name _cue track]
   (let [[show track] (latest-show-and-track track)
-        parent       (get-in track [:cues-editor :frame])]
+        parent       (get-in track [:cues-editor :frame])
+        unlinking    (describe-unlinking cue-name show)]
     (seesaw/action :name (str "Delete “" cue-name "”")
                    :handler (fn [_]
-                              (when (seesaw/confirm parent
-                                                    (str "Deleting this library cue will discard all its "
-                                                         "configuration and expressions\r\n"
-                                                         "and cannot be undone.\r\n"
-                                                         (describe-unlinking cue-name show))
-                                                    :type :question
-                                                    :title (str "Delete Library Cue "
-                                                                (full-library-cue-name show cue-name) "?"))
+                              (when (util/confirm parent
+                                                  (str "Deleting this library cue will discard all its "
+                                                       "configuration and expressions\r\n"
+                                                       "and cannot be undone.\r\n"
+                                                       unlinking)
+                                                  :type (if (str/blank? unlinking) :question :warning)
+                                                  :title (str "Delete Library Cue "
+                                                              (full-library-cue-name show cue-name) "?"))
                                 ;; Remove the cue from the library itself.
                                 (swap-show! show update-in [:contents :cue-library] dissoc cue-name)
                                 ;; Remove it from any folder to which it belonged.
@@ -1717,10 +1717,10 @@
 (defn- remove-cue-folder
   "Opens a confirmation dialog for deleting a cue folder."
   [show track folder]
-  (when (seesaw/confirm (get-in track [:cues-editor :frame])
-                        (str "Removing a cue library folder will move all of its cues\r\n"
-                             "back to the top level of the cue library.")
-                        :type :question :title (str "Remove Folder “" folder "”?"))
+  (when (util/confirm (get-in track [:cues-editor :frame])
+                      (str "Removing a cue library folder will move all of its cues\r\n"
+                           "back to the top level of the cue library.")
+                      :type :question :title (str "Remove Folder “" folder "”?"))
     (swap-show! show update-in [:contents :cue-library-folders] dissoc folder)))
 
 (defn- build-cue-library-button-menu

@@ -1267,13 +1267,12 @@
   (let [[show track] (latest-show-and-track track)
         title        (get-in @copied-track-content [:metadata :title])]
     (seesaw/action :handler (fn [_]
-                              (when (seesaw/confirm panel (str "This will irreversibly replace the configuration, "
-                                                               "expressions, and cues of this track with\r\n"
-                                                               "the ones you copied from “" title "”.\r\n\r\n"
-                                                               "Are you sure?")
-                                                    :type :question
-                                                    :title (str "Replace Content of “"
-                                                                (get-in track [:metadata :title]) "”?"))
+                              (when (util/confirm panel (str "This will irreversibly replace the configuration, "
+                                                             "expressions, and cues of this track with\r\n"
+                                                             "the ones you copied from “" title "”.\r\n\r\n"
+                                                             "Are you sure?")
+                                                  :title (str "Replace Content of “"
+                                                              (get-in track [:metadata :title]) "”?"))
                                 (replace-track-contents show track panel (:contents @copied-track-content))))
                    :name "Paste Track Content"
                    :tip "Replace the contents of this track with previously copied values."
@@ -1453,9 +1452,9 @@
   "Creates the menu action which deletes a track after confirmation."
   [show track panel]
   (seesaw/action :handler (fn [_]
-                            (when (seesaw/confirm panel (str "This will irreversibly remove the track, losing any\r\n"
-                                                             "configuration, expressions, and cues created for it.")
-                                                  :type :question :title "Delete Track?")
+                            (when (util/confirm panel (str "This will irreversibly remove the track, losing any\r\n"
+                                                           "configuration, expressions, and cues created for it.")
+                                                :type :warning :title "Delete Track?")
                               (try
                                 (let [show       (latest-show show)
                                       track-root (su/build-track-path show (:signature track))]

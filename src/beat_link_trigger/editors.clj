@@ -1018,8 +1018,7 @@ a {
   (or (not (seesaw/config save-action :enabled?))
       (do
         (.toFront frame)
-        (seesaw/confirm frame "Closing will discard the changes you made. Proceed?"
-                        :type :question :title "Discard Changes?"))))
+        (util/confirm frame "Closing will discard the changes you made. Proceed?" :title "Discard Changes?"))))
 
 (defn- build-search-listener
   "Creates the search coordination object that manages find and replace
