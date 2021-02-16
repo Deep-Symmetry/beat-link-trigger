@@ -477,16 +477,20 @@
 
 (defn- update-library-button-visibility
   "Makes sure that the Library button is visible in any open Cue Editor
-  windows if the library has any cues in it, and is hidden otherwise."
+  windows if the library has any cues in it, and is hidden otherwise.
+  At the same time all open cue editor panels have their link buttons
+  shown or hidden as well."
   [show]
-  (let [show           (latest-show show)
-        library-empty? (empty? (get-in show [:contents :cue-library]))]
+  (let [show            (latest-show show)
+        library-in-use? (boolean (seq (get-in show [:contents :cue-library])))]
     (doseq [[_ track] (:tracks show)]
       (when-let [editor (:cues-editor track)]
         (let [button (seesaw/select (:frame editor) [:#library])]
-          (if library-empty?
-            (seesaw/hide! button)
-            (seesaw/show! button)))))))
+          (seesaw/config! button :visible? library-in-use?)
+          (doseq [track (vals (:tracks show))
+                  panel (vals (get-in track [:cues-editor :panels]))]
+            (let [link (seesaw/select panel [:#link])]
+              (seesaw/config! link :visible? library-in-use?))))))))
 
 (defn- add-cue-to-library
   "Adds a cue to a show's cue library."
@@ -717,7 +721,7 @@
       (when (not= content (select-keys library-cue [:expressions :events]))
         (swap-show! show update-in [:contents :cue-library linked]
                     (fn [library-cue] (merge (dissoc library-cue :expressions :events) content)))
-        (doseq [[_ track] (:tracks show)]
+        (doseq [track (vals (:tracks show))]
           (doseq [[linked-uuid linked-cue] (get-in track [:contents :cues :cues])]
             (when (and (= linked (:linked linked-cue)) (not= uuid linked-uuid))
               (swap-cue! track linked-cue
@@ -921,10 +925,12 @@
   (let [update-comment (fn [c]
                          (let [comment (seesaw/text c)]
                            (swap-cue! track cue assoc :comment comment)))
+        [show]       (su/latest-show-and-track track)
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment cue) :listen [:document update-comment])
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
-        link           (seesaw/button :id :link :icon (link-button-icon cue))
+        link           (seesaw/button :id :link :icon (link-button-icon cue)
+                                      :visible? (seq (get-in show [:contents :cue-library])))
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
                                              :to (long (.beatCount ^BeatGrid (:grid track))))
