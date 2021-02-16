@@ -1747,9 +1747,11 @@
      (build-cue-library-popup-items track build-library-cue-action)
      [(seesaw/menu :text "Manage Cues"
                    :items (concat
-                           [(seesaw/menu :text "Move"
-                                         :items (build-cue-library-popup-items track build-library-cue-move-submenu))
-                            (seesaw/menu :text "Rename"
+                           (when (seq (get-in show [:contents :cue-library-folders]))
+                             [(seesaw/menu :text "Move"
+                                           :items (build-cue-library-popup-items track
+                                                                                 build-library-cue-move-submenu))])
+                           [(seesaw/menu :text "Rename"
                                          :items (build-cue-library-popup-items track rename-library-cue-action))
                             (seesaw/menu :text "Delete"
                                          :items (build-cue-library-popup-items track delete-library-cue-action))]))
