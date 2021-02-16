@@ -1250,8 +1250,8 @@
         contents (assoc-in contents [:cues :cues] cues)]
     (swap-track! track assoc :contents contents  ; Install the copied and cropped contents.
                  :creating true)  ; Disarm automatic editor popup while we are messing with the UI.
+    (cues/add-missing-library-cues show (vals cues))
     (cues/build-cues track)
-
     (su/update-track-gear-icon track)
     (update-track-comboboxes contents panel)
     (seesaw/value! (seesaw/select panel [:#loaded-note]) (:loaded-note contents))
@@ -1261,18 +1261,51 @@
     (parse-track-expressions show (latest-track track))
     (swap-track! track dissoc :creating)))  ; No longer suppress popup of expression editors.
 
+(defn- find-cue-conflicts
+  "Called when the user is importing or pasting a track. Finds any
+  linked cues in the incoming track which refer to library tracks that
+  already exist but have different content. Arguments must be
+  current. Returns the names of the problematic linked cues."
+  [show source-track]
+  (filter identity
+          (for [cue (vals (get-in source-track [:contents :cues :cues]))]
+            (when-let [linked (:linked cue)]
+              (when-let [library-cue (get-in show [:contents :cue-library linked])]
+                (when-not (cues/linked-cues-equal? cue library-cue) (:comment cue)))))))
+
+(defn- validate-copying-linked-cues
+  "Checks to make sure the incoming track does not have any linked cues
+  which conflict with existing library cues in the destination track.
+  If it does, displays an error dialog explaining the problem and ways
+  to address it and returns falsy to prevent the operation. Arguments
+  must be current."
+  [show operation panel source-track]
+  (let [conflicts (find-cue-conflicts show source-track)
+        max-cues  4]
+    (if (empty? conflicts)
+      true  ; Validation succeeded, the operation can proceed.
+      (let [message (str
+                     (apply str "The track you are trying to " operation " contains Cues linked to Library Cues\r\n"
+                            "that exist in this show, but have different content. You won't be able to\r\n"
+                            operation " unless you either unlink those cues, or remove the conflict by\r\n"
+                            "renaming or updating the Library Cues they link to.\r\n"
+                            "Cues: " (cues/describe-unlinking-cues conflicts max-cues)))]
+        (seesaw/alert panel message :name "Library Cue Conflict" :type :error)
+        false))))
+
 (defn- paste-track-content-action
   "Creates the menu action which pastes copied content over a track."
   [track panel]
   (let [[show track] (latest-show-and-track track)
         title        (get-in @copied-track-content [:metadata :title])]
     (seesaw/action :handler (fn [_]
-                              (when (util/confirm panel (str "This will irreversibly replace the configuration, "
-                                                             "expressions, and cues of this track with\r\n"
-                                                             "the ones you copied from “" title "”.\r\n\r\n"
-                                                             "Are you sure?")
-                                                  :title (str "Replace Content of “"
-                                                              (get-in track [:metadata :title]) "”?"))
+                              (when (and (validate-copying-linked-cues show "paste" panel @copied-track-content)
+                                         (util/confirm panel (str "This will irreversibly replace the configuration, "
+                                                                  "expressions, and cues of this track with\r\n"
+                                                                  "the ones you copied from “" title "”.\r\n\r\n"
+                                                                  "Are you sure?")
+                                                       :title (str "Replace Content of “"
+                                                                   (get-in track [:metadata :title]) "”?")))
                                 (replace-track-contents show track panel (:contents @copied-track-content))))
                    :name "Paste Track Content"
                    :tip "Replace the contents of this track with previously copied values."

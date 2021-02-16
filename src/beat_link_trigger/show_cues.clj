@@ -451,7 +451,19 @@
   "Checks whether all the supplied cues have the same values for any
   elements that would be tied together if they were linked cues."
   [& cues]
-  (apply = (map #(select-keys % [:events :expressions]) cues)))
+  (let [trimmed (map #(select-keys % [:events :expressions]) cues)]
+    (apply = trimmed)))
+
+(defn add-missing-library-cues
+  "When importing or pasting a track into a show, creates the library
+  cues corresponding to any linked cues which do not exist in the show
+  already. `show` must be current."
+  [show cues]
+  (doseq [cue cues]
+    (when-let [linked (:linked cue)]
+      (when-not (get-in show [:contents :cue-library linked])
+        (let [[_ library-cue] (sanitize-cue-for-library cue)]
+          (swap-show! show update-in [:contents :cue-library] assoc linked library-cue))))))
 
 (defn- cue-in-library?
   "Checks whether there is a cue matching the specified name is already
