@@ -24,10 +24,11 @@ image:CueLibraryButton.png[Cue Library Button,900,425]
 [TIP]
 ====
 
-The names that appear in the Cue Library are the names (comments)
-of the cues that have been added to it, so it makes sense to make sure
+The names that appear in the Cue Library are the names (comments) of
+the cues that have been added to it, so it makes sense to make sure
 your cue is well named before adding it to the library, although you
-can rename them later using menu:Library[Manage Cues > Rename].
+can <<renaming-cues,rename them later>> using menu:Library[Manage Cues
+> Rename].
 
 This image also shows the strip of phrase information which appears
 along the bottom of a track on which the DJ has performed phrase
@@ -46,29 +47,78 @@ Using either of those approaches to choose menu:New “Red Wash” Cue[] in
 the menu would result in the creation of a cue based on that template
 in the selected region of the track:
 
-image:CueLibraryUsed.png[Cue from Library,961,453]
+image:CueLibraryUsed.png[Cue from Library,900,425]
 
 The new cue will share any of the MIDI message configurations and
 Expressions that were present in the cue that was added to the show
 library.
 
-[[updating-library]]
-== Updating the Library
+[[linked-cues]]
+== Linked Cues
 
-If you already have a cue in the library, you  can update its content
-by changing the cue that it was based on, and then using the cue
-context menu again. When there is already a cue with a particular
-name in the library, instead of seeing Add Cue to Library, the
-option will read menu:Update Cue in Library[]. Choosing that will
-replace the cue template with the MIDI and Expression settings of the
-current cue. (This will not change any cues that you already created
-based on the template, but it will change any future cues you create
-from it.)
+The linked chain in the new link button towards the bottom left of the
+cue row indicates that this new cue is linked to the library cue from
+which it was created. Any changes you make to this cue (apart from the
+location, name, and display hue of this copy) will instantly be
+applied to the library cue, and to any other cues that are linked to
+it, whether in this track or in any other track in the show. This
+makes it very easy to keep your related cues working the same way.
 
-If the current cue has exactly the same content as the cue of the
-same name in the library (ignoring incidental details like its
-position in the track or displayed hue), the menu option will read
-menu:Remove Cue from Library[], and choosing it will do just that.
+TIP: If you do want to make notes about the specific role this copy of
+the cue will play in your show, the comment text (“Red Wash” in this
+case) starts out selected as soon as you have created it, making it
+easy to update.
+
+If you ever have a cue that started out linked to a library cue, but
+you want to make it work a little differently, you can break the link
+using the link button:
+
+image:UnlinkCue.png[Unlinking a Cue,365,155]
+
+Once you've done that, the cue will exist indepently, and changes you
+make to it will not affect the library nor any other cues. The link
+button changes to show a broken chain.
+
+If you change your mind and want to re-link it, you can use the link
+button again to do that. In the same way, you can link together any
+cues you created without using the library, if you ever decide they
+should be linked. Simply click the link button in each cue you want to
+link, and chose the library cue that you want it linked to:
+
+image:LinkCue.png[Unlinking a Cue,365,155]
+
+[NOTE]
+====
+
+If the cue you are linking to a library cue has any different
+message configuration or expressions, they will be replaced with the
+versions in the library when you establish the link, so you will need
+to confirm that you want the linking process to proceed.
+
+image:LinkConfirm.png[Confirming a Link,500,210]
+
+====
+
+[[renaming-cues]]
+== Renaming Library Cues
+
+As noted above, if you change your mind about what a library cue
+should be called, you can choose the cue you'd like to rename in the
+menu:Library[Manage Cues > Rename] submenu:
+
+image:RenameCue.png[Renaming a Library Cue,900,425]
+
+This will bring up a dialog where you can choose a new name for the
+cue.
+
+image:RenameCue2.png[Renaming a Library Cue,440,200]
+
+You can choose any name which is not already in use by another library
+cue, and it will take that new name. The cues that link to it won't be
+renamed (since they may all have their own unique names by this
+point), but they will stay linked to it under its new name.
+
+> TODO: Revise the rest after this point!
 
 [[cue-library-folders]]
 == Cue Library Folders
@@ -96,9 +146,7 @@ transforms into a submenu allowing you to choose whether you want to
 add it to a folder or to the top level of the library.
 
 TIP: If you have existing cues in the library that you would like to
-move into folders, follow the steps described
-<<updating-library,above>> to remove them from the library and re-add
-them into the desired folder.
+move into folders, TODO: rewrite this part showing the new mechanism!
 
 image:AddCueToFolder.png[Cue Library Button,961,699]
 
