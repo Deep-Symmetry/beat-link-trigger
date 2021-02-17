@@ -125,7 +125,7 @@ use a similar menu:Library[Manage Cues > Delete] submenu to remove it:
 
 image:DeleteCue.png[Deleting a Library Cue,900,425]
 
-You will be asked for confirmation, since this process can't be
+You will be asked for confirmation, since this operation can't be
 undone. Also, if the library cue is currently linked to any cues in
 your show, the confirmation dialog will warn you about this, and
 explain that those cues will all become unlinked if you proceed with
@@ -133,15 +133,13 @@ deletion of the library cue.
 
 image:DeleteCue2.png[Deleting a Library Cue,640,270]
 
-> TODO: Revise the rest after this point!
-
 
 [[cue-library-folders]]
 == Cue Library Folders
 
 If you collect a large number of cues in your library, the menu can
 get inconveniently large and make it hard to find the cue you are
-looking for. You can avoid that problem by organizing your cues into
+looking for. You can address that problem by organizing your cues into
 folders. At the bottom of the <<cue-library-button,Library button
 menu>> there is a menu:Manage Folders[] submenu.
 
@@ -155,16 +153,24 @@ As soon as you have created a folder, the menus for choosing library
 cues (both in the Library button and in the waveform context menu)
 expand to show all the folders as submenus before the non-folder cues:
 
-image:CueLibraryWithFolder.png[Cue Library with Folder,961,423]
+image:CueLibraryWithFolder.png[Cue Library with Folder,900,425]
 
 The context menu option for adding a cue to the library also
 transforms into a submenu allowing you to choose whether you want to
 add it to a folder or to the top level of the library.
 
-TIP: If you have existing cues in the library that you would like to
-move into folders, TODO: rewrite this part showing the new mechanism!
-
 image:AddCueToFolder.png[Cue Library Button,961,699]
+
+[TIP]
+====
+
+If you have existing cues in the library that you would like to move
+into your new folders, you can do that using the new
+menu:Library[Manage Cues > Move] submenu that appears as soon as you
+have created folders:
+
+image:MoveLibraryCue.png[Moving a Library Cue,900,425]
+====
 
 Once you have organized your cues into folders, finding and picking
 them out of the appropriate submenu can be easier and faster than
@@ -174,4 +180,10 @@ Once you have folders, the menu:Manage Folders[] menu also allows you
 to rename or remove them. Removing a folder moves any cues you placed
 inside it back to the top level of the cue library.
 
-image:ManageFolders.png[Cue Library with Folder,961,464]
+image:ManageFolders.png[Managing Folders,900,425]
+
+Also, once you have moved cues into folders, the link button will help
+you remember where you've filed them by showing the path to the cue
+that you are linked to:
+
+image:LinkedInFolder.png[Linked to a Cue in a Folder,900,425]

@@ -14,7 +14,16 @@ This change log follows the conventions of
   columns](https://blt-guide.deepsymmetry.org/beat-link-trigger/players#change-num-columns)
   the Player Status window uses if you don't like the defaults.]
 - Song structure (phrase analysis) is now displayed on waveforms when
-  it is available.
+  it is available, both in Player Status and in Show windows, where it
+  can be helpful in deciding where to position cues.
+- Show cues can now be linked to library cues, which means whenever
+  one of the linked cues is edited, the library cue and any other cues
+  that are linked to the same library cue are instantly updated to
+  match. There is a new link button which appears on cue rows once the
+  first library cue has been created to manage this, and the Library
+  dropdown menu has several new features. It's probably worth your
+  while to reread the Cue Library section (under Shows) in the user
+  guide.
 - The Carabiner Connection window also handles Player 5 and Player 6
   now.
 
