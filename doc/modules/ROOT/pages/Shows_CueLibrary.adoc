@@ -9,26 +9,38 @@ in any track by adding it to the Cue Library. To do that, choose
 menu:Add Cue to Library[] from the Cue
 <<Shows_Cues.adoc#cue-context-menu,context menu.>>
 
-[[cue-library-button]]
-As soon as you have a cue in the show's library, a kbd:[Library ▾]
-button appears next to the kbd:[New Cue] button in any Cue Editor
-windows you have open for tracks in the show. Clicking it gives you
-a menu of all the cues that you have added to the show's library, and
-choosing one creates a new cue (in the same location that the
-kbd:[New Cue] button would), based on the template cue that you put
-in the library:
+[[cue-library-button]] As soon as you have a cue in the show's
+library, a kbd:[Library ▾] button appears next to the kbd:[New Cue]
+button in any Cue Editor windows you have open for tracks in the show
+(and any existing cue rows also get new link buttons just below their
+gear buttons, described below). Clicking kbd:[Library ▾] gives you a
+menu of all the cues that you have added to the show's library, and
+choosing one creates a new cue (in the same location that the kbd:[New
+Cue] button would), based on the template cue that you put in the
+library:
 
-image:CueLibraryButton.png[Cue Library Button,961,423]
+image:CueLibraryButton.png[Cue Library Button,900,425]
 
-TIP: The names that appear in the Cue Library are the names (comments)
+[TIP]
+====
+
+The names that appear in the Cue Library are the names (comments)
 of the cues that have been added to it, so it makes sense to make sure
-your cue is well named before adding it to the library.
+your cue is well named before adding it to the library, although you
+can rename them later using menu:Library[Manage Cues > Rename].
+
+This image also shows the strip of phrase information which appears
+along the bottom of a track on which the DJ has performed phrase
+analysis, which can be very helpful in figuring out good places for
+cues.
+
+====
 
 Another way to choose a cue template from the library is to right-click
 (or control-click) anywhere outside an existing cue in the waveform
 at the top of the Cue Editor window:
 
-image:CueLibraryContext.png[Cue Library Context Menu,961,453]
+image:CueLibraryContext.png[Cue Library Context Menu,900,425]
 
 Using either of those approaches to choose menu:New “Red Wash” Cue[] in
 the menu would result in the creation of a cue based on that template
