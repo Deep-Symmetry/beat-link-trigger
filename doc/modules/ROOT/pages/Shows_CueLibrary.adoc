@@ -118,7 +118,23 @@ cue, and it will take that new name. The cues that link to it won't be
 renamed (since they may all have their own unique names by this
 point), but they will stay linked to it under its new name.
 
+== Deleting Library Cues
+
+If you decide a cue no longer deserves to be in the library, you can
+use a similar menu:Library[Manage Cues > Delete] submenu to remove it:
+
+image:DeleteCue.png[Deleting a Library Cue,900,425]
+
+You will be asked for confirmation, since this process can't be
+undone. Also, if the library cue is currently linked to any cues in
+your show, the confirmation dialog will warn you about this, and
+explain that those cues will all become unlinked if you proceed with
+deletion of the library cue.
+
+image:DeleteCue2.png[Deleting a Library Cue,640,270]
+
 > TODO: Revise the rest after this point!
+
 
 [[cue-library-folders]]
 == Cue Library Folders
