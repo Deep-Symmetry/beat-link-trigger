@@ -14,6 +14,7 @@
 ** xref:Shows_Tracks.adoc[Editing Show Tracks]
 ** xref:Shows_Cues.adoc[Editing Track Cues]
 ** xref:Shows_CueLibrary.adoc[The Cue Library]
+** xref:Shows_PhraseTriggers.adoc[Phrase Triggers]
 * xref:Link.adoc[Working with Ableton Link]
 * xref:ObsOverlay.adoc[OBS Streaming Overlays]
 * xref:Debugging.adoc[Debugging and Sharing]

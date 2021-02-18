@@ -1,0 +1,175 @@
+= Phrase Triggers
+include::partial$PagePreamble.adoc[]
+
+Starting in version 7, we gained the ability to take advantage of
+phrase analysis information in tracks, if the DJ has added that. In
+addition to adding useful information along the bottom of track
+waveforms, this enabled the creation of a major new feature for
+running attractive light shows even for tracks that you have not been
+able to build custom cues for.
+
+This is achieved by adding Phrase Triggers to your show, which allow
+you to arrange cues that look good whenever a particular phrase type
+is played, timed to the beginning, middle, ending, and fill-in section
+(if there is one) of the phrase. You can fine tune which of your
+triggers are used for which types of phrases, and assign weights so
+that when multiple alternatives exist, one is chosen more or less
+often than another.
+
+The phrase triggers will come below all the tracks in the show, in
+their own section, with their own header. (Sketches of the UI should
+be added shortly, I hope!)
+
+NOTE: This page is an early draft, describing the new phrase triggers
+feature, and is being used to refine the design.
+
+[[exclusivity]
+== Exclusivity
+
+* Tracks get a new button (probably a small icon left of the Playing
+  and right of the waveform preview, at the level of the phrase
+  strip), which appears only when the track has phrase analysis, and
+  there is at least one phrase trigger. This allows the track to
+  prevent phrase triggers from running when it plays (probably a lock
+  icon, and the default), or allow them (musical notes)?
+
+* If the track playing is not in the show, the phrase triggers are
+  always allowed to run. If the track is part of the show, it gets to
+  decide whether they run or not, since it may well have its own cues
+  which are more tailored to the track than random phrase triggers
+  would be.
+
+* Phrase triggers themselves have different levels of exclusivity. The
+  default is "Solo in show", but can also be "Solo across all shows",
+  or "Blend".
+
+* When a new phrase starts, all phrase triggers in all open shows are
+  examined to see which are enabled for that trigger (see
+  <<enabling-weighting,below>> for details).
+
+* Enabled triggers are grouped by exclusivity, and first any "Solo
+  across all shows" triggers are considered. A random one is chosen
+  and activated.
+
+* Then, for each open show, the "Solo in show" triggers in that show
+  are considered. If there was a "Solo across all shows" trigger
+  activated, and it came from this show, then none of the "Solo in
+  show" triggers will activate, because there is already a trigger
+  from this show running. However, if the active trigger was in
+  another show, it won't stop these from running. (If you wanted them
+  to be prevented from running in this circumstance, you would have
+  marked them as solo across all shows. In most cases, each show will
+  be used to run triggers for a different purpose, e.g. a show for
+  videos, a show for lights, a show for lasers, and so their triggers
+  will not conflict.) Again, an enabled trigger is chosen at random,
+  taking the weighting into account, and activated.
+
+* Finally, for each open show, all "Blend" triggers that are enabled
+  for the phrase are activated; they run regardless of other triggers.
+
+[[enabling-weighting]]
+== Enabling and Weighting
+
+To decide which phrase triggers should be considered when a phrase
+starts, there are a number of filters that can be applied.
+
+> (A UI sketch will help here too!)
+
+* The most obvious is that you can select which phrase types this
+  trigger works with, picking one or more of the phrases in each of
+  the three moods.
+
+* You can do the same kind of filtering by deciding which track banks
+  you want this trigger to match on.
+
+* You can also set a minimum and/or a maximum phrase length.
+
+* You can set a minimum and/or maximum BPM.
+
+* And you can assign a weight, from 1 to 1,000, that adjusts how
+  likely this trigger is likely to be picked among all the triggers
+  which are enabled.
+
+> Is there any other simple phrase or track characteristic that might
+  be useful as a default filter?
+
+If you want to do more sophisticated filtering than that, you can
+swich to "custom" enabled filtering, in which case BLT will call an
+expression when the phrase is starting, and pass you the phrase and
+track and player status, and you can write code to use any logic you
+want to decide if the trigger should be enabled. If you return a
+number, that will be rounded to the nearest integer, and if it is
+positive the trigger will be enabled, with a weight corresponding to
+the number you returned (clipped to 1,000 as an upper bound, again).
+If you return anything other than a number, if it is truthy, the
+trigger will be enabled, with a weight of 1, and if it is falsy, the
+trigger will be disabled.
+
+[[messages-cues]]
+== Messages and Cues
+
+At the level of the entire phrase, the phrase trigger will have a
+Playing and Stopped message, which can be configured as MIDI or a
+custom expression. When a trigger is enabled as a phrase begins, and
+chosen (if it is solo), the Playing message is sent. When the end of
+the phrase is reached (or the player stops, or the DJ jumps out of the
+phrase), the Stop message is sent.
+
+However, the real power of phrases for building creative shows is that
+they will provide a canvas on which you can draw cues, just like
+tracks.
+
+> (A UI sketch will especially help here!)
+
+As noted above, the phrase will be divided into sections, whose sizes
+you get to choose when creating the phrase trigger. The size you
+choose will determine the size of the canvas on which you can place
+cues for that section of the phrase trigger:
+
+* Start, which gets lined up with the beginning of the phrase in the
+  track, and can contain zero or more bars.
+
+* Loop, which gets stretched (looped) or shrunk as needed to fill up
+  the middle of the phrase in the track, and can contain one or more
+  bars.
+
+* End, which gets lined up with the end of the phrase in the track
+  (before the fill-in section, if there is one), and can contain zero
+  or more bars.
+
+* Fill-in, which gets stretched (looped) or shrunk as needed to cover
+  the fill-in section of the phrase, if there is one.
+
+If the actual phrase is smaller than the sizes you have picked for
+your canvas, first the end of the Loop section is taken out of
+consideration, until that section is entirely gone. Then, the end of
+the End section is eaten away, until that entire section is gone, and
+finally the end of the Start section is eaten away until it fits the
+actual phrase. (As noted above, if you don't want this kind of
+shrinking to occur, you can configure your phrase trigger to only be
+enabled when the phrase is longer than a certain number of bars.)
+
+[[editing-cues]]
+=== Editing Cues
+
+Just like with tracks, you can open a cue editor window for each
+phrase trigger, to see the canvas of the four sections of the trigger,
+with the sizes you have chosen for them (although if you set the start
+or end sections to zero bars, they will not be visible).
+
+Much like you can see where the playheads of the players are in the
+cue editor, you will be able to watch them move through the cue canvas
+of your phrase trigger. If the phrase is long, and so the loop section
+is looping, you will see this happen, until the end is reached, at
+which point the playhead will jump to that section. And you will be
+able to watch your cues activate and deactivate. To help see this,
+just like the tracks section of the show has a "Loaded only" filter
+check box, the phrase triggers section will have an "Active only"
+filter.
+
+You can paint cues on this canvas just like you can on the track
+waveform in track cue editors. Cues have the same properties as they
+do in tracks, and share the same cue library, but their positions are
+computed relative to the start of the phrase which activated them, and
+taking into account any looping or shrinking needed to make the
+trigger fit the actual phrase.
