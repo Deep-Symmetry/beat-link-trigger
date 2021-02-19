@@ -90,11 +90,11 @@ starts, there are a number of filters that can be applied.
 image:PhraseTriggerRows.png[Phrase trigger rows,924,292]
 
 * The most obvious is that you can select which phrase types this
-  trigger works with, picking one or more of the phrases in each of
-  the three moods.
+  trigger works with, <<phrase-picker,picking one or more>> of the
+  phrases in each of the three moods.
 
-* You can do the same kind of filtering by deciding which track banks
-  you want this trigger to match on.
+* You can do the same kind of filtering by <<bank-picker,deciding
+  which track banks>> you want this trigger to match on.
 
 * You can also set a minimum and/or a maximum phrase length.
 
@@ -107,10 +107,12 @@ image:PhraseTriggerRows.png[Phrase trigger rows,924,292]
 > Is there any other simple phrase or track characteristic that might
   be useful as a default filter?
 
+[[phrase-picker]]
 Clicking the Phrase Types button brings up a picker window like this:
 
 image:PhraseTypePicker.png[Phrase type picker,492,336]
 
+[[bank-picker]]
 And clicking on the Track Banks button brings up similar picker:
 
 image:TrackBankPicker.png[Track bank picker,198,285]
