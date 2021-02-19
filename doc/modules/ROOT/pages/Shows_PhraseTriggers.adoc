@@ -16,22 +16,36 @@ triggers are used for which types of phrases, and assign weights so
 that when multiple alternatives exist, one is chosen more or less
 often than another.
 
-The phrase triggers will come below all the tracks in the show, in
-their own section, with their own header. (Sketches of the UI should
-be added shortly, I hope!)
-
 NOTE: This page is an early draft, describing the new phrase triggers
 feature, and is being used to refine the design.
 
-[[exclusivity]
+The phrase triggers will come below all the tracks in the show. Their
+rows may be a slightly different color to make them stand out, but
+they will be structurally so different that may not even be necessary.
+
+image:ShowWithPhrases.png[Show window with phrase rows,450,400]
+
+As of now, the only item I can think of for the new Phrases menu is
+"New Phrase Trigger", which will create a new phrase trigger row and
+scroll it into view. Phrase triggers will be kept in the order they
+are created, and probably don't need to show numbers like the original
+Triggers window, they can be identified by UUID instead like cues, to
+make it easier to cope with deletions.
+
+The Filter text field will also filter phrase triggers (by their
+comment), and the Loaded Only check box will cause only active phrase
+triggers to be visible in the window.
+
+[[exclusivity]]
 == Exclusivity
 
 * Tracks get a new button (probably a small icon left of the Playing
   and right of the waveform preview, at the level of the phrase
   strip), which appears only when the track has phrase analysis, and
   there is at least one phrase trigger. This allows the track to
-  prevent phrase triggers from running when it plays (probably a lock
-  icon, and the default), or allow them (musical notes)?
+  prevent phrase triggers from running when it plays (probably a
+  locked icon, and the default), or allow them (unlocked? musical
+  notes?)
 
 * If the track playing is not in the show, the phrase triggers are
   always allowed to run. If the track is part of the show, it gets to
@@ -73,7 +87,7 @@ feature, and is being used to refine the design.
 To decide which phrase triggers should be considered when a phrase
 starts, there are a number of filters that can be applied.
 
-> (A UI sketch will help here too!)
+image:PhraseTriggerRows.png[Phrase trigger rows,924,292]
 
 * The most obvious is that you can select which phrase types this
   trigger works with, picking one or more of the phrases in each of
@@ -92,6 +106,14 @@ starts, there are a number of filters that can be applied.
 
 > Is there any other simple phrase or track characteristic that might
   be useful as a default filter?
+
+Clicking the Phrase Types button brings up a picker window like this:
+
+image:PhraseTypePicker.png[Phrase type picker,492,336]
+
+And clicking on the Track Banks button brings up similar picker:
+
+image:TrackBankPicker.png[Track bank picker,198,285]
 
 If you want to do more sophisticated filtering than that, you can
 swich to "custom" enabled filtering, in which case BLT will call an
@@ -161,11 +183,7 @@ Much like you can see where the playheads of the players are in the
 cue editor, you will be able to watch them move through the cue canvas
 of your phrase trigger. If the phrase is long, and so the loop section
 is looping, you will see this happen, until the end is reached, at
-which point the playhead will jump to that section. And you will be
-able to watch your cues activate and deactivate. To help see this,
-just like the tracks section of the show has a "Loaded only" filter
-check box, the phrase triggers section will have an "Active only"
-filter.
+which point the playhead will jump to that section.
 
 You can paint cues on this canvas just like you can on the track
 waveform in track cue editors. Cues have the same properties as they
