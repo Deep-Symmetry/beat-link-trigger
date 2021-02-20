@@ -143,26 +143,44 @@ However, the real power of phrases for building creative shows is that
 they will provide a canvas on which you can draw cues, just like
 tracks.
 
-> (A UI sketch will especially help here!)
+[[editing-cues]]
+=== Editing Cues
+
+Just like with tracks, you can open a cues editor window for each
+phrase trigger, to see the four sections of the trigger, with the
+sizes you have chosen for them (although if you set the start or end
+sections to zero bars, those will not be visible). The window looks
+like this:
+
+image:PTCuesEditor.png[Phrase Trigger Cues Editor window,942,401]
+
+It provides a canvas on which you can drag to paint cues, like you can
+on the track waveform in a track cues editor window, but there is no
+waveform here because the trigger could activate for phrases in
+different places in one or many tracks. The canvas represents an
+entire phrase for which the trigger has activated.
 
 As noted above, the phrase will be divided into sections, whose sizes
-you get to choose when creating the phrase trigger. The size you
-choose will determine the size of the canvas on which you can place
-cues for that section of the phrase trigger:
+you get to choose at the top of the window. The size you choose will
+determine the size of the portion of canvas on which you can place
+cues for each section of the phrase trigger:
 
 * Start, which gets lined up with the beginning of the phrase in the
-  track, and can contain zero or more bars.
+  track, and can contain zero or more bars, identified by a green
+  stripe at the bottom of the cue canvas.
 
 * Loop, which gets stretched (looped) or shrunk as needed to fill up
   the middle of the phrase in the track, and can contain one or more
-  bars.
+  bars, identified by a blue stripe at the bottom of the cue canvas.
 
 * End, which gets lined up with the end of the phrase in the track
   (before the fill-in section, if there is one), and can contain zero
-  or more bars.
+  or more bars, identified by a red stripe at the bottom of the cue
+  canvas.
 
 * Fill-in, which gets stretched (looped) or shrunk as needed to cover
-  the fill-in section of the phrase, if there is one.
+  the fill-in section of the phrase, if there is one, identified by a
+  purple stripe at the bottom of the cue canvas.
 
 If the actual phrase is smaller than the sizes you have picked for
 your canvas, first the end of the Loop section is taken out of
@@ -173,13 +191,17 @@ actual phrase. (As noted above, if you don't want this kind of
 shrinking to occur, you can configure your phrase trigger to only be
 enabled when the phrase is longer than a certain number of bars.)
 
-[[editing-cues]]
-=== Editing Cues
+Unlike in a track cues editor window, the New Cue button (and the
+library menu options for adding new cues) will only be enabled once
+you have painted a location for the cue on the canvas, because
+otherwise there is no way to tell in which section the cue should be
+created. Each cue can exist in a single section only, and its start
+and end beats are measured from the start of that section.
 
-Just like with tracks, you can open a cue editor window for each
-phrase trigger, to see the canvas of the four sections of the trigger,
-with the sizes you have chosen for them (although if you set the start
-or end sections to zero bars, they will not be visible).
+Once cues have been added to a section, you can no longer shrink that
+section to a size where any of its cues would no longer fit. So if you
+want to shrink a section, you will need to first delete any cues in
+the part that you want to eliminate.
 
 Much like you can see where the playheads of the players are in the
 cue editor, you will be able to watch them move through the cue canvas
@@ -187,9 +209,12 @@ of your phrase trigger. If the phrase is long, and so the loop section
 is looping, you will see this happen, until the end is reached, at
 which point the playhead will jump to that section.
 
-You can paint cues on this canvas just like you can on the track
-waveform in track cue editors. Cues have the same properties as they
-do in tracks, and share the same cue library, but their positions are
+Cues have all the same properties and expressions as they do in
+tracks, and share the same cue library, but their positions are
 computed relative to the start of the phrase which activated them, and
 taking into account any looping or shrinking needed to make the
 trigger fit the actual phrase.
+
+To help identify the sections in which each cue exists, its row in the
+cues editor has a stripe at the top which matches the color of the
+section.
