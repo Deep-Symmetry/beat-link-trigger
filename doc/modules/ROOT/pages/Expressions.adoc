@@ -133,15 +133,16 @@ particular track reaches a particular beat, the
 powerful way to arrange that. Still, read on for more basic expression
 editing concepts.
 
-[TIP] ==== As you use the editor, you will notice that it provides
-syntax coloring and parenthesis-matching help. But if you end up
-making a mistake in your expression, Beat Link Trigger will likely
-report an compilation error when you click kbd:[Update], and you can
-check the <<Debugging.adoc#logs,log>> for a more detailed stack trace.
-You can try searching the web for information about the error, or
-looking in the Clojure
-https://clojure.org/guides/getting_started[documentation], but you can
-also ask for help in the Beat Link Trigger
+[TIP]
+====
+As you use the editor, you will notice that it provides syntax
+coloring and parenthesis-matching help. But if you end up making a
+mistake in your expression, Beat Link Trigger will likely report an
+compilation error when you click kbd:[Update], and you can check the
+<<Debugging.adoc#logs,log>> for a more detailed stack trace. You can
+try searching the web for information about the error, or looking in
+the Clojure https://clojure.org/guides/getting_started[documentation],
+but you can also ask for help in the Beat Link Trigger
 https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
 stream].
 

@@ -39,7 +39,9 @@
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
             RekordboxAnlz$SongStructureTag RekordboxAnlz$TaggedSection]
-           [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]))
+           [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]
+           [jiconfont.icons.font_awesome FontAwesome]
+           [jiconfont.swing IconFontSwing]))
 
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
@@ -818,6 +820,8 @@
               (when-let [preview-loader (:preview track)]
                 (when-let [^WaveformPreviewComponent preview (preview-loader)]
                   (.setSongStructure preview song-structure)))
+              (when-let [lock (seesaw/select (:panel track) [:#lock])]
+                (seesaw/config! lock :visible? true))
               (when-let [^WaveformDetailComponent wave (get-in track [:cues-editor :wave])]
                 (.setSongStructure wave song-structure)))))))))
 
@@ -1535,6 +1539,14 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
+(defn- lock-button-icon-internal
+  "Determines whether a track allows phrase triggers to run while it
+  plays, given the current track contents map."
+  [show signature]
+  (if (get-in (latest-show show) [:tracks signature :contents :phrase-unlocked])
+    (IconFontSwing/buildIcon FontAwesome/UNLOCK_ALT 16.0 Color/green)
+    (IconFontSwing/buildIcon FontAwesome/LOCK 16.0 Color/red)))
+
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
   indexes appropriately."
@@ -1555,6 +1567,13 @@
         soft-preview   (create-track-preview preview-loader)
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        lock           (seesaw/button :id :lock :visible? (some? (su/read-song-structure track-root))
+                                      :tip "Toggle Phrase Trigger lockout"
+                                      :listen [:action-performed
+                                               (fn [e]
+                                                 (swap-signature! show signature
+                                                                  update-in [:contents :phrase-unlocked] not)
+                                                 (seesaw/config! e :icon (lock-button-icon-internal show signature)))])
         panel          (mig/mig-panel
                         :constraints (track-panel-constraints (.getWidth ^JFrame (:frame show)))
                         :items [[(create-track-art show signature) "spany 4"]
@@ -1571,10 +1590,11 @@
 
                                 [comment-field "wrap"]
 
-                                [(seesaw/label :text "Players:") "split 4, gap unrelated"]
+                                [(seesaw/label :text "Players:") "split 5, gap unrelated"]
                                 [(seesaw/label :id :players :text "--")]
                                 [(seesaw/label :text "Playing:") "gap unrelated"]
-                                [(seesaw/label :id :playing :text "--") "wrap unrelated, gapafter push"]
+                                [(seesaw/label :id :playing :text "--") "gapafter push"]
+                                [lock "hidemode 1, wrap unrelated"]
 
                                 [gear "spanx, split"]
 
@@ -1675,7 +1695,7 @@
                :preview-canvas    soft-preview
                :expression-locals (atom {})
                :creating          true ; Suppress popup expression editors when reopening a show.
-               :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
+               :entered           {}} ; Map from player number to set of UUIDs of cues that have been entered.
 
         popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the track.
                    (if (.isShiftDown e)
@@ -1687,10 +1707,14 @@
                               (seesaw/separator)]
                              (track-copy-actions track)
                              [(seesaw/separator) (delete-track-action show track panel)])))
+
         drag-origin (atom nil)]
 
     (swap-show! show assoc-in [:tracks signature] track)
     (swap-show! show assoc-in [:panels panel] signature)
+
+    ;; Now that the track is in the show, set the initial state of the phrase lock button icon.
+    (seesaw/config! lock :icon (lock-button-icon-internal show signature))
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.

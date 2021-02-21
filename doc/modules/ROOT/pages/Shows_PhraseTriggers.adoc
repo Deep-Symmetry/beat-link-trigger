@@ -39,19 +39,31 @@ triggers to be visible in the window.
 [[exclusivity]]
 == Exclusivity
 
-* Tracks get a new button (probably a small icon left of the Playing
-  and right of the waveform preview, at the level of the phrase
-  strip), which appears only when the track has phrase analysis, and
-  there is at least one phrase trigger. This allows the track to
-  prevent phrase triggers from running when it plays (probably a
-  locked icon, and the default), or allow them (unlocked? musical
-  notes?)
+Before even looking at the list of phrase triggers, any tracks that
+are part of the show get to decide whether to allow phrase triggers to
+run while they are playing. By default, tracks prevent this: in
+general if a track has been added to the show, its custom cues will be
+more appropriate than randomly-chosen phrase triggers.
 
-* If the track playing is not in the show, the phrase triggers are
-  always allowed to run. If the track is part of the show, it gets to
-  decide whether they run or not, since it may well have its own cues
-  which are more tailored to the track than random phrase triggers
-  would be.
+Any track in the show for which phrase information is available will
+have a small lock button just to the left of the phrase color bars in
+the waveform preview. When it is locked (and red), that means that
+phrase triggers are locked out for the track:
+
+image:TrackPhraseLocked.png[Track with phrase triggers locked out,565,155]
+
+Clicking the button toggles the phrase trigger lock, allowing phrase
+triggers to run while it plays:
+
+image:TrackPhraseUnlocked.png[Track with phrase triggers allowed,565,155]
+
+So, when a new phrase starts playing in a track, and it is time to
+decide which phrase triggers to run:
+
+* If the track playing is not present in the show, the phrase triggers
+  are always allowed to run. If the track is part of the show, it gets
+  to decide whether any phrase triggers run or not, as described
+  above.
 
 * Phrase triggers themselves have different levels of exclusivity. The
   default is "Solo in show", but can also be "Solo across all shows",
