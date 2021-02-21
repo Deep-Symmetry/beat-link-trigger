@@ -9,7 +9,7 @@
                  [org.clojure/core.async "1.3.610"]
                  [org.clojure/data.csv "1.0.0"]
                  [org.clojure/tools.cli "1.0.194"]
-                 [beat-carabiner "0.2.3"]
+                 [beat-carabiner "1.0.0-SNAPSHOT"]
                  [cheshire "5.10.0"]
                  [cider/cider-nrepl "0.25.9"]
                  [clojure-humanize "0.2.2"]
@@ -23,7 +23,7 @@
                  [com.taoensso/timbre "5.1.2"]
                  [compojure "1.6.2"]
                  [fipp "0.6.23"]
-                 [http-kit "2.5.1"]
+                 [http-kit "2.5.2"]
                  [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
                  [me.raynes/fs "1.4.6"]
                  [nrepl "0.8.3"]
@@ -38,7 +38,7 @@
                  [seesaw "1.5.0"]
                  [selmer "1.12.33"]
                  [thi.ng/color "1.4.0"]
-                 [uk.co.xfactory-librarians/coremidi4j "1.5"]]
+                 [uk.co.xfactory-librarians/coremidi4j "1.6"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
