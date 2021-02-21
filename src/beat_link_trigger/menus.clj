@@ -111,9 +111,9 @@
                                 "&body=" (url/url-encode body)))]
     (.. Desktop getDesktop (mail uri))))
 
-(def gitter-chat-url
+(def zulip-chat-url
   "Where people discuss Beat Link Trigger."
-  "https://gitter.im/brunchboy/beat-link-trigger")
+  "https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/")
 
 (def project-home-url
   "The GitHub front page for the project."
@@ -199,8 +199,8 @@
                               [(seesaw/action :handler (fn [_] (help/show-user-guide))
                                               :name "User Guide (local)")
                                logs/logs-action (seesaw/separator)
-                               (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url gitter-chat-url))
-                                              :name "Discuss on Gitter (web)")
+                               (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url zulip-chat-url))
+                                              :name "Discuss on Zulip (web)")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
                                               :name "Project Home (web)")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-wiki-url))
@@ -210,5 +210,6 @@
                                               :name (str "Report Issue (" (if (mail-supported?) "email" "web") ")"))]
                               (when (mail-supported?)
                                 [(seesaw/separator)
-                                 (seesaw/action :handler (fn [_] (send-greeting)) :name "Send User Greeting (email)")]))
+                                 (seesaw/action :handler (fn [_] (send-greeting))
+                                                :name "Greet Developer (email)")]))
                :id :help-menu))

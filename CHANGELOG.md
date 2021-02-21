@@ -52,6 +52,8 @@ This change log follows the conventions of
 - The versioning numbering scheme has been made more reasonable. This
   is now version 7.0.0 instead of 0.7.0, to reflect the fact that
   there have been many releases in active production use.
+- The links for online discussion have been updated to point to the
+  much more useful Zulip stream, rather than the old Gitter channel.
 
 ## [0.6.3] - 2020-12-28
 

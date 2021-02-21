@@ -1,6 +1,6 @@
 # beat-link-trigger
 
-[![Gitter](https://img.shields.io/gitter/room/brunchboy/beat-link-trigger.svg)](https://gitter.im/brunchboy/beat-link-trigger)
+[![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/)
  <img align="right" width="275" height="250" alt="Beat Link"
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
@@ -14,8 +14,9 @@ reach particular beats, or whatever else you can think of. Built using
 > Denon gear but I'm locked into Pioneer because of BLT despite Denon
 > being just as good if not a little better feature-wise.“
 >
-> —[Nicholas Maddix](http://maddix.it) on the project [Gitter
-> channel](https://gitter.im/brunchboy/beat-link-trigger)
+> —[Nicholas Maddix](http://maddix.it) on the project Gitter channel
+> (where we discussed the project before we moved to the [Zulip
+> stream](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/)).
 
 There is more description and a video in a [DJ TechTools
 article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
@@ -90,9 +91,10 @@ Trigger, please add a page or two the Wiki to share them with others!
 
 First of all, we would *love* to hear from you! We have no way of
 knowing who has discovered, explored, downloaded and tried Beat Link
-Trigger. So if you have, please write a quick note on the [Gitter chat
-room](https://gitter.im/brunchboy/beat-link-trigger) to let us know!
-Even if it is only to explain why it didn&rsquo;t quite work for you.
+Trigger. So if you have, please write a quick note on the [Zulip
+stream](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/)
+to let us know! Even if it is only to explain why it didn&rsquo;t
+quite work for you.
 
 If you run into specific problems or have ideas of ways Beat Link
 Trigger could be better, you can also [open an
@@ -165,10 +167,10 @@ playing, but little more.
 gear and DJ-Link hardware released after that. It has been reported to
 work well with XDJ-1000 gear, and (starting with version 0.6.0) with
 the XDJ-XZ as well. If you can try it with anything else, *please* let
-us know what you learn in the [Gitter chat
-room](https://gitter.im/brunchboy/beat-link-trigger), or if you have
-worked out actionable details about something that could be improved,
-[open an
+us know what you learn in the [Zulip
+stream](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/),
+or if you have worked out actionable details about something that
+could be improved, [open an
 Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or
 submit a pull request so we can all improve our understanding
 together.

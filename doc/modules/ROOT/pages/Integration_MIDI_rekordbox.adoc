@@ -294,4 +294,5 @@ clean it could be.
 
 If you have any questions about using this, or ideas about new
 directions to take it, please raise them on the
-https://gitter.im/brunchboy/beat-link-trigger[Gitter channel].
+https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+stream].

@@ -143,11 +143,12 @@ startup or using menu:Network[Online?], the Player Status window will
 open for you.
 
 Another example came up in the
-https://gitter.im/brunchboy/beat-link-trigger[community chat room],
-from a user who wanted to set up a turn-key lighting system that
-automatically started Beat Link Trigger and Carabiner. If you are in a
-situation like that, you can set up a Came Online Expression to
-automatically open the Carabiner window and connect to it:
+https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[community
+chat room], from a user who wanted to set up a turn-key lighting
+system that automatically started Beat Link Trigger and Carabiner. If
+you are in a situation like that, you can set up a Came Online
+Expression to automatically open the Carabiner window and connect to
+it:
 
 [source,clojure,subs=attributes+]
 ----
