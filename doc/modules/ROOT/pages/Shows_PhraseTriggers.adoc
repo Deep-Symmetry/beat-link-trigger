@@ -53,7 +53,7 @@ phrase triggers are locked out for the track:
 image:TrackPhraseLocked.png[Track with phrase triggers locked out,565,155]
 
 Clicking the button toggles the phrase trigger lock, allowing phrase
-triggers to run while it plays:
+triggers to run while the track plays:
 
 image:TrackPhraseUnlocked.png[Track with phrase triggers allowed,565,155]
 
