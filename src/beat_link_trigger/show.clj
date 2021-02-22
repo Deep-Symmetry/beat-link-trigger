@@ -2085,7 +2085,7 @@
   (concat (map (fn [player]
                  (seesaw/menu-item :action (build-import-player-action show player)
                                    :visible? (safe-check-for-player player)))
-               (map inc (range 4)))
+               (map inc (range 6)))
           [(build-import-offline-action show)]))
 
 (defn- build-close-action
@@ -2149,7 +2149,7 @@
   (let [show                           (latest-show show)
         ^javax.swing.JMenu import-menu (:import-menu show)
         player                         (.getDeviceNumber announcement)]
-    (when (and (< player 5)  ; Ignore non-players, and attempts to make players visible when we are offline.
+    (when (and (< player 7)  ; Ignore non-players, and attempts to make players visible when we are offline.
                (or (util/online?) (not visible?)))
       #_(timbre/info "Updating player" player "menu item visibility to" visible?)
       (let [^javax.swing.JMenuItem item (.getItem import-menu (dec player))]
