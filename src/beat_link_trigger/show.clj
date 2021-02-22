@@ -8,6 +8,7 @@
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.track-loader :as loader]
             [beat-link-trigger.show-cues :as cues]
+            [beat-link-trigger.show-phrases :as phrases]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track find-cue
                                                         swap-show! swap-track! swap-signature!]]
             [clojure.java.io]
@@ -2140,6 +2141,14 @@
                                                         (map (partial build-global-editor-action show)
                                                               (keys @editors/global-show-editors))
                                                         [(seesaw/separator) inspect-action]))
+                            (seesaw/menu :text "Phrases"
+                                         :id :phrases-menu
+                                         :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))
+                                                                :name "New Phrase Trigger"
+                                                                :tip "Adds a new phrase trigger row")
+                                                 (seesaw/action :handler (fn [_] (phrases/sort-phrases show))
+                                                                :name "Sort by Comments"
+                                                                :tip "Sorts all phrase trigger rows by their comment text")])
                             (menus/build-help-menu)])))
 
 (defn- update-player-item-visibility
@@ -2209,10 +2218,12 @@
                              :filesystem  filesystem
                              :contents    contents
                              :tracks      {}  ; Lots of info about each track, including loaded metadata.
+                             :phrases     {}  ; Info about each phrase trigger.
                              :panels      {}  ; Maps from panel object to track signature, for updating visibility.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
-                             :visible     []} ; The visible (through filters) track signatures in sorted order.
+                             :visible     []  ; The visible (through filters) track signatures in sorted order.
+                             :vis-phrases []} ; The visible (through filters) phrase trigger UUIDs, in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)
             tracks-scroll   (seesaw/scrollable tracks)
             enabled-default (seesaw/combobox :id :default-enabled :model ["Never" "On-Air" "Master" "Custom" "Always"]

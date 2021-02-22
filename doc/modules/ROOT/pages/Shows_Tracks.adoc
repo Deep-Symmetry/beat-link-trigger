@@ -51,7 +51,7 @@ contents of the menu itself are described
 === MIDI Output Menu
 
 The menu:MIDI Output[] Menu lets you choose the MIDI device to which
-the trigger will send messages when you configure it to send MIDI
+the Track will send messages when you configure it to send MIDI
 messages for particular events. It will show all MIDI outputs
 currently available on your system.
 

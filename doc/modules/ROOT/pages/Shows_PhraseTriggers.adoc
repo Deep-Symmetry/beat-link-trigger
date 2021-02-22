@@ -25,15 +25,17 @@ they will be structurally so different that may not even be necessary.
 
 image:ShowWithPhrases.png[Show window with phrase rows,450,400]
 
-As of now, the only item I can think of for the new Phrases menu is
+As of now, the only items I can think of for the new Phrases menu are
 "New Phrase Trigger", which will create a new phrase trigger row and
-scroll it into view. Phrase triggers will be kept in the order they
-are created, and probably don't need to show numbers like the original
-Triggers window, they can be identified by UUID instead like cues, to
-make it easier to cope with deletions.
+scroll it into view, and "Sort by Comments". Unless you sort them,
+Phrase triggers will be kept in the order they are created, and
+probably don't need to show numbers like the original Triggers window,
+which will make it easier to cope with deletions. The context menu for
+each row will also allow you to move it up (unless it is already the
+first phrase trigger) or down (unless it is the last).
 
 The Filter text field will also filter phrase triggers (by their
-comment), and the Loaded Only check box will cause only active phrase
+comments), and the Loaded Only check box will cause only active phrase
 triggers to be visible in the window.
 
 [[exclusivity]]
@@ -152,11 +154,195 @@ the phrase is reached (or the player stops, or the DJ jumps out of the
 phrase), the Stop message is sent.
 
 However, the real power of phrases for building creative shows is that
-they will provide a canvas on which you can draw cues, just like
-tracks.
+they will <<editing-cues,provide a canvas>> on which you can draw
+cues, just like tracks.
+
+> TODO: This needs fleshing out, as noted above. Here are sections
+  that are already required by cross-references from the Show
+  Internals section:
+
+Above the enabled configuration (if it is visible, because you have
+not chosen to use a Custom enabled expression), you find the controls
+that let you configure how you want the Show to respond to the phrase
+trigger.
+
+[[context-menu-button]]
+=== Context Menu Button
+
+This allows you to access the phrase trigger Context Menu with a
+regular mouse click. The gear inside the button will be filled in if
+there have been any Cues or Expressions added to the phrase trigger,
+and hollow otherwise. The contents of the menu itself are described
+<<context-menu,below>>.
+
+[[midi-output]]
+=== MIDI Output Menu
+
+The menu:MIDI Output[] Menu lets you choose the MIDI device to which
+the phrase trigger will send messages when you configure it to send MIDI
+messages for particular events. It will show all MIDI outputs
+currently available on your system.
+
+The chosen MIDI output will be used for all messages that the phrase
+trigger is configured to send, including those belonging to any Cues
+created in the phrase trigger. But each phrase trigger can have its
+own MIDI output, in case you have a large show with many cues.
+
+NOTE: As with the MIDI Output Menu in the
+<<Triggers.adoc#midi-output-menu,Triggers window>>, if a MIDI Output
+is chosen which is no longer available on the system, it will remain
+in that phrase trigger’s menu, but the Enabled section of the phrase
+trigger will be replaced with the message “Not found.” Once the output
+reappears, or a different output is chosen, the phrase trigger will
+become operational again.
+
+[[playing-status]]
+=== Playing Status
+
+To the right of the MIDI Output section there is a Playing Status
+indicator. It has an outer ring which shows whether the phrase trigger
+is currently enabled (a green circle) or disabled (a red circle with a
+slash). If any player is currently playing the phrase trigger, there
+is a filled circle inside the enabled indicator ring:
+
+[width="50%",cols=".^,^.^",options="header"]
+|===
+|State
+|Indicator
+
+|Disabled, Not Playing
+|image:Disabled.png[Disabled,52,52]
+
+|Enabled, Not Playing
+|image:Enabled.png[Enabled,52,52]
+
+|Disabled, Playing
+|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
+
+|Enabled, Playing
+|image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
+
+|===
+
+NOTE: Because of a limitation of the DJ Link protocol, if a player is
+positioned right before a beat, and the DJ uses Cue Play (holds down
+the Cue button to preview the track), Beat Link Trigger might briefly
+think the track is playing if the player sends a beat packet before
+any status packets reporting the fact that it is in cue preview mode.
+As soon as a status packet is received, the track will be recognized
+as not actually playing, and further beat packets will be ignored.
+Unfortunately, the first beat packet can cause your Playing message
+(and Cues' Started messages) to be sent prematurely, followed within a
+fraction of a second by Stopped messages.
+
+[[message]]
+=== Message Menu
+
+The menu:Message[] Menu determines what kind of MIDI message is sent
+when the phrase trigger is enabled, chosen, and a player starts
+playing the corresponding phrase, or when the last player that was
+playing the phrase stops.
+
+> TODO: Screen shot.
+
+None:: With this setting, which is the default, nothing is sent when
+the phrase starts or stops playing.footnote:none[Note that this is
+different from low-level Triggers, which always send something--you
+need to remember to pick the kind of message to be sent for any Show
+events that you want to respond to.] When `None` is chosen, there are
+no interface elements visible to configure the event. They will appear
+once you choose an event type to send, as shown in the screen shot
+above.
+
+Note:: With this setting, the Show sends a Note On message, with
+velocity 127 and the note number shown to the right of the menu, when
+some player starts playing the phrase trigger, and a Note Off message
+when the last player playing the phrase stops.
++
+The Channel on which the Started/Stopped messages are sent is
+configured just to the right of the note selector.
+
+CC:: With this setting, the Show sends a Control Change message, with
+value 127 and the controller number shown to the right of the menu,
+when the the phrase trigger starts playing, and sends a CC with value
+0 when the phrase trigger stops playing.
+
+> TODO: The below expression link needs to be replaced to link to to
+  the phrase trigger expressions section once that gets written!
+
+Custom:: When this option is chosen, you can send any kind of message
+you want when the phrase trigger starts and/or stops, by writing code
+as described in the
+<<Expressions_ShowTrack.adoc#track-playing-expression,Expressions>>
+section. This gives you the most flexibility because in addition to
+MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
+whatever you might need.
++
+If you choose `Custom` and have not yet written a Playing expression,
+the expression editor will be opened to let you do that. You can
+also open that editor using the <<context-menu,context menu>>.
+
+[[note-spinner]]
+==== Note/Controller Spinner
+
+Found immediately to the right of the menu:Message[] Menu
+(unless `None` is chosen as the Message type), this field lets you set
+the MIDI note number used for Note-based started and stopped messages,
+or the controller number used for Control Change-based started and
+stopped messages. The value is also available to your phrase trigger
+expressions if they want to use it.
+
+[[channel-spinner]]
+==== Channel Spinner
+
+As described above, this lets you specify the MIDI channel on which
+started/stopped messages are sent for this phrase trigger.
+
+[context-menu]
+=== Context Menu
+
+> TODO: This link needs to be updated to the phrase triggers
+  expressions section once that is written too.
+
+Each phrase trigger row has a context menu attached to it, which can
+be accessed by right-clicking (or control-clicking) anywhere on the
+row’s background, but you can also open the context menu with a
+regular mouse click on the button with a gear icon in it. Most of the
+menu is devoted to editing various expressions to customize the phrase
+trigger, as described in the <<Expressions_ShowTrack.adoc#,Expressions
+section>>. The gear icon next to an expression will be filled in if
+that expression has a value, and the gear in the button will be filled
+in if any expression associated with the Track has a value, or if
+there are any Cues in the phrase trigger.
+
+> TODO: Flesh out, with screen shots, etc.
+
+[[simulate]]
+=== Simulating Phrase Trigger Events
+
+The menu:Simulate[] submenu allows you to pretend that a Playing,
+Stopped, Beat or Tracked Update event has occurred, and send the
+corresponding MIDI messages and/or run the custom Expressions you have
+configured for those situations.
+
+> TODO: Add screen shot of simulate menu.
+
+[TIP]
+====
+
+This can allow you to set up MIDI mappings in other software, like
+Ableton Live, that requires actual MIDI messages in order to learn
+them, even when you are working in offline mode because you don't
+currently have access to your CDJs.
+
+====
+
+The corresponding option will be disabled if there is no MIDI message
+or Expression configured for that event.
+
 
 [[editing-cues]]
-=== Editing Cues
+== Editing Cues
 
 Just like with tracks, you can open a cues editor window for each
 phrase trigger, to see the four sections of the trigger, with the

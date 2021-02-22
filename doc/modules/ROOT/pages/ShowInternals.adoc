@@ -90,15 +90,26 @@ currently visible in the show window, in the order in which they
 appear. This can be affected by the **Filter** text field at the top
 of the window as well as the **Loaded Only** checkbox next to it.
 
+[[phrases-map]]
+`:phrases`:: A map holding information about all phrase triggers in
+the show. The keys are <<phrase-uuid,UUIDs>> randomly assigned to the
+phrase triggers when they are created, and the values are the phrase
+trigger maps described in the <<phrase-triggers,Phrase Trigger section>>.
+
+[[vis-phrases]]
+`:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the
+phrase triggers that are currently visible inthe show window, in the
+order in which they appear. This can be affected by the **Filter**
+text field at the top of the window (filtering on the phrase triggers'
+comments), as well as the **Loaded Only** checkbox next to it (showing
+only currently-active phrase triggers).
+
 [[show-contents]]
 === Show Contents
 
 The `:contents` map contains information that can be directly saved
 into the show file to represent the configuration the user has chosen.
 Some elements that might be useful include:
-
-`:comments`:: A map from track signature to the comment string, if
-any, that has been entered for that track in the Show window.
 
 `:cue-library`:: Holds the definitions of any cues that have been
 added to the show's library.
@@ -117,6 +128,10 @@ show window, if any, causing only matching tracks to be visible.
 `:loaded-only`:: Indicates whether the **Loaded Only** checkbox at the
 top of the show window has been checked, causing only tracks that are
 currently loaded in a player to be visible in the window.
+
+`:phrase-order`:: A vector of <<phrase-uuid,UUIDs>> that maintains the
+order in which the phrase triggers should appear in the window,
+regardless of their current visibility.
 
 `:window`:: The left and right coordinates of the show window on the
 screen, and its height and width, for use in restoring the window when
@@ -311,8 +326,8 @@ each new cue a visibly distinct hue.
 cues editor window, if any, causing only matching cues to be
 visible.
 
-`:visible`:: A vector of the signatures of all the cues that are
-currently visible in the cues editor window, in the order in which
+`:visible`:: A vector of the <<cue-uuid,UUIDs>> of all the cues that
+are currently visible in the cues editor window, in the order in which
 they appear. This can be affected by the **Filter** text field at the
 top of the window, as well as the **Entered Only** checkbox next
 to it.
@@ -329,10 +344,10 @@ compresses two columns into one, and so on.
 == Cues
 
 Each cue map contains everything Beat Link Trigger needs to know about
-a cue in a show track in order to be able to display and run it. Some
-of the elements are not suitable for use by expressions, but some can
-be quite useful. It is passed to all cue expressions as the value
-`cue`.
+a cue in a show track or phrase trigger in order to be able to display
+and run it. Some of the elements are not suitable for use by
+expressions, but some can be quite useful. It is passed to all cue
+expressions as the value `cue`.
 
 Here's a list of some of the more useful values present in a cue map,
 and the keywords under which each can be found.
@@ -383,5 +398,137 @@ track's beat grid at which the cue begins.
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID]
 object) that identifies this cue within the show, so it can be
 recognized in the lists of which players are positioned inside it,
-playing it, and so on, or looked up in a track's <<cues-map,`:cues`
-map>>.
+playing it, and so on, or looked up in a <<cues-map,track's>> or
+<<phrase-cues-map,phrase trigger's>> `:cues`
+map.
+
+
+[[phrase-triggers]]
+== Phrase Triggers
+
+In addition to tracks, starting with version 7, shows can also contain
+phrase triggers, which can run cues whenever a track plays a
+particular kind of phrase (as analyzed by rekordbox).
+
+Each phrase trigger map contains everything Beat Link Trigger needs to
+know about a phrase trigger in a show in order to be able to display
+it and run cues in it. Some of the elements are not suitable for use
+by expressions, but some can be quite useful. It is passed to all
+phrase trigger expressions as the value `trigger`, and all phrase
+triggers in the show can be found in the `show` map under the keyword
+`:phrases`, further indexed by their <<phrase-uuid,UUIDs>>.
+
+`:contents`:: The basic configuration information for the phrase
+trigger, described <<phrase-contents,below>>.
+
+`:cues`:: Holds working information about the current state of the
+cues in the phrase trigger, for convenient and efficient display and
+tracking of entry/exit. The information you are more likely to use is
+found inside the `:contents` map, described <<phrase-contents,below>>.
+
+`:cues-editor`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JFrame.html[`JFrame`]
+holding the cues editor window for the phrase trigger, if one has been
+opened.
+
+`:entered`:: A map from player numbers to the set of <<cue-uuid,cue
+UUIDs>> of the cues, if any, that player is currently positioned
+inside of.
+
+`:file`:: The Java
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/File.html[`File`]
+object holding the show to which the phrase trigger belongs.
+
+`:panel`:: The Swing
+https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JPanel.html[`JPanel`]
+holding user interface of the phrase trigger row.
+
+[[phrase-uuid]]
+`:uuid`:: The unique identifier (a Java
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID]
+object) that identifies this phrase trigger within the show, so it can
+be recognized in the <<vis-phrases,list of which are currently
+visible>>, and referenced in other ways.
+
+`:tripped`:: Will be `true` when the phrase trigger is currently
+enabled and was chosen in response to a phrase playing on at least one
+player (the same conditions under which there will be a green dot
+showing in the <<Shows_PhraseTriggers.adoc#playing-status,**Playing Status**
+indicator>> of the phrase trigger row).
+
+
+[[phrase-contents]]
+=== Phrase Trigger Contents
+
+The `:contents` map contains information that can be directly saved
+into the show file to represent the phrase trigger configuration the
+user has chosen. Some elements that might be useful include:
+
+`:comment`:: The comment text, if any, entered to describe the phrase
+trigger. This can be used to filter visible phrase triggers.
+
+`:cues`:: Holds information about the Cues Editor associated with the
+phrase trigger, as described <<phrase-cues-editor,below>>.
+
+> TODO: Add entries for the enabled/weight UI elements.
+
+`:expressions`:: A map holding the source text of any phrase trigger
+level expressions that have been created, indexed by the keyword
+identifying the expression type.
+
+`:channel`:: The MIDI channel on which Playing and Stopped messages
+are sent, as configured with the phrase trigger's
+<<Shows_PhraseTriggers.adoc#channel-spinner,Channel Spinner>>.
+
+`:message`:: The type of message that will be sent for Playing and
+Stopped events, as configured with the phrase trigger's
+<<Shows_PhraseTriggers.adoc#message,Message Menu>>.
+
+`:note`:: The MIDI note (or controller number) used to send Playing
+and Stopped messages, as configured with the phrase trigger's
+<<Shows_PhraseTriggers.adoc#note-spinner,Note/Controller Spinner>>.
+
+`:midi-device`:: The MIDI device to which phrase trigger messages will
+be sent, as configured with the phrase trigger's
+<<Shows_PhraseTriggers.adoc#midi-output,MIDI Output Menu>>.
+
+
+[[phrase-cues-editor]]
+=== Phrase Trigger Cues Editor Information
+
+The phrase trigger's cues editor information map contains the
+information needed to manage the Cues Editor window that can be opened
+for a phrase trigger. Its keys and values are:
+
+`:auto-scroll`:: Will be `true` when the **Auto-Scroll** checkbox at
+the top of the window is checked.
+
+[[phrase-cues-map]]
+`:cues`:: A map holding information about all cues in the phrase
+trigger. The keys are the cues' <<cue-uuid,UUIDs>>, and the
+values are the cue maps described in the <<cue,Cue section>>.
+
+`:entered-only`:: Will be `true` when the **Entered-Only** checkbox at
+the top of the window is checked.
+
+`:hue`:: A floating-point number representing the angle around the
+color wheel that was chosen for the last cue created; used to assign
+each new cue a visibly distinct hue.
+
+`:filter`:: The filter text that has been entered at the top of the
+cues editor window, if any, causing only matching cues to be
+visible.
+
+`:visible`:: A vector of the <<cue-uuid,UUIDs>> of all the cues
+that are currently visible in the cues editor window, in the order in
+which they appear. This can be affected by the **Filter** text field
+at the top of the window, as well as the **Entered Only** checkbox
+next to it.
+
+`:window`:: The left and right coordinates of the cues editor window
+on the screen, and its height and width, for use in restoring the
+window when it is opened again.
+
+`:zoom`:: An integer reporting how far out the cue canvas view has
+been zoomed. The value `1` shows the most detail available, `2`
+compresses two columns into one, and so on.
