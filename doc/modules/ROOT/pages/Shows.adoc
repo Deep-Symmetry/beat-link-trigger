@@ -83,17 +83,27 @@ Beat Link Triggers window and navigating to the show file.
 
 == Show Window Header Elements
 
-At the top of the Show window, above any Tracks that you have added to
-it, is a header that allows you to configure the default Enabled
-filter (explained <<Shows_Tracks.adoc#enabled-menu,below>>), and to
-filter which Tracks are currently visible, which is helpful when you
+At the top of the Show window, above any Tracks or Phrase Triggers
+that you have added to it, is a header that allows you to configure
+the default Enabled filter (explained
+<<Shows_Tracks.adoc#enabled-menu,below>>), and to filter which Tracks
+and Phrase Triggers are currently visible, which is helpful when you
 have added a lot of them to the Show.
 
-If you type any text in the `Filter` box, only tracks that match that
-text will be visible. Similarly, if you check the `Loaded Only`
-checkbox, only tracks that are currently loaded on a player on the
-network will be visible. This is a great way to narrow down your focus
-to watch what is going on with tracks the DJ is currently playing.
+If you type any text in the `Filter` box, only tracks and phrase
+triggers that match that text will be visible. If you want to restrict
+your view to only tracks, you can enter `track:` as the start of your
+filter text, and any phrase triggers will disappear. (You can further
+narrow the search by typing additional text, and only tracks which
+match that text will be visible). To see only phrase triggers, enter
+`phrase:` as the start of your filter text.
+
+Similarly, if you check the `Loaded Only` checkbox, only tracks that
+are currently loaded on a player on the network will be visible, and
+only phrase triggers that match a playing phrase and have been chosen
+for activation will be visible. This is a great way to narrow down
+your focus to watch what is going on with tracks the DJ is currently
+playing.
 
 TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
 is Online, because otherwise there is no way tracks could be

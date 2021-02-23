@@ -12,8 +12,8 @@
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track find-cue
                                                         swap-show! swap-track! swap-signature!]]
             [clojure.java.io]
-            [clojure.set]
-            [clojure.string]
+            [clojure.set :as set]
+            [clojure.string :as str]
             [inspector-jay.core :as inspector]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
@@ -266,7 +266,7 @@
   [show signature playing]
   (let [text         (if (empty? playing)
                        "--"
-                       (clojure.string/join ", " (sort playing))) ;; TODO: Make Master players amber?
+                       (str/join ", " (sort playing))) ;; TODO: Make Master players amber?
         playing-label (seesaw/select (get-in (latest-show show) [:tracks signature :panel]) [:#playing])]
     (seesaw/invoke-later
      (seesaw/config! playing-label :text text))))
@@ -343,7 +343,7 @@
         now-playing (util/players-signature-set (:playing show) signature)]
     (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
+        (doseq [uuid (reduce set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
           (cues/send-cue-messages track uuid :ended status)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid))
@@ -358,7 +358,7 @@
   [show signature loaded]
   (let [text         (if (empty? loaded)
                        "--"
-                       (clojure.string/join ", " (sort loaded))) ;; TODO: Make on-air players red?
+                       (str/join ", " (sort loaded))) ;; TODO: Make on-air players red?
         loaded-label (seesaw/select (get-in (latest-show show) [:tracks signature :panel]) [:#players])]
     (seesaw/invoke-later
      (seesaw/config! loaded-label :text text))))
@@ -391,7 +391,7 @@
         now-loaded (util/players-signature-set (:loaded show) signature)]
     (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
-        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
+        (doseq [uuid (reduce set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
           (cues/send-cue-messages track uuid :exited nil)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid))
@@ -447,7 +447,7 @@
       (when (:tripped track)
         (send-loaded-messages track)
         ;; Report entry to all cues we've been sitting on.
-        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
+        (doseq [uuid (reduce set/union (vals (:entered track)))]
           (cues/send-cue-messages track uuid :entered nil)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid))
@@ -469,7 +469,7 @@
       (when (:tripped track)
         (send-playing-messages track status)
         ;; Report late start for any cues we were sitting on.
-        (doseq [uuid (reduce clojure.set/union (vals (:entered track)))]
+        (doseq [uuid (reduce set/union (vals (:entered track)))]
           (cues/send-cue-messages track uuid :started-late status)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid)))
@@ -526,11 +526,11 @@
   any cue that was entered was entered right on the beat."
   [show track ^CdjStatus status ^Beat beat ^TrackPositionUpdate position]
   (let [old-track   (get-in show [:last :tracks (:signature track)])
-        entered     (reduce clojure.set/union (vals (:entered track)))
-        old-entered (reduce clojure.set/union (vals (:entered old-track)))]
+        entered     (reduce set/union (vals (:entered track)))
+        old-entered (reduce set/union (vals (:entered old-track)))]
 
     ;; Even cues we have not entered/exited may have changed playing state.
-    (doseq [uuid (clojure.set/intersection entered old-entered)]
+    (doseq [uuid (set/intersection entered old-entered)]
       (when-let [cue (find-cue track uuid)]  ; Make sure it wasn't deleted.
         (let [is-playing  (seq (cues/players-playing-cue track cue))
               was-playing (seq (cues/players-playing-cue old-track cue))
@@ -545,7 +545,7 @@
             (cues/repaint-cue-states track cue)))))
 
     ;; Report cues we have newly entered, which we might also be newly playing.
-    (doseq [uuid (clojure.set/difference entered old-entered)]
+    (doseq [uuid (set/difference entered old-entered)]
       (when-let [cue (find-cue track uuid)]
         (cues/send-cue-messages track cue :entered (or status beat))
         (when (seq (cues/players-playing-cue track cue))
@@ -560,7 +560,7 @@
         (cues/repaint-cue-states track cue)))
 
     ;; Report cues we have newly exited, which we might also have previously been playing.
-    (doseq [uuid (clojure.set/difference old-entered entered)]
+    (doseq [uuid (set/difference old-entered entered)]
       (when-let [cue (find-cue track uuid)]
         (when (seq (cues/players-playing-cue old-track cue))
           #_(timbre/info "detected end..." (:uuid cue))
@@ -571,7 +571,7 @@
 
     ;; If we received a beat, run the basic beat expression for cues that we were already inside.
     (when beat
-      (doseq [uuid (clojure.set/intersection old-entered entered)]
+      (doseq [uuid (set/intersection old-entered entered)]
         (when-let [cue (find-cue track uuid)]
           (cues/run-cue-function track cue :beat [beat position] false))))
 
@@ -636,13 +636,13 @@
           (now-playing show player track status false))))
 
     (when track
-      (let [entered     (reduce clojure.set/union (vals (:entered track)))
-            old-entered (reduce clojure.set/union (vals (:entered old-track)))]
+      (let [entered     (reduce set/union (vals (:entered track)))
+            old-entered (reduce set/union (vals (:entered old-track)))]
         (when (:tripped track)
 
           ;; Report cues we have newly entered, which we might also be newly playing.
           (when (:tripped old-track)  ; Otherwise we already reported them above because the track just activated.
-            (doseq [uuid (clojure.set/difference entered old-entered)]
+            (doseq [uuid (set/difference entered old-entered)]
               (when-let [cue (find-cue track uuid)]
                 (cues/send-cue-messages track cue :entered status)
                 (when (seq (cues/players-playing-cue track cue))
@@ -652,7 +652,7 @@
 
           ;; Report cues we have newly exited, which we might also have previously been playing.
           (when (:tripped old-track)  ; Otherwise we never reported entering/playing them, so nothing to do now.
-            (doseq [uuid (clojure.set/difference old-entered entered)]
+            (doseq [uuid (set/difference old-entered entered)]
               (when-let [cue (find-cue track uuid)]
                 (when (seq (cues/players-playing-cue old-track cue))
                   (cues/send-cue-messages track cue :ended status))
@@ -1011,7 +1011,7 @@
                                              track  (when track (get-in show [:tracks (:signature track)]))]
                                          (when (and (= "Custom" choice)
                                                     (not (if track (:creating track) (:creating show)))
-                                                    (clojure.string/blank?
+                                                    (str/blank?
                                                      (get-in (or track show) [:contents :expressions (keyword kind)])))
                                            (editors/show-show-editor (keyword kind) show track panel
                                                                      (if gear
@@ -1044,7 +1044,7 @@
   [metadata comment]
   (let [comment          (or comment (:comment metadata))
         metadata-strings (vals (select-keys metadata [:album :artist :genre :label :original-artist :remixer :title]))]
-    (clojure.string/lower-case (clojure.string/join "\0" (filter identity (concat metadata-strings [comment]))))))
+    (str/lower-case (str/join "\0" (filter identity (concat metadata-strings [comment]))))))
 
 (defn- soft-object-loader
   "Returns a function that can be called to obtain an object. If the
@@ -1152,7 +1152,7 @@
 
 (defn- format-artist-album
   [metadata]
-  (clojure.string/join ": " (filter identity (map util/remove-blanks [(:artist metadata) (:album metadata)]))))
+  (str/join ": " (filter identity (map util/remove-blanks [(:artist metadata) (:album metadata)]))))
 
 (defn- track-panel-constraints
   "Calculates the proper layout constraints for a track panel to look
@@ -1301,7 +1301,7 @@
   "Checks whether the expression body of the specified kind is empty for
   the specified cue."
   [track kind]
-  (clojure.string/blank? (get-in (latest-track track) [:contents :expressions kind])))
+  (str/blank? (get-in (latest-track track) [:contents :expressions kind])))
 
 (defn- track-editor-actions
   "Creates the popup menu actions corresponding to the available
@@ -1523,7 +1523,7 @@
   "Creates a panel that represents a track in the show. Updates tracking
   indices appropriately."
   [show ^Path track-root]
-  (let [signature      (first (clojure.string/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
+  (let [signature      (first (str/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
         metadata       (su/read-edn-path (.resolve track-root "metadata.edn"))
         contents-path  (.resolve track-root "contents.edn")
         contents       (when (Files/isReadable contents-path) (su/read-edn-path contents-path))
@@ -1770,7 +1770,7 @@
     (if (seq missing-elements)
       (seesaw/alert (:frame show)
                     (str "<html>Unable to import track, missing required elements:<br>"
-                         (clojure.string/join ", " (map name missing-elements)))
+                         (str/join ", " (map name missing-elements)))
                     :title "Track Import Failed" :type :error)
       (let [{:keys [filesystem]}                 show
             {:keys [signature metadata cue-list
@@ -1833,7 +1833,7 @@
   (let [volume    (.. database sourceFile getParentFile getParentFile getParentFile)
         raw-path  (Database/getText (.analyzePath track-row))
         subs-path (if ext?
-                    (clojure.string/replace raw-path #"DAT$" "EXT")
+                    (str/replace raw-path #"DAT$" "EXT")
                     raw-path)]
     (.. volume toPath (resolve (subs subs-path 1)) toFile)))
 
@@ -2085,7 +2085,7 @@
                                                               (update-tracks-global-expression-icons show))))
                  :name (str "Edit " (get-in @editors/global-show-editors [kind :title]))
                  :tip (get-in @editors/global-show-editors [kind :tip])
-                 :icon (seesaw/icon (if (clojure.string/blank? (get-in show [:contents :expressions kind]))
+                 :icon (seesaw/icon (if (str/blank? (get-in show [:contents :expressions kind]))
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))
 
@@ -2157,7 +2157,7 @@
   "Update the show UI so that only tracks matching the specified filter
   text, if any, are visible."
   [show text]
-  (swap-show! show assoc-in [:contents :filter] (clojure.string/lower-case text))
+  (swap-show! show assoc-in [:contents :filter] (str/lower-case text))
   (su/update-row-visibility show))
 
 (defn- resize-track-panels

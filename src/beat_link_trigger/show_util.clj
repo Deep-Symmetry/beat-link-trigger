@@ -542,30 +542,35 @@
   signature. Then uses that to update the contents of the `tracks`
   panel appropriately."
   [show]
-  (let [show           (latest-show show)
-        tracks         (seesaw/select (:frame show) [:#tracks])
-        text           (get-in show [:contents :filter])
-        loaded-only?   (get-in show [:contents :loaded-only])
-        visible-tracks (filter (fn [track]
-                                 (and
-                                  (or (str/blank? text) (str/includes? (:filter track) text))
-                                  (or (not loaded-only?) (not (util/online?))
-                                      ((set (vals (.getSignatures util/signature-finder))) (:signature track)))))
-                               (vals (:tracks show)))
-        sorted-tracks  (sort-by (juxt #(str/lower-case (or (get-in % [:metadata :title]) ""))
-                                      #(str/lower-case (or (get-in % [:metadata :artist]) ""))
-                                      :signature)
-                                visible-tracks)
+  (let [show            (latest-show show)
+        tracks          (seesaw/select (:frame show) [:#tracks])
+        text            (get-in show [:contents :filter] "")
+        tracks-only?    (str/starts-with? text "track:")
+        phrases-only?   (str/starts-with? text "phrase:")
+        text            (str/replace text #"^(track:\s*)|(phrase:\s*)" "")
+        loaded-only?    (get-in show [:contents :loaded-only])
+        visible-tracks  (filter (fn [track]
+                                  (and
+                                   (not phrases-only?)
+                                   (or (str/blank? text) (str/includes? (:filter track) text))
+                                   (or (not loaded-only?) (not (util/online?))
+                                       ((set (vals (.getSignatures util/signature-finder))) (:signature track)))))
+                                (vals (:tracks show)))
+        sorted-tracks   (sort-by (juxt #(str/lower-case (or (get-in % [:metadata :title]) ""))
+                                       #(str/lower-case (or (get-in % [:metadata :artist]) ""))
+                                       :signature)
+                                 visible-tracks)
         visible-phrases (filter identity
                                 (for [uuid (get-in show [:contents :phrase-order])]
-                                  (let [phrase (get-in show [:contents :phrases uuid])]
+                                  (let [target (get-in show [:phrases uuid :filter] "")]
                                     (when (and
+                                           (not tracks-only?)
                                            (or (str/blank? text)
-                                               (str/includes? (:comment phrase "") text))
+                                               (str/includes? target text))
                                            (or (not loaded-only?) (not (util/online?))
                                                true ;; TODO: Add test for activation of the phrase trigger here.
                                                ))
-                                      phrase))))]
+                                      (get-in show [:contents :phrases uuid])))))]
     (swap-show! show assoc :visible (mapv :signature sorted-tracks)
                 :vis-phrases (mapv :uuid visible-phrases))
     (doall (map (fn [row color]

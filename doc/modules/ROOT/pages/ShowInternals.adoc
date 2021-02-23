@@ -91,10 +91,12 @@ appear. This can be affected by the **Filter** text field at the top
 of the window as well as the **Loaded Only** checkbox next to it.
 
 [[phrases-map]]
-`:phrases`:: A map holding information about all phrase triggers in
-the show. The keys are <<phrase-uuid,UUIDs>> randomly assigned to the
-phrase triggers when they are created, and the values are the phrase
-trigger maps described in the <<phrase-triggers,Phrase Trigger section>>.
+`:phrases`:: A map holding runtime (not saved) information about all
+phrase triggers in the show, such as the user interface panels which
+display them. The keys are <<phrase-uuid,UUIDs>> randomly assigned to
+the phrase triggers when they are created. The values that are more
+likely to be useful to you are in the corresponding map in the
+<<show-contents,show contents>>, described below. section>>.
 
 [[vis-phrases]]
 `:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the
@@ -132,6 +134,13 @@ currently loaded in a player to be visible in the window.
 `:phrase-order`:: A vector of <<phrase-uuid,UUIDs>> that maintains the
 order in which the phrase triggers should appear in the window,
 regardless of their current visibility.
+
+[[phrases-contents-map]]
+`:phrases`:: A map holding persistent (saved) information about all
+phrase triggers in the show. The keys are <<phrase-uuid,UUIDs>>
+randomly assigned to the phrase triggers when they are created, and
+the values are the phrase trigger maps described in the
+<<phrase-triggers,Phrase Trigger section>>.
 
 `:window`:: The left and right coordinates of the show window on the
 screen, and its height and width, for use in restoring the window when

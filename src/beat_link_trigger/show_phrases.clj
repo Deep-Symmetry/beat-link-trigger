@@ -204,6 +204,13 @@
           cue             cues]
     #_(cues/compile-cue-phrae-expressions phrase section cue)))  ; TODO: Implement!
 
+(defn- build-filter-target
+  "Creates a string that can be matched against to filter a phrase
+  trigger by text substring, taking into account the custom comment
+  assigned to the phrase trigger in the show, if any."
+  [comment]
+  (str/lower-case (or comment "")))
+
 (defn- create-phrase-panel
   "Creates a panel that represents a phrase trigger in the show. Updates
   tracking indices appropriately."
@@ -212,14 +219,15 @@
         phrase         (get-in show [:contents :phrases uuid])
         update-comment (fn [c]
                          (let [comment (seesaw/text c)]
-                           (swap-phrase! show uuid assoc :comment comment)))
+                           (swap-phrase! show uuid assoc :comment comment)
+                           (swap-show! show assoc-in [:phrases uuid :filter] (str/lower-case (or comment "")))))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment phrase "") :listen [:document update-comment])
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         panel          (mig/mig-panel
                         ;; TODO: Add view of all cues at top of panel, like waveform preview.
-                        :items [[comment-field "spanx, push, wrap"]
+                        :items [[comment-field "spanx, growx, pushx, wrap"]
                                 [gear "spanx, split"]
 
                                 ["MIDI Output:" "gap unrelated"]
@@ -280,6 +288,7 @@
 
         phrase (merge phrase
                       {:uuid     uuid
+                       :filter (build-filter-target (:comment phrase))
                        :creating true}) ; Suppress popup expression editors when reopening a show.
 
         popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
