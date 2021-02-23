@@ -570,7 +570,10 @@
                 :vis-phrases (mapv :uuid visible-phrases))
     (doall (map (fn [row color]
                   (seesaw/config! (:panel row) :background color))
-                (concat sorted-tracks visible-phrases) (cycle ["#eee" "#ddd"])))
+                sorted-tracks (cycle ["#eee" "#ddd"])))
+    (doall (map (fn [row color]
+                  (seesaw/config! (get-in show [:phrases (:uuid row) :panel]) :background color))
+                visible-phrases (drop (count sorted-tracks) (cycle ["#eef" "#ddf"]))))
     (when tracks  ; If the show has a custom user panel installed, this will be nil.
       (seesaw/config! tracks :items (concat (map :panel sorted-tracks)
                                             (map (fn [{:keys [uuid]}]
