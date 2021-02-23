@@ -31,8 +31,8 @@
   the function return value and any thrown exception. If `alert?` is
   `true` the user will be alerted when there is a problem running the
   function."
-  [phrase kind status alert?]
-  (let [[show phrase] (latest-show-and-phrase phrase)]
+  [show phrase kind status alert?]
+  (let [[show phrase] (latest-show-and-phrase show phrase)]
     (when-let [expression-fn (get-in phrase [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
@@ -53,9 +53,9 @@
   tuple of the function return value and any thrown exception. If
   `alert?` is `true` the user will be alerted when there is a problem
   running the function."
-  [phrase section cue kind status-or-beat alert?]
-  (let [[show phrase] (latest-show-and-phrase phrase)
-        cue           (find-phrase-cue phrase section cue)]
+  [show phrase section cue kind status-or-beat alert?]
+  (let [[show phrase] (latest-show-and-phrase show phrase)
+        cue           (find-phrase-cue show phrase section cue)]
     (when-let [expression-fn (get-in phrase [:cues :expression-fns (:uuid cue) kind])]
       (try
         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
@@ -77,8 +77,8 @@
   "Determines whether the gear button for a cue should be hollow or
   filled in, depending on whether any expressions have been assigned
   to it."
-  [phrase section cue gear]
-  (let [cue (find-phrase-cue phrase section cue)]
+  [show phrase section cue gear]
+  (let [cue (find-phrase-cue show phrase section cue)]
     (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
                                  (seesaw/icon "images/Gear-outline.png")
                                  (seesaw/icon "images/Gear-icon.png")))))
@@ -127,8 +127,8 @@
   unsaved changes. Otherwise checks whether the user wants to save any
   unsaved changes. Returns truthy if there are none left open the user
   wants to deal with."
-  [force? phrase]
-  (let [phrase (latest-phrase phrase)]
+  [force? show phrase]
+  (let [phrase (latest-phrase show phrase)]
     (and
      (every? (partial editors/close-editor? force?) (vals (:expression-editors phrase)))
      (or (not (:cues-editor phrase)) ((get-in phrase [:cues-editor :close-fn]) force?)))))
@@ -141,17 +141,17 @@
   returning falsey. Run any appropriate custom expressions and send
   configured MIDI messages to reflect the departure of the phrase
   trigger."
-  [force? phrase]
-  (when (close-phrase-editors? force? phrase)
-    (let [[show phrase] (latest-show-and-phrase phrase)]
+  [force? show phrase]
+  (when (close-phrase-editors? show force? phrase)
+    (let [[show phrase] (latest-show-and-phrase show phrase)]
       (when (:tripped phrase)
         (doseq [[section cues] (get-in phrase [:contents :cues :cues])
                 cue             cues]
           #_(cues/cleanup-phrase-cue true phrase section cue))  ; TODO: Something like this?
         #_(when ((set (vals (:playing show))) (:signature track))
-          (send-stopped-messages track nil))  ; TODO: ANd something like this?
+          (send-stopped-messages track nil))  ; TODO: And something like this?
         )
-      (run-phrase-function phrase :shutdown nil (not force?)))
+      (run-phrase-function show `<phrase :shutdown nil (not force?)))
     true))
 
 (defn- delete-phrase-action
@@ -163,7 +163,7 @@
                                                      "any configuration, expressions, and cues created for it.")
                                                 :type :warning :title "Delete Phrase Trigger?")
                               (try
-                                (cleanup-phrase true phrase)
+                                (cleanup-phrase true show phrase)
                                 (swap-show! show expunge-deleted-phrase phrase)
                                 #_(refresh-signatures show)  ; TODO: Is there a phrase equivalent?
                                 (su/update-row-visibility show)
@@ -189,7 +189,7 @@
   (doseq [[kind expr] (editors/sort-setup-to-front (get-in phrase [:contents :expressions]))]
     (let [editor-info (get @editors/show-track-editors kind)]  ; TODO: This should be show-phrase-editors?
         (try
-          (swap-phrase! phrase assoc-in [:expression-fns kind]
+          (swap-phrase! show phrase assoc-in [:expression-fns kind]
                         ;; TODO: this needs to use enw show-phrase-editor-title!
                         (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
                                                            (editors/show-editor-title kind show phrase)))
@@ -212,7 +212,7 @@
         phrase         (get-in show [:contents :phrases uuid])
         update-comment (fn [c]
                          (let [comment (seesaw/text c)]
-                           (su/swap-phrase-by-uuid! show uuid assoc :comment comment)))
+                           (swap-phrase! show uuid assoc :comment comment)))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment phrase "") :listen [:document update-comment])
         outputs        (util/get-midi-outputs)
@@ -230,8 +230,8 @@
                                                                      [chosen])))
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(su/swap-phrase-by-uuid! show uuid assoc :midi-device
-                                                                                     (seesaw/selection %))])]
+                                                           #(swap-phrase! show uuid assoc :midi-device
+                                                                          (seesaw/selection %))])]
 
                                 ["Playing:" "gap unrelated"]
                                 [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
@@ -241,14 +241,13 @@
                                 [(seesaw/combobox :id :message :model ["None" "Note" "CC" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(su/swap-phrase-by-uuid! show uuid assoc :message
-                                                                                     (seesaw/selection %))])]
+                                                           #(swap-phrase! show uuid assoc :message
+                                                                          (seesaw/selection %))])]
                                 [(seesaw/spinner :id :note
                                                  :model (seesaw/spinner-model (or (:note phrase) 120)
                                                                               :from 1 :to 127)
                                                  :listen [:state-changed
-                                                          #(su/swap-phrase-by-uuid! show uuid assoc :note
-                                                                                    (seesaw/value %))])
+                                                          #(swap-phrase! show uuid assoc :note (seesaw/value %))])
                                  "hidemode 3"]
 
                                 [(seesaw/label :id :channel-label :text "Channel:")
@@ -257,24 +256,21 @@
                                                  :model (seesaw/spinner-model (or (:channel phrase) 1)
                                                                               :from 1 :to 16)
                                                  :listen [:state-changed
-                                                          #(su/swap-phrase-by-uuid! show uuid assoc :channel
-                                                                                    (seesaw/value %))])
+                                                          #(swap-phrase! show uuid assoc :channel (seesaw/value %))])
                                  "hidemode 3"]
 
                                 ["Solo:" "gap unrelated"]
                                 [(seesaw/combobox :id :solo :model ["Global" "Show" "Blend"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(su/swap-phrase-by-uuid! show uuid assoc :solo
-                                                                                     (seesaw/selection %))])]
+                                                           #(swap-phrase! show uuid assoc :solo (seesaw/selection %))])]
 
                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                                 [(seesaw/combobox :id :enabled
                                                   :model ["See Below" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
-                                                           #(do (su/swap-phrase-by-uuid! show uuid assoc :enabled
-                                                                                         (seesaw/value %))
+                                                           #(do (swap-phrase! show uuid assoc :enabled (seesaw/value %))
                                                                 ;; TODO: (repaint-phrase-states show uuid)
                                                                 )])
                                  "hidemode 3"]
@@ -283,8 +279,7 @@
                                 ])
 
         phrase (merge phrase
-                      {:file     (:file show)
-                       :uuid     uuid
+                      {:uuid     uuid
                        :creating true}) ; Suppress popup expression editors when reopening a show.
 
         popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
@@ -310,7 +305,7 @@
     (seesaw/listen gear :mouse-pressed (fn [e]
                                          (let [popup (seesaw/popup :items (popup-fn e))]
                                            (util/show-popup-from-button gear popup e))))
-    (su/update-phrase-gear-icon phrase gear)
+    (su/update-phrase-gear-icon show phrase gear)
 
     ;; TODO: The equivalent for the phrase preview once implemented.
     #_(seesaw/listen soft-preview
@@ -336,15 +331,15 @@
 
     ;; In case this is the inital creation of the phrase trigger, record the defaulted values of the numeric inputs.
     ;; This will have no effect if they were loaded.
-    (swap-phrase! phrase assoc :note (seesaw/value (seesaw/select panel [:#note])))
-    (swap-phrase! phrase assoc :channel (seesaw/value (seesaw/select panel [:#channel])))
+    (swap-phrase! show phrase assoc :note (seesaw/value (seesaw/select panel [:#note])))
+    (swap-phrase! show phrase assoc :channel (seesaw/value (seesaw/select panel [:#channel])))
 
     #_(cues/build-cues track)  ; TODO: Implement the phrase cues equivalent.
     (parse-phrase-expressions show phrase)
 
     ;; We are done creating the phrase trigger, so arm the menu listeners to automatically pop up expression editors
     ;; when the user requests a custom message.
-    (swap-phrase! phrase dissoc :creating)))
+    (swap-phrase! show phrase dissoc :creating)))
 
 (defn create-phrase-panels
   "Creates all the panels that represent phrase triggers in the show."

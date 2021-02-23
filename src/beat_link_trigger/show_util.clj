@@ -134,30 +134,25 @@
 (defn latest-phrase
   "Returns the current version of a phrase trigger given a potentially
   stale copy."
-  [phrase]
-  (get-in @open-shows [(:file phrase) :contents :phrases (:uuid phrase)]))
+  [show phrase]
+  (get-in (latest-show show) [:contents :phrases (:uuid phrase)]))
 
 (defn latest-show-and-phrase
   "Returns the latest version of the show to which the supplied phrase
   trigger belongs, and the latest version of the phrase trigger
   itself."
-  [phrase]
-  (let [show (get @open-shows (:file phrase))]
+  [show phrase]
+  (let [show (latest-show show)]
     [show (get-in show [:contents :phrases (:uuid phrase)])]))
 
 (defn swap-phrase!
   "Atomically updates the map of open shows by calling the specified
   function with the supplied arguments on the current contents of the
-  specified phrase, which must be a full phrase trigger map."
-  [phrase f & args]
-  (swap! open-shows #(apply update-in % [(:file phrase) :contents :phrases (:uuid phrase)] f args)))
-
-(defn swap-phrase-by-uuid!
-  "Atomically updates the map of open shows by calling the specified
-  function with the supplied arguments on the current contents of the
-  phrase with the specified UUID in the specified show."
-  [show uuid f & args]
-  (swap! open-shows #(apply update-in % [(:file show) :contents :phrases uuid] f args)))
+  specified phrase, which can either be a UUID or a full phrase
+  trigger map."
+  [show phrase-or-uuid f & args]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (swap! open-shows #(apply update-in % [(:file show) :contents :phrases uuid] f args))))
 
 (def ^{:tag "[Ljava.nio.file.OpenOption;"}
   empty-open-options
@@ -322,16 +317,16 @@
   one of `:start`, `:loop`, `:end`, or `:fill`. The value of `phrase`
   must be a full phrase trigger map, but the value of `cue` can either
   be a UUID or a full cue map."
-  [phrase section cue f & args]
+  [show phrase section cue f & args]
   (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
-    (swap-phrase! phrase #(apply update-in % [:contents :cues :cues section uuid] f args))))
+    (swap-phrase! show phrase #(apply update-in % [:contents :cues :cues section uuid] f args))))
 
 (defn find-phrase-cue
   "Accepts either a UUID or a cue, and looks up the cue in the latest
   version of the phrase trigger section of the specified `section` (one
   of `:start`, `:loop`, `:end`, or `:fill`)."
-  [phrase section uuid-or-cue]
-  (let [phrase (latest-phrase phrase)]
+  [show phrase section uuid-or-cue]
+  (let [phrase (latest-phrase show phrase)]
     (get-in phrase [:contents :cues :cues section (if (instance? UUID uuid-or-cue)
                                                     uuid-or-cue
                                                     (:uuid uuid-or-cue))])))
@@ -522,10 +517,10 @@
   "Determines whether the gear button for a phrase trigger should be
   hollow or filled in, depending on whether any cues or expressions
   have been assigned to it."
-  ([phrase]
-   (update-phrase-gear-icon phrase (seesaw/select (:panel phrase) [:#gear])))
-  ([phrase gear]
-   (let [phrase (latest-phrase phrase)]
+  ([show phrase]
+   (update-phrase-gear-icon show phrase (seesaw/select (:panel phrase) [:#gear])))
+  ([show phrase gear]
+   (let [phrase (latest-phrase show phrase)]
      (seesaw/config! gear :icon (if (and
                                      (every? empty? (vals (get-in phrase [:contents :cues :cues])))
                                      (every? clojure.string/blank? (vals (get-in phrase [:contents :expressions]))))
