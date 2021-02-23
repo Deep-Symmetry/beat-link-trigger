@@ -1037,35 +1037,6 @@
                                            (seesaw/show! [note-spinner label channel-spinner])))))
     (attach-track-custom-editor-opener show track message-menu kind gear)))
 
-(defn- update-track-visibility
-  "Determines the tracks that should be visible given the filter
-  text (if any) and state of the Only Loaded checkbox if we are
-  online. Updates the show's `:visible` key to hold a vector of the
-  visible track signatures, sorted by title then artist then
-  signature. Then uses that to update the contents of the `tracks`
-  panel appropriately."
-  [show]
-  (let [show           (latest-show show)
-        tracks         (seesaw/select (:frame show) [:#tracks])
-        text           (get-in show [:contents :filter])
-        loaded-only?   (get-in show [:contents :loaded-only])
-        visible-tracks (filter (fn [track]
-                                 (and
-                                  (or (clojure.string/blank? text) (clojure.string/includes? (:filter track) text))
-                                  (or (not loaded-only?) (not (util/online?))
-                                      ((set (vals (.getSignatures signature-finder))) (:signature track)))))
-                               (vals (:tracks show)))
-        sorted-tracks  (sort-by (juxt #(clojure.string/lower-case (or (get-in % [:metadata :title]) ""))
-                                      #(clojure.string/lower-case (or (get-in % [:metadata :artist]) ""))
-                                      :signature)
-                                visible-tracks)]
-    (swap-show! show assoc :visible (mapv :signature sorted-tracks))
-    (doall (map (fn [track color]
-                  (seesaw/config! (:panel track) :background color))
-                sorted-tracks (cycle ["#eee" "#ddd"])))
-    (when tracks  ; If the show has a custom user panel installed, this will be nil.
-      (seesaw/config! tracks :items (concat (map :panel sorted-tracks) [:fill-v])))))
-
 (defn- build-filter-target
   "Creates a string that can be matched against to filter a track by
   text substring, taking into account the custom comment assigned to
@@ -1508,7 +1479,7 @@
                                 (cleanup-track true track)
                                 (swap-show! show expunge-deleted-track track panel)
                                 (refresh-signatures show)
-                                (update-track-visibility show)
+                                (su/update-row-visibility show)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting track")
                                   (seesaw/alert (str e) :title "Problem Deleting Track" :type :error)))))
@@ -1550,7 +1521,7 @@
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
-  indexes appropriately."
+  indices appropriately."
   [show ^Path track-root]
   (let [signature      (first (clojure.string/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
         metadata       (su/read-edn-path (.resolve track-root "metadata.edn"))
@@ -1818,7 +1789,7 @@
         (when-let [track-contents (:contents track)]  ; In case this is being copied from an existing show.
           (su/write-edn-path track-contents (.resolve track-root "contents.edn")))
         (create-track-panel show track-root)
-        (update-track-visibility show)
+        (su/update-row-visibility show)
         (scroll-to-track show track)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
@@ -2180,14 +2151,14 @@
   visible."
   [show loaded-only?]
   (swap-show! show assoc-in [:contents :loaded-only] loaded-only?)
-  (update-track-visibility show))
+  (su/update-row-visibility show))
 
 (defn- filter-text-changed
   "Update the show UI so that only tracks matching the specified filter
   text, if any, are visible."
   [show text]
   (swap-show! show assoc-in [:contents :filter] (clojure.string/lower-case text))
-  (update-track-visibility show))
+  (su/update-row-visibility show))
 
 (defn- resize-track-panels
   "Called when the show window has resized, to put appropriate
@@ -2218,7 +2189,7 @@
                              :filesystem  filesystem
                              :contents    contents
                              :tracks      {}  ; Lots of info about each track, including loaded metadata.
-                             :phrases     {}  ; Info about each phrase trigger.
+                             :phrases     {}  ; Non-saved runtime state about each phrase trigger.
                              :panels      {}  ; Maps from panel object to track signature, for updating visibility.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
@@ -2254,19 +2225,19 @@
                                  (seesaw/show! loaded-only)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show true))
-                                 (update-track-visibility show)
+                                 (su/update-row-visibility show)
                                  (cues/update-cue-window-online-status show true)))
                               (stopped [this sender]
                                 (seesaw/invoke-later
                                  (seesaw/hide! loaded-only)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show false))
-                                 (update-track-visibility show)
+                                 (su/update-row-visibility show)
                                  (cues/update-cue-window-online-status show false))))
             sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
                               (signatureChanged [this sig-update]
                                 (update-player-item-signature sig-update show)
-                                (seesaw/invoke-later (update-track-visibility show))))
+                                (seesaw/invoke-later (su/update-row-visibility show))))
             ss-listener     (reify AnalysisTagListener  ; Add newly-available phrase analysis info to tracks.
                               (analysisChanged [this tag-update]
                                 (when-let [song-structure (.taggedSection tag-update)]
@@ -2346,8 +2317,10 @@
                               :title "Exception during Clojure evaluation" :type :error)))))
 
         (create-track-panels show)
-        (update-track-visibility show)
+        (phrases/create-phrase-panels show)
+        (su/update-row-visibility show)
         (refresh-signatures show)
+        ;; TODO: Phrase equivalent of refresh-signatures.
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
         (attach-track-custom-editor-opener show nil enabled-default :enabled nil)

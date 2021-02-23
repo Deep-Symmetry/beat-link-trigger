@@ -925,7 +925,7 @@
 
 (defn cue-editor-title
   "Determines the title for a cue expression editor window."
-  [kind track cue]
+  [kind track _cue]
   (let [title (get-in @show-track-cue-editors [kind :title])]
     (str title " for Cue in Track \"" (get-in track [:metadata :title]) "\"")))
 
@@ -960,6 +960,14 @@
       (update-fn)
       (catch Throwable t
         (timbre/error t "Problem running expression editor update function.")))))
+
+;; TODO: Replicate rest of above chunk for phrase cues, like phrase-cue-editor-title:
+
+(defn phrase-cue-editor-title
+  "Determines the title for a cue expression editor window."
+  [kind phrase section _cue]
+  (let [title (get-in @show-track-cue-editors [kind :title])]
+    (str title " for Cue in phrase \"" (get-in phrase [:contents :comment] "<uncommented>") "\" " (name section))))
 
 (def ^:private help-header
   "The HTML header added to style the help text."

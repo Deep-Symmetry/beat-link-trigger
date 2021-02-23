@@ -15,6 +15,7 @@
            [org.deepsymmetry.beatlink.dbserver Message]
            [java.io File]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardOpenOption]
+           [java.util UUID]
            [javax.swing JComponent JFrame]))
 
 (defonce ^{:private true
@@ -129,6 +130,34 @@
   ^Path [show signature]
   (let [show (latest-show show)]
     (build-filesystem-path (:filesystem show) "tracks" signature)))
+
+(defn latest-phrase
+  "Returns the current version of a phrase trigger given a potentially
+  stale copy."
+  [phrase]
+  (get-in @open-shows [(:file phrase) :contents :phrases (:uuid phrase)]))
+
+(defn latest-show-and-phrase
+  "Returns the latest version of the show to which the supplied phrase
+  trigger belongs, and the latest version of the phrase trigger
+  itself."
+  [phrase]
+  (let [show (get @open-shows (:file phrase))]
+    [show (get-in show [:contents :phrases (:uuid phrase)])]))
+
+(defn swap-phrase!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  specified phrase, which must be a full phrase trigger map."
+  [phrase f & args]
+  (swap! open-shows #(apply update-in % [(:file phrase) :contents :phrases (:uuid phrase)] f args)))
+
+(defn swap-phrase-by-uuid!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  phrase with the specified UUID in the specified show."
+  [show uuid f & args]
+  (swap! open-shows #(apply update-in % [(:file show) :contents :phrases uuid] f args)))
 
 (def ^{:tag "[Ljava.nio.file.OpenOption;"}
   empty-open-options
@@ -274,7 +303,7 @@
   specified cue. The value of `track` must be a full track map, but
   the value of `cue` can either be a UUID or a full cue map."
   [track cue f & args]
-  (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
+  (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
     (swap-track! track #(apply update-in % [:contents :cues :cues uuid] f args))))
 
 (defn find-cue
@@ -282,9 +311,30 @@
   version of the track."
   [track uuid-or-cue]
   (let [track (latest-track track)]
-    (get-in track [:contents :cues :cues (if (instance? java.util.UUID uuid-or-cue)
+    (get-in track [:contents :cues :cues (if (instance? UUID uuid-or-cue)
                                            uuid-or-cue
                                            (:uuid uuid-or-cue))])))
+
+(defn swap-phrase-cue!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  specified cue, within a phrase trigger section whose `section` is
+  one of `:start`, `:loop`, `:end`, or `:fill`. The value of `phrase`
+  must be a full phrase trigger map, but the value of `cue` can either
+  be a UUID or a full cue map."
+  [phrase section cue f & args]
+  (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
+    (swap-phrase! phrase #(apply update-in % [:contents :cues :cues section uuid] f args))))
+
+(defn find-phrase-cue
+  "Accepts either a UUID or a cue, and looks up the cue in the latest
+  version of the phrase trigger section of the specified `section` (one
+  of `:start`, `:loop`, `:end`, or `:fill`)."
+  [phrase section uuid-or-cue]
+  (let [phrase (latest-phrase phrase)]
+    (get-in phrase [:contents :cues :cues section (if (instance? UUID uuid-or-cue)
+                                                    uuid-or-cue
+                                                    (:uuid uuid-or-cue))])))
 
 (defn restore-window-position
   "Tries to put the window back in the position where it was saved in
@@ -312,7 +362,8 @@
 
 (defn track-inspect-action
   "Creates the menu action which allows a track's local bindings to be
-  inspected. Offered in the popups of both track rows and cue rows."
+  inspected. Offered in the popups of both track rows and their cue
+  rows."
   [track]
   (seesaw/action :handler (fn [_] (try
                                     (inspector/inspect @(:expression-locals track)
@@ -324,6 +375,24 @@
                                       (util/inspect-failed t))))
                  :name "Inspect Expression Locals"
                  :tip "Examine any values set as Track locals by its Expressions."))
+
+(defn phrase-inspect-action
+  "Creates the menu action which allows a phrase trigger's local
+  bindings to be inspected. Offered in the popups of both phrase rows
+  and their cue rows."
+  [phrase]
+  (seesaw/action :handler (fn [_]
+                            (let [comment (get-in phrase [:contents :comment])
+                                  title (if (str/blank? comment) "[uncommented]" comment)]
+                              (try
+                                (inspector/inspect @(:expression-locals phrase)
+                                                   :window-name (str "Expression Locals for " title))
+                                (catch StackOverflowError _
+                                  (util/inspect-overflowed))
+                                (catch Throwable t
+                                  (util/inspect-failed t)))))
+                 :name "Inspect Expression Locals"
+                 :tip "Examine any values set as Phrase Trigger locals by its Expressions."))
 
 (defn random-beat
   "Creates a [`Beat`
@@ -448,9 +517,68 @@
                                      (every? clojure.string/blank? (vals (get-in track [:contents :expressions]))))
                                   (seesaw/icon "images/Gear-outline.png")
                                   (seesaw/icon "images/Gear-icon.png"))))))
+
+(defn update-phrase-gear-icon
+  "Determines whether the gear button for a phrase trigger should be
+  hollow or filled in, depending on whether any cues or expressions
+  have been assigned to it."
+  ([phrase]
+   (update-phrase-gear-icon phrase (seesaw/select (:panel phrase) [:#gear])))
+  ([phrase gear]
+   (let [phrase (latest-phrase phrase)]
+     (seesaw/config! gear :icon (if (and
+                                     (every? empty? (vals (get-in phrase [:contents :cues :cues])))
+                                     (every? clojure.string/blank? (vals (get-in phrase [:contents :expressions]))))
+                                  (seesaw/icon "images/Gear-outline.png")
+                                  (seesaw/icon "images/Gear-icon.png"))))))
+
 (defn repaint-preview
   "Tells the track's preview component to repaint itself because the
   overlaid cues have been edited in the cue window."
   [track]
   (when-let [preview-canvas ^JComponent (:preview-canvas track)]
     (.repaint preview-canvas)))
+
+(defn update-row-visibility
+  "Determines the tracks and phrases that should be visible given the
+  filter text (if any) and state of the Only Loaded checkbox if we are
+  online. Updates the show's `:visible` key to hold a vector of the
+  visible track signatures, sorted by title then artist then
+  signature. Then uses that to update the contents of the `tracks`
+  panel appropriately."
+  [show]
+  (let [show           (latest-show show)
+        tracks         (seesaw/select (:frame show) [:#tracks])
+        text           (get-in show [:contents :filter])
+        loaded-only?   (get-in show [:contents :loaded-only])
+        visible-tracks (filter (fn [track]
+                                 (and
+                                  (or (str/blank? text) (str/includes? (:filter track) text))
+                                  (or (not loaded-only?) (not (util/online?))
+                                      ((set (vals (.getSignatures util/signature-finder))) (:signature track)))))
+                               (vals (:tracks show)))
+        sorted-tracks  (sort-by (juxt #(str/lower-case (or (get-in % [:metadata :title]) ""))
+                                      #(str/lower-case (or (get-in % [:metadata :artist]) ""))
+                                      :signature)
+                                visible-tracks)
+        visible-phrases (filter identity
+                                (for [uuid (get-in show [:contents :phrase-order])]
+                                  (let [phrase (get-in show [:contents :phrases uuid])]
+                                    (when (and
+                                           (or (str/blank? text)
+                                               (str/includes? (:comment phrase "") text))
+                                           (or (not loaded-only?) (not (util/online?))
+                                               true ;; TODO: Add test for activation of the phrase trigger here.
+                                               ))
+                                      phrase))))]
+    (swap-show! show assoc :visible (mapv :signature sorted-tracks)
+                :vis-phrases (mapv :uuid visible-phrases))
+    (doall (map (fn [row color]
+                  (seesaw/config! (:panel row) :background color))
+                (concat sorted-tracks visible-phrases) (cycle ["#eee" "#ddd"])))
+    (when tracks  ; If the show has a custom user panel installed, this will be nil.
+      (seesaw/config! tracks :items (concat (map :panel sorted-tracks)
+                                            (map (fn [{:keys [uuid]}]
+                                                   (get-in show [:phrases uuid :panel]))
+                                                 visible-phrases)
+                                            [:fill-v])))))

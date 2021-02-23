@@ -416,3 +416,7 @@ trigger fit the actual phrase.
 To help identify the sections in which each cue exists, its row in the
 cues editor has a stripe at the top which matches the color of the
 section.
+
+> TODO: Probably just delegate to the existing Track Cues section for
+  the discussion of how to edit individual cues, since once they are
+  on the trigger canvas, the process is essentially the same.
