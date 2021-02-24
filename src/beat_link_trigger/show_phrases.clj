@@ -288,7 +288,6 @@
 
         phrase (merge phrase
                       {:uuid     uuid
-                       :filter (build-filter-target (:comment phrase))
                        :creating true}) ; Suppress popup expression editors when reopening a show.
 
         popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
@@ -303,9 +302,10 @@
 
     (swap-show! show assoc-in [:contents :phrases uuid] phrase)  ; information about the phrase trigger that gets saved.
     (swap-show! show assoc-in [:phrases uuid]  ; Runtime (unsaved) information about the phrase trigger.
-                {:panel             panel
+                {:entered           {} ; Map from player # to sets of UUIDs of cues that have been entered.
                  :expression-locals (atom {})
-                 :entered           {}}) ; Map from player # to sets of UUIDs of cues that have been entered.
+                 :filter            (build-filter-target (:comment phrase))
+                 :panel             panel})
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -389,7 +389,7 @@
 (defn sort-phrases
   "Sorts the phrase triggers by their comments. `show` must be current."
   [show]
-  (let [show (latest-show show)]
-    ;; TODO: Perform the sort, update `:contents` `:phrase-order`, then
-    ;; do a visibility refresh to update the show rows accordingly.
-    ))
+  (let [show (latest-show show)
+        sorted (sort-by (juxt :comment :uuid) (vals (get-in show [:contents :phrases])))]
+    (swap-show! show assoc-in[:contents :phrase-order] (mapv :uuid sorted))
+    (su/update-row-visibility show)))

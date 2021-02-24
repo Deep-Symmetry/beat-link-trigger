@@ -31,8 +31,9 @@ scroll it into view, and "Sort by Comments". Unless you sort them,
 Phrase triggers will be kept in the order they are created, and
 probably don't need to show numbers like the original Triggers window,
 which will make it easier to cope with deletions. The context menu for
-each row will also allow you to move it up (unless it is already the
-first phrase trigger) or down (unless it is the last).
+each row (or a pair of buttons in the row, since it looks like there
+will be plenty of room) will also allow you to move it up (unless it
+is already the first phrase trigger) or down (unless it is the last).
 
 The Filter text field will also filter phrase triggers (by their
 comments), and the Loaded Only check box will cause only active phrase
