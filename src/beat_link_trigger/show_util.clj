@@ -375,19 +375,20 @@
   "Creates the menu action which allows a phrase trigger's local
   bindings to be inspected. Offered in the popups of both phrase rows
   and their cue rows."
-  [phrase]
-  (seesaw/action :handler (fn [_]
-                            (let [comment (get-in phrase [:contents :comment])
-                                  title (if (str/blank? comment) "[uncommented]" comment)]
-                              (try
-                                (inspector/inspect @(:expression-locals phrase)
-                                                   :window-name (str "Expression Locals for " title))
-                                (catch StackOverflowError _
-                                  (util/inspect-overflowed))
-                                (catch Throwable t
-                                  (util/inspect-failed t)))))
-                 :name "Inspect Expression Locals"
-                 :tip "Examine any values set as Phrase Trigger locals by its Expressions."))
+  [show phrase]
+  (let [[show phrase] (latest-show-and-phrase show phrase)]
+    (seesaw/action :handler (fn [_]
+                              (let [comment (:comment phrase)
+                                    title   (if (str/blank? comment) "[uncommented]" comment)]
+                                (try
+                                  (inspector/inspect @(get-in show [:phrases (:uuid phrase) :expression-locals])
+                                                     :window-name (str "Expression Locals for " title))
+                                  (catch StackOverflowError _
+                                    (util/inspect-overflowed))
+                                  (catch Throwable t
+                                    (util/inspect-failed t)))))
+                   :name "Inspect Expression Locals"
+                   :tip "Examine any values set as Phrase Trigger locals by its Expressions.")))
 
 (defn random-beat
   "Creates a [`Beat`

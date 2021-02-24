@@ -295,7 +295,7 @@
                    ;; TODO: Implement the rest of these!
                    (concat [#_(edit-cues-action phrase panel) #_(seesaw/separator)]
                            #_(phrase-editor-actions show phrase panel gear)
-                           [#_(seesaw/separator) #_(phrase-simulate-menu phrase) (su/phrase-inspect-action phrase)
+                           [#_(seesaw/separator) #_(phrase-simulate-menu phrase) (su/phrase-inspect-action show phrase)
                             (seesaw/separator)]
                            [(seesaw/separator) (delete-phrase-action show phrase panel)]))
 

@@ -6,7 +6,8 @@
             [clojure.string :as str]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
-            [seesaw.core :as seesaw])
+            [seesaw.core :as seesaw]
+            [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
            [org.deepsymmetry.beatlink.data TimeFinder SignatureFinder]
@@ -469,6 +470,7 @@
   "Tell the user their attempt to inspect something has crashed for some
   unkown reason, as described by throwable `t`."
   [t]
+  (timbre/warn t "Inspection failed")
   (seesaw/alert (str "<html>A problem occurred while trying to inspect your data.<br><br>" t)
                 :title "Inspection Failed" :type :error))
 
