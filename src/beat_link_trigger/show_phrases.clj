@@ -301,7 +301,6 @@
 
         drag-origin (atom nil)]
 
-    ;; TODO: Update show internals user guide to reflect this rearrangement!
     (swap-show! show assoc-in [:contents :phrases uuid] phrase)  ; information about the phrase trigger that gets saved.
     (swap-show! show assoc-in [:phrases uuid]  ; Runtime (unsaved) information about the phrase trigger.
                 {:panel             panel
@@ -356,17 +355,36 @@
   (doseq [uuid (get-in (latest-show show) [:contents :phrase-order])]
     (create-phrase-panel show uuid)))
 
+(defn- scroll-to-phrase
+  "Makes sure the specified phrase trigger is visible (it has just been
+  created), or give the user a warning that the current filters have
+  hidden it. If the comment field is empty, focuses on it to encourage
+  the user to add one."
+  [show phrase-or-uuid]
+  (let [show   (latest-show show)
+        uuid   (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))
+        phrase (get-in show [:contents :phrases uuid])
+        tracks (seesaw/select (:frame show) [:#tracks])]
+    (if (some #(= uuid %) (:vis-phrases show))
+      (seesaw/invoke-later
+       (let [^JPanel panel (get-in show [:phrases uuid :panel])]
+         (seesaw/scroll! tracks :to (.getBounds panel))
+         (when (str/blank? (:comment phrase))
+           (seesaw/request-focus! (seesaw/select panel [:#comment])))))
+      (seesaw/alert (:frame show)
+                    (str "The phrase trigger “" (su/display-title phrase) "” is currently hidden by your filters.\r\n"
+                          "To continue working with it, you will need to adjust the filters.")
+                     :title "Can't Scroll to Hidden Phrase Trigger" :type :info))))
+
 (defn new-phrase
   "Adds a new phrase trigger to the show."
   [show]
-  (let [show (latest-show show)]
-    (let [uuid   (UUID/randomUUID)]
-      (create-phrase-panel show uuid)
-      (swap-show! show update-in [:contents :phrase-order] (fnil conj []) uuid))
-
+  (let [show (latest-show show)
+        uuid (UUID/randomUUID)]
+    (create-phrase-panel show uuid)
+    (swap-show! show update-in [:contents :phrase-order] (fnil conj []) uuid)
     (su/update-row-visibility show)
-    ;; TODO: implement and call (scroll-to-phrase show phrase)
-    ))
+    (scroll-to-phrase show uuid)))
 
 (defn sort-phrases
   "Sorts the phrase triggers by their comments. `show` must be current."
