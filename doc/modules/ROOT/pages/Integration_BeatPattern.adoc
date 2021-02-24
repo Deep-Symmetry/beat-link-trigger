@@ -877,8 +877,9 @@ for the purpose of sending feedback, we call the followign function:
     (let [device-name (.full_name selection)]  ;; <2>
       (or (get @util/opened-outputs device-name)  ;; <3>
           (try
-            (let [new-output (midi/midi-out  ;; <4>
-                              (java.util.regex.Pattern/quote device-name))]
+            (let [new-output
+                  (midi/midi-out  ;; <4>
+                    (str "^" (java.util.regex.Pattern/quote device-name) "$"))]
               (swap! util/opened-outputs assoc device-name new-output)
               new-output)
             (catch IllegalArgumentException e  ;; <5>

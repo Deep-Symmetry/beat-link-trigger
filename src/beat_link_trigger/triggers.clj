@@ -223,7 +223,7 @@
      (let [device-name (.full_name selection)]
        (or (get @util/opened-outputs device-name)
            (try
-             (let [new-output (midi/midi-out (java.util.regex.Pattern/quote device-name))]
+             (let [new-output (midi/midi-out (str "^" (java.util.regex.Pattern/quote device-name) "$"))]
                (swap! util/opened-outputs assoc device-name new-output)
                new-output)
              (catch IllegalArgumentException e  ; The chosen output is not currently available
@@ -1130,9 +1130,9 @@
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
    (try
      (let [new-outputs (util/get-midi-outputs)
-           output-set  (set new-outputs)]
+           output-set  (set (map #(.full_name %) new-outputs))]
        ;; Remove any opened outputs that are no longer available in the MIDI environment
-       (swap! util/opened-outputs #(apply dissoc % (clojure.set/difference (set (keys %)) output-set)))
+       (swap! util/opened-outputs  #(apply dissoc % (clojure.set/difference (set (keys %)) output-set)))
 
        (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
          (let [output-menu   (seesaw/select trigger [:#outputs])

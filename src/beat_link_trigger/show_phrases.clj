@@ -14,7 +14,8 @@
             [seesaw.mig :as mig]
             [thi.ng.color.core :as color]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
+  (:import [beat_link_trigger.util MidiChoice]
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
            [java.awt Color Cursor Graphics2D Rectangle RenderingHints]
            [java.awt.event InputEvent MouseEvent]
            [java.awt.geom Rectangle2D$Double]
@@ -211,6 +212,90 @@
   [comment]
   (str/lower-case (or comment "")))
 
+(defn get-chosen-output
+  "Return the MIDI output to which messages should be sent for a given
+  phrase trigger, opening it if this is the first time we are using
+  it, or reusing it if we already opened it. Returns `nil` if the
+  output can not currently be found (it was disconnected, or present
+  in a loaded file but not on this system). to be reloaded."
+  [show phrase]
+  (when-let [^MidiChoice selection (:midi-device (latest-phrase show phrase))]
+    (let [device-name (.full_name selection)]
+      (or (get @util/opened-outputs device-name)
+          (try
+            (let [new-output (midi/midi-out (str "^" (java.util.regex.Pattern/quote device-name) "$"))]
+              (swap! util/opened-outputs assoc device-name new-output)
+              new-output)
+            (catch IllegalArgumentException e  ; The chosen output is not currently available
+              (timbre/debug e "Phrase trigger using nonexisting MIDI output" device-name))
+            (catch Exception e  ; Some other problem opening the device
+              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
+
+(defn no-output-chosen
+  "Returns truthy if the MIDI output menu for a phrase trigger is empty,
+  which will probably only happen if there are no MIDI outputs
+  available on the host system, but we still want to allow non-MIDI
+  expressions to operate."
+  [show phrase]
+  (not (:midi-device (latest-phrase show phrase))))
+
+(defn show-midi-status
+  "Set the visibility of the Enabled menu and the text and color
+  of its label based on whether the currently-selected MIDI output can
+  be found. This function must be called on the Swing Event Update
+  thread since it interacts with UI objects."
+  [show phrase]
+  (try
+    (let [[show phrase] (latest-show-and-phrase show phrase)
+          panel         (get-in show [:phrases (:uuid phrase) :panel])
+          enabled-label (seesaw/select panel [:#enabled-label])
+          enabled       (seesaw/select panel [:#enabled])
+          output        (get-chosen-output show phrase)]
+      (if (or output (no-output-chosen show phrase))
+        (do (seesaw/config! enabled-label :foreground "white")
+            (seesaw/value! enabled-label "Enabled:")
+            (seesaw/config! enabled :visible? true))
+        (do (seesaw/config! enabled-label :foreground "red")
+            (seesaw/value! enabled-label "MIDI Output not found.")
+            (seesaw/config! enabled :visible? false))))
+    (catch Exception e
+      (timbre/error e "Problem showing Phrase Trigger MIDI status."))))
+
+(defn- attach-phrase-custom-editor-opener
+  "Sets up an action handler so that when a menu is set to Custom,
+  if there is not already a custom expression of the appropriate kind
+  present, an editor for that expression is automatically opened."
+  [show phrase panel menu kind gear]
+  (seesaw/listen menu :action-performed
+                 (fn [_]
+                   (let [choice        (seesaw/selection menu)
+                         [show phrase] (latest-show-and-phrase show phrase)]
+                     (when (and (= "Custom" choice)
+                                (not (:creating phrase))
+                                (str/blank?
+                                 (get-in phrase [:expressions kind])))
+                       ;; TODO: Implement this.
+                       #_(editors/show-phrase-editor kind show phrase panel
+                                                   #(su/update-phrase-gear-icon show phrase gear)))))))
+
+(defn- attach-phrase-message-visibility-handler
+  "Sets up an action handler so that when the message menu is changed,
+  the appropriate UI elements are shown or hidden. Also arranges for
+  the proper expression editor to be opened if Custom is chosen for
+  the message type and that expression is currently empty."
+  [show phrase panel gear]
+  (let [message-menu    (seesaw/select panel [:#message])
+        note-spinner    (seesaw/select panel [:#note])
+        label           (seesaw/select panel [:#channel-label])
+        channel-spinner (seesaw/select panel [:#channel])]
+    (seesaw/listen message-menu
+                   :action-performed (fn [_]
+                                       (let [choice (seesaw/selection message-menu)]
+                                         (if (= "None" choice)
+                                           (seesaw/hide! [note-spinner label channel-spinner])
+                                           (seesaw/show! [note-spinner label channel-spinner])))))
+    (attach-phrase-custom-editor-opener show phrase panel message-menu :playing gear)))
+
 (defn- create-phrase-panel
   "Creates a panel that represents a phrase trigger in the show. Updates
   tracking indices appropriately."
@@ -327,11 +412,10 @@
     ;; Update output status when selection changes, giving a chance for the other handlers to run first
     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
     ;; Enabled Filter if "Custom" is chosen.
-    #_(seesaw/listen (seesaw/select panel [:#outputs])
-                   :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
-    #_(attach-track-message-visibility-handler show track "loaded" gear)
-    #_(attach-track-message-visibility-handler show track "playing" gear)
-    #_(attach-track-custom-editor-opener show track (seesaw/select panel [:#enabled]) :enabled gear)
+    (seesaw/listen (seesaw/select panel [:#outputs])
+                   :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status show phrase))))
+    (attach-phrase-message-visibility-handler show phrase panel gear)
+    (attach-phrase-custom-editor-opener show phrase panel (seesaw/select panel [:#enabled]) :enabled gear)
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.

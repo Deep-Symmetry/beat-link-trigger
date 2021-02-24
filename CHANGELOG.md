@@ -16,6 +16,9 @@ This change log follows the conventions of
 - Song structure (phrase analysis) is now displayed on waveforms when
   it is available, both in Player Status and in Show windows, where it
   can be helpful in deciding where to position cues.
+- A major new feature which allows cues to be mapped out for specific
+  types of phrases, regardless of the tracks in which they appear, is
+  being developed.
 - Show cues can now be linked to library cues, which means whenever
   one of the linked cues is edited, the library cue and any other cues
   that are linked to the same library cue are instantly updated to
@@ -36,6 +39,10 @@ This change log follows the conventions of
   adds support for reading song structure information (for tracks on
   which DJs have performed phrase analysis), which is the basis of the
   major new phrase-based cue feature.
+- There were problems with the way MIDI devices were being opened
+  which could result in opening a device whose name was a substring
+  match for another. Also, the MIDI device availability of a track in
+  a show was not always correctly shown.
 
 ### Removed
 

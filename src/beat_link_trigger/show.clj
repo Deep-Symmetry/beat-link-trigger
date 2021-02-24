@@ -2448,14 +2448,22 @@
   membership checking."
   [new-outputs output-set]
   (doseq [show (vals (su/get-open-shows))]
-    (doseq [[_ track] (:tracks show)]
+    (doseq [track (vals (:tracks show))]
       (let [output-menu (seesaw/select (:panel track) [:#outputs])
             old-selection (seesaw/selection output-menu)]
         (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
                                                    (when-not (output-set old-selection) [old-selection])))
         ;; Keep our original selection chosen, even if it is now missing
         (seesaw/selection! output-menu old-selection))
-      (show-midi-status track))))
+      (show-midi-status track))
+    (doseq [[uuid phrase] (:phrases show)]
+      (let [output-menu (seesaw/select (:panel phrase) [:#outputs])
+            old-selection (seesaw/selection output-menu)]
+        (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
+                                                   (when-not (output-set old-selection) [old-selection])))
+        ;; Keep our original selection chosen, even if it is now missing
+        (seesaw/selection! output-menu old-selection))
+      (phrases/show-midi-status show (get-in show [:contents :phrases uuid])))))
 
 (defn require-version
   "Can be called by shows' Global Setup expression to display an error

@@ -468,7 +468,7 @@
     (let [device-name (.full_name selection)]
       (or (get @util/opened-outputs device-name)
           (try
-            (let [new-output (midi/midi-out (java.util.regex.Pattern/quote device-name))]
+            (let [new-output (midi/midi-out (str "^" (java.util.regex.Pattern/quote device-name) "$"))]
               (swap! util/opened-outputs assoc device-name new-output)
               new-output)
             (catch IllegalArgumentException e  ; The chosen output is not currently available
