@@ -2165,9 +2165,10 @@
   constraints on the columns of the track panels."
   [panels width]
   (let [constraints (track-panel-constraints width)]
-    (doseq [^JPanel panel panels]
-      (seesaw/config! panel :constraints constraints)
-      (.revalidate panel))))
+    (doseq [[^JPanel panel signature-or-uuid] panels]
+      (when (string? signature-or-uuid)  ; It's a track panel.
+        (seesaw/config! panel :constraints constraints)
+        (.revalidate panel)))))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
@@ -2190,7 +2191,7 @@
                              :contents    contents
                              :tracks      {}  ; Lots of info about each track, including loaded metadata.
                              :phrases     {}  ; Non-saved runtime state about each phrase trigger.
-                             :panels      {}  ; Maps from panel object to track signature, for updating visibility.
+                             :panels      {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
                              :visible     []  ; The visible (through filters) track signatures in sorted order.
@@ -2333,8 +2334,12 @@
                        (fn [^java.awt.event.ComponentEvent e]
                          (util/save-window-position root window-name)
                          (when (= (.getID e) java.awt.event.ComponentEvent/COMPONENT_RESIZED)
-                           (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root)))))
-        (resize-track-panels (keys (:panels (latest-show show))) (.getWidth root))
+                           (let [rows (:panels (latest-show show))]
+                             (resize-track-panels rows (.getWidth root))
+                             (phrases/resize-phrase-panels rows (.getWidth root))))))
+        (let [rows (:panels (latest-show show))]
+          (resize-track-panels rows (.getWidth root))
+          (phrases/resize-phrase-panels rows (.getWidth root)))
         (run-global-function show :setup nil true)
         (when (util/online?) (run-global-function show :online nil true))
         (swap-show! show dissoc :creating)

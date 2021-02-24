@@ -111,13 +111,29 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
+(defn- paint-phrase-preview
+  "Draws the compact view of the phrase shown within the Show window
+  row, identifying the relative sizes of the sections, and positions
+  of cues within them."
+  [show uuid c ^Graphics2D g]
+  (let [w       (double (seesaw/width c))
+        h       (double (seesaw/height c))
+        show    (latest-show show)
+        phrase  (get-in show [:contents :phrases uuid])
+        active? false] ; TODO: TBD!
+    (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+
+    (.setPaint g Color/black)
+    (.fill g (java.awt.geom.Rectangle2D$Double. 0.0 0.0 w h))))
+
 (defn- expunge-deleted-phrase
   "Removes all the items from a show that need to be cleaned up when the
   phrase trigger has been deleted. This function is designed to be
   used in a single swap! call for simplicity and efficiency."
-  [show phrase]
+  [show phrase panel]
   (-> show
       (update :phrases dissoc (:uuid phrase))
+      (update :panels dissoc panel)
       (update-in [:contents :phrases] dissoc (:uuid phrase))
       (update-in [:contents :phrase-order] (fn [old-order] (filterv (complement #{(:uuid phrase)}) old-order)))
       #_(update :playing remove-signature (:signature track))))  ; TODO: What is the equivalent for phrases?
@@ -165,7 +181,7 @@
                                                 :type :warning :title "Delete Phrase Trigger?")
                               (try
                                 (cleanup-phrase true show phrase)
-                                (swap-show! show expunge-deleted-phrase phrase)
+                                (swap-show! show expunge-deleted-phrase phrase panel)
                                 #_(refresh-signatures show)  ; TODO: Is there a phrase equivalent?
                                 (su/update-row-visibility show)
                                 (catch Exception e
@@ -296,6 +312,15 @@
                                            (seesaw/show! [note-spinner label channel-spinner])))))
     (attach-phrase-custom-editor-opener show phrase panel message-menu :playing gear)))
 
+(defn- phrase-panel-constraints
+  "Calculates the proper layout constraints for a prhase trigger panel
+  to look right at a given window width."
+  [width]
+  (let [text-width (max 100 (int (/ (- width 142) 4)))
+        preview-width (max 890 (- width text-width 100))]
+    (timbre/info text-width preview-width)
+    ["" (str "[]unrelated[][]unrelated[][][fill, " preview-width "]")]))
+
 (defn- create-phrase-panel
   "Creates a panel that represents a phrase trigger in the show. Updates
   tracking indices appropriately."
@@ -308,11 +333,30 @@
                            (swap-show! show assoc-in [:phrases uuid :filter] (str/lower-case (or comment "")))))
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment phrase "") :listen [:document update-comment])
+        preview        (seesaw/canvas :id :preview :paint (partial paint-phrase-preview show uuid))
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         panel          (mig/mig-panel
                         ;; TODO: Add view of all cues at top of panel, like waveform preview.
-                        :items [[comment-field "spanx, growx, pushx, wrap"]
+                        :constraints (phrase-panel-constraints (.getWidth ^JFrame (:frame show)))
+                        :items [[comment-field "spanx 5, growx, pushx"]
+                                [preview "gap unrelated, spany 3, grow, push, wrap"]
+
+                                ["Section sizes (bars):" "spany 2"]
+                                ["Start:" "gap unrelated"]
+                                [(seesaw/spinner :id :start  ;; TODO: Calculate model via fn from cues.
+                                                 :model (seesaw/spinner-model 1 :from 0 :to 64))]
+                                ["Loop:" "gap unrelated"]
+                                [(seesaw/spinner :id :loop  ;; TODO: Calculate model via fn from cues.
+                                                 :model (seesaw/spinner-model 2 :from 1 :to 64)) "wrap"]
+
+                                ["End:" "gap unrelated"]
+                                [(seesaw/spinner :id :end  ;; TODO: Calculate model via fn from cues.
+                                                 :model (seesaw/spinner-model 1 :from 0 :to 64))]
+                                ["Fill:" "gap unrelated"]
+                                [(seesaw/spinner :id :fill  ;; TODO: Calculate model via fn from cues.
+                                                 :model (seesaw/spinner-model 2 :from 1 :to 64)) "wrap unrelated"]
+
                                 [gear "spanx, split"]
 
                                 ["MIDI Output:" "gap unrelated"]
@@ -391,6 +435,7 @@
                  :expression-locals (atom {})
                  :filter            (build-filter-target (:comment phrase))
                  :panel             panel})
+    (swap-show! show assoc-in [:panels panel] uuid)  ; Tracks all the rows in the show window.
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -477,3 +522,13 @@
         sorted (sort-by (juxt :comment :uuid) (vals (get-in show [:contents :phrases])))]
     (swap-show! show assoc-in[:contents :phrase-order] (mapv :uuid sorted))
     (su/update-row-visibility show)))
+
+(defn resize-phrase-panels
+  "Called when the show window has resized, to put appropriate
+  constraints on the columns of the phrase panels."
+  [panels width]
+  (let [constraints (phrase-panel-constraints width)]
+    (doseq [[^JPanel panel signature-or-uuid] panels]
+      (when (instance? UUID signature-or-uuid)  ; It's a phrase trigger panel.
+        (seesaw/config! panel :constraints constraints)
+        (.revalidate panel)))))
