@@ -318,7 +318,6 @@
   [width]
   (let [text-width (max 100 (int (/ (- width 142) 4)))
         preview-width (max 890 (- width text-width 100))]
-    (timbre/info text-width preview-width)
     ["" (str "[]unrelated[][]unrelated[][][fill, " preview-width "]")]))
 
 (defn- create-phrase-panel
@@ -489,21 +488,39 @@
   created), or give the user a warning that the current filters have
   hidden it. If the comment field is empty, focuses on it to encourage
   the user to add one."
-  [show phrase-or-uuid]
-  (let [show   (latest-show show)
-        uuid   (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))
-        phrase (get-in show [:contents :phrases uuid])
-        tracks (seesaw/select (:frame show) [:#tracks])]
-    (if (some #(= uuid %) (:vis-phrases show))
-      (seesaw/invoke-later
-       (let [^JPanel panel (get-in show [:phrases uuid :panel])]
-         (seesaw/scroll! tracks :to (.getBounds panel))
-         (when (str/blank? (:comment phrase))
-           (seesaw/request-focus! (seesaw/select panel [:#comment])))))
-      (seesaw/alert (:frame show)
-                    (str "The phrase trigger “" (su/display-title phrase) "” is currently hidden by your filters.\r\n"
+  ([show phrase-or-uuid]
+   (scroll-to-phrase show phrase-or-uuid false))
+  ([show phrase-or-uuid select-comment]
+   (let [show   (latest-show show)
+         uuid   (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))
+         phrase (get-in show [:contents :phrases uuid])
+         tracks (seesaw/select (:frame show) [:#tracks])]
+     (if (some #(= uuid %) (:vis-phrases show))
+       (seesaw/invoke-later
+        (let [^JPanel panel (get-in show [:phrases uuid :panel])]
+          (seesaw/scroll! tracks :to (.getBounds panel))
+          (when select-comment
+            (let [^JTextComponent comment-field (seesaw/select panel [:#comment])]
+              (seesaw/request-focus! comment-field)
+              (.selectAll comment-field)))))
+       (seesaw/alert (:frame show)
+                     (str "The phrase trigger “" (su/display-title phrase) "” is currently hidden by your filters.\r\n"
                           "To continue working with it, you will need to adjust the filters.")
-                     :title "Can't Scroll to Hidden Phrase Trigger" :type :info))))
+                     :title "Can't Scroll to Hidden Phrase Trigger" :type :info)))))
+
+(defn next-phrase-number
+  "Calculates the phrase number to assign a newly-created phrase as a
+  draft comment."
+  [show]
+  (let [show    (latest-show show)
+        phrases (vals (get-in show [:contents :phrases]))]
+    (->> phrases
+         (map :comment)
+         (map (fn [s]
+                (if-let [[_ n] (re-matches #"(?i)\s*phrase\s*(\d+)\s*" (or s ""))]
+                  (inc (Long/parseLong n))
+                  0)))
+         (apply max (count phrases)))))
 
 (defn new-phrase
   "Adds a new phrase trigger to the show."
@@ -512,8 +529,10 @@
         uuid (UUID/randomUUID)]
     (create-phrase-panel show uuid)
     (swap-show! show update-in [:contents :phrase-order] (fnil conj []) uuid)
-    (su/update-row-visibility show)
-    (scroll-to-phrase show uuid)))
+    (let [comment-field (seesaw/select (get-in (latest-show show) [:phrases uuid :panel]) [:#comment])]
+      (seesaw/value! comment-field (str "Phrase " (next-phrase-number show)))
+      (su/update-row-visibility show))
+    (scroll-to-phrase show uuid true)))
 
 (defn sort-phrases
   "Sorts the phrase triggers by their comments. `show` must be current."
