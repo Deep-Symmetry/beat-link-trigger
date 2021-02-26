@@ -4,6 +4,7 @@
   (:require [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
                                                         swap-show! swap-phrase! find-phrase-cue swap-phrase-cue!]]
             [beat-link-trigger.util :as util]
@@ -16,7 +17,7 @@
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
-           [java.awt Color Cursor Graphics2D Rectangle RenderingHints]
+           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
            [java.awt.event InputEvent MouseEvent]
            [java.awt.geom Rectangle2D$Double]
            [java.util UUID]
@@ -111,6 +112,48 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
+(def canvas-margin
+  "The number of pixels left black around the border of the canvases on
+  which sections and cues are drawn."
+  4)
+
+(defn total-bars
+  "Returns the sum of the bar sizes of all four sections of a phrase,
+  which must be current."
+  [{:keys [start-bars loop-bars end-bars fill-bars]
+    :or   {start-bars 0
+           loop-bars  1
+           end-bars   0
+           fill-bars  1}}]
+  (+ start-bars loop-bars end-bars fill-bars))
+
+(defn- bar-spacing
+  "Calculate how many pixels apart each bar occurs given the total
+  number of bars in the phrase and width of the component in which
+  they are being rendered."
+  [bars width]
+  (quot (- width (* 2 canvas-margin)) bars))
+
+(defn bar-x
+  "Calculate the x coordinate of a bar given the bar spacing."
+  [bar spacing] (+ canvas-margin (* bar spacing)))
+
+(def start-color
+  "The color to draw the start section of a phrase trigger."
+  (cues/hue-to-color 120.0 0.8))
+
+(def loop-color
+  "The color to draw the start section of a phrase trigger."
+  (cues/hue-to-color 240.0 0.8))
+
+(def end-color
+  "The color to draw the start section of a phrase trigger."
+  (cues/hue-to-color 0.0 0.8))
+
+(def fill-color
+  "The color to draw the start section of a phrase trigger."
+  (cues/hue-to-color 280.0 0.75))
+
 (defn- paint-phrase-preview
   "Draws the compact view of the phrase shown within the Show window
   row, identifying the relative sizes of the sections, and positions
@@ -120,11 +163,63 @@
         h       (double (seesaw/height c))
         show    (latest-show show)
         phrase  (get-in show [:contents :phrases uuid])
-        active? false] ; TODO: TBD!
+        active? false ; TODO: TBD!
+        bars    (total-bars phrase)
+        spacing (bar-spacing bars w)
+        stroke  (.getStroke g)]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
     (.setPaint g Color/black)
-    (.fill g (java.awt.geom.Rectangle2D$Double. 0.0 0.0 w h))))
+    (.fill g (java.awt.geom.Rectangle2D$Double. 0.0 0.0 w h))
+
+    ;; Paint the section stripes.
+    (let [{:keys [start-bars loop-bars end-bars fill-bars]} phrase
+          y                                                 (- h canvas-margin 2)]
+      (when (pos? start-bars)
+        (.setPaint g start-color)
+        (.fillRect g canvas-margin y (dec (* start-bars spacing)) 3))
+
+      (.setPaint g loop-color)
+      (.fillRect g (+ canvas-margin (* start-bars spacing)) y (dec (* loop-bars spacing)) 3)
+
+      (when (pos? end-bars)
+        (.setPaint g end-color)
+        (.fillRect g (+ canvas-margin (* (+ start-bars loop-bars) spacing)) y (dec (* end-bars spacing)) 3))
+
+      (.setPaint g fill-color)
+      (.fillRect g (+ canvas-margin (* (+ start-bars loop-bars end-bars) spacing)) y (* fill-bars spacing) 3)
+
+      ;; Paint the section boundaries.
+      (.setPaint g Color/white)
+      (.setStroke g (BasicStroke. 1 BasicStroke/CAP_BUTT BasicStroke/JOIN_ROUND 1.0
+                                  (float-array [3.0 3.0]) 1.0))
+      (when (pos? start-bars)
+        (let [x (bar-x start-bars spacing)]
+          (.drawLine g x canvas-margin x (- h canvas-margin))))
+      (let [x (bar-x (+ start-bars loop-bars) spacing)]
+        (.drawLine g x canvas-margin x (- h canvas-margin)))
+      (when (pos? end-bars)
+        (let [x (bar-x (+ start-bars loop-bars end-bars) spacing)]
+          (.drawLine g x canvas-margin x (- h canvas-margin)))))
+    (.setStroke g stroke)
+
+    (when (>= spacing 4)  ; There's enough room to draw bar lines.
+      (.setPaint g Color/red)
+      (doseq [bar (range (inc bars))]
+        (let [x (bar-x bar spacing)]
+          (.drawLine g x canvas-margin x (+ canvas-margin 4))
+          (.drawLine g x (- h canvas-margin 8) x (- h canvas-margin 4)))))
+
+    (let [beat-spacing (quot spacing 4)]
+      (when (>= beat-spacing 4)  ; There is enough room to draw beat lines.
+        (.setPaint g Color/white)
+        (doseq [bar (range bars)]
+          (doseq [beat (range 1 4)]
+            (let [x (+ (bar-x bar spacing) (* beat beat-spacing))]
+              (.drawLine g x canvas-margin x (+ canvas-margin 4))
+              (.drawLine g x (- h canvas-margin 9) x (- h canvas-margin 5)))))))
+
+    ))
 
 (defn- expunge-deleted-phrase
   "Removes all the items from a show that need to be cleaned up when the
