@@ -344,17 +344,33 @@
                                 ["Section sizes (bars):" "spany 2"]
                                 ["Start:" "gap unrelated"]
                                 [(seesaw/spinner :id :start  ;; TODO: Calculate model via fn from cues.
-                                                 :model (seesaw/spinner-model 1 :from 0 :to 64))]
+                                                 :model (seesaw/spinner-model (or (:start-bars phrase) 1)
+                                                                              :from 0 :to 64)
+                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :start-bars
+                                                                                            (seesaw/value %))
+                                                                              (.repaint preview))])]
                                 ["Loop:" "gap unrelated"]
                                 [(seesaw/spinner :id :loop  ;; TODO: Calculate model via fn from cues.
-                                                 :model (seesaw/spinner-model 2 :from 1 :to 64)) "wrap"]
+                                                 :model (seesaw/spinner-model (or (:loop-bars phrase) 2)
+                                                                              :from 1 :to 64)
+                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :loop-bars
+                                                                                            (seesaw/value %))
+                                                                              (.repaint preview))])
+                                 "wrap"]
 
                                 ["End:" "gap unrelated"]
                                 [(seesaw/spinner :id :end  ;; TODO: Calculate model via fn from cues.
-                                                 :model (seesaw/spinner-model 1 :from 0 :to 64))]
+                                                 :model (seesaw/spinner-model 1 :from 0 :to 64)
+                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :end-bars
+                                                                                            (seesaw/value %))
+                                                                              (.repaint preview))])]
                                 ["Fill:" "gap unrelated"]
                                 [(seesaw/spinner :id :fill  ;; TODO: Calculate model via fn from cues.
-                                                 :model (seesaw/spinner-model 2 :from 1 :to 64)) "wrap unrelated"]
+                                                 :model (seesaw/spinner-model 2 :from 1 :to 64)
+                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :fill-bars
+                                                                                            (seesaw/value %))
+                                                                              (.repaint preview))])
+                                 "wrap unrelated"]
 
                                 [gear "spanx, split"]
 
@@ -467,6 +483,10 @@
 
     ;; In case this is the inital creation of the phrase trigger, record the defaulted values of the numeric inputs.
     ;; This will have no effect if they were loaded.
+    (swap-phrase! show phrase assoc :start-bars (seesaw/value (seesaw/select panel [:#start])))
+    (swap-phrase! show phrase assoc :loop-bars (seesaw/value (seesaw/select panel [:#loop])))
+    (swap-phrase! show phrase assoc :end-bars (seesaw/value (seesaw/select panel [:#end])))
+    (swap-phrase! show phrase assoc :fill-bars (seesaw/value (seesaw/select panel [:#fill])))
     (swap-phrase! show phrase assoc :note (seesaw/value (seesaw/select panel [:#note])))
     (swap-phrase! show phrase assoc :channel (seesaw/value (seesaw/select panel [:#channel])))
 
