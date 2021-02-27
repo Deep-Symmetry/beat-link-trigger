@@ -329,23 +329,6 @@
   [track cue]
   (seq (players-playing-cue track cue)))
 
-(defn hue-to-color
-  "Returns a `Color` object of the given `hue` (in degrees, ranging from
-  0.0 to 360.0). If `lightness` is not specified, 0.5 is used, giving
-  the purest, most intense version of the hue. The color is fully
-  opaque."
-  ([hue]
-   (hue-to-color hue 0.5))
-  ([hue lightness]
-   (let [color (color/hsla (/ hue 360.0) 1.0 lightness)]
-     (Color. @(color/as-int24 color)))))
-
-(defn color-to-hue
-  "Extracts the hue number (in degrees) from a Color object. If
-  colorless, red is the default."
-  [^Color color]
-  (* 360.0 (color/hue (color/int32 (.getRGB color)))))
-
 (def cue-opacity
   "The degree to which cues replace the underlying waveform colors when
   overlaid on top of them."
@@ -583,7 +566,7 @@
         cue-intervals  (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
-      (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
+      (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-preview-rectangle track cue preview)))
     (when-let [editor (:cues-editor track)]
       (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
@@ -620,7 +603,7 @@
         cue-intervals       (get-in track [:cues :intervals])]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
-      (.setPaint g2 (hue-to-color (:hue cue) (cue-lightness track cue)))
+      (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness track cue)))
       (.fill g2 (cue-rectangle track cue wave)))
     (when-let [[start end] (get-current-selection track)]
       (let [x (.getXForBeat wave start)
@@ -952,7 +935,7 @@
         swatch (seesaw/canvas :size [18 :by 18]
                               :paint (fn [^JComponent component ^Graphics2D graphics]
                                        (let [cue (find-cue track cue)]
-                                         (.setPaint graphics (hue-to-color (:hue cue)))
+                                         (.setPaint graphics (su/hue-to-color (:hue cue)))
                                          (.fill graphics (java.awt.geom.Rectangle2D$Double.
                                                           0.0 0.0 (double (.getWidth component))
                                                           (double (.getHeight component)))))))
@@ -1026,9 +1009,9 @@
     (seesaw/listen swatch
                    :mouse-pressed (fn [_]
                                     (let [cue (find-cue track cue)]
-                                      (when-let [color (chooser/choose-color panel :color (hue-to-color (:hue cue))
+                                      (when-let [color (chooser/choose-color panel :color (su/hue-to-color (:hue cue))
                                                                              :title "Choose Cue Hue")]
-                                        (swap-cue! track cue assoc :hue (color-to-hue color))
+                                        (swap-cue! track cue assoc :hue (su/color-to-hue color))
                                         (seesaw/repaint! [swatch])
                                         (repaint-cue track cue)))))
 

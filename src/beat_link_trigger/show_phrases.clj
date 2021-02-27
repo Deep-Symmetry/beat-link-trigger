@@ -13,7 +13,6 @@
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [thi.ng.color.core :as color]
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
@@ -138,69 +137,90 @@
   "Calculate the x coordinate of a bar given the bar spacing."
   [bar spacing] (+ canvas-margin (* bar spacing)))
 
-(def start-color
-  "The color to draw the start section of a phrase trigger."
-  (cues/hue-to-color 120.0 0.8))
+(defn update-section-boundaries
+  "Recalculates the cached information that makes it easier to know
+  where each section starts and ends, for the purposes of painting and
+  interpreting mouse clicks. Sets the key `:sections` in the runtime
+  (unsaved) phrase information to a map with the following content:
 
-(def loop-color
-  "The color to draw the start section of a phrase trigger."
-  (cues/hue-to-color 240.0 0.8))
+  `:start`, `:loop`, `:end`, and `:fill` are tuples of the starting
+  bar (inclusive) and ending bar (exclusive) of each section. `:start`
+  and `:end` will be missing if those sections have zero length.
 
-(def end-color
-  "The color to draw the start section of a phrase trigger."
-  (cues/hue-to-color 0.0 0.8))
+  `:total-bars` is the sum of the sizes of all sections in the phrase.
 
-(def fill-color
-  "The color to draw the start section of a phrase trigger."
-  (cues/hue-to-color 280.0 0.75))
+  `:intervals` is an interval map which can be queried using `su/iget`
+  to determine which section, if any, falls at the specified bar."
+  [show phrase-or-uuid]
+  (let [uuid                         (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))
+        show                         (latest-show show)
+        phrase                       (get-in show [:contents :phrases uuid])
+        {:keys [start-bars loop-bars
+                end-bars fill-bars]} phrase
+        start                        (when (pos? start-bars) [0 start-bars])
+        loop                         (if-let [[_ start-end] start]
+                                       [start-end (+ start-end loop-bars)]
+                                       [0 loop-bars])
+        end                          (when (pos? end-bars) (let [[_ loop-end] loop] [loop-end (+ loop-end end-bars)]))
+        fill                         (if-let [[_ end-end] end]
+                                       [end-end (+ end-end fill-bars)]
+                                       (let [[_ loop-end] loop] [loop-end (+ loop-end fill-bars)]))]
+    (swap-show! show assoc-in [:phrases uuid :sections]
+                (merge {:total-bars (+ start-bars loop-bars end-bars fill-bars)
+                        :loop       loop
+                        :fill       fill
+                        :intervals  (as-> util/empty-interval-map $
+                                      (if start (apply util/iassoc $ (concat start [:start])) $)
+                                      (apply util/iassoc $ (concat loop [:loop]))
+                                      (if end (apply util/iassoc $ (concat end [:end])) $)
+                                      (apply util/iassoc $ (concat fill [:fill])))}
+                       (when start {:start start})
+                       (when end {:end end})))))
 
 (defn- paint-phrase-preview
   "Draws the compact view of the phrase shown within the Show window
   row, identifying the relative sizes of the sections, and positions
   of cues within them."
   [show uuid c ^Graphics2D g]
-  (let [w       (double (seesaw/width c))
-        h       (double (seesaw/height c))
-        show    (latest-show show)
-        phrase  (get-in show [:contents :phrases uuid])
-        active? false ; TODO: TBD!
-        bars    (total-bars phrase)
-        spacing (bar-spacing bars w)
-        stroke  (.getStroke g)]
+  (let [w        (double (seesaw/width c))
+        h        (double (seesaw/height c))
+        show     (latest-show show)
+        phrase   (get-in show [:contents :phrases uuid])
+        sections (get-in show [:phrases uuid :sections])
+        active?  false ; TODO: TBD!
+        bars     (total-bars phrase)
+        spacing  (bar-spacing bars w)
+        stroke   (.getStroke g)
+        stripe   (fn [color y [from-bar to-bar]]  ; Paint one of the section stripes.
+                   (.setPaint g color)
+                   (.fillRect g (+ canvas-margin (* from-bar spacing)) y (dec (* (- to-bar from-bar) spacing)) 3))
+        fence    (fn [[_from-bar to-bar]]  ; Paint one of the section boundary fences.
+                   (let [x (bar-x to-bar spacing)]
+                     (.drawLine g x canvas-margin x (- h canvas-margin))))]
+
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
     (.setPaint g Color/black)
     (.fill g (java.awt.geom.Rectangle2D$Double. 0.0 0.0 w h))
 
     ;; Paint the section stripes.
-    (let [{:keys [start-bars loop-bars end-bars fill-bars]} phrase
-          y                                                 (- h canvas-margin 2)]
-      (when (pos? start-bars)
-        (.setPaint g start-color)
-        (.fillRect g canvas-margin y (dec (* start-bars spacing)) 3))
-
-      (.setPaint g loop-color)
-      (.fillRect g (+ canvas-margin (* start-bars spacing)) y (dec (* loop-bars spacing)) 3)
-
-      (when (pos? end-bars)
-        (.setPaint g end-color)
-        (.fillRect g (+ canvas-margin (* (+ start-bars loop-bars) spacing)) y (dec (* end-bars spacing)) 3))
-
-      (.setPaint g fill-color)
-      (.fillRect g (+ canvas-margin (* (+ start-bars loop-bars end-bars) spacing)) y (* fill-bars spacing) 3)
+    (let [y (- h canvas-margin 2)]
+      (when-let [start (:start sections)]
+        (stripe su/phrase-start-color y start))
+      (stripe su/phrase-loop-color y (:loop sections))
+      (when-let [end (:end sections)]
+        (stripe su/phrase-end-color y end))
+      (stripe su/phrase-fill-color y (:fill sections))
 
       ;; Paint the section boundaries.
       (.setPaint g Color/white)
       (.setStroke g (BasicStroke. 1 BasicStroke/CAP_BUTT BasicStroke/JOIN_ROUND 1.0
                                   (float-array [3.0 3.0]) 1.0))
-      (when (pos? start-bars)
-        (let [x (bar-x start-bars spacing)]
-          (.drawLine g x canvas-margin x (- h canvas-margin))))
-      (let [x (bar-x (+ start-bars loop-bars) spacing)]
-        (.drawLine g x canvas-margin x (- h canvas-margin)))
-      (when (pos? end-bars)
-        (let [x (bar-x (+ start-bars loop-bars end-bars) spacing)]
-          (.drawLine g x canvas-margin x (- h canvas-margin)))))
+      (when-let [start (:start sections)]
+        (fence start))
+      (fence (:loop sections))
+      (when-let [end (:end sections)]
+        (fence end)))
     (.setStroke g stroke)
 
     (when (>= spacing 4)  ; There's enough room to draw bar lines.
@@ -219,6 +239,7 @@
               (.drawLine g x canvas-margin x (+ canvas-margin 4))
               (.drawLine g x (- h canvas-margin 9) x (- h canvas-margin 5)))))))
 
+    ;; TODO: Draw the cues and selection.
     ))
 
 (defn- expunge-deleted-phrase
@@ -443,6 +464,7 @@
                                                                               :from 0 :to 64)
                                                  :listen [:state-changed #(do (swap-phrase! show uuid assoc :start-bars
                                                                                             (seesaw/value %))
+                                                                              (update-section-boundaries show uuid)
                                                                               (.repaint preview))])]
                                 ["Loop:" "gap unrelated"]
                                 [(seesaw/spinner :id :loop  ;; TODO: Calculate model via fn from cues.
@@ -450,6 +472,7 @@
                                                                               :from 1 :to 64)
                                                  :listen [:state-changed #(do (swap-phrase! show uuid assoc :loop-bars
                                                                                             (seesaw/value %))
+                                                                              (update-section-boundaries show uuid)
                                                                               (.repaint preview))])
                                  "wrap"]
 
@@ -458,12 +481,14 @@
                                                  :model (seesaw/spinner-model 1 :from 0 :to 64)
                                                  :listen [:state-changed #(do (swap-phrase! show uuid assoc :end-bars
                                                                                             (seesaw/value %))
+                                                                              (update-section-boundaries show uuid)
                                                                               (.repaint preview))])]
                                 ["Fill:" "gap unrelated"]
                                 [(seesaw/spinner :id :fill  ;; TODO: Calculate model via fn from cues.
                                                  :model (seesaw/spinner-model 2 :from 1 :to 64)
                                                  :listen [:state-changed #(do (swap-phrase! show uuid assoc :fill-bars
                                                                                             (seesaw/value %))
+                                                                              (update-section-boundaries show uuid)
                                                                               (.repaint preview))])
                                  "wrap unrelated"]
 
@@ -582,6 +607,7 @@
     (swap-phrase! show phrase assoc :loop-bars (seesaw/value (seesaw/select panel [:#loop])))
     (swap-phrase! show phrase assoc :end-bars (seesaw/value (seesaw/select panel [:#end])))
     (swap-phrase! show phrase assoc :fill-bars (seesaw/value (seesaw/select panel [:#fill])))
+    (update-section-boundaries show uuid)  ; We now have the information needed to do this.
     (swap-phrase! show phrase assoc :note (seesaw/value (seesaw/select panel [:#note])))
     (swap-phrase! show phrase assoc :channel (seesaw/value (seesaw/select panel [:#channel])))
 

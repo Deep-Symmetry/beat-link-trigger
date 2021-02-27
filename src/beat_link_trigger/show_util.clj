@@ -8,11 +8,13 @@
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [thi.ng.color.core :as color])
   (:import [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.beatlink CdjStatus$TrackSourceSlot]
            [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference WaveformDetail WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
+           [java.awt Color]
            [java.io File]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardOpenOption]
            [java.util UUID]
@@ -592,3 +594,42 @@
                                                    (get-in show [:phrases uuid :panel]))
                                                  visible-phrases)
                                             [:fill-v])))))
+
+(defn hue-to-color
+  "Returns a `Color` object of the given `hue` (in degrees, ranging from
+  0.0 to 360.0). If `lightness` is not specified, 0.5 is used, giving
+  the purest, most intense version of the hue. The color is fully
+  opaque."
+  ([hue]
+   (hue-to-color hue 0.5))
+  ([hue lightness]
+   (let [color (color/hsla (/ hue 360.0) 1.0 lightness)]
+     (Color. @(color/as-int24 color)))))
+
+(defn color-to-hue
+  "Extracts the hue number (in degrees) from a Color object. If
+  colorless, red is the default."
+  [^Color color]
+  (* 360.0 (color/hue (color/int32 (.getRGB color)))))
+
+(defn phrase-runtime-info
+  "Given a current show and a phrase map, returns the runtime
+  cache map (non-saved information) for that phrase."
+  [show phrase]
+  (get-in show [:phrases (:uuid phrase)]))
+
+(def phrase-start-color
+  "The color to draw the start section of a phrase trigger."
+  (hue-to-color 120.0 0.8))
+
+(def phrase-loop-color
+  "The color to draw the start section of a phrase trigger."
+  (hue-to-color 240.0 0.8))
+
+(def phrase-end-color
+  "The color to draw the start section of a phrase trigger."
+  (hue-to-color 0.0 0.8))
+
+(def phrase-fill-color
+  "The color to draw the start section of a phrase trigger."
+  (hue-to-color 280.0 0.75))
