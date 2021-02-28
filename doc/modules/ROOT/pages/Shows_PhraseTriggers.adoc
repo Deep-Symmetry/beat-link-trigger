@@ -106,7 +106,8 @@ image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
 
 * The most obvious is that you can select which phrase types this
   trigger works with, <<phrase-picker,picking one or more>> of the
-  phrases in each of the three moods.
+  phrases in each of the three moods a track can be assigned during
+  phrase analysis.
 
 * You can do the same kind of filtering by <<bank-picker,deciding
   which track banks>> you want this trigger to match on.

@@ -766,12 +766,21 @@
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
                                                            (fn [e]
-                                                             (swap-phrase! show uuid assoc :enabled (seesaw/value e ))
-                                                             (seesaw/config! [types types-label banks banks-label
-                                                                              min-bars-cb min-bars max-bars-cb max-bars
-                                                                              min-bpm-cb min-bpm max-bpm-cb max-bpm
-                                                                              weight-label weight gap-label]
-                                                                             :visible? (not= "Custom" (seesaw/value e)))
+                                                             (swap-phrase! show uuid assoc :enabled (seesaw/value e))
+                                                             (let [visible? (not= "Custom" (seesaw/value e))]
+                                                               (seesaw/config! [types types-label banks banks-label
+                                                                                min-bars-cb min-bars
+                                                                                max-bars-cb max-bars
+                                                                                min-bpm-cb min-bpm max-bpm-cb max-bpm
+                                                                                weight-label weight gap-label]
+                                                                               :visible? visible?)
+                                                               (when-not visible?
+                                                                 (let [show         (latest-show show)
+                                                                       runtime-info (phrase-runtime-info show uuid)]
+                                                                   (when-let [picker (:phrase-type-picker runtime-info)]
+                                                                     (.dispose picker))
+                                                                   (when-let [picker (:track-mood-picker runtime-info)]
+                                                                     (.dispose picker)))))
                                                              ;; TODO: (repaint-phrase-states show uuid)
                                                              )])
                                  "hidemode 2, wrap unrelated"]
