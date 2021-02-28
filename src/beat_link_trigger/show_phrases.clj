@@ -428,15 +428,6 @@
                                            (seesaw/show! [note-spinner label channel-spinner])))))
     (attach-phrase-custom-editor-opener show phrase panel message-menu :playing gear)))
 
-(defn show-enabled-filters
-  "Controls whether the elements allowing manual configuration of phrase
-  matching are visible (they disappear when a custom enabled filter is
-  in use instead)."
-  [visible? panel]
-  (seesaw/config! [(seesaw/select panel [:#phrase-types])
-                   (seesaw/select panel [:#types-label])]
-                  :visible? visible?))
-
 (defn- phrase-panel-constraints
   "Calculates the proper layout constraints for a prhase trigger panel
   to look right at a given window width."
@@ -460,6 +451,51 @@
         preview        (seesaw/canvas :id :preview :paint (partial paint-phrase-preview show uuid))
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        types          (seesaw/button :id :phrase-types :text "Phrase Types")
+        types-label    (seesaw/label :id :types-label :text "[All]")
+        banks          (seesaw/button :id :banks :text "Track Banks")
+        banks-label    (seesaw/label :id :banks-label :text "[All]")
+        min-bars       (seesaw/spinner :id :min-bars :model (seesaw/spinner-model (:min-bars phrase 2) :from 2 :to 64)
+                                       :enabled? (:min-bars? phrase)
+                                       :listen [:state-changed #(swap-phrase! show uuid assoc :min-bars
+                                                                              (seesaw/value %))])
+        min-bars-cb    (seesaw/checkbox :id :min-bars-cb :text "Min bars:" :selected? (:min-bars? phrase)
+                                        :listen [:item-state-changed
+                                                 (fn [e]
+                                                   (swap-phrase! show uuid assoc :min-bars? (seesaw/value e))
+                                                   (seesaw/config! min-bars :enabled? (seesaw/value e)))])
+        max-bars       (seesaw/spinner :id :max-bars :model (seesaw/spinner-model (:max-bars phrase 24) :from 1 :to 64)
+                                       :enabled? (:max-bars? phrase)
+                                       :listen [:state-changed #(swap-phrase! show uuid assoc :max-bars
+                                                                              (seesaw/value %))])
+        max-bars-cb    (seesaw/checkbox :id :max-bars-cb :text "Max bars:" :selected? (:max-bars? phrase)
+                                        :listen [:item-state-changed
+                                                 (fn [e]
+                                                   (swap-phrase! show uuid assoc :max-bars? (seesaw/value e))
+                                                   (seesaw/config! max-bars :enabled? (seesaw/value e)))])
+        min-bpm        (seesaw/spinner :id :min-bpm :model (seesaw/spinner-model (:min-bpm phrase 60) :from 20 :to 200)
+                                       :enabled? (:min-bpm? phrase)
+                                       :listen [:state-changed #(swap-phrase! show uuid assoc :min-bpm
+                                                                              (seesaw/value %))])
+        min-bpm-cb     (seesaw/checkbox :id :min-bpm-cb :text "Min BPM:" :selected? (:min-bpm? phrase)
+                                        :listen [:item-state-changed
+                                                 (fn [e]
+                                                   (swap-phrase! show uuid assoc :min-bpm? (seesaw/value e))
+                                                   (seesaw/config! min-bpm :enabled? (seesaw/value e)))])
+        max-bpm        (seesaw/spinner :id :max-bpm :model (seesaw/spinner-model (:max-bpm phrase 160) :from 20 :to 200)
+                                       :enabled? (:max-bpm? phrase)
+                                       :listen [:state-changed #(swap-phrase! show uuid assoc :max-bpm
+                                                                              (seesaw/value %))])
+        max-bpm-cb     (seesaw/checkbox :id :max-bpm-cb :text "Max BPM:" :selected? (:max-bpm? phrase)
+                                        :listen [:item-state-changed
+                                                 (fn [e]
+                                                   (swap-phrase! show uuid assoc :max-bpm? (seesaw/value e))
+                                                   (seesaw/config! max-bpm :enabled? (seesaw/value e)))])
+        weight-label   (seesaw/label :id :weight-label :text "Weight:")
+        weight         (seesaw/spinner :id :weight :model (seesaw/spinner-model (:weight phrase 1) :from 1 :to 100)
+                                       :listen [:state-changed #(swap-phrase! show uuid assoc :weight
+                                                                              (seesaw/value %))])
+        gap-label      (seesaw/label :text "")
         panel          (mig/mig-panel
                         ;; TODO: Add view of all cues at top of panel, like waveform preview.
                         :constraints (phrase-panel-constraints (.getWidth ^JFrame (:frame show)))
@@ -469,7 +505,7 @@
                                 ["Section sizes (bars):" "spany 2"]
                                 ["Start:" "gap unrelated"]
                                 [(seesaw/spinner :id :start  ;; TODO: Calculate model via fn from cues.
-                                                 :model (seesaw/spinner-model (or (:start-bars phrase) 1)
+                                                 :model (seesaw/spinner-model (:start-bars phrase 1)
                                                                               :from 0 :to 64)
                                                  :listen [:state-changed #(do (swap-phrase! show uuid assoc :start-bars
                                                                                             (seesaw/value %))
@@ -549,18 +585,37 @@
                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                                 [(seesaw/combobox :id :enabled
                                                   :model ["See Below" "Custom"]
-                                                  :selected-item nil)  ; So update below saves default.
+                                                  :selected-item nil  ; So update below saves default.
+                                                  :listen [:item-state-changed
+                                                           (fn [e]
+                                                             (swap-phrase! show uuid assoc :enabled (seesaw/value e ))
+                                                             (seesaw/config! [types types-label banks banks-label
+                                                                              min-bars-cb min-bars max-bars-cb max-bars
+                                                                              min-bpm-cb min-bpm max-bpm-cb max-bpm
+                                                                              weight-label weight gap-label]
+                                                                             :visible? (not= "Custom" (seesaw/value e)))
+                                                             ;; TODO: (repaint-phrase-states show uuid)
+                                                             )])
                                  "hidemode 2, wrap unrelated"]
 
-                                [(seesaw/button :id :phrase-types :text "Phrase Types") "spanx, split, hidemode 3"]
-                                [(seesaw/label :id :types-label :text "[All]") "hidemode 3"]
+                                [types "split 2, hidemode 3"]
+                                [types-label "gap unrelated, hidemode 3"]
+                                [banks "spanx 4, split 2, gap unrelated, hidemode 3"]
+                                [banks-label "gap unrelated, hidemode 3"]
+                                [min-bars-cb "spanx, split, hidemode 3"]
+                                [min-bars "hidemode 3"]
+                                [max-bars-cb "gap 15, hidemode 3"]
+                                [max-bars "hidemode 3"]
+                                [min-bpm-cb "gap 30, hidemode 3"]
+                                [min-bpm "hidemode 3"]
+                                [max-bpm-cb "gap 15, hidemode 3"]
+                                [max-bpm "hidemode 3"]
+                                [weight-label "gap 30, hidemode 3"]
+                                [weight "hidemode 3"]
+                                [gap-label "growx, pushx, hidemode 3"]])
 
-                                ;; TODO: Add rows of enabled/weight UI.
-                                ])
-
-        phrase (merge phrase
-                      {:uuid     uuid
-                       :creating true}) ; Suppress popup expression editors when reopening a show.
+        phrase (merge phrase {:uuid     uuid
+                              :creating true}) ; Suppress popup expression editors when reopening a show.
 
         popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
                    ;; TODO: Implement the rest of these!
@@ -588,13 +643,6 @@
                                            (util/show-popup-from-button gear popup e))))
     (su/update-phrase-gear-icon show phrase gear)
 
-    (seesaw/listen (seesaw/select panel [:#enabled])
-                   :item-state-changed (fn [e]
-                                         (swap-phrase! show uuid assoc :enabled (seesaw/value e ))
-                                         (show-enabled-filters (not= "Custom" (seesaw/value e)) panel)
-                                         ;; TODO: (repaint-phrase-states show uuid)
-                                         ))
-
     ;; TODO: The equivalent for the phrase preview once implemented.
     #_(seesaw/listen soft-preview
                    :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
@@ -603,10 +651,6 @@
                                     (handle-preview-press track preview-loader e))
                    :mouse-dragged (fn [e] (handle-preview-drag track preview-loader e drag-origin)))
 
-    ;; TODO: Implement these, although I think there is only one visiblity handler needed.
-    ;; Update output status when selection changes, giving a chance for the other handlers to run first
-    ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
-    ;; Enabled Filter if "Custom" is chosen.
     (seesaw/listen (seesaw/select panel [:#outputs])
                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status show phrase))))
     (attach-phrase-message-visibility-handler show phrase panel gear)
@@ -625,6 +669,11 @@
     (update-section-boundaries show uuid)  ; We now have the information needed to do this.
     (swap-phrase! show phrase assoc :note (seesaw/value (seesaw/select panel [:#note])))
     (swap-phrase! show phrase assoc :channel (seesaw/value (seesaw/select panel [:#channel])))
+    (swap-phrase! show phrase assoc :min-bars (seesaw/value (seesaw/select panel [:#min-bars])))
+    (swap-phrase! show phrase assoc :max-bars (seesaw/value (seesaw/select panel [:#max-bars])))
+    (swap-phrase! show phrase assoc :min-bpm (seesaw/value (seesaw/select panel [:#min-bpm])))
+    (swap-phrase! show phrase assoc :max-bpm (seesaw/value (seesaw/select panel [:#max-bpm])))
+    (swap-phrase! show phrase assoc :weight (seesaw/value (seesaw/select panel [:#weight])))
 
     #_(cues/build-cues track)  ; TODO: Implement the phrase cues equivalent.
     (parse-phrase-expressions show phrase)
