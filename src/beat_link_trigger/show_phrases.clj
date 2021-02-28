@@ -6,7 +6,8 @@
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
-                                                        swap-show! swap-phrase! find-phrase-cue swap-phrase-cue!]]
+                                                        swap-show! swap-phrase! swap-phrase-runtime!
+                                                        phrase-runtime-info find-phrase-cue swap-phrase-cue!]]
             [beat-link-trigger.util :as util]
             [clojure.set]
             [clojure.string :as str]
@@ -259,14 +260,20 @@
   trigger. If `force?` is true, simply closes them even if they have
   unsaved changes. Otherwise checks whether the user wants to save any
   unsaved changes. Returns truthy if there are none left open the user
-  wants to deal with."
+  wants to deal with (and in that case also closes any phrase type or
+  track mood pickers the user may have opened on the phrase trigger."
   [force? show phrase]
-  (let [phrase (latest-phrase show phrase)]
-    (and
-     (every? (partial editors/close-editor? force?) (vals (:expression-editors phrase)))
-     (or (not (:cues-editor phrase)) ((get-in phrase [:cues-editor :close-fn]) force?)))))
+  (let [[show phrase] (latest-show-and-phrase show phrase)
+        runtime-info  (phrase-runtime-info show phrase)
+        closed        (and
+                       (every? (partial editors/close-editor? force?) (vals (:expression-editors runtime-info)))
+                       (or (not (:cues-editor runtime-info)) ((get-in runtime-info [:cues-editor :close-fn]) force?)))]
+    (when closed
+      (when-let [picker (:phrase-type-picker runtime-info)] (.dispose picker))
+      (when-let [picker (:track-mood-picker runtime-info)] (.dispose picker)))
+    closed))
 
-(defn- cleanup-phrase
+(defn cleanup-phrase
   "Process the removal of a phrase trigger, either via deletion, or
   because the show is closing. If `force?` is true, any unsaved
   expression editors will simply be closed. Otherwise, they will block
@@ -275,16 +282,17 @@
   configured MIDI messages to reflect the departure of the phrase
   trigger."
   [force? show phrase]
-  (when (close-phrase-editors? show force? phrase)
-    (let [[show phrase] (latest-show-and-phrase show phrase)]
-      (when (:tripped phrase)
-        (doseq [[section cues] (get-in phrase [:contents :cues :cues])
+  (when (close-phrase-editors? force? show phrase)
+    (let [[show phrase] (latest-show-and-phrase show phrase)
+          runtime-info (phrase-runtime-info show phrase)]
+      (when (:tripped runtime-info)
+        (doseq [[section cues] (get-in phrase [:cues :cues])
                 cue             cues]
           #_(cues/cleanup-phrase-cue true phrase section cue))  ; TODO: Something like this?
         #_(when ((set (vals (:playing show))) (:signature track))
           (send-stopped-messages track nil))  ; TODO: And something like this?
         )
-      (run-phrase-function show `<phrase :shutdown nil (not force?)))
+      (run-phrase-function show phrase :shutdown nil (not force?)))
     true))
 
 (defn- delete-phrase-action
@@ -428,6 +436,176 @@
                                            (seesaw/show! [note-spinner label channel-spinner])))))
     (attach-phrase-custom-editor-opener show phrase panel message-menu :playing gear)))
 
+(def phrase-types
+  "Defines the types of track phrase which can be enabled for a phrase
+  trigger, along with the labels that should be used in checkboxes to
+  enable or disable them."
+  {:low-intro   "Intro"
+   :low-verse-1 "Verse 1"
+   :low-verse-2 "Verse 2"
+   :low-bridge  "Bridge"
+   :low-chorus  "Chorus"
+   :low-outro   "Outro"
+
+   :mid-intro   "Intro"
+   :mid-verse-1 "Verse 1"
+   :mid-verse-2 "Verse 2"
+   :mid-verse-3 "Verse 3"
+   :mid-verse-4 "Verse 4"
+   :mid-verse-5 "Verse 5"
+   :mid-verse-6 "Verse 6"
+   :mid-bridge  "Bridge"
+   :mid-chorus  "Chorus"
+   :mid-outro   "Outro"
+
+   :high-intro-1  "Intro 1"
+   :high-intro-2  "Intro 2"
+   :high-up-1     "Up 1"
+   :high-up-2     "Up 2"
+   :high-up-3     "Up 3"
+   :high-down     "Down"
+   :high-chorus-1 "Chorus 1"
+   :high-chorus-2 "Chorus 2"
+   :high-outro    "Outro"})
+
+(defn- update-phrase-type-label
+  "Changes the text of the phrase types label in a phrase trigger row to
+  reflect how many are enabled."
+  [show phrase types-label]
+  (when-not (:enabled-phrase-types (latest-phrase show phrase))
+      ;; This must be a newly created phrase, and the set does not yet
+      ;; exist. Initialize it to contain all possible phrase types.
+      (swap-phrase! show phrase assoc :enabled-phrase-types (set (keys phrase-types))))
+  (let [phrase        (latest-phrase show phrase)
+        enabled-count (count (:enabled-phrase-types phrase))]
+    (seesaw/text! types-label
+                  (case enabled-count
+                    0  "[None]"
+                    25 "[All]"
+                    (str "[" enabled-count "]")))))
+
+(defn- build-phrase-type-checkbox
+  "Creates a checkbox that reflects and manages the enabled state of a
+  phrase type for a phrase trigger."
+  [show uuid types-label phrase-type]
+  (let [phrase (latest-phrase show {:uuid uuid})]
+    (seesaw/checkbox :text (phrase-types phrase-type)
+                     :selected? ((:enabled-phrase-types phrase) phrase-type)
+                     :listen [:item-state-changed
+                              (fn [e]
+                                (swap-phrase! show uuid update :enabled-phrase-types
+                                              (if (seesaw/value e) conj disj) phrase-type)
+                                (update-phrase-type-label show phrase types-label))])))
+
+(defn- build-phrase-types-button
+  "Creates a button that checks or unchecks an entire category of phrase
+  type checkboxes."
+  [selected? checkboxes]
+  (seesaw/button :text (if selected? "All" "None")
+                 :listen [:action (fn [_]
+                                    (doseq [checkbox checkboxes]
+                                      (seesaw/value! checkbox selected?)))]))
+
+(defn- show-phrase-type-picker
+  "Opens (or brings to the front, if it is already open) a window for
+  selecting which phrase types a phrase trigger will activate for."
+  [show uuid types-label]
+  (if-let [^JFrame frame (:phrase-type-picker (phrase-runtime-info (latest-show show) uuid))]
+    (.toFront frame)
+    (let [low-intro   (build-phrase-type-checkbox show uuid types-label :low-intro)
+          low-verse-1 (build-phrase-type-checkbox show uuid types-label :low-verse-1)
+          low-verse-2 (build-phrase-type-checkbox show uuid types-label :low-verse-2)
+          low-bridge  (build-phrase-type-checkbox show uuid types-label :low-bridge)
+          low-chorus  (build-phrase-type-checkbox show uuid types-label :low-chorus)
+          low-outro   (build-phrase-type-checkbox show uuid types-label :low-outro)
+          low-types   [low-intro low-verse-1 low-verse-2 low-bridge low-chorus low-outro]
+
+          mid-intro   (build-phrase-type-checkbox show uuid types-label :mid-intro)
+          mid-verse-1 (build-phrase-type-checkbox show uuid types-label :mid-verse-1)
+          mid-verse-2 (build-phrase-type-checkbox show uuid types-label :mid-verse-2)
+          mid-verse-3 (build-phrase-type-checkbox show uuid types-label :mid-verse-3)
+          mid-verse-4 (build-phrase-type-checkbox show uuid types-label :mid-verse-4)
+          mid-verse-5 (build-phrase-type-checkbox show uuid types-label :mid-verse-5)
+          mid-verse-6 (build-phrase-type-checkbox show uuid types-label :mid-verse-6)
+          mid-bridge  (build-phrase-type-checkbox show uuid types-label :mid-bridge)
+          mid-chorus  (build-phrase-type-checkbox show uuid types-label :mid-chorus)
+          mid-outro   (build-phrase-type-checkbox show uuid types-label :mid-outro)
+          mid-types   [mid-intro mid-verse-1 mid-verse-2 mid-verse-3 mid-verse-4 mid-verse-5 mid-verse-6
+                       mid-bridge mid-chorus mid-outro]
+
+          high-intro-1  (build-phrase-type-checkbox show uuid types-label :high-intro-1)
+          high-intro-2  (build-phrase-type-checkbox show uuid types-label :high-intro-2)
+          high-up-1     (build-phrase-type-checkbox show uuid types-label :high-up-1)
+          high-up-2     (build-phrase-type-checkbox show uuid types-label :high-up-2)
+          high-up-3     (build-phrase-type-checkbox show uuid types-label :high-up-3)
+          high-down     (build-phrase-type-checkbox show uuid types-label :high-down)
+          high-chorus-1 (build-phrase-type-checkbox show uuid types-label :high-chorus-1)
+          high-chorus-2 (build-phrase-type-checkbox show uuid types-label :high-chorus-2)
+          high-outro    (build-phrase-type-checkbox show uuid types-label :high-outro)
+          high-types    [high-intro-1 high-intro-2 high-up-1 high-up-2 high-up-3 high-down
+                         high-chorus-1 high-chorus-2 high-outro]
+
+          ^JPanel panel (mig/mig-panel
+                         :items [["Low Mood Phrases:     "]
+                                 ["Mid Mood Phrases:     "]
+                                 ["High Mood Phrases:" "wrap"]
+
+                                 [low-intro]
+                                 [mid-intro]
+                                 [high-intro-1 "wrap"]
+
+                                 [low-verse-1]
+                                 [mid-verse-1]
+                                 [high-intro-2 "wrap"]
+
+                                 [low-verse-2]
+                                 [mid-verse-2]
+                                 [high-up-1 "wrap"]
+
+                                 [low-bridge]
+                                 [mid-verse-3]
+                                 [high-up-2 "wrap"]
+
+                                 [low-chorus]
+                                 [mid-verse-4]
+                                 [high-up-3 "wrap"]
+
+                                 [low-outro]
+                                 [mid-verse-5]
+                                 [high-down "wrap"]
+
+                                 [""]
+                                 [mid-verse-6]
+                                 [high-chorus-1 "wrap"]
+
+                                 [""]
+                                 [mid-bridge]
+                                 [high-chorus-2 "wrap"]
+
+                                 [""]
+                                 [mid-chorus]
+                                 [high-outro "wrap"]
+
+                                 [""]
+                                 [mid-outro "wrap unrelated"]
+
+                                 [(build-phrase-types-button false low-types)]
+                                 [(build-phrase-types-button false mid-types)]
+                                 [(build-phrase-types-button false high-types) "wrap"]
+
+                                 [(build-phrase-types-button true low-types)]
+                                 [(build-phrase-types-button true mid-types)]
+                                 [(build-phrase-types-button true high-types) "wrap"]])
+          phrase       (latest-phrase show {:uuid uuid})
+          ^JFrame root (seesaw/frame :title (str "Enabled Phrase Types for " (su/phrase-display-title phrase))
+                                     :on-close :dispose :content panel
+                                     :listen [:window-closing
+                                              (fn [_] (swap-phrase-runtime! show uuid dissoc :phrase-type-picker))])]
+      (.pack root)
+      (.setLocationRelativeTo root (.getParent types-label))
+      (swap-phrase-runtime! show uuid assoc :phrase-type-picker root)
+      (seesaw/show! root))))
+
 (defn- phrase-panel-constraints
   "Calculates the proper layout constraints for a prhase trigger panel
   to look right at a given window width."
@@ -451,10 +629,11 @@
         preview        (seesaw/canvas :id :preview :paint (partial paint-phrase-preview show uuid))
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
-        types          (seesaw/button :id :phrase-types :text "Phrase Types")
-        types-label    (seesaw/label :id :types-label :text "[All]")
-        banks          (seesaw/button :id :banks :text "Track Banks")
+        types-label    (seesaw/label :id :types-label :text "[?]")
+        types          (seesaw/button :id :phrase-types :text "Phrase Types"
+                                      :listen [:action (fn [_] (show-phrase-type-picker show uuid types-label))])
         banks-label    (seesaw/label :id :banks-label :text "[All]")
+        banks          (seesaw/button :id :banks :text "Track Banks")
         min-bars       (seesaw/spinner :id :min-bars :model (seesaw/spinner-model (:min-bars phrase 2) :from 2 :to 64)
                                        :enabled? (:min-bars? phrase)
                                        :listen [:state-changed #(swap-phrase! show uuid assoc :min-bars
@@ -492,12 +671,11 @@
                                                    (swap-phrase! show uuid assoc :max-bpm? (seesaw/value e))
                                                    (seesaw/config! max-bpm :enabled? (seesaw/value e)))])
         weight-label   (seesaw/label :id :weight-label :text "Weight:")
-        weight         (seesaw/spinner :id :weight :model (seesaw/spinner-model (:weight phrase 1) :from 1 :to 100)
+        weight         (seesaw/spinner :id :weight :model (seesaw/spinner-model (:weight phrase 1) :from 1 :to 1000)
                                        :listen [:state-changed #(swap-phrase! show uuid assoc :weight
                                                                               (seesaw/value %))])
         gap-label      (seesaw/label :text "")
         panel          (mig/mig-panel
-                        ;; TODO: Add view of all cues at top of panel, like waveform preview.
                         :constraints (phrase-panel-constraints (.getWidth ^JFrame (:frame show)))
                         :items [[comment-field "spanx 5, growx, pushx"]
                                 [preview "gap unrelated, spany 3, grow, push, wrap"]
@@ -598,9 +776,9 @@
                                                              )])
                                  "hidemode 2, wrap unrelated"]
 
-                                [types "split 2, hidemode 3"]
+                                [types "spanx 5, split 4, hidemode 3"]
                                 [types-label "gap unrelated, hidemode 3"]
-                                [banks "spanx 4, split 2, gap unrelated, hidemode 3"]
+                                [banks "gap unrelated, hidemode 3"]
                                 [banks-label "gap unrelated, hidemode 3"]
                                 [min-bars-cb "spanx, split, hidemode 3"]
                                 [min-bars "hidemode 3"]
@@ -674,6 +852,9 @@
     (swap-phrase! show phrase assoc :min-bpm (seesaw/value (seesaw/select panel [:#min-bpm])))
     (swap-phrase! show phrase assoc :max-bpm (seesaw/value (seesaw/select panel [:#max-bpm])))
     (swap-phrase! show phrase assoc :weight (seesaw/value (seesaw/select panel [:#weight])))
+
+    ;; Similarly, initialize the phrase type and track bank tracking information and labels.
+    (update-phrase-type-label show phrase types-label)
 
     #_(cues/build-cues track)  ; TODO: Implement the phrase cues equivalent.
     (parse-phrase-expressions show phrase)

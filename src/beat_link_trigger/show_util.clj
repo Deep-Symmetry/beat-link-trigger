@@ -156,6 +156,15 @@
   (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
     (swap! open-shows #(apply update-in % [(:file show) :contents :phrases uuid] f args))))
 
+(defn swap-phrase-runtime!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current
+  runtime (non-saved) information of the specified phrase, which can
+  either be a UUID or a full phrase trigger map."
+  [show phrase-or-uuid f & args]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (swap! open-shows #(apply update-in % [(:file show) :phrases uuid] f args))))
+
 (def ^{:tag "[Ljava.nio.file.OpenOption;"}
   empty-open-options
   "The Filesystem options used for default behavior."
@@ -613,10 +622,11 @@
   (* 360.0 (color/hue (color/int32 (.getRGB color)))))
 
 (defn phrase-runtime-info
-  "Given a current show and a phrase map, returns the runtime
+  "Given a current show and a phrase map or UUID, returns the runtime
   cache map (non-saved information) for that phrase."
-  [show phrase]
-  (get-in show [:phrases (:uuid phrase)]))
+  [show phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (get-in show [:phrases uuid])))
 
 (def phrase-start-color
   "The color to draw the start section of a phrase trigger."

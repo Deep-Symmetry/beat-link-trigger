@@ -2275,6 +2275,8 @@
                                   (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true track))
+                                  (doseq [phrase (vals (get-in show [:contents :phrases]))]
+                                    (phrases/cleanup-phrase true show phrase))
                                   (when (util/online?) (run-global-function show :offline nil (not force?)))
                                   (run-global-function show :shutdown nil (not force?))
                                   (try

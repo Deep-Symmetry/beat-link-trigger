@@ -102,7 +102,7 @@ decide which phrase triggers to run:
 To decide which phrase triggers should be considered when a phrase
 starts, there are a number of filters that can be applied.
 
-image:PhraseTriggerRows.png[Phrase trigger rows,924,292]
+image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
 
 * The most obvious is that you can select which phrase types this
   trigger works with, <<phrase-picker,picking one or more>> of the
@@ -111,38 +111,53 @@ image:PhraseTriggerRows.png[Phrase trigger rows,924,292]
 * You can do the same kind of filtering by <<bank-picker,deciding
   which track banks>> you want this trigger to match on.
 
-* You can also set a minimum and/or a maximum phrase length.
+* You can also set a minimum and/or a maximum phrase length in bars.
+  Phrases which are too long or too short will then not activate this
+  phrase trigger.
 
-* You can set a minimum and/or maximum BPM.
+* Similarly, you can set a minimum and/or maximum tempo in BPM, and if
+  the track playing is too slow or too fast when it starts playing the
+  phrase, it will not activate this phrase trigger.
 
 * And you can assign a weight, from 1 to 1,000, that adjusts how
   likely this trigger is likely to be picked among all the triggers
   which are enabled.
 
-> Is there any other simple phrase or track characteristic that might
-  be useful as a default filter?
-
 [[phrase-picker]]
-Clicking the Phrase Types button brings up a picker window like this:
+Clicking the btn:[Phrase Types] button brings up a picker window like
+this:
 
-image:PhraseTypePicker.png[Phrase type picker,492,336]
+image:PhraseTypePicker.png[Phrase type picker,500,480]
+
+You can individually select which phrase types can activate the phrase
+trigger, or you can turn entire mood columns off and on using the
+btn:[None] and btn:[All] buttons at the bottom of the corresponding
+column.
 
 [[bank-picker]]
-And clicking on the Track Banks button brings up similar picker:
+Clicking on the btn:[Track Banks] button brings up a similar picker:
 
 image:TrackBankPicker.png[Track bank picker,198,285]
 
 If you want to do more sophisticated filtering than that, you can
-swich to "custom" enabled filtering, in which case BLT will call an
-expression when the phrase is starting, and pass you the phrase and
-track and player status, and you can write code to use any logic you
-want to decide if the trigger should be enabled. If you return a
-number, that will be rounded to the nearest integer, and if it is
-positive the trigger will be enabled, with a weight corresponding to
-the number you returned (clipped to 1,000 as an upper bound, again).
-If you return anything other than a number, if it is truthy, the
-trigger will be enabled, with a weight of 1, and if it is falsy, the
-trigger will be disabled.
+swich to "custom" enabled filtering by choosing menu:Enabled[Custom].
+In this configuration BLT will call an expression when a phrase is
+starting to play, and pass your filter code the phrase, track and
+player status, and your code can use any logic you like to decide if
+the trigger should be enabled.
+
+If your filter returns a number, that will be rounded to the nearest
+integer, and if it is positive the trigger will be enabled, with a
+weight corresponding to the number you returned (clipped to 1,000 as
+an upper bound, again). If your code returns anything other than a
+number, if it is truthy, the trigger will be enabled, with a weight of
+1, and if it is falsy, the trigger will be disabled.
+
+When you are using a Custom Enabled filter, the bottom row of UI
+elements in the phrase triger row disappears, because your code is
+making the decision instead of them. To go back to the simpler
+approach, choose menu:Enabled[See Below] again, and they will reappear
+and be used instead of your filter code.
 
 [[messages-cues]]
 == Messages and Cues
