@@ -428,6 +428,15 @@
                                            (seesaw/show! [note-spinner label channel-spinner])))))
     (attach-phrase-custom-editor-opener show phrase panel message-menu :playing gear)))
 
+(defn show-enabled-filters
+  "Controls whether the elements allowing manual configuration of phrase
+  matching are visible (they disappear when a custom enabled filter is
+  in use instead)."
+  [visible? panel]
+  (seesaw/config! [(seesaw/select panel [:#phrase-types])
+                   (seesaw/select panel [:#types-label])]
+                  :visible? visible?))
+
 (defn- phrase-panel-constraints
   "Calculates the proper layout constraints for a prhase trigger panel
   to look right at a given window width."
@@ -540,12 +549,11 @@
                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
                                 [(seesaw/combobox :id :enabled
                                                   :model ["See Below" "Custom"]
-                                                  :selected-item nil  ; So update below saves default.
-                                                  :listen [:item-state-changed
-                                                           #(do (swap-phrase! show uuid assoc :enabled (seesaw/value %))
-                                                                ;; TODO: (repaint-phrase-states show uuid)
-                                                                )])
-                                 "hidemode 3"]
+                                                  :selected-item nil)  ; So update below saves default.
+                                 "hidemode 2, wrap unrelated"]
+
+                                [(seesaw/button :id :phrase-types :text "Phrase Types") "spanx, split, hidemode 3"]
+                                [(seesaw/label :id :types-label :text "[All]") "hidemode 3"]
 
                                 ;; TODO: Add rows of enabled/weight UI.
                                 ])
@@ -579,6 +587,13 @@
                                          (let [popup (seesaw/popup :items (popup-fn e))]
                                            (util/show-popup-from-button gear popup e))))
     (su/update-phrase-gear-icon show phrase gear)
+
+    (seesaw/listen (seesaw/select panel [:#enabled])
+                   :item-state-changed (fn [e]
+                                         (swap-phrase! show uuid assoc :enabled (seesaw/value e ))
+                                         (show-enabled-filters (not= "Custom" (seesaw/value e)) panel)
+                                         ;; TODO: (repaint-phrase-states show uuid)
+                                         ))
 
     ;; TODO: The equivalent for the phrase preview once implemented.
     #_(seesaw/listen soft-preview

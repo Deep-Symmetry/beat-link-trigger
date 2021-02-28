@@ -2116,6 +2116,7 @@
                                          :id :phrases-menu
                                          :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))
                                                                 :name "New Phrase Trigger"
+                                                                :key "menu T"
                                                                 :tip "Adds a new phrase trigger row")
                                                  (seesaw/action :handler (fn [_] (phrases/sort-phrases show))
                                                                 :name "Sort by Comments"
