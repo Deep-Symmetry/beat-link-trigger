@@ -26,8 +26,8 @@ they will be structurally so different that may not even be necessary.
 image:ShowWithPhrases.png[Show window with phrase rows,450,400]
 
 As of now, the only items I can think of for the new Phrases menu are
-"New Phrase Trigger", which will create a new phrase trigger row and
-scroll it into view, and "Sort by Comments". Unless you sort them,
+"`New Phrase Trigger`", which will create a new phrase trigger row and
+scroll it into view, and "`Sort by Comments`". Unless you sort them,
 Phrase triggers will be kept in the order they are created, and
 probably don't need to show numbers like the original Triggers window,
 which will make it easier to cope with deletions. The context menu for
@@ -69,21 +69,21 @@ decide which phrase triggers to run:
   above.
 
 * Phrase triggers themselves have different levels of exclusivity. The
-  default is "Solo in show", but can also be "Solo across all shows",
-  or "Blend".
+  default is "`Solo in show`", but can also be "`Solo across all
+  shows`", or "`Blend`".
 
 * When a new phrase starts, all phrase triggers in all open shows are
   examined to see which are enabled for that trigger (see
   <<enabling-weighting,below>> for details).
 
-* Enabled triggers are grouped by exclusivity, and first any "Solo
-  across all shows" triggers are considered. A random one is chosen
+* Enabled triggers are grouped by exclusivity, and first any "`Solo
+  across all shows`" triggers are considered. A random one is chosen
   and activated.
 
-* Then, for each open show, the "Solo in show" triggers in that show
-  are considered. If there was a "Solo across all shows" trigger
-  activated, and it came from this show, then none of the "Solo in
-  show" triggers will activate, because there is already a trigger
+* Then, for each open show, the "`Solo in show`" triggers in that show
+  are considered. If there was a "`Solo across all shows`" trigger
+  activated, and it came from this show, then none of the "`Solo in
+  show`" triggers will activate, because there is already a trigger
   from this show running. However, if the active trigger was in
   another show, it won't stop these from running. (If you wanted them
   to be prevented from running in this circumstance, you would have
@@ -93,7 +93,7 @@ decide which phrase triggers to run:
   will not conflict.) Again, an enabled trigger is chosen at random,
   taking the weighting into account, and activated.
 
-* Finally, for each open show, all "Blend" triggers that are enabled
+* Finally, for each open show, all "`Blend`" triggers that are enabled
   for the phrase are activated; they run regardless of other triggers.
 
 [[enabling-weighting]]
@@ -128,7 +128,7 @@ image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
 Clicking the btn:[Phrase Types] button brings up a picker window like
 this:
 
-image:PhraseTypePicker.png[Phrase type picker,500,480]
+image:PhraseTypePicker.png[Phrase type picker,555,499]
 
 You can individually select which phrase types can activate the phrase
 trigger, or you can turn entire mood columns off and on using the
@@ -138,14 +138,14 @@ column.
 [[bank-picker]]
 Clicking on the btn:[Track Banks] button brings up a similar picker:
 
-image:TrackBankPicker.png[Track bank picker,198,285]
+image:TrackBankPicker.png[Track bank picker,291,329]
 
 If you want to do more sophisticated filtering than that, you can
-swich to "custom" enabled filtering by choosing menu:Enabled[Custom].
-In this configuration BLT will call an expression when a phrase is
-starting to play, and pass your filter code the phrase, track and
-player status, and your code can use any logic you like to decide if
-the trigger should be enabled.
+swich to "`Custom`" enabled filtering by choosing
+menu:Enabled[Custom]. In this configuration BLT will call an
+expression when a phrase is starting to play, and pass your filter
+code the phrase, track and player status, and your code can use any
+logic you like to decide if the trigger should be enabled.
 
 If your filter returns a number, that will be rounded to the nearest
 integer, and if it is positive the trigger will be enabled, with a
