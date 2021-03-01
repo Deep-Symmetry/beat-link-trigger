@@ -270,7 +270,7 @@
                        (or (not (:cues-editor runtime-info)) ((get-in runtime-info [:cues-editor :close-fn]) force?)))]
     (when closed
       (when-let [picker (:phrase-type-picker runtime-info)] (.dispose picker))
-      (when-let [picker (:track-mood-picker runtime-info)] (.dispose picker)))
+      (when-let [picker (:track-bank-picker runtime-info)] (.dispose picker)))
     closed))
 
 (defn cleanup-phrase
@@ -497,9 +497,9 @@
                                               (if (seesaw/value e) conj disj) phrase-type)
                                 (update-phrase-type-label show phrase types-label))])))
 
-(defn- build-phrase-types-button
-  "Creates a button that checks or unchecks an entire category of phrase
-  type checkboxes."
+(defn- build-checkbox-group-button
+  "Creates a button that checks or unchecks an entire category of
+  checkboxes."
   [selected? checkboxes]
   (seesaw/button :text (if selected? "All" "None")
                  :listen [:action (fn [_]
@@ -589,13 +589,13 @@
                                  [""]
                                  [mid-outro "wrap unrelated"]
 
-                                 [(build-phrase-types-button false low-types)]
-                                 [(build-phrase-types-button false mid-types)]
-                                 [(build-phrase-types-button false high-types) "wrap"]
+                                 [(build-checkbox-group-button false low-types)]
+                                 [(build-checkbox-group-button false mid-types)]
+                                 [(build-checkbox-group-button false high-types) "wrap"]
 
-                                 [(build-phrase-types-button true low-types)]
-                                 [(build-phrase-types-button true mid-types)]
-                                 [(build-phrase-types-button true high-types) "wrap"]])
+                                 [(build-checkbox-group-button true low-types)]
+                                 [(build-checkbox-group-button true mid-types)]
+                                 [(build-checkbox-group-button true high-types) "wrap"]])
           phrase       (latest-phrase show {:uuid uuid})
           ^JFrame root (seesaw/frame :title (str "Enabled Phrase Types for " (su/phrase-display-title phrase))
                                      :on-close :dispose :content panel
@@ -604,6 +604,87 @@
       (.pack root)
       (.setLocationRelativeTo root (.getParent types-label))
       (swap-phrase-runtime! show uuid assoc :phrase-type-picker root)
+      (seesaw/show! root))))
+
+(def track-banks
+  "Defines the types of track bank which can be enabled for a phrase
+  trigger, along with the labels that should be used in checkboxes to
+  enable or disable them."
+  {:cool    "Cool"
+   :natural "Natural"
+   :hot     "Hot"
+   :subtle  "Subtle"
+   :warm    "Warm"
+   :vivid   "Vivid"
+   :club-1  "Club 1"
+   :club-2  "Club 2"})
+
+(defn- update-track-bank-label
+  "Changes the text of the track banks label in a phrase trigger row to
+  reflect how many are enabled."
+  [show phrase banks-label]
+  (when-not (:enabled-track-banks (latest-phrase show phrase))
+      ;; This must be a newly created phrase, and the set does not yet
+      ;; exist. Initialize it to contain all possible track banks.
+      (swap-phrase! show phrase assoc :enabled-track-banks (set (keys track-banks))))
+  (let [phrase        (latest-phrase show phrase)
+        enabled-count (count (:enabled-track-banks phrase))]
+    (seesaw/text! banks-label
+                  (case enabled-count
+                    0  "[None]"
+                    8 "[All]"
+                    (str "[" enabled-count "]")))))
+
+(defn- build-track-bank-checkbox
+  "Creates a checkbox that reflects and manages the enabled state of a
+  track bank for a phrase trigger."
+  [show uuid banks-label track-bank]
+  (let [phrase (latest-phrase show {:uuid uuid})]
+    (seesaw/checkbox :text (track-banks track-bank)
+                     :selected? ((:enabled-track-banks phrase) track-bank)
+                     :listen [:item-state-changed
+                              (fn [e]
+                                (swap-phrase! show uuid update :enabled-track-banks
+                                              (if (seesaw/value e) conj disj) track-bank)
+                                (update-track-bank-label show phrase banks-label))])))
+
+(defn- show-track-bank-picker
+  "Opens (or brings to the front, if it is already open) a window for
+  selecting which track banks a trigger will activate for."
+  [show uuid banks-label]
+  (if-let [^JFrame frame (:track-bank-picker (phrase-runtime-info (latest-show show) uuid))]
+    (.toFront frame)
+    (let [cool    (build-track-bank-checkbox show uuid banks-label :cool)
+          natural (build-track-bank-checkbox show uuid banks-label :natural)
+          hot     (build-track-bank-checkbox show uuid banks-label :hot)
+          subtle  (build-track-bank-checkbox show uuid banks-label :subtle)
+          warm    (build-track-bank-checkbox show uuid banks-label :warm)
+          vivid   (build-track-bank-checkbox show uuid banks-label :vivid)
+          club-1  (build-track-bank-checkbox show uuid banks-label :club-1)
+          club-2  (build-track-bank-checkbox show uuid banks-label :club-2)
+          banks   [cool natural hot subtle warm vivid club-1 club-2]
+
+          ^JPanel panel (mig/mig-panel
+                         :items [[cool]
+                                 [natural "wrap"]
+                                 [hot]
+                                 [subtle "wrap"]
+                                 [warm]
+                                 [vivid "wrap"]
+                                 [club-1]
+                                 [club-2 "wrap unrelated"]
+
+
+                                 [(build-checkbox-group-button false banks) "spanx 2, align center, wrap"]
+                                 [(build-checkbox-group-button true banks) "spanx 2, align center, wrap"]])
+
+          ^JFrame root (seesaw/frame :title "Track Banks"
+                                     :on-close :dispose :content panel
+                                     :listen [:window-closing
+                                              (fn [_] (swap-phrase-runtime! show uuid dissoc :track-bank-picker))])]
+      (.pack root)
+      (.setLocationRelativeTo root (.getParent banks-label))
+      (swap-phrase-runtime! show uuid assoc :track-bank-picker root)
       (seesaw/show! root))))
 
 (defn- phrase-panel-constraints
@@ -633,7 +714,8 @@
         types          (seesaw/button :id :phrase-types :text "Phrase Types"
                                       :listen [:action (fn [_] (show-phrase-type-picker show uuid types-label))])
         banks-label    (seesaw/label :id :banks-label :text "[All]")
-        banks          (seesaw/button :id :banks :text "Track Banks")
+        banks          (seesaw/button :id :banks :text "Track Banks"
+                                      :listen [:action (fn [_] (show-track-bank-picker show uuid banks-label))])
         min-bars       (seesaw/spinner :id :min-bars :model (seesaw/spinner-model (:min-bars phrase 2) :from 2 :to 64)
                                        :enabled? (:min-bars? phrase)
                                        :listen [:state-changed #(swap-phrase! show uuid assoc :min-bars
@@ -783,7 +865,7 @@
                                                                        runtime-info (phrase-runtime-info show uuid)]
                                                                    (when-let [picker (:phrase-type-picker runtime-info)]
                                                                      (.dispose picker))
-                                                                   (when-let [picker (:track-mood-picker runtime-info)]
+                                                                   (when-let [picker (:track-bank-picker runtime-info)]
                                                                      (.dispose picker)))))
                                                              ;; TODO: (repaint-phrase-states show uuid)
                                                              )])
@@ -868,6 +950,7 @@
 
     ;; Similarly, initialize the phrase type and track bank tracking information and labels.
     (update-phrase-type-label show phrase types-label)
+    (update-track-bank-label show phrase banks-label)
 
     #_(cues/build-cues track)  ; TODO: Implement the phrase cues equivalent.
     (parse-phrase-expressions show phrase)
