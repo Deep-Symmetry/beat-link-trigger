@@ -1572,10 +1572,14 @@
 
                                 ["MIDI Output:" "gap unrelated"]
                                 [(seesaw/combobox :id :outputs
-                                                  :model (concat outputs
-                                                                 (when-let [chosen (:midi-device contents)]
-                                                                   (when-not ((set outputs) chosen)
-                                                                     [chosen])))
+                                                  :model (let [chosen (:midi-device contents)]
+                                                           (concat outputs
+                                                                   ;; Preserve existing selection even if now missing.
+                                                                   (when (and chosen (not ((set outputs) chosen)))
+                                                                     [chosen])
+                                                                   ;; Offer escape hatch if no MIDI devices available.
+                                                                   (when (and chosen (empty? outputs))
+                                                                     [nil])))
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
                                                            #(swap-signature! show signature
@@ -2459,16 +2463,28 @@
     (doseq [track (vals (:tracks show))]
       (let [output-menu (seesaw/select (:panel track) [:#outputs])
             old-selection (seesaw/selection output-menu)]
-        (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
-                                                   (when-not (output-set old-selection) [old-selection])))
+        (seesaw/config! output-menu :model (concat new-outputs
+                                                   ;; Keep the old selection even if it disappeared.
+                                                   (when-not (output-set old-selection) [old-selection])
+                                                   ;; Allow deselection of a vanished output device
+                                                   ;; if there are now no devices available, so
+                                                   ;; tracks using custom expressions can still work.
+                                                   (when (and (some? old-selection) (empty? new-outputs)) [nil])))
+
         ;; Keep our original selection chosen, even if it is now missing
         (seesaw/selection! output-menu old-selection))
       (show-midi-status track))
     (doseq [[uuid phrase] (:phrases show)]
       (let [output-menu (seesaw/select (:panel phrase) [:#outputs])
             old-selection (seesaw/selection output-menu)]
-        (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
-                                                   (when-not (output-set old-selection) [old-selection])))
+        (seesaw/config! output-menu :model (concat new-outputs
+                                                   ;; Keep the old selection even if it disappeared.
+                                                   (when-not (output-set old-selection) [old-selection])
+                                                   ;; Allow deselection of a vanished output device
+                                                   ;; if there are now no devices available, so
+                                                   ;; tracks using custom expressions can still work.
+                                                   (when (and (some? old-selection) (empty? new-outputs)) [nil])))
+
         ;; Keep our original selection chosen, even if it is now missing
         (seesaw/selection! output-menu old-selection))
       (phrases/show-midi-status show (get-in show [:contents :phrases uuid])))))

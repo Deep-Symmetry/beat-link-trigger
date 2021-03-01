@@ -231,6 +231,16 @@
              (catch Exception e  ; Some other problem opening the device
                (timbre/error e "Problem opening device" device-name "(treating as unavailable)"))))))))
 
+(defn no-output-chosen
+  "Returns truthy if the MIDI output menu for a trigger is empty, which
+  will probably only happen if there are no MIDI outputs available on
+  the host system, but we still want to allow non-MIDI expressions to
+  operate."
+  ([trigger]
+   (no-output-chosen trigger @(seesaw/user-data trigger)))
+  ([_ data]
+   (not (get-in data [:value :outputs]))))
+
 (def ^:private clock-message
   "A MIDI timing clock message that can be sent by any trigger that is
   sending clock pulses."
@@ -557,9 +567,10 @@
   [trigger]
   (try
     (let [enabled-label (seesaw/select trigger [:#enabled-label])
-          enabled (seesaw/select trigger [:#enabled])
-          state (seesaw/select trigger [:#state])]
-      (if-let [_ (get-chosen-output trigger)]
+          enabled       (seesaw/select trigger [:#enabled])
+          state         (seesaw/select trigger [:#state])
+          output        (get-chosen-output trigger)]
+      (if (or output (no-output-chosen trigger))
         (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
             (seesaw/config! enabled :visible? true)
@@ -797,10 +808,14 @@
                           [(seesaw/label :id :status :text "Checking...")  "gap unrelated, span, wrap"]
 
                           ["MIDI Output:" "span 2, alignx trailing"]
-                          [(seesaw/combobox :id :outputs :model (concat outputs  ; Add selection even if not available
-                                                                        (when (and (some? m)
-                                                                                   (not ((set outputs) (:outputs m))))
-                                                                          [(:outputs m)]))
+                          [(seesaw/combobox :id :outputs
+                                            :model (concat outputs
+                                                           ;; Preserve existing selection even if now missing.
+                                                           (when (and (some? m) (not ((set outputs) (:outputs m))))
+                                                             [(:outputs m)])
+                                                           ;; Offer escape hatch if no MIDI devices available.
+                                                           (when (and (:outputs m) (empty? outputs))
+                                                             [nil]))
                                             :listen [:item-state-changed cache-value])]
 
                           ["Message:" "gap unrelated"]
@@ -864,9 +879,9 @@
                                                      (seesaw/icon "images/Gear-icon.png"))))))
          sim-actions    (fn []
                           [(seesaw/action :name "Activation"
-                                           :enabled? (simulate-enabled? panel :activation)
-                                           :handler (fn [_] (report-activation panel (show-util/random-cdj-status)
-                                                                               @(seesaw/user-data panel) false)))
+                                          :enabled? (simulate-enabled? panel :activation)
+                                          :handler (fn [_] (report-activation panel (show-util/random-cdj-status)
+                                                                              @(seesaw/user-data panel) false)))
                            (seesaw/action :name "Beat"
                                           :enabled? (not (missing-expression? panel :beat))
                                           :handler (fn [_] (run-trigger-function panel :beat
@@ -876,9 +891,9 @@
                                           :handler (fn [_] (run-trigger-function
                                                             panel :tracked (show-util/random-cdj-status) true)))
                            (seesaw/action :name "Deactivation"
-                                         :enabled? (simulate-enabled? panel :deactivation)
-                                         :handler (fn [_] (report-deactivation panel (show-util/random-cdj-status)
-                                                                               @(seesaw/user-data panel) false)))])
+                                          :enabled? (simulate-enabled? panel :deactivation)
+                                          :handler (fn [_] (report-deactivation panel (show-util/random-cdj-status)
+                                                                                @(seesaw/user-data panel) false)))])
          popup-fn       (fn [_] (concat (editor-actions)
                                         [(seesaw/separator) (seesaw/menu :text "Simulate" :items (sim-actions))
                                          inspect-action (seesaw/separator) import-action export-action]
@@ -911,12 +926,15 @@
                               (editors/show-trigger-editor :enabled panel #(update-gear-icon panel gear))))))
 
      (seesaw/listen (seesaw/select panel [:#players])
-                    :item-state-changed (fn [_]  ; Update player status when selection changes, clear any cached status
-                                          (swap! (seesaw/user-data panel) dissoc :status)
-                                          (show-device-status panel)))
+                    :item-state-changed (fn [_]  ; Update player status when selection changes
+                                          (seesaw/invoke-later  ; Make sure menu value cache update has happened.
+                                           (swap! (seesaw/user-data panel) dissoc :status)  ; Clear cached status.
+                                           (show-device-status panel))))
      (seesaw/listen (seesaw/select panel [:#outputs])
-                    :item-state-changed (fn [_]  ; Update output status when selection changes
-                                          (show-midi-status panel)))
+                    :item-state-changed (fn [_]  ; Update output status when selection changes.
+                                          ;; We need to do this later to ensure the other item-state-changed
+                                          ;; handler has had a chance to update the trigger data first.
+                                          (seesaw/invoke-later (show-midi-status panel))))
 
      ;; Tie the enabled state of the start/continue menu to the send checkbox
      (let [{:keys [send start]} (seesaw/group-by-id panel)]
@@ -930,7 +948,7 @@
      (let [message-menu (seesaw/select panel [:#message])]
        (seesaw/listen message-menu
         :action-performed (fn [_]
-                            (let [choice                                        (seesaw/selection message-menu)
+                            (let [choice                                (seesaw/selection message-menu)
                                   {:keys [note send channel-label start
                                           channel stop bar start-stop]} (seesaw/group-by-id panel)]
                               (when (and (= "Custom" choice)
@@ -952,6 +970,7 @@
        (load-trigger-from-map panel m gear))
      (swap! (seesaw/user-data panel) dissoc :creating)
      (show-device-status panel)
+     (show-midi-status panel)
      (cache-value gear)  ; Cache the initial values of the choice sections
      panel)))
 
@@ -1137,10 +1156,15 @@
        (doseq [trigger (get-triggers)] ; Update the output menus in all trigger rows
          (let [output-menu   (seesaw/select trigger [:#outputs])
                old-selection (seesaw/selection output-menu)]
-           (seesaw/config! output-menu :model (concat new-outputs  ; Keep the old selection even if it disappeared
-                                                      (when-not (output-set old-selection) [old-selection])))
+           (seesaw/config! output-menu :model (concat new-outputs
+                                                      ;; Keep the old selection even if it is now missing.
+                                                      (when-not (output-set old-selection) [old-selection])
+                                                      ;; Allow deselection of a vanished output device
+                                                      ;; if there are now no devices available, so
+                                                      ;; tracks using custom expressions can still work.
+                                                      (when (and (some? old-selection) (empty? new-outputs)) [nil])))
 
-           ;; Keep our original selection chosen, even if it is now missing
+           ;; Keep our original selection chosen, even if it is now missing.
            (seesaw/selection! output-menu old-selection))
          (show-midi-status trigger))
        (show/midi-environment-changed new-outputs output-set))

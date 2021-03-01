@@ -43,6 +43,15 @@ This change log follows the conventions of
   which could result in opening a device whose name was a substring
   match for another. Also, the MIDI device availability of a track in
   a show was not always correctly shown.
+- We now give users who have configured triggers or tracks to work
+  with a MIDI device in the past, but are currently in an environment
+  where no MIDI devices are available, to put the trigger or track
+  back into a state where it has no MIDI device chosen, so it can be
+  fully functional as long as it is using custom expressions instead
+  of relying on MIDI messages.
+- There was a timing issue which could result in incorrect MIDI device
+  status reporting when changing MIDI devices in the original Triggers
+  window.
 
 ### Removed
 

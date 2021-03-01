@@ -719,10 +719,14 @@
 
                                 ["MIDI Output:" "gap unrelated"]
                                 [(seesaw/combobox :id :outputs
-                                                  :model (concat outputs
-                                                                 (when-let [chosen (:midi-device phrase)]
-                                                                   (when-not ((set outputs) chosen)
-                                                                     [chosen])))
+                                                  :model (let [chosen (:midi-device phrase)]
+                                                           (concat outputs
+                                                                   ;; Preserve existing selection even if now missing.
+                                                                   (when (and chosen (not ((set outputs) chosen)))
+                                                                     [chosen])
+                                                                   ;; Offer escape hatch if no MIDI devices available.
+                                                                   (when (and chosen (empty? outputs))
+                                                                     [nil])))
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
                                                            #(swap-phrase! show uuid assoc :midi-device
