@@ -155,7 +155,7 @@ number, if it is truthy, the trigger will be enabled, with a weight of
 1, and if it is falsy, the trigger will be disabled.
 
 When you are using a Custom Enabled filter, the bottom row of UI
-elements in the phrase triger row disappears, because your code is
+elements in the phrase trigger row disappears, because your code is
 making the decision instead of them. To go back to the simpler
 approach, choose menu:Enabled[See Below] again, and they will reappear
 and be used instead of your filter code.
