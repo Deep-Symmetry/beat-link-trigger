@@ -52,6 +52,9 @@ This change log follows the conventions of
 - There was a timing issue which could result in incorrect MIDI device
   status reporting when changing MIDI devices in the original Triggers
   window.
+- Quitting Beat Link Trigger could leave Carabiner running in the
+  background even if it had been installed and started by BLT. This is
+  now properly cleaned up.
 
 ### Removed
 

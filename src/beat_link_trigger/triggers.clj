@@ -1560,6 +1560,9 @@
                                 (delete-all-triggers false))
                          (do
                            (menus/respond-to-quit-request true)  ; In case it came from the OS
+                           (when (beat-carabiner/active?)
+                             (beat-carabiner/disconnect)
+                             (Thread/sleep 250))  ; Give any spawned daemon time to exit gracefully.
                            (System/exit 0))
                          (menus/respond-to-quit-request false)))
 
