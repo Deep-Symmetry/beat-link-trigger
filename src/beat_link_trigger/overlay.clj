@@ -154,10 +154,11 @@
   (let [url (.getResource VirtualCdj (str "/beat_link_trigger/sampleTracks/" player))
         uri (.toURI url)]
     (if (= (.getScheme uri) "jar")
-      (let [conn          (.openConnection url) ; Running from a jar, need to open a jar filesystem.
-            jar-file-path (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
-            entry-name    (.getEntryName conn)]
-        (with-open [jar-filesystem (java.nio.file.FileSystems/newFileSystem jar-file-path nil)]
+      (let [conn            (.openConnection url) ; Running from a jar, need to open a jar filesystem.
+            jar-file-path   (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
+            ^ClassLoader cl nil
+            entry-name (.getEntryName conn)]
+        (with-open [jar-filesystem (java.nio.file.FileSystems/newFileSystem jar-file-path cl)]
           (read-sample-track-internal player (.getPath jar-filesystem entry-name (into-array String [])))))
       ;; We are not running from a jar, and can build the path to the sample track directly.
       (read-sample-track-internal player (java.nio.file.Paths/get uri)))))
