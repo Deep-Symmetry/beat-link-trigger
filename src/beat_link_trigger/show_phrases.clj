@@ -362,7 +362,8 @@
   (seesaw/selection! (seesaw/select panel [:#outputs]) (or (:midi-device phrase) (first (util/get-midi-outputs))))
   (seesaw/selection! (seesaw/select panel [:#message]) (or (:message phrase) "None"))
   (seesaw/selection! (seesaw/select panel [:#solo]) (or (:solo phrase) "Show"))
-  (seesaw/selection! (seesaw/select panel [:#enabled]) (or (:enabled phrase) "See Below")))
+  (seesaw/selection! (seesaw/select panel [:#enabled]) (or (:enabled phrase) "See Below"))
+  (seesaw/selection! (seesaw/select panel [:#players]) (or (:players phrase) "Master")))
 
 (defn parse-phrase-expressions
   "Parses all of the expressions associated with a phrase trigger and
@@ -431,14 +432,17 @@
           panel         (get-in show [:phrases (:uuid phrase) :panel])
           enabled-label (seesaw/select panel [:#enabled-label])
           enabled       (seesaw/select panel [:#enabled])
+          players-label (seesaw/select panel [:#players-label])
+          players       (seesaw/select panel [:#players])
           output        (get-chosen-output show phrase)]
       (if (or output (no-output-chosen show phrase))
         (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
-            (seesaw/config! enabled :visible? true))
+            (seesaw/config! enabled  :visible? true)
+            (seesaw/config! [players-label players] :visible? (not= "Custom" (:enabled phrase))))
         (do (seesaw/config! enabled-label :foreground "red")
             (seesaw/value! enabled-label "MIDI Output not found.")
-            (seesaw/config! enabled :visible? false))))
+            (seesaw/config! [enabled players-label players] :visible? false))))
     (catch Exception e
       (timbre/error e "Problem showing Phrase Trigger MIDI status."))))
 
@@ -455,9 +459,8 @@
                                 (not (:creating phrase))
                                 (str/blank?
                                  (get-in phrase [:expressions kind])))
-                       ;; TODO: Implement this.
-                       #_(editors/show-phrase-editor kind show phrase panel
-                                                   #(su/update-phrase-gear-icon show phrase gear)))))))
+                       (editors/show-show-editor kind show phrase panel
+                                                 #(su/update-phrase-gear-icon show phrase gear)))))))
 
 (defn- attach-phrase-message-visibility-handler
   "Sets up an action handler so that when the message menu is changed,
@@ -751,6 +754,12 @@
         preview        (seesaw/canvas :id :preview :paint (partial paint-phrase-preview show uuid))
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        players-label  (seesaw/label :id :players-label :text "Players:")
+        players        (seesaw/combobox :id :players
+                                        :model ["Master" "On-Air" "Any"]
+                                        :selected-item nil  ; So update below saves default
+                                        :listen [:item-state-changed
+                                                 #(swap-phrase! show uuid assoc :players (seesaw/value %))])
         types-label    (seesaw/label :id :types-label :text "[?]")
         types          (seesaw/button :id :phrase-types :text "Phrase Types"
                                       :listen [:action (fn [_] (show-phrase-type-picker show uuid types-label))])
@@ -872,8 +881,7 @@
                                                           #(swap-phrase! show uuid assoc :note (seesaw/value %))])
                                  "hidemode 3"]
 
-                                [(seesaw/label :id :channel-label :text "Channel:")
-                                 "gap unrelated, hidemode 3"]
+                                [(seesaw/label :id :channel-label :text "Channel:") "gap unrelated, hidemode 3"]
                                 [(seesaw/spinner :id :channel
                                                  :model (seesaw/spinner-model (or (:channel phrase) 1)
                                                                               :from 1 :to 16)
@@ -881,13 +889,13 @@
                                                           #(swap-phrase! show uuid assoc :channel (seesaw/value %))])
                                  "hidemode 3"]
 
-                                ["Solo:" "gap unrelated"]
+                                ["Solo:" "gap 30"]
                                 [(seesaw/combobox :id :solo :model ["Global" "Show" "Blend"]
                                                   :selected-item nil  ; So update below saves default.
                                                   :listen [:item-state-changed
                                                            #(swap-phrase! show uuid assoc :solo (seesaw/selection %))])]
 
-                                [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
+                                [(seesaw/label :id :enabled-label :text "Enabled:") "gap 15"]
                                 [(seesaw/combobox :id :enabled
                                                   :model ["See Below" "Custom"]
                                                   :selected-item nil  ; So update below saves default.
@@ -895,7 +903,8 @@
                                                            (fn [e]
                                                              (swap-phrase! show uuid assoc :enabled (seesaw/value e))
                                                              (let [visible? (not= "Custom" (seesaw/value e))]
-                                                               (seesaw/config! [types types-label banks banks-label
+                                                               (seesaw/config! [players players-label
+                                                                                types types-label banks banks-label
                                                                                 min-bars-cb min-bars
                                                                                 max-bars-cb max-bars
                                                                                 min-bpm-cb min-bpm max-bpm-cb max-bpm
@@ -907,10 +916,10 @@
                                                                    (when-let [picker (:phrase-type-picker runtime-info)]
                                                                      (.dispose picker))
                                                                    (when-let [picker (:track-bank-picker runtime-info)]
-                                                                     (.dispose picker)))))
-                                                             ;; TODO: (repaint-phrase-states show uuid)
-                                                             )])
-                                 "hidemode 2, wrap unrelated"]
+                                                                     (.dispose picker))))))])
+                                 "hidemode 3"]
+                                [players-label "gap 15"]
+                                [players "hidemode 2, wrap unrelated"]
 
                                 [types "spanx 5, split 4, hidemode 3"]
                                 [types-label "gap unrelated, hidemode 3"]

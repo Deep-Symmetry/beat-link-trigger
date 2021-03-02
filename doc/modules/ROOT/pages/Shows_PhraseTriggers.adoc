@@ -104,13 +104,19 @@ starts, there are a number of filters that can be applied.
 
 image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
 
-* The most obvious is that you can select which phrase types this
-  trigger works with, <<phrase-picker,picking one or more>> of the
-  phrases in each of the three moods a track can be assigned during
-  phrase analysis.
+* First you need to determine which players are considered, using the
+  menu:Players[] menu. Choices are the current tempo **Master**
+  only, any **On-Air** player, or **Any** player at all.
+
+* When that player starts playing a new phrase, you can use the
+  btn:[Phrase Types] button to control which phrase types this trigger
+  works with, <<phrase-picker,picking one or more>> of the phrases in
+  each of the three moods a track can be assigned during phrase
+  analysis.
 
 * You can do the same kind of filtering by <<bank-picker,deciding
-  which track banks>> you want this trigger to match on.
+  which track banks>> you want this trigger to match, using the
+  btn:[Track Banks] button .
 
 * You can also set a minimum and/or a maximum phrase length in bars.
   Phrases which are too long or too short will then not activate this
