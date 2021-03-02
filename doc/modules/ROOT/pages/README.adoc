@@ -265,7 +265,7 @@ TCP).
   the process using port 50000. (You may need to install `lsof` using
   your preferred package manager on Linux; it is preinstalled on
   macOS. Other Linux alternatives are described
-  https://www.cyberciti.biz/faq/what-process-has-open-linux-port/[here].)
+  https://www.tecmint.com/find-out-which-process-listening-on-a-particular-port/[here].)
 
 * On Windows you can use the Resource Monitor GUI:
   menu:Start menu[All Programs > Accessories > System Tools > Resource Monitor]
