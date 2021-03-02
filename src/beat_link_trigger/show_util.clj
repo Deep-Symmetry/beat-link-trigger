@@ -540,8 +540,8 @@
   ([show phrase gear]
    (let [phrase (latest-phrase show phrase)]
      (seesaw/config! gear :icon (if (and
-                                     (every? empty? (vals (get-in phrase [:contents :cues :cues])))
-                                     (every? clojure.string/blank? (vals (get-in phrase [:contents :expressions]))))
+                                     (every? empty? (vals (get-in phrase [:cues :cues])))
+                                     (every? clojure.string/blank? (vals (:expressions phrase))))
                                   (seesaw/icon "images/Gear-outline.png")
                                   (seesaw/icon "images/Gear-icon.png"))))))
 

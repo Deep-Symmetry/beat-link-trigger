@@ -46,7 +46,7 @@
                           (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/cue-editor-title kind track cue) ":\n"
-                               (get-in track [:contents :expressions kind])))
+                               (get-in cue [:expressions kind])))
           (when alert? (seesaw/alert (str "<html>Problem running cue " (name kind) " expression.<br><br>" t)
                                      :title "Exception in Show Cue Expression" :type :error))
           [nil t])))))

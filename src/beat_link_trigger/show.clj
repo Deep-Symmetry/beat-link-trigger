@@ -1299,7 +1299,7 @@
 
 (defn- track-missing-expression?
   "Checks whether the expression body of the specified kind is empty for
-  the specified cue."
+  the specified track."
   [track kind]
   (str/blank? (get-in (latest-track track) [:contents :expressions kind])))
 

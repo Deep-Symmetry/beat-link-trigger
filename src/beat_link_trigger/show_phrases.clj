@@ -34,11 +34,12 @@
   `true` the user will be alerted when there is a problem running the
   function."
   [show phrase kind status alert?]
-  (let [[show phrase] (latest-show-and-phrase show phrase)]
-    (when-let [expression-fn (get-in phrase [:expression-fns kind])]
+  (let [[show phrase] (latest-show-and-phrase show phrase)
+        runtime-info  (su/phrase-runtime-info show phrase)]
+    (when-let [expression-fn (get-in runtime-info [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-          [(expression-fn status {:locals (:expression-locals phrase)
+          [(expression-fn status {:locals (:expression-locals runtime-info)
                                   :show   show
                                   :phrase phrase} (:expression-globals show)) nil])
         (catch Throwable t
@@ -57,11 +58,12 @@
   running the function."
   [show phrase section cue kind status-or-beat alert?]
   (let [[show phrase] (latest-show-and-phrase show phrase)
+        runtime-info  (su/phrase-runtime-info show phrase)
         cue           (find-phrase-cue show phrase section cue)]
-    (when-let [expression-fn (get-in phrase [:cues :expression-fns (:uuid cue) kind])]
+    (when-let [expression-fn (get-in runtime-info [:cues :expression-fns (:uuid cue) kind])]
       (try
         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-          [(expression-fn status-or-beat {:locals  (:expression-locals phrase)
+          [(expression-fn status-or-beat {:locals  (:expression-locals runtime-info)
                                           :show    show
                                           :track   phrase
                                           :section section
@@ -69,7 +71,7 @@
                           (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/phrase-cue-editor-title kind phrase section cue) ":\n"
-                               (get-in phrase [:contents :expressions section kind])))
+                               (get-in cue [:expressions kind])))
           (when alert? (seesaw/alert (str "<html>Problem running phrase " (name section) " cue " (name kind)
                                           " expression.<br><br>" t)
                                      :title "Exception in Show Cue Expression" :type :error))
@@ -242,6 +244,45 @@
 
     ;; TODO: Draw the cues and selection.
     ))
+
+;; TODO: Before hooking this up, the cues window needs to be updated
+;; to cope with phrase trigger cues!
+(defn- edit-cues-action
+  "Creates the menu action which opens the phrase trigger's cue editor
+  window."
+  [show phrase panel]
+  (seesaw/action :handler (fn [_] (cues/open-cues show phrase panel))
+                 :name "Edit Phrase Cues"
+                 :tip "Set up cues that react to particular sections of the phrase being played."
+                 :icon (if (every? empty? (vals (get-in (latest-phrase show phrase) [:cues :cues])))
+                         "images/Gear-outline.png"
+                         "images/Gear-icon.png")))
+
+(defn- phrase-missing-expression?
+  "Checks whether the expression body of the specified kind is empty for
+  the specified phrase trigger."
+  [show phrase kind]
+  (str/blank? (get-in (latest-phrase show phrase) [:expressions kind])))
+
+(defn- phrase-editor-actions
+  "Creates the popup menu actions corresponding to the available
+  expression editors for a given phrase trigger."
+  [show phrase panel gear]
+  (for [[kind spec] @editors/show-phrase-editors]
+    (let [update-fn (fn []
+                      (when (= kind :setup)  ; Clean up then run the new setup function
+                        (run-phrase-function show phrase :shutdown nil true)
+                        (let [runtime-info (su/phrase-runtime-info (latest-show show) phrase)]
+                          (reset! (:expression-locals runtime-info) {}))
+                        (run-phrase-function show phrase :setup nil true))
+                      (su/update-phrase-gear-icon show phrase gear))]
+      (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
+                                       (latest-phrase show phrase) panel update-fn))
+                     :name (str "Edit " (:title spec))
+                     :tip (:tip spec)
+                     :icon (if (phrase-missing-expression? show phrase kind)
+                             "images/Gear-outline.png"
+                             "images/Gear-icon.png")))))
 
 (defn- expunge-deleted-phrase
   "Removes all the items from a show that need to be cleaned up when the
@@ -890,10 +931,10 @@
         phrase (merge phrase {:uuid     uuid
                               :creating true}) ; Suppress popup expression editors when reopening a show.
 
-        popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
+        popup-fn (fn [^MouseEvent _e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
                    ;; TODO: Implement the rest of these!
                    (concat [#_(edit-cues-action phrase panel) #_(seesaw/separator)]
-                           #_(phrase-editor-actions show phrase panel gear)
+                           (phrase-editor-actions show phrase panel gear)
                            [#_(seesaw/separator) #_(phrase-simulate-menu phrase) (su/phrase-inspect-action show phrase)
                             (seesaw/separator)]
                            [(seesaw/separator) (delete-phrase-action show phrase panel)]))

@@ -381,6 +381,53 @@
          (show-bindings-for-track)
          (when update-class (expressions/bindings-for-update-class update-class))))
 
+(defn- show-bindings-for-phrase
+  "Identifies symbols which can be used inside any show phrase trigger
+  expression, along with the expression that will be used to
+  automatically bind that symbol if it is used in the expression, and
+  the documentation to show the user what the binding is for."
+  []
+  {'phrase {:code '(:phrase trigger-data)
+           :doc (str "All the details saved about the phrase trigger. See the <a href=\""
+                    (help/user-guide-link "ShowInternals.html#phrase-contents")
+                    "\">User Guide</a> for details.")}
+
+   'midi-output {:code '((resolve 'beat-link-trigger.show-phrases/get-chosen-output)
+                         show (:phrase trigger-data))
+                 :doc "The MIDI output object chosen for this phrase trigger. May be
+  <code>nil</code> if the output device cannot be found in the current
+  MIDI environment."}
+
+   'message {:code '(get-in trigger-data [:phrase :message])
+                     :doc "The type of MIDI message to be sent when
+  a matched phrase starts or stops playing; one of <code>\"None\"</code>,
+  <code>\"Note\"</code>, <code>\"CC\"</code>, or
+  <code>\"Custom\"</code>."}
+
+   'note {:code '(get-in trigger-data [:phrase :note])
+                  :doc "The MIDI note or CC number sent when a matched
+  phrase starts or stops playing."}
+
+   'channel {:code '(get-in trigger-data [:phrase :channel])
+                     :doc "The MIDI channel on which phrase trigger
+  playing messages are sent."}
+
+   ;; TODO: Implement the equivalent for phrase triggers. And, current section? Anything else?
+   #_'playing-players #_{:code '(util/players-signature-set (:playing (:show trigger-data))
+                                                        (:signature (:track trigger-data)))
+                     :doc "The set of player numbers that are currently
+  playing this track, if any."}})
+
+(defn- show-bindings-for-phrase-and-class
+  "Collects the set of bindings for a show phrase trigger editor which
+  is called with a particular class of status object. Merges the
+  standard phrase trigger convenience bindings with those associated
+  with the specified class, which may be `nil`."
+  [update-class]
+  (merge (show-bindings)
+         (show-bindings-for-phrase)
+         (when update-class (expressions/bindings-for-update-class update-class))))
+
 (def global-show-editors
   "Specifies the kinds of editor which can be opened for a Show
   window overall, along with the details needed to describe and
@@ -646,6 +693,121 @@
    ;; TODO: Copy in lots of other status and/or beat information with safe finders?
    })
 
+(def show-phrase-editors
+  "Specifies the kinds of editor which can be opened for a show phrase
+  trigger, along with the details needed to describe and compile the
+  expressions they edit. Created as an explicit array map to keep the
+  keys in the order they are found here."
+  (delay (array-map
+          :setup {:title "Setup Expression"
+                  :tip "Called once to set up any state your other expressions may need."
+                  :description
+                  "Called once when the show is loaded, or when you update the
+  expression. Set up any state (such as counters, flags, or network
+  connections) that your other expressions for this phrase trigger
+  need. Use the Shutdown expression to clean up resources when the
+  show is shutting down."
+                  :bindings (show-bindings-for-phrase-and-class nil)}
+
+          :enabled {:title "Enabled Filter Expression"
+                    :tip "Called to see if phrase trigger should be enabled, and what to use when picking it."
+                    :description "Called whenever a new phrase starts playing on a
+  player if the phrase trigger's Enabled mode has been set to
+  Custom. Return a <code>true</code> value as the last expression to
+  enable the phrase trigger with weight 1, or a postive number to
+  enable it with that weight (it will be rounded to an integer, and
+  clipped to a maximum value of 1,000). The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
+                    ;; TODO: Set up special bindings that include track mood, phrase type keywords, see :beat-tpu.
+                    :bindings (show-bindings-for-phrase-and-class CdjStatus)}
+
+          :playing {:title "Playing Expression"
+                    :tip "Called when a player starts playing a phrase matching this trigger, if it was chosen."
+                    :description
+                    "Called when the phrase trigger is enabled by a phrase
+  that has just started to play, and this trigger was selected
+  as the one to run. You can use this to activate systems that do
+  not respond to MIDI, or to send more detailed information than MIDI
+  allows.<p>
+
+  The status update object which reported the phrase starting to play, a
+  beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
+                    ;; TODO: Same special bindings as enabled filter?
+                    :bindings (show-bindings-for-phrase-and-class CdjStatus)}
+
+          :beat {:title "Beat Expression"
+                 :tip "Called on each beat from devices playing the matched phrase."
+                 :description "Called whenever a beat packet is received from
+  a player that is playing the phrase that activated this trigger. You can use this for
+  beat-driven integrations with other systems.<p>
+
+  A tuple containing the raw beat object that was received and the
+  player track position inferred from it (a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
+  object), is available as <code>status</code>, and you can use normal
+  Clojure destructuring and <a
+  href=\"http://clojure.org/reference/java_interop\">Java interop
+  syntax</a> to access its fields and methods, but it is generally
+  easier to use the convenience variables described below."
+                 :bindings (show-bindings-for-phrase-and-class :beat-tpu)}
+
+          :tracked {:title "Tracked Update Expression"
+                    :tip "Called for each update from a player playing the matched phrase."
+                    :description
+                    "Called whenever a status update packet is received from
+  a player that is playing the phrase that activated this phrase trigger, after the Enabled Filter
+  Expression, if any, has had a chance to decide the phrase trigger is
+  enabled, and after the Playing or Stopped expression, if appropriate.
+  The status update object, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described below."
+                    :bindings (show-bindings-for-phrase-and-class CdjStatus)}
+
+          :stopped {:title "Stopped Expression"
+                    :tip "Called when all players stop playing the matched phrase."
+                    :description "Called when the last player stops
+  playing the matched phrase, if any had been. You can use this
+  to deactivate systems that do not respond to MIDI, or to send more
+  detailed information than MIDI allows.<p>
+
+  The status update object (if any) that reported the end of the phrase, a
+  beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  object, is available as <code>status</code>, and you can use normal
+  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
+  interop syntax</a> to access its fields and methods, but it is
+  generally easier to use the convenience variables described
+  below.<p>
+
+  Note that sometimes
+  <code>status</code> will be <code>nil</code>, such as when a device
+  has disappeared or the phrase settings have been changed, so your
+  expression must be able to cope with <code>nil</code> values for all
+  the convenience variables that it uses."
+                    :bindings (show-bindings-for-phrase-and-class CdjStatus)
+                    :nil-status? true}
+
+          :shutdown {:title "Shutdown Expression"
+                     :tip "Called once to release resources your phrase trigger had been using."
+                     :description
+                     "Called when when the phrase trigger is shutting down, either
+  because it was deleted or the show was closed. Close and release any
+  system resources (such as network connections) that you opened in
+  the Setup expression."
+                     :bindings (show-bindings-for-phrase-and-class nil)})))
+
 (defn- show-bindings-for-cue-and-class
   "Collects the set of bindings for a show cue editor which is called
   with a particular class of status object. Merges the standard show,
@@ -699,8 +861,7 @@
   code to handle both possibilities."
                             :bindings (show-bindings-for-cue-and-class :beat-tpu)}
           :started-late {:title    "Started Late Expression"
-                         :tip
-                         "Called when a player starts playing this cue later than its first beat, if the track is enabled."
+                         :tip "Called when a player starts playing this cue later than its first beat, if the track is enabled."
                          :description
                          "Called when the track is enabled and the first player
   starts playing the cue from somewhere other than the beginning of
@@ -846,58 +1007,105 @@
 
 (defn- find-show-expression-text
   "Returns the source code, if any, of the specified show expression
-  type for the specified show and track. If `track` is `nil`, `kind`
-  refers to a global expression."
-  [kind show track]
-  (get-in (show-util/latest-show show) (if track
-                                         [:tracks (:signature track) :contents :expressions kind]
-                                         [:contents :expressions kind])))
+  type for the specified show and track or phrase. If
+  `track-or-phrase` is `nil`, `kind` refers to a global expression."
+  [kind show track-or-phrase]
+  (get-in (show-util/latest-show show) (cond (:signature track-or-phrase)
+                                             [:tracks (:signature track-or-phrase) :contents :expressions kind]
+
+                                             (:uuid track-or-phrase)
+                                             [:contents :phrases (:uuid track-or-phrase) :expressions kind]
+
+                                             :else
+                                             [:contents :expressions kind])))
 
 (defn- find-show-expression-editor
   "Returns the open editor window, if any, for the specified show
-  expression type for the specified show and track. If `track` is
-  `nil`, `kind` refers to a global expression."
-  [kind show track]
-  (get-in (show-util/latest-show show) (if track
-                                         [:tracks (:signature track) :expression-editors kind]
+  expression type for the specified show and track or phrase. If
+  `track-or-phrase` is `nil`, `kind` refers to a global expression."
+  [kind show track-or-phrase]
+  (get-in (show-util/latest-show show) (cond
+                                         (:signature track-or-phrase)
+                                         [:tracks (:signature track-or-phrase) :expression-editors kind]
+
+                                         (:uuid track-or-phrase)
+                                         [:phrases (:uuid track-or-phrase) :expression-editors kind]
+
+                                         :else
                                          [:expression-editors kind])))
 
 (defn show-editor-title
   "Determines the title for a show expression editor window. If it is
-  from an individual track, identifies it as such."
-  [kind show track]
-  (let [title (get-in (if track @show-track-editors @global-show-editors) [kind :title])]
-    (if track
-      (str (or title kind) " for Track \"" (get-in track [:metadata :title]) "\"")
-      (str "Show \"" (fs/base-name (:file show) true) "\" " title))))
+  from an individual track or phrase trigger, identifies it as such."
+  [kind show track-or-phrase]
+  (let [title (get-in (cond (:signature track-or-phrase) @show-track-editors
+                            (:uuid track-or-phrase)      @show-phrase-editors
+                            :else                        @global-show-editors) [kind :title])]
+    (cond
+      (:signature track-or-phrase)
+      (str (or title kind) " for Track “" (get-in track-or-phrase [:metadata :title]) "”")
+
+      (:uuid track-or-phrase)
+      (str (or title kind) " for Phrase Trigger “" (show-util/phrase-display-title track-or-phrase) "”")
+
+      :else
+      (str "Show “" (fs/base-name (:file show) true) "” " title))))
 
 (defn- update-show-expression
   "Called when an show window expression's editor is ending and the user
   has asked to update the expression with the value they have edited.
   If `update-fn` is not nil, it will be called with no arguments."
-  [kind show track text update-fn]
-  (if track
-    (show-util/swap-track! track update :expression-fns dissoc kind) ; In case parse fails, leave nothing there.
-    (show-util/swap-show! show update :expression-fns dissoc kind))
+  [kind show track-or-phrase text update-fn]
+
+  ;; In case the parse fails, leave nothing as the compiled function.
+  (cond (:signature track-or-phrase)
+        (show-util/swap-track! track-or-phrase update :expression-fns dissoc kind)
+
+        (:uuid track-or-phrase)
+        (show-util/swap-phrase-runtime! show track-or-phrase update :expression-fns dissoc kind)
+
+        :else
+        (show-util/swap-show! show update :expression-fns dissoc kind))
+
   (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
-        editor-info (get (if track @show-track-editors @global-show-editors) kind)]
+        editor-info (get (cond (:signature track-or-phrase) @show-track-editors
+                               (:uuid track-or-phrase)      @show-phrase-editors
+                               :else                        @global-show-editors) kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it.
         (if (= kind :shared)
-          (expressions/define-shared-functions text (show-editor-title kind show track))
+          (expressions/define-shared-functions text (show-editor-title kind show track-or-phrase))
           (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                            (show-editor-title kind show track))]
-            (if track
-              (show-util/swap-track! track assoc-in [:expression-fns kind] compiled)
+                                                            (show-editor-title kind show track-or-phrase))]
+            (cond
+              (:signature track-or-phrase)
+              (show-util/swap-track! track-or-phrase assoc-in [:expression-fns kind] compiled)
+
+              (:uuid track-or-phrase)
+              (show-util/swap-phrase-runtime! show track-or-phrase assoc-in [:expression-fns kind] compiled)
+
+              :else
               (show-util/swap-show! show assoc-in [:expression-fns kind] compiled)))))
-      (when-let [editor (find-show-expression-editor kind show track)]
+      (when-let [editor (find-show-expression-editor kind show track-or-phrase)]
         (dispose editor)  ; Close the editor
-        (if track
-          (show-util/swap-track! track update :expression-editors dissoc kind)
+        (cond
+          (:signature track-or-phrase)
+          (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
+
+          (:uuid track-or-phrase)
+          (show-util/swap-phrase-runtime! show track-or-phrase update :expression-editors dissoc kind)
+
+          :else
           (show-util/swap-show! show update :expression-editors dissoc kind)))
-      (if track
-        (show-util/swap-track! track assoc-in [:contents :expressions kind] text)
-        (show-util/swap-show! show assoc-in [:contents :expressions kind] text))  ; Save the new text.
+      (cond    ; Save the new text.
+        (:signature track-or-phrase)
+        (show-util/swap-track! track-or-phrase assoc-in [:contents :expressions kind] text)
+
+        (:uuid track-or-phrase)
+        (show-util/swap-phrase! show track-or-phrase assoc-in [:expressions kind] text)
+
+        :else
+        (show-util/swap-show! show assoc-in [:contents :expressions kind] text))
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
@@ -1371,10 +1579,11 @@ a {
   "Create and show a window for editing the Clojure code of a particular
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
-  [kind show track parent-frame update-fn]
-  (let [text            (find-show-expression-text kind show track)
-        save-fn         (fn [text] (update-show-expression kind show track text update-fn))
-        ^JFrame root    (seesaw/frame :title (show-editor-title kind show track) :on-close :nothing :size [800 :by 600])
+  [kind show track-or-phrase parent-frame update-fn]
+  (let [text            (find-show-expression-text kind show track-or-phrase)
+        save-fn         (fn [text] (update-show-expression kind show track-or-phrase text update-fn))
+        ^JFrame root    (seesaw/frame :title (show-editor-title kind show track-or-phrase)
+                                      :on-close :nothing :size [800 :by 600])
         editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
         scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
         editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
@@ -1382,9 +1591,14 @@ a {
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn        (fn [] (if track
-                                 (show-util/swap-track! track update :expression-editors dissoc kind)
-                                 (show-util/swap-show! show update :expression-editors dissoc kind)))]
+        close-fn        (fn [] (cond (:signature track-or-phrase)
+                                     (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
+
+                                     (:uuid track-or-phrase)
+                                     (show-util/swap-phrase-runtime! show track-or-phrase
+                                                                     update :expression-editors dissoc kind)
+                                     :else
+                                     (show-util/swap-show! show update :expression-editors dissoc kind)))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
@@ -1393,7 +1607,7 @@ a {
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
-                                     (not= (util/remove-blanks (find-show-expression-text kind show track))
+                                     (not= (util/remove-blanks (find-show-expression-text kind show track-or-phrase))
                                            (util/remove-blanks (seesaw/text e))))))
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
@@ -1411,7 +1625,10 @@ a {
     (.setCaretPosition editor 0)
     (.discardAllEdits editor)
     (.setContentType help "text/html")
-    (.setText help (build-show-help kind (not track) (if track @show-track-editors @global-show-editors)))
+    (.setText help (build-show-help kind (not track-or-phrase)
+                                    (cond (:signature track-or-phrase) @show-track-editors
+                                          (:uuid track-or-phrase)      @show-phrase-editors
+                                          :else                        @global-show-editors)))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -1426,7 +1643,7 @@ a {
     (let [result
           (reify IExpressionEditor
             (retitle [_]
-              (seesaw/config! root :title (show-editor-title kind show track)))
+              (seesaw/config! root :title (show-editor-title kind show track-or-phrase)))
             (show [_]
               (.setLocationRelativeTo root parent-frame)
               (seesaw/show! root)
@@ -1435,26 +1652,38 @@ a {
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
-      (if track
-        (show-util/swap-track! track assoc-in [:expression-editors kind] result)
+      (cond
+        (:signature track-or-phrase)
+        (show-util/swap-track! track-or-phrase assoc-in [:expression-editors kind] result)
+
+        (:uuid track-or-phrase)
+        (show-util/swap-phrase-runtime! show track-or-phrase assoc-in [:expression-editors kind] result)
+
+        :else
         (show-util/swap-show! show assoc-in [:expression-editors kind] result))
       result)))
 
 (defn show-show-editor
   "Find or create the editor for the specified kind of expression
-  associated with the specified show (and optionally track), make it
-  visible, and add it to the show's list of active editors. Register
-  an update function to be invoked with no arguments when the user has
-  successfully updated the expression. If `track` is `nil` we are
-  editing global expressions."
-  [kind show-map track parent-frame update-fn]
+  associated with the specified show (and optionally track or phrase),
+  make it visible, and add it to the show's list of active editors.
+  Register an update function to be invoked with no arguments when the
+  user has successfully updated the expression. If `track-or-phrase`
+  is `nil` we are editing global expressions."
+  [kind show-map track-or-phrase parent-frame update-fn]
   ;; We need to use `show-map` instead of `show` as the argument name so we can call the show function
   ;; defined in the editor's `IExpressionEditor` implemntation. D'ohh!
   (try
-    (let [editor (or (get-in show-map (if track
-                                        [:tracks (:signature track) :expression-editors kind]
+    (let [editor (or (get-in show-map (cond
+                                        (:signature track-or-phrase)
+                                        [:tracks (:signature track-or-phrase) :expression-editors kind]
+
+                                        (:uuid track-or-phrase)
+                                        [:phrases (:uuid track-or-phrase) :expression-editors kind]
+
+                                        :else
                                         [:expression-editors kind]))
-                     (create-show-editor-window kind show-map track parent-frame update-fn))]
+                     (create-show-editor-window kind show-map track-or-phrase parent-frame update-fn))]
       (show editor))
     (catch Throwable t
       (timbre/error t "Problem showing show" kind "editor"))))

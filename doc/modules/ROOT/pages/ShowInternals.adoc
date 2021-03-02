@@ -77,6 +77,15 @@ which tracks are currently loaded into players that are on the air
 according to the mixer. (Requires a DJM mixer, and the players and
 mixer must be configured to offer the on-air feature.)
 
+[[phrases-map]]
+`:phrases`:: A map holding runtime (not saved) information about all
+<<phrase-triggers,phrase triggers>> in the show, such as the user
+interface panels which display them. The keys are
+<<phrase-uuid,UUIDs>> randomly assigned to the phrase triggers when
+they are created. The values that are more likely to be useful to you
+are in the corresponding map within the <<phrase-contents,show
+contents section>>.
+
 `:playing`:: A map from player numbers to the track signature of the
 track, if any, currently playing on that player.
 
@@ -85,19 +94,6 @@ track, if any, currently playing on that player.
 keys are the track's signatures, and the values are the track maps
 described in the <<track,Track section>>.
 
-`:visible`:: A vector of the signatures of all the tracks that are
-currently visible in the show window, in the order in which they
-appear. This can be affected by the **Filter** text field at the top
-of the window as well as the **Loaded Only** checkbox next to it.
-
-[[phrases-map]]
-`:phrases`:: A map holding runtime (not saved) information about all
-phrase triggers in the show, such as the user interface panels which
-display them. The keys are <<phrase-uuid,UUIDs>> randomly assigned to
-the phrase triggers when they are created. The values that are more
-likely to be useful to you are in the corresponding map in the
-<<show-contents,show contents>>, described below. section>>.
-
 [[vis-phrases]]
 `:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the
 phrase triggers that are currently visible inthe show window, in the
@@ -105,6 +101,11 @@ order in which they appear. This can be affected by the **Filter**
 text field at the top of the window (filtering on the phrase triggers'
 comments), as well as the **Loaded Only** checkbox next to it (showing
 only currently-active phrase triggers).
+
+`:visible`:: A vector of the signatures of all the tracks that are
+currently visible in the show window, in the order in which they
+appear. This can be affected by the **Filter** text field at the top
+of the window as well as the **Loaded Only** checkbox next to it.
 
 [[show-contents]]
 === Show Contents
@@ -139,8 +140,8 @@ regardless of their current visibility.
 `:phrases`:: A map holding persistent (saved) information about all
 phrase triggers in the show. The keys are <<phrase-uuid,UUIDs>>
 randomly assigned to the phrase triggers when they are created, and
-the values are the phrase trigger maps described in the
-<<phrase-triggers,Phrase Trigger section>>.
+the values are the phrase trigger contents maps described in the
+<<phrase-contents,Phrase Trigger Contents section>>.
 
 `:window`:: The left and right coordinates of the show window on the
 screen, and its height and width, for use in restoring the window when
@@ -419,16 +420,12 @@ In addition to tracks, starting with version 7, shows can also contain
 phrase triggers, which can run cues whenever a track plays a
 particular kind of phrase (as analyzed by rekordbox).
 
-Each phrase trigger map contains everything Beat Link Trigger needs to
-know about a phrase trigger in a show in order to be able to display
-it and run cues in it. Some of the elements are not suitable for use
-by expressions, but some can be quite useful. It is passed to all
-phrase trigger expressions as the value `trigger`, and all phrase
-triggers in the show can be found in the `show` map under the keyword
-`:phrases`, further indexed by their <<phrase-uuid,UUIDs>>.
-
-`:contents`:: The basic configuration information for the phrase
-trigger, described <<phrase-contents,below>>.
+The phrase information is split into two parts, both of which are
+indexed by the phrase <<phrase-uuid,UUID>>. This part, found under the
+key `:phrases` in the show map is computed at runtime for rapid and
+efficient display and processing but is not stored in the show file.
+The <<phrase-contents,saved part>> is found in the show `:content` map,
+also under the key `:phrases` there.
 
 `:cues`:: Holds working information about the current state of the
 cues in the phrase trigger, for convenient and efficient display and
@@ -469,9 +466,19 @@ indicator>> of the phrase trigger row).
 [[phrase-contents]]
 === Phrase Trigger Contents
 
-The `:contents` map contains information that can be directly saved
-into the show file to represent the phrase trigger configuration the
-user has chosen. Some elements that might be useful include:
+Each phrase trigger contents map contains everything Beat Link Trigger
+needs to know about a phrase trigger in a show in order to be able to
+display it and run cues in it. Some of the elements are not suitable
+for use by expressions, but some can be quite useful. It is passed to
+all phrase trigger expressions as the value `trigger`. Note that
+phrase triggers also have a <<phrase-triggers,runtime information
+map>>, which is found directly in the show map, and not saved as part
+of the show file.
+
+The phrase trigger contents map, found within the show `:contents` map
+contains information that can be directly saved into the show file to
+represent the phrase trigger configuration the user has chosen. Some
+elements that might be useful include:
 
 `:comment`:: The comment text, if any, entered to describe the phrase
 trigger. This can be used to filter visible phrase triggers.
