@@ -7,7 +7,8 @@
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
                                                         swap-show! swap-phrase! swap-phrase-runtime!
-                                                        phrase-runtime-info find-phrase-cue swap-phrase-cue!]]
+                                                        phrase-runtime-info find-phrase-cue swap-phrase-cue!
+                                                        get-chosen-output no-output-chosen]]
             [beat-link-trigger.util :as util]
             [clojure.set]
             [clojure.string :as str]
@@ -47,34 +48,6 @@
                                (get-in phrase [:contents :expressions kind])))
           (when alert? (seesaw/alert (str "<html>Problem running phrase trigger " (name kind) " expression.<br><br>" t)
                                      :title "Exception in Show Phrase Trigger Expression" :type :error))
-          [nil t])))))
-
-(defn run-cue-function
-  "Checks whether the cue has a custom function of the specified kind
-  installed and if so runs it with the supplied status or beat
-  argument, the cue, and the track local and global atoms. Returns a
-  tuple of the function return value and any thrown exception. If
-  `alert?` is `true` the user will be alerted when there is a problem
-  running the function."
-  [show phrase section cue kind status-or-beat alert?]
-  (let [[show phrase] (latest-show-and-phrase show phrase)
-        runtime-info  (su/phrase-runtime-info show phrase)
-        cue           (find-phrase-cue show phrase section cue)]
-    (when-let [expression-fn (get-in runtime-info [:cues :expression-fns (:uuid cue) kind])]
-      (try
-        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-          [(expression-fn status-or-beat {:locals  (:expression-locals runtime-info)
-                                          :show    show
-                                          :track   phrase
-                                          :section section
-                                          :cue     cue}
-                          (:expression-globals show)) nil])
-        (catch Throwable t
-          (timbre/error t (str "Problem running " (editors/phrase-cue-editor-title kind phrase section cue) ":\n"
-                               (get-in cue [:expressions kind])))
-          (when alert? (seesaw/alert (str "<html>Problem running phrase " (name section) " cue " (name kind)
-                                          " expression.<br><br>" t)
-                                     :title "Exception in Show Cue Expression" :type :error))
           [nil t])))))
 
 (defn update-cue-gear-icon
@@ -258,6 +231,38 @@
                          "images/Gear-outline.png"
                          "images/Gear-icon.png")))
 
+(defn- send-playing-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a phrase trigger has been chosen and is now playing.
+  `show` and `phrase` must be current."
+  [show phrase status]
+  (try
+    (let [{:keys [message note channel]} phrase]
+      (when (#{"Note" "CC"} message)
+        (when-let [output (su/get-chosen-output show phrase)]
+          (case message
+            "Note" (midi/midi-note-on output note 127 (dec channel))
+            "CC"   (midi/midi-control output note 127 (dec channel)))))
+      (when (= "Custom" message) (run-phrase-function show phrase :playing status false)))
+    (catch Exception e
+      (timbre/error e "Problem reporting playing phrase trigger."))))
+
+(defn- send-stopped-messages
+  "Sends the appropriate MIDI messages and runs the custom expression to
+  indicate that a phrase trigger is no longer playing. `show` and
+  `phrase` must be current."
+  [show phrase status]
+  (try
+    (let [{:keys [message note channel]} phrase]
+      (when (#{"Note" "CC"} message)
+        (when-let [output (su/get-chosen-output show phrase)]
+          (case message
+            "Note" (midi/midi-note-off output note (dec channel))
+            "CC"   (midi/midi-control output note 0 (dec channel)))))
+      (when (= "Custom" message) (run-phrase-function show phrase :stopped status false)))
+    (catch Exception e
+      (timbre/error e "Problem reporting stopped phrase trigger."))))
+
 (defn- phrase-missing-expression?
   "Checks whether the expression body of the specified kind is empty for
   the specified phrase trigger."
@@ -284,6 +289,65 @@
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
 
+(defn phrase-event-enabled?
+  "Checks whether the Message menu is set to something other than None,
+  and if Custom, there is a non-empty expression body of the specified
+  kind."
+  [show phrase kind]
+  (let [phrase (latest-phrase show phrase)
+        message (:message phrase)]
+    (cond
+      (= "None" message)
+      false
+
+      (= "Custom" message)
+      (not (phrase-missing-expression? show phrase kind))
+
+      :else ; Is a MIDI note or CC
+      true)))
+
+(defn- phrase-simulate-actions
+  "Creates the actions that simulate events happening to the phrase, for
+  testing expressions or creating and testing MIDI mappings in other
+  software."
+  [show phrase]
+  [(seesaw/action :name "Playing"
+                  :enabled? (phrase-event-enabled? show phrase :playing)
+                  :handler (fn [_] (apply send-playing-messages (concat (latest-show-and-phrase show phrase)
+                                                                        [(su/random-cdj-status)]))))
+   (seesaw/action :name "Beat"
+                  :enabled? (not (phrase-missing-expression? show phrase :beat))
+                  :handler (fn [_] (run-phrase-function
+                                    show phrase :beat
+                                    (su/random-beat-and-position nil) true)))
+   (seesaw/action :name "Tracked Update"
+                  :enabled? (not (phrase-missing-expression? show phrase :tracked))
+                  :handler (fn [_] (run-phrase-function show phrase :tracked (su/random-cdj-status) true)))
+   (seesaw/action :name "Stopped"
+                  :enabled? (phrase-event-enabled? show phrase :stopped)
+                  :handler (fn [_] (apply send-stopped-messages (concat (latest-show-and-phrase show phrase)
+                                                                        [(su/random-cdj-status {:f 0})]))))])
+
+(defn- phrase-simulate-menu
+  "Creates the submenu containing actions that simulate events happening
+  to the phrase trigger, for testing expressions or creating and
+  testing MIDI mappings in other software."
+  [show phrase]
+  (seesaw/menu :text "Simulate" :items (phrase-simulate-actions show phrase)))
+
+(defn- remove-uuid
+  "Filters a map from players to signatures (such as
+  the :playing-phrases entry in a show) to remove any keys whose value
+  match the supplied uuid. This is used as part of cleaning up a show
+  when a phrase trigger has been deleted."
+  [player-map uuid]
+  (reduce (fn [result [k v]]
+            (if (= v uuid)
+              result
+              (assoc result k v)))
+          {}
+          player-map))
+
 (defn- expunge-deleted-phrase
   "Removes all the items from a show that need to be cleaned up when the
   phrase trigger has been deleted. This function is designed to be
@@ -294,7 +358,7 @@
       (update :panels dissoc panel)
       (update-in [:contents :phrases] dissoc (:uuid phrase))
       (update-in [:contents :phrase-order] (fn [old-order] (filterv (complement #{(:uuid phrase)}) old-order)))
-      #_(update :playing remove-signature (:signature track))))  ; TODO: What is the equivalent for phrases?
+      (update :playing-phrases remove-uuid (:uuid phrase))))
 
 (defn- close-phrase-editors?
   "Tries closing all open expression and cue editors for the phrase
@@ -330,9 +394,8 @@
         (doseq [[section cues] (get-in phrase [:cues :cues])
                 cue             cues]
           #_(cues/cleanup-phrase-cue true phrase section cue))  ; TODO: Something like this?
-        #_(when ((set (vals (:playing show))) (:signature track))
-          (send-stopped-messages track nil))  ; TODO: And something like this?
-        )
+        (when ((set (vals (:playing-phrases show))) (:uuid phrase))
+          (send-stopped-messages show phrase nil)))
       (run-phrase-function show phrase :shutdown nil (not force?)))
     true))
 
@@ -393,33 +456,6 @@
   assigned to the phrase trigger in the show, if any."
   [comment]
   (str/lower-case (or comment "")))
-
-(defn get-chosen-output
-  "Return the MIDI output to which messages should be sent for a given
-  phrase trigger, opening it if this is the first time we are using
-  it, or reusing it if we already opened it. Returns `nil` if the
-  output can not currently be found (it was disconnected, or present
-  in a loaded file but not on this system). to be reloaded."
-  [show phrase]
-  (when-let [^MidiChoice selection (:midi-device (latest-phrase show phrase))]
-    (let [device-name (.full_name selection)]
-      (or (get @util/opened-outputs device-name)
-          (try
-            (let [new-output (midi/midi-out (str "^" (java.util.regex.Pattern/quote device-name) "$"))]
-              (swap! util/opened-outputs assoc device-name new-output)
-              new-output)
-            (catch IllegalArgumentException e  ; The chosen output is not currently available
-              (timbre/debug e "Phrase trigger using nonexisting MIDI output" device-name))
-            (catch Exception e  ; Some other problem opening the device
-              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
-
-(defn no-output-chosen
-  "Returns truthy if the MIDI output menu for a phrase trigger is empty,
-  which will probably only happen if there are no MIDI outputs
-  available on the host system, but we still want to allow non-MIDI
-  expressions to operate."
-  [show phrase]
-  (not (:midi-device (latest-phrase show phrase))))
 
 (defn show-midi-status
   "Set the visibility of the Enabled menu and the text and color
@@ -944,7 +980,8 @@
                    ;; TODO: Implement the rest of these!
                    (concat [#_(edit-cues-action phrase panel) #_(seesaw/separator)]
                            (phrase-editor-actions show phrase panel gear)
-                           [#_(seesaw/separator) #_(phrase-simulate-menu phrase) (su/phrase-inspect-action show phrase)
+                           [(seesaw/separator) (phrase-simulate-menu show phrase)
+                            (su/phrase-inspect-action show phrase)
                             (seesaw/separator)]
                            [(seesaw/separator) (delete-phrase-action show phrase panel)]))
 
@@ -1027,7 +1064,7 @@
          uuid   (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))
          phrase (get-in show [:contents :phrases uuid])
          tracks (seesaw/select (:frame show) [:#tracks])]
-     (if (some #(= uuid %) (:vis-phrases show))
+     (if (some #(= uuid %) (:visible-phrases show))
        (seesaw/invoke-later
         (let [^JPanel panel (get-in show [:phrases uuid :panel])]
           (seesaw/scroll! tracks :to (.getBounds panel))

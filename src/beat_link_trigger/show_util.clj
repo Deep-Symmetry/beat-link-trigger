@@ -11,7 +11,7 @@
             [taoensso.timbre :as timbre]
             [thi.ng.color.core :as color])
   (:import [beat_link_trigger.util MidiChoice]
-           [org.deepsymmetry.beatlink CdjStatus$TrackSourceSlot]
+           [org.deepsymmetry.beatlink CdjStatus$TrackSourceSlot VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference WaveformDetail WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
            [java.awt Color]
@@ -330,7 +330,7 @@
   be a UUID or a full cue map."
   [show phrase section cue f & args]
   (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
-    (swap-phrase! show phrase #(apply update-in % [:contents :cues :cues section uuid] f args))))
+    (swap-phrase! show phrase #(apply update-in % [:cues :cues section uuid] f args))))
 
 (defn find-phrase-cue
   "Accepts either a UUID or a cue, and looks up the cue in the latest
@@ -338,7 +338,7 @@
   of `:start`, `:loop`, `:end`, or `:fill`)."
   [show phrase section uuid-or-cue]
   (let [phrase (latest-phrase show phrase)]
-    (get-in phrase [:contents :cues :cues section (if (instance? UUID uuid-or-cue)
+    (get-in phrase [:cues :cues section (if (instance? UUID uuid-or-cue)
                                                     uuid-or-cue
                                                     (:uuid uuid-or-cue))])))
 
@@ -451,15 +451,34 @@
      (random-beat)
      (random-cdj-status options))))
 
+(def ^:private sample-beatgrid
+  "Holds a beat grid that can be used by `random-beat-and-position`.
+  Delayed so it is not loaded until it is actually used."
+  (delay
+   (let [url (.getResource VirtualCdj "/beat_link_trigger/sampleTracks/1")
+         uri (.toURI url)
+         ref (DataReference. 1 (rand-nth [CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT])
+                             (inc (rand-int 3000)))]
+    (if (= (.getScheme uri) "jar")
+      (let [conn            (.openConnection url) ; Running from a jar, need to open a jar filesystem.
+            jar-file-path   (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
+            ^ClassLoader cl nil
+            entry-name      (.getEntryName conn)]
+        (with-open [jar-filesystem (java.nio.file.FileSystems/newFileSystem jar-file-path cl)]
+          (read-beat-grid (.getPath jar-filesystem entry-name (into-array String [])) ref)))
+      ;; We are not running from a jar, and can build the path to the sample track directly.
+      (read-beat-grid (java.nio.file.Paths/get uri) ref)))))
+
 (defn random-beat-and-position
   "Creates random, mutually consistent
   [`Beat`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
   and
   [`TrackPositionUpdate`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html)
   objects for simulating expression calls, using the track
-  [`BeatGrid`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html)."
+  [`BeatGrid`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html).
+  If `track` is `nil`, an example beat grid is used instead."
   [track]
-  (let [^BeatGrid grid (:grid track)
+  (let [^BeatGrid grid (if track (:grid track) @sample-beatgrid)
         beat           (inc (rand-int (.beatCount grid)))
         time           (.getTimeWithinTrack grid beat)]
     [(util/simulate-beat {:beat          (.getBeatWithinBar grid beat)
@@ -467,33 +486,44 @@
                           :bpm           (+ 4000 (rand-int 12000))})
      (org.deepsymmetry.beatlink.data.TrackPositionUpdate. (System/nanoTime) time beat true true 1.0 false grid)]))
 
-(defn get-chosen-output
-  "Return the MIDI output to which messages should be sent for a given
-  track, opening it if this is the first time we are using it, or
-  reusing it if we already opened it. Returns `nil` if the output can
-  not currently be found (it was disconnected, or present in a loaded
-  file but not on this system).
-  to be reloaded."
-  [track]
-  (when-let [^MidiChoice selection (get-in (latest-track track) [:contents :midi-device])]
-    (let [device-name (.full_name selection)]
+(defn- get-chosen-output-internal
+  "Finishes the task of `get-chosen-output` (see below) after the track
+  or phrase trigger specific work of finding the selection value is
+  done."
+  [selection]
+  (let [device-name (.full_name selection)]
       (or (get @util/opened-outputs device-name)
           (try
             (let [new-output (midi/midi-out (str "^" (java.util.regex.Pattern/quote device-name) "$"))]
               (swap! util/opened-outputs assoc device-name new-output)
               new-output)
             (catch IllegalArgumentException e  ; The chosen output is not currently available
-              (timbre/debug e "Track using nonexisting MIDI output" device-name))
+              (timbre/debug e "Track or phrase trigger using nonexisting MIDI output" device-name))
             (catch Exception e  ; Some other problem opening the device
-              (timbre/error e "Problem opening device" device-name "(treating as unavailable)")))))))
+              (timbre/error e "Problem opening device" device-name "(treating as unavailable)"))))))
+
+(defn get-chosen-output
+  "Return the MIDI output to which messages should be sent for a given
+  track or phrase trigger, opening it if this is the first time we are
+  using it, or reusing it if we already opened it. Returns `nil` if
+  the output can not currently be found (it was disconnected, or
+  present in a loaded file but not on this system). to be reloaded."
+  ([track]
+   (when-let [^MidiChoice selection (get-in (latest-track track) [:contents :midi-device])]
+     (get-chosen-output-internal selection)))
+  ([show phrase]
+   (when-let [^MidiChoice selection (:midi-device (latest-phrase show phrase))]
+    (get-chosen-output-internal selection))))
 
 (defn no-output-chosen
-  "Returns truthy if the MIDI output menu for a track is empty, which
-  will probably only happen if there are no MIDI outputs available on
-  the host system, but we still want to allow non-MIDI expressions to
-  operate."
-  [track]
-  (not (get-in (latest-track track) [:contents :midi-device])))
+  "Returns truthy if the MIDI output menu for a track or phrase trigger
+  is empty, which will probably only happen if there are no MIDI
+  outputs available on the host system, but we still want to allow
+  non-MIDI expressions to operate."
+  ([track]
+   (not (get-in (latest-track track) [:contents :midi-device])))
+  ([show phrase]
+   (not (:midi-device (latest-phrase show phrase)))))
 
 (defn enabled?
   "Checks whether the track is enabled, given its configuration and
@@ -590,7 +620,7 @@
                                                ))
                                       (get-in show [:contents :phrases uuid])))))]
     (swap-show! show assoc :visible (mapv :signature sorted-tracks)
-                :vis-phrases (mapv :uuid visible-phrases))
+                :visible-phrases (mapv :uuid visible-phrases))
     (doall (map (fn [row color]
                   (seesaw/config! (:panel row) :background color))
                 sorted-tracks (cycle ["#eee" "#ddd"])))
