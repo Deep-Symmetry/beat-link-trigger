@@ -224,6 +224,21 @@
         (seesaw/invoke-later  ; Wait for re-layout if necessary.
          (seesaw/scroll! wave :to (.getBounds (track-cue-rectangle track cue wave))))))))
 
+(defn scroll-phrase-canvas-to-cue
+  "Makes sure the specified cue is visible in the cue canvas of the cues
+  editor window."
+  [show phrase section cue]
+  (let [[show phrase] (latest-show-and-phrase show phrase)
+        cue           (find-phrase-cue show phrase section cue)
+        runtime-info  (phrase-runtime-info show phrase)]
+    (when-let [editor (:cues-editor runtime-info)]
+      (let [auto-scroll (seesaw/select (:panel editor) [:#auto-scroll])
+            canvas      (:canvas editor)]
+        (seesaw/config! auto-scroll :selected? false)  ; Make sure auto-scroll is turned off.
+        (seesaw/invoke-later  ; Wait for re-layout if necessary.
+         ;; TODO: Uncomment once phrase-cue-rectangle is ready.
+         #_(seesaw/scroll! canvas :to (.getBounds (phrase-cue-rectangle show phrase section cue canvas))))))))
+
 ;; TODO: Need scroll-phrase-canvas-to-cue
 
 (defn- update-track-cue-spinner-models
@@ -375,54 +390,88 @@
   ([show phrase section cue]
    (seesaw/menu :text "Simulate" :items (cue-simulate-actions show phrase section cue))))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
-
 (defn- assign-cue-hue
   "Picks a color for a new cue by cycling around the color wheel, and
   recording the last one used."
-  [track]
-  (let [shows (swap-track! track update-in [:contents :cues :hue]
-                           (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
-    (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
+  ([track]
+   (let [shows (swap-track! track update-in [:contents :cues :hue]
+                            (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
+     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
+  ([show phrase]
+   (let [shows (swap-phrase! show phrase update-in [:cues :hue]
+                             (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
+     (get-in shows [(:file show) :contents :phrases (:uuid phrase) :cues :hue]))))
 
 (defn- scroll-wave-to-cue-action
   "Creates the menu action which scrolls the waveform detail to ensure
   the specified cue is visible."
-  [track cue]
-  (seesaw/action :handler (fn [_] (scroll-wave-to-cue track cue))
-                 :name "Scroll Waveform to This Cue"))
+  ([track cue]
+   (seesaw/action :handler (fn [_] (scroll-wave-to-cue track cue))
+                  :name "Scroll Waveform to This Cue"))
+  ([show phrase section cue]
+   (seesaw/action :handler (fn [_] (scroll-phrase-canvas-to-cue show phrase section cue))
+                  :name "Scroll Waveform to This Cue")))
 
 (defn- duplicate-cue-action
   "Creates the menu action which duplicates an existing cue."
-  [track cue]
-  (seesaw/action :handler (fn [_]
-                            (try
-                              (let [uuid    (java.util.UUID/randomUUID)
-                                    track   (latest-track track)
-                                    cue     (find-cue track cue)
-                                    comment (util/assign-unique-name
-                                             (map :comment (vals (get-in track [:contents :cues :cues])))
-                                             (:comment cue))
-                                    new-cue (merge cue {:uuid    uuid
-                                                        :hue     (assign-cue-hue track)
-                                                        :comment comment})]
-                                (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
-                                (build-cues track)
-                                (scroll-to-track-cue track new-cue true))
-                              (catch Exception e
-                                (timbre/error e "Problem duplicating cue")
-                                (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
-                 :name "Duplicate Cue"))
+
+  ([track cue]
+   (seesaw/action :handler (fn [_]
+                             (try
+                               (let [uuid    (java.util.UUID/randomUUID)
+                                     track   (latest-track track)
+                                     cue     (find-cue track cue)
+                                     comment (util/assign-unique-name
+                                              (map :comment (vals (get-in track [:contents :cues :cues])))
+                                              (:comment cue))
+                                     new-cue (merge cue {:uuid    uuid
+                                                         :hue     (assign-cue-hue track)
+                                                         :comment comment})]
+                                 (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
+                                 (build-cues track)
+                                 (scroll-to-track-cue track new-cue true))
+                               (catch Exception e
+                                 (timbre/error e "Problem duplicating cue")
+                                 (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
+                  :name "Duplicate Cue"))
+
+  ([show phrase section cue]
+   (seesaw/action :handler (fn [_]
+                             (try
+                               (let [uuid          (java.util.UUID/randomUUID)
+                                     [show phrase] (latest-show-and-phrase show phrase)
+                                     cue           (find-phrase-cue show phrase section cue)
+                                     comment       (util/assign-unique-name
+                                                    (map :comment (mapcat vals (vals (get-in phrase [:cues :cues]))))
+                                                    (:comment cue))
+                                     new-cue       (merge cue {:uuid    uuid
+                                                               :hue     (assign-cue-hue show phrase)
+                                                               :comment comment})]
+                                 (swap-phrase! show phrase assoc-in [:cues :cues section uuid] new-cue)
+                                 (build-cues show phrase)
+                                 (scroll-to-phrase-cue show phrase section new-cue true))
+                               (catch Exception e
+                                 (timbre/error e "Problem duplicating cue")
+                                 (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
+                  :name "Duplicate Cue")))
 
 (defn- expunge-deleted-cue
-  "Removes all the items from a track that need to be cleaned up when
-  the cue has been deleted. This function is designed to be used in a
-  single swap! call for simplicity and efficiency."
-  [track cue]
-  (let [uuid (:uuid cue)]
-    (-> track
-        (update-in [:contents :cues :cues] dissoc uuid)
-        (update-in [:cues-editor :panels] dissoc uuid))))
+  "Removes all the items from a track or phrase trigger that need to be
+  cleaned up when the cue has been deleted. This function is designed
+  to be used in a single swap! call for simplicity and efficiency."
+  ([track cue]
+   (let [uuid (:uuid cue)]
+     (-> track
+         (update-in [:contents :cues :cues] dissoc uuid)
+         (update-in [:cues-editor :panels] dissoc uuid))))
+  ([show phrase section cue]
+   (let [cue-uuid    (:uuid cue)
+         phrase-uuid (:uuid phrase)]
+     (-> show
+         (update-in [:contents :phrases phrase-uuid :cues :cues section] dissoc cue-uuid)
+         (update-in [:phrases phrase-uuid :cues-editor :panels] dissoc cue-uuid)))))
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
 
 (defn- close-cue-editors?
   "Tries closing all open expression editors for the cue. If `force?` is
