@@ -36,6 +36,44 @@
   []
   @open-shows)
 
+(defonce ^{:private true
+           :doc "Holds a map from phrase UUIDs to the files of the
+  shows in which they belong, to enable them to be more conveniently
+  passed around and manipulated, even though they can't have that
+  link as an internal element like tracks, because they live entirely
+  within the saved content of the show."}
+  phrase-show-files (atom {}))
+
+(defn track?
+  "Given a cue context, returns truthy if it is a track map."
+  [context]
+  (:signature context))
+
+(defn phrase?
+  "Given a cue context, returns truthy if it is a phrase trigger map."
+  [context]
+  (:uuid context))
+
+(defn phrase-added
+  "Records that a phrase exists in a show, so that its show can be
+  easily found for updates."
+  [show phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (swap! phrase-show-files assoc uuid (:file show))))
+
+(defn phrase-removed
+  "Records that a phrase no longer exists in a show."
+  [phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (swap! phrase-show-files dissoc uuid)))
+
+(defn show-from-phrase
+  "Looks up the show to which a phrase belongs, given its registered
+  UUID."
+  [phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (get @open-shows (get @phrase-show-files uuid))))
+
 (defn build-filesystem-path
   "Construct a path in the specified filesystem; translates from
   idiomatic Clojure to Java interop with the `java.nio` package."
@@ -136,16 +174,22 @@
 (defn latest-phrase
   "Returns the current version of a phrase trigger given a potentially
   stale copy."
-  [show phrase]
-  (get-in (latest-show show) [:contents :phrases (:uuid phrase)]))
+  ([phrase]
+   (let [show (show-from-phrase phrase)]
+     (get-in show [:contents :phrases (:uuid phrase)])))
+  ([show phrase]
+   (get-in (latest-show show) [:contents :phrases (:uuid phrase)])))
 
 (defn latest-show-and-phrase
   "Returns the latest version of the show to which the supplied phrase
   trigger belongs, and the latest version of the phrase trigger
   itself."
-  [show phrase]
-  (let [show (latest-show show)]
-    [show (get-in show [:contents :phrases (:uuid phrase)])]))
+  ([phrase]
+   (let [show (show-from-phrase phrase)]
+     [show (get-in show [:contents :phrases (:uuid phrase)])]))
+  ([show phrase]
+   (let [show (latest-show show)]
+     [show (get-in show [:contents :phrases (:uuid phrase)])])))
 
 (defn swap-phrase!
   "Atomically updates the map of open shows by calling the specified
@@ -302,45 +346,6 @@
   function."
   [file]
   (swap! open-shows dissoc file))
-
-(defn swap-cue!
-  "Atomically updates the map of open shows by calling the specified
-  function with the supplied arguments on the current contents of the
-  specified cue. The value of `track` must be a full track map, but
-  the value of `cue` can either be a UUID or a full cue map."
-  [track cue f & args]
-  (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
-    (swap-track! track #(apply update-in % [:contents :cues :cues uuid] f args))))
-
-(defn find-cue
-  "Accepts either a UUID or a cue, and looks up the cue in the latest
-  version of the track."
-  [track uuid-or-cue]
-  (let [track (latest-track track)]
-    (get-in track [:contents :cues :cues (if (instance? UUID uuid-or-cue)
-                                           uuid-or-cue
-                                           (:uuid uuid-or-cue))])))
-
-(defn swap-phrase-cue!
-  "Atomically updates the map of open shows by calling the specified
-  function with the supplied arguments on the current contents of the
-  specified cue, within a phrase trigger section whose `section` is
-  one of `:start`, `:loop`, `:end`, or `:fill`. The value of `phrase`
-  must be a full phrase trigger map, but the value of `cue` can either
-  be a UUID or a full cue map."
-  [show phrase section cue f & args]
-  (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
-    (swap-phrase! show phrase #(apply update-in % [:cues :cues section uuid] f args))))
-
-(defn find-phrase-cue
-  "Accepts either a UUID or a cue, and looks up the cue in the latest
-  version of the phrase trigger section of the specified `section` (one
-  of `:start`, `:loop`, `:end`, or `:fill`)."
-  [show phrase section uuid-or-cue]
-  (let [phrase (latest-phrase show phrase)]
-    (get-in phrase [:cues :cues section (if (instance? UUID uuid-or-cue)
-                                                    uuid-or-cue
-                                                    (:uuid uuid-or-cue))])))
 
 (defn restore-window-position
   "Tries to put the window back in the position where it was saved in
@@ -508,22 +513,22 @@
   using it, or reusing it if we already opened it. Returns `nil` if
   the output can not currently be found (it was disconnected, or
   present in a loaded file but not on this system). to be reloaded."
-  ([track]
-   (when-let [^MidiChoice selection (get-in (latest-track track) [:contents :midi-device])]
-     (get-chosen-output-internal selection)))
-  ([show phrase]
-   (when-let [^MidiChoice selection (:midi-device (latest-phrase show phrase))]
-    (get-chosen-output-internal selection))))
+  [context]
+  (if (track? context)
+    (when-let [^MidiChoice selection (get-in (latest-track context) [:contents :midi-device])]
+      (get-chosen-output-internal selection))
+    (when-let [^MidiChoice selection (:midi-device (latest-phrase context))]
+      (get-chosen-output-internal selection))))
 
 (defn no-output-chosen
   "Returns truthy if the MIDI output menu for a track or phrase trigger
   is empty, which will probably only happen if there are no MIDI
   outputs available on the host system, but we still want to allow
   non-MIDI expressions to operate."
-  ([track]
-   (not (get-in (latest-track track) [:contents :midi-device])))
-  ([show phrase]
-   (not (:midi-device (latest-phrase show phrase)))))
+  [context]
+  (if (track? context)
+    (not (get-in (latest-track context) [:contents :midi-device]))
+    (not (:midi-device (latest-phrase context)))))
 
 (defn enabled?
   "Checks whether the track is enabled, given its configuration and
@@ -547,31 +552,41 @@
         false)
       false)))
 
-(defn update-track-gear-icon
-  "Determines whether the gear button for a track should be hollow or
-  filled in, depending on whether any cues or expressions have been
-  assigned to it."
-  ([track]
-   (update-track-gear-icon track (seesaw/select (:panel track) [:#gear])))
-  ([track gear]
-   (let [track (latest-track track)]
-     (seesaw/config! gear :icon (if (and
-                                     (empty? (get-in track [:contents :cues :cues]))
-                                     (every? clojure.string/blank? (vals (get-in track [:contents :expressions]))))
-                                  (seesaw/icon "images/Gear-outline.png")
-                                  (seesaw/icon "images/Gear-icon.png"))))))
+(defn phrase-runtime-info
+  "Given a current show and a phrase map or UUID, returns the runtime
+  cache map (non-saved information) for that phrase."
+  [show phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (get-in show [:phrases uuid])))
 
-(defn update-phrase-gear-icon
-  "Determines whether the gear button for a phrase trigger should be
-  hollow or filled in, depending on whether any cues or expressions
-  have been assigned to it."
-  ([show phrase]
-   (update-phrase-gear-icon show phrase (seesaw/select (:panel phrase) [:#gear])))
-  ([show phrase gear]
-   (let [phrase (latest-phrase show phrase)]
+(defn latest-show-and-context
+  "Given a cue context, which can either be a track map or a phrase
+  trigger map, and returns a tuple containing current versions of the
+  show to which the track or phrase trigger belongs, the track or
+  phase trigger map itself, and (in the case of phrase triggers) its
+  runtime info map. For tracks, the runtime info is present at the
+  root of the track itself, so it is returned as both context and
+  runtime-info."
+  [context]
+  (if (track? context)
+    (let [[show track] (latest-show-and-track context)]
+      [show track track])
+    (let [show (show-from-phrase context)]
+      [show (latest-phrase show context) (phrase-runtime-info show context)])))
+
+(defn update-gear-icon
+  "Determines whether the gear button for a track or phrase trigger
+  should be hollow or filled in, depending on whether any cues or
+  expressions have been assigned to it."
+  ([context]
+   (let [[_show context runtime-info] (latest-show-and-context context)]
+     (update-gear-icon context (seesaw/select (:panel runtime-info) [:#gear]))))
+  ([context gear]
+   (let [[_show context] (latest-show-and-context context)
+         contents        (if (phrase? context) context (:contents context))]
      (seesaw/config! gear :icon (if (and
-                                     (every? empty? (vals (get-in phrase [:cues :cues])))
-                                     (every? clojure.string/blank? (vals (:expressions phrase))))
+                                     (empty? (get-in contents [:cues :cues]))
+                                     (every? clojure.string/blank? (vals (:expressions contents))))
                                   (seesaw/icon "images/Gear-outline.png")
                                   (seesaw/icon "images/Gear-icon.png"))))))
 
@@ -651,13 +666,6 @@
   [^Color color]
   (* 360.0 (color/hue (color/int32 (.getRGB color)))))
 
-(defn phrase-runtime-info
-  "Given a current show and a phrase map or UUID, returns the runtime
-  cache map (non-saved information) for that phrase."
-  [show phrase-or-uuid]
-  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
-    (get-in show [:phrases uuid])))
-
 (def phrase-start-color
   "The color to draw the start section of a phrase trigger."
   (hue-to-color 120.0 0.8))
@@ -673,3 +681,30 @@
 (def phrase-fill-color
   "The color to draw the start section of a phrase trigger."
   (hue-to-color 280.0 0.75))
+
+(defn swap-cue!
+  "Atomically updates the map of open shows by calling the specified
+  function with the supplied arguments on the current contents of the
+  specified cue. The value of `context` must be a full track map or
+  phrase trigger map, but the value of `cue` can either be a UUID or a
+  full cue map."
+  [context cue f & args]
+  (let [uuid (if (instance? UUID cue) cue (:uuid cue))]
+    (if (track? context)
+      (swap-track! context #(apply update-in % [:contents :cues :cues uuid] f args))
+      (let [[show phrase] (latest-show-and-context context)]
+        (swap-phrase! show phrase #(apply update-in % [:cues :cues uuid] f args))))))
+
+(defn find-cue
+  "Accepts either a UUID or a cue, and looks up the cue in the latest
+  version of the track or phrase trigger context."
+  [context uuid-or-cue]
+  (if (track? context)
+    (let [track (latest-track context)]
+      (get-in track [:contents :cues :cues (if (instance? UUID uuid-or-cue)
+                                             uuid-or-cue
+                                             (:uuid uuid-or-cue))]))
+    (let [phrase (latest-phrase context)]
+    (get-in phrase [:cues :cues (if (instance? UUID uuid-or-cue)
+                                  uuid-or-cue
+                                  (:uuid uuid-or-cue))]))))

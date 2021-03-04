@@ -5,7 +5,8 @@
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track
                                                         swap-show! swap-track! find-cue swap-cue!
-                                                        find-phrase-cue swap-phrase-cue! phrase-runtime-info
+                                                        track? phrase? latest-show-and-context
+                                                        phrase-runtime-info latest-phrase
                                                         latest-show-and-phrase swap-phrase! swap-phrase-runtime!]]
             [beat-link-trigger.util :as util]
             [clojure.set]
@@ -35,40 +36,39 @@
   global atoms. Returns a tuple of the function return value and any
   thrown exception. If `alert?` is `true` the user will be alerted
   when there is a problem running the function."
-  ([track cue kind status-or-beat alert?]  ; The version for tracks.
-   (let [[show track] (latest-show-and-track track)
-         cue          (find-cue track cue)]
-     (when-let [expression-fn (get-in track [:cues :expression-fns (:uuid cue) kind])]
-       (try
-         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-           [(expression-fn status-or-beat {:locals (:expression-locals track)
-                                           :show   show
-                                           :track  track
-                                           :cue    cue}
-                           (:expression-globals show)) nil])
-         (catch Throwable t
-           (timbre/error t (str "Problem running " (editors/track-cue-editor-title kind track cue) ":\n"
-                                (get-in cue [:expressions kind])))
-           (when alert? (seesaw/alert (str "<html>Problem running cue " (name kind) " expression.<br><br>" t)
-                                      :title "Exception in Show Track Cue Expression" :type :error))
-           [nil t])))))
-  ([show phrase section cue kind status-or-beat alert?]  ; The version for phrase triggers.
-   (let [[show phrase] (latest-show-and-phrase show phrase)
-         runtime-info  (phrase-runtime-info show phrase)
-         cue           (find-phrase-cue show phrase section cue)]
-     (when-let [expression-fn (get-in runtime-info [:expression-fns (:uuid cue) kind])]
+  [context cue kind status-or-beat alert?]
+  (if (track? context)
+    (let [[show track] (latest-show-and-context context)
+          cue          (find-cue track cue)]
+      (when-let [expression-fn (get-in track [:cues :expression-fns (:uuid cue) kind])]
+        (try
+          (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+            [(expression-fn status-or-beat {:locals (:expression-locals track)
+                                            :show   show
+                                            :track  track
+                                            :cue    cue}
+                            (:expression-globals show)) nil])
+          (catch Throwable t
+            (timbre/error t (str "Problem running " (editors/track-cue-editor-title kind track cue) ":\n"
+                                 (get-in cue [:expressions kind])))
+            (when alert? (seesaw/alert (str "<html>Problem running cue " (name kind) " expression.<br><br>" t)
+                                       :title "Exception in Show Track Cue Expression" :type :error))
+            [nil t]))))
+    ;; The phrase trigger version.
+    (let [[show phrase runtime-info] (latest-show-and-context context)
+          cue (find-cue phrase cue)]
+      (when-let [expression-fn (get-in runtime-info [:expression-fns (:uuid cue) kind])]
        (try
          (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
            [(expression-fn status-or-beat {:locals  (:expression-locals runtime-info)
                                            :show    show
                                            :phrase  phrase
-                                           :section section
                                            :cue     cue}
                            (:expression-globals show)) nil])
          (catch Throwable t
-           (timbre/error t (str "Problem running " (editors/phrase-cue-editor-title kind phrase section cue) ":\n"
+           (timbre/error t (str "Problem running " (editors/phrase-cue-editor-title kind phrase cue) ":\n"
                                 (get-in cue [:expressions kind])))
-           (when alert? (seesaw/alert (str "<html>Problem running phrase " (name section) " cue " (name kind)
+           (when alert? (seesaw/alert (str "<html>Problem running phrase " (name (:section cue)) " cue " (name kind)
                                           " expression.<br><br>" t)
                                       :title "Exception in Show Phrase Cue Expression" :type :error))
            [nil t]))))))
@@ -77,16 +77,11 @@
   "Determines whether the gear button for a cue should be hollow or
   filled in, depending on whether any expressions have been assigned
   to it."
-  ([track cue gear]
-   (let [cue (find-cue track cue)]
-     (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
-                                  (seesaw/icon "images/Gear-outline.png")
-                                  (seesaw/icon "images/Gear-icon.png")))))
-  ([show phrase section cue gear]
-   (let [cue (find-phrase-cue show phrase section cue)]
-     (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
-                                  (seesaw/icon "images/Gear-outline.png")
-                                  (seesaw/icon "images/Gear-icon.png"))))))
+  [context cue gear]
+  (let [cue (find-cue context cue)]
+    (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
+                                 (seesaw/icon "images/Gear-outline.png")
+                                 (seesaw/icon "images/Gear-icon.png")))))
 
 (defn link-button-icon
   "Returns the proper icon to use for a cue's link button, depending on
@@ -99,84 +94,48 @@
 (defn update-cue-link-icon
   "Determines whether the link button for a cue should be connected or
   broken, depending on whether it is linked to a library cue."
-  [track cue link]
-  (let [cue (find-cue track cue)]
+  [context cue link]
+  (let [cue (find-cue context cue)]
     (seesaw/config! link :icon (link-button-icon cue))))
 
 (defn repaint-cue-states
   "Causes the two cue state indicators to redraw themselves to reflect a
   change in state. `cue` can either be the cue object or a cue UUID."
-  ([track cue]
-   (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))]
-     (when-let [panel (get-in (latest-track track) [:cues-editor :panels uuid])]
-       (seesaw/repaint! (seesaw/select panel [:#entered-state]))
-       (seesaw/repaint! (seesaw/select panel [:#started-state])))))
-  ([show phrase cue]
-   (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))
-         [show phrase] (latest-show-and-phrase show phrase)
-         runtime-info (phrase-runtime-info show phrase)]
-     (when-let [panel (get-in runtime-info [:cues-editor :panels uuid])]
-       (seesaw/repaint! (seesaw/select panel [:#entered-state]))
-       (seesaw/repaint! (seesaw/select panel [:#started-state]))))))
+  [context cue]
+  (let [uuid (if (instance? java.util.UUID cue) cue (:uuid cue))
+        [_show _context runtime-info] (latest-show-and-context context)]
+    (when-let [panel (get-in runtime-info [:cues-editor :panels uuid])]
+      (seesaw/repaint! (seesaw/select panel [:#entered-state]))
+      (seesaw/repaint! (seesaw/select panel [:#started-state])))))
 
 (defn repaint-all-cue-states
   "Causes the cue state indicators for all cues in a track or phrase
   trigger to redraw themselves to reflect a change in state."
-  ([track]
-   (doseq [cue (keys (get-in (latest-track track) [:contents :cues :cues]))]
-     (repaint-cue-states track cue)))
-  ([show phrase]
-   (let [[show phrase] (latest-show-and-phrase show phrase)]
-     (doseq [cue (mapcat keys (vals (get-in phrase [:cues :cues])))]
-       (repaint-cue-states show phrase cue)))))
+  [context]
+  (let [[_ context] (latest-show-and-context context)]
+    (if (track? context)
+      (doseq [cue (keys (get-in context [:contents :cues :cues]))]
+        (repaint-cue-states context cue))
+      (doseq [cue (keys (get-in context [:cues :cues]))]
+        (repaint-cue-states context cue)))))
 
 (declare build-cues)
 
-(defn- scroll-to-track-cue
+(defn- scroll-to-cue
   "Makes sure the specified cue editor is visible (it has just been
   created or edited), or give the user a warning that the current cue
   filters have hidden it. If `select-comment` is true, this is a
   newly-created cue, so focus on the comment field and select its
   entire content, for easy editing."
-  ([track cue]
-   (scroll-to-track-cue track cue false false))
-  ([track cue select-comment]
-   (scroll-to-track-cue track cue select-comment false))
-  ([track cue select-comment silent]
-   (let [track (latest-track track)
-         cues  (seesaw/select (get-in track [:cues-editor :frame]) [:#cues])
-         cue   (find-cue track cue)
-         uuid  (:uuid cue)]
-     (if (some #(= uuid %) (get-in track [:cues-editor :visible]))
-       (let [^JPanel panel           (get-in track [:cues-editor :panels (:uuid cue)])
-             ^JTextComponent comment (seesaw/select panel [:#comment])]
-         (seesaw/invoke-later
-          (seesaw/scroll! cues :to (.getBounds panel))
-          (when select-comment
-            (.requestFocusInWindow comment)
-            (.selectAll comment))))
-       (when-not silent
-         (seesaw/alert (get-in track [:cues-editor :frame])
-                       (str "The cue \"" (:comment cue) "\" is currently hidden by your filters.\r\n"
-                            "To continue working with it, you will need to adjust the filters.")
-                       :title "Can't Scroll to Hidden Cue" :type :info))))))
-
-(defn- scroll-to-phrase-cue
-  "Makes sure the specified cue editor is visible (it has just been
-  created or edited), or give the user a warning that the current cue
-  filters have hidden it. If `select-comment` is true, this is a
-  newly-created cue, so focus on the comment field and select its
-  entire content, for easy editing."
-  ([show phrase section cue]
-   (scroll-to-phrase-cue show phrase section cue false false))
-  ([show phrase section cue select-comment]
-   (scroll-to-phrase-cue show phrase section cue select-comment false))
-  ([show phrase section cue select-comment silent]
-   (let [[show phrase] (latest-show-and-phrase show phrase)
-         runtime-info  (phrase-runtime-info phrase)
-         cues          (seesaw/select (get-in runtime-info [:cues-editor :frame]) [:#cues])
-         cue           (find-phrase-cue show phrase section cue)
-         uuid          (:uuid cue)]
+  ([context cue]
+   (scroll-to-cue context cue false false))
+  ([context cue select-comment]
+   (scroll-to-cue context cue select-comment false))
+  ([context cue select-comment silent]
+   (let [[_ context runtime-info] (latest-show-and-context context)
+         cues                     (seesaw/select (get-in runtime-info [:cues-editor :frame]) [:#cues])
+         cue                      (find-cue context cue)
+         uuid                     (:uuid cue)]
      (if (some #(= uuid %) (get-in runtime-info [:cues-editor :visible]))
        (let [^JPanel panel           (get-in runtime-info [:cues-editor :panels (:uuid cue)])
              ^JTextComponent comment (seesaw/select panel [:#comment])]
@@ -227,9 +186,9 @@
 (defn scroll-phrase-canvas-to-cue
   "Makes sure the specified cue is visible in the cue canvas of the cues
   editor window."
-  [show phrase section cue]
+  [show phrase cue]
   (let [[show phrase] (latest-show-and-phrase show phrase)
-        cue           (find-phrase-cue show phrase section cue)
+        cue           (find-cue phrase cue)
         runtime-info  (phrase-runtime-info show phrase)]
     (when-let [editor (:cues-editor runtime-info)]
       (let [auto-scroll (seesaw/select (:panel editor) [:#auto-scroll])
@@ -253,7 +212,7 @@
     (.setMinimum end-model (inc (:start cue)))
     (seesaw/invoke-later
      (build-cues track)
-     (seesaw/invoke-later scroll-to-track-cue track cue))))
+     (seesaw/invoke-later (scroll-to-cue track cue)))))
 
 ;; TODO: Need update-phrase-cue-spinner-models, which also needs to consider the possibly-adjusted
 ;;       phrase trigger section size.
@@ -261,10 +220,8 @@
 (defn- cue-missing-expression?
   "Checks whether the expression body of the specified kind is empty for
   the specified cue."
-  ([track cue kind]
-   (clojure.string/blank? (get-in (find-cue track cue) [:expressions kind])))
-  ([show phrase section cue kind]
-   (clojure.string/blank? (get-in (find-phrase-cue show phrase section cue) [:expressions kind]))))
+  [context cue kind]
+  (clojure.string/blank? (get-in (find-cue context cue) [:expressions kind])))
 
 (declare send-cue-messages)
 
@@ -272,206 +229,138 @@
   "Checks whether the specified event type is enabled for the given
   cue (its message is something other than None, and if Custom, there
   is a non-empty expression body)."
+  [context cue event]
+  (let [cue     (find-cue context cue)
+        message (get-in cue [:events event :message])]
+    (cond
+      (= "None" message)
+      false
 
-  ([track cue event]
-   (let [cue     (find-cue track cue)
-         message (get-in cue [:events event :message])]
-     (cond
-       (= "None" message)
-       false
+      (= "Custom" message)
+      (not (cue-missing-expression? context cue event))
 
-       (= "Custom" message)
-       (not (cue-missing-expression? track cue event))
+      (= "Same" message) ; Must be a :started-late event
+      (cue-event-enabled? context cue :started-on-beat)
 
-       (= "Same" message) ; Must be a :started-late event
-       (cue-event-enabled? track cue :started-on-beat)
-
-       :else ; Is a MIDI note or CC
-       true)))
-
-  ([show phrase section cue event]
-   (let [cue     (find-phrase-cue show phrase section cue)
-         message (get-in cue [:events event :message])]
-     (cond
-       (= "None" message)
-       false
-
-       (= "Custom" message)
-       (not (cue-missing-expression? show phrase section cue event))
-
-       (= "Same" message) ; Must be a :started-late event
-       (cue-event-enabled? show phrase section cue :started-on-beat)
-
-       :else ; Is a MIDI note or CC
-       true))))
+      :else ; Is a MIDI note or CC
+      true)))
 
 (defn- cue-simulate-actions
   "Creates the actions that simulate events happening to the cue, for
   testing expressions or creating and testing MIDI mappings in other
   software."
-
-  ([track cue]
-   [(seesaw/action :name "Entered"
-                   :enabled? (cue-event-enabled? track cue :entered)
-                   :handler (fn [_] (send-cue-messages (latest-track track) cue :entered (su/random-beat-or-status))))
-    (seesaw/action :name "Started On-Beat"
-                   :enabled? (cue-event-enabled? track cue :started-on-beat)
-                   :handler (fn [_] (send-cue-messages (latest-track track) cue :started-on-beat
-                                                       (su/random-beat-and-position track))))
-    (seesaw/action :name "Started Late"
-                   :enabled? (cue-event-enabled? track cue :started-late)
-                   :handler (fn [_] (send-cue-messages (latest-track track) cue :started-late (su/random-cdj-status))))
-    (seesaw/action :name "Beat"
-                   :enabled? (not (cue-missing-expression? track cue :beat))
-                   :handler (fn [_] (run-cue-function track cue :beat (su/random-beat-and-position track) true)))
-    (seesaw/action :name "Tracked Update"
-                   :enabled? (not (cue-missing-expression? track cue :tracked))
-                   :handler (fn [_] (run-cue-function track cue :tracked (su/random-cdj-status) true)))
-    (let [enabled-events (filterv (partial cue-event-enabled? track cue) [:started-on-beat :started-late])]
-      (seesaw/action :name "Ended"
-                     :enabled? (seq enabled-events)
-                     :handler (fn [_]
-                                (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event]
-                                             (rand-nth enabled-events))
-                                (send-cue-messages (latest-track track) cue :ended (su/random-beat-or-status)))))
-    (seesaw/action :name "Exited"
-                   :enabled? (cue-event-enabled? track cue :entered)
-                   :handler (fn [_] (send-cue-messages (latest-track track) cue :exited (su/random-beat-or-status))))])
-
-  ([show phrase section cue]
-   [(seesaw/action :name "Entered"
-                   :enabled? (cue-event-enabled? show phrase section cue :entered)
-                   :handler (fn [_]
-                              (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                (send-cue-messages show phrase section cue :entered (su/random-beat-or-status)))))
-    (seesaw/action :name "Started On-Beat"
-                   :enabled? (cue-event-enabled? show phrase section cue :started-on-beat)
-                   :handler (fn [_]
-                              (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                (send-cue-messages show phrase section cue :started-on-beat
-                                                   (su/random-beat-and-position nil)))))
-    (seesaw/action :name "Started Late"
-                   :enabled? (cue-event-enabled? show phrase section cue :started-late)
-                   :handler (fn [_]
-                              (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                (send-cue-messages show phrase section cue :started-late (su/random-cdj-status)))))
-    (seesaw/action :name "Beat"
-                   :enabled? (not (cue-missing-expression? show phrase section cue :beat))
-                   :handler (fn [_]
-                              (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                (run-cue-function show phrase section cue :beat
-                                                  (su/random-beat-and-position nil) true))))
-    (seesaw/action :name "Tracked Update"
-                   :enabled? (not (cue-missing-expression? show phrase section cue :tracked))
-                   :handler (fn [_]
-                              (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                (run-cue-function show phrase section cue :tracked (su/random-cdj-status) true))))
-    (let [enabled-events (filterv (partial cue-event-enabled? show phrase section cue)
-                                  [:started-on-beat :started-late])]
-      (seesaw/action :name "Ended"
-                     :enabled? (seq enabled-events)
-                     :handler (fn [_]
-                                (swap-phrase-runtime! show phrase assoc-in [:cues (:uuid cue) :last-entry-event]
-                                                      (rand-nth enabled-events))
-                                (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                  (send-cue-messages show phrase section cue :ended (su/random-beat-or-status))))))
-    (seesaw/action :name "Exited"
-                   :enabled? (cue-event-enabled? show phrase section cue :entered)
-                   :handler (fn [_]
-                              (let [[show phrase] (latest-show-and-phrase show phrase)]
-                                (send-cue-messages show phrase section cue :exited (su/random-beat-or-status)))))]))
+  [context cue]
+  [(seesaw/action :name "Entered"
+                  :enabled? (cue-event-enabled? context cue :entered)
+                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
+                                                      cue :entered (su/random-beat-or-status))))
+   (seesaw/action :name "Started On-Beat"
+                  :enabled? (cue-event-enabled? context cue :started-on-beat)
+                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
+                                                      cue :started-on-beat
+                                                      (su/random-beat-and-position (when (track? context) context)))))
+   (seesaw/action :name "Started Late"
+                  :enabled? (cue-event-enabled? context cue :started-late)
+                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
+                                                      cue :started-late (su/random-cdj-status))))
+   (seesaw/action :name "Beat"
+                  :enabled? (not (cue-missing-expression? context cue :beat))
+                  :handler (fn [_] (run-cue-function context cue :beat
+                                                     (su/random-beat-and-position (when (track? context) context))
+                                                     true)))
+   (seesaw/action :name "Tracked Update"
+                  :enabled? (not (cue-missing-expression? context cue :tracked))
+                  :handler (fn [_] (run-cue-function context cue :tracked (su/random-cdj-status) true)))
+   (let [enabled-events (filterv (partial cue-event-enabled? context cue) [:started-on-beat :started-late])]
+     (seesaw/action :name "Ended"
+                    :enabled? (seq enabled-events)
+                    :handler (fn [_]
+                               (if (track? context)
+                                 (swap-track! context assoc-in [:cues (:uuid cue) :last-entry-event]
+                                              (rand-nth enabled-events))
+                                 (swap-phrase-runtime! (su/show-from-phrase context) context
+                                                       assoc-in [:cues (:uuid cue) :last-entry-event]
+                                                       (rand-nth enabled-events)))
+                               (send-cue-messages (second (latest-show-and-context context))
+                                                  cue :ended (su/random-beat-or-status)))))
+   (seesaw/action :name "Exited"
+                  :enabled? (cue-event-enabled? context cue :entered)
+                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
+                                                      cue :exited (su/random-beat-or-status))))])
 
 (defn- cue-simulate-menu
   "Creates the submenu containing actions that simulate events happening
   to the cue, for testing expressions or creating and testing MIDI
   mappings in other software."
-  ([track cue]
-   (seesaw/menu :text "Simulate" :items (cue-simulate-actions track cue)))
-  ([show phrase section cue]
-   (seesaw/menu :text "Simulate" :items (cue-simulate-actions show phrase section cue))))
+  [context cue]
+  (seesaw/menu :text "Simulate" :items (cue-simulate-actions context cue)))
 
 (defn- assign-cue-hue
   "Picks a color for a new cue by cycling around the color wheel, and
   recording the last one used."
-  ([track]
-   (let [shows (swap-track! track update-in [:contents :cues :hue]
-                            (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
-     (get-in shows [(:file track) :tracks (:signature track) :contents :cues :hue])))
-  ([show phrase]
-   (let [shows (swap-phrase! show phrase update-in [:cues :hue]
+  [context]
+  (if (track? context)
+    (let [shows (swap-track! context update-in [:contents :cues :hue]
                              (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
-     (get-in shows [(:file show) :contents :phrases (:uuid phrase) :cues :hue]))))
+      (get-in shows [(:file context) :tracks (:signature context) :contents :cues :hue]))
+    (let [show  (su/show-from-phrase context)
+          shows (swap-phrase! show update-in [:cues :hue]
+                              (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
+      (get-in shows [(:file show) :contents :phrases (:uuid context) :cues :hue]))))
 
 (defn- scroll-wave-to-cue-action
-  "Creates the menu action which scrolls the waveform detail to ensure
-  the specified cue is visible."
-  ([track cue]
-   (seesaw/action :handler (fn [_] (scroll-wave-to-cue track cue))
-                  :name "Scroll Waveform to This Cue"))
-  ([show phrase section cue]
-   (seesaw/action :handler (fn [_] (scroll-phrase-canvas-to-cue show phrase section cue))
-                  :name "Scroll Waveform to This Cue")))
+  "Creates the menu action which scrolls the waveform detail or phrase
+  cue canvas to ensure the specified cue is visible."
+  [context cue]
+  (seesaw/action :handler (fn [_] (scroll-wave-to-cue context cue))
+                 :name (if (phrase? context) "Scroll Canvas to This Cue" "Scroll Waveform to This Cue")))
 
 (defn- duplicate-cue-action
   "Creates the menu action which duplicates an existing cue."
-
-  ([track cue]
-   (seesaw/action :handler (fn [_]
-                             (try
-                               (let [uuid    (java.util.UUID/randomUUID)
-                                     track   (latest-track track)
-                                     cue     (find-cue track cue)
-                                     comment (util/assign-unique-name
-                                              (map :comment (vals (get-in track [:contents :cues :cues])))
-                                              (:comment cue))
-                                     new-cue (merge cue {:uuid    uuid
-                                                         :hue     (assign-cue-hue track)
-                                                         :comment comment})]
-                                 (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
-                                 (build-cues track)
-                                 (scroll-to-track-cue track new-cue true))
-                               (catch Exception e
-                                 (timbre/error e "Problem duplicating cue")
-                                 (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
-                  :name "Duplicate Cue"))
-
-  ([show phrase section cue]
-   (seesaw/action :handler (fn [_]
-                             (try
-                               (let [uuid          (java.util.UUID/randomUUID)
-                                     [show phrase] (latest-show-and-phrase show phrase)
-                                     cue           (find-phrase-cue show phrase section cue)
-                                     comment       (util/assign-unique-name
-                                                    (map :comment (mapcat vals (vals (get-in phrase [:cues :cues]))))
+  [context cue]
+  (seesaw/action :handler (fn [_]
+                            (try
+                              (let [uuid           (java.util.UUID/randomUUID)
+                                    [show context] (latest-show-and-context context)
+                                    cue            (find-cue context cue)
+                                    contents       (if (phrase? context) context (:contents context))
+                                    comment        (util/assign-unique-name
+                                                    (map :comment (vals (get-in contents [:cues :cues])))
                                                     (:comment cue))
-                                     new-cue       (merge cue {:uuid    uuid
-                                                               :hue     (assign-cue-hue show phrase)
+                                    new-cue        (merge cue {:uuid    uuid
+                                                               :hue     (assign-cue-hue contents)
                                                                :comment comment})]
-                                 (swap-phrase! show phrase assoc-in [:cues :cues section uuid] new-cue)
-                                 (build-cues show phrase)
-                                 (scroll-to-phrase-cue show phrase section new-cue true))
-                               (catch Exception e
-                                 (timbre/error e "Problem duplicating cue")
-                                 (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
-                  :name "Duplicate Cue")))
+                                (if (track? context)
+                                  (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)
+                                  (swap-phrase! show context (fn [phrase]
+                                                               (-> phrase
+                                                                   (assoc-in [:cues :cues uuid] new-cue)
+                                                                   (update-in [:cues :sections (:section cue)]
+                                                                              (fnil conj #{}) uuid)))))
+                                (build-cues context)
+                                (scroll-to-cue context new-cue true))
+                              (catch Exception e
+                                (timbre/error e "Problem duplicating cue")
+                                (seesaw/alert (str e) :title "Problem Duplicating Cue" :type :error))))
+                 :name "Duplicate Cue"))
 
 (defn- expunge-deleted-cue
   "Removes all the items from a track or phrase trigger that need to be
   cleaned up when the cue has been deleted. This function is designed
   to be used in a single swap! call for simplicity and efficiency."
+  [context cue]
+  (let [uuid (:uuid cue)]
+    (if (track? context)
+      (-> context
+          (update-in [:contents :cues :cues] dissoc uuid)
+          (update-in [:cues-editor :panels] dissoc uuid))
+      (let [cue-uuid    (:uuid cue)
+            phrase-uuid (:uuid context)]
+        (-> (su/show-from-phrase context)
+            (update-in [:contents :phrases phrase-uuid :cues :cues] dissoc cue-uuid)
+            (update-in [:contents :phrases phrase-uuid :cues :sections (:section cue)] disj cue-uuid)
+            (update-in [:phrases phrase-uuid :cues-editor :panels] dissoc cue-uuid))))))
 
-  ([track cue]
-   (let [uuid (:uuid cue)]
-     (-> track
-         (update-in [:contents :cues :cues] dissoc uuid)
-         (update-in [:cues-editor :panels] dissoc uuid))))
-
-  ([show phrase section cue]
-   (let [cue-uuid    (:uuid cue)
-         phrase-uuid (:uuid phrase)]
-     (-> show
-         (update-in [:contents :phrases phrase-uuid :cues :cues section] dissoc cue-uuid)
-         (update-in [:phrases phrase-uuid :cues-editor :panels] dissoc cue-uuid)))))
 
 (defn- close-cue-editors?
   "Tries closing all open expression editors for the cue. If `force?` is
@@ -479,38 +368,22 @@
   Otherwise checks whether the user wants to save any unsaved changes.
   Returns truthy if there are none left open the user wants to deal
   with."
-
-  ([force? track cue]
-   (let [track (latest-track track)]
-     (every? (partial editors/close-editor? force?)
-             (vals (get-in track [:cues-editor :expression-editors (:uuid cue)])))))
-
-  ([force? show phrase cue]
-   (let [[show phrase] (latest-show-and-phrase show phrase)
-         runtime-info (phrase-runtime-info show phrase)]
-     (every? (partial editors/close-editor? force?)
-             (vals (get-in runtime-info [:cues-editor :expression-editors (:uuid cue)]))))))
+  [force? context cue]
+  (let [[_show _context runtime-info] (latest-show-and-context context)]
+    (every? (partial editors/close-editor? force?)
+            (vals (get-in runtime-info [:cues-editor :expression-editors (:uuid cue)])))))
 
 (defn players-playing-cue
   "Returns the set of players that are currently playing the specified
-  cue. `track` or `show` and `phrase-runtime-info` must be current."
-
-  ([track cue]
-   (let [show (latest-show (:file track))]
+  cue."
+  ([context cue]
+   (let [[show context runtime-info] (latest-show-and-context context)]
      (reduce (fn [result player]
-               (if ((get-in track [:entered player]) (:uuid cue))
+               (if ((get-in runtime-info [:entered player]) (:uuid cue))
                  (conj result player)
                  result))
              #{}
-             (util/players-signature-set (:playing show) (:signature track)))))
-
-  ([show phrase-uuid phrase-runtime-info cue]
-   (reduce (fn [result player]
-               (if ((get-in phrase-runtime-info [:entered player]) (:uuid cue))
-                 (conj result player)
-                 result))
-             #{}
-             (util/players-signature-set (:playing-phrases show) phrase-uuid))))
+             (util/players-signature-set (:playing show) ((if (track? context) :signature :uuid) context))))))
 
 (defn entered?
   "Checks whether any player has entered the cue.
@@ -520,14 +393,9 @@
 
 (defn- started?
   "Checks whether any players which have entered a cue is actually
-  playing. `track` or `show` and `phrase-runtime-info` must be
-  current."
-
-  ([track cue]
-   (seq (players-playing-cue track cue)))
-
-  ([show phrase-uuid phrase-runtime-info cue]
-   (seq (players-playing-cue show phrase-uuid phrase-runtime-info cue))))
+  playing."
+  [context cue]
+  (seq (players-playing-cue context cue)))
 
 (def cue-opacity
   "The degree to which cues replace the underlying waveform colors when
@@ -537,100 +405,61 @@
 (defn cue-lightness
   "Calculates the lightness with which a cue should be painted,
   based on the track's or phrase trigger's tripped state and whether
-  the cue is entered and playing. `track` or `show` and
-  `phrase-runtime-info` must be current."
-
-  ([track cue]
-   (if (and (:tripped track) (entered? track cue))
-     (if (started? track cue) 0.8 0.65)
-     0.5))
-
-  ([show phrase-uuid phrase-runtime-info cue]
-   (if (and (:tripped phrase-runtime-info) (entered? phrase-runtime-info cue))
-     (if (started? show phrase-uuid phrase-runtime-info cue) 0.8 0.65)
-     0.5)))
+  the cue is entered and playing."
+  [context cue]
+  (let [[_show context runtime-info] (latest-show-and-context context)]
+    (if (and (:tripped runtime-info) (entered? context cue))
+      (if (started? context cue) 0.8 0.65)
+      0.5)))
 
 (defn send-cue-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
-  indicate that a cue has changed state. `track` or `show` and
-  `phrase` must be current, and `cue` can either be a cue map, or a
+  indicate that a cue has changed state. `context` must be a current
+  track or phrase trigger map, and `cue` can either be a cue map, or a
   uuid by which such a cue can be looked up. If it has been deleted,
   nothing is sent. `event` is the key identifying how look up the
   appropriate MIDI message or custom expression in the cue, and
   `status-or-beat` is the protocol message, if any, which caused the
   state change, if any."
-
-  ;; The track version.
-  ([track cue event status-or-beat]
-   #_(timbre/info "sending cue messages" event (.getTimestamp status-or-beat)
-                  (if (instance? Beat status-or-beat)
-                    (str "Beat " (.getBeatWithinBar status-or-beat) "/4")
-                    (str "Status " (.getBeatNumber status-or-beat))))
-   (when-let [cue (find-cue track cue)]
-     (try
-       (let [base-event                     ({:entered         :entered
-                                              :exited          :entered
-                                              :started-on-beat :started-on-beat
-                                              :ended           (get-in track [:cues (:uuid cue) :last-entry-event])
-                                              :started-late    :started-late} event)
-             base-message                   (get-in cue [:events base-event :message])
-             effective-base-event           (if (= "Same" base-message) :started-on-beat base-event)
-             {:keys [message note channel]} (get-in cue [:events effective-base-event])]
-         #_(timbre/info "send-cue-messages" event base-event effective-base-event message note channel)
-         (when (#{"Note" "CC"} message)
-           (when-let [output (su/get-chosen-output track)]
-             (if (#{:exited :ended} event)
-               (case message
-                 "Note" (midi/midi-note-off output note (dec channel))
-                 "CC"   (midi/midi-control output note 0 (dec channel)))
-               (case message
-                 "Note" (midi/midi-note-on output note 127 (dec channel))
-                 "CC"   (midi/midi-control output note 127 (dec channel))))))
-         (when (= "Custom" message)
-           (let [effective-event (if (and (= "Same" base-message) (= :started-late event)) :started-on-beat event)]
-             (run-cue-function track cue effective-event status-or-beat false))))
-       (when (#{:started-on-beat :started-late} event)
-         ;; Record how we started this cue so we know which event to send upon ending it.
-         (swap-track! track assoc-in [:cues (:uuid cue) :last-entry-event] event))
-       (catch Exception e
-         (timbre/error e "Problem reporting track cue event" event)))))
-
-  ;; The phrase trigger version.
-  ([show phrase section cue event status-or-beat]
-   #_(timbre/info "sending cue messages" event (.getTimestamp status-or-beat)
-                  (if (instance? Beat status-or-beat)
-                    (str "Beat " (.getBeatWithinBar status-or-beat) "/4")
-                    (str "Status " (.getBeatNumber status-or-beat))))
-   (when-let [cue (find-phrase-cue show phrase section cue)]
-     (try
-       (let [runtime-info                   (phrase-runtime-info show phrase)
-             base-event                     ({:entered         :entered
-                                              :exited          :entered
-                                              :started-on-beat :started-on-beat
-                                              :ended           (get-in runtime-info [:cues (:uuid cue)
-                                                                                     :last-entry-event])
-                                              :started-late    :started-late} event)
-             base-message                   (get-in cue [:events base-event :message])
-             effective-base-event           (if (= "Same" base-message) :started-on-beat base-event)
-             {:keys [message note channel]} (get-in cue [:events effective-base-event])]
-         #_(timbre/info "send-cue-messages" event base-event effective-base-event message note channel)
-         (when (#{"Note" "CC"} message)
-           (when-let [output (su/get-chosen-output show phrase)]
-             (if (#{:exited :ended} event)
-               (case message
-                 "Note" (midi/midi-note-off output note (dec channel))
-                 "CC"   (midi/midi-control output note 0 (dec channel)))
-               (case message
-                 "Note" (midi/midi-note-on output note 127 (dec channel))
-                 "CC"   (midi/midi-control output note 127 (dec channel))))))
-         (when (= "Custom" message)
-           (let [effective-event (if (and (= "Same" base-message) (= :started-late event)) :started-on-beat event)]
-             (run-cue-function show phrase section cue effective-event status-or-beat false))))
-       (when (#{:started-on-beat :started-late} event)
-         ;; Record how we started this cue so we know which event to send upon ending it.
-         (swap-phrase-runtime! show phrase assoc-in [:cues (:uuid cue) :last-entry-event] event))
-       (catch Exception e
-         (timbre/error e "Problem reporting phrase trigger cue event" event))))))
+  [context cue event status-or-beat]
+  #_(timbre/info "sending cue messages" event (.getTimestamp status-or-beat)
+                 (if (instance? Beat status-or-beat)
+                   (str "Beat " (.getBeatWithinBar status-or-beat) "/4")
+                   (str "Status " (.getBeatNumber status-or-beat))))
+  (when-let [cue (find-cue context cue)]
+    (try
+      (let [runtime-info                   (if (track? context) context
+                                               (phrase-runtime-info (su/show-from-phrase context) context))
+            base-event                     ({:entered         :entered
+                                             :exited          :entered
+                                             :started-on-beat :started-on-beat
+                                             :ended           (get-in runtime-info [:cues (:uuid cue)
+                                                                                    :last-entry-event])
+                                             :started-late    :started-late} event)
+            base-message                   (get-in cue [:events base-event :message])
+            effective-base-event           (if (= "Same" base-message) :started-on-beat base-event)
+            {:keys [message note channel]} (get-in cue [:events effective-base-event])]
+        #_(timbre/info "send-cue-messages" event base-event effective-base-event message note channel)
+        (when (#{"Note" "CC"} message)
+          (when-let [output (su/get-chosen-output context)]
+            (if (#{:exited :ended} event)
+              (case message
+                "Note" (midi/midi-note-off output note (dec channel))
+                "CC"   (midi/midi-control output note 0 (dec channel)))
+              (case message
+                "Note" (midi/midi-note-on output note 127 (dec channel))
+                "CC"   (midi/midi-control output note 127 (dec channel))))))
+        (when (= "Custom" message)
+          (let [effective-event (if (and (= "Same" base-message) (= :started-late event)) :started-on-beat event)]
+            (run-cue-function context  cue effective-event status-or-beat false))))
+      (when (#{:started-on-beat :started-late} event)
+        ;; Record how we started this cue so we know which event to send upon ending it.
+        (if (track? context)
+          (swap-track! context assoc-in [:cues (:uuid cue) :last-entry-event] event)
+          (swap-phrase-runtime! (su/show-from-phrase context) context
+                                assoc-in [:cues (:uuid cue) :last-entry-event] event)))
+      (catch Exception e
+        (timbre/error e "Problem reporting" (if (track? context) "track" "phrase trigger") "cue event" event)))))
 
 (defn cleanup-cue
   "Process the removal of a cue, either via deletion, or because the
@@ -639,76 +468,45 @@
   which will be indicated by this function returning falsey. Run any
   appropriate custom expressions and send configured MIDI messages to
   reflect the departure of the cue."
-
-  ([force? track cue]
-   (when (close-cue-editors? force? track cue)
-     (let [track (latest-track track)]
-       (when (:tripped track)
-         (when (seq (players-playing-cue track cue))
-           (send-cue-messages track cue :ended nil))
-         (when (entered? track cue)
-           (send-cue-messages track cue :exited nil))))
-     true))
-
-  ([force? show phrase section cue]
-   (when (close-cue-editors? force? show phrase cue)
-     (let [[show phrase] (latest-show-and-phrase show phrase)
-           runtime-info (phrase-runtime-info show phrase)]
+  ([force? context cue]
+   (when (close-cue-editors? force? context cue)
+     (let [[_show context runtime-info] (latest-show-and-context context)]
        (when (:tripped runtime-info)
-         (when (seq (players-playing-cue show (:uuid phrase) runtime-info cue))
-           (send-cue-messages show phrase section cue :ended nil))
-         (when (entered? runtime-info cue)
-           (send-cue-messages show phrase section cue :exited nil))))
+         (when (seq (players-playing-cue context cue))
+           (send-cue-messages context cue :ended nil))
+         (when (entered? context cue)
+           (send-cue-messages context cue :exited nil))))
      true)))
 
 (defn- delete-cue-action
   "Creates the menu action which deletes a cue, after confirmation if
   it's not linked to a library cue."
-
-  ([track cue panel]  ; The track version.
-   (seesaw/action :handler (fn [_]
-                             (let [cue (find-cue track cue)]
-                               (when (or (:linked cue)
-                                         (util/confirm panel
-                                                       (str "This will irreversibly remove the cue, losing any\r\n"
-                                                            "configuration and expressions created for it.")
-                                                       :title (str "Delete Cue “" (:comment cue) "”?")))
-                                 (try
-                                   (cleanup-cue true track cue)
-                                   (swap-track! track expunge-deleted-cue cue)
-                                   (su/update-track-gear-icon track)
-                                   (build-cues track)
-                                   (catch Exception e
-                                     (timbre/error e "Problem deleting cue")
-                                     (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
-                  :name "Delete Cue"))
-
-  ([show phrase section cue panel]  ; The phrase trigger version.
-   (seesaw/action :handler (fn [_]
-                             (let [cue (find-phrase-cue show phrase section cue)]
-                               (when (or (:linked cue)
-                                         (util/confirm panel
-                                                       (str "This will irreversibly remove the cue, losing any\r\n"
-                                                            "configuration and expressions created for it.")
-                                                       :title (str "Delete Cue “" (:comment cue) "”?")))
-                                 (try
-                                   (cleanup-cue true show phrase section cue)
-                                   (swap-phrase! show phrase (partial expunge-deleted-cue show) section cue)
-                                   (su/update-phrase-gear-icon show phrase)
-                                   (build-cues show phrase)
-                                   (catch Exception e
-                                     (timbre/error e "Problem deleting cue")
-                                     (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
-                  :name "Delete Cue")))
-
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
+  [context cue panel]
+  (seesaw/action :handler (fn [_]
+                            (let [cue (find-cue context cue)]
+                              (when (or (:linked cue)
+                                        (util/confirm panel
+                                                      (str "This will irreversibly remove the cue, losing any\r\n"
+                                                           "configuration and expressions created for it.")
+                                                      :title (str "Delete Cue “" (:comment cue) "”?")))
+                                (try
+                                  (cleanup-cue true context cue)
+                                  (if (track? context)
+                                    (swap-track! context expunge-deleted-cue cue)
+                                    (swap-phrase! (su/show-from-phrase context) context expunge-deleted-cue cue))
+                                  (su/update-gear-icon context)
+                                  (build-cues context)
+                                  (catch Exception e
+                                    (timbre/error e "Problem deleting cue")
+                                    (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
+                 :name "Delete Cue"))
 
 (defn- sanitize-cue-for-library
   "Removes the elements of a cue that will not be stored in the library.
   Returns a tuple of the name by which it will be stored, and the
   content to be stored (or compared to see if it matches another cue)."
   [cue]
-   [(:comment cue) (dissoc cue :uuid :start :end :hue :linked)])
+   [(:comment cue) (dissoc cue :uuid :start :end :hue :linked :section)])
 
 (defn linked-cues-equal?
   "Checks whether all the supplied cues have the same values for any
@@ -779,9 +577,7 @@
     (update-library-button-visibility show)))
 
 (defn- cue-library-action
-  "Creates the menu action which either adds a cue to the library, or
-  removes or updates it after confirmation, if there is already a cue
-  of the same name in the library."
+  "Creates the menu action which adds a cue to the library"
   [track cue]
   (let [[show track]      (latest-show-and-track track)
         cue               (find-cue track cue)
@@ -812,6 +608,7 @@
                                                  :handler (fn [_] (cue-library-add-handler
                                                                     show track cue comment content nil)))]))))))))
 
+;; TODO: Will need a version for phrase cues, and probably should rename this one.
 (defn cue-preview-rectangle
   "Calculates the outline of a cue within the coordinate system of the
   waveform preview component in a track row of a show window, taking
@@ -831,6 +628,7 @@
   waveform colors."
   (float 0.5))
 
+;; TODO: Will need a version for phrase cues.
 (defn paint-preview-cues
   "Draws the cues, if any, on top of the preview waveform. If there is
   an open cues editor window, also shows its current view of the wave,
@@ -865,12 +663,14 @@
 
 (defn- get-current-selection
   "Returns the starting and ending beat of the current selection in the
-  track, ignoring selections that have been dragged to zero size."
-  [track]
-  (when-let [selection (get-in (latest-track track) [:cues-editor :selection])]
-    (when (> (second selection) (first selection))
-      selection)))
+  track or phrase trigger, ignoring selections that have been dragged to zero size."
+  [context]
+  (let [[_show _context runtime-info] (latest-show-and-context context)]
+    (when-let [selection (get-in runtime-info [:cues-editor :selection])]
+      (when (> (second selection) (first selection))
+        selection))))
 
+;; TODO: Will need a versioon for phrase cues, and probably to rename this one.
 (defn- paint-cues-and-beat-selection
   "Draws the cues and the selected beat range, if any, on top of the
   waveform."
@@ -893,6 +693,7 @@
         (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
     (.dispose g2)))
 
+;; TODO: Will need a versioon for phrase cues, either rename this one or add both branches to it.
 (defn repaint-cue
   "Causes a single cue to be repainted in the track preview and (if one
   is open) the cues editor, because it has changed entered or active
@@ -909,6 +710,7 @@
       (let [cue-rect (track-cue-rectangle track cue wave)]
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
+;; TODO: Will need a versioon for phrase cues, either rename this one or add both branches to it.
 (defn- paint-cue-state
   "Draws a representation of the state of the cue, including whether its
   track is enabled and whether any players are positioned or playing
@@ -955,28 +757,29 @@
   "Updates all the user elements of a cue to reflect the values that
   have changed due to a linked library cue. Does nothing if the cue
   has no editor panel open."
-  [track cue]
-  (let [cue   (find-cue track cue)
-        panel (get-in track [:cues-editor :panels (:uuid cue)])]
+  [context cue]
+  (let [cue                (find-cue context cue)
+        [_ _ runtime-info] (latest-show-and-context context)
+        panel              (get-in runtime-info [:cues-editor :panels (:uuid cue)])]
     (when panel
-      (swap-cue! track cue assoc :creating true)  ; Suppress repropagation and opening of editor windows.
-      (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))
+      (swap-cue! context cue assoc :creating true)  ; Suppress repropagation and opening of editor windows.
+      (update-cue-gear-icon context cue (seesaw/select panel [:#gear]))
       (doseq [[event elems] (:events cue)]
         (doseq [[elem value] elems]
           (let [id     (cue-event-component-id event (name elem) true)
                 widget (seesaw/select panel [id])]
             (seesaw/value! widget value))))
-      (update-cue-gear-icon track cue (seesaw/select panel [:#gear]))
-      (swap-cue! track cue dissoc :creating))))
+      (update-cue-gear-icon context cue (seesaw/select panel [:#gear]))
+      (swap-cue! context cue dissoc :creating))))
 
 (defn update-all-linked-cues
   "Called when a cue has changed. If it is linked to a library cue,
   updates that, then also updates any cues in the show which are
   linked to the same library cue, and if they have an editor panel
   open, updates that as well."
-  [track cue]
-  (let [[show track] (latest-show-and-track track)
-        cue          (find-cue track cue)
+  [context cue]
+  (let [[show context] (latest-show-and-context context)
+        cue          (find-cue context cue)
         uuid         (:uuid cue)
         content      (select-keys cue [:expressions :events]) ; The parts to update.
         linked       (:linked cue)]
@@ -989,22 +792,30 @@
             (when (and (= linked (:linked linked-cue)) (not= uuid linked-uuid))
               (swap-cue! track linked-cue
                          (fn [linked-cue] (merge (dissoc linked-cue :expressions :events) content)))
-              (update-cue-panel-from-linked track linked-cue))))))))
+              (update-cue-panel-from-linked track linked-cue))))
+        (doseq [phrase (vals (:phrases show))]
+          (doseq [[linked-uuid linked-cue] (get-in phrase [:cues :cues])]
+            (when (and (= linked (:linked linked-cue)) (not= uuid linked-uuid))
+              (swap-cue! phrase linked-cue
+                         (fn [linked-cue] (merge (dissoc linked-cue :expressions :events) content)))
+              (update-cue-panel-from-linked phrase linked-cue))))))))
 
 (defn cue-editor-actions
   "Creates the popup menu actions corresponding to the available
   expression editors for a given cue."
-  [track cue panel gear]
-  (for [[kind spec] @editors/show-track-cue-editors]
+  [context cue panel gear]
+  (for [[kind spec] @editors/show-cue-editors]
     (let [update-fn (fn []
-                      (update-all-linked-cues track cue)
-                      (update-cue-gear-icon track cue gear))]
-      (seesaw/action :handler (fn [_] (editors/show-cue-editor kind (latest-track track) cue panel update-fn))
+                      (update-all-linked-cues context cue)
+                      (update-cue-gear-icon context cue gear))]
+      (seesaw/action :handler (fn [_] (editors/show-cue-editor kind context cue panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
-                     :icon (if (cue-missing-expression? track cue kind)
+                     :icon (if (cue-missing-expression? context cue kind)
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
 
 (defn- attach-cue-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
@@ -1527,7 +1338,7 @@
   library."
   [track cue]
   (doseq [[kind expr] (:expressions cue)]
-    (let [editor-info (get @editors/show-track-cue-editors kind)]
+    (let [editor-info (get @editors/show-cue-editors kind)]
       (try
         (swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
@@ -1587,11 +1398,11 @@
                                                             :linked  cue-name})]
                                 (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
                                 (swap-track! track update :cues-editor dissoc :selection)
-                                (su/update-track-gear-icon track)
+                                (su/update-gear-icon track)
                                 (build-cues track)
                                 (compile-cue-expressions track new-cue)
                                 (scroll-wave-to-cue track new-cue)
-                                (scroll-to-track-cue track new-cue true))
+                                (scroll-to-cue track new-cue true))
                               (catch Exception e
                                 (timbre/error e "Problem adding Library Cue")
                                 (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
@@ -1826,7 +1637,7 @@
               (handle-wave-move track wave e))  ; Update the cursors.
             (swap-track! track update :cues-editor dissoc :selection))))  ; No, clear selection.
       (.repaint wave)
-      (when cue (scroll-to-track-cue track cue false true)))))
+      (when cue (scroll-to-cue track cue false true)))))
 
 (defn- handle-wave-release
   "Processes a mouse-released event in the wave detail component,
@@ -1942,10 +1753,10 @@
                      :comment (util/assign-unique-name (map :comment (vals (get-in track [:contents :cues :cues]))))}]
     (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
     (swap-track! track update :cues-editor dissoc :selection)
-    (su/update-track-gear-icon track)
+    (su/update-gear-icon track)
     (build-cues track)
     (scroll-wave-to-cue track cue)
-    (scroll-to-track-cue track cue true)))
+    (scroll-to-cue track cue true)))
 
 (defn- start-animation-thread
   "Creates a background thread that updates the positions of any playing

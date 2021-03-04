@@ -7,7 +7,7 @@
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
                                                         swap-show! swap-phrase! swap-phrase-runtime!
-                                                        phrase-runtime-info find-phrase-cue swap-phrase-cue!
+                                                        phrase-runtime-info find-cue swap-cue!
                                                         get-chosen-output no-output-chosen]]
             [beat-link-trigger.util :as util]
             [clojure.set]
@@ -55,7 +55,7 @@
   filled in, depending on whether any expressions have been assigned
   to it."
   [show phrase section cue gear]
-  (let [cue (find-phrase-cue show phrase section cue)]
+  (let [cue (find-cue phrase cue)]
     (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
                                  (seesaw/icon "images/Gear-outline.png")
                                  (seesaw/icon "images/Gear-icon.png")))))
@@ -239,7 +239,7 @@
   (try
     (let [{:keys [message note channel]} phrase]
       (when (#{"Note" "CC"} message)
-        (when-let [output (su/get-chosen-output show phrase)]
+        (when-let [output (get-chosen-output phrase)]
           (case message
             "Note" (midi/midi-note-on output note 127 (dec channel))
             "CC"   (midi/midi-control output note 127 (dec channel)))))
@@ -255,7 +255,7 @@
   (try
     (let [{:keys [message note channel]} phrase]
       (when (#{"Note" "CC"} message)
-        (when-let [output (su/get-chosen-output show phrase)]
+        (when-let [output (get-chosen-output phrase)]
           (case message
             "Note" (midi/midi-note-off output note (dec channel))
             "CC"   (midi/midi-control output note 0 (dec channel)))))
@@ -280,7 +280,7 @@
                         (let [runtime-info (su/phrase-runtime-info (latest-show show) phrase)]
                           (reset! (:expression-locals runtime-info) {}))
                         (run-phrase-function show phrase :setup nil true))
-                      (su/update-phrase-gear-icon show phrase gear))]
+                      (su/update-gear-icon phrase gear))]
       (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
                                        (latest-phrase show phrase) panel update-fn))
                      :name (str "Edit " (:title spec))
@@ -393,10 +393,11 @@
       (when (:tripped runtime-info)
         (doseq [[section cues] (get-in phrase [:cues :cues])
                 cue             cues]
-          #_(cues/cleanup-phrase-cue true phrase section cue))  ; TODO: Something like this?
+          (cues/cleanup-cue true show phrase section cue))
         (when ((set (vals (:playing-phrases show))) (:uuid phrase))
           (send-stopped-messages show phrase nil)))
-      (run-phrase-function show phrase :shutdown nil (not force?)))
+      (run-phrase-function show phrase :shutdown nil (not force?))
+      (su/phrase-removed show phrase))
     true))
 
 (defn- delete-phrase-action
@@ -470,8 +471,8 @@
           enabled       (seesaw/select panel [:#enabled])
           players-label (seesaw/select panel [:#players-label])
           players       (seesaw/select panel [:#players])
-          output        (get-chosen-output show phrase)]
-      (if (or output (no-output-chosen show phrase))
+          output        (get-chosen-output phrase)]
+      (if (or output (no-output-chosen phrase))
         (do (seesaw/config! enabled-label :foreground "white")
             (seesaw/value! enabled-label "Enabled:")
             (seesaw/config! enabled  :visible? true)
@@ -496,7 +497,7 @@
                                 (str/blank?
                                  (get-in phrase [:expressions kind])))
                        (editors/show-show-editor kind show phrase panel
-                                                 #(su/update-phrase-gear-icon show phrase gear)))))))
+                                                 #(su/update-gear-icon phrase gear)))))))
 
 (defn- attach-phrase-message-visibility-handler
   "Sets up an action handler so that when the message menu is changed,
@@ -993,7 +994,8 @@
                  :expression-locals (atom {})
                  :filter            (build-filter-target (:comment phrase))
                  :panel             panel})
-    (swap-show! show assoc-in [:panels panel] uuid)  ; Tracks all the rows in the show window.
+        (swap-show! show assoc-in [:panels panel] uuid)  ; Tracks all the rows in the show window.
+        (su/phrase-added show uuid)
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.
@@ -1001,7 +1003,7 @@
     (seesaw/listen gear :mouse-pressed (fn [e]
                                          (let [popup (seesaw/popup :items (popup-fn e))]
                                            (util/show-popup-from-button gear popup e))))
-    (su/update-phrase-gear-icon show phrase gear)
+    (su/update-gear-icon phrase gear)
 
     ;; TODO: The equivalent for the phrase preview once implemented.
     #_(seesaw/listen soft-preview

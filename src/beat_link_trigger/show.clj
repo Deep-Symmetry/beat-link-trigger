@@ -1015,7 +1015,7 @@
                                                      (get-in (or track show) [:contents :expressions (keyword kind)])))
                                            (editors/show-show-editor (keyword kind) show track panel
                                                                      (if gear
-                                                                       #(su/update-track-gear-icon track gear)
+                                                                       #(su/update-gear-icon track gear)
                                                                        #(update-tracks-global-expression-icons show)))))))))
 
 (defn- attach-track-message-visibility-handler
@@ -1228,7 +1228,7 @@
                  :creating true)  ; Disarm automatic editor popup while we are messing with the UI.
     (cues/add-missing-library-cues show (vals cues))
     (cues/build-cues track)
-    (su/update-track-gear-icon track)
+    (su/update-gear-icon track)
     (update-track-comboboxes contents panel)
     (seesaw/value! (seesaw/select panel [:#loaded-note]) (:loaded-note contents))
     (seesaw/value! (seesaw/select panel [:#loaded-channel]) (:loaded-channel contents))
@@ -1313,7 +1313,7 @@
                         (run-track-function track :shutdown nil true)
                         (reset! (:expression-locals track) {})
                         (run-track-function track :setup nil true))
-                      (su/update-track-gear-icon track gear))]
+                      (su/update-gear-icon track gear))]
       (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
                                        (latest-track track) panel update-fn))
                      :name (str "Edit " (:title spec))
@@ -1699,7 +1699,7 @@
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
-    (su/update-track-gear-icon track gear)
+    (su/update-gear-icon track gear)
 
     (seesaw/listen soft-preview
                    :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))

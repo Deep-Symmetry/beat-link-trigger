@@ -308,7 +308,7 @@
                     (help/user-guide-link "ShowInternals.html#track")
                     "\">User Guide</a> for details.")}
 
-   'midi-output {:code '((resolve 'beat-link-trigger.show/get-chosen-output)
+   'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
                          (:track trigger-data))
                  :doc "The MIDI output object chosen for this
   track. May be <code>nil</code> if the output device cannot be
@@ -392,7 +392,7 @@
                     (help/user-guide-link "ShowInternals.html#phrase-contents")
                     "\">User Guide</a> for details.")}
 
-   'midi-output {:code '((resolve 'beat-link-trigger.show-phrases/get-chosen-output)
+   'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
                          show (:phrase trigger-data))
                  :doc "The MIDI output object chosen for this phrase trigger. May be
   <code>nil</code> if the output device cannot be found in the current
@@ -640,7 +640,22 @@
   to automatically bind that symbol if it is used in the expression,
   and the documentation to show the user what the binding is for."
   []
-  {'cue {:code '(:cue trigger-data)
+  {'track {:code '(:track trigger-data)
+           :doc (str "All the details known about the track, if this cue is
+  in a track. See the <a href=\""
+                    (help/user-guide-link "ShowInternals.html#track")
+                    "\">User Guide</a> for details.")}
+   'phrase {:code '(:phrase trigger-data)
+           :doc (str "All the details saved about the phrase trigger, if this
+  cue is in a phrase trigger. See the <a href=\""
+                    (help/user-guide-link "ShowInternals.html#phrase-contents")
+                    "\">User Guide</a> for details.")}
+   'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
+                         (or (:track trigger-data) (:phrase trigger-data)))
+                 :doc "The MIDI output object chosen for this
+  track or phrase trigger. May be <code>nil</code> if the output device cannot be
+  found in the current MIDI environment."}
+   'cue {:code '(:cue trigger-data)
          :doc (str "All the details known about the cue. See the <a href=\""
                     (help/user-guide-link "ShowInternals.html#cue")
                     "\">User Guide</a> for details.")}
@@ -658,7 +673,7 @@
                      :doc  "The MIDI channel on which cue enter and exit messages are sent."}
 
    'players-inside {:code '((resolve 'beat-link-trigger.show/players-inside-cue)
-                             (:track trigger-data) (:cue trigger-data))
+                            (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data))
                     :doc  "The set of player numbers that are currently
   positioned inside this cue, if any."}
 
@@ -687,7 +702,7 @@
                           :doc  "The MIDI channel on which late cue start and end messages are sent."}
 
    'players-playing {:code '((resolve 'beat-link-trigger.show/players-playing-cue)
-                             (:track trigger-data) (:cue trigger-data))
+                             (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data))
                      :doc  "The set of player numbers currently playing this cue, if any."}
 
    ;; TODO: Copy in lots of other status and/or beat information with safe finders?
@@ -808,18 +823,17 @@
   the Setup expression."
                      :bindings (show-bindings-for-phrase-and-class nil)})))
 
-(defn- show-bindings-for-track-cue-and-class
+(defn- show-bindings-for-track-or-phrase-cue-and-class
   "Collects the set of bindings for a show track cue editor which is
   called with a particular class of status object. Merges the standard
   show, track, and cue convenience bindings with those associated with
   the specified class, which may be `nil`."
   [update-class]
   (merge (show-bindings)
-         (show-bindings-for-track)
          (show-bindings-for-track-or-phrase-and-cue)
          (when update-class (expressions/bindings-for-update-class update-class))))
 
-(def show-track-cue-editors
+(def show-cue-editors
   "Specifies the kinds of editor which can be opened for a show track cue,
   along with the kinds of details needed to compile the expressions
   they edit. Created as an explicit array map to keep the keys in the
@@ -832,7 +846,7 @@
   moves inside this cue. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-                    :bindings (show-bindings-for-track-cue-and-class DeviceUpdate)}
+                    :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)}
 
           :started-on-beat {:title    "Started On-Beat Expression"
                             :tip
@@ -859,7 +873,7 @@
   object, as described in the help for the Started Late expression,
   instead of the above-described tuple, so you will need to write your
   code to handle both possibilities."
-                            :bindings (show-bindings-for-track-cue-and-class :beat-tpu)}
+                            :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)}
           :started-late {:title    "Started Late Expression"
                          :tip "Called when a player starts playing this cue later than its first beat, if the track is enabled."
                          :description
@@ -877,7 +891,7 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described
   below."
-                         :bindings (show-bindings-for-track-cue-and-class DeviceUpdate)}
+                         :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)}
 
           :beat   {:title "Beat Expression"
                    :tip   "Called on each beat from devices playing inside the cue."
@@ -896,7 +910,7 @@
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
   easier to use the convenience variables described below."
-                   :bindings (show-bindings-for-track-cue-and-class :beat-tpu)}
+                   :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)}
 
           :tracked {:title "Tracked Update Expression"
                     :tip "Called for each update from a player that is positioned inside the cue, when the track is enabled."
@@ -914,7 +928,7 @@
   one player is playing it), wrap your code inside a <code>when</code>
   expression conditioned on the <code>players-playing</code>
   convenience variable."
-                    :bindings (show-bindings-for-track-cue-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-or-phrase-cue-and-class CdjStatus)}
 
           :ended {:title "Ended Expression"
                   :tip   "Called when all players stop playing this cue, if the track is enabled."
@@ -929,7 +943,7 @@
   been changed, so your expression must be able to cope with
   <code>nil</code> values for all the convenience variables that it
   uses."
-                  :bindings    (show-bindings-for-track-cue-and-class DeviceUpdate)
+                  :bindings    (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
                   :nil-status? true}
 
           :exited {:title "Exited Expression"
@@ -945,144 +959,7 @@
   been changed, so your expression must be able to cope with
   <code>nil</code> values for all the convenience variables that it
   uses."
-                   :bindings    (show-bindings-for-track-cue-and-class DeviceUpdate)
-                   :nil-status? true})))
-
-(defn- show-bindings-for-phrase-cue-and-class
-  "Collects the set of bindings for a show phrase cue editor which is
-  called with a particular class of status object. Merges the standard
-  show, track, and cue convenience bindings with those associated with
-  the specified class, which may be `nil`."
-  [update-class]
-  (merge (show-bindings)
-         (show-bindings-for-phrase)
-         (show-bindings-for-track-or-phrase-and-cue)
-         (when update-class (expressions/bindings-for-update-class update-class))))
-
-(def show-phrase-cue-editors
-  "Specifies the kinds of editor which can be opened for a show phrase
-  trigger cue, along with the kinds of details needed to compile the
-  expressions they edit. Created as an explicit array map to keep the
-  keys in the order they are found here."
-  (delay (array-map
-          :entered {:title    "Entered Expression"
-                    :tip      "Called when a player moves inside this cue."
-                    :description
-                    "Called when the phrase trigger is chosen and the first player moves
-  inside this cue. You can use this to activate systems that do not
-  respond to MIDI, or to send more detailed information than MIDI
-  allows."
-                    :bindings (show-bindings-for-phrase-cue-and-class DeviceUpdate)}
-
-          :started-on-beat {:title    "Started On-Beat Expression"
-                            :tip
-                            "Called when a player starts playing this cue from its first beat."
-                            :description
-                            "Called when the phrase trigger is chosen and the first
-  player starts playing the cue from the beginning of its first beat.
-  You can use this to activate systems that do not respond to MIDI, or
-  to send more detailed information than MIDI allows.<p>
-
-  A tuple containing the raw beat object that was received and the
-  player track position inferred from it (a beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
-  object), is available as <code>status</code>, and you can use normal
-  Clojure destructuring and <a
-  href=\"http://clojure.org/reference/java_interop\">Java interop
-  syntax</a> to access its fields and methods, but it is generally
-  easier to use the convenience variables described below.<p>
-
-  Also note that if the Cue's Started Late message is set to Same,
-  this same expression will be called when the cue starts late, in
-  which case <code>status</code> will contain a beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
-  object, as described in the help for the Started Late expression,
-  instead of the above-described tuple, so you will need to write your
-  code to handle both possibilities."
-                            :bindings (show-bindings-for-phrase-cue-and-class :beat-tpu)}
-          :started-late {:title    "Started Late Expression"
-                         :tip "Called when a player starts playing this cue later than its first beat."
-                         :description
-                         "Called when the phrase trigger is chosen and the first player
-  starts playing the cue from somewhere other than the beginning of
-  its first beat. You can use this to activate systems that do not
-  respond to MIDI, or to send more detailed information than MIDI
-  allows.<p>
-
-  The status update object that caused us to notice that the cue had
-  started late (a beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
-  object) is available as <code>status</code>, and you can use normal
-  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
-  interop syntax</a> to access its fields and methods, but it is
-  generally easier to use the convenience variables described below."
-                         :bindings (show-bindings-for-phrase-cue-and-class DeviceUpdate)}
-
-          :beat   {:title "Beat Expression"
-                   :tip   "Called on each beat from devices playing inside the cue."
-                   :description
-                   "Called whenever a beat packet is received from a player
-  that is playing this cue (other than for the beat that started the
-  cue, if any, which will have called the started-on-beat or
-  started-late expression). You can use this for beat-driven
-  integrations with other systems.<p>
-
-  A tuple containing the raw beat object that was received and the
-  player track position inferred from it (a beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html\"><code>TrackPositionUpdate</code></a>
-  object), is available as <code>status</code>, and you can use normal
-  Clojure destructuring and <a
-  href=\"http://clojure.org/reference/java_interop\">Java interop
-  syntax</a> to access its fields and methods, but it is generally
-  easier to use the convenience variables described below."
-                   :bindings (show-bindings-for-phrase-cue-and-class :beat-tpu)}
-
-          :tracked {:title "Tracked Update Expression"
-                    :tip "Called for each update from a player that is positioned inside the cue."
-                    :description
-                    "Called whenever a status update packet is received from a player
-  whose playback position is inside the cue (as long as this phrase
-  trigger was chosen), and after calling the started expression. The
-  status update object, a beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
-  object, is available as <code>status</code>, and you can use normal
-  Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
-  interop syntax</a> to access its fields and methods, but it is
-  generally easier to use the convenience variables described below.
-  If you want to only relay updates when the cue is active (at least
-  one player is playing it), wrap your code inside a <code>when</code>
-  expression conditioned on the <code>players-playing</code>
-  convenience variable."
-                    :bindings (show-bindings-for-phrase-cue-and-class CdjStatus)}
-
-          :ended {:title "Ended Expression"
-                  :tip   "Called when all players stop playing this cue."
-                  :description
-                  "Called when the phrase trigger was chosen and the last player
-  that had been playing this cue leaves it or stops playing. You can use this to
-  deactivate systems that do not respond to MIDI, or to send more
-  detailed information than MIDI allows.<p>
-
-  Note that sometimes <code>status</code> will be <code>nil</code>,
-  such as when the cue settings have been changed, so your expression
-  must be able to cope with <code>nil</code> values for all the
-  convenience variables that it uses."
-                  :bindings    (show-bindings-for-phrase-cue-and-class DeviceUpdate)
-                  :nil-status? true}
-
-          :exited {:title "Exited Expression"
-                   :tip   "Called when all players move outside this cue."
-                   :description
-                   "Called when the phrase trigger was chosen and
-  the last player that had been inside this cue moves back out of it.
-  You can use this to deactivate systems that do not respond to MIDI,
-  or to send more detailed information than MIDI allows.<p>
-
-  Note that sometimes <code>status</code> will be <code>nil</code>,
-  such as when the cue settings have been changed, so your expression
-  must be able to cope with <code>nil</code> values for all the
-  convenience variables that it uses."
-                   :bindings    (show-bindings-for-phrase-cue-and-class DeviceUpdate)
+                   :bindings    (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
                    :nil-status? true})))
 
 (def ^:private editor-theme
@@ -1258,61 +1135,77 @@
 
 (defn- find-cue-expression-text
   "Returns the source code, if any, of the specified cue expression
-  type for the specified track and cue."
-  [kind track cue]
-  (get-in (show-util/find-cue track cue) [:expressions kind]))
+  type for the specified track or phrase trigger and cue."
+  [kind context cue]
+  (get-in (show-util/find-cue context cue) [:expressions kind]))
 
 (defn- find-cue-expression-editor
   "Returns the open editor window, if any, for the specified show
   expression type for the specified track and cue."
-  [kind track cue]
-  (get-in (show-util/latest-track track) [:cues-editor :expression-editors (:uuid cue) kind]))
+  [kind context cue]
+  (let [[_show _context runtime-info] (show-util/latest-show-and-context context)]
+       (get-in runtime-info [:cues-editor :expression-editors (:uuid cue) kind])))
 
 (defn track-cue-editor-title
   "Determines the title for a track cue expression editor window."
   [kind track _cue]
-  (let [title (get-in @show-track-cue-editors [kind :title])]
+  (let [title (get-in @show-cue-editors [kind :title])]
     (str title " for Cue in Track \"" (get-in track [:metadata :title]) "\"")))
+
+(defn phrase-cue-editor-title
+  "Determines the title for a cue expression editor window."
+  [kind phrase {:keys [section]}]
+  (let [title (get-in @show-cue-editors [kind :title])]
+    (str title " for Cue in phrase \"" (get-in phrase [:contents :comment] "<uncommented>") "\" " (name section))))
 
 (defn- update-cue-expression
   "Called when an cues editor window expression's editor is ending and
   the user has asked to update the expression with the value they have
   edited. If `update-fn` is not nil, it will be called with no
   arguments."
-  [kind track cue text update-fn]
-  (show-util/swap-track! track update-in [:cues :expression-fns (:uuid cue)]
-             dissoc kind)  ; Clean up any old value first in case the parse fails.
-  (let [text        (clojure.string/trim text) ; Remove whitespace on either end
-        editor-info (get @show-track-cue-editors kind)]
-    (try
-      (when (seq text)  ; If we got a new expression, try to compile it
-        (show-util/swap-track! track assoc-in [:cues :expression-fns (:uuid cue) kind]
-                   (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                      (track-cue-editor-title kind track cue))))
-      (when-let [editor (find-cue-expression-editor kind track cue)]
-        (dispose editor)  ; Close the editor
-        (show-util/swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)] dissoc kind))
-      (show-util/swap-cue! track cue assoc-in [:expressions kind] text)  ; Save the new text
-      (catch Throwable e
-        (timbre/error e "Problem parsing" (:title editor-info))
-        (seesaw/alert (str "<html>Unable to use " (:title editor-info)
-                           ".<br><br>" e
-                           (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
-                           "<br><br>You may wish to check the log file for the detailed stack trace.")
-                      :title "Exception during Clojure evaluation" :type :error))))
+  [kind context cue text update-fn]
+  (let [[show context] (show-util/latest-show-and-context context)
+        track?         (show-util/track? context)]
+    ;; Clean up any old value first in case the parse fails.
+    (if track?
+      (show-util/swap-track! context update-in [:cues :expression-fns (:uuid cue)]
+                             dissoc kind)
+      (show-util/swap-phrase-runtime! show context update-in [:cues :expression-fns (:uuid cue)]
+                                      dissoc kind))
+    (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
+          editor-info (get @show-cue-editors kind)]
+      (try
+        (when (seq text)  ; If we got a new expression, try to compile it.
+          (if track?
+            (show-util/swap-track! context assoc-in [:cues :expression-fns (:uuid cue) kind]
+                                   (expressions/build-user-expression text (:bindings editor-info)
+                                                                      (:nil-status? editor-info)
+                                                                      (track-cue-editor-title kind context cue)))
+            (show-util/swap-phrase-runtime! show context  assoc-in [:cues :expression-fns (:uuid cue) kind]
+                                            (expressions/build-user-expression text (:bindings editor-info)
+                                                                               (:nil-status? editor-info)
+                                                                               (phrase-cue-editor-title
+                                                                                kind context cue)))))
+        (when-let [editor (find-cue-expression-editor kind context cue)]
+          (dispose editor)  ; Close the editor.
+          (if track?
+            (show-util/swap-track! context update-in [:cues-editor :expression-editors (:uuid cue)] dissoc kind)
+            (show-util/swap-phrase-runtime! show context update-in [:cues-editor :expression-editors (:uuid cue)]
+                                            dissoc kind)))
+        (show-util/swap-cue! context cue assoc-in [:expressions kind] text)  ; Save the new text.
+
+        (catch Throwable e
+          (timbre/error e "Problem parsing" (:title editor-info))
+          (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                             ".<br><br>" e
+                             (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
+                             "<br><br>You may wish to check the log file for the detailed stack trace.")
+                        :title "Exception during Clojure evaluation" :type :error)))))
   (when update-fn
     (try
       (update-fn)
       (catch Throwable t
         (timbre/error t "Problem running expression editor update function.")))))
-
-;; TODO: Replicate rest of above chunk for phrase cues, like phrase-cue-editor-title:
-
-(defn phrase-cue-editor-title
-  "Determines the title for a cue expression editor window."
-  [kind phrase section _cue]
-  (let [title (get-in @show-track-cue-editors [kind :title])]
-    (str title " for Cue in phrase \"" (get-in phrase [:contents :comment] "<uncommented>") "\" " (name section))))
 
 (def ^:private help-header
   "The HTML header added to style the help text."
@@ -1829,10 +1722,11 @@ a {
   "Create and show a window for editing the Clojure code of a particular
   kind of Cues Editor window expression, with an update function to be
   called when the editor successfully updates the expression."
-  [kind track cue parent-frame update-fn]
-  (let [text            (find-cue-expression-text kind track cue)
-        save-fn         (fn [text] (update-cue-expression kind track cue text update-fn))
-        ^JFrame root    (seesaw/frame :title (track-cue-editor-title kind track cue)
+  [kind context cue parent-frame update-fn]
+  (let [text            (find-cue-expression-text kind context cue)
+        track?          (show-util/track? context)
+        save-fn         (fn [text] (update-cue-expression kind context cue text update-fn))
+        ^JFrame root    (seesaw/frame :title (track-cue-editor-title kind context cue)
                                       :on-close :nothing
                                       :size [800 :by 600])
         editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
@@ -1842,8 +1736,13 @@ a {
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn        (fn [] (show-util/swap-track! track update-in [:cues-editor :expression-editors (:uuid cue)]
-                                          dissoc kind))]
+        close-fn        (fn []
+                          (if track?
+                            (show-util/swap-track! context update-in [:cues-editor :expression-editors (:uuid cue)]
+                                                   dissoc kind)
+                            (show-util/swap-phrase-runtime! (show-util/show-from-phrase context) context
+                                                            update-in [:cues-editor :expression-editors (:uuid cue)]
+                                                            dissoc kind)))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
@@ -1852,7 +1751,7 @@ a {
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
-                                     (not= (util/remove-blanks (find-cue-expression-text kind track cue))
+                                     (not= (util/remove-blanks (find-cue-expression-text kind context cue))
                                            (util/remove-blanks (seesaw/text e))))))
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
@@ -1870,7 +1769,7 @@ a {
     (.setCaretPosition editor 0)
     (.discardAllEdits editor)
     (.setContentType help "text/html")
-    (.setText help (build-show-help kind false @show-track-cue-editors))
+    (.setText help (build-show-help kind false @show-cue-editors))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -1885,7 +1784,9 @@ a {
     (let [result
           (reify IExpressionEditor
             (retitle [_]
-              (seesaw/config! root :title (track-cue-editor-title kind track cue)))
+              (seesaw/config! root :title (if track?
+                                            (track-cue-editor-title kind context cue)
+                                            (phrase-cue-editor-title kind context cue))))
             (show [_]
               (.setLocationRelativeTo root parent-frame)
               (seesaw/show! root)
@@ -1894,41 +1795,52 @@ a {
             (dispose [_]
               (close-fn)
               (seesaw/dispose! root)))]
-      (show-util/swap-track! track assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
+      (if track?
+        (show-util/swap-track! context assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
+        (show-util/swap-phrase-runtime! (show-util/show-from-phrase context) context
+                                        assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result))
       result)))
 
 (defn- find-linked-cue-editor
   "If the supplied cue is linked, scans the show for any linked cue that
   already has an editor window open of the specified kind, and returns
   the matching window if one is found."
-  [kind track cue]
-  (let [[show] (show-util/latest-show-and-track track)
-        cue    (show-util/find-cue track cue)
-        linked (:linked cue)]
+  [kind context cue]
+  (let [[show context] (show-util/latest-show-and-context context)
+        cue            (show-util/find-cue context cue)
+        linked         (:linked cue)]
     (when linked
-      (some (fn [other-track]
-              (some (fn [other-cue]
-                      (when (= linked (:linked other-cue))
-                        (get-in other-track [:cues-editor :expression-editors (:uuid other-cue) kind])))
-                    (vals (get-in other-track [:contents :cues :cues]))))
-            (vals (:tracks show))))))
+      (or (some (fn [track]
+                  (some (fn [other-cue]
+                          (when (= linked (:linked other-cue))
+                            (get-in track [:cues-editor :expression-editors (:uuid other-cue) kind])))
+                        (vals (get-in track [:contents :cues :cues]))))
+                (vals (:tracks show)))
+          (some (fn [phrase]
+                  (some (fn [other-cue]
+                          (when (= linked (:linked other-cue))
+                            (get-in (show-util/phrase-runtime-info phrase)
+                                    [:cues-editor :expression-editors (:uuid other-cue) kind])))
+                        (vals (get-in phrase [:cues :cues]))))
+                (vals (:tracks show)))))))
 
 (defn show-cue-editor
   "Find or create the editor for the specified kind of expression
   associated with the specified cue (belonging to the specified show
-  track), make it visible, and add it to the track's list of active
-  editors. Register an update function to be invoked with no arguments
-  when the user has successfully updated the expression.
+  track or phrase trigger), make it visible, and add it to the track's
+  list of active editors. Register an update function to be invoked with
+  no arguments when the user has successfully updated the expression.
 
   If the cue is a linked cue, scan the entire show for any cues linked
   to it which already have an editor window open on this expression,
   and if one is found, bring that to the front rather than opening a
   new one."
-  [kind track cue parent-frame update-fn]
+  [kind context cue parent-frame update-fn]
   (try
-    (let [editor (or (get-in track [:cues-editor :expression-editors (:uuid cue) kind])
-                     (find-linked-cue-editor kind track cue)
-                     (create-cue-editor-window kind track cue parent-frame update-fn))]
+    (let [[_ context runtime-info] (show-util/latest-show-and-context context)
+          editor (or (get-in runtime-info [:cues-editor :expression-editors (:uuid cue) kind])
+                     (find-linked-cue-editor kind context cue)
+                     (create-cue-editor-window kind context cue parent-frame update-fn))]
       (show editor))
     (catch Throwable t
       (timbre/error t "Problem showing show" kind "editor"))))
