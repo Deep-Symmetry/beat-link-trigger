@@ -446,7 +446,9 @@
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of
-  player numbers whose value matched a particular signature."
+  player numbers whose value matched a particular signature. Note that
+  this also works with UUIDs rather than signatures for finding the
+  set of players playing a particular phrase trigger."
   [player-map signature]
   (reduce (fn [result [k v]]
             (if (= v signature)

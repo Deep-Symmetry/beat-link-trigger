@@ -459,11 +459,13 @@
   "Removes all the items from a track or phrase trigger that need to be
   cleaned up when the cue has been deleted. This function is designed
   to be used in a single swap! call for simplicity and efficiency."
+
   ([track cue]
    (let [uuid (:uuid cue)]
      (-> track
          (update-in [:contents :cues :cues] dissoc uuid)
          (update-in [:cues-editor :panels] dissoc uuid))))
+
   ([show phrase section cue]
    (let [cue-uuid    (:uuid cue)
          phrase-uuid (:uuid phrase)]
@@ -471,54 +473,61 @@
          (update-in [:contents :phrases phrase-uuid :cues :cues section] dissoc cue-uuid)
          (update-in [:phrases phrase-uuid :cues-editor :panels] dissoc cue-uuid)))))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
-
 (defn- close-cue-editors?
   "Tries closing all open expression editors for the cue. If `force?` is
   true, simply closes them even if they have unsaved changes.
   Otherwise checks whether the user wants to save any unsaved changes.
   Returns truthy if there are none left open the user wants to deal
   with."
-  [force? track cue]
-  (let [track (latest-track track)]
-    (every? (partial editors/close-editor? force?)
-            (vals (get-in track [:cues-editor :expression-editors (:uuid cue)])))))
+
+  ([force? track cue]
+   (let [track (latest-track track)]
+     (every? (partial editors/close-editor? force?)
+             (vals (get-in track [:cues-editor :expression-editors (:uuid cue)])))))
+
+  ([force? show phrase cue]
+   (let [[show phrase] (latest-show-and-phrase show phrase)
+         runtime-info (phrase-runtime-info show phrase)]
+     (every? (partial editors/close-editor? force?)
+             (vals (get-in runtime-info [:cues-editor :expression-editors (:uuid cue)]))))))
 
 (defn players-playing-cue
   "Returns the set of players that are currently playing the specified
-  cue. `track` must be current."
-  [track cue]
-  (let [show (latest-show (:file track))]
-    (reduce (fn [result player]
-              (if ((get-in track [:entered player]) (:uuid cue))
-                (conj result player)
-                result))
-            #{}
-            (util/players-signature-set (:playing show) (:signature track)))))
+  cue. `track` or `show` and `phrase-runtime-info` must be current."
+
+  ([track cue]
+   (let [show (latest-show (:file track))]
+     (reduce (fn [result player]
+               (if ((get-in track [:entered player]) (:uuid cue))
+                 (conj result player)
+                 result))
+             #{}
+             (util/players-signature-set (:playing show) (:signature track)))))
+
+  ([show phrase-uuid phrase-runtime-info cue]
+   (reduce (fn [result player]
+               (if ((get-in phrase-runtime-info [:entered player]) (:uuid cue))
+                 (conj result player)
+                 result))
+             #{}
+             (util/players-signature-set (:playing-phrases show) phrase-uuid))))
 
 (defn entered?
-  "Checks whether any player has entered the cue. `track` must be
-  current."
-  [track cue]
-  ((reduce clojure.set/union (vals (:entered track))) (:uuid cue)))
-
-#_(defn- players-inside-cue
-  "Returns the set of players that are currently positioned inside the
-  specified cue. `track` must be current."
-  [track cue]
-  (let [show (latest-show (:file track))]
-    (reduce (fn [result player]
-              (if ((get-in track [:entered player]) (:uuid cue))
-                (conj result player)
-                result))
-            #{}
-            (util/players-signature-set (:loaded show) (:signature track)))))
+  "Checks whether any player has entered the cue.
+  `track-or-phrase-runtime-info` must be current."
+  [track-or-phrase-runtime-info cue]
+  ((reduce clojure.set/union (vals (:entered track-or-phrase-runtime-info))) (:uuid cue)))
 
 (defn- started?
   "Checks whether any players which have entered a cue is actually
-  playing. `track` must be current."
-  [track cue]
-  (seq (players-playing-cue track cue)))
+  playing. `track` or `show` and `phrase-runtime-info` must be
+  current."
+
+  ([track cue]
+   (seq (players-playing-cue track cue)))
+
+  ([show phrase-uuid phrase-runtime-info cue]
+   (seq (players-playing-cue show phrase-uuid phrase-runtime-info cue))))
 
 (def cue-opacity
   "The degree to which cues replace the underlying waveform colors when
@@ -526,13 +535,20 @@
   (float 0.65))
 
 (defn cue-lightness
-  "Calculates the lightness with which a cue should be painted, based on
-  the track's tripped state and whether the cue is entered and
-  playing. `track` must be current."
-  [track cue]
-  (if (and (:tripped track) (entered? track cue))
-    (if (started? track cue) 0.8 0.65)
-    0.5))
+  "Calculates the lightness with which a cue should be painted,
+  based on the track's or phrase trigger's tripped state and whether
+  the cue is entered and playing. `track` or `show` and
+  `phrase-runtime-info` must be current."
+
+  ([track cue]
+   (if (and (:tripped track) (entered? track cue))
+     (if (started? track cue) 0.8 0.65)
+     0.5))
+
+  ([show phrase-uuid phrase-runtime-info cue]
+   (if (and (:tripped phrase-runtime-info) (entered? phrase-runtime-info cue))
+     (if (started? show phrase-uuid phrase-runtime-info cue) 0.8 0.65)
+     0.5)))
 
 (defn send-cue-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
@@ -623,36 +639,69 @@
   which will be indicated by this function returning falsey. Run any
   appropriate custom expressions and send configured MIDI messages to
   reflect the departure of the cue."
-  [force? track cue]
-  (when (close-cue-editors? force? track cue)
-    (let [[_ track] (latest-show-and-track track)]
-      (when (:tripped track)
-        (when (seq (players-playing-cue track cue))
-          (send-cue-messages track cue :ended nil))
-        (when (entered? track cue)
-          (send-cue-messages track cue :exited nil))))
-    true))
+
+  ([force? track cue]
+   (when (close-cue-editors? force? track cue)
+     (let [track (latest-track track)]
+       (when (:tripped track)
+         (when (seq (players-playing-cue track cue))
+           (send-cue-messages track cue :ended nil))
+         (when (entered? track cue)
+           (send-cue-messages track cue :exited nil))))
+     true))
+
+  ([force? show phrase section cue]
+   (when (close-cue-editors? force? show phrase cue)
+     (let [[show phrase] (latest-show-and-phrase show phrase)
+           runtime-info (phrase-runtime-info show phrase)]
+       (when (:tripped runtime-info)
+         (when (seq (players-playing-cue show (:uuid phrase) runtime-info cue))
+           (send-cue-messages show phrase section cue :ended nil))
+         (when (entered? runtime-info cue)
+           (send-cue-messages show phrase section cue :exited nil))))
+     true)))
 
 (defn- delete-cue-action
   "Creates the menu action which deletes a cue, after confirmation if
   it's not linked to a library cue."
-  [track cue panel]
-  (seesaw/action :handler (fn [_]
-                            (let [cue (find-cue track cue)]
-                              (when (or (:linked cue)
-                                        (util/confirm panel
-                                                      (str "This will irreversibly remove the cue, losing any\r\n"
-                                                           "configuration and expressions created for it.")
-                                                      :title (str "Delete Cue “" (:comment cue) "”?")))
-                                (try
-                                  (cleanup-cue true track cue)
-                                  (swap-track! track expunge-deleted-cue cue)
-                                  (su/update-track-gear-icon track)
-                                  (build-cues track)
-                                  (catch Exception e
-                                    (timbre/error e "Problem deleting cue")
-                                    (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
-                 :name "Delete Cue"))
+
+  ([track cue panel]  ; The track version.
+   (seesaw/action :handler (fn [_]
+                             (let [cue (find-cue track cue)]
+                               (when (or (:linked cue)
+                                         (util/confirm panel
+                                                       (str "This will irreversibly remove the cue, losing any\r\n"
+                                                            "configuration and expressions created for it.")
+                                                       :title (str "Delete Cue “" (:comment cue) "”?")))
+                                 (try
+                                   (cleanup-cue true track cue)
+                                   (swap-track! track expunge-deleted-cue cue)
+                                   (su/update-track-gear-icon track)
+                                   (build-cues track)
+                                   (catch Exception e
+                                     (timbre/error e "Problem deleting cue")
+                                     (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
+                  :name "Delete Cue"))
+
+  ([show phrase section cue panel]  ; The phrase trigger version.
+   (seesaw/action :handler (fn [_]
+                             (let [cue (find-phrase-cue show phrase section cue)]
+                               (when (or (:linked cue)
+                                         (util/confirm panel
+                                                       (str "This will irreversibly remove the cue, losing any\r\n"
+                                                            "configuration and expressions created for it.")
+                                                       :title (str "Delete Cue “" (:comment cue) "”?")))
+                                 (try
+                                   (cleanup-cue true show phrase section cue)
+                                   (swap-phrase! show phrase (partial expunge-deleted-cue show) section cue)
+                                   (su/update-phrase-gear-icon show phrase)
+                                   (build-cues show phrase)
+                                   (catch Exception e
+                                     (timbre/error e "Problem deleting cue")
+                                     (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
+                  :name "Delete Cue")))
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
 
 (defn- sanitize-cue-for-library
   "Removes the elements of a cue that will not be stored in the library.
