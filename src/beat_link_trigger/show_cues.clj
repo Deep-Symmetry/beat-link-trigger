@@ -544,12 +544,11 @@
   [show]
   (let [show            (latest-show show)
         library-in-use? (boolean (seq (get-in show [:contents :cue-library])))]
-    (doseq [[_ track] (:tracks show)]
-      (when-let [editor (:cues-editor track)]
+    (doseq [context (concat (vals (:tracks show)) (vals (:phrases show)))]
+      (when-let [editor (:cues-editor context)]
         (let [button (seesaw/select (:frame editor) [:#library])]
           (seesaw/config! button :visible? library-in-use?)
-          (doseq [track (vals (:tracks show))
-                  panel (vals (get-in track [:cues-editor :panels]))]
+          (doseq [panel (vals (get-in context [:cues-editor :panels]))]
             (let [link (seesaw/select panel [:#link])]
               (seesaw/config! link :visible? library-in-use?))))))))
 
@@ -568,19 +567,20 @@
   chosen to add a cue to a library folder. All arguments must be
   current, and `folder` can be `nil` to add the cue to the top level,
   or if folders are not in use."
-  [show track original-cue cue-name content folder]
-  (let [panel   (get-in track [:cues-editor :panels (:uuid original-cue)])]
+  [show context original-cue cue-name content folder]
+  (let [[_show context runtime-info] (su/latest-show-and-context context)
+        panel                        (get-in runtime-info [:cues-editor :panels (:uuid original-cue)])]
     (add-cue-to-library show cue-name content)
     (when folder (add-cue-to-folder show folder cue-name))
-    (swap-cue! track original-cue assoc :linked cue-name)
-    (update-cue-link-icon track original-cue (seesaw/select panel [:#link]))
+    (swap-cue! context original-cue assoc :linked cue-name)
+    (update-cue-link-icon context original-cue (seesaw/select panel [:#link]))
     (update-library-button-visibility show)))
 
 (defn- cue-library-action
   "Creates the menu action which adds a cue to the library"
-  [track cue]
-  (let [[show track]      (latest-show-and-track track)
-        cue               (find-cue track cue)
+  [context cue]
+  (let [[show context]    (latest-show-and-context context)
+        cue               (find-cue context cue)
         [comment content] (sanitize-cue-for-library cue)]
     (if (clojure.string/blank? comment)
       (seesaw/action :name "Type a Comment to add Cue to Library" :enabled? false)
@@ -596,17 +596,17 @@
             ;; No folders, simply provide an action to add to top level.
             (seesaw/action :name "Add Cue to Library"
                            :handler (fn [_]
-                                      (cue-library-add-handler show track cue comment content nil)))
+                                      (cue-library-add-handler show context cue comment content nil)))
             ;; Provide a menu to add to each library folder or the top level.
             (seesaw/menu :text "Add Cue to Library"
                          :items (concat
                                  (for [folder (sort (keys folders))]
                                    (seesaw/action :name (str "In Folder “" folder "”")
                                                   :handler (fn [_] (cue-library-add-handler
-                                                                    show track cue comment content folder))))
+                                                                    show context cue comment content folder))))
                                  [(seesaw/action :name "At Top Level"
                                                  :handler (fn [_] (cue-library-add-handler
-                                                                    show track cue comment content nil)))]))))))))
+                                                                    show context cue comment content nil)))]))))))))
 
 ;; TODO: Will need a version for phrase cues, and probably should rename this one.
 (defn cue-preview-rectangle
@@ -815,48 +815,47 @@
                              "images/Gear-outline.png"
                              "images/Gear-icon.png")))))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
-
 (defn- attach-cue-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
   to Custom, if there is not already an expession of the appropriate
   kind present, an editor for that expression is automatically
   opened."
-  [track cue menu event panel gear]
+  [context cue menu event panel gear]
   (seesaw/listen menu
                  :action-performed (fn [_]
                                      (let [choice (seesaw/selection menu)
-                                           cue    (find-cue track cue)]
+                                           cue    (find-cue context cue)]
                                        (when (and (= "Custom" choice)
                                                   (not (:creating cue))
                                                   (clojure.string/blank? (get-in cue [:expressions event])))
-                                         (editors/show-cue-editor event track cue panel
-                                                                  #(update-cue-gear-icon track cue gear)))))))
+                                         (editors/show-cue-editor event context cue panel
+                                                                  #(update-cue-gear-icon context cue gear)))))))
 
 (defn- attach-cue-message-visibility-handler
   "Sets up an action handler so that when one of the message menus is
   changed, the appropriate UI elements are shown or hidden. Also
   arranges for the proper expression editor to be opened if Custom is
   chosen for the message type and that expression is currently empty."
-  [track cue event gear]
-  (let [panel           (get-in (latest-track track) [:cues-editor :panels (:uuid cue)])
-        message-menu    (seesaw/select panel [(cue-event-component-id event "message" true)])
-        note-spinner    (seesaw/select panel [(cue-event-component-id event "note" true)])
-        label           (seesaw/select panel [(cue-event-component-id event "channel-label" true)])
-        channel-spinner (seesaw/select panel [(cue-event-component-id event "channel" true)])]
+  [context cue event gear]
+  (let [[_show context runtime-info] (latest-show-and-context context)
+        panel                        (get-in runtime-info [:cues-editor :panels (:uuid cue)])
+        message-menu                 (seesaw/select panel [(cue-event-component-id event "message" true)])
+        note-spinner                 (seesaw/select panel [(cue-event-component-id event "note" true)])
+        label                        (seesaw/select panel [(cue-event-component-id event "channel-label" true)])
+        channel-spinner              (seesaw/select panel [(cue-event-component-id event "channel" true)])]
     (seesaw/listen message-menu
                    :action-performed (fn [_]
                                        (let [choice (seesaw/selection message-menu)]
                                          (if (#{"Same" "None"} choice)
                                            (seesaw/hide! [note-spinner label channel-spinner])
                                            (seesaw/show! [note-spinner label channel-spinner])))))
-    (attach-cue-custom-editor-opener track cue message-menu event panel gear)))
+    (attach-cue-custom-editor-opener context cue message-menu event panel gear)))
 
 (defn- create-cue-event-components
   "Builds and returns the combo box and spinners needed to configure one
   of the three events that can be reported about a cue. `event` will
   be one of `cue-events`, above."
-  [track cue event default-note]
+  [context cue event default-note]
   (let [message       (seesaw/combobox :id (cue-event-component-id event "message")
                                        :model (case event
                                                 :started-late ["Same" "None" "Note" "CC" "Custom"]
@@ -864,25 +863,25 @@
                                        :selected-item nil  ; So update in create-cue-panel saves default.
                                        :listen [:item-state-changed
                                                 (fn [e]
-                                                  (swap-cue! track cue assoc-in [:events event :message]
+                                                  (swap-cue! context cue assoc-in [:events event :message]
                                                              (seesaw/selection e))
-                                                  (update-all-linked-cues track cue))])
+                                                  (update-all-linked-cues context cue))])
         note          (seesaw/spinner :id (cue-event-component-id event "note")
                                       :model (seesaw/spinner-model (or (get-in cue [:events event :note]) default-note)
                                                                    :from 1 :to 127)
                                       :listen [:state-changed
                                                (fn [e]
-                                                 (swap-cue! track cue assoc-in [:events event :note]
+                                                 (swap-cue! context cue assoc-in [:events event :note]
                                                             (seesaw/value e))
-                                                 (update-all-linked-cues track cue))])
+                                                 (update-all-linked-cues context cue))])
         channel       (seesaw/spinner :id (cue-event-component-id event "channel")
                                       :model (seesaw/spinner-model (or (get-in cue [:events event :channel]) 1)
                                                                    :from 1 :to 16)
                                       :listen [:state-changed
                                                (fn [e]
-                                                 (swap-cue! track cue assoc-in [:events event :channel]
+                                                 (swap-cue! context cue assoc-in [:events event :channel]
                                                             (seesaw/value e))
-                                                 (update-all-linked-cues track cue))])
+                                                 (update-all-linked-cues context cue))])
         channel-label (seesaw/label :id (cue-event-component-id event "channel-label") :text "Channel:")]
     {:message       message
      :note          note
@@ -895,11 +894,11 @@
   `cue-action-builder-fn` is the function that will be called to
   create the action associated with a cue in the menu. It will be
   called with the cue name, cue contents, and track."
-  [show track folder-name cues-in-folder cue-action-builder-fn]
+  [show context folder-name cues-in-folder cue-action-builder-fn]
   (let [cue-actions (filter identity
                             (for [cue-name (sort cues-in-folder)]
                               (when-let [cue (get-in (latest-show show) [:contents :cue-library cue-name])]
-                                (cue-action-builder-fn cue-name cue track))))]
+                                (cue-action-builder-fn cue-name cue context))))]
     (seesaw/menu :text folder-name
                  :items (if (seq cue-actions)
                           cue-actions
@@ -913,9 +912,9 @@
   menu. `cue-action-builder-fn` is the function that will be called to
   create the action associated with a cue in the menu. It will be
   called with the cue name, cue contents, and track."
-  [show track cue-action-builder-fn]
+  [show context cue-action-builder-fn]
   (reduce (fn [[menus cues-in-folders] [folder-name cues-in-folder]]
-            [(conj menus (build-cue-folder-menu show track folder-name cues-in-folder cue-action-builder-fn))
+            [(conj menus (build-cue-folder-menu show context folder-name cues-in-folder cue-action-builder-fn))
              (clojure.set/union cues-in-folders cues-in-folder)])
           [[] #{}]
           (get-in (latest-show show) [:contents :cue-library-folders])))
@@ -925,17 +924,17 @@
   in the library. `cue-action-builder-fn` is the function that will be
   called to create the action associated with a cue in the menu. It
   will be called with the cue name, cue contents, and track."
-  [track cue-action-builder-fn]
-  (let [[show track] (latest-show-and-track track)
+  [context cue-action-builder-fn]
+  (let [[show context] (latest-show-and-context context)
         library      (sort-by first (vec (get-in show [:contents :cue-library])))]
     (if (empty? library)
       [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
-      (let [[folder-menus cues-in-folders] (build-cue-folder-menus show track cue-action-builder-fn)]
+      (let [[folder-menus cues-in-folders] (build-cue-folder-menus show context cue-action-builder-fn)]
         (concat folder-menus
                 (filter identity
                         (for [[cue-name cue] library]
                           (when-not (cues-in-folders cue-name)
-                            (cue-action-builder-fn cue-name cue track)))))))))
+                            (cue-action-builder-fn cue-name cue context)))))))))
 
 (defn- library-cue-folder
   "Returns the name of the folder, if any, that a library cue was filed
@@ -954,7 +953,7 @@
 (defn- build-link-cue-action
   "Creates an action that links an existing cue to a library cue. All
   arguments must be current."
-  [show existing-cue button library-cue-name library-cue track]
+  [show existing-cue button library-cue-name library-cue context]
   (seesaw/action :name library-cue-name
                  :handler (fn [_]
                             (when (or (linked-cues-equal? library-cue existing-cue)
@@ -963,76 +962,82 @@
                                                          "the contents of library cue "
                                                          (full-library-cue-name show library-cue-name) ".")
                                                     :title (str "Link Cue “" (:comment existing-cue) "”?")))
-                              (swap-cue! track existing-cue
+                              (swap-cue! context existing-cue
                                          (fn [cue]
                                            (-> cue
                                                (dissoc :expressions)
                                                (merge (dissoc library-cue :comment)
                                                       {:linked library-cue-name}))))
-                              (update-cue-panel-from-linked track existing-cue)
-                              (update-cue-link-icon track existing-cue button)))))
+                              (update-cue-panel-from-linked context  existing-cue)
+                              (update-cue-link-icon context existing-cue button)))))
 
 (defn- build-cue-link-button-menu
   "Builds the menu that appears when you click in a cue's Link button,
   either offering to link or unlink the cue as appropriate, or telling
   you the library is empty."
-  [track cue button]
-  (let [[show track] (latest-show-and-track track)
-        cue          (find-cue track cue)
+  [context cue button]
+  (let [[show context] (latest-show-and-context context)
+        cue          (find-cue context cue)
         library      (sort-by first (vec (get-in show [:contents :cue-library])))]
     (if (empty? library)
       [(seesaw/action :name "No Cues in Show Library" :enabled? false)]
       (if-let [link (:linked cue)]
         [(seesaw/action :name (str "Unlink from Library Cue " (full-library-cue-name show link))
                          :handler (fn [_]
-                                    (swap-cue! track cue dissoc :linked)
-                                    (update-cue-link-icon track cue button)))]
+                                    (swap-cue! context cue dissoc :linked)
+                                    (update-cue-link-icon context cue button)))]
         [(seesaw/menu :text "Link to Library Cue"
-                      :items (build-cue-library-popup-items track (partial build-link-cue-action show cue button)))]))))
+                      :items (build-cue-library-popup-items
+                              context (partial build-link-cue-action show cue button)))]))))
 
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
   the cue. Returns the panel after updating the cue to know about it.
   `track` and `cue` must be current."
-  [track cue]
+  [context cue]
   (let [update-comment (fn [c]
                          (let [comment (seesaw/text c)]
-                           (swap-cue! track cue assoc :comment comment)))
-        [show]       (su/latest-show-and-track track)
+                           (swap-cue! context cue assoc :comment comment)))
+        [show]         (su/latest-show-and-context context)
+        track?         (su/track? context)
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment cue) :listen [:document update-comment])
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         link           (seesaw/button :id :link :icon (link-button-icon cue)
                                       :visible? (seq (get-in show [:contents :cue-library])))
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
+        ;; TODO: Or end of current section, if a phrase trigger cue:
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
-                                             :to (long (.beatCount ^BeatGrid (:grid track))))
+                                             :to (long (.beatCount ^BeatGrid (:grid context))))
 
         start  (seesaw/spinner :id :start
                                :model start-model
                                :listen [:state-changed
                                         (fn [e]
                                           (let [new-start (seesaw/selection e)]
-                                            (swap-cue! track cue assoc :start new-start)
-                                            (update-track-cue-spinner-models track cue start-model end-model)))])
+                                            (swap-cue! context cue assoc :start new-start)
+                                            ;; TODO: or phrase:
+                                            (update-track-cue-spinner-models context cue start-model end-model)))])
         end    (seesaw/spinner :id :end
                                :model end-model
                                :listen [:state-changed
                                         (fn [e]
                                           (let [new-end (seesaw/selection e)]
-                                            (swap-cue! track cue assoc :end new-end)
-                                            (update-track-cue-spinner-models track cue start-model end-model)))])
+                                            (swap-cue! context cue assoc :end new-end)
+                                            ;; TODO: or phase:
+                                            (update-track-cue-spinner-models context cue start-model end-model)))])
         swatch (seesaw/canvas :size [18 :by 18]
                               :paint (fn [^JComponent component ^Graphics2D graphics]
-                                       (let [cue (find-cue track cue)]
+                                       (let [cue (find-cue context cue)]
                                          (.setPaint graphics (su/hue-to-color (:hue cue)))
                                          (.fill graphics (java.awt.geom.Rectangle2D$Double.
                                                           0.0 0.0 (double (.getWidth component))
                                                           (double (.getHeight component)))))))
 
         event-components (apply merge (map-indexed (fn [index event]
-                                                     {event (create-cue-event-components track cue event (inc index))})
+                                                     {event (create-cue-event-components
+                                                             context cue event (inc index))})
                                                    cue-events))
 
         panel (mig/mig-panel
@@ -1048,7 +1053,7 @@
                        ["Entered:" "gap unrelated, align right"]
                        [(seesaw/canvas :id :entered-state :size [18 :by 18] :opaque? false
                                        :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
-                                       :paint (partial paint-cue-state track cue entered?))
+                                       :paint (partial paint-cue-state context cue entered?))  ; TODO: phrase version?
                         "spanx, split"]
                        [(seesaw/label :text "Message:" :halign :right) "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:entered :message])]
@@ -1059,8 +1064,10 @@
                        [link]
                        ["Started:" "gap unrelated, align right"]
                        [(seesaw/canvas :id :started-state :size [18 :by 18] :opaque? false
-                                       :tip "Outer ring shows track enabled, inner light when player(s) playing inside cue."
-                                       :paint (partial paint-cue-state track cue started?))
+                                       :tip (str "Outer ring shows "
+                                                 (if track? "track enabled" "phrase trigger chosen")
+                                                 ", inner light when player(s) playing inside cue.")
+                                       :paint (partial paint-cue-state context cue started?))  ; TODO: phrase version?
                         "spanx, split"]
                        ["On-Beat Message:" "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:started-on-beat :message])]
@@ -1073,11 +1080,12 @@
                        [(get-in event-components [:started-late :note]) "hidemode 3"]
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
-        popup-fn (fn [_] (concat (cue-editor-actions track cue panel gear)
-                                 [(seesaw/separator) (cue-simulate-menu track cue) (su/track-inspect-action track)
-                                  (seesaw/separator) (scroll-wave-to-cue-action track cue) (seesaw/separator)
-                                  (duplicate-cue-action track cue) (cue-library-action track cue)
-                                  (delete-cue-action track cue panel)]))]
+        popup-fn (fn [_] (concat (cue-editor-actions context cue panel gear)
+                                 [(seesaw/separator) (cue-simulate-menu context cue)
+                                  (if track? (su/track-inspect-action context) (su/phrase-inspect-action context))
+                                  (seesaw/separator) (scroll-wave-to-cue-action context cue) (seesaw/separator)
+                                  (duplicate-cue-action context cue) (cue-library-action context cue)
+                                  (delete-cue-action context cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance. Add the popup builder to
@@ -1088,38 +1096,40 @@
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
-    (update-cue-gear-icon track cue gear)
+    (update-cue-gear-icon context cue gear)
 
     ;; Attach the link menu to the link button, both as a normal and right click.
-    (seesaw/config! [link] :popup (build-cue-link-button-menu track cue link))
+    (seesaw/config! [link] :popup (build-cue-link-button-menu context cue link))
     (seesaw/listen link
                    :mouse-pressed (fn [e]
-                                    (let [popup (seesaw/popup :items (build-cue-link-button-menu track cue link))]
+                                    (let [popup (seesaw/popup :items (build-cue-link-button-menu context cue link))]
                                       (util/show-popup-from-button link popup e))))
 
     (seesaw/listen swatch
                    :mouse-pressed (fn [_]
-                                    (let [cue (find-cue track cue)]
+                                    (let [cue (find-cue context cue)]
                                       (when-let [color (chooser/choose-color panel :color (su/hue-to-color (:hue cue))
                                                                              :title "Choose Cue Hue")]
-                                        (swap-cue! track cue assoc :hue (su/color-to-hue color))
+                                        (swap-cue! context cue assoc :hue (su/color-to-hue color))
                                         (seesaw/repaint! [swatch])
-                                        (repaint-cue track cue)))))
+                                        (repaint-cue context cue)))))
 
 
     ;; Record the new panel in the show, in preparation for final configuration.
-    (swap-track! track assoc-in [:cues-editor :panels (:uuid cue)] panel)
+    (if track?
+      (swap-track! context assoc-in [:cues-editor :panels (:uuid cue)] panel)
+      (swap-phrase-runtime! show context assoc-in [:cues-editor :panels (:uuid cue)] panel))
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
     ;; Start by suppresing the automatic opening of expression editors while recreating the cue row.
     ;; This flag is also used to suppress propagation of changes to linked cues during row creation
     ;; and when the row is itself being updated because of a change to a linked cue.
-    (swap-cue! track cue assoc :creating true)
+    (swap-cue! context cue assoc :creating true)
     (doseq [event cue-events]
       ;; Update visibility when a Message selection changes. Also sets them up to automagically open the
       ;; expression editor for the Custom Enabled Filter if "Custom" is chosen as the Message.
-      (attach-cue-message-visibility-handler track cue event gear)
+      (attach-cue-message-visibility-handler context cue event gear)
 
       ;; Set the initial state of the Message menu which will, thanks to the above, set the initial visibilty.
       (seesaw/selection! (seesaw/select panel [(cue-event-component-id event "message" true)])
@@ -1127,13 +1137,15 @@
 
       ;; In case this is the initial creation of the cue, record the defaulted values of the numeric inputs too.
       ;; This will have no effect if they were loaded.
-      (swap-cue! track cue assoc-in [:events event :note]
+      (swap-cue! context cue assoc-in [:events event :note]
                  (seesaw/value (seesaw/select panel [(cue-event-component-id event "note" true)])))
-      (swap-cue! track cue assoc-in [:events event :channel]
+      (swap-cue! context cue assoc-in [:events event :channel]
                  (seesaw/value (seesaw/select panel [(cue-event-component-id event "channel" true)]))))
-    (swap-cue! track cue dissoc :creating)  ; Re-arm Message menu to pop up the expression editor when Custom chosen.
+    (swap-cue! context cue dissoc :creating)  ; Re-arm Message menu to pop up the expression editor when Custom chosen.
 
     panel))  ; Return the newly-created and configured panel.
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
 
 (defn update-cue-visibility
   "Determines the cues that should be visible given the filter text (if
