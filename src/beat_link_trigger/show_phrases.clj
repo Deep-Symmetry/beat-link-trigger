@@ -10,7 +10,7 @@
                                                         phrase-runtime-info find-cue swap-cue!
                                                         get-chosen-output no-output-chosen]]
             [beat-link-trigger.util :as util]
-            [clojure.set]
+            [clojure.set :as set]
             [clojure.string :as str]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
@@ -336,15 +336,13 @@
   (seesaw/menu :text "Simulate" :items (phrase-simulate-actions show phrase)))
 
 (defn- remove-uuid
-  "Filters a map from players to signatures (such as
-  the :playing-phrases entry in a show) to remove any keys whose value
-  match the supplied uuid. This is used as part of cleaning up a show
-  when a phrase trigger has been deleted."
+  "Filters a map from players to [parsed-phrase uuid-set] (such as
+  the :playing-phrases entry in a show) to remove the UUID from all
+  the sets. This is used as part of cleaning up a show when a phrase
+  trigger has been deleted."
   [player-map uuid]
-  (reduce (fn [result [k v]]
-            (if (= v uuid)
-              result
-              (assoc result k v)))
+  (reduce (fn [result [k [parsed-phrase uuid-set]]]
+            (assoc result k [parsed-phrase (disj uuid-set uuid)]))
           {}
           player-map))
 
@@ -394,7 +392,7 @@
         (doseq [[section cues] (get-in phrase [:cues :cues])
                 cue             cues]
           (cues/cleanup-cue true show phrase section cue))
-        (when ((set (vals (:playing-phrases show))) (:uuid phrase))
+        (when ((apply set/union (map second (vals (:playing-phrases show)))) (:uuid phrase))
           (send-stopped-messages show phrase nil)))
       (run-phrase-function show phrase :shutdown nil (not force?))
       (su/phrase-removed show phrase))

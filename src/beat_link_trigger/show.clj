@@ -2199,7 +2199,7 @@
                              :panels      {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
-                             :playing-phrases {} ; Map from player number to UUID that has been reported playing.
+                             :playing-phrases {} ; Map from player # to [parsed-phrase set-of-chosen-trigger-uuids]
                              :visible     []  ; The visible (through filters) track signatures in sorted order.
                              :visible-phrases []}  ; Visible (through filters) phrase trigger UUIDs, in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)

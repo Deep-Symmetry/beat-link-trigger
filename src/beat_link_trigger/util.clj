@@ -446,12 +446,22 @@
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of
-  player numbers whose value matched a particular signature. Note that
-  this also works with UUIDs rather than signatures for finding the
-  set of players playing a particular phrase trigger."
+  player numbers whose value matched a particular signature."
   [player-map signature]
   (reduce (fn [result [k v]]
             (if (= v signature)
+              (conj result k)
+              result))
+          #{}
+          player-map))
+
+(defn players-phrase-uuid-set
+  "Given a map from player number to tuple of [parsed-phrase
+  set-of-chosen-phrase-trigger-uuids], returns the the set of player
+  numbers whose value included a particular uuid."
+  [player-map uuid]
+  (reduce (fn [result [k [_ uuid-set]]]
+            (if (uuid-set uuid)
               (conj result k)
               result))
           #{}

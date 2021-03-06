@@ -388,35 +388,35 @@
   the documentation to show the user what the binding is for."
   []
   {'phrase {:code '(:phrase trigger-data)
-           :doc (str "All the details saved about the phrase trigger. See the <a href=\""
-                    (help/user-guide-link "ShowInternals.html#phrase-contents")
-                    "\">User Guide</a> for details.")}
+            :doc  (str "All the details saved about the phrase trigger. See the <a href=\""
+                       (help/user-guide-link "ShowInternals.html#phrase-contents")
+                       "\">User Guide</a> for details.")}
 
    'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
                          show (:phrase trigger-data))
-                 :doc "The MIDI output object chosen for this phrase trigger. May be
+                 :doc  "The MIDI output object chosen for this phrase trigger. May be
   <code>nil</code> if the output device cannot be found in the current
   MIDI environment."}
 
    'message {:code '(get-in trigger-data [:phrase :message])
-                     :doc "The type of MIDI message to be sent when
+             :doc  "The type of MIDI message to be sent when
   a matched phrase starts or stops playing; one of <code>\"None\"</code>,
   <code>\"Note\"</code>, <code>\"CC\"</code>, or
   <code>\"Custom\"</code>."}
 
    'note {:code '(get-in trigger-data [:phrase :note])
-                  :doc "The MIDI note or CC number sent when a matched
+          :doc  "The MIDI note or CC number sent when a matched
   phrase starts or stops playing."}
 
    'channel {:code '(get-in trigger-data [:phrase :channel])
-                     :doc "The MIDI channel on which phrase trigger
+             :doc  "The MIDI channel on which phrase trigger
   playing messages are sent."}
 
-   ;; TODO: Implement the equivalent for phrase triggers. And, current section? Anything else?
-   #_'playing-players #_{:code '(util/players-signature-set (:playing (:show trigger-data))
-                                                        (:signature (:track trigger-data)))
-                     :doc "The set of player numbers that are currently
-  playing this track, if any."}})
+   ;; TODO: And, current section? Anything else?
+   'playing-players {:code '(util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
+                                                          (:uuid (:phrase trigger-data)))
+                     :doc  "The set of player numbers that are currently
+  playing a phrase that acivated this phrase trigger, if any."}})
 
 (defn- show-bindings-for-phrase-and-class
   "Collects the set of bindings for a show phrase trigger editor which

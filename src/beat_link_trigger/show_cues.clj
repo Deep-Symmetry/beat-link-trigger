@@ -394,7 +394,9 @@
                  (conj result player)
                  result))
              #{}
-             (util/players-signature-set (:playing show) ((if (track? context) :signature :uuid) context))))))
+             (if (track? context)
+               (util/players-signature-set (:playing show) (:signature context))
+               (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context)))))))
 
 (defn entered?
   "Checks whether any player has entered the cue.
@@ -1642,19 +1644,18 @@
                                 ;; Finally, if we deleted the last library cue, make all the library buttons vanish.
                                 (update-library-button-visibility show))))))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
-
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
-  a track."
-  [track ^WaveformDetailComponent wave ^MouseEvent e]
-  (let [[cue track] (find-cue-under-mouse track wave e)
-        popup-items (if cue
-                      (let [panel    (get-in track [:cues-editor :panels (:uuid cue)])
-                            popup-fn (:popup (seesaw/user-data panel))]
-                        (popup-fn e))
-                      (build-cue-library-popup-items track build-library-cue-action))]
-    (util/show-popup-from-button wave (seesaw/popup :items popup-items) e)))
+  a track or phrase trigger."
+  [context wave-or-canvas ^MouseEvent e]
+  (let [[cue context]      (find-cue-under-mouse context wave-or-canvas e)
+        [_ _ runtime-info] (latest-show-and-context context)
+        popup-items        (if cue
+                             (let [panel    (get-in runtime-info [:cues-editor :panels (:uuid cue)])
+                                   popup-fn (:popup (seesaw/user-data panel))]
+                               (popup-fn e))
+                             (build-cue-library-popup-items context build-library-cue-action))]
+    (util/show-popup-from-button wave-or-canvas (seesaw/popup :items popup-items) e)))
 
 ;; TODO: There should probably be a separate version of this for phrases because of the
 ;;       differences both in the component and the structure of the selection.
@@ -1693,14 +1694,17 @@
   "Checks if a drag target for a general selection has already been
   established; if so, returns it, otherwise sets one up, unless we are
   still sitting on the initial beat of a just-created selection."
-  [track start end beat]
-  (or (get-in track [:cues-editor :drag-target])
-      (when (not= start (dec end) beat)
-        (let [start-distance (Math/abs (long (- beat start)))
-              end-distance   (Math/abs (long (- beat (dec end))))
-              target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))]]
-          (swap-track! track assoc-in [:cues-editor :drag-target] target)
-          target))))
+  [context start end beat]
+  (let [[show context runtime-info] (latest-show-and-context context)]
+    (or (get-in runtime-info [:cues-editor :drag-target])
+        (when (not= start (dec end) beat)
+          (let [start-distance (Math/abs (long (- beat start)))
+                end-distance   (Math/abs (long (- beat (dec end))))
+                target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))]]
+            (if (track? context)
+              (swap-track! context assoc-in [:cues-editor :drag-target] target)
+              (swap-phrase-runtime! show context assoc-in [:cues-editor :drag-target] target))
+            target)))))
 
 ;; TODO: There should probably be a separate version of this for phrases because of the
 ;;       differences both in the component and the structure of the selection.
@@ -1786,13 +1790,19 @@
   (handle-wave-move track wave e))  ; This will restore the normal cursor.
 
 (defn- assign-cue-lanes
-  "Given a sorted list of the cues for a track, assigns each a
-  non-overlapping lane number, choosing the smallest value that no
-  overlapping neighbor has already been assigned. Returns a map from
-  cue UUID to its assigned lane."
-  [track cues cue-intervals]
+  "Given a sorted list of the cues for a track or phrase trigger
+  section, assigns each a non-overlapping lane number, choosing the
+  smallest value that no overlapping neighbor has already been
+  assigned. Returns a map from cue UUID to its assigned lane.
+  `cue-intervals` is either a simple interval map for an entire track,
+  or a map whose keys are phrase trigger section keywords, and whose
+  values are the corresponding interval map for the cues in that
+  section of the phrase trigger."
+  [context cues cue-intervals]
   (reduce (fn [result cue]
-            (let [neighbors (map (partial find-cue track) (util/iget cue-intervals (:start cue) (:end cue)))
+            (let [neighbors (map (partial find-cue context)
+                                 (util/iget (if (track? context) cue-intervals ((:section cue) cue-intervals))
+                                            (:start cue) (:end cue)))
                   used      (set (filter identity (map #(result (:uuid %)) neighbors)))]
               (assoc result (:uuid cue) (first (remove used (range))))))
           {}
@@ -1800,29 +1810,41 @@
 
 (defn- gather-cluster
   "Given a cue, returns the set of cues that overlap with it (including
-  itself), and transitively any cues which overlap with them."
-  [track cue cue-intervals]
-  (let [neighbors (set (map (partial find-cue track) (util/iget cue-intervals (:start cue) (:end cue))))]
+  itself), and transitively any cues which overlap with them.
+  `cue-intervals` is either a simple interval map for an entire track,
+  or a map whose keys are phrase trigger section keywords, and whose
+  values are the corresponding interval map for the cues in that
+  section of the phrase trigger."
+  [context cue cue-intervals]
+  (let [neighbors (set (map (partial find-cue context)
+                            (util/iget (if (track? context) cue-intervals ((:section cue) cue-intervals))
+                                       (:start cue) (:end cue))))]
     (loop [result    #{cue}
            remaining (clojure.set/difference neighbors result)]
       (if (empty? remaining)
         result
         (let [current   (first remaining)
               result    (conj result current)
-              neighbors (set (map (partial find-cue track) (util/iget cue-intervals (:start current) (:end current))))]
+              neighbors (set (map (partial find-cue context)
+                                  (util/iget (if (track? context) cue-intervals ((:section current) cue-intervals))
+                                             (:start current) (:end current))))]
           (recur result (clojure.set/difference (clojure.set/union neighbors remaining) result)))))))
 
 (defn- position-cues
-  "Given a sorted list of the cues for a track, assigns each a
-  non-overlapping lane, and determines how many lanes are needed to
-  draw each overlapping cluster of cues. Returns a map from cue uuid
-  to a tuple of the cue's lane assignment and cluster lane count."
-  [track cues cue-intervals]
-  (let [lanes (assign-cue-lanes track cues cue-intervals)]
+  "Given a sorted list of the cues for a track or phrase trigger
+  section, assigns each a non-overlapping lane, and determines how
+  many lanes are needed to draw each overlapping cluster of cues.
+  Returns a map from cue uuid to a tuple of the cue's lane assignment
+  and cluster lane count. `cue-intervals` is either a simple interval
+  map for an entire track, or a map whose keys are phrase trigger
+  section keywords, and whose values are the corresponding interval
+  map for the cues in that section of the phrase trigger."
+  [context cues cue-intervals]
+  (let [lanes (assign-cue-lanes context cues cue-intervals)]
     (reduce (fn [result cue]
               (if (result (:uuid cue))
                 result
-                (let [cluster   (set (map :uuid (gather-cluster track cue cue-intervals)))
+                (let [cluster   (set (map :uuid (gather-cluster context cue cue-intervals)))
                       max-lanes (inc (apply max (map lanes cluster)))]
                   (apply merge result (map (fn [uuid] {uuid [(lanes uuid) max-lanes]}) cluster)))))
             {}
@@ -1831,12 +1853,12 @@
 (defn- cue-panel-constraints
   "Calculates the proper layout constraints for the cue waveform panel
   to properly fit the largest number of cue lanes required. We make
-  sure there is always room to draw the waveform even if there are few
-  lanes and a horizontal scrollbar ends up being needed."
-  [track]
-  (let [track       (latest-track track)
-        max-lanes   (get-in track [:cues :max-lanes] 1)
-        wave-height (max 92 (* max-lanes min-lane-height))]
+  sure there is always room to draw a trqck waveform even if there are
+  few lanes and a horizontal scrollbar ends up being needed."
+  [context]
+  (let [[_ _ runtime-info] (latest-show-and-context context)
+        max-lanes          (get-in runtime-info [:cues :max-lanes] 1)
+        wave-height        (max 92 (* max-lanes min-lane-height))]
     ["" "" (str "[][fill, " (+ wave-height 18) "]")]))
 
 (defn build-cues
@@ -1844,67 +1866,105 @@
   there is an open cues editor window, also updates it. This will be
   called when the show is initially loaded, and whenever the cues are
   changed."
-  [track]
-  (let [track         (latest-track track)
-        sorted-cues   (sort-by (juxt :start :end :comment :uuid)
-                               (vals (get-in track [:contents :cues :cues])))
-        cue-intervals (reduce (fn [result cue]
-                                (util/iassoc result (:start cue) (:end cue) (:uuid cue)))
-                              util/empty-interval-map
-                              sorted-cues)
-        cue-positions (position-cues track sorted-cues cue-intervals)]
-    (swap-track! track #(-> %
-                            (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
-                            (assoc-in [:cues :intervals] cue-intervals)
-                            (assoc-in [:cues :position] cue-positions)
-                            (assoc-in [:cues :max-lanes] (apply max 1 (map second (vals cue-positions))))))
-    (su/repaint-preview track)
-    (when (:cues-editor track)
-      (update-cue-visibility track)
-      (repaint-all-cue-states track)
-      (.repaint ^WaveformDetailComponent (get-in track [:cues-editor :wave]))
-      (let [^JPanel panel (get-in track [:cues-editor :panel])]
-        (seesaw/config! panel :constraints (cue-panel-constraints track))
+  [context]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        contents                    (if (phrase? context) context (:contents context))
+        sorted-cues                 (sort-by (juxt :section :start :end :comment :uuid)
+                                             (vals (get-in contents [:cues :cues])))
+        cue-intervals               (if (track? context)
+                                      (reduce (fn [result cue]
+                                                (util/iassoc result (:start cue) (:end cue) (:uuid cue)))
+                                              util/empty-interval-map
+                                              sorted-cues)
+                                      (reduce (fn [result cue]
+                                                (update result (:section cue) (fnil util/iassoc util/empty-interval-map)
+                                                        (:start cue) (:end cue) (:uuid cue)))
+                                              {}
+                                              sorted-cues))
+        cue-positions               (position-cues context sorted-cues cue-intervals)
+        updater                     (fn [runtime-info]
+                                      (-> runtime-info
+                                          (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
+                                          (assoc-in [:cues :intervals] cue-intervals)
+                                          (assoc-in [:cues :position] cue-positions)
+                                          (assoc-in [:cues :max-lanes]
+                                                    (apply max 1 (map second (vals cue-positions))))))]
+    (if (track? context)
+      (swap-track! context updater)
+      (swap-phrase-runtime! show context updater))
+    (su/repaint-preview context)
+    (when (:cues-editor runtime-info)
+      (update-cue-visibility context)
+      (repaint-all-cue-states context)
+      (.repaint ^JComponent (get-in runtime-info [:cues-editor :wave]))
+      (let [^JPanel panel (get-in runtime-info [:cues-editor :panel])]
+        (seesaw/config! panel :constraints (cue-panel-constraints context))
         (.revalidate panel)))))
 
 (defn- new-cue
   "Handles a click on the New Cue button, which creates a cue with the
   selected beat range, or a default range if there is no selection."
-  [track]
-  (let [track       (latest-track track)
-        [start end] (get-in track [:cues-editor :selection] [1 2])
-        uuid        (java.util.UUID/randomUUID)
-        cue         {:uuid  uuid
-                     :start start
-                     :end   end
-                     :hue   (assign-cue-hue track)
-                     :comment (util/assign-unique-name (map :comment (vals (get-in track [:contents :cues :cues]))))}]
-    (swap-track! track assoc-in [:contents :cues :cues uuid] cue)
-    (swap-track! track update :cues-editor dissoc :selection)
-    (su/update-gear-icon track)
-    (build-cues track)
-    (scroll-wave-to-cue track cue)
-    (scroll-to-cue track cue true)))
+  [context]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        contents                    (if (phrase? context) context (:contents context))
+        [start end section]         (get-in runtime-info [:cues-editor :selection] [1 2])
+        uuid                        (java.util.UUID/randomUUID)
+        cue                         (merge {:uuid    uuid
+                                            :start   start
+                                            :end     end
+                                            :hue     (assign-cue-hue contents)
+                                            :comment (util/assign-unique-name
+                                                      (map :comment (vals (get-in contents [:cues :cues]))))}
+                                           (when section
+                                             {:section section}))]
+    (if (track? context)
+      (do
+        (swap-track! context assoc-in [:contents :cues :cues uuid] cue)
+        (swap-track! context update :cues-editor dissoc :selection))
+      (do
+        (when-not section
+          (throw (IllegalArgumentException.
+                  "Can't create a cue in a phrase trigger without a selection to identify the section.")))
+        (swap-phrase! show context assoc-in [:cues :cues uuid] cue)
+        (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
+    (su/update-gear-icon context)
+    (build-cues context)
+    (if (track? context)
+      (scroll-wave-to-cue context cue)
+      (scroll-phrase-canvas-to-cue show context cue))
+    (scroll-to-cue context cue true)))
 
 (defn- start-animation-thread
   "Creates a background thread that updates the positions of any playing
-  players 30 times a second so that the wave moves smoothly. The
-  thread will exit whenever the cues window closes."
-  [show track]
+  players 30 times a second so that the wave or phrase canvas moves
+  smoothly. The thread will exit whenever the cues window closes."
+  [show context]
   (future
-    (loop [editor (:cues-editor (latest-track track))]
+    (loop [editor (:cues-editor (if (track? context)
+                                  (latest-track context)
+                                  (phrase-runtime-info (latest-show show) context)))]
       (when editor
         (try
           (Thread/sleep 33)
           (let [show (latest-show show)]
-            (doseq [^Long player (util/players-signature-set (:playing show) (:signature track))]
-              (when-let [position (.getLatestPositionFor util/time-finder player)]
-                (.setPlaybackState ^WaveformDetailComponent (:wave editor)
-                                   player (.getTimeFor util/time-finder player) (.playing position)))))
+            (if (track? context)
+              (doseq [^Long player (util/players-signature-set (:playing show) (:signature context))]
+                (when-let [position (.getLatestPositionFor util/time-finder player)]
+                  (.setPlaybackState ^WaveformDetailComponent (:wave editor)
+                                     player (.getTimeFor util/time-finder player) (.playing position))))
+              (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context))]
+                (when-let [position (.getLatestPositionFor util/time-finder player)]
+                  ;; TODO: Something equivalent for phrase triggers.
+                  #_(.setPlaybackState ^WaveformDetailComponent (:wave editor)
+                                       player (.getTimeFor util/time-finder player) (.playing position))))))
           (catch Throwable t
             (timbre/warn "Problem animating cues editor waveform" t)))
-        (recur (:cues-editor (latest-track track)))))
+        (recur (:cues-editor (if (track? context)
+                               (latest-track context)
+                               (phrase-runtime-info (latest-show show) context))))))
     #_(timbre/info "Cues editor animation thread ending.")))
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
 
 (defn- new-cue-folder
   "Opens a dialog in which a new cue folder can be created."
