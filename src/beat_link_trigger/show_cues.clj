@@ -674,7 +674,10 @@
 
 (defn- get-current-selection
   "Returns the starting and ending beat of the current selection in the
-  track or phrase trigger, ignoring selections that have been dragged to zero size."
+  track or phrase trigger, ignoring selections that have been dragged
+  to zero size. Phrase trigger selections will have a third element,
+  the keyword identifying the section of the phrase in which the
+  selection exists."
   [context]
   (let [[_show _context runtime-info] (latest-show-and-context context)]
     (when-let [selection (get-in runtime-info [:cues-editor :selection])]
@@ -1437,12 +1440,10 @@
     (when (= folder-name new-folder-name)  ; Add to the new folder it belongs in.
       (swap-show! show update-in [:contents :cue-library-folders folder-name] conj cue-name))))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
-
 (defn- build-library-cue-move-submenu
   "Creates a submenu for moving a library cue to a different folder."
-  [cue-name _cue track]
-  (let [[show]  (latest-show-and-track track)
+  [cue-name _cue context]
+  (let [[show]  (latest-show-and-context context)
         folders (get-in show [:contents :cue-library-folders])
         current (library-cue-folder show cue-name)]
     (seesaw/menu :text (str "“" cue-name "” to")
@@ -1457,31 +1458,42 @@
                                                   :handler (fn [_] (move-cue-to-folder show cue-name nil)))])))))
 
 (defn- build-library-cue-action
-  "Creates an action that adds a cue from the library to the track."
-  [cue-name cue track]
+  "Creates an action that adds a cue from the library to the track
+  or phrase trigger."
+  [cue-name cue context]
   (seesaw/action :name (str "New “" cue-name "” Cue")
                  :handler (fn [_]
                             (try
-                              (let [uuid        (java.util.UUID/randomUUID)
-                                    track       (latest-track track)
-                                    [start end] (get-in track [:cues-editor :selection] [1 2])
-                                    all-names   (map :comment (vals (get-in track [:contents :cues :cues])))
-                                    new-name    (if (some #(= cue-name %) all-names)
-                                                  (util/assign-unique-name all-names cue-name)
-                                                  cue-name)
-                                    new-cue     (merge cue {:uuid    uuid
-                                                            :start   start
-                                                            :end     end
-                                                            :hue     (assign-cue-hue track)
-                                                            :comment new-name
-                                                            :linked  cue-name})]
-                                (swap-track! track assoc-in [:contents :cues :cues uuid] new-cue)
-                                (swap-track! track update :cues-editor dissoc :selection)
-                                (su/update-gear-icon track)
-                                (build-cues track)
-                                (compile-cue-expressions track new-cue)
-                                (scroll-wave-to-cue track new-cue)
-                                (scroll-to-cue track new-cue true))
+                              (let [uuid                (java.util.UUID/randomUUID)
+                                    [show context
+                                     runtime-info]      (latest-show-and-context context)
+                                    [start end section] (get-in runtime-info [:cues-editor :selection] [1 2 nil])
+                                    all-names           (map :comment (vals (get-in runtime-info [:cues :cues])))
+                                    new-name            (if (some #(= cue-name %) all-names)
+                                                          (util/assign-unique-name all-names cue-name)
+                                                          cue-name)
+                                    new-cue             (merge cue {:uuid    uuid
+                                                                    :start   start
+                                                                    :end     end
+                                                                    :hue     (assign-cue-hue context)
+                                                                    :comment new-name
+                                                                    :linked  cue-name}
+                                                               (when section {:section section}))]
+                                (if (track? context)
+                                  (do
+                                    (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)
+                                    (swap-track! context update :cues-editor dissoc :selection))
+                                  (do
+                                    (swap-phrase! show context assoc-in [:cues :cues uuid] new-cue)
+                                    (swap-phrase! show context update-in [:cues :sections section]
+                                                  (fnil conj #{}) uuid)))
+                                (su/update-gear-icon context)
+                                (build-cues context)
+                                (compile-cue-expressions context new-cue)
+                                (if (track? context)
+                                  (scroll-wave-to-cue context new-cue)
+                                  (scroll-phrase-canvas-to-cue show context new-cue))
+                                (scroll-to-cue context new-cue true))
                               (catch Exception e
                                 (timbre/error e "Problem adding Library Cue")
                                 (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
@@ -1489,11 +1501,11 @@
 (defn- rename-library-cue-action
   "Creates an action that allows a cue in the library to be renamed,
   preserving any links to it."
-  [cue-name _cue track]
+  [cue-name _cue context]
   (seesaw/action :name (str "Rename “" cue-name "”")
                  :handler (fn [_]
-                            (let [[show track] (latest-show-and-track track)
-                                  parent       (get-in track [:cues-editor :frame])]
+                            (let [[show _ runtime-info] (latest-show-and-context context)
+                                  parent                (get-in runtime-info [:cues-editor :frame])]
                               (when-let [new-name
                                          (seesaw/invoke-now
                                           (JOptionPane/showInputDialog parent "Choose new name:"
@@ -1525,12 +1537,16 @@
                                                                          (disj cue-name)
                                                                          (conj new-name))))))
                                       ;; Update any linked cues to link to the new name.
-                                      (doseq [other-track (vals (:tracks show))
-                                              other-cue   (vals (get-in other-track [:contents :cues :cues]))]
+                                      (doseq [track (vals (:tracks show))
+                                              other-cue   (vals (get-in track [:contents :cues :cues]))]
                                         (when (= cue-name (:linked other-cue))
-                                          (swap-track! other-track
-                                                       update-in [:contents :cues :cues (:uuid other-cue)]
-                                                       assoc :linked new-name)))))))))))
+                                          (swap-track! track update-in [:contents :cues :cues (:uuid other-cue)]
+                                                       assoc :linked new-name)))
+                                      (doseq [phrase (vals (get-in show [:contents :phrases]))
+                                              other-cue   (vals (get-in phrase [:cues :cues]))]
+                                        (when (= cue-name (:linked other-cue))
+                                          (swap-phrase! show phrase update-in [:cues :cues (:uuid other-cue)]
+                                                        assoc :linked new-name)))))))))))
 
 (defn describe-unlinking-cues
   "Called when we are reporting that a track contains cues that are
@@ -1552,6 +1568,12 @@
                                                 (vals (get-in track [:contents :cues :cues])))]
                                (when (seq cues)
                                  [(get-in track [:metadata :title]) (map :comment cues)]))))
+        phrases     (filter identity
+                            (for [phrase (vals (get-in show [:contents :prases]))]
+                             (let [cues (filter #(= (:linked %) cue-name)
+                                                (vals (get-in phrase [:cues :cues])))]
+                               (when (seq cues)
+                                 [(su/phrase-display-title phrase) (map :comment cues)]))))
         max-tracks 4
         max-cues   4]
     (when (seq tracks)
@@ -1562,16 +1584,24 @@
                           "      Cues: " (describe-unlinking-cues cues max-cues) "\r\n"))
                    (take max-tracks tracks)))
        (when (seq (drop max-tracks tracks))
-         "  …and other tracks.")))))
+         "  …and other tracks.")
+       (when (seq phrases)
+         (apply str "\r\n"
+                (map (fn [[phrase cues]]
+                     (str "  In Phrase Trigger: “" phrase "”\r\n"
+                          "               Cues: " (describe-unlinking-cues cues max-cues) "\r\n"))
+                     (take max-tracks phrases))))
+       (when (seq (drop max-tracks phrases))
+         "  …and other phrase triggers.")))))
 
 (defn- delete-library-cue-action
   "Creates an action that allows a cue in the library to be deleted,
   breaking any links to it, after confirming the user really wants
   this to happen."
-  [cue-name _cue track]
-  (let [[show track] (latest-show-and-track track)
-        parent       (get-in track [:cues-editor :frame])
-        unlinking    (describe-unlinking cue-name show)]
+  [cue-name _cue context]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        parent                      (get-in runtime-info [:cues-editor :frame])
+        unlinking                   (describe-unlinking cue-name show)]
     (seesaw/action :name (str "Delete “" cue-name "”")
                    :handler (fn [_]
                               (when (util/confirm parent
@@ -1590,18 +1620,29 @@
                                     (swap-show! show update-in [:contents :cue-library-folders folder-name]
                                                 disj cue-name)))
                                 ;; Unlink any cues that had been linked to it.
-                                (doseq [other-track (vals (:tracks show))
-                                        other-cue   (vals (get-in other-track [:contents :cues :cues]))]
+                                (doseq [track (vals (:tracks show))
+                                        other-cue   (vals (get-in track [:contents :cues :cues]))]
                                   (when (= cue-name (:linked other-cue))
-                                    (swap-track! other-track
+                                    (swap-track! track
                                                  update-in [:contents :cues :cues (:uuid other-cue)]
                                                  dissoc :linked)
                                     ;; If there is an editor open for that cue, update its link button icon.
-                                    (when-let [panel (get-in other-track [:cues-editor :panels (:uuid other-cue)])]
-                                      (update-cue-link-icon other-track other-cue
-                                                            (seesaw/select panel [:#link])))))
+                                    (when-let [panel (get-in track [:cues-editor :panels (:uuid other-cue)])]
+                                      (update-cue-link-icon track other-cue (seesaw/select panel [:#link])))))
+                                (doseq [phrase (vals (get-in show [:contents :phrases]))
+                                        other-cue   (vals (get-in phrase [:cues :cues]))]
+                                  (when (= cue-name (:linked other-cue))
+                                    (swap-phrase! show phrase
+                                                  update-in [:cues :cues (:uuid other-cue)]
+                                                  dissoc :linked)
+                                    ;; If there is an editor open for that cue, update its link button icon.
+                                    (when-let [panel (get-in (su/phrase-runtime-info show phrase)
+                                                             [:cues-editor :panels (:uuid other-cue)])]
+                                      (update-cue-link-icon phrase other-cue (seesaw/select panel [:#link])))))
                                 ;; Finally, if we deleted the last library cue, make all the library buttons vanish.
                                 (update-library-button-visibility show))))))
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
 
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
@@ -1615,6 +1656,8 @@
                       (build-cue-library-popup-items track build-library-cue-action))]
     (util/show-popup-from-button wave (seesaw/popup :items popup-items) e)))
 
+;; TODO: There should probably be a separate version of this for phrases because of the
+;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component, setting the
   tooltip and mouse pointer appropriately depending on the location of
@@ -1659,6 +1702,8 @@
           (swap-track! track assoc-in [:cues-editor :drag-target] target)
           target))))
 
+;; TODO: There should probably be a separate version of this for phrases because of the
+;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component, used to adjust
   beat ranges for creating cues."
@@ -1686,6 +1731,8 @@
       (.repaint wave))
     (swap-track! track update :cues-editor dissoc :cursors)))  ; Cursor no longer depends on Shift key state.
 
+;; TODO: There should perhaps be a separate version of this for phrases because of the
+;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
   setting up beat ranges for creating cues, and scrolling the lower
@@ -1718,6 +1765,8 @@
       (.repaint wave)
       (when cue (scroll-to-cue track cue false true)))))
 
+;; TODO: There should perhaps be a separate version of this for phrases because of the
+;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-release
   "Processes a mouse-released event in the wave detail component,
   cleaning up any drag-tracking structures and cursors that were in
