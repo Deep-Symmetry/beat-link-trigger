@@ -156,60 +156,50 @@
   the cue lanes."
   20)
 
-(defn- track-cue-rectangle
+(defn beat-for-x
+  "Translates an x coordinate into a beat number and section keyword
+  over either a waveform detail component (for tracks), or cue
+  canvas (for phrase triggers)."
+  [context ^JPanel wave-or-canvas x]
+  (if (track? context)
+    (let [^WaveformDetailComponent wave wave-or-canvas]
+      [(long (.getBeatForX wave x)) nil])
+    [0 :loop]))  ; TODO: Implement, once cue canvas is.
+
+(defn x-for-beat
+  "Translates a beat number into an x coordinate over either a waveform
+  detail component (for tracks), or cue canvas (for phrase triggers)."
+  [context ^JPanel wave-or-canvas beat section]
+  (if (track? context)
+    (let [^WaveformDetailComponent wave wave-or-canvas]
+      (long (.getXForBeat wave beat)))
+    0))  ; TODO: Implement, using section once cue canvas is.
+
+(defn- cue-rectangle
   "Calculates the outline of a cue within the coordinate system of the
   waveform detail component at the top of the cues editor window,
   taking into account its lane assignment and cluster of neighbors.
-  `track` and `cue` must be current."
-  ^Rectangle2D$Double [track cue ^WaveformDetailComponent wave]
-  (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
-        lane-height      (double (max min-lane-height (/ (.getHeight wave) num-lanes)))
-        x                (.getXForBeat wave (:start cue))
-        w                (- (.getXForBeat wave (:end cue)) x)]
-    (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height)))
-
-(defn- phrase-cue-rectangle
-  "Calculates the outline of a cue within the coordinate system of the
-  cue canvas component at the top of the cues editor window, taking
-  into account its lane assignment and cluster of neighbors. `phrase`
-  and `cue` must be current."
-  ^Rectangle2D$Double [phrase cue ^JPanel canvas]
-  (let [runtime-info     (phrase-runtime-info (su/show-from-phrase phrase) phrase)
+  `cue` must be current."
+  ^Rectangle2D$Double [context cue ^JPanel wave-or-canvas]
+  (let [[_ context runtime-info] (latest-show-and-context context)
         [lane num-lanes] (get-in runtime-info [:cues :position (:uuid cue)])
-        lane-height      (double (max min-lane-height (/ (.getHeight canvas) num-lanes)))
-        x                0  ; TODO: Fixure out x and w for section and beat in this canvas.
-        w                0]
+        lane-height      (double (max min-lane-height (/ (.getHeight wave-or-canvas) num-lanes)))
+        x                (x-for-beat context wave-or-canvas (:start cue) (:section cue))
+        w                (- (x-for-beat context wave-or-canvas (:end cue) (:section cue)) x)]
     (java.awt.geom.Rectangle2D$Double. (double x) (* lane lane-height) (double w) lane-height)))
 
 (defn scroll-wave-to-cue
-  "Makes sure the specified cue is visible in the waveform detail pane
-  of the cues editor window."
-  [track cue]
-  (let [track (latest-track track)
-        cue   (find-cue track cue)]
-    (when-let [editor (:cues-editor track)]
-      (let [auto-scroll                   (seesaw/select (:panel editor) [:#auto-scroll])
-            ^WaveformDetailComponent wave (:wave editor)]
-        (seesaw/config! auto-scroll :selected? false)  ; Make sure auto-scroll is turned off.
-        (seesaw/invoke-later  ; Wait for re-layout if necessary.
-         (seesaw/scroll! wave :to (.getBounds (track-cue-rectangle track cue wave))))))))
-
-(defn scroll-phrase-canvas-to-cue
-  "Makes sure the specified cue is visible in the cue canvas of the cues
-  editor window."
-  [show phrase cue]
-  (let [[show phrase] (latest-show-and-phrase show phrase)
-        cue           (find-cue phrase cue)
-        runtime-info  (phrase-runtime-info show phrase)]
+  "Makes sure the specified cue is visible in the waveform detail or cue
+  canvas of the cues editor window."
+  [context cue]
+  (let [[_ context runtime-info] (latest-show-and-context context)
+        cue                         (find-cue context cue)]
     (when-let [editor (:cues-editor runtime-info)]
       (let [auto-scroll (seesaw/select (:panel editor) [:#auto-scroll])
-            canvas      (:canvas editor)]
+            wave        (:wave editor)]
         (seesaw/config! auto-scroll :selected? false)  ; Make sure auto-scroll is turned off.
         (seesaw/invoke-later  ; Wait for re-layout if necessary.
-         ;; TODO: Uncomment once phrase-cue-rectangle is ready.
-         #_(seesaw/scroll! canvas :to (.getBounds (phrase-cue-rectangle show phrase section cue canvas))))))))
-
-;; TODO: Need scroll-phrase-canvas-to-cue
+         (seesaw/scroll! wave :to (.getBounds (cue-rectangle context cue wave))))))))
 
 (defn- update-track-cue-spinner-models
   "When the start or end position of a cue has changed, that affects the
@@ -621,19 +611,23 @@
                                                  :handler (fn [_] (cue-library-add-handler
                                                                     show context cue comment content nil)))]))))))))
 
-;; TODO: Will need a version for phrase cues, and probably should rename this one.
 (defn cue-preview-rectangle
   "Calculates the outline of a cue within the coordinate system of the
   waveform preview component in a track row of a show window, taking
-  into account its lane assignment and cluster of neighbors. `track`
+  into account its lane assignment and cluster of neighbors. `context`
   and `cue` must be current."
-  ^Rectangle2D$Double [track cue ^WaveformPreviewComponent preview]
-  (let [[lane num-lanes] (get-in track [:cues :position (:uuid cue)])
-        lane-height      (double (max 1.0 (/ (.getHeight preview) num-lanes)))
-        x-for-beat       (fn [beat] (.millisecondsToX preview (.getTimeWithinTrack ^BeatGrid (:grid track) beat)))
-        x                (x-for-beat (:start cue))
-        w                (- (x-for-beat (:end cue)) x)
-        y                (double (* lane (/ (.getHeight preview) num-lanes)))]
+  ^Rectangle2D$Double [context cue ^JPanel preview]
+  (let [[_ _ runtime-info] (latest-show-and-context context)
+        [lane num-lanes]   (get-in runtime-info [:cues :position (:uuid cue)])
+        lane-height        (double (max 1.0 (/ (.getHeight preview) num-lanes)))
+        x-for-beat         (fn [beat section]
+                             (if (track? context)
+                               (let [preview ^WaveformPreviewComponent preview]
+                                 (.millisecondsToX preview (.getTimeWithinTrack ^BeatGrid (:grid context) beat)))
+                               0))  ; TODO: implement, inclduing section!
+        x                  (x-for-beat (:start cue) (:section cue))
+        w                  (- (x-for-beat (:end cue) (:section cue)) x)
+        y                  (double (* lane (/ (.getHeight preview) num-lanes)))]
     (java.awt.geom.Rectangle2D$Double. (double x) y (double w) lane-height)))
 
 (def selection-opacity
@@ -641,38 +635,48 @@
   waveform colors."
   (float 0.5))
 
-;; TODO: Will need a version for phrase cues.
 (defn paint-preview-cues
-  "Draws the cues, if any, on top of the preview waveform. If there is
-  an open cues editor window, also shows its current view of the wave,
-  unless it is in auto-scroll mode."
-  [show signature ^WaveformPreviewComponent preview ^Graphics2D graphics]
+  "Draws the cues, if any, on top of the preview waveform or phrase
+  trigger cue canvas. If there is an open cues editor window, also
+  shows its current view of the wave, unless it is in auto-scroll
+  mode."
+  [show signature-or-uuid ^JPanel preview ^Graphics2D graphics]
   (let [show           (latest-show show)
         ^Graphics2D g2 (.create graphics)
         cliprect       (.getClipBounds g2)
-        track          (get-in show [:tracks signature])
-        beat-for-x     (fn [x] (.findBeatAtTime ^BeatGrid (:grid track) (.getTimeForX preview x)))
-        from           (beat-for-x (.x cliprect))
-        to             (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
-        cue-intervals  (get-in track [:cues :intervals])]
+        context        (if (string? signature-or-uuid)
+                         (get-in show [:tracks signature-or-uuid])
+                         (get-in show [:contents :phrases signature-or-uuid]))
+        runtime-info   (if (track? context) context (phrase-runtime-info show context))
+        cues-to-paint  (if (phrase? context)
+                         (get-in context [:cues :cues])  ; TODO: Figure out which are visible? Or not worth it?
+                         (let [preview       ^WaveformPreviewComponent preview
+                               beat-for-x    (fn [x]
+                                               (.findBeatAtTime ^BeatGrid (:grid context) (.getTimeForX preview x)))
+                               from          (beat-for-x (.x cliprect))
+                               to            (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
+                               cue-intervals (get-in context [:cues :intervals])]
+                           (map (partial find-cue context) (util/iget cue-intervals from to))))]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
-    (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
-      (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness track cue)))
-      (.fill g2 (cue-preview-rectangle track cue preview)))
-    (when-let [editor (:cues-editor track)]
-      (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
-        (when-not (.getAutoScroll wave)
-          (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER
-                                                                 selection-opacity))
-          (.setPaint g2 Color/white)
-          (.setStroke g2 (java.awt.BasicStroke. 3))
-          (let [view-rect  (.getViewRect (.getViewport scroll))
-                start-time (.getTimeForX wave (.-x view-rect))
-                end-time   (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
-                x          (.millisecondsToX preview start-time)
-                width      (- (.millisecondsToX preview end-time) x)]
-            (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
-                                                         (double width) (double (dec (.getHeight preview)))))))))))
+    (doseq [cue cues-to-paint]
+      (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness context cue)))
+      (.fill g2 (cue-preview-rectangle context cue preview)))
+    (when-let [editor (:cues-editor runtime-info)]
+      (if (track? context)
+        (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
+          (when-not (.getAutoScroll wave)
+            (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER
+                                                                   selection-opacity))
+            (.setPaint g2 Color/white)
+            (.setStroke g2 (java.awt.BasicStroke. 3))
+            (let [view-rect  (.getViewRect (.getViewport scroll))
+                  start-time (.getTimeForX wave (.-x view-rect))
+                  end-time   (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
+                  x          (.millisecondsToX preview start-time)
+                  width      (- (.millisecondsToX preview end-time) x)]
+              (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
+                                                           (double width) (double (dec (.getHeight preview))))))))
+        nil))))  ; TODO: Need equivalent outline calculator for cue canvases.
 
 (defn- get-current-selection
   "Returns the starting and ending beat of the current selection in the
@@ -700,7 +704,7 @@
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue (map (partial find-cue track) (util/iget cue-intervals from to))]
       (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness track cue)))
-      (.fill g2 (track-cue-rectangle track cue wave)))
+      (.fill g2 (cue-rectangle track cue wave)))
     (when-let [[start end] (get-current-selection track)]
       (let [x (.getXForBeat wave start)
             w (- (.getXForBeat wave end) x)]
@@ -723,7 +727,7 @@
           (.repaint ^JComponent (:preview-canvas track)
                     (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
     (when-let [^WaveformDetailComponent wave (get-in track [:cues-editor :wave])]
-      (let [cue-rect (track-cue-rectangle track cue wave)]
+      (let [cue-rect (cue-rectangle track cue wave)]
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
 ;; TODO: Will need a versioon for phrase cues, either rename this one or add both branches to it.
@@ -1097,8 +1101,7 @@
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
         popup-fn (fn [_] (concat (cue-editor-actions context cue panel gear)
-                                 [(seesaw/separator) (cue-simulate-menu context cue)
-                                  (if track? (su/track-inspect-action context) (su/phrase-inspect-action context))
+                                 [(seesaw/separator) (cue-simulate-menu context cue) (su/inspect-action context)
                                   (seesaw/separator) (scroll-wave-to-cue-action context cue) (seesaw/separator)
                                   (duplicate-cue-action context cue) (cue-library-action context cue)
                                   (delete-cue-action context cue panel)]))]
@@ -1233,9 +1236,10 @@
   specified factor, while trying to preserve the section of the wave
   at the specified x coordinate within the scroll pane if the scroll
   positon is not being controlled by the DJ Link network."
-  [context ^WaveformDetailComponent wave zoom ^JScrollPane pane anchor-x]
+  [context ^JPanel panel zoom ^JScrollPane pane anchor-x]
   (if (track? context)
-    (let [bar   (.getHorizontalScrollBar pane)
+    (let [wave  ^WaveformDetailComponent panel
+          bar   (.getHorizontalScrollBar pane)
           bar-x (.getValue bar)
           time  (.getTimeForX wave (+ anchor-x bar-x))]
       (swap-track! context assoc-in [:contents :cues :zoom] zoom)
@@ -1244,8 +1248,8 @@
         (seesaw/invoke-later
          (let [time-x (.millisecondsToX wave time)]
            (.setValue bar (- time-x anchor-x))))))
-    (let [bar   (.getHorizontalScrollBar pane)
-          bar-x (.getValue bar)
+    (let [bar                         (.getHorizontalScrollBar pane)
+          bar-x                       (.getValue bar)
           [show context runtime-info] (latest-show-and-context context)]
       ;; TODO: Need to implement this for phrase trigger cue canvas.
       (when-not (get-in runtime-info [:cues :auto-scroll])
@@ -1316,18 +1320,12 @@
   version of the supplied track or phrase trigger as the second
   element of the tuple."
   [context wave-or-canvas ^MouseEvent e]
-  (if (track? context)
-    (let [point                         (.getPoint e)
-          ^WaveformDetailComponent wave wave-or-canvas
-          track                         (latest-track context)]
-      [(first (filter (fn [cue] (.contains (track-cue-rectangle track cue wave) point))
-                      (vals (get-in track [:contents :cues :cues]))))
-       track])
-    (let [point          (.getPoint e)
-          [_show phrase] (latest-show-and-context context)
-          cue            (first (filter (fn [cue] (.contains (phrase-cue-rectangle phrase cue wave-or-canvas) point))
-                                        (vals (get-in phrase [:cues :cues]))))]
-      [cue phrase])))
+  (let [point           (.getPoint e)
+        [_show context] (latest-show-and-context context)
+        contents        (if (phrase? context) context (:contents context))
+        cue             (first (filter (fn [cue] (.contains (cue-rectangle context cue wave-or-canvas) point))
+                                       (vals (get-in contents [:cues :cues]))))]
+    [cue context]))
 
 (def delete-cursor
   "A custom cursor that indicates a selection will be canceled."
@@ -1363,8 +1361,8 @@
       (pos? (bit-and (.getModifiersEx e) MouseEvent/CTRL_DOWN_MASK))))
 
 (defn- handle-wave-key
-  "Processes a key event while a cue waveform is being displayed, in
-  case it requires a cursor change."
+  "Processes a key event while a cue waveform (or cue canvas) is being
+  displayed, in case it requires a cursor change."
   [context ^JComponent wave-or-canvas ^InputEvent e]
   (let [[_show _context runtime-info] (latest-show-and-context context)
         [unshifted shifted]          (get-in runtime-info [:cues-editor :cursors])]
@@ -1387,23 +1385,22 @@
   as dragging it."
   3)
 
-;; TODO: Need a phrase version of this.
 (defn find-click-edge-target
   "Sees if the cursor is within a few pixels of an edge of the selection
   or a cue, and if so returns that as the drag darget should a click
   occur. If there is an active selection, its `start` and `end` will
   be supplied; similarly, if the mouse is over a `cue` that will be
   supplied."
-  [track ^WaveformDetailComponent wave ^MouseEvent e [start end] cue]
+  [context ^JPanel wave-or-canvas ^MouseEvent e [start end section] cue]
   (cond
-    (and start (<= (Math/abs (- (.getX e) (.getXForBeat wave start))) click-edge-tolerance))
+    (and start (<= (Math/abs (- (.getX e) (x-for-beat context wave-or-canvas start section))) click-edge-tolerance))
     [nil :start]
 
-    (and end (<= (Math/abs (- (.getX e) (.getXForBeat wave end))) click-edge-tolerance))
+    (and end (<= (Math/abs (- (.getX e) (x-for-beat context wave-or-canvas end section))) click-edge-tolerance))
     [nil :end]
 
     cue
-    (let [r (track-cue-rectangle track cue wave)]
+    (let [r (cue-rectangle context cue wave-or-canvas)]
       (if (<= (Math/abs (- (.getX e) (.getX r))) click-edge-tolerance)
         [cue :start]
         (when (<= (Math/abs (- (.getX e) (+ (.getX r) (.getWidth r)))) click-edge-tolerance)
@@ -1464,6 +1461,7 @@
   or phrase trigger."
   [cue-name cue context]
   (seesaw/action :name (str "New “" cue-name "” Cue")
+                 :enabled? (or (track? context) (some? (get-current-selection context)))
                  :handler (fn [_]
                             (try
                               (let [uuid                (java.util.UUID/randomUUID)
@@ -1569,13 +1567,13 @@
                              (let [cues (filter #(= (:linked %) cue-name)
                                                 (vals (get-in track [:contents :cues :cues])))]
                                (when (seq cues)
-                                 [(get-in track [:metadata :title]) (map :comment cues)]))))
+                                 [(su/display-title track) (map :comment cues)]))))
         phrases     (filter identity
                             (for [phrase (vals (get-in show [:contents :prases]))]
                              (let [cues (filter #(= (:linked %) cue-name)
                                                 (vals (get-in phrase [:cues :cues])))]
                                (when (seq cues)
-                                 [(su/phrase-display-title phrase) (map :comment cues)]))))
+                                 [(su/display-title phrase) (map :comment cues)]))))
         max-tracks 4
         max-cues   4]
     (when (seq tracks)
@@ -1657,38 +1655,44 @@
                              (build-cue-library-popup-items context build-library-cue-action))]
     (util/show-popup-from-button wave-or-canvas (seesaw/popup :items popup-items) e)))
 
-;; TODO: There should probably be a separate version of this for phrases because of the
-;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-move
-  "Processes a mouse move over the wave detail component, setting the
-  tooltip and mouse pointer appropriately depending on the location of
-  cues and selection."
-  [track ^WaveformDetailComponent wave ^MouseEvent e]
-  (let [[cue track]    (find-cue-under-mouse track wave e)
-        x              (.getX e)
-        beat           (long (.getBeatForX wave x))
-        selection      (get-in track [:cues-editor :selection])
-        [_ edge]       (find-click-edge-target track wave e selection cue)
-        default-cursor (case edge
-                         :start @move-w-cursor
-                         :end   @move-e-cursor
-                         (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
-    (.setToolTipText wave (if cue
-                            (or (:comment cue) "Unnamed Cue")
-                            "Click and drag to select a beat range for the New Cue button."))
+  "Processes a mouse move over the wave detail component (or cue canvas
+  if this is a phrase trigger), setting the tooltip and mouse pointer
+  appropriately depending on the location of cues and selection."
+  [context ^JPanel wave-or-canvas ^MouseEvent e]
+  (let [[cue context]         (find-cue-under-mouse context wave-or-canvas e)
+        [show _ runtime-info] (latest-show-and-context context)
+        x                     (.getX e)
+        [beat section]        (beat-for-x context wave-or-canvas x)
+        selection             (get-in runtime-info [:cues-editor :selection])
+        [_ edge]              (find-click-edge-target context wave-or-canvas e selection cue)
+        default-cursor        (case edge
+                                :start @move-w-cursor
+                                :end   @move-e-cursor
+                                (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
+    (.setToolTipText wave-or-canvas (if cue
+                                      (or (:comment cue) "Unnamed Cue")
+                                      "Click and drag to select a beat range for the New Cue button."))
+    ;; TODO: Need to consider section boundaries in phrase triggers!
     (if selection
       (if (= selection [beat (inc beat)])
         (let [shifted   @delete-cursor ; We are hovering over a single-beat selection, and can delete it.
               unshifted default-cursor]
-          (.setCursor wave (if (shift-down? e) shifted unshifted))
-          (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted]))
-        (let [shifted   (drag-cursor track beat)
+          (.setCursor wave-or-canvas (if (shift-down? e) shifted unshifted))
+          (if (track? context)
+            (swap-track! context assoc-in [:cues-editor :cursors] [unshifted shifted])
+            (swap-phrase-runtime! show context assoc-in [:cues-editor :cursors] [unshifted shifted])))
+        (let [shifted   (drag-cursor context beat)
               unshifted default-cursor]
-          (.setCursor wave (if (shift-down? e) shifted unshifted))
-          (swap-track! track assoc-in [:cues-editor :cursors] [unshifted shifted])))
+          (.setCursor wave-or-canvas (if (shift-down? e) shifted unshifted))
+          (if (track? context)
+            (swap-track! context assoc-in [:cues-editor :cursors] [unshifted shifted])
+            (swap-phrase-runtime! show context assoc-in [:cues-editor :cursors] [unshifted shifted]))))
       (do
-        (.setCursor wave default-cursor)
-        (swap-track! track update :cues-editor dissoc :cursors)))))
+        (.setCursor wave-or-canvas default-cursor)
+        (if (track? context)
+          (swap-track! context update :cues-editor dissoc :cursors)
+          (swap-phrase-runtime! show context update :cues-editor dissoc :cursors))))))
 
 (defn- find-selection-drag-target
   "Checks if a drag target for a general selection has already been
@@ -1964,12 +1968,11 @@
                                (phrase-runtime-info (latest-show show) context))))))
     #_(timbre/info "Cues editor animation thread ending.")))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
-
 (defn- new-cue-folder
   "Opens a dialog in which a new cue folder can be created."
-  [show track]
-  (let [parent (get-in track [:cues-editor :frame])]
+  [context]
+  (let [[show _ runtime-info] (latest-show-and-context context)
+        parent (get-in runtime-info [:cues-editor :frame])]
     (when-let [new-name (seesaw/invoke-now
                          (JOptionPane/showInputDialog parent "Choose the folder name:" "New Cue Library Folder"
                                                       javax.swing.JOptionPane/QUESTION_MESSAGE))]
@@ -1980,8 +1983,9 @@
 
 (defn- rename-cue-folder
   "Opens a dialog in which a cue folder can be renamed."
-  [show track folder]
-  (let [parent (get-in track [:cues-editor :frame])]
+  [context folder]
+  (let [[show _ runtime-info] (latest-show-and-context context)
+        parent (get-in runtime-info [:cues-editor :frame])]
     (when-let [new-name (seesaw/invoke-now
                          (JOptionPane/showInputDialog parent "Choose new name:" (str "Rename Folder “" folder "”")
                                                       javax.swing.JOptionPane/QUESTION_MESSAGE))]
@@ -1996,177 +2000,203 @@
 
 (defn- remove-cue-folder
   "Opens a confirmation dialog for deleting a cue folder."
-  [show track folder]
-  (when (util/confirm (get-in track [:cues-editor :frame])
-                      (str "Removing a cue library folder will move all of its cues\r\n"
-                           "back to the top level of the cue library.")
-                      :type :question :title (str "Remove Folder “" folder "”?"))
-    (swap-show! show update-in [:contents :cue-library-folders] dissoc folder)))
+  [context folder]
+  (let [[show _ runtime-info] (latest-show-and-context context)]
+    (when (util/confirm (get-in runtime-info [:cues-editor :frame])
+                        (str "Removing a cue library folder will move all of its cues\r\n"
+                             "back to the top level of the cue library.")
+                        :type :question :title (str "Remove Folder “" folder "”?"))
+      (swap-show! show update-in [:contents :cue-library-folders] dissoc folder))))
 
 (defn- build-cue-library-button-menu
   "Builds the menu that appears when you click in the cue library
   button, which includes the same cue popup menu that is available
-  when right-clicking in the track waveform, but adds options at the
-  end for managing cue folders in case you have a lot of cues."
-  [track]
-  (let [[show track]  (latest-show-and-track track)
-        folders (sort (keys (get-in show [:contents :cue-library-folders])))]
+  when right-clicking in the track waveform or phrase trigger cue
+  canvas, but adds options at the end for managing cue folders in case
+  you have a lot of cues."
+  [context]
+  (let [[show context] (latest-show-and-context context)
+        folders        (sort (keys (get-in show [:contents :cue-library-folders])))]
     (concat
-     (build-cue-library-popup-items track build-library-cue-action)
+     (build-cue-library-popup-items context build-library-cue-action)
      [(seesaw/menu :text "Manage Cues"
                    :items (concat
                            (when (seq (get-in show [:contents :cue-library-folders]))
                              [(seesaw/menu :text "Move"
-                                           :items (build-cue-library-popup-items track
+                                           :items (build-cue-library-popup-items context
                                                                                  build-library-cue-move-submenu))])
                            [(seesaw/menu :text "Rename"
-                                         :items (build-cue-library-popup-items track rename-library-cue-action))
+                                         :items (build-cue-library-popup-items context rename-library-cue-action))
                             (seesaw/menu :text "Delete"
-                                         :items (build-cue-library-popup-items track delete-library-cue-action))]))
+                                         :items (build-cue-library-popup-items context delete-library-cue-action))]))
       (seesaw/menu :text "Manage Folders"
                    :items (concat
                            [(seesaw/action :name "New Folder"
-                                           :handler (fn [_] (new-cue-folder show track)))]
+                                           :handler (fn [_] (new-cue-folder context)))]
                            (when (seq folders)
                              [(seesaw/menu :text "Rename"
                                            :items (for [folder folders]
                                                     (seesaw/action :name folder
                                                                    :handler (fn [_]
-                                                                              (rename-cue-folder show track folder)))))
+                                                                              (rename-cue-folder context folder)))))
                               (seesaw/menu :text "Remove"
                                            :items (for [folder folders]
                                                     (seesaw/action :name folder
                                                                    :handler (fn [_]
-                                                                              (remove-cue-folder
-                                                                               show track folder)))))])))])))
+                                                                              (remove-cue-folder context
+                                                                                                 folder)))))])))])))
+
+;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
+
 (defn- create-cues-window
-  "Create and show a new cues window for the specified show and track.
-  Must be supplied current versions of `show` and `track.`"
-  [show track parent]
-  (let [track-root   (su/build-track-path show (:signature track))
-        ^JFrame root (seesaw/frame :title (str "Cues for Track: " (su/display-title track))
-                                   :on-close :nothing)
-        wave         (WaveformDetailComponent. ^WaveformDetail (su/read-detail track-root)
-                                               ^CueList (su/read-cue-list track-root)
-                                               ^BeatGrid (:grid track))
-        song-structure (when-let [bytes (su/read-song-structure track-root)]
+  "Create and show a new cues window for the specified track or phrase
+  trigger."
+  [context parent]
+  (let [[show context] (latest-show-and-context context)
+        contents       (if (phrase? context) context (:contents context))
+        track-root     (when (track? context) (su/build-track-path show (:signature context)))
+        ^JFrame root   (seesaw/frame :title (str "Cues for " (if track-root "Track: " "Phrase Trigger: ")
+                                                 (su/display-title context))
+                                     :on-close :nothing)
+        wave           (if track-root
+                         (WaveformDetailComponent. ^WaveformDetail (su/read-detail track-root)
+                                                   ^CueList (su/read-cue-list track-root)
+                                                   ^BeatGrid (:grid context))
+                         ;; TODO: The following needs a real implementation of the cue canvas!
+                         (seesaw/canvas))
+        song-structure (when-let [bytes (when track-root (su/read-song-structure track-root))]
                          (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. bytes)))
-        zoom-slider  (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in track [:contents :cues :zoom] 4))
-        filter-field (seesaw/text (get-in track [:contents :cues :filter] ""))
-        entered-only (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (util/online?)
-                                      :selected? (boolean (get-in track [:contents :cues :entered-only]))
-                                      :listen [:item-state-changed #(set-entered-only track (seesaw/value %))])
-        auto-scroll  (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (util/online?)
-                                      :selected? (boolean (get-in track [:contents :cues :auto-scroll]))
-                                      :listen [:item-state-changed #(set-auto-scroll track wave (seesaw/value %))])
-        lib-popup-fn (fn [] (seesaw/popup :items (build-cue-library-button-menu track)))
-        zoom-anchor  (atom nil)  ; The x coordinate we want to keep the wave anchored at when zooming.
-        wave-scroll  (proxy [javax.swing.JScrollPane] [wave]
-                       (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
-                         (if (.isShiftDown e)
-                           (proxy-super processMouseWheelEvent e)
-                           (let [zoom (min max-zoom (max 1 (+ (.getScale wave) (.getWheelRotation e))))]
-                             (reset! zoom-anchor (.getX e))
-                             (seesaw/value! zoom-slider zoom)))))
-        top-panel    (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints track)
-                                    :items [[(seesaw/button :text "New Cue"
-                                                            :listen [:action-performed
-                                                                     (fn ([_] (new-cue track)))])]
-                                            [(seesaw/button :id :library
-                                                            :text (str "Library "
-                                                                       (if (menus/on-windows?) "▼" "▾"))
-                                                            :visible? (seq (get-in show [:contents :cue-library]))
-                                                            :listen [:mouse-pressed
-                                                                     (fn ([e] (util/show-popup-from-button
-                                                                               (seesaw/to-widget e)
-                                                                               (lib-popup-fn) e)))]
-                                                            :popup (lib-popup-fn))
-                                             "hidemode 3"]
-                                            [(seesaw/label :text "Filter:") "gap unrelated"]
-                                            [filter-field "pushx 4, growx 4"]
-                                            [entered-only "hidemode 3"]
-                                            [(seesaw/label :text "") "pushx1, growx1"]
-                                            [auto-scroll "hidemode 3"]
-                                            [zoom-slider]
-                                            [(seesaw/label :text "Zoom") "wrap"]
-                                            [wave-scroll "span, width 100%"]])
-        cues         (seesaw/vertical-panel :id :cues)
-        cues-scroll  (seesaw/scrollable cues)
-        layout       (seesaw/border-panel :north top-panel :center cues-scroll)
-        key-spy      (proxy [java.awt.KeyEventDispatcher] []
-                       (dispatchKeyEvent [^java.awt.event.KeyEvent e]
-                         (handle-wave-key track wave e)
-                         false))
-        close-fn     (fn [force?]
-                       ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
-                       ;; will do so even in the presence of windows with unsaved user changes. Otherwise
-                       ;; prompts the user about all unsaved changes, giving them a chance to veto the
-                       ;; closure. Returns truthy if the window was closed.
-                       (let [track (latest-track track)
-                             cues  (vals (get-in track [:contents :cues :cues]))]
-                         (when (every? (partial close-cue-editors? force? track) cues)
-                           (doseq [cue cues]
-                             (cleanup-cue true track cue))
-                           (seesaw/invoke-later
-                            ;; Gives windows time to close first, so they don't recreate a broken editor.
-                            (swap-track! track dissoc :cues-editor)
-                            (su/repaint-preview track))  ; Removes the editor viewport overlay.
-                           (.removeKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)
-                                                      key-spy)
-                           (.dispose root)
-                           true)))]
-    (swap-track! track assoc :cues-editor {:frame    root
-                                           :panel    top-panel
-                                           :wave     wave
-                                           :scroll   wave-scroll
-                                           :close-fn close-fn})
+        zoom-slider    (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in contents [:cues :zoom] 4))
+        filter-field   (seesaw/text (get-in contents [:cues :filter] ""))
+        entered-only   (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (util/online?)
+                                        :selected? (boolean (get-in contents [:cues :entered-only]))
+                                        :listen [:item-state-changed #(set-entered-only context (seesaw/value %))])
+        auto-scroll    (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (util/online?)
+                                        :selected? (boolean (get-in contents [:cues :auto-scroll]))
+                                        :listen [:item-state-changed #(set-auto-scroll context wave (seesaw/value %))])
+        lib-popup-fn   (fn [] (seesaw/popup :items (build-cue-library-button-menu context)))
+        zoom-anchor    (atom nil) ; The x coordinate we want to keep the wave anchored at when zooming.
+        wave-scale     (fn []  ; Determine the current scale of the waveform or cue canvas.
+                         (if track-root
+                           (.getScale wave)
+                           1))  ;; TODO: Need real implementation once cue canvas exists.
+        wave-scroll    (proxy [javax.swing.JScrollPane] [wave]
+                         (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
+                           (if (.isShiftDown e)
+                             (proxy-super processMouseWheelEvent e)
+                             (let [zoom (min max-zoom (max 1 (+ (wave-scale) (.getWheelRotation e))))]
+                               (reset! zoom-anchor (.getX e))
+                               (seesaw/value! zoom-slider zoom)))))
+        new-cue        (seesaw/button :text "New Cue"
+                                      :listen [:action-performed (fn ([_] (new-cue context)))]
+                                      :enabled? (some? track-root))
+        top-panel      (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints context)
+                                      :items [[new-cue]
+                                              [(seesaw/button :id :library
+                                                              :text (str "Library "
+                                                                         (if (menus/on-windows?) "▼" "▾"))
+                                                              :visible? (seq (get-in show [:contents :cue-library]))
+                                                              :listen [:mouse-pressed
+                                                                       (fn ([e] (util/show-popup-from-button
+                                                                                 (seesaw/to-widget e)
+                                                                                 (lib-popup-fn) e)))]
+                                                              :popup (lib-popup-fn))
+                                               "hidemode 3"]
+                                              [(seesaw/label :text "Filter:") "gap unrelated"]
+                                              [filter-field "pushx 4, growx 4"]
+                                              [entered-only "hidemode 3"]
+                                              [(seesaw/label :text "") "pushx1, growx1"]
+                                              [auto-scroll "hidemode 3"]
+                                              [zoom-slider]
+                                              [(seesaw/label :text "Zoom") "wrap"]
+                                              [wave-scroll "span, width 100%"]])
+        cues           (seesaw/vertical-panel :id :cues)
+        cues-scroll    (seesaw/scrollable cues)
+        layout         (seesaw/border-panel :north top-panel :center cues-scroll)
+        key-spy        (proxy [java.awt.KeyEventDispatcher] []
+                         (dispatchKeyEvent [^java.awt.event.KeyEvent e]
+                           (handle-wave-key context wave e)
+                           false))
+        close-fn       (fn [force?]
+                         ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
+                         ;; will do so even in the presence of windows with unsaved user changes. Otherwise
+                         ;; prompts the user about all unsaved changes, giving them a chance to veto the
+                         ;; closure. Returns truthy if the window was closed.
+                         (let [[_ context] (latest-show-and-context context)
+                               contents    (if (phrase? context) context (:contents context))
+                               cues        (vals (get-in contents [:cues :cues]))]
+                           (when (every? (partial close-cue-editors? force? context) cues)
+                             (doseq [cue cues]
+                               (cleanup-cue true context cue))
+                             (seesaw/invoke-later
+                              ;; Gives windows time to close first, so they don't recreate a broken editor.
+                              (if track-root
+                                (swap-track! context dissoc :cues-editor)
+                                (swap-phrase-runtime! show context dissoc :cues-editor))
+                              (su/repaint-preview context))  ; Removes the editor viewport overlay.
+                             (.removeKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)
+                                                        key-spy)
+                             (.dispose root)
+                             true)))
+        editor-info    {:frame    root
+                        :panel    top-panel
+                        :wave     wave
+                        :scroll   wave-scroll
+                        :close-fn close-fn}]
+    (if track-root
+      (swap-track! context assoc :cues-editor editor-info)
+      (swap-phrase-runtime! show context assoc :cues-editor editor-info))
     (.addKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager) key-spy)
     (.addChangeListener (.getViewport wave-scroll)
                         (proxy [javax.swing.event.ChangeListener] []
-                          (stateChanged [_]
-                            (su/repaint-preview track))))
-    (.setScale wave (seesaw/value zoom-slider))
+                          (stateChanged [_] (su/repaint-preview context))))
+    (if track-root
+      (do
+        (.setScale wave (seesaw/value zoom-slider))
+        (.setAutoScroll wave (and (seesaw/value auto-scroll) (util/online?)))
+        (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
+                                   (paintOverlay [component graphics]
+                                     (paint-cues-and-beat-selection context component graphics))))
+        (.setSongStructure wave song-structure))
+      nil)  ; TODO: Need equivalents for cue canvas once implemented, although some will be built-in.
     (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
-    (.setAutoScroll wave (and (seesaw/value auto-scroll) (util/online?)))
-    (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
-                               (paintOverlay [component graphics]
-                                 (paint-cues-and-beat-selection track component graphics))))
-    (.setSongStructure wave song-structure)
     (seesaw/listen wave
-                   :mouse-moved (fn [e] (handle-wave-move track wave e))
-                   :mouse-pressed (fn [e] (handle-wave-click track wave e))
-                   :mouse-dragged (fn [e] (handle-wave-drag track wave e))
-                   :mouse-released (fn [e] (handle-wave-release track wave e)))
+                   :mouse-moved (fn [e] (handle-wave-move context wave e))
+                   :mouse-pressed (fn [e] (handle-wave-click context wave e))
+                   :mouse-dragged (fn [e] (handle-wave-drag context wave e))
+                   :mouse-released (fn [e] (handle-wave-release context wave e)))
     (seesaw/listen zoom-slider
                    :state-changed (fn [e]
-                                    (set-zoom track wave (seesaw/value e) wave-scroll (or @zoom-anchor 0))
+                                    (set-zoom context wave (seesaw/value e) wave-scroll (or @zoom-anchor 0))
                                     (reset! zoom-anchor nil)))
 
     (seesaw/config! root :content layout)
-    (build-cues track)
+    (build-cues context)
     (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
-                   (fn [e] (cue-filter-text-changed track (seesaw/text e))))
+                   (fn [e] (cue-filter-text-changed context (seesaw/text e))))
     (.setSize root 800 600)
-    (su/restore-window-position root (get-in track [:contents :cues]) parent)
+    (su/restore-window-position root (:cues contents) parent)
     (seesaw/listen root
                    :window-closing (fn [_] (close-fn false))
-                   #{:component-moved :component-resized} (fn [_] (save-cue-window-position track root)))
-    (start-animation-thread show track)
-    (su/repaint-preview track)  ; Show the editor viewport overlay.
+                   #{:component-moved :component-resized} (fn [_] (save-cue-window-position context root)))
+    (start-animation-thread show context)
+    (su/repaint-preview context)  ; Show the editor viewport overlay.
     (seesaw/show! root)))
 
 (defn open-cues
   "Creates, or brings to the front, a window for editing cues attached
-  to the specified track in the specified show. Returns truthy if the
+  to the specified track or phrase trigger. Returns truthy if the
   window was newly opened."
-  [track parent]
+  [track-or-phrase parent]
   (try
-    (let [[show track] (latest-show-and-track track)]
-      (if-let [existing (:cues-editor track)]
+    (let [[_ context runtime-info] (latest-show-and-context track-or-phrase)]
+      (if-let [existing (:cues-editor runtime-info)]
         (.toFront ^JFrame (:frame existing))
-        (do (create-cues-window show track parent)
+        (do (create-cues-window context parent)
             true)))
     (catch Throwable t
-      (swap-track! track dissoc :cues-editor)
+      (if (track? track-or-phrase)
+        (swap-track! track-or-phrase dissoc :cues-editor)
+        (swap-phrase-runtime! (su/show-from-phrase track-or-phrase) track-or-phrase dissoc :cues-editor))
       (timbre/error t "Problem creating cues editor.")
       (throw t))))

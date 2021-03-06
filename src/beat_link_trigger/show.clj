@@ -1679,7 +1679,7 @@
                       (paste-track-content-action track panel)]
                      (concat [(edit-cues-action track panel) (seesaw/separator)] ; The normal context menu.
                              (track-editor-actions show track panel gear)
-                             [(seesaw/separator) (track-simulate-menu track) (su/track-inspect-action track)
+                             [(seesaw/separator) (track-simulate-menu track) (su/inspect-action track)
                               (seesaw/separator)]
                              (track-copy-actions track)
                              [(seesaw/separator) (delete-track-action show track panel)])))

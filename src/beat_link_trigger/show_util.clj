@@ -365,52 +365,56 @@
        (.setBounds window x y width height)))))
 
 (defn display-title
-  "Returns the title of a track, or the string [no title] if it is
-  empty"
-  [track]
-  (let [title (:title (:metadata track))]
-    (if (str/blank? title) "[no title]" title)))
+  "Returns the title of a track or phrase trigger, or the string [no
+  title] if an untitled track, or [uncommented] if an unnamed phrase
+  trigger. `context` must be current."
+  [context]
+  (if (track? context)
+    (let [title (:title (:metadata context))]
+      (if (str/blank? title) "[no title]" title))
+    (let [comment (:comment context)]
+      (if (str/blank? comment) "[uncommented]" comment))))
 
-(defn track-inspect-action
-  "Creates the menu action which allows a track's local bindings to be
-  inspected. Offered in the popups of both track rows and their cue
-  rows."
-  [track]
-  (seesaw/action :handler (fn [_] (try
-                                    (inspector/inspect @(:expression-locals track)
-                                                       :window-name (str "Expression Locals for "
-                                                                         (display-title track)))
-                                    (catch StackOverflowError _
-                                      (util/inspect-overflowed))
-                                    (catch Throwable t
-                                      (util/inspect-failed t))))
-                 :name "Inspect Expression Locals"
-                 :tip "Examine any values set as Track locals by its Expressions."))
+(defn phrase-runtime-info
+  "Given a current show and a phrase map or UUID, returns the runtime
+  cache map (non-saved information) for that phrase."
+  [show phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (get-in show [:phrases uuid])))
 
-(defn phrase-display-title
- "Returns text to describe a phrase trigger; `phrase` must be
- current."
- [phrase]
-  (let [comment (:comment phrase)]
-    (if (str/blank? comment) "[uncommented]" comment)))
+(defn latest-show-and-context
+  "Given a cue context, which can either be a track map or a phrase
+  trigger map, and returns a tuple containing current versions of the
+  show to which the track or phrase trigger belongs, the track or
+  phase trigger map itself, and (in the case of phrase triggers) its
+  runtime info map. For tracks, the runtime info is present at the
+  root of the track itself, so it is returned as both context and
+  runtime-info."
+  [context]
+  (if (track? context)
+    (let [[show track] (latest-show-and-track context)]
+      [show track track])
+    (let [show (show-from-phrase context)]
+      [show (latest-phrase show context) (phrase-runtime-info show context)])))
 
-(defn phrase-inspect-action
-  "Creates the menu action which allows a phrase trigger's local
-  bindings to be inspected. Offered in the popups of both phrase rows
-  and their cue rows."
-  [show phrase]
-  (let [[show phrase] (latest-show-and-phrase show phrase)]
-    (seesaw/action :handler (fn [_]
-                              (try
-                                (inspector/inspect @(get-in show [:phrases (:uuid phrase) :expression-locals])
-                                                   :window-name (str "Expression Locals for "
-                                                                     (phrase-display-title phrase)))
-                                (catch StackOverflowError _
-                                  (util/inspect-overflowed))
-                                (catch Throwable t
-                                  (util/inspect-failed t))))
-                   :name "Inspect Expression Locals"
-                   :tip "Examine any values set as Phrase Trigger locals by its Expressions.")))
+(defn inspect-action
+  "Creates the menu action which allows a track or phrase trigger's
+  local bindings to be inspected. Offered in the popups of both track
+  rows and their cue rows."
+  [context]
+  (let [[_ _ runtime-info] (latest-show-and-context context)]
+       (seesaw/action :handler (fn [_] (try
+                                         (inspector/inspect @(:expression-locals runtime-info)
+                                                            :window-name (str "Expression Locals for "
+                                                                              (display-title context)))
+                                         (catch StackOverflowError _
+                                           (util/inspect-overflowed))
+                                         (catch Throwable t
+                                           (util/inspect-failed t))))
+                      :name "Inspect Expression Locals"
+                      :tip (str "Examine any values set as " (if (track? context) "Track" "Phrase Trigger")
+                                " locals by its Expressions."))))
+
 
 (defn random-beat
   "Creates a [`Beat`
@@ -551,28 +555,6 @@
         "Custom" (get-in track [:expression-results :enabled])
         false)
       false)))
-
-(defn phrase-runtime-info
-  "Given a current show and a phrase map or UUID, returns the runtime
-  cache map (non-saved information) for that phrase."
-  [show phrase-or-uuid]
-  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
-    (get-in show [:phrases uuid])))
-
-(defn latest-show-and-context
-  "Given a cue context, which can either be a track map or a phrase
-  trigger map, and returns a tuple containing current versions of the
-  show to which the track or phrase trigger belongs, the track or
-  phase trigger map itself, and (in the case of phrase triggers) its
-  runtime info map. For tracks, the runtime info is present at the
-  root of the track itself, so it is returned as both context and
-  runtime-info."
-  [context]
-  (if (track? context)
-    (let [[show track] (latest-show-and-track context)]
-      [show track track])
-    (let [show (show-from-phrase context)]
-      [show (latest-phrase show context) (phrase-runtime-info show context)])))
 
 (defn update-gear-icon
   "Determines whether the gear button for a track or phrase trigger

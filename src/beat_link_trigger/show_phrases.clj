@@ -676,7 +676,7 @@
                                  [(build-checkbox-group-button true mid-types)]
                                  [(build-checkbox-group-button true high-types) "wrap"]])
           phrase       (latest-phrase show {:uuid uuid})
-          ^JFrame root (seesaw/frame :title (str "Enabled Phrase Types for " (su/phrase-display-title phrase))
+          ^JFrame root (seesaw/frame :title (str "Enabled Phrase Types for " (su/display-title phrase))
                                      :on-close :dispose :content panel
                                      :listen [:window-closing
                                               (fn [_] (swap-phrase-runtime! show uuid dissoc :phrase-type-picker))])]
@@ -979,8 +979,7 @@
                    ;; TODO: Implement the rest of these!
                    (concat [#_(edit-cues-action phrase panel) #_(seesaw/separator)]
                            (phrase-editor-actions show phrase panel gear)
-                           [(seesaw/separator) (phrase-simulate-menu show phrase)
-                            (su/phrase-inspect-action show phrase)
+                           [(seesaw/separator) (phrase-simulate-menu show phrase) (su/inspect-action show phrase)
                             (seesaw/separator)]
                            [(seesaw/separator) (delete-phrase-action show phrase panel)]))
 

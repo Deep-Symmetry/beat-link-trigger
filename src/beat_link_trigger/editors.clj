@@ -1052,15 +1052,15 @@
   "Determines the title for a show expression editor window. If it is
   from an individual track or phrase trigger, identifies it as such."
   [kind show track-or-phrase]
-  (let [title (get-in (cond (:signature track-or-phrase) @show-track-editors
-                            (:uuid track-or-phrase)      @show-phrase-editors
-                            :else                        @global-show-editors) [kind :title])]
+  (let [title (get-in (cond (show-util/track? track-or-phrase)  @show-track-editors
+                            (show-util/phrase? track-or-phrase) @show-phrase-editors
+                            :else                               @global-show-editors) [kind :title])]
     (cond
-      (:signature track-or-phrase)
+      (show-util/track? track-or-phrase)
       (str (or title kind) " for Track “" (get-in track-or-phrase [:metadata :title]) "”")
 
-      (:uuid track-or-phrase)
-      (str (or title kind) " for Phrase Trigger “" (show-util/phrase-display-title track-or-phrase) "”")
+      (show-util/phrase? track-or-phrase)
+      (str (or title kind) " for Phrase Trigger “" (show-util/display-title track-or-phrase) "”")
 
       :else
       (str "Show “" (fs/base-name (:file show) true) "” " title))))
