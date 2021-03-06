@@ -591,11 +591,13 @@
                                   (seesaw/icon "images/Gear-icon.png"))))))
 
 (defn repaint-preview
-  "Tells the track's preview component to repaint itself because the
-  overlaid cues have been edited in the cue window."
-  [track]
-  (when-let [preview-canvas ^JComponent (:preview-canvas track)]
-    (.repaint preview-canvas)))
+  "Tells the track or phrase trigger's preview component to repaint
+  itself because the overlaid cues have been edited in the cue
+  window."
+  [context]
+  (let [[_show _context runtime-info] (latest-show-and-context context)]
+    (when-let [preview-canvas ^JComponent (:preview-canvas runtime-info)]
+      (.repaint preview-canvas))))
 
 (defn update-row-visibility
   "Determines the tracks and phrases that should be visible given the
