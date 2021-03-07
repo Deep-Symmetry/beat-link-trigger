@@ -276,12 +276,8 @@
      (seesaw/action :name "Ended"
                     :enabled? (seq enabled-events)
                     :handler (fn [_]
-                               (if (track? context)
-                                 (swap-track! context assoc-in [:cues (:uuid cue) :last-entry-event]
-                                              (rand-nth enabled-events))
-                                 (swap-phrase-runtime! (su/show-from-phrase context) context
-                                                       assoc-in [:cues (:uuid cue) :last-entry-event]
-                                                       (rand-nth enabled-events)))
+                               (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event]
+                                                         (rand-nth enabled-events))
                                (send-cue-messages (second (latest-show-and-context context))
                                                   cue :ended (su/random-beat-or-status)))))
    (seesaw/action :name "Exited"
@@ -457,10 +453,7 @@
             (run-cue-function context  cue effective-event status-or-beat false))))
       (when (#{:started-on-beat :started-late} event)
         ;; Record how we started this cue so we know which event to send upon ending it.
-        (if (track? context)
-          (swap-track! context assoc-in [:cues (:uuid cue) :last-entry-event] event)
-          (swap-phrase-runtime! (su/show-from-phrase context) context
-                                assoc-in [:cues (:uuid cue) :last-entry-event] event)))
+        (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event] event))
       (catch Exception e
         (timbre/error e "Problem reporting" (if (track? context) "track" "phrase trigger") "cue event" event)))))
 
@@ -494,9 +487,7 @@
                                                       :title (str "Delete Cue “" (:comment cue) "”?")))
                                 (try
                                   (cleanup-cue true context cue)
-                                  (if (track? context)
-                                    (swap-track! context expunge-deleted-cue cue)
-                                    (swap-phrase! (su/show-from-phrase context) context expunge-deleted-cue cue))
+                                  (su/swap-context! nil context expunge-deleted-cue cue)
                                   (su/update-gear-icon context)
                                   (build-cues context)
                                   (catch Exception e
@@ -1135,9 +1126,7 @@
 
 
     ;; Record the new panel in the show, in preparation for final configuration.
-    (if track?
-      (swap-track! context assoc-in [:cues-editor :panels (:uuid cue)] panel)
-      (swap-phrase-runtime! show context assoc-in [:cues-editor :panels (:uuid cue)] panel))
+    (su/swap-context-runtime! show context assoc-in [:cues-editor :panels (:uuid cue)] panel)
 
     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
@@ -1195,9 +1184,7 @@
                                        (get-in runtime-info [:cues :sorted])))
             visible-uuids (mapv :uuid visible-cues)]
         (when (not= visible-uuids old-visible)
-          (if (track? context)
-            (swap-track! context assoc-in [:cues-editor :visible] visible-uuids)
-            (swap-phrase-runtime! show context assoc-in [:cues-editor :visible] visible-uuids))
+          (su/swap-context-runtime! show context assoc-in [:cues-editor :visible] visible-uuids)
           (let [visible-panels (mapv (fn [cue color]
                                        ;; TODO: Add section headers when switching sections?
                                        (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
@@ -1211,9 +1198,7 @@
   "Update the cues UI so that all cues or only entered cues are
   visible."
   [context entered-only?]
-  (if (track? context)
-    (swap-track! context assoc-in [:contents :cues :entered-only] entered-only?)
-    (swap-phrase-runtime! (su/show-from-phrase context) context assoc-in [:contents :cues :entered-only] entered-only?))
+  (su/swap-context-runtime! nil context assoc-in [:contents :cues :entered-only] entered-only?)
   (update-cue-visibility context))
 
 (defn- set-auto-scroll
@@ -1226,8 +1211,7 @@
       (swap-track! context assoc-in [:contents :cues :auto-scroll] auto?)
       (.setAutoScroll wave (and auto? (util/online?))))
     (do  ; TODO: Need actual implementation for phrase trigger cue canvas.
-      (swap-phrase-runtime! (su/show-from-phrase context) context
-                            assoc-in [:cues :auto-scroll] auto?)))
+      (swap-phrase! (su/show-from-phrase context) context assoc-in [:cues :auto-scroll] auto?)))
   (su/repaint-preview context)
   (when-not auto? (seesaw/scroll! wave-or-canvas :to [:point 0 0])))
 
@@ -1255,7 +1239,7 @@
       (when-not (get-in runtime-info [:cues :auto-scroll])
         ;; TODO: Calculate position for time saved above, scroll...
         )
-      (swap-phrase-runtime! show context assoc-in [:cues :zoom] zoom))))
+      (swap-phrase! show context assoc-in [:cues :zoom] zoom))))
 
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
@@ -1394,17 +1378,17 @@
   [context ^JPanel wave-or-canvas ^MouseEvent e [start end section] cue]
   (cond
     (and start (<= (Math/abs (- (.getX e) (x-for-beat context wave-or-canvas start section))) click-edge-tolerance))
-    [nil :start]
+    [nil :start section]
 
     (and end (<= (Math/abs (- (.getX e) (x-for-beat context wave-or-canvas end section))) click-edge-tolerance))
-    [nil :end]
+    [nil :end section]
 
     cue
     (let [r (cue-rectangle context cue wave-or-canvas)]
       (if (<= (Math/abs (- (.getX e) (.getX r))) click-edge-tolerance)
-        [cue :start]
+        [cue :start (:section cue)]
         (when (<= (Math/abs (- (.getX e) (+ (.getX r) (.getWidth r)))) click-edge-tolerance)
-          [cue :end])))))
+          [cue :end (:section cue)])))))
 
 (defn compile-cue-expressions
   "Compiles and installs all the expressions associated with a track's
@@ -1414,14 +1398,12 @@
   (doseq [[kind expr] (:expressions cue)]
     (let [editor-info (get @editors/show-cue-editors kind)]
       (try
-        (if (track? context)
-          (swap-track! context assoc-in [:cues :expression-fns (:uuid cue) kind]
-                       (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                          (editors/track-cue-editor-title kind context cue)))
-          (swap-phrase-runtime! assoc-in [:cues :expression-fns (:uuid cue) kind]
-                                (expressions/build-user-expression expr (:bindings editor-info)
-                                                                   (:nil-status? editor-info)
-                                                                   (editors/phrase-cue-editor-title kind context cue))))
+        (su/swap-context-runtime! nil context assoc-in [:cues :expression-fns (:uuid cue) kind]
+                                  (expressions/build-user-expression
+                                   expr (:bindings editor-info) (:nil-status? editor-info)
+                                   ((if (track? context)
+                                      editors/track-cue-editor-title
+                                      editors/phrase-cue-editor-title) kind context cue)))
         (catch Exception e
           (timbre/error e (str "Problem parsing " (:title editor-info)
                                " when loading Show. Expression:\n" expr "\n"))
@@ -1486,7 +1468,8 @@
                                   (do
                                     (swap-phrase! show context assoc-in [:cues :cues uuid] new-cue)
                                     (swap-phrase! show context update-in [:cues :sections section]
-                                                  (fnil conj #{}) uuid)))
+                                                  (fnil conj #{}) uuid)
+                                    (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
                                 (su/update-gear-icon context)
                                 (build-cues context)
                                 (compile-cue-expressions context new-cue)
@@ -1673,105 +1656,106 @@
     (.setToolTipText wave-or-canvas (if cue
                                       (or (:comment cue) "Unnamed Cue")
                                       "Click and drag to select a beat range for the New Cue button."))
-    ;; TODO: Need to consider section boundaries in phrase triggers!
+    ;; TODO: Do we need to consider section boundaries in phrase triggers?
     (if selection
       (if (= selection [beat (inc beat)])
         (let [shifted   @delete-cursor ; We are hovering over a single-beat selection, and can delete it.
               unshifted default-cursor]
           (.setCursor wave-or-canvas (if (shift-down? e) shifted unshifted))
-          (if (track? context)
-            (swap-track! context assoc-in [:cues-editor :cursors] [unshifted shifted])
-            (swap-phrase-runtime! show context assoc-in [:cues-editor :cursors] [unshifted shifted])))
+          (su/swap-context-runtime! show context assoc-in [:cues-editor :cursors] [unshifted shifted]))
         (let [shifted   (drag-cursor context beat)
               unshifted default-cursor]
           (.setCursor wave-or-canvas (if (shift-down? e) shifted unshifted))
-          (if (track? context)
-            (swap-track! context assoc-in [:cues-editor :cursors] [unshifted shifted])
-            (swap-phrase-runtime! show context assoc-in [:cues-editor :cursors] [unshifted shifted]))))
+          (su/swap-context-runtime! show context assoc-in [:cues-editor :cursors] [unshifted shifted])))
       (do
         (.setCursor wave-or-canvas default-cursor)
-        (if (track? context)
-          (swap-track! context update :cues-editor dissoc :cursors)
-          (swap-phrase-runtime! show context update :cues-editor dissoc :cursors))))))
+        (su/swap-context-runtime! show context update :cues-editor dissoc :cursors)))))
 
 (defn- find-selection-drag-target
   "Checks if a drag target for a general selection has already been
   established; if so, returns it, otherwise sets one up, unless we are
   still sitting on the initial beat of a just-created selection."
-  [context start end beat]
+  [context start end section beat]
   (let [[show context runtime-info] (latest-show-and-context context)]
     (or (get-in runtime-info [:cues-editor :drag-target])
         (when (not= start (dec end) beat)
           (let [start-distance (Math/abs (long (- beat start)))
                 end-distance   (Math/abs (long (- beat (dec end))))
-                target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))]]
-            (if (track? context)
-              (swap-track! context assoc-in [:cues-editor :drag-target] target)
-              (swap-phrase-runtime! show context assoc-in [:cues-editor :drag-target] target))
+                target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))
+                                section]]
+            (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
             target)))))
 
-;; TODO: There should probably be a separate version of this for phrases because of the
-;;       differences both in the component and the structure of the selection.
+(defn beat-count
+  "Returns the total number of beats in a track or phrase trigger section."
+  [context section]
+  (if (track? context)
+    (let [^BeatGrid grid (:grid context)]
+      (.beatCount grid))
+    4))  ; TODO: Implement (preview canvas shows how to find phrase trigger section beat count).
+
 (defn- handle-wave-drag
-  "Processes a mouse drag in the wave detail component, used to adjust
-  beat ranges for creating cues."
-  [track ^WaveformDetailComponent wave ^MouseEvent e]
-  (let [track          (latest-track track)
-        ^BeatGrid grid (:grid track)
-        x              (.getX e)
-        beat           (long (.getBeatForX wave x))
-        [start end]    (get-in track [:cues-editor :selection])
-        [cue edge]     (find-selection-drag-target track start end beat)]
+  "Processes a mouse drag in the wave detail component (or cue canvas if
+  this is a phrase trigger), used to adjust beat ranges for creating
+  cues."
+  [context ^JPanel wave-or-canvas ^MouseEvent e]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        x                           (.getX e)
+        [beat section]              (beat-for-x context wave-or-canvas x)
+        [start end sel-section]     (get-in runtime-info [:cues-editor :selection])
+        [cue edge section]          (find-selection-drag-target context start end (or sel-section section) beat)]
     ;; We are trying to adjust an existing cue or selection. Move the end that was nearest to the mouse.
     (when edge
       (if cue
         (do  ; We are dragging the edge of a cue.
           (if (= :start edge)
-            (swap-cue! track cue assoc :start (min (dec (:end cue)) (max 1 beat)))
-            (swap-cue! track cue assoc :end (max (inc (:start cue)) (min (.beatCount grid) (inc beat)))))
-          (build-cues track))
-        (swap-track! track assoc-in [:cues-editor :selection]  ; We are dragging the beat selection.
-                     (if (= :start edge)
-                       [(min end (max 1 beat)) end]
-                       [start (max start (min (.beatCount grid) (inc beat)))])))
+            (swap-cue! context cue assoc :start (min (dec (:end cue)) (max 1 beat)))
+            (swap-cue! context cue assoc :end (max (inc (:start cue))
+                                                   (min (beat-count context (:section cue)) (inc beat)))))
+          (build-cues context))
+        ;; We are dragging the beat selection.
+        (let [new-selection (if (= :start edge)
+                              [(min end (max 1 beat)) end section]
+                              [start (max start (min (beat-count context section) (inc beat))) section])]
+          (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] new-selection)))
 
-      (.setCursor wave (if (= :start edge) @move-w-cursor @move-e-cursor))
-      (.repaint wave))
-    (swap-track! track update :cues-editor dissoc :cursors)))  ; Cursor no longer depends on Shift key state.
+      (.setCursor wave-or-canvas (if (= :start edge) @move-w-cursor @move-e-cursor))
+      (.repaint wave-or-canvas))
+    ;; Cursor no longer depends on Shift key state.
+    (su/swap-context-runtime! show context update :cues-editor dissoc :cursors)))
 
-;; TODO: There should perhaps be a separate version of this for phrases because of the
-;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
   setting up beat ranges for creating cues, and scrolling the lower
   pane to cues. Ignores right-clicks and control-clicks so those can
   pull up the context menu."
-  [track ^WaveformDetailComponent wave ^MouseEvent e]
+  [context ^JPanel wave-or-canvas ^MouseEvent e]
   (if (context-click? e)
-    (show-cue-library-popup track wave e)
-    (let [[cue track]     (find-cue-under-mouse track wave e)
-          ^BeatGrid grid (:grid track)
-          x               (.getX e)
-          beat            (long (.getBeatForX wave x))
-          selection       (get-in track [:cues-editor :selection])]
+    (show-cue-library-popup context wave-or-canvas e)
+    (let [[cue context]         (find-cue-under-mouse context wave-or-canvas e)
+          [show _ runtime-info] (latest-show-and-context context)
+          x                     (.getX e)
+          [beat section]        (beat-for-x context wave-or-canvas x)
+          selection             (get-in runtime-info [:cues-editor :selection])]
       (if (and (shift-down? e) selection)
-        (if (= selection [beat (inc beat)])
+        (if (= (take 2 selection) [beat (inc beat)])
           (do  ; Shift-click on single-beat selection clears it.
-            (swap-track! track update :cues-editor dissoc :selection :cursors)
-            (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
-          (handle-wave-drag track wave e))  ; Adjusting an existing selection; we can handle it as a drag.
-        (if-let [target (find-click-edge-target track wave e selection cue)]
+            (su/swap-context-runtime! show context update :cues-editor dissoc :selection :cursors)
+            (.setCursor wave-or-canvas (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
+          (handle-wave-drag context wave-or-canvas e))  ; Adjusting an existing selection; we can handle it as a drag.
+        (if-let [target (find-click-edge-target context wave-or-canvas e selection cue)]
           (do ; We are dragging the edge of the selection or a cue.
-            (swap-track! track assoc-in [:cues-editor :drag-target] target)
-            (handle-wave-drag track wave e))
+            (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
+            (handle-wave-drag context wave-or-canvas e))
           ;; We are starting a new selection.
-          (if (< 0 beat (.beatCount grid))  ; Was the click in a valid place to make a selection?
+          (if (< 0 beat (beat-count context section))  ; Was the click in a valid place to make a selection?
             (do  ; Yes, set new selection.
-              (swap-track! track assoc-in [:cues-editor :selection] [beat (inc beat)])
-              (handle-wave-move track wave e))  ; Update the cursors.
-            (swap-track! track update :cues-editor dissoc :selection))))  ; No, clear selection.
-      (.repaint wave)
-      (when cue (scroll-to-cue track cue false true)))))
+              (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] [beat (inc beat) section])
+              (handle-wave-move context wave-or-canvas e))  ; Update the cursors.
+
+            (su/swap-context-runtime! show context update :cues-editor dissoc :selection))))  ; No, clear selection.
+      (.repaint wave-or-canvas)
+      (when cue (scroll-to-cue context cue false true)))))
 
 ;; TODO: There should perhaps be a separate version of this for phrases because of the
 ;;       differences both in the component and the structure of the selection.
@@ -1885,17 +1869,14 @@
                                                         (:start cue) (:end cue) (:uuid cue)))
                                               {}
                                               sorted-cues))
-        cue-positions               (position-cues context sorted-cues cue-intervals)
-        updater                     (fn [runtime-info]
-                                      (-> runtime-info
-                                          (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
-                                          (assoc-in [:cues :intervals] cue-intervals)
-                                          (assoc-in [:cues :position] cue-positions)
-                                          (assoc-in [:cues :max-lanes]
-                                                    (apply max 1 (map second (vals cue-positions))))))]
-    (if (track? context)
-      (swap-track! context updater)
-      (swap-phrase-runtime! show context updater))
+        cue-positions               (position-cues context sorted-cues cue-intervals)]
+    (su/swap-context-runtime! show context (fn [runtime-info]
+                                             (-> runtime-info
+                                                 (assoc-in [:cues :sorted] (mapv :uuid sorted-cues))
+                                                 (assoc-in [:cues :intervals] cue-intervals)
+                                                 (assoc-in [:cues :position] cue-positions)
+                                                 (assoc-in [:cues :max-lanes]
+                                                           (apply max 1 (map second (vals cue-positions)))))))
     (su/repaint-preview context)
     (when (:cues-editor runtime-info)
       (update-cue-visibility context)
@@ -1929,13 +1910,15 @@
         (when-not section
           (throw (IllegalArgumentException.
                   "Can't create a cue in a phrase trigger without a selection to identify the section.")))
-        (swap-phrase! show context assoc-in [:cues :cues uuid] cue)
+        (swap-phrase! show context (fn [phrase]
+                                     (-> phrase
+                                         (assoc-in [:cues :cues uuid] cue)
+                                         (update-in [:cues :sections section]
+                                                    (fnil conj #{}) uuid))))
         (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
     (su/update-gear-icon context)
     (build-cues context)
-    (if (track? context)
-      (scroll-wave-to-cue context cue)
-      (scroll-phrase-canvas-to-cue show context cue))
+    (scroll-wave-to-cue context cue)
     (scroll-to-cue context cue true)))
 
 (defn- start-animation-thread
@@ -2130,9 +2113,7 @@
                                (cleanup-cue true context cue))
                              (seesaw/invoke-later
                               ;; Gives windows time to close first, so they don't recreate a broken editor.
-                              (if track-root
-                                (swap-track! context dissoc :cues-editor)
-                                (swap-phrase-runtime! show context dissoc :cues-editor))
+                              (su/swap-context-runtime! show context dissoc :cues-editor)
                               (su/repaint-preview context))  ; Removes the editor viewport overlay.
                              (.removeKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)
                                                         key-spy)
@@ -2143,9 +2124,7 @@
                         :wave     wave
                         :scroll   wave-scroll
                         :close-fn close-fn}]
-    (if track-root
-      (swap-track! context assoc :cues-editor editor-info)
-      (swap-phrase-runtime! show context assoc :cues-editor editor-info))
+    (su/swap-context-runtime! show context assoc :cues-editor editor-info)
     (.addKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager) key-spy)
     (.addChangeListener (.getViewport wave-scroll)
                         (proxy [javax.swing.event.ChangeListener] []
@@ -2195,8 +2174,6 @@
         (do (create-cues-window context parent)
             true)))
     (catch Throwable t
-      (if (track? track-or-phrase)
-        (swap-track! track-or-phrase dissoc :cues-editor)
-        (swap-phrase-runtime! (su/show-from-phrase track-or-phrase) track-or-phrase dissoc :cues-editor))
+      (su/swap-context-runtime! nil track-or-phrase dissoc :cues-editor)
       (timbre/error t "Problem creating cues editor.")
       (throw t))))

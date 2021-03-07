@@ -209,6 +209,26 @@
   (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
     (swap! open-shows #(apply update-in % [(:file show) :phrases uuid] f args))))
 
+(defn swap-context!
+  "Delegetes to either `swap-track!` or `swap-phrase!` depending on
+  whether `context` is a track or phrase trigger map. `show` can be
+  `nil` if it was not conveniently available, in which case it will be
+  looked up when needed."
+  [show context f & args]
+  (if (track? context)
+    (apply swap-track! context f args)
+    (apply swap-phrase! (or show (show-from-phrase context)) context f args)))
+
+(defn swap-context-runtime!
+  "Delegetes to either `swap-track!` or `swap-phrase-runtime!` depending
+  on whether `context` is a track or phrase trigger map.  `show` can be
+  `nil` if it was not conveniently available, in which case it will be
+  looked up when needed."
+  [show context f & args]
+  (if (track? context)
+    (apply swap-track! context f args)
+    (apply swap-phrase-runtime! (or show (show-from-phrase context)) context f args)))
+
 (def ^{:tag "[Ljava.nio.file.OpenOption;"}
   empty-open-options
   "The Filesystem options used for default behavior."
