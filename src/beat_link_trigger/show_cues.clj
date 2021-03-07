@@ -1744,7 +1744,10 @@
         x                           (.getX e)
         [beat section]              (beat-for-x context wave-or-canvas x)
         [start end sel-section]     (get-in runtime-info [:cues-editor :selection])
-        [cue edge section]          (find-selection-drag-target context start end (or sel-section section) beat)]
+        [cue edge drag-section]     (find-selection-drag-target context start end (or sel-section section) beat)
+        beat                        (if (= section drag-section)
+                                      beat
+                                      (if (= :start edge) 1 (beat-count context drag-section)))]
     ;; We are trying to adjust an existing cue or selection. Move the end that was nearest to the mouse.
     (when edge
       (if cue
@@ -1752,12 +1755,13 @@
           (if (= :start edge)
             (swap-cue! context cue assoc :start (min (dec (:end cue)) (max 1 beat)))
             (swap-cue! context cue assoc :end (max (inc (:start cue))
-                                                   (min (beat-count context (:section cue)) (inc beat)))))
+                                                   (min (inc (beat-count context (:section cue))) (inc beat)))))
           (build-cues context))
         ;; We are dragging the beat selection.
         (let [new-selection (if (= :start edge)
-                              [(min end (max 1 beat)) end section]
-                              [start (max start (min (beat-count context section) (inc beat))) section])]
+                              [(min end (max 1 beat)) end drag-section]
+                              [start (max start (min (inc (beat-count context drag-section)) (inc beat)))
+                               drag-section])]
           (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] new-selection)))
 
       (.setCursor wave-or-canvas (if (= :start edge) @move-w-cursor @move-e-cursor))
@@ -2079,25 +2083,44 @@
         active?        false ; TODO: TBD!
         bars           (:total-bars sections)
         stroke         (.getStroke g)
-        stripe         (fn [color y section]  ; Paint one of the section stripes.
-                         (let [x        (x-for-beat phrase c 1 section)
+        label-font     (.getFont (javax.swing.UIManager/getDefaults) "Label.font")
+        stripe         (fn [color section]  ; Paint one of the section stripes.
+                         (let [x              (x-for-beat phrase c 1 section)
                                [from-bar
-                                to-bar] (section sections)
-                               w        (- (dec (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)) x)]
+                                to-bar]       (section sections)
+                               w              (- (dec (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)) x)
+                               label          (str/capitalize (name section))
+                               render-context (.getFontRenderContext g)
+                               metrics        (.getLineMetrics label-font label render-context)
+                               text-height    (long (Math/ceil (+ (.getAscent metrics) (.getDescent metrics))))
+                               y              (- h su/cue-canvas-margin text-height 1)
+                               phrase-rect    (Rectangle2D$Double. x y w (+ text-height 2))
+                               old-clip       (.getClip g)]
                            (.setPaint g color)
-                           (.fillRect g x y w 3)))
-        fence          (fn [section]  ; Paint one of the section boundary fences.
-                         (let [[from-bar to-bar] (section sections)
-                               x                 (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)]
-                           (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
+                           (.fill g phrase-rect)
+                           (.setClip g phrase-rect)
+                           (.setPaint g Color/black)
+                           (.drawString g label (int (+ x 2)) (int (- h su/cue-canvas-margin 4)))
+                           (.setClip g old-clip)))
+        fence (fn [section]  ; Paint one of the section boundary fences.
+                (let [[from-bar to-bar] (section sections)
+                      x                 (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)]
+                  (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
+
+    (doseq [i (range 0 (inc (* 4 bars)) (if (< (get-in phrase [:cues :zoom] 4) 10) 1 4))]
+      (.setPaint g (if (zero? (mod i 4)) Color/red Color/white))
+      (let [x (cue-canvas-x-for-time phrase (* 500 i))]
+        (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
+        (.drawLine g x (- h su/cue-canvas-margin 8) x (- h su/cue-canvas-margin 4))))
+
     ;; Paint the section stripes.
-    (let [y (- h su/cue-canvas-margin 2)]
-      (when (:start sections)
-        (stripe su/phrase-start-color y :start))
-      (stripe su/phrase-loop-color y :loop)
-      (when (:end sections)
-        (stripe su/phrase-end-color y :end))
-      (stripe su/phrase-fill-color y :fill))
+    (.setFont g label-font)
+    (when (:start sections)
+      (stripe su/phrase-start-color :start))
+    (stripe su/phrase-loop-color :loop)
+    (when (:end sections)
+      (stripe su/phrase-end-color :end))
+    (stripe su/phrase-fill-color :fill)
 
     ;; Paint the section boundaries.
     (.setPaint g Color/white)
@@ -2118,8 +2141,8 @@
         (.fill g2 (cue-rectangle phrase cue c)))
       ;; Paint the beat selection, if any.
       (when-let [[start end section] (get-current-selection phrase)]
-      (let [x (x-for-beat phrase c start section)
-            w (- (x-for-beat phrase c end section) x)]
+        (let [x (x-for-beat phrase c start section)
+              w (- (x-for-beat phrase c end section) x)]
         (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
         (.setPaint g2 Color/white)
         (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) h))))
