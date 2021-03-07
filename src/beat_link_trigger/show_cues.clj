@@ -21,7 +21,7 @@
             WaveformPreviewComponent]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
            [io.kaitai.struct ByteBufferKaitaiStream]
-           [java.awt Color Cursor Graphics2D Rectangle RenderingHints]
+           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
            [java.awt.event InputEvent MouseEvent]
            [java.awt.geom Rectangle2D$Double]
            [javax.swing JComponent JFrame JOptionPane JPanel JScrollPane]
@@ -156,6 +156,35 @@
   the cue lanes."
   20)
 
+(defn- cue-canvas-time-for-x
+  "Calculates a notional number if milliseconds into a phrase trigger
+  corresponding to a point along its cue canvas, as if it was being
+  played at 120 BPM, and the beats were all linearly related. This is
+  used for stability while zooming in and out. `phrase` must be
+  current."
+  [phrase x]
+  (let [beat (/ x (/ su/cue-canvas-pixels-per-beat (get-in phrase [:cues :zoom] 4)))]
+    (* beat 500)))
+
+(defn- cue-canvas-x-for-time
+  "Calculates the x position at which notional number if milliseconds
+  would fall along a phrase trigger's cue canvas, as if it was being
+  played at 120 BPM, and the beats were all linearly related. This is
+  used for stability while zooming in and out. `phrase` must be
+  current."
+  [phrase time]
+  (let [beat (/ time 500)
+        zoom (get-in phrase [:cues :zoom] 4)]
+    (* beat (/ su/cue-canvas-pixels-per-beat zoom))))
+
+(defn cue-canvas-width
+  "Calculates the current pixel width of the cue canvas for a phrase
+  trigger, given its bar count and zoom level."
+  [phrase]
+  (let [[_ phrase runtime-info] (su/latest-show-and-context phrase)
+        total-bars              (get-in runtime-info [:sections :total-bars])]
+    (quot (* su/cue-canvas-pixels-per-beat 4 total-bars) (get-in phrase [:cues :zoom] 4))))
+
 (defn beat-for-x
   "Translates an x coordinate into a beat number and section keyword
   over either a waveform detail component (for tracks), or cue
@@ -164,7 +193,12 @@
   (if (track? context)
     (let [^WaveformDetailComponent wave wave-or-canvas]
       [(long (.getBeatForX wave x)) nil])
-    [0 :loop]))  ; TODO: Implement, once cue canvas is.
+    (let [[_ phrase runtime-info] (su/latest-show-and-context context)
+          sections                (:sections runtime-info)
+          beat                    (quot (cue-canvas-time-for-x phrase x) 500)
+          section                 (or (first (util/iget (:intervals sections) (quot beat 4))) :loop)
+          [start-bar]             (section sections)]
+      [(inc (- beat (* start-bar 4))) section])))
 
 (defn x-for-beat
   "Translates a beat number into an x coordinate over either a waveform
@@ -173,7 +207,9 @@
   (if (track? context)
     (let [^WaveformDetailComponent wave wave-or-canvas]
       (long (.getXForBeat wave beat)))
-    0))  ; TODO: Implement, using section once cue canvas is.
+    (let [[_ phrase runtime-info] (su/latest-show-and-context context)
+          [start-bar] (get-in runtime-info [:sections section])]
+      (long (cue-canvas-x-for-time phrase (* 500 (+ (dec beat) (* 4 start-bar))))))))
 
 (defn- cue-rectangle
   "Calculates the outline of a cue within the coordinate system of the
@@ -1210,16 +1246,16 @@
     (let [^WaveformDetailComponent wave wave-or-canvas]
       (swap-track! context assoc-in [:contents :cues :auto-scroll] auto?)
       (.setAutoScroll wave (and auto? (util/online?))))
-    (do  ; TODO: Need actual implementation for phrase trigger cue canvas.
+    (do  ; Someday actualy implement for phrase trigger cue canvas?
       (swap-phrase! (su/show-from-phrase context) context assoc-in [:cues :auto-scroll] auto?)))
   (su/repaint-preview context)
   (when-not auto? (seesaw/scroll! wave-or-canvas :to [:point 0 0])))
 
 (defn- set-zoom
-  "Updates the cues UI so that the waveform is zoomed out by the
-  specified factor, while trying to preserve the section of the wave
-  at the specified x coordinate within the scroll pane if the scroll
-  positon is not being controlled by the DJ Link network."
+  "Updates the cues UI so that the waveform or cue canvas is zoomed out
+  by the specified factor, while trying to preserve the section of the
+  wave or canvas at the specified x coordinate within the scroll pane if the
+  scroll positon is not being controlled by the DJ Link network."
   [context ^JPanel panel zoom ^JScrollPane pane anchor-x]
   (if (track? context)
     (let [wave  ^WaveformDetailComponent panel
@@ -1234,12 +1270,16 @@
            (.setValue bar (- time-x anchor-x))))))
     (let [bar                         (.getHorizontalScrollBar pane)
           bar-x                       (.getValue bar)
-          [show context runtime-info] (latest-show-and-context context)]
-      ;; TODO: Need to implement this for phrase trigger cue canvas.
+          [show context runtime-info] (latest-show-and-context context)
+          time                        (cue-canvas-time-for-x context (+ anchor-x bar-x))]
+      (swap-phrase! show context assoc-in [:cues :zoom] zoom)
+      (seesaw/config! panel :size [(cue-canvas-width context) :by 92])
+      (seesaw/repaint! panel)
+      (.revalidate pane)
       (when-not (get-in runtime-info [:cues :auto-scroll])
-        ;; TODO: Calculate position for time saved above, scroll...
-        )
-      (swap-phrase! show context assoc-in [:cues :zoom] zoom))))
+        (seesaw/invoke-later
+         (let [time-x (cue-canvas-x-for-time (latest-phrase show context) time)]
+           (.setValue bar (- time-x anchor-x))))))))
 
 (defn- cue-filter-text-changed
   "Update the cues UI so that only cues matching the specified filter
@@ -1282,13 +1322,13 @@
             runtime-info (su/phrase-runtime-info show phrase)]
       (when-let [editor (:cues-editor runtime-info)]
         (let [checkboxes [(seesaw/select (:frame editor) [:#entered-only])
-                          (seesaw/select (:frame editor) [:#auto-scroll])]
+                          #_(seesaw/select (:frame editor) [:#auto-scroll])]  ; Not yet supported for phrases.
               auto?      (get-in phrase [:cues :auto-scroll])]
           (if online?
             (seesaw/show! checkboxes)
             (seesaw/hide! checkboxes))
           (when auto?
-            ;; TODO: Whatever the equivalent is for the cue canvas.
+            ;; Whatever the equivalent is for the cue canvas, if this is ever implemented.
             #_(.setAutoScroll ^WaveformDetailComponent (:wave editor) (and auto? online?))
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility phrase)))))
@@ -2028,7 +2068,62 @@
                                                                               (remove-cue-folder context
                                                                                                  folder)))))])))])))
 
-;; TODO: Have made compatible with both tracks and phrases up to this point, barring notes above.
+(defn- paint-cue-canvas
+  "Draws the zommable scrolling view of the phrase trigger on which cues
+  can be placed."
+  [context c ^Graphics2D g]
+  (let [h              (double (seesaw/height c))
+        [show phrase
+         runtime-info] (latest-show-and-context context)
+        sections       (:sections runtime-info)
+        active?        false ; TODO: TBD!
+        bars           (:total-bars sections)
+        stroke         (.getStroke g)
+        stripe         (fn [color y section]  ; Paint one of the section stripes.
+                         (let [x        (x-for-beat phrase c 1 section)
+                               [from-bar
+                                to-bar] (section sections)
+                               w        (- (dec (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)) x)]
+                           (.setPaint g color)
+                           (.fillRect g x y w 3)))
+        fence          (fn [section]  ; Paint one of the section boundary fences.
+                         (let [[from-bar to-bar] (section sections)
+                               x                 (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)]
+                           (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
+    ;; Paint the section stripes.
+    (let [y (- h su/cue-canvas-margin 2)]
+      (when (:start sections)
+        (stripe su/phrase-start-color y :start))
+      (stripe su/phrase-loop-color y :loop)
+      (when (:end sections)
+        (stripe su/phrase-end-color y :end))
+      (stripe su/phrase-fill-color y :fill))
+
+    ;; Paint the section boundaries.
+    (.setPaint g Color/white)
+    (.setStroke g (BasicStroke. 1 BasicStroke/CAP_BUTT BasicStroke/JOIN_ROUND 1.0
+                                (float-array [3.0 3.0]) 1.0))
+    (when (:start sections)
+      (fence :start))
+    (fence :loop)
+    (when (:end sections)
+      (fence :end))
+    (.setStroke g stroke)
+
+    (let [g2 (.create g)]
+      ;; Paint the cues.
+      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
+      (doseq [cue (get-in phrase [:cues :cues])]
+        (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness phrase cue)))
+        (.fill g2 (cue-rectangle phrase cue c)))
+      ;; Paint the beat selection, if any.
+      (when-let [[start end section] (get-current-selection phrase)]
+      (let [x (x-for-beat phrase c start section)
+            w (- (x-for-beat phrase c end section) x)]
+        (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
+        (.setPaint g2 Color/white)
+        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) h))))
+      (.dispose g2))))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified track or phrase
@@ -2044,8 +2139,8 @@
                          (WaveformDetailComponent. ^WaveformDetail (su/read-detail track-root)
                                                    ^CueList (su/read-cue-list track-root)
                                                    ^BeatGrid (:grid context))
-                         ;; TODO: The following needs a real implementation of the cue canvas!
-                         (seesaw/canvas))
+                         (seesaw/canvas :id :wave :paint (partial paint-cue-canvas context)
+                                        :opaque? true :size [(cue-canvas-width context) :by 92]))
         song-structure (when-let [bytes (when track-root (su/read-song-structure track-root))]
                          (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. bytes)))
         zoom-slider    (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in contents [:cues :zoom] 4))
@@ -2053,7 +2148,7 @@
         entered-only   (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (util/online?)
                                         :selected? (boolean (get-in contents [:cues :entered-only]))
                                         :listen [:item-state-changed #(set-entered-only context (seesaw/value %))])
-        auto-scroll    (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (util/online?)
+        auto-scroll    (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (and (util/online?) track-root)
                                         :selected? (boolean (get-in contents [:cues :auto-scroll]))
                                         :listen [:item-state-changed #(set-auto-scroll context wave (seesaw/value %))])
         lib-popup-fn   (fn [] (seesaw/popup :items (build-cue-library-button-menu context)))
@@ -2061,7 +2156,7 @@
         wave-scale     (fn []  ; Determine the current scale of the waveform or cue canvas.
                          (if track-root
                            (.getScale wave)
-                           1))  ;; TODO: Need real implementation once cue canvas exists.
+                           (get-in (latest-phrase show context) [:cues :zoom] 4)))
         wave-scroll    (proxy [javax.swing.JScrollPane] [wave]
                          (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
                            (if (.isShiftDown e)
@@ -2128,15 +2223,13 @@
     (.addChangeListener (.getViewport wave-scroll)
                         (proxy [javax.swing.event.ChangeListener] []
                           (stateChanged [_] (su/repaint-preview context))))
-    (if track-root
-      (do
-        (.setScale wave (seesaw/value zoom-slider))
-        (.setAutoScroll wave (and (seesaw/value auto-scroll) (util/online?)))
-        (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
-                                   (paintOverlay [component graphics]
-                                     (paint-cues-and-beat-selection context component graphics))))
-        (.setSongStructure wave song-structure))
-      nil)  ; TODO: Need equivalents for cue canvas once implemented, although some will be built-in.
+    (when track-root
+      (.setScale wave (seesaw/value zoom-slider))
+      (.setAutoScroll wave (and (seesaw/value auto-scroll) (util/online?)))
+      (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
+                                 (paintOverlay [component graphics]
+                                   (paint-cues-and-beat-selection context component graphics))))
+      (.setSongStructure wave song-structure))
     (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
     (seesaw/listen wave
                    :mouse-moved (fn [e] (handle-wave-move context wave e))

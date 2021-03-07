@@ -718,6 +718,11 @@
   canvas on which sections and cues are drawn."
   4)
 
+(def cue-canvas-pixels-per-beat
+  "The number of horizontal pixels taken up by each beat in a scrolling
+  cue canvas when fully zoomed in."
+  40)
+
 (defn cue-canvas-preview-bar-spacing
   "Calculate how many pixels apart each bar occurs given the total
   number of bars in the phrase and width of the component in which
@@ -733,8 +738,9 @@
   "Calculate the x coordinate where a beat falls in a cue canvas preview
   component."
   [^JPanel canvas runtime-info beat section]
-  (let [[start-bar]     (section runtime-info)
+  (let [sections        (:sections runtime-info)
+        [start-bar]     (section sections)
         bar             (quot (dec beat) 4)
         beat-within-bar (mod (dec beat) 4)
-        bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars runtime-info) (.getWidth canvas))]
+        bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
     (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing) (* beat-within-bar (quot bar-spacing 4)))))

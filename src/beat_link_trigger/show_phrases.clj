@@ -148,7 +148,7 @@
         phrase   (get-in show [:contents :phrases uuid])
         sections (get-in show [:phrases uuid :sections])
         active?  false ; TODO: TBD!
-        bars     (total-bars phrase)
+        bars     (:total-bars sections)
         spacing  (su/cue-canvas-preview-bar-spacing bars w)
         stroke   (.getStroke g)
         stripe   (fn [color y [from-bar to-bar]]  ; Paint one of the section stripes.
@@ -171,17 +171,17 @@
       (stripe su/phrase-loop-color y (:loop sections))
       (when-let [end (:end sections)]
         (stripe su/phrase-end-color y end))
-      (stripe su/phrase-fill-color y (:fill sections))
+      (stripe su/phrase-fill-color y (:fill sections)))
 
-      ;; Paint the section boundaries.
-      (.setPaint g Color/white)
-      (.setStroke g (BasicStroke. 1 BasicStroke/CAP_BUTT BasicStroke/JOIN_ROUND 1.0
-                                  (float-array [3.0 3.0]) 1.0))
-      (when-let [start (:start sections)]
-        (fence start))
-      (fence (:loop sections))
-      (when-let [end (:end sections)]
-        (fence end)))
+    ;; Paint the section boundaries.
+    (.setPaint g Color/white)
+    (.setStroke g (BasicStroke. 1 BasicStroke/CAP_BUTT BasicStroke/JOIN_ROUND 1.0
+                                (float-array [3.0 3.0]) 1.0))
+    (when-let [start (:start sections)]
+      (fence start))
+    (fence (:loop sections))
+    (when-let [end (:end sections)]
+      (fence end))
     (.setStroke g stroke)
 
     (when (>= spacing 4)  ; There's enough room to draw bar lines.
@@ -415,10 +415,9 @@
   its cues. `phrase` must be current."
   [show phrase]
   (doseq [[kind expr] (editors/sort-setup-to-front (get-in phrase [:contents :expressions]))]
-    (let [editor-info (get @editors/show-track-editors kind)]  ; TODO: This should be show-phrase-editors?
+    (let [editor-info (get @editors/show-phrase-editors kind)]
         (try
           (swap-phrase! show phrase assoc-in [:expression-fns kind]
-                        ;; TODO: this needs to use enw show-phrase-editor-title!
                         (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
                                                            (editors/show-editor-title kind show phrase)))
               (catch Exception e
@@ -427,10 +426,9 @@
                 (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
-  ;; Parse any custom expressions defined for cues in the track.
-  (doseq [[section cues] (vals (get-in phrase [:contents :cues :cues]))
-          cue             cues]
-    #_(cues/compile-cue-phrae-expressions phrase section cue)))  ; TODO: Implement!
+  ;; Parse any custom expressions defined for cues in the phrase.
+  (doseq [cue (vals (get-in phrase [:cues :cues]))]
+    (cues/compile-cue-expressions phrase cue)))
 
 (defn- build-filter-target
   "Creates a string that can be matched against to filter a phrase
