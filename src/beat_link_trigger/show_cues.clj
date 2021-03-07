@@ -615,7 +615,7 @@
                              (if (track? context)
                                (let [preview ^WaveformPreviewComponent preview]
                                  (.millisecondsToX preview (.getTimeWithinTrack ^BeatGrid (:grid context) beat)))
-                               0))  ; TODO: implement, inclduing section!
+                               (su/cue-canvas-preview-x-for-beat preview runtime-info beat section)))
         x                  (x-for-beat (:start cue) (:section cue))
         w                  (- (x-for-beat (:end cue) (:section cue)) x)
         y                  (double (* lane (/ (.getHeight preview) num-lanes)))]
@@ -1473,9 +1473,7 @@
                                 (su/update-gear-icon context)
                                 (build-cues context)
                                 (compile-cue-expressions context new-cue)
-                                (if (track? context)
-                                  (scroll-wave-to-cue context new-cue)
-                                  (scroll-phrase-canvas-to-cue show context new-cue))
+                                (scroll-wave-to-cue context new-cue)
                                 (scroll-to-cue context new-cue true))
                               (catch Exception e
                                 (timbre/error e "Problem adding Library Cue")
@@ -1676,15 +1674,16 @@
   established; if so, returns it, otherwise sets one up, unless we are
   still sitting on the initial beat of a just-created selection."
   [context start end section beat]
-  (let [[show context runtime-info] (latest-show-and-context context)]
-    (or (get-in runtime-info [:cues-editor :drag-target])
-        (when (not= start (dec end) beat)
-          (let [start-distance (Math/abs (long (- beat start)))
-                end-distance   (Math/abs (long (- beat (dec end))))
-                target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))
-                                section]]
-            (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
-            target)))))
+  (when (and start end)  ; There is a selection to work with.
+    (let [[show context runtime-info] (latest-show-and-context context)]
+      (or (get-in runtime-info [:cues-editor :drag-target])
+          (when (not= start (dec end) beat)
+            (let [start-distance (Math/abs (long (- beat start)))
+                  end-distance   (Math/abs (long (- beat (dec end))))
+                  target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))
+                                  section]]
+              (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
+              target))))))
 
 (defn beat-count
   "Returns the total number of beats in a track or phrase trigger section."
@@ -1692,7 +1691,9 @@
   (if (track? context)
     (let [^BeatGrid grid (:grid context)]
       (.beatCount grid))
-    4))  ; TODO: Implement (preview canvas shows how to find phrase trigger section beat count).
+    (let [[_ _ runtime-info] (su/latest-show-and-context context)
+          [start end]        (get-in runtime-info [:sections section] [0 0])]
+      (* (- end start) 4))))
 
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component (or cue canvas if
@@ -1757,25 +1758,23 @@
       (.repaint wave-or-canvas)
       (when cue (scroll-to-cue context cue false true)))))
 
-;; TODO: There should perhaps be a separate version of this for phrases because of the
-;;       differences both in the component and the structure of the selection.
 (defn- handle-wave-release
-  "Processes a mouse-released event in the wave detail component,
-  cleaning up any drag-tracking structures and cursors that were in
-  effect."
-  [track ^WaveformDetailComponent wave ^MouseEvent e]
-  (let [track (latest-track track)
-        [cue-dragged] (get-in track [:cues-editor :drag-target])]
+  "Processes a mouse-released event in the wave detail component
+  (or cue canvas if this is a phrase trigger), cleaning up any
+  drag-tracking structures and cursors that were in effect."
+  [context ^JPanel wave-or-canvas ^MouseEvent e]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        [cue-dragged] (get-in runtime-info [:cues-editor :drag-target])]
     (when cue-dragged
-      (let [cue (find-cue track cue-dragged)
-            panel (get-in track [:cues-editor :panels (:uuid cue)])]
+      (let [cue (find-cue context cue-dragged)
+            panel (get-in runtime-info [:cues-editor :panels (:uuid cue)])]
         (seesaw/value! (seesaw/select panel [:#start]) (:start cue))
         (seesaw/value! (seesaw/select panel [:#end]) (:end cue))))
-    (when-let [[start end] (get-in track [:cues-editor :selection])]
+    (when-let [[start end] (seq (take 2 (get-in runtime-info [:cues-editor :selection])))]
       (when (>= start end)  ; If the selection has shrunk to zero size, remove it.
-        (swap-track! track update :cues-editor dissoc :selection))))
-  (swap-track! track update :cues-editor dissoc :drag-target)
-  (handle-wave-move track wave e))  ; This will restore the normal cursor.
+        (su/swap-context-runtime! show context update :cues-editor dissoc :selection)))
+    (su/swap-context-runtime! show context update :cues-editor dissoc :drag-target))
+  (handle-wave-move context wave-or-canvas e))  ; This will restore the normal cursor.
 
 (defn- assign-cue-lanes
   "Given a sorted list of the cues for a track or phrase trigger
@@ -1897,7 +1896,7 @@
         cue                         (merge {:uuid    uuid
                                             :start   start
                                             :end     end
-                                            :hue     (assign-cue-hue contents)
+                                            :hue     (assign-cue-hue context)
                                             :comment (util/assign-unique-name
                                                       (map :comment (vals (get-in contents [:cues :cues]))))}
                                            (when section

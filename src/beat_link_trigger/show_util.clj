@@ -18,7 +18,7 @@
            [java.io File]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardOpenOption]
            [java.util UUID]
-           [javax.swing JComponent JFrame]))
+           [javax.swing JComponent JFrame JPanel]))
 
 (defonce ^{:private true
            :doc "Holds the map of open shows; keys are the file,
@@ -712,3 +712,29 @@
     (get-in phrase [:cues :cues (if (instance? UUID uuid-or-cue)
                                   uuid-or-cue
                                   (:uuid uuid-or-cue))]))))
+
+(def cue-canvas-margin
+  "The number of pixels left black around the border of a phrase cue
+  canvas on which sections and cues are drawn."
+  4)
+
+(defn cue-canvas-preview-bar-spacing
+  "Calculate how many pixels apart each bar occurs given the total
+  number of bars in the phrase and width of the component in which
+  they are being rendered."
+  [bars width]
+  (quot (- width (* 2 cue-canvas-margin)) bars))
+
+(defn cue-canvas-preview-bar-x
+  "Calculate the x coordinate of a bar given the bar spacing."
+  [bar spacing] (+ cue-canvas-margin (* bar spacing)))
+
+(defn cue-canvas-preview-x-for-beat
+  "Calculate the x coordinate where a beat falls in a cue canvas preview
+  component."
+  [^JPanel canvas runtime-info beat section]
+  (let [[start-bar]     (section runtime-info)
+        bar             (quot (dec beat) 4)
+        beat-within-bar (mod (dec beat) 4)
+        bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars runtime-info) (.getWidth canvas))]
+    (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing) (* beat-within-bar (quot bar-spacing 4)))))

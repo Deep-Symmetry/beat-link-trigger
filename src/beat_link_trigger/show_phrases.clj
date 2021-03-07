@@ -87,11 +87,6 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
-(def canvas-margin
-  "The number of pixels left black around the border of the canvases on
-  which sections and cues are drawn."
-  4)
-
 (defn total-bars
   "Returns the sum of the bar sizes of all four sections of a phrase,
   which must be current."
@@ -101,17 +96,6 @@
            end-bars   0
            fill-bars  1}}]
   (+ start-bars loop-bars end-bars fill-bars))
-
-(defn- bar-spacing
-  "Calculate how many pixels apart each bar occurs given the total
-  number of bars in the phrase and width of the component in which
-  they are being rendered."
-  [bars width]
-  (quot (- width (* 2 canvas-margin)) bars))
-
-(defn bar-x
-  "Calculate the x coordinate of a bar given the bar spacing."
-  [bar spacing] (+ canvas-margin (* bar spacing)))
 
 (defn update-section-boundaries
   "Recalculates the cached information that makes it easier to know
@@ -165,14 +149,15 @@
         sections (get-in show [:phrases uuid :sections])
         active?  false ; TODO: TBD!
         bars     (total-bars phrase)
-        spacing  (bar-spacing bars w)
+        spacing  (su/cue-canvas-preview-bar-spacing bars w)
         stroke   (.getStroke g)
         stripe   (fn [color y [from-bar to-bar]]  ; Paint one of the section stripes.
                    (.setPaint g color)
-                   (.fillRect g (+ canvas-margin (* from-bar spacing)) y (dec (* (- to-bar from-bar) spacing)) 3))
+                   (.fillRect g (+ su/cue-canvas-margin (* from-bar spacing))
+                              y (dec (* (- to-bar from-bar) spacing)) 3))
         fence    (fn [[_from-bar to-bar]]  ; Paint one of the section boundary fences.
-                   (let [x (bar-x to-bar spacing)]
-                     (.drawLine g x canvas-margin x (- h canvas-margin))))]
+                   (let [x (su/cue-canvas-preview-bar-x to-bar spacing)]
+                     (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
 
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
@@ -180,7 +165,7 @@
     (.fill g (java.awt.geom.Rectangle2D$Double. 0.0 0.0 w h))
 
     ;; Paint the section stripes.
-    (let [y (- h canvas-margin 2)]
+    (let [y (- h su/cue-canvas-margin 2)]
       (when-let [start (:start sections)]
         (stripe su/phrase-start-color y start))
       (stripe su/phrase-loop-color y (:loop sections))
@@ -202,29 +187,27 @@
     (when (>= spacing 4)  ; There's enough room to draw bar lines.
       (.setPaint g Color/red)
       (doseq [bar (range (inc bars))]
-        (let [x (bar-x bar spacing)]
-          (.drawLine g x canvas-margin x (+ canvas-margin 4))
-          (.drawLine g x (- h canvas-margin 8) x (- h canvas-margin 4)))))
+        (let [x (su/cue-canvas-preview-bar-x bar spacing)]
+          (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
+          (.drawLine g x (- h su/cue-canvas-margin 8) x (- h su/cue-canvas-margin 4)))))
 
     (let [beat-spacing (quot spacing 4)]
       (when (>= beat-spacing 4)  ; There is enough room to draw beat lines.
         (.setPaint g Color/white)
         (doseq [bar (range bars)]
           (doseq [beat (range 1 4)]
-            (let [x (+ (bar-x bar spacing) (* beat beat-spacing))]
-              (.drawLine g x canvas-margin x (+ canvas-margin 4))
-              (.drawLine g x (- h canvas-margin 9) x (- h canvas-margin 5)))))))
+            (let [x (+ (su/cue-canvas-preview-bar-x bar spacing) (* beat beat-spacing))]
+              (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
+              (.drawLine g x (- h su/cue-canvas-margin 9) x (- h su/cue-canvas-margin 5)))))))
 
-    ;; TODO: Draw the cues and selection.
+    ;; TODO: Draw the cues and editor coverage, if any.
     ))
 
-;; TODO: Before hooking this up, the cues window needs to be updated
-;; to cope with phrase trigger cues!
 (defn- edit-cues-action
   "Creates the menu action which opens the phrase trigger's cue editor
   window."
   [show phrase panel]
-  (seesaw/action :handler (fn [_] (cues/open-cues show phrase panel))
+  (seesaw/action :handler (fn [_] (cues/open-cues phrase panel))
                  :name "Edit Phrase Cues"
                  :tip "Set up cues that react to particular sections of the phrase being played."
                  :icon (if (every? empty? (vals (get-in (latest-phrase show phrase) [:cues :cues])))
@@ -395,7 +378,7 @@
         (when ((apply set/union (map second (vals (:playing-phrases show)))) (:uuid phrase))
           (send-stopped-messages show phrase nil)))
       (run-phrase-function show phrase :shutdown nil (not force?))
-      (su/phrase-removed show phrase))
+      (su/phrase-removed phrase))
     true))
 
 (defn- delete-phrase-action
@@ -774,6 +757,53 @@
         preview-width (max 890 (- width text-width 100))]
     ["" (str "[]unrelated[][]unrelated[][][fill, " preview-width "]")]))
 
+(defn- handle-preview-move
+  "Processes a mouse move over the cue canvas preview component, setting
+  the tooltip appropriately depending on the location of cues."
+  [phrase ^JPanel preview ^MouseEvent e]
+  (let [point  (.getPoint e)
+        phrase (latest-phrase phrase)
+        cue    (first (filter (fn [cue] (.contains (cues/cue-preview-rectangle phrase cue preview) point))
+                              (vals (get-in phrase [:cues :cues]))))]
+    (.setToolTipText preview (when cue (or (:comment cue) "Unnamed Cue")))))
+
+(defn- handle-preview-press
+  "Processes a mouse press over the cue canvas preview component. If
+  there is an editor window open on the track, and it is not in
+  auto-scroll mode, centers the editor on the region of the track that
+  was clicked."
+  [phrase ^JPanel preview ^MouseEvent e]
+  (let [point                   (.getPoint e)
+        [_ phrase runtime-info] (su/latest-show-and-context phrase)]
+    (when-let [editor (:cues-editor runtime-info)]
+      (let [{:keys [^JPanel wave ^JScrollPane scroll]} editor]
+        (when-not (get-in runtime-info [:cues :auto-scroll])
+          ;; TODO: need to do all this with reference to fractional bars in the two panels
+          #_(let [target-time                       (.getTimeForX preview (.-x point))
+                center-x                          (.millisecondsToX wave target-time)
+                scroll-bar                        (.getHorizontalScrollBar scroll)]
+            (.setValue scroll-bar (- center-x (/ (.getVisibleAmount scroll-bar) 2)))))))))
+
+
+(defn- handle-preview-drag
+  "Processes a mouse drag over the cue canvas preview component. If
+  there is an editor window open on the track, and it is not in
+  auto-scroll mode, centers the editor on the region of the track that
+  was dragged to, and then if the user has dragged up or down, zooms
+  out or in by a correspinding amount."
+  [phrase ^JPanel preview ^MouseEvent e drag-origin]
+  (let [[_ phrase runtime-info] (su/latest-show-and-context phrase)]
+    (when-let [editor (:cues-editor runtime-info)]
+      (let [{:keys [^JPanel wave frame]} editor]
+        (when-not (get-in runtime-info [:cues :auto-scroll])
+          (when-not (:zoom @drag-origin)
+            (swap! drag-origin assoc :zoom (.getScale wave)))
+          (let [zoom-slider (seesaw/select frame [:#zoom])
+                {:keys [^java.awt.Point point zoom]} @drag-origin
+                new-zoom (min cues/max-zoom (max 1 (+ zoom (/ (- (.y point) (.y (.getPoint e))) 2))))]
+            (seesaw/value! zoom-slider new-zoom))
+          (handle-preview-press phrase preview e))))))
+
 (defn- create-phrase-panel
   "Creates a panel that represents a phrase trigger in the show. Updates
   tracking indices appropriately."
@@ -977,9 +1007,9 @@
 
         popup-fn (fn [^MouseEvent _e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
                    ;; TODO: Implement the rest of these!
-                   (concat [#_(edit-cues-action phrase panel) #_(seesaw/separator)]
+                   (concat [(edit-cues-action show phrase panel) (seesaw/separator)]
                            (phrase-editor-actions show phrase panel gear)
-                           [(seesaw/separator) (phrase-simulate-menu show phrase) (su/inspect-action show phrase)
+                           [(seesaw/separator) (phrase-simulate-menu show phrase) (su/inspect-action phrase)
                             (seesaw/separator)]
                            [(seesaw/separator) (delete-phrase-action show phrase panel)]))
 
@@ -1002,13 +1032,12 @@
                                            (util/show-popup-from-button gear popup e))))
     (su/update-gear-icon phrase gear)
 
-    ;; TODO: The equivalent for the phrase preview once implemented.
-    #_(seesaw/listen soft-preview
-                   :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
+    (seesaw/listen preview
+                   :mouse-moved (fn [e] (handle-preview-move phrase preview e))
                    :mouse-pressed (fn [^MouseEvent e]
                                     (reset! drag-origin {:point (.getPoint e)})
-                                    (handle-preview-press track preview-loader e))
-                   :mouse-dragged (fn [e] (handle-preview-drag track preview-loader e drag-origin)))
+                                    (handle-preview-press phrase preview e))
+                   :mouse-dragged (fn [e] (handle-preview-drag phrase preview e drag-origin)))
 
     (seesaw/listen (seesaw/select panel [:#outputs])
                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status show phrase))))
