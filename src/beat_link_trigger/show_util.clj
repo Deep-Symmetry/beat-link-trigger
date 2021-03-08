@@ -670,6 +670,13 @@
   [^Color color]
   (* 360.0 (color/hue (color/int32 (.getRGB color)))))
 
+(def phrase-section-positions
+  "Identifies the order in which sections of a phrase appear."
+  {:start 0
+   :loop  1
+   :end   2
+   :fill  3})
+
 (def phrase-start-color
   "The color to draw the start section of a phrase trigger."
   (hue-to-color 120.0 0.8))

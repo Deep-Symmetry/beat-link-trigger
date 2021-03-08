@@ -196,7 +196,7 @@
     (let [[_ phrase runtime-info] (su/latest-show-and-context context)
           sections                (:sections runtime-info)
           beat                    (quot (cue-canvas-time-for-x phrase x) 500)
-          section                 (or (first (util/iget (:intervals sections) (quot beat 4))) :loop)
+          section                 (or (first (util/iget (:intervals sections) (quot beat 4))) :fill)
           [start-bar]             (section sections)]
       [(long (inc (- beat (* start-bar 4)))) section])))
 
@@ -1773,7 +1773,10 @@
         [cue edge drag-section]     (find-selection-drag-target context start end (or sel-section section) beat)
         beat                        (if (= section drag-section)
                                       beat
-                                      (if (= :start edge) 1 (beat-count context drag-section)))]
+                                      (if (> (su/phrase-section-positions section)
+                                             (su/phrase-section-positions drag-section))
+                                        (beat-count context drag-section)  ; Pin correct edge of current section.
+                                        1))]
     ;; We are trying to adjust an existing cue or selection. Move the end that was nearest to the mouse.
     (when edge
       (if cue
