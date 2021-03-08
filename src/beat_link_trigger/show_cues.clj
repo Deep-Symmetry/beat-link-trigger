@@ -198,7 +198,7 @@
           beat                    (quot (cue-canvas-time-for-x phrase x) 500)
           section                 (or (first (util/iget (:intervals sections) (quot beat 4))) :loop)
           [start-bar]             (section sections)]
-      [(inc (- beat (* start-bar 4))) section])))
+      [(long (inc (- beat (* start-bar 4)))) section])))
 
 (defn x-for-beat
   "Translates a beat number into an x coordinate over either a waveform
@@ -237,22 +237,33 @@
         (seesaw/invoke-later  ; Wait for re-layout if necessary.
          (seesaw/scroll! wave :to (.getBounds (cue-rectangle context cue wave))))))))
 
-(defn- update-track-cue-spinner-models
+(defn beat-count
+  "Returns the total number of beats in a track or phrase trigger section."
+  [context section]
+  (if (track? context)
+    (let [^BeatGrid grid (:grid context)]
+      (long (.beatCount grid)))
+    (let [[_ _ runtime-info] (su/latest-show-and-context context)
+          [start end]        (get-in runtime-info [:sections section] [0 0])]
+      (inc (* (- end start) 4)))))
+
+(defn- update-cue-spinner-models
   "When the start or end position of a cue has changed, that affects the
   legal values the other can take. Update the spinner models to
   reflect the new limits. Then we rebuild the cue list in case they
   need to change order. Also scroll so the cue is still visible, or if
-  it has been filtered out warn the user that has happened."
-  [track cue ^javax.swing.SpinnerNumberModel start-model ^javax.swing.SpinnerNumberModel end-model]
-  (let [cue (find-cue track cue)]
+  it has been filtered out warn the user that has happened. This is
+  also called when a phrase trigger section size has changed, because
+  that affects the upper bound of the end of the cues in that section."
+  [context cue ^javax.swing.SpinnerNumberModel start-model ^javax.swing.SpinnerNumberModel end-model]
+  (let [cue (find-cue context cue)]
     (.setMaximum start-model (dec (:end cue)))
     (.setMinimum end-model (inc (:start cue)))
+    (when (phrase? context)
+      (.setMaximum end-model (beat-count context (:section cue))))
     (seesaw/invoke-later
-     (build-cues track)
-     (seesaw/invoke-later (scroll-to-cue track cue)))))
-
-;; TODO: Need update-phrase-cue-spinner-models, which also needs to consider the possibly-adjusted
-;;       phrase trigger section size.
+     (build-cues context)
+     (seesaw/invoke-later (scroll-to-cue context cue)))))
 
 (defn- cue-missing-expression?
   "Checks whether the expression body of the specified kind is empty for
@@ -337,7 +348,7 @@
                              (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
       (get-in shows [(:file context) :tracks (:signature context) :contents :cues :hue]))
     (let [show  (su/show-from-phrase context)
-          shows (swap-phrase! show update-in [:cues :hue]
+          shows (swap-phrase! show context update-in [:cues :hue]
                               (fn [old-hue] (mod (+ (or old-hue 0.0) 62.5) 360.0)))]
       (get-in shows [(:file show) :contents :phrases (:uuid context) :cues :hue]))))
 
@@ -1054,9 +1065,10 @@
         link           (seesaw/button :id :link :icon (link-button-icon cue)
                                       :visible? (seq (get-in show [:contents :cue-library])))
         start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
-        ;; TODO: Or end of current section, if a phrase trigger cue:
         end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
-                                             :to (long (.beatCount ^BeatGrid (:grid context))))
+                                             :to (if track?
+                                                   (long (.beatCount ^BeatGrid (:grid context)))
+                                                   (beat-count context (:section cue))))
 
         start  (seesaw/spinner :id :start
                                :model start-model
@@ -1064,16 +1076,14 @@
                                         (fn [e]
                                           (let [new-start (seesaw/selection e)]
                                             (swap-cue! context cue assoc :start new-start)
-                                            ;; TODO: or phrase:
-                                            (update-track-cue-spinner-models context cue start-model end-model)))])
+                                            (update-cue-spinner-models context cue start-model end-model)))])
         end    (seesaw/spinner :id :end
                                :model end-model
                                :listen [:state-changed
                                         (fn [e]
                                           (let [new-end (seesaw/selection e)]
                                             (swap-cue! context cue assoc :end new-end)
-                                            ;; TODO: or phase:
-                                            (update-track-cue-spinner-models context cue start-model end-model)))])
+                                            (update-cue-spinner-models context cue start-model end-model)))])
         swatch (seesaw/canvas :size [18 :by 18]
                               :paint (fn [^JComponent component ^Graphics2D graphics]
                                        (let [cue (find-cue context cue)]
@@ -1694,7 +1704,6 @@
     (.setToolTipText wave-or-canvas (if cue
                                       (or (:comment cue) "Unnamed Cue")
                                       "Click and drag to select a beat range for the New Cue button."))
-    ;; TODO: Do we need to consider section boundaries in phrase triggers?
     (if selection
       (if (= selection [beat (inc beat)])
         (let [shifted   @delete-cursor ; We are hovering over a single-beat selection, and can delete it.
@@ -1714,26 +1723,28 @@
   established; if so, returns it, otherwise sets one up, unless we are
   still sitting on the initial beat of a just-created selection."
   [context start end section beat]
-  (when (and start end)  ; There is a selection to work with.
-    (let [[show context runtime-info] (latest-show-and-context context)]
-      (or (get-in runtime-info [:cues-editor :drag-target])
-          (when (not= start (dec end) beat)
-            (let [start-distance (Math/abs (long (- beat start)))
-                  end-distance   (Math/abs (long (- beat (dec end))))
-                  target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))
-                                  section]]
-              (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
-              target))))))
+  (let [[show context runtime-info] (latest-show-and-context context)]
+    (or (get-in runtime-info [:cues-editor :drag-target])
+        (when (and start end) (not= start (dec end) beat)
+              (let [start-distance (Math/abs (long (- beat start)))
+                    end-distance   (Math/abs (long (- beat (dec end))))
+                    target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))
+                                    section]]
+                (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
+                target)))))
 
-(defn beat-count
-  "Returns the total number of beats in a track or phrase trigger section."
-  [context section]
-  (if (track? context)
-    (let [^BeatGrid grid (:grid context)]
-      (.beatCount grid))
-    (let [[_ _ runtime-info] (su/latest-show-and-context context)
-          [start end]        (get-in runtime-info [:sections section] [0 0])]
-      (* (- end start) 4))))
+(defn- update-new-cue-state
+  "When the selection has changed in a phrase trigger cue canvas, update
+  the enabled state of the New Cue button appropriately."
+  [context]
+  (when (phrase? context)
+    (let [[_ context runtime-info] (su/latest-show-and-context context)
+          enabled?                 (some? (get-current-selection context))]
+         (seesaw/config! (seesaw/select (get-in runtime-info [:cues-editor :panel]) [:#new-cue])
+                         :enabled? enabled?
+                         :tip (if enabled?
+                                "Create a new cue on the selected beats."
+                                "Disabled because no beat range is selected.")))))
 
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component (or cue canvas if
@@ -1755,14 +1766,15 @@
           (if (= :start edge)
             (swap-cue! context cue assoc :start (min (dec (:end cue)) (max 1 beat)))
             (swap-cue! context cue assoc :end (max (inc (:start cue))
-                                                   (min (inc (beat-count context (:section cue))) (inc beat)))))
+                                                   (min (beat-count context (:section cue)) (inc beat)))))
           (build-cues context))
         ;; We are dragging the beat selection.
         (let [new-selection (if (= :start edge)
                               [(min end (max 1 beat)) end drag-section]
-                              [start (max start (min (inc (beat-count context drag-section)) (inc beat)))
+                              [start (max start (min (beat-count context drag-section) (inc beat)))
                                drag-section])]
-          (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] new-selection)))
+          (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] new-selection)
+          (update-new-cue-state context)))
 
       (.setCursor wave-or-canvas (if (= :start edge) @move-w-cursor @move-e-cursor))
       (.repaint wave-or-canvas))
@@ -1800,6 +1812,7 @@
 
             (su/swap-context-runtime! show context update :cues-editor dissoc :selection))))  ; No, clear selection.
       (.repaint wave-or-canvas)
+      (update-new-cue-state context)
       (when cue (scroll-to-cue context cue false true)))))
 
 (defn- handle-wave-release
@@ -1816,7 +1829,8 @@
         (seesaw/value! (seesaw/select panel [:#end]) (:end cue))))
     (when-let [[start end] (seq (take 2 (get-in runtime-info [:cues-editor :selection])))]
       (when (>= start end)  ; If the selection has shrunk to zero size, remove it.
-        (su/swap-context-runtime! show context update :cues-editor dissoc :selection)))
+        (su/swap-context-runtime! show context update :cues-editor dissoc :selection)
+        (update-new-cue-state context)))
     (su/swap-context-runtime! show context update :cues-editor dissoc :drag-target))
   (handle-wave-move context wave-or-canvas e))  ; This will restore the normal cursor.
 
@@ -2136,7 +2150,7 @@
     (let [g2 (.create g)]
       ;; Paint the cues.
       (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
-      (doseq [cue (get-in phrase [:cues :cues])]
+      (doseq [cue (vals (get-in phrase [:cues :cues]))]
         (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness phrase cue)))
         (.fill g2 (cue-rectangle phrase cue c)))
       ;; Paint the beat selection, if any.
@@ -2187,7 +2201,7 @@
                              (let [zoom (min max-zoom (max 1 (+ (wave-scale) (.getWheelRotation e))))]
                                (reset! zoom-anchor (.getX e))
                                (seesaw/value! zoom-slider zoom)))))
-        new-cue        (seesaw/button :text "New Cue"
+        new-cue        (seesaw/button :id :new-cue :text "New Cue"
                                       :listen [:action-performed (fn ([_] (new-cue context)))]
                                       :enabled? (some? track-root))
         top-panel      (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints context)
@@ -2274,6 +2288,7 @@
                    :window-closing (fn [_] (close-fn false))
                    #{:component-moved :component-resized} (fn [_] (save-cue-window-position context root)))
     (start-animation-thread show context)
+    (update-new-cue-state context)
     (su/repaint-preview context)  ; Show the editor viewport overlay.
     (seesaw/show! root)))
 
