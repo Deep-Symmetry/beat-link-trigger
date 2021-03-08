@@ -1812,10 +1812,10 @@ a {
           (some (fn [phrase]
                   (some (fn [other-cue]
                           (when (= linked (:linked other-cue))
-                            (get-in (show-util/phrase-runtime-info phrase)
+                            (get-in (show-util/phrase-runtime-info show phrase)
                                     [:cues-editor :expression-editors (:uuid other-cue) kind])))
                         (vals (get-in phrase [:cues :cues]))))
-                (vals (:tracks show)))))))
+                (vals (get-in show [:contents :phrases])))))))
 
 (defn show-cue-editor
   "Find or create the editor for the specified kind of expression
