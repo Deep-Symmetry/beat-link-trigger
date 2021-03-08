@@ -49,7 +49,7 @@
                                             :cue    cue}
                             (:expression-globals show)) nil])
           (catch Throwable t
-            (timbre/error t (str "Problem running " (editors/track-cue-editor-title kind track cue) ":\n"
+            (timbre/error t (str "Problem running " (editors/cue-editor-title kind track cue) ":\n"
                                  (get-in cue [:expressions kind])))
             (when alert? (seesaw/alert (str "<html>Problem running cue " (name kind) " expression.<br><br>" t)
                                        :title "Exception in Show Track Cue Expression" :type :error))
@@ -66,7 +66,7 @@
                                            :cue     cue}
                            (:expression-globals show)) nil])
          (catch Throwable t
-           (timbre/error t (str "Problem running " (editors/phrase-cue-editor-title kind phrase cue) ":\n"
+           (timbre/error t (str "Problem running " (editors/cue-editor-title kind phrase cue) ":\n"
                                 (get-in cue [:expressions kind])))
            (when alert? (seesaw/alert (str "<html>Problem running phrase " (name (:section cue)) " cue " (name kind)
                                           " expression.<br><br>" t)
@@ -1451,9 +1451,7 @@
         (su/swap-context-runtime! nil context assoc-in [:cues :expression-fns (:uuid cue) kind]
                                   (expressions/build-user-expression
                                    expr (:bindings editor-info) (:nil-status? editor-info)
-                                   ((if (track? context)
-                                      editors/track-cue-editor-title
-                                      editors/phrase-cue-editor-title) kind context cue)))
+                                   (editors/cue-editor-title kind context cue)))
         (catch Exception e
           (timbre/error e (str "Problem parsing " (:title editor-info)
                                " when loading Show. Expression:\n" expr "\n"))

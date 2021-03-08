@@ -1146,17 +1146,15 @@
   (let [[_show _context runtime-info] (show-util/latest-show-and-context context)]
        (get-in runtime-info [:cues-editor :expression-editors (:uuid cue) kind])))
 
-(defn track-cue-editor-title
+(defn cue-editor-title
   "Determines the title for a track cue expression editor window."
-  [kind track _cue]
-  (let [title (get-in @show-cue-editors [kind :title])]
-    (str title " for Cue in Track \"" (get-in track [:metadata :title]) "\"")))
-
-(defn phrase-cue-editor-title
-  "Determines the title for a cue expression editor window."
-  [kind phrase {:keys [section]}]
-  (let [title (get-in @show-cue-editors [kind :title])]
-    (str title " for Cue in phrase \"" (get-in phrase [:contents :comment] "<uncommented>") "\" " (name section))))
+  [kind context {:keys [comment section]}]
+  (if (show-util/track? context)
+    (let [title (get-in @show-cue-editors [kind :title])]
+      (str title " for Cue “" (or comment "[no title]") "” in Track “" (show-util/display-title context) "”"))
+    (let [title (get-in @show-cue-editors [kind :title])]
+      (str title " for Cue “" (or comment "[no title]")
+           "” in " (name section) " of phrase “" (show-util/display-title context) "”" ))))
 
 (defn- update-cue-expression
   "Called when an cues editor window expression's editor is ending and
@@ -1180,12 +1178,11 @@
             (show-util/swap-track! context assoc-in [:cues :expression-fns (:uuid cue) kind]
                                    (expressions/build-user-expression text (:bindings editor-info)
                                                                       (:nil-status? editor-info)
-                                                                      (track-cue-editor-title kind context cue)))
+                                                                      (cue-editor-title kind context cue)))
             (show-util/swap-phrase-runtime! show context  assoc-in [:cues :expression-fns (:uuid cue) kind]
                                             (expressions/build-user-expression text (:bindings editor-info)
                                                                                (:nil-status? editor-info)
-                                                                               (phrase-cue-editor-title
-                                                                                kind context cue)))))
+                                                                               (cue-editor-title kind context cue)))))
         (when-let [editor (find-cue-expression-editor kind context cue)]
           (dispose editor)  ; Close the editor.
           (if track?
@@ -1726,7 +1723,7 @@ a {
   (let [text            (find-cue-expression-text kind context cue)
         track?          (show-util/track? context)
         save-fn         (fn [text] (update-cue-expression kind context cue text update-fn))
-        ^JFrame root    (seesaw/frame :title (track-cue-editor-title kind context cue)
+        ^JFrame root    (seesaw/frame :title (cue-editor-title kind context cue)
                                       :on-close :nothing
                                       :size [800 :by 600])
         editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
@@ -1781,20 +1778,16 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
-    (let [result
-          (reify IExpressionEditor
-            (retitle [_]
-              (seesaw/config! root :title (if track?
-                                            (track-cue-editor-title kind context cue)
-                                            (phrase-cue-editor-title kind context cue))))
-            (show [_]
-              (.setLocationRelativeTo root parent-frame)
-              (seesaw/show! root)
-              (.toFront root))
-            (can-close? [_] (confirm-close-if-dirty root update-action))
-            (dispose [_]
-              (close-fn)
-              (seesaw/dispose! root)))]
+    (let [result (reify IExpressionEditor
+                   (retitle [_] (seesaw/config! root :title (cue-editor-title kind context cue)))
+                   (show [_]
+                     (.setLocationRelativeTo root parent-frame)
+                     (seesaw/show! root)
+                     (.toFront root))
+                   (can-close? [_] (confirm-close-if-dirty root update-action))
+                   (dispose [_]
+                     (close-fn)
+                     (seesaw/dispose! root)))]
       (if track?
         (show-util/swap-track! context assoc-in [:cues-editor :expression-editors (:uuid cue) kind] result)
         (show-util/swap-phrase-runtime! (show-util/show-from-phrase context) context
