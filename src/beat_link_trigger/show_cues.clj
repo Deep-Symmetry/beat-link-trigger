@@ -389,22 +389,26 @@
                  :name "Duplicate Cue"))
 
 (defn- expunge-deleted-cue
-  "Removes all the items from a track or phrase trigger that need to be
-  cleaned up when the cue has been deleted. This function is designed
-  to be used in a single swap! call for simplicity and efficiency."
+  "Removes all the saved items from a track or phrase trigger that need
+  to be cleaned up when the cue has been deleted. This function is
+  designed to be used in a single swap! call for simplicity and
+  efficiency."
   [context cue]
   (let [uuid (:uuid cue)]
     (if (track? context)
+      (update-in context [:contents :cues :cues] dissoc uuid)
       (-> context
-          (update-in [:contents :cues :cues] dissoc uuid)
-          (update-in [:cues-editor :panels] dissoc uuid))
-      (let [cue-uuid    (:uuid cue)
-            phrase-uuid (:uuid context)]
-        (-> (su/show-from-phrase context)
-            (update-in [:contents :phrases phrase-uuid :cues :cues] dissoc cue-uuid)
-            (update-in [:contents :phrases phrase-uuid :cues :sections (:section cue)] disj cue-uuid)
-            (update-in [:phrases phrase-uuid :cues-editor :panels] dissoc cue-uuid))))))
+          (update-in [:cues :cues] dissoc uuid)
+          (update-in [:cues :sections (:section cue)] disj uuid)))))
 
+(defn- expunge-deleted-cue-runtime
+  "Removes all the runtime items from a track or phrase trigger that
+  need to be cleaned up when the cue has been deleted. This function
+  is designed to be used in a single swap! call for simplicity and
+  efficiency."
+  [runtime-info cue]
+  (let [uuid (:uuid cue)]
+    (update-in runtime-info [:cues-editor :panels] dissoc uuid)))  ; We know there must be a cues editor open.
 
 (defn- close-cue-editors?
   "Tries closing all open expression editors for the cue. If `force?` is
@@ -535,6 +539,7 @@
                                 (try
                                   (cleanup-cue true context cue)
                                   (su/swap-context! nil context expunge-deleted-cue cue)
+                                  (su/swap-context-runtime! nil context expunge-deleted-cue-runtime cue)
                                   (su/update-gear-icon context)
                                   (build-cues context)
                                   (catch Exception e
