@@ -97,6 +97,14 @@
            fill-bars  1}}]
   (+ start-bars loop-bars end-bars fill-bars))
 
+(defn repaint-cue-canvases
+  "Repaints both the preview canvas for a phrase trigger, and its editor
+  canvas if one is open. `show` mist be current."
+  [show phrase-or-uuid ^JPanel preview]
+  (.repaint preview)
+  (when-let [^JPanel canvas (get-in (phrase-runtime-info show phrase-or-uuid) [:cues-editor :wave])]
+    (.repaint canvas)))
+
 (defn update-section-boundaries
   "Recalculates the cached information that makes it easier to know
   where each section starts and ends, for the purposes of painting and
@@ -110,8 +118,12 @@
   `:total-bars` is the sum of the sizes of all sections in the phrase.
 
   `:intervals` is an interval map which can be queried using `su/iget`
-  to determine which section, if any, falls at the specified bar."
-  [show phrase-or-uuid]
+  to determine which section, if any, falls at the specified bar.
+
+  Also tells any cue canvases open on the phrase to repaint themselves
+  to reflect the new boundaries, and updates the spinner constraints
+  for any cues in an open cues editor window."
+  [show phrase-or-uuid preview]
   (let [uuid                         (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))
         show                         (latest-show show)
         phrase                       (get-in show [:contents :phrases uuid])
@@ -135,7 +147,9 @@
                                       (if end (apply util/iassoc $ (concat end [:end])) $)
                                       (apply util/iassoc $ (concat fill [:fill])))}
                        (when start {:start start})
-                       (when end {:end end})))))
+                       (when end {:end end})))
+    (repaint-cue-canvases show phrase preview)
+    (cues/update-all-cue-spinner-end-models phrase)))
 
 (defn- paint-phrase-preview
   "Draws the compact view of the phrase shown within the Show window
@@ -877,37 +891,37 @@
 
                                 ["Section sizes (bars):" "spany 2"]
                                 ["Start:" "gap unrelated"]
-                                [(seesaw/spinner :id :start  ;; TODO: Calculate model via fn from cues.
+                                [(seesaw/spinner :id :start
                                                  :model (seesaw/spinner-model (:start-bars phrase 1)
                                                                               :from 0 :to 64)
-                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :start-bars
-                                                                                            (seesaw/value %))
-                                                                              (update-section-boundaries show uuid)
-                                                                              (.repaint preview))])]
+                                                 :listen [:state-changed
+                                                          #(do (swap-phrase! show uuid assoc :start-bars
+                                                                             (seesaw/value %))
+                                                               (update-section-boundaries show uuid preview))])]
                                 ["Loop:" "gap unrelated"]
-                                [(seesaw/spinner :id :loop  ;; TODO: Calculate model via fn from cues.
+                                [(seesaw/spinner :id :loop
                                                  :model (seesaw/spinner-model (or (:loop-bars phrase) 2)
                                                                               :from 1 :to 64)
-                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :loop-bars
-                                                                                            (seesaw/value %))
-                                                                              (update-section-boundaries show uuid)
-                                                                              (.repaint preview))])
+                                                 :listen [:state-changed
+                                                          #(do (swap-phrase! show uuid assoc :loop-bars
+                                                                             (seesaw/value %))
+                                                               (update-section-boundaries show uuid preview))])
                                  "wrap"]
 
                                 ["End:" "gap unrelated"]
-                                [(seesaw/spinner :id :end  ;; TODO: Calculate model via fn from cues.
+                                [(seesaw/spinner :id :end
                                                  :model (seesaw/spinner-model 1 :from 0 :to 64)
-                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :end-bars
-                                                                                            (seesaw/value %))
-                                                                              (update-section-boundaries show uuid)
-                                                                              (.repaint preview))])]
+                                                 :listen [:state-changed
+                                                          #(do (swap-phrase! show uuid assoc :end-bars
+                                                                             (seesaw/value %))
+                                                               (update-section-boundaries show uuid preview))])]
                                 ["Fill:" "gap unrelated"]
-                                [(seesaw/spinner :id :fill  ;; TODO: Calculate model via fn from cues.
+                                [(seesaw/spinner :id :fill
                                                  :model (seesaw/spinner-model 2 :from 1 :to 64)
-                                                 :listen [:state-changed #(do (swap-phrase! show uuid assoc :fill-bars
-                                                                                            (seesaw/value %))
-                                                                              (update-section-boundaries show uuid)
-                                                                              (.repaint preview))])
+                                                 :listen [:state-changed
+                                                          #(do (swap-phrase! show uuid assoc :fill-bars
+                                                                             (seesaw/value %))
+                                                               (update-section-boundaries show uuid preview))])
                                  "wrap unrelated"]
 
                                 [gear "spanx, split"]
@@ -1004,7 +1018,6 @@
                               :creating true}) ; Suppress popup expression editors when reopening a show.
 
         popup-fn (fn [^MouseEvent _e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
-                   ;; TODO: Implement the rest of these!
                    (concat [(edit-cues-action show phrase panel) (seesaw/separator)]
                            (phrase-editor-actions show phrase panel gear)
                            [(seesaw/separator) (phrase-simulate-menu show phrase) (su/inspect-action phrase)
@@ -1052,7 +1065,7 @@
     (swap-phrase! show phrase assoc :loop-bars (seesaw/value (seesaw/select panel [:#loop])))
     (swap-phrase! show phrase assoc :end-bars (seesaw/value (seesaw/select panel [:#end])))
     (swap-phrase! show phrase assoc :fill-bars (seesaw/value (seesaw/select panel [:#fill])))
-    (update-section-boundaries show uuid)  ; We now have the information needed to do this.
+    (update-section-boundaries show uuid preview)  ; We now have the information needed to do this.
     (swap-phrase! show phrase assoc :note (seesaw/value (seesaw/select panel [:#note])))
     (swap-phrase! show phrase assoc :channel (seesaw/value (seesaw/select panel [:#channel])))
     (swap-phrase! show phrase assoc :min-bars (seesaw/value (seesaw/select panel [:#min-bars])))
@@ -1065,7 +1078,7 @@
     (update-phrase-type-label show phrase types-label)
     (update-track-bank-label show phrase banks-label)
 
-    #_(cues/build-cues track)  ; TODO: Implement the phrase cues equivalent.
+    (cues/build-cues phrase)
     (parse-phrase-expressions show phrase)
 
     ;; We are done creating the phrase trigger, so arm the menu listeners to automatically pop up expression editors

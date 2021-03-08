@@ -1053,6 +1053,18 @@
                       :items (build-cue-library-popup-items
                               context (partial build-link-cue-action show cue button)))]))))
 
+(defn update-all-cue-spinner-end-models
+  "Called when a phrase section structure has changed to update any
+  affected cues in an open cues editor window so they know their new
+  maximum sizes."
+  [phrase]
+  (let [[_ phrase runtime-info] (latest-show-and-context phrase)]
+    (when-let [editor (:cues-editor runtime-info)]
+      (doseq [cue (vals (get-in phrase [:cues :cues]))]
+        (when-let [panel (get-in editor [:panels (:uuid cue)])]
+          (let [end-model (seesaw/config (seesaw/select panel [:#end]) :model)]
+            (.setMaximum end-model (beat-count phrase (:section cue)))))))))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -1909,11 +1921,30 @@
         wave-height        (max 92 (* max-lanes min-lane-height))]
     ["" "" (str "[][fill, " (+ wave-height 18) "]")]))
 
+(defn- calculate-minimum-section-sizes
+  "Called when cues have been rebuilt in a phrase trigger to update the
+  section spinner models so that no section can be shrunk too small to
+  fit its latest cue."
+  [phrase]
+  (let [[_ phrase runtime-info] (latest-show-and-context phrase)
+        panel                      (:panel runtime-info)
+        min-sizes                  (reduce (fn [result {:keys [section end]}]
+                                             (update result section max (quot (+ end 2) 4)))
+                                           {:start 0 :loop 1 :end 0 :fill 1}
+                                           (vals (get-in phrase [:cues :cues])))]
+    (doseq [[section min-bars] min-sizes]
+      (let [model (seesaw/config (seesaw/select panel [(keyword (str "#" (name section)))]) :model)]
+        (.setMinimum model min-bars)))))
+
 (defn build-cues
-  "Updates the track structures to reflect the cues that are present. If
-  there is an open cues editor window, also updates it. This will be
-  called when the show is initially loaded, and whenever the cues are
-  changed."
+  "Updates the track or phrase trigger structures to reflect the cues
+  that are present. If there is an open cues editor window, also
+  updates it. This will be called when the show is initially loaded,
+  and whenever the cues are changed.
+
+  If this is for a phrase trigger, also updates the minimum bounds of
+  the section spinner models so the sections can't be shrunk past
+  where cues exist."
   [context]
   (let [[show context runtime-info] (latest-show-and-context context)
         contents                    (if (phrase? context) context (:contents context))
@@ -1944,7 +1975,8 @@
       (.repaint ^JComponent (get-in runtime-info [:cues-editor :wave]))
       (let [^JPanel panel (get-in runtime-info [:cues-editor :panel])]
         (seesaw/config! panel :constraints (cue-panel-constraints context))
-        (.revalidate panel)))))
+        (.revalidate panel)))
+    (when (phrase? context) (calculate-minimum-section-sizes context))))
 
 (defn- new-cue
   "Handles a click on the New Cue button, which creates a cue with the
