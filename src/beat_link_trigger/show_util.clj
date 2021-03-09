@@ -754,12 +754,25 @@
 
 (defn cue-canvas-preview-x-for-time
   "Calculates the x position at which notional number if milliseconds
-  would fall along a phrase trigger's cue canvas, as if it was being
-  played at 120 BPM, and the beats were all linearly related. This is
-  used for stability while zooming in and out. `phrase` must be
+  would fall along a phrase trigger's prefview cue canvas, as if it
+  was being played at 120 BPM, and the beats were all linearly
+  related. This is used for drawing the portion covered by the cues
+  editor scrolling canvas, if one is open. `runtime-info` must be
   current."
   [^JPanel canvas runtime-info time]
   (let [sections    (:sections runtime-info)
         bar-spacing (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))
         bar         (/ time 2000)]
     (cue-canvas-preview-bar-x bar bar-spacing)))
+
+(defn cue-canvas-preview-time-for-x
+  "Calculates a notional number if milliseconds into a phrase trigger
+  corresponding to a point along its previe cue canvas, as if it was
+  being played at 120 BPM, and the beats were all linearly related.
+  This is used to center the cues editor scrolling canvas on locations
+  clicked by the user. `runtime-info` must be current."
+  [^JPanel canvas runtime-info x]
+  (let [sections    (:sections runtime-info)
+        bar-spacing (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))
+        bar         (/ (- x cue-canvas-margin) bar-spacing)]
+    (long (* bar 2000))))

@@ -798,12 +798,11 @@
   (let [point                   (.getPoint e)
         [_ phrase runtime-info] (su/latest-show-and-context phrase)]
     (when-let [editor (:cues-editor runtime-info)]
-      (let [{:keys [^JPanel wave ^JScrollPane scroll]} editor]
+      (let [{:keys [^JScrollPane scroll]} editor]
         (when-not (get-in runtime-info [:cues :auto-scroll])
-          ;; TODO: need to do all this with reference to fractional bars in the two panels
-          #_(let [target-time                       (.getTimeForX preview (.-x point))
-                center-x                          (.millisecondsToX wave target-time)
-                scroll-bar                        (.getHorizontalScrollBar scroll)]
+          (let [target-time (su/cue-canvas-preview-time-for-x preview runtime-info (.-x point))
+                center-x    (cues/cue-canvas-x-for-time phrase target-time)
+                scroll-bar  (.getHorizontalScrollBar scroll)]
             (.setValue scroll-bar (- center-x (/ (.getVisibleAmount scroll-bar) 2)))))))))
 
 
@@ -816,10 +815,10 @@
   [phrase ^JPanel preview ^MouseEvent e drag-origin]
   (let [[_ phrase runtime-info] (su/latest-show-and-context phrase)]
     (when-let [editor (:cues-editor runtime-info)]
-      (let [{:keys [^JPanel wave frame]} editor]
+      (let [{:keys [frame]} editor]
         (when-not (get-in runtime-info [:cues :auto-scroll])
           (when-not (:zoom @drag-origin)
-            (swap! drag-origin assoc :zoom (.getScale wave)))
+            (swap! drag-origin assoc :zoom (get-in phrase [:cues :zoom])))
           (let [zoom-slider (seesaw/select frame [:#zoom])
                 {:keys [^java.awt.Point point zoom]} @drag-origin
                 new-zoom (min cues/max-zoom (max 1 (+ zoom (/ (- (.y point) (.y (.getPoint e))) 2))))]
