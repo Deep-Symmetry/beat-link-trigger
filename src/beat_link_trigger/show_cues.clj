@@ -1246,21 +1246,21 @@
           (su/swap-context-runtime! show context assoc-in [:cues-editor :visible] visible-uuids)
           (let [current-section (atom nil)
                 visible-panels  (mapcat (fn [cue color]
-                                        (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
-                                          (seesaw/config! panel :background color)
-                                          (if (= (:section cue) @current-section)
-                                            [panel]
-                                            (do
-                                              (reset! current-section (:section cue))
-                                              [(seesaw/border-panel
-                                                :maximum-size [Integer/MAX_VALUE :by 40]
-                                                :border 4
-                                                :background (su/phrase-section-colors (:section cue))
-                                                :west (seesaw/label
-                                                       :text (str " " (str/capitalize (name (:section cue))))))
-                                               panel]))))
-                                      visible-cues (cycle ["#eee" "#ddd"]))]
-            (seesaw/config! cues :items (concat visible-panels [:fill-v]))))))))
+                                          (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
+                                            (seesaw/config! panel :background color)
+                                            (if (= (:section cue) @current-section)
+                                              [panel]
+                                              (do
+                                                (reset! current-section (:section cue))
+                                                [(seesaw/border-panel
+                                                  :maximum-size [Integer/MAX_VALUE :by 40]
+                                                  :border 4
+                                                  :background (su/phrase-section-colors (:section cue))
+                                                  :west (seesaw/label
+                                                         :text (str " " (str/capitalize (name (:section cue))))))
+                                                 panel]))))
+                                        visible-cues (cycle ["#eee" "#ddd"]))]
+            (seesaw/config! cues :items (concat visible-panels [:fill-v :fill-v :fill-v :fill-v]))))))))
 
 (defn- set-entered-only
   "Update the cues UI so that all cues or only entered cues are
