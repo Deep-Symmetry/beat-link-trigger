@@ -1947,7 +1947,8 @@
   [context]
   (let [[show context runtime-info] (latest-show-and-context context)
         contents                    (if (phrase? context) context (:contents context))
-        sorted-cues                 (sort-by (juxt :section :start :end :comment :uuid)
+        section-position            (fn [cue] (su/phrase-section-positions (:section cue)))
+        sorted-cues                 (sort-by (juxt section-position :start :end :comment :uuid)
                                              (vals (get-in contents [:cues :cues])))
         cue-intervals               (if (track? context)
                                       (reduce (fn [result cue]
