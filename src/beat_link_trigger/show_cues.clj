@@ -1244,13 +1244,22 @@
             visible-uuids (mapv :uuid visible-cues)]
         (when (not= visible-uuids old-visible)
           (su/swap-context-runtime! show context assoc-in [:cues-editor :visible] visible-uuids)
-          (let [visible-panels (mapv (fn [cue color]
-                                       ;; TODO: Add section headers when switching sections?
-                                       (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
-                                         ;; TODO: Use different colors for sectioned cues.
-                                         (seesaw/config! panel :background color)
-                                         panel))
-                                     visible-cues (cycle ["#eee" "#ddd"]))]
+          (let [current-section (atom nil)
+                visible-panels  (mapcat (fn [cue color]
+                                        (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
+                                          (seesaw/config! panel :background color)
+                                          (if (= (:section cue) @current-section)
+                                            [panel]
+                                            (do
+                                              (reset! current-section (:section cue))
+                                              [(seesaw/border-panel
+                                                :maximum-size [Integer/MAX_VALUE :by 40]
+                                                :border 4
+                                                :background (su/phrase-section-colors (:section cue))
+                                                :west (seesaw/label
+                                                       :text (str " " (str/capitalize (name (:section cue))))))
+                                               panel]))))
+                                      visible-cues (cycle ["#eee" "#ddd"]))]
             (seesaw/config! cues :items (concat visible-panels [:fill-v]))))))))
 
 (defn- set-entered-only
@@ -2133,7 +2142,7 @@
         bars           (:total-bars sections)
         stroke         (.getStroke g)
         label-font     (.getFont (javax.swing.UIManager/getDefaults) "Label.font")
-        stripe         (fn [color section]  ; Paint one of the section stripes.
+        stripe         (fn [section]  ; Paint one of the section stripes.
                          (let [x              (x-for-beat phrase c 1 section)
                                [from-bar
                                 to-bar]       (section sections)
@@ -2145,7 +2154,7 @@
                                y              (- h su/cue-canvas-margin text-height 1)
                                phrase-rect    (Rectangle2D$Double. x y w (+ text-height 2))
                                old-clip       (.getClip g)]
-                           (.setPaint g color)
+                           (.setPaint g (su/phrase-section-colors section))
                            (.fill g phrase-rect)
                            (.setClip g phrase-rect)
                            (.setPaint g Color/black)
@@ -2165,11 +2174,11 @@
     ;; Paint the section stripes.
     (.setFont g label-font)
     (when (:start sections)
-      (stripe su/phrase-start-color :start))
-    (stripe su/phrase-loop-color :loop)
+      (stripe :start))
+    (stripe :loop)
     (when (:end sections)
-      (stripe su/phrase-end-color :end))
-    (stripe su/phrase-fill-color :fill)
+      (stripe :end))
+    (stripe :fill)
 
     ;; Paint the section boundaries.
     (.setPaint g Color/white)

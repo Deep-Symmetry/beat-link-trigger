@@ -170,11 +170,11 @@
     ;; Paint the section stripes.
     (let [y (- h su/cue-canvas-margin 2)]
       (when-let [start (:start sections)]
-        (stripe su/phrase-start-color y start))
-      (stripe su/phrase-loop-color y (:loop sections))
+        (stripe (su/phrase-section-colors :start) y start))
+      (stripe (su/phrase-section-colors :loop) y (:loop sections))
       (when-let [end (:end sections)]
-        (stripe su/phrase-end-color y end))
-      (stripe su/phrase-fill-color y (:fill sections)))
+        (stripe (su/phrase-section-colors :end) y end))
+      (stripe (su/phrase-section-colors :fill) y (:fill sections)))
 
     ;; Paint the section boundaries.
     (.setPaint g Color/white)

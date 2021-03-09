@@ -677,21 +677,12 @@
    :end   2
    :fill  3})
 
-(def phrase-start-color
-  "The color to draw the start section of a phrase trigger."
-  (hue-to-color 120.0 0.8))
-
-(def phrase-loop-color
-  "The color to draw the start section of a phrase trigger."
-  (hue-to-color 240.0 0.8))
-
-(def phrase-end-color
-  "The color to draw the start section of a phrase trigger."
-  (hue-to-color 0.0 0.8))
-
-(def phrase-fill-color
-  "The color to draw the start section of a phrase trigger."
-  (hue-to-color 280.0 0.75))
+(def phrase-section-colors
+  "The color to draw each section of a phrase trigger."
+  {:start (hue-to-color 120.0 0.8)
+   :loop  (hue-to-color 240.0 0.8)
+   :end   (hue-to-color 0.0 0.8)
+   :fill  (hue-to-color 280.0 0.75)})
 
 (defn swap-cue!
   "Atomically updates the map of open shows by calling the specified
