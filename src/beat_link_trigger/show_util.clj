@@ -751,3 +751,15 @@
         beat-within-bar (mod (dec beat) 4)
         bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
     (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing) (* beat-within-bar (quot bar-spacing 4)))))
+
+(defn cue-canvas-preview-x-for-time
+  "Calculates the x position at which notional number if milliseconds
+  would fall along a phrase trigger's cue canvas, as if it was being
+  played at 120 BPM, and the beats were all linearly related. This is
+  used for stability while zooming in and out. `phrase` must be
+  current."
+  [^JPanel canvas runtime-info time]
+  (let [sections    (:sections runtime-info)
+        bar-spacing (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))
+        bar         (/ time 2000)]
+    (cue-canvas-preview-bar-x bar bar-spacing)))

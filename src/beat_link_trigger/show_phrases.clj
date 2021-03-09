@@ -50,18 +50,6 @@
                                      :title "Exception in Show Phrase Trigger Expression" :type :error))
           [nil t])))))
 
-(defn update-cue-gear-icon
-  "Determines whether the gear button for a cue should be hollow or
-  filled in, depending on whether any expressions have been assigned
-  to it."
-  [show phrase section cue gear]
-  (let [cue (find-cue phrase cue)]
-    (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
-                                 (seesaw/icon "images/Gear-outline.png")
-                                 (seesaw/icon "images/Gear-icon.png")))))
-
-;; TODO: Continue porting over functions from start of show-cues
-
 (defn- paint-phrase-state
     "Draws a representation of the state of the phrase trigger, including whether
   it is enabled and whether it has been selected and is playing."
@@ -156,22 +144,23 @@
   row, identifying the relative sizes of the sections, and positions
   of cues within them."
   [show uuid c ^Graphics2D g]
-  (let [w        (double (seesaw/width c))
-        h        (double (seesaw/height c))
-        show     (latest-show show)
-        phrase   (get-in show [:contents :phrases uuid])
-        sections (get-in show [:phrases uuid :sections])
-        active?  false ; TODO: TBD!
-        bars     (:total-bars sections)
-        spacing  (su/cue-canvas-preview-bar-spacing bars w)
-        stroke   (.getStroke g)
-        stripe   (fn [color y [from-bar to-bar]]  ; Paint one of the section stripes.
-                   (.setPaint g color)
-                   (.fillRect g (+ su/cue-canvas-margin (* from-bar spacing))
-                              y (dec (* (- to-bar from-bar) spacing)) 3))
-        fence    (fn [[_from-bar to-bar]]  ; Paint one of the section boundary fences.
-                   (let [x (su/cue-canvas-preview-bar-x to-bar spacing)]
-                     (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
+  (let [w            (double (seesaw/width c))
+        h            (double (seesaw/height c))
+        show         (latest-show show)
+        phrase       (get-in show [:contents :phrases uuid])
+        runtime-info (get-in show [:phrases uuid])
+        sections     (:sections runtime-info)
+        active?      false ; TODO: TBD!
+        bars         (:total-bars sections)
+        spacing      (su/cue-canvas-preview-bar-spacing bars w)
+        stroke       (.getStroke g)
+        stripe       (fn [color y [from-bar to-bar]]  ; Paint one of the section stripes.
+                       (.setPaint g color)
+                       (.fillRect g (+ su/cue-canvas-margin (* from-bar spacing))
+                                  y (dec (* (- to-bar from-bar) spacing)) 3))
+        fence        (fn [[_from-bar to-bar]]  ; Paint one of the section boundary fences.
+                       (let [x (su/cue-canvas-preview-bar-x to-bar spacing)]
+                         (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
 
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
@@ -214,8 +203,29 @@
               (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
               (.drawLine g x (- h su/cue-canvas-margin 9) x (- h su/cue-canvas-margin 5)))))))
 
-    ;; TODO: Draw the cues and editor coverage, if any.
-    ))
+    ;; Paint the cues. TODO: Someday we could be fancy like show-cues/paint-preview-cues and figure
+    ;; out which ones are actually visible in the clip rect, but I am punting on that for now to get
+    ;; things basically working, and then we can see if performance seems to merit it.
+    (let [^Graphics2D g2 (.create g)]
+      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cues/cue-opacity))
+      (doseq [cue (vals (get-in phrase [:cues :cues]))]
+        (.setPaint g2 (su/hue-to-color (:hue cue) (cues/cue-lightness phrase cue)))
+        (.fill g2 (cues/cue-preview-rectangle phrase cue c)))
+
+      (when-let [editor (:cues-editor runtime-info)]
+        (let [{:keys [^JScrollPane scroll]} editor]
+          (when-not (get-in phrase [:cues :auto-scroll])
+            (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER
+                                                                   cues/selection-opacity))
+            (.setPaint g2 Color/white)
+            (.setStroke g2 (java.awt.BasicStroke. 3))
+            (let [view-rect  (.getViewRect (.getViewport scroll))
+                  start-time (cues/cue-canvas-time-for-x phrase (.-x view-rect))
+                  end-time   (cues/cue-canvas-time-for-x phrase (+ (.-x view-rect) (.-width view-rect)))
+                  x          (su/cue-canvas-preview-x-for-time c runtime-info start-time)
+                  width      (- (su/cue-canvas-preview-x-for-time c runtime-info end-time) x)]
+              (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
+                                                           (double width) (double (dec (.getHeight c))))))))))))
 
 (defn- edit-cues-action
   "Creates the menu action which opens the phrase trigger's cue editor
@@ -1031,7 +1041,8 @@
                 {:entered           {} ; Map from player # to sets of UUIDs of cues that have been entered.
                  :expression-locals (atom {})
                  :filter            (build-filter-target (:comment phrase))
-                 :panel             panel})
+                 :panel             panel
+                 :preview-canvas    preview})
         (swap-show! show assoc-in [:panels panel] uuid)  ; Tracks all the rows in the show window.
         (su/phrase-added show uuid)
 

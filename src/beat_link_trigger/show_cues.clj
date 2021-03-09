@@ -156,7 +156,7 @@
   the cue lanes."
   20)
 
-(defn- cue-canvas-time-for-x
+(defn cue-canvas-time-for-x
   "Calculates a notional number if milliseconds into a phrase trigger
   corresponding to a point along its cue canvas, as if it was being
   played at 120 BPM, and the beats were all linearly related. This is
@@ -166,7 +166,7 @@
   (let [beat (/ x (/ su/cue-canvas-pixels-per-beat (get-in phrase [:cues :zoom] 4)))]
     (* beat 500)))
 
-(defn- cue-canvas-x-for-time
+(defn cue-canvas-x-for-time
   "Calculates the x position at which notional number if milliseconds
   would fall along a phrase trigger's cue canvas, as if it was being
   played at 120 BPM, and the beats were all linearly related. This is
@@ -656,9 +656,9 @@
 
 (defn cue-preview-rectangle
   "Calculates the outline of a cue within the coordinate system of the
-  waveform preview component in a track row of a show window, taking
-  into account its lane assignment and cluster of neighbors. `context`
-  and `cue` must be current."
+  waveform preview component in a track or phrase trigger row of a
+  show window, taking into account its lane assignment and cluster of
+  neighbors. `context` and `cue` must be current."
   ^Rectangle2D$Double [context cue ^JPanel preview]
   (let [[_ _ runtime-info] (latest-show-and-context context)
         [lane num-lanes]   (get-in runtime-info [:cues :position (:uuid cue)])
@@ -679,47 +679,40 @@
   (float 0.5))
 
 (defn paint-preview-cues
-  "Draws the cues, if any, on top of the preview waveform or phrase
-  trigger cue canvas. If there is an open cues editor window, also
-  shows its current view of the wave, unless it is in auto-scroll
-  mode."
-  [show signature-or-uuid ^JPanel preview ^Graphics2D graphics]
+  "Draws the cues, if any, on top of the preview waveform. If there is
+  an open cues editor window, also shows its current view of the wave,
+  unless it is in auto-scroll mode. (This only needs to support track
+  rows, because phrase trigger rows do all this in their standard
+  paint operation.)"
+  [show signature ^WaveformPreviewComponent preview ^Graphics2D graphics]
   (let [show           (latest-show show)
         ^Graphics2D g2 (.create graphics)
         cliprect       (.getClipBounds g2)
-        context        (if (string? signature-or-uuid)
-                         (get-in show [:tracks signature-or-uuid])
-                         (get-in show [:contents :phrases signature-or-uuid]))
-        runtime-info   (if (track? context) context (phrase-runtime-info show context))
-        cues-to-paint  (if (phrase? context)
-                         (get-in context [:cues :cues])  ; TODO: Figure out which are visible? Or not worth it?
-                         (let [preview       ^WaveformPreviewComponent preview
-                               beat-for-x    (fn [x]
-                                               (.findBeatAtTime ^BeatGrid (:grid context) (.getTimeForX preview x)))
-                               from          (beat-for-x (.x cliprect))
-                               to            (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
-                               cue-intervals (get-in context [:cues :intervals])]
-                           (map (partial find-cue context) (util/iget cue-intervals from to))))]
+        track          (get-in show [:tracks signature])
+        cues-to-paint  (let [beat-for-x    (fn [x]
+                                             (.findBeatAtTime ^BeatGrid (:grid track) (.getTimeForX preview x)))
+                             from          (beat-for-x (.x cliprect))
+                             to            (inc (beat-for-x (+ (.x cliprect) (.width cliprect))))
+                             cue-intervals (get-in track [:cues :intervals])]
+                         (map (partial find-cue track) (util/iget cue-intervals from to)))]
     (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
     (doseq [cue cues-to-paint]
-      (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness context cue)))
-      (.fill g2 (cue-preview-rectangle context cue preview)))
-    (when-let [editor (:cues-editor runtime-info)]
-      (if (track? context)
-        (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
-          (when-not (.getAutoScroll wave)
-            (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER
-                                                                   selection-opacity))
-            (.setPaint g2 Color/white)
-            (.setStroke g2 (java.awt.BasicStroke. 3))
-            (let [view-rect  (.getViewRect (.getViewport scroll))
-                  start-time (.getTimeForX wave (.-x view-rect))
-                  end-time   (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
-                  x          (.millisecondsToX preview start-time)
-                  width      (- (.millisecondsToX preview end-time) x)]
-              (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
-                                                           (double width) (double (dec (.getHeight preview))))))))
-        nil))))  ; TODO: Need equivalent outline calculator for cue canvases.
+      (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness track cue)))
+      (.fill g2 (cue-preview-rectangle track cue preview)))
+    (when-let [editor (:cues-editor track)]
+      (let [{:keys [^WaveformDetailComponent wave ^JScrollPane scroll]} editor]
+        (when-not (.getAutoScroll wave)
+          (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER
+                                                                 selection-opacity))
+          (.setPaint g2 Color/white)
+          (.setStroke g2 (java.awt.BasicStroke. 3))
+          (let [view-rect  (.getViewRect (.getViewport scroll))
+                start-time (.getTimeForX wave (.-x view-rect))
+                end-time   (.getTimeForX wave (+ (.-x view-rect) (.-width view-rect)))
+                x          (.millisecondsToX preview start-time)
+                width      (- (.millisecondsToX preview end-time) x)]
+            (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
+                                                         (double width) (double (dec (.getHeight preview)))))))))))
 
 (defn- get-current-selection
   "Returns the starting and ending beat of the current selection in the
@@ -733,7 +726,6 @@
       (when (> (second selection) (first selection))
         selection))))
 
-;; TODO: Will need a versioon for phrase cues, and probably to rename this one.
 (defn- paint-cues-and-beat-selection
   "Draws the cues and the selected beat range, if any, on top of the
   waveform."
@@ -756,21 +748,25 @@
         (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) (double (.getHeight wave))))))
     (.dispose g2)))
 
-;; TODO: Will need a versioon for phrase cues, either rename this one or add both branches to it.
 (defn repaint-cue
-  "Causes a single cue to be repainted in the track preview and (if one
-  is open) the cues editor, because it has changed entered or active
-  state. `cue` can either be the cue object or its uuid."
-  [track cue]
-  (let [track (latest-track track)
-        cue   (find-cue track cue)]
-    (when-let [preview-loader (:preview track)]
-      (when-let [^WaveformPreviewComponent preview (preview-loader)]
-        (let [preview-rect (cue-preview-rectangle track cue preview)]
-          (.repaint ^JComponent (:preview-canvas track)
-                    (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
-    (when-let [^WaveformDetailComponent wave (get-in track [:cues-editor :wave])]
-      (let [cue-rect (cue-rectangle track cue wave)]
+  "Causes a single cue to be repainted in the track or phrase trigger
+  preview and (if one is open) the cues editor, because it has changed
+  entered or active state. `cue` can either be the cue object or its
+  uuid."
+  [context cue]
+  (let [[_ context runtime-info] (latest-show-and-context context)
+        cue                         (find-cue context cue)]
+    (if (track? context)
+      (when-let [preview-loader (:preview runtime-info)]
+        (when-let [^WaveformPreviewComponent preview (preview-loader)]
+          (let [preview-rect (cue-preview-rectangle context cue preview)]
+            (.repaint ^JComponent (:preview-canvas runtime-info)
+                      (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
+      (let [^JPanel preview (:preview runtime-info)  ; Phrase triggers are a little simpler.
+            preview-rect    (cue-preview-rectangle context cue preview)]
+        (.repaint preview (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect))))
+    (when-let [^JPanel wave (get-in runtime-info [:cues-editor :wave])]
+      (let [cue-rect (cue-rectangle context cue wave)]
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
 ;; TODO: Will need a versioon for phrase cues, either rename this one or add both branches to it.
@@ -1295,15 +1291,15 @@
         (seesaw/invoke-later
          (let [time-x (.millisecondsToX wave time)]
            (.setValue bar (- time-x anchor-x))))))
-    (let [bar                         (.getHorizontalScrollBar pane)
-          bar-x                       (.getValue bar)
-          [show context runtime-info] (latest-show-and-context context)
-          time                        (cue-canvas-time-for-x context (+ anchor-x bar-x))]
+    (let [bar            (.getHorizontalScrollBar pane)
+          bar-x          (.getValue bar)
+          [show context] (latest-show-and-context context)
+          time           (cue-canvas-time-for-x context (+ anchor-x bar-x))]
       (swap-phrase! show context assoc-in [:cues :zoom] zoom)
       (seesaw/config! panel :size [(cue-canvas-width context) :by 92])
       (seesaw/repaint! panel)
       (.revalidate pane)
-      (when-not (get-in runtime-info [:cues :auto-scroll])
+      (when-not (get-in context [:cues :auto-scroll])
         (seesaw/invoke-later
          (let [time-x (cue-canvas-x-for-time (latest-phrase show context) time)]
            (.setValue bar (- time-x anchor-x))))))))
