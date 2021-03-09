@@ -104,6 +104,7 @@ starts, there are a number of filters that can be applied.
 
 image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
 
+[[players-menu]]
 * First you need to determine which players are considered, using the
   menu:Players[] menu. Choices are the current tempo **Master**
   only, any **On-Air** player, or **Any** player at all.
@@ -118,10 +119,12 @@ image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
   which track banks>> you want this trigger to match, using the
   btn:[Track Banks] button .
 
+[[phrase-length-range]]
 * You can also set a minimum and/or a maximum phrase length in bars.
   Phrases which are too long or too short will then not activate this
   phrase trigger.
 
+[[tempo-range]]
 * Similarly, you can set a minimum and/or maximum tempo in BPM, and if
   the track playing is too slow or too fast when it starts playing the
   phrase, it will not activate this phrase trigger.
@@ -165,6 +168,48 @@ elements in the phrase trigger row disappears, because your code is
 making the decision instead of them. To go back to the simpler
 approach, choose menu:Enabled[See Below] again, and they will reappear
 and be used instead of your filter code.
+
+[[structure]]
+== Phrase Trigger Structure
+
+The phrase trigger is divided into, whose sizes you get to choose
+using the
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Start*, *Loop*, *End*,
+and *Fill* Spinners>>. The size you choose will determine the size of
+the portion of canvas on which you can place cues for each section of
+the phrase trigger:
+
+* Start, which gets lined up with the beginning of the phrase in the
+  track, and can contain zero or more bars, identified by a green
+  stripe at the bottom of the cue canvas.
+
+* Loop, which gets stretched (looped) or shrunk as needed to fill up
+  the middle of the phrase in the track, and can contain one or more
+  bars, identified by a blue stripe at the bottom of the cue canvas.
+
+* End, which gets lined up with the end of the phrase in the track
+  (before the fill-in section, if there is one), and can contain zero
+  or more bars, identified by a red stripe at the bottom of the cue
+  canvas.
+
+* Fill-in, which gets stretched (looped) or shrunk as needed to cover
+  the fill-in section of the phrase, if there is one, identified by a
+  purple stripe at the bottom of the cue canvas.
+
+If the actual phrase is smaller than the sizes you have picked for
+your canvas, first the end of the Loop section is taken out of
+consideration, until that section is entirely gone. Then, the end of
+the End section is eaten away, until that entire section is gone, and
+finally the end of the Start section is eaten away until it fits the
+actual phrase. (As noted above, if you don't want this kind of
+shrinking to occur, you can configure your phrase trigger to only be
+enabled when the phrase is longer than a certain number of bars.)
+
+TIP: Once you have started placing cues into the sections of your
+phrase trigger, as described in the next section, you will not be able
+to shrink those sections any smaller than the number of bars required
+to fit your cues. So if you do want to shrink or get rid of a section,
+you will need to delete any affected cues first.
 
 [[messages-cues]]
 == Messages and Cues
@@ -381,48 +426,18 @@ waveform here because the trigger could activate for phrases in
 different places in one or many tracks. The canvas represents an
 entire phrase for which the trigger has activated.
 
-As noted above, the phrase will be divided into sections, whose sizes
-you get to choose at the top of the window. The size you choose will
-determine the size of the portion of canvas on which you can place
-cues for each section of the phrase trigger:
+As explained <<structure,above>>, the phrase will be divided into
+sections which play different roles in aligning your phrase trigger
+with a phrase that it has matched, and whose sizes you get to choose.
+The sizes you choose will determine the size of the portion of canvas
+on which you can place cues for each section of the phrase trigger.
 
-* Start, which gets lined up with the beginning of the phrase in the
-  track, and can contain zero or more bars, identified by a green
-  stripe at the bottom of the cue canvas.
-
-* Loop, which gets stretched (looped) or shrunk as needed to fill up
-  the middle of the phrase in the track, and can contain one or more
-  bars, identified by a blue stripe at the bottom of the cue canvas.
-
-* End, which gets lined up with the end of the phrase in the track
-  (before the fill-in section, if there is one), and can contain zero
-  or more bars, identified by a red stripe at the bottom of the cue
-  canvas.
-
-* Fill-in, which gets stretched (looped) or shrunk as needed to cover
-  the fill-in section of the phrase, if there is one, identified by a
-  purple stripe at the bottom of the cue canvas.
-
-If the actual phrase is smaller than the sizes you have picked for
-your canvas, first the end of the Loop section is taken out of
-consideration, until that section is entirely gone. Then, the end of
-the End section is eaten away, until that entire section is gone, and
-finally the end of the Start section is eaten away until it fits the
-actual phrase. (As noted above, if you don't want this kind of
-shrinking to occur, you can configure your phrase trigger to only be
-enabled when the phrase is longer than a certain number of bars.)
-
-Unlike in a track cues editor window, the New Cue button (and the
+Unlike in a track cues editor window, the btn:[New Cue] button (and the
 library menu options for adding new cues) will only be enabled once
 you have painted a location for the cue on the canvas, because
 otherwise there is no way to tell in which section the cue should be
 created. Each cue can exist in a single section only, and its start
 and end beats are measured from the start of that section.
-
-Once cues have been added to a section, you can no longer shrink that
-section to a size where any of its cues would no longer fit. So if you
-want to shrink a section, you will need to first delete any cues in
-the part that you want to eliminate.
 
 Much like you can see where the playheads of the players are in the
 cue editor, you will be able to watch them move through the cue canvas

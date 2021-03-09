@@ -400,8 +400,12 @@ the expression type.
 `:hue`:: An floating point value that specifies the angle (in degrees)
 around the color wheel that is used when drawing this cue.
 
+`:section`:: Present only for cues which are in a phrase trigger,
+identifies the section of the phrase trigger in which the cue exists
+(will be one of `:start`, `:loop`, `:end`, or `:fill`).
+
 `:start`:: An integer that specifies the beat number within the
-track's beat grid at which the cue begins.
+track beat grid, or phrase trigger section, at which the cue begins.
 
 [[cue-uuid]]
 `:uuid`:: The unique identifier (a Java
@@ -480,33 +484,155 @@ contains information that can be directly saved into the show file to
 represent the phrase trigger configuration the user has chosen. Some
 elements that might be useful include:
 
+`:channel`:: The MIDI channel on which Playing and Stopped messages
+are sent, as configured with the phrase trigger's
+<<Shows_PhraseTriggers.adoc#channel-spinner,Channel Spinner>>.
+
 `:comment`:: The comment text, if any, entered to describe the phrase
 trigger. This can be used to filter visible phrase triggers.
 
 `:cues`:: Holds information about the Cues Editor associated with the
 phrase trigger, as described <<phrase-cues-editor,below>>.
 
-> TODO: Add entries for the enabled/weight UI elements.
+> TODO: Next item needs a link to enabled filter once the phrase
+  trigger expressions section is written.
+
+`:enabled`:: Controls how the phrase trigger is matched against
+playing track phrases. Has one of two values: `"See Below"` means that
+all of the <<Shows_PhraseTriggers.adoc#enabling-weighting,Enabling and
+Weighting>> user elements (and their associated values in this
+section) are used, and `"Custom"` means that your own Enabled Filter
+expression will be called instead, and its results will control what
+happens.
+
+`:enabled-phrase-types`:: The set of phrase types which will allow
+this phrase trigger to activate when they play. Controlled by the
+<<Shows_PhraseTriggers.adoc#phrase-picker,*Phrase Types* Picker>>, the
+set will contain any combination of the following elements:
+`:low-intro`, `:low-verse-1`, `:low-verse-2`, `:low-bridge`,
+`:low-chorus`, `:low-outro`, `:mid-intro`, `:mid-verse-1`,
+`:mid-verse-2`, `:mid-verse-3`, `:mid-verse-4`, `:mid-verse-5`,
+`:mid-verse-6`, `:mid-bridge`, `:mid-chorus`, `:mid-outro`,
+`:high-intro-1`, `:high-intro-2`, `:high-up-1`, `:high-up-2`,
+`:high-up-3`, `:high-down`, `:high-chorus-1`, `:high-chorus-2`,
+`:high-outro`.
+
+`:enabled-track-banks`:: The set of track banks which will allow this
+phrase trigger to activate when associated with the playing track.
+Controlled by the <<Shows_PhraseTriggers.adoc#bank-picker,*Track
+Banks* Picker>>, the set will contain any combination of the following
+elements: `:cool`, `:natural`, `:hot`, `:subtle`, `:warm`, `:vivid`,
+`:club-1`, `:club-2`.
+
+`:end-bars`:: The number of bars long the
+<<Shows_PhraseTriggers.adoc#structure,End section>> of the phrase
+trigger is. This can be zero, meaning that the Loop section is
+immediately followed by the Fill section.
 
 `:expressions`:: A map holding the source text of any phrase trigger
 level expressions that have been created, indexed by the keyword
 identifying the expression type.
 
-`:channel`:: The MIDI channel on which Playing and Stopped messages
-are sent, as configured with the phrase trigger's
-<<Shows_PhraseTriggers.adoc#channel-spinner,Channel Spinner>>.
+`:fill-bars`:: The number of bars long the
+<<Shows_PhraseTriggers.adoc#structure,Fill section>> at the end of the
+phrase trigger is. This section will be repeated as many times as
+needed to align the size of the phrase trigger with the size of the
+fill-in section of the playing phrase that it matched.
+
+`:loop-bars`:: The number of bars long the
+<<Shows_PhraseTriggers.adoc#structure,Loop section>> of the phrase
+trigger is. This section will be repeated as many times as needed to
+align the size of the phrase trigger with the size of the playing
+phrase that it matched.
+
+`:max-bars?`:: A `boolean` value that records whether the checkbox in
+front of the phrase trigger's
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Max Bars:* Checkbox>>
+is checked, and therefore whether the value in `:max-bars` should be
+honored.
+
+`:max-bars`:: The maximum number of bars long a playing phrase can be
+in order to activate this phrase trigger, configured using the
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Max bars* Spinner>>. Only
+used when `:max-bars?` is `true`.
+
+`:max-bpm?`:: A `boolean` value that records whether the checkbox in
+front of the phrase trigger's
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Max BPM:* Checkbox>>
+is checked, and therefore whether the value in `:max-bpm` should be
+honored.
+
+`:max-bpm`:: The maximum tempo, in beats per minute, for which this
+phrase trigger will activate, configured using the
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Max BPM* Spinner>>.
+Only used when `:max-bpm?` is `true`.
 
 `:message`:: The type of message that will be sent for Playing and
 Stopped events, as configured with the phrase trigger's
 <<Shows_PhraseTriggers.adoc#message,Message Menu>>.
 
+`:midi-device`:: The MIDI device to which phrase trigger messages will
+be sent, as configured with the phrase trigger's
+<<Shows_PhraseTriggers.adoc#midi-output,MIDI Output Menu>>.
+
+`:min-bars?`:: A `boolean` value that records whether the checkbox in
+front of the phrase trigger's
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Min Bars:* Checkbox>>
+is checked, and therefore whether the value in `:min-bars` should be
+honored.
+
+`:min-bars`:: The minimum number of bars long a playing phrase can be
+in order to activate this phrase trigger, configured using the
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Min Bars* Spinner>>.
+Only used when `:min-bars?` is `true`.
+
+`:min-bpm?`:: A `boolean` value that records whether the checkbox in
+front of the phrase trigger's
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Min BPM:* Checkbox>>
+is checked, and therefore whether the value in `:min-bpm` should be
+honored.
+
+`:min-bpm`:: The minimum tempo, in beats per minute, for which this
+phrase trigger will activate, configured using the
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Min BPM* Spinner>>.
+Only used when `:min-bpm?` is `true`.
+
 `:note`:: The MIDI note (or controller number) used to send Playing
 and Stopped messages, as configured with the phrase trigger's
 <<Shows_PhraseTriggers.adoc#note-spinner,Note/Controller Spinner>>.
 
-`:midi-device`:: The MIDI device to which phrase trigger messages will
-be sent, as configured with the phrase trigger's
-<<Shows_PhraseTriggers.adoc#midi-output,MIDI Output Menu>>.
+`:players`:: Controls which players will be considered when looking
+for phrases that match this phrase trigger, as confugred with the
+phrase trigger's <<Shows_PhraseTriggers.adoc#players-menu,Players
+Menu>>. Choices are `"Master"`, `"On-Air"`, or `"Any"`.
+
+`:start-bars`:: The number of bars long the
+<<Shows_PhraseTriggers.adoc#structure,Start section>> of the phrase
+trigger is. This can be zero, meaning that the first section is the
+Loop section.
+
+`:solo`:: Controls the
+<<Shows_PhraseTriggers.adoc#exclusivity,Exclusivity>> of the phrase
+trigger. The default value is `"Solo in show"`, which means that only
+one such trigger will be chosen for the entire show (but other `"Solo
+in show"` triggers might be running for the same phrase in other
+shows). Other choices include `"Solo across all shows"`, which (as its
+name suggest) will only allow one such trigger to be chosen from any
+open show (although triggers in other exculsivity modes will still be
+allowed to run), and `"Blend"`, which means this trigger will activate
+whenever its criteria are met, regardless of how many other triggers
+are activating in any show for the current phrase.
+
+`:uuid`:: The unique identifier (a Java
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID]
+object) that identifies this phrase trigger within the show, so it can
+be recognized in the <<vis-phrases,list of which are currently
+visible>>, and referenced in other ways.
+
+`:weight`:: Adjusts how likely this phrase trigger will be chosen if
+if it is configured as Solo and other Solo matches exist for a
+phrase that has started to play. This is configured using the
+<<Shows_PhraseTriggers.adoc#enabling-weighting,*Weight* Spinner>>.
 
 
 [[phrase-cues-editor]]
