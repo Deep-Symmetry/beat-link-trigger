@@ -16,28 +16,26 @@ triggers are used for which types of phrases, and assign weights so
 that when multiple alternatives exist, one is chosen more or less
 often than another.
 
-NOTE: This page is an early draft, describing the new phrase triggers
-feature, and is being used to refine the design.
+NOTE: This page is a draft, describing the new phrase triggers
+feature as it is in the process of being implemented.
 
-The phrase triggers will come below all the tracks in the show. Their
-rows may be a slightly different color to make them stand out, but
-they will be structurally so different that may not even be necessary.
+To add a Phrase Trigger to your show, choose menu:Phrases[New Phrase Trigger].
 
-image:ShowWithPhrases.png[Show window with phrase rows,450,400]
+image:NewPhraseTrigger.png[Phrase Menu,325,75]
 
-As of now, the only items I can think of for the new Phrases menu are
-"`New Phrase Trigger`", which will create a new phrase trigger row and
-scroll it into view, and "`Sort by Comments`". Unless you sort them,
-Phrase triggers will be kept in the order they are created, and
-probably don't need to show numbers like the original Triggers window,
-which will make it easier to cope with deletions. The context menu for
-each row (or a pair of buttons in the row, since it looks like there
-will be plenty of room) will also allow you to move it up (unless it
-is already the first phrase trigger) or down (unless it is the last).
+Phrase Triggers come below all the Tracks in the show. Their rows
+have a slightly different background color to make them stand out, but
+they are also structurally so different that are easily recognizable.
 
-The Filter text field will also filter phrase triggers (by their
-comments), and the Loaded Only check box will cause only active phrase
-triggers to be visible in the window.
+image:ShowWithPhrases.png[Show window with phrase rows,1250,443]
+
+New Phrase Triggers are always added at the bottom of the list, but
+you can sort them by the Comment values you assign them by choosing
+menu:Phrase[Sort by Comments] whenever you like.
+
+The Show's *Filter* text field will also filter Phrase Trigger rows
+(by their comments), and the *Loaded Only* check box will cause only
+active Phrase Triggers to be visible in the window.
 
 [[exclusivity]]
 == Exclusivity
@@ -225,10 +223,6 @@ However, the real power of phrases for building creative shows is that
 they will <<editing-cues,provide a canvas>> on which you can draw
 cues, just like tracks.
 
-> TODO: This needs fleshing out, as noted above. Here are sections
-  that are already required by cross-references from the Show
-  Internals section:
-
 Above the enabled configuration (if it is visible, because you have
 not chosen to use a Custom enabled expression), you find the controls
 that let you configure how you want the Show to respond to the phrase
@@ -311,7 +305,7 @@ when the phrase trigger is enabled, chosen, and a player starts
 playing the corresponding phrase, or when the last player that was
 playing the phrase stops.
 
-> TODO: Screen shot.
+image:PTMessageMenu.png[alt=Message Menu,width=1175,height=222]
 
 None:: With this setting, which is the default, nothing is sent when
 the phrase starts or stops playing.footnote:none[Note that this is
@@ -383,7 +377,30 @@ that expression has a value, and the gear in the button will be filled
 in if any expression associated with the Track has a value, or if
 there are any Cues in the phrase trigger.
 
-> TODO: Flesh out, with screen shots, etc.
+image:PTContextMenu.png[alt=Context Menu,width=710,height=360]
+
+The first option in the menu, menu:Edit Phrase Cues[], opens the Cues
+window for the Phrase Trigger, which is how you can create Cues that
+respond to particular beat ranges within it, as discussed in
+<<editing-cues,that section>>.
+
+Below that come the expression-related options, allowing you to open
+editors to create or edit Clojure code that runs at well-defined
+moments to customize the behavior of the Phrase Trigger. These are
+followed by the menu:Simulate[] submenu, which allows you to test your
+MIDI mappings and custom expressions as described in the
+<<simulate,next section>>.
+
+The menu:Inspect Expression Locals[] option allows you to explore any
+values that have been set up by expressions in the Phrase Trigger to
+re-use or share with each other. See
+<<Debugging.adoc#inspecting,Inspecting Locals and Globals>> for more
+details.
+
+Finally, the menu:Delete Phrase Trigger[] option does just what it
+sounds like, after confirming that you want to discard any expressions
+and Cues you have set up for that Phrase Trigger.
+
 
 [[simulate]]
 === Simulating Phrase Trigger Events
@@ -393,7 +410,7 @@ Stopped, Beat or Tracked Update event has occurred, and send the
 corresponding MIDI messages and/or run the custom Expressions you have
 configured for those situations.
 
-> TODO: Add screen shot of simulate menu.
+image:PTSimulateMenu.png[alt=Simulate Submenu,width=710,height=387]
 
 [TIP]
 ====
