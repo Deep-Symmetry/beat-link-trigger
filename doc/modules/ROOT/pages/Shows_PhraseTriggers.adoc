@@ -414,11 +414,11 @@ or Expression configured for that event.
 
 Just like with tracks, you can open a cues editor window for each
 phrase trigger, to see the four sections of the trigger, with the
-sizes you have chosen for them (although if you set the start or end
+sizes you have chosen for them (although if you set the Start or End
 sections to zero bars, those will not be visible). The window looks
 like this:
 
-image:PTCuesEditor.png[Phrase Trigger Cues Editor window,942,401]
+image:PTCuesEditor.png[Phrase Trigger Cues Editor window,898,726]
 
 It provides a canvas on which you can drag to paint cues, like you can
 on the track waveform in a track cues editor window, but there is no
@@ -451,10 +451,24 @@ computed relative to the start of the phrase which activated them, and
 taking into account any looping or shrinking needed to make the
 trigger fit the actual phrase.
 
-To help identify the sections in which each cue exists, its row in the
-cues editor has a stripe at the top which matches the color of the
-section.
+To help identify the sections in which each cue exists, their rows are
+grouped by sections, each of which is preceded by a header identifying
+that section. (If there are no cues in a section, even if that is
+because you have filtered them out using the *Filter* field or
+*Entered Only* checkbox, there will be no header for that section.)
 
-> TODO: Probably just delegate to the existing Track Cues section for
-  the discussion of how to edit individual cues, since once they are
-  on the trigger canvas, the process is essentially the same.
+The process of editing the cues themselves is the same as for
+<<Shows_Cues.adoc#,editing track cues>>, apart from the following
+phrase-trigger specific details, described earlier:
+
+* There is no waveform in the area in which you draw cues.
+* You need to set up a beat range selection before creating a cue, in
+  order to identify the section in which the cue will exist.
+* Beat selections and cues cannot cross section boundaries.
+
+NOTE: You may have also noticed there is no *Auto Scroll* check box.
+Since phrase triggers are much shorter than tracks, this is less
+likely to be needed, and it would be more complicated to implement. If
+you really want a feature like this, please say so in the
+https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Deep
+Symmetry Zulip stream].

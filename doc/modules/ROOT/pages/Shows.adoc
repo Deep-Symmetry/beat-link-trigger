@@ -14,6 +14,14 @@ match the tracks and watch for the right beats, and were very tedious
 to figure out, requiring lots of time hooked up to CDJs during the
 design process.
 
+NOTE: Version 7 of BLT takes this to a whole new level, by letting you
+work with the Phrase Analysis feature in rekordbox to design
+<<Shows_PhraseTriggers.adoc#,Phrase Trigger>> cues that work with any
+track the DJ has performed phrase analysis on, even with older players
+that don't support the Lighting feature. This lets you offer a whole
+array of attractive, well-synchronized lighting looks even for DJs
+that you are unable to coordinate with ahead of time.
+
 Also, there is a practical limit to how many Triggers you can have in
 your file, because each one gets considered in sequence whenever a
 packet is received from a player. The limit may be a few dozen, or
