@@ -1508,6 +1508,19 @@
                                   [(seesaw/action :name "Top Level"
                                                   :handler (fn [_] (move-cue-to-folder show cue-name nil)))])))))
 
+(defn- update-new-cue-state
+  "When the selection has changed in a phrase trigger cue canvas, update
+  the enabled state of the New Cue button appropriately."
+  [context]
+  (when (phrase? context)
+    (let [[_ context runtime-info] (su/latest-show-and-context context)
+          enabled?                 (some? (get-current-selection context))]
+         (seesaw/config! (seesaw/select (get-in runtime-info [:cues-editor :panel]) [:#new-cue])
+                         :enabled? enabled?
+                         :tip (if enabled?
+                                "Create a new cue on the selected beats."
+                                "Disabled because no beat range is selected.")))))
+
 (defn- build-library-cue-action
   "Creates an action that adds a cue from the library to the track
   or phrase trigger."
@@ -1541,6 +1554,7 @@
                                                   (fnil conj #{}) uuid)
                                     (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
                                 (su/update-gear-icon context)
+                                (update-new-cue-state context)
                                 (build-cues context)
                                 (compile-cue-expressions context new-cue)
                                 (scroll-wave-to-cue context new-cue)
@@ -1752,19 +1766,6 @@
                                     section]]
                 (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
                 target)))))
-
-(defn- update-new-cue-state
-  "When the selection has changed in a phrase trigger cue canvas, update
-  the enabled state of the New Cue button appropriately."
-  [context]
-  (when (phrase? context)
-    (let [[_ context runtime-info] (su/latest-show-and-context context)
-          enabled?                 (some? (get-current-selection context))]
-         (seesaw/config! (seesaw/select (get-in runtime-info [:cues-editor :panel]) [:#new-cue])
-                         :enabled? enabled?
-                         :tip (if enabled?
-                                "Create a new cue on the selected beats."
-                                "Disabled because no beat range is selected.")))))
 
 (defn- handle-wave-drag
   "Processes a mouse drag in the wave detail component (or cue canvas if
@@ -2018,6 +2019,7 @@
                                                     (fnil conj #{}) uuid))))
         (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
     (su/update-gear-icon context)
+    (update-new-cue-state context)
     (build-cues context)
     (scroll-wave-to-cue context cue)
     (scroll-to-cue context cue true)))
