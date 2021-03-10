@@ -1350,20 +1350,20 @@
             (.setAutoScroll ^WaveformDetailComponent (:wave editor) (and auto? online?))
             (seesaw/scroll! (:wave editor) :to [:point 0 0])))
         (update-cue-visibility track)))
-    (doseq [phrase       (vals (get-in show [:contents :phrases]))
-            runtime-info (su/phrase-runtime-info show phrase)]
-      (when-let [editor (:cues-editor runtime-info)]
-        (let [checkboxes [(seesaw/select (:frame editor) [:#entered-only])
-                          #_(seesaw/select (:frame editor) [:#auto-scroll])]  ; Not yet supported for phrases.
-              auto?      (get-in phrase [:cues :auto-scroll])]
-          (if online?
-            (seesaw/show! checkboxes)
-            (seesaw/hide! checkboxes))
-          (when auto?
-            ;; Whatever the equivalent is for the cue canvas, if this is ever implemented.
-            #_(.setAutoScroll ^WaveformDetailComponent (:wave editor) (and auto? online?))
-            (seesaw/scroll! (:wave editor) :to [:point 0 0])))
-        (update-cue-visibility phrase)))))
+    (doseq [phrase       (vals (get-in show [:contents :phrases]))]
+      (let [runtime-info (su/phrase-runtime-info show phrase)]
+        (when-let [editor (:cues-editor runtime-info)]
+          (let [checkboxes [(seesaw/select (:frame editor) [:#entered-only])
+                            #_(seesaw/select (:frame editor) [:#auto-scroll])]  ; Not yet supported for phrases.
+                auto?      (get-in phrase [:cues :auto-scroll])]
+            (if online?
+              (seesaw/show! checkboxes)
+              (seesaw/hide! checkboxes))
+            (when auto?
+              ;; Whatever the equivalent is for the cue canvas, if this is ever implemented.
+              #_(.setAutoScroll ^WaveformDetailComponent (:wave editor) (and auto? online?))
+              (seesaw/scroll! (:wave editor) :to [:point 0 0])))
+          (update-cue-visibility phrase))))))
 
 (def max-zoom
   "The largest extent to which we can zoom out on the waveform in the
