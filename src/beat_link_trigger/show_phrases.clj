@@ -1098,6 +1098,17 @@
 (defn create-phrase-panels
   "Creates all the panels that represent phrase triggers in the show."
   [show]
+  ;; First resolve any phrase UUID conflicts which result from opening a show based on a copy of another open show.
+  (util/doseq-indexed idx [uuid (get-in (latest-show show) [:contents :phrase-order])]
+    (when (su/show-from-phrase uuid) ; This is a UUID conflict.
+      (swap-show! show (fn [current]
+                         (let [new-uuid (UUID/randomUUID)
+                               phrase   (get-in current [:contents :phrases uuid])]
+                           (-> current
+                               (assoc-in [:contents :phrase-order idx] new-uuid)
+                               (assoc-in [:contents :phrases new-uuid] (assoc phrase :uuid new-uuid))
+                               (update-in [:contents :phrases] dissoc uuid)))))))
+  ;; Then build the GUI elements and runtime information about the resolved phrases in the newly-opened show.
   (doseq [uuid (get-in (latest-show show) [:contents :phrase-order])]
     (create-phrase-panel show uuid)))
 
