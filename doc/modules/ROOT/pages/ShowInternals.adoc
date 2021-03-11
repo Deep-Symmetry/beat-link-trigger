@@ -479,10 +479,10 @@ phrase triggers also have a <<phrase-triggers,runtime information
 map>>, which is found directly in the show map, and not saved as part
 of the show file.
 
-The phrase trigger contents map, found within the show `:contents` map
-contains information that can be directly saved into the show file to
-represent the phrase trigger configuration the user has chosen. Some
-elements that might be useful include:
+The phrase trigger contents map, found within the show `:contents`
+map, contains information that can be directly saved into the show
+file to represent the phrase trigger configuration the user has
+chosen. Some elements that might be useful include:
 
 `:channel`:: The MIDI channel on which Playing and Stopped messages
 are sent, as configured with the phrase trigger's

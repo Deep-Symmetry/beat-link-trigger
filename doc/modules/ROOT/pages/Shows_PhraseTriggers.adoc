@@ -131,6 +131,11 @@ image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
   likely this trigger is likely to be picked among all the triggers
   which are enabled.
 
+TIP: A good way to understand how weights work is to think of all the
+competing Solo phrase triggers that might be activated when a phrase
+starts playing as entering a raffle to see which one gets chosen, and
+the weight is the number of raffle tickets each phrase trigger buys.
+
 [[phrase-picker]]
 Clicking the btn:[Phrase Types] button brings up a picker window like
 this:
