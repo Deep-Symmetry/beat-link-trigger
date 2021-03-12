@@ -29,6 +29,11 @@ This change log follows the conventions of
   guide.
 - The Carabiner Connection window also handles Player 5 and Player 6
   now.
+- When reading metadata from exported database files (either because
+  we cannot use a real player number, or because tracks are being
+  imported into a show from physical media attached to the computer
+  rather than over a DJ Link network), the History menu is now
+  available as well, to find tracks from recent performances.
 
 ### Fixed
 

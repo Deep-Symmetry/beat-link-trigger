@@ -255,6 +255,45 @@
          (mark-if-still-empty node))))
    true))
 
+(defn file-history-playlist-node
+  "Creates a node that represents a history playlist available in an
+  exported rekordbox database file. Optionally has an associated slot
+  if it is being used with Crate Digger to load tracks from one player
+  onto another."
+  [^Database database ^SlotReference slot id playlist-name]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] playlist-name)
+     (getId [] (int id))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^DefaultMutableTreeNode node]
+       (when (unloaded? node)
+         (doseq [^long track-id (.. database historyPlaylistIndex (get id))]
+           (when-let [^RekordboxPdb$TrackRow track (.. database trackIndex (get track-id))]
+             (.add node (file-track-node database track slot true))))
+         (mark-if-still-empty node))))
+   true))
+
+(defn file-history-node
+  "Creates a node that represents the history folder available in an
+  exported rekordbox database file. Optionally has an associated slot
+  if it is being used with Crate Digger to load tracks from one player
+  onto another."
+  [^Database database ^SlotReference slot]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] "History")
+     (getId [] (int 0))
+     (getSlot [] slot)
+     (getTrackType [] nil)
+     (loadChildren [^DefaultMutableTreeNode node]
+       (when (unloaded? node)
+         (doseq [[name id] (.historyPlaylistNameIndex database)]
+           (.add node (file-history-playlist-node database slot id name)))
+         (mark-if-still-empty node))))
+   true))
+
 (defn file-album-node
   "Creates a node that represents an album available in an exported
   rekordbox database file. Optionally has an associated slot if it is
@@ -407,7 +446,8 @@
   (.add node (file-tracks-node database slot))
   (.add node (file-artists-node database slot))
   (.add node (file-albums-node database slot))
-  (.add node (file-genres-node database slot)))
+  (.add node (file-genres-node database slot))
+  (.add node (file-history-node database slot)))
 
 (defn- attach-file-node-children
   "Given a list of file nodes which have been loaded as a file node's
