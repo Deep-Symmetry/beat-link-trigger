@@ -747,8 +747,7 @@
                                               (when-not (get-in show [:cueing player]) signature))
                                     (assoc-in [:last-beat player] (.getTimestamp beat))
                                     (update-track-trip-state track)
-                                    (update-cue-entered-state track player (.beatNumber position))
-                                    (phrases/update-player-phrase player (.beatNumber position)))))
+                                    (update-cue-entered-state track player (.beatNumber position)))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (when track (deliver-beat-events show track player beat position))
@@ -864,15 +863,15 @@
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))
-    (if signature
-      (do
-        (when ss-tag (upgrade-song-structure show ss-tag signature))
-        (when-let [track (get-in (latest-show show) [:tracks signature])]
-          (when-let [song-structure (:song-structure track)]
-            (swap-show! show update-in [:phrase-intervals player]
-                        (fn [current] (or current (build-phrase-intervals song-structure)))))))
-      (swap-show! assoc-in [:phrase-intervals player]
-                  (when ss-tag (build-phrase-intervals ss-tag))))))
+    (when signature
+      (when ss-tag (upgrade-song-structure show ss-tag signature))
+      (when-let [track (get-in (latest-show show) [:tracks signature])]
+        (when-let [song-structure (:song-structure track)]
+          (swap-show! show update-in [:phrase-intervals player]
+                      (fn [current] (or current (build-phrase-intervals song-structure)))))))
+    (when ss-tag
+      (swap-show! show update-in [:phrase-intervals player]
+                  (fn [current] (or current (build-phrase-intervals ss-tag)))))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -2269,9 +2268,9 @@
                                   (do
                                     (when-let [signature (.getLatestSignatureFor signature-finder (.player tag-update))]
                                       (upgrade-song-structure show song-structure signature))
-                                    (swap-show! assoc-in [:phrase-intervals (.player tag-update)]
+                                    (swap-show! show assoc-in [:phrase-intervals (.player tag-update)]
                                                 (build-phrase-intervals (.body song-structure))))
-                                  (swap-show! update :phrase-intervals dissoc (.player tag-update)))))
+                                  (swap-show! show update :phrase-intervals dissoc (.player tag-update)))))
             update-listener (reify DeviceUpdateListener
                               (received [this status]
                                 (try

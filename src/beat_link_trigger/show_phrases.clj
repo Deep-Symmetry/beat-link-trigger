@@ -1350,5 +1350,5 @@ editor windows, in their cue canvases as well."
   time finder."
   [show player]
   (when-let [listener (get-in (latest-show show) [:listeners player])]
-    (.removeTrackPositionListener util/time-finder player listener)
+    (.removeTrackPositionListener util/time-finder listener)
     (swap-show! show update :listeners dissoc player)))
