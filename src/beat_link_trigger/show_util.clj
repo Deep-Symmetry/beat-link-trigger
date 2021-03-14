@@ -47,7 +47,7 @@
   so that changes can be examined after a `swap!` operation, and
   appropriate expressions run and user interface updates made."
   [show]
-  (let [state (select-keys show [:loaded :playing :tracks :current-phrase])]
+  (let [state (select-keys show [:loaded :playing :tracks :raw :current-phrase :playing-phrases])]
     (assoc show :last state)))
 
 (defonce ^{:private true

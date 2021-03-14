@@ -661,7 +661,7 @@
               (cues/run-cue-function track cue :tracked status false))))
 
         ;; Rewport any phrase-related change events.
-        (phrases/deliver-change-events show player status)
+        (phrases/deliver-change-events show signature player status)
 
         (update-playback-position show signature player)
         ;; If the set of entered cues has changed, update the UI appropriately.
@@ -695,19 +695,26 @@
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
   a player that has it loaded. `track` may be `nil` if the track is
-  unrecognized or not part of the show."
-  [show track ^CdjStatus status]
+  unrecognized or not part of the show, but we will still track which
+  players are playing the raw signature play/on-air/master/cueing
+  state under the key `:raw`."
+  [show signature track ^CdjStatus status]
   (let [player    (.getDeviceNumber status)
-        signature (:signature track)
         track     (when track (latest-track track))
         shows     (swap-show! show
                               (fn [show]
                                 (-> show
                                     su/capture-current-state
-                                    (assoc-in [:playing player] (when (.isPlaying status) signature))
-                                    (assoc-in [:on-air player] (when (.isOnAir status) signature))
-                                    (assoc-in [:master player] (when (.isTempoMaster status) signature))
-                                    (assoc-in [:cueing player] (when (cueing-states (.getPlayState1 status)) signature))
+                                    (assoc-in [:playing player] (when (and track (.isPlaying status)) signature))
+                                    (assoc-in [:on-air player] (when (and track (.isOnAir status)) signature))
+                                    (assoc-in [:master player] (when (and track (.isTempoMaster status)) signature))
+                                    (assoc-in [:cueing player] (when (and track (cueing-states (.getPlayState1 status)))
+                                                                 signature))
+                                    (assoc-in [:raw :playing player] (when (.isPlaying status) signature))
+                                    (assoc-in [:raw :on-air player] (when (.isOnAir status) signature))
+                                    (assoc-in [:raw :master player] (when (.isTempoMaster status) signature))
+                                    (assoc-in [:raw :cueing player] (when (cueing-states (.getPlayState1 status))
+                                                                 signature))
                                     (update-track-trip-state track)
                                     (update-cue-state-if-past-beat track player status)
                                     (phrases/update-phrase-if-past-beat player status))))
@@ -2214,7 +2221,7 @@
                              :panels      {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.
                              :loaded      {}  ; Map from player number to signature that has been reported loaded.
                              :playing     {}  ; Map from player number to signature that has been reported playing.
-                             :playing-phrases {} ; Map from player # to [parsed-phrase set-of-chosen-trigger-uuids]
+                             :playing-phrases {} ; Map from player # to map of phrase UUID to beat fit information.
                              :visible     []  ; The visible (through filters) track signatures in sorted order.
                              :visible-phrases []}  ; Visible (through filters) phrase trigger UUIDs, in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)
@@ -2281,7 +2288,7 @@
                                           track     (get-in (latest-show show) [:tracks signature])]
                                       (when track
                                         (run-custom-enabled show track status))
-                                      (update-show-status show track status)))
+                                      (update-show-status signature show track status)))
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))

@@ -456,12 +456,12 @@
           player-map))
 
 (defn players-phrase-uuid-set
-  "Given a map from player number to tuple of [parsed-phrase
-  set-of-chosen-phrase-trigger-uuids], returns the the set of player
-  numbers whose value included a particular uuid."
+  "Given a map from player number to map of chosen phrase trigger UUIDs
+  to their beat fit information, returns the the set of player numbers
+  whose value included a particular uuid."
   [player-map uuid]
-  (reduce (fn [result [k [_ uuid-set]]]
-            (if (uuid-set uuid)
+  (reduce (fn [result [k uuid-map]]
+            (if (contains? uuid-map uuid)
               (conj result k)
               result))
           #{}

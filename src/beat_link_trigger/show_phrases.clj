@@ -345,13 +345,13 @@
   (seesaw/menu :text "Simulate" :items (phrase-simulate-actions show phrase)))
 
 (defn- remove-uuid
-  "Filters a map from players to [parsed-phrase uuid-set] (such as
-  the :playing-phrases entry in a show) to remove the UUID from all
-  the sets. This is used as part of cleaning up a show when a phrase
-  trigger has been deleted."
+  "Filters a map from players to a map of active phrase trigger UUIDs to
+  their beat fit information (such as the :playing-phrases entry in a
+  show) to remove the UUID from all the maps. This is used as part of
+  cleaning up a show when a phrase trigger has been deleted."
   [player-map uuid]
-  (reduce (fn [result [k [parsed-phrase uuid-set]]]
-            (assoc result k [parsed-phrase (disj uuid-set uuid)]))
+  (reduce (fn [result [k uuid-map]]
+            (assoc result k (dissoc uuid-map uuid)))
           {}
           player-map))
 
@@ -401,7 +401,7 @@
         (doseq [[section cues] (get-in phrase [:cues :cues])
                 cue             cues]
           (cues/cleanup-cue true show phrase section cue))
-        (when ((apply set/union (map second (vals (:playing-phrases show)))) (:uuid phrase))
+        (when ((apply set/union (map #(set (keys %)) (vals (:playing-phrases show)))) (:uuid phrase))
           (send-stopped-messages show phrase nil)))
       (run-phrase-function show phrase :shutdown nil (not force?))
       (su/phrase-removed phrase))
@@ -1194,12 +1194,13 @@ editor windows, in their cue canvases as well."
     ))
 
 ;; TODO: Need to call this whenever a player stops playing.
-(defn no-longer-playing
+(defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   track it had been. Must be passed a current view of the show and the
-  snapshot of the former track state. If we learned about the stoppage
-  from a status update, it will be in `status`."
-  [show player status]
+  snapshot of the formerly playing phrase trigger beat alignment maps.
+  If we learned about the stoppage from a status update, it will be in
+  `status`."
+  [show player old-playing status]
   (doseq [phrase []]  ; TODO: Loop over all phrase triggers that were previously playing for this player.
     (let [runtime-info (su/phrase-runtime-info show phrase)]
       (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
@@ -1210,7 +1211,6 @@ editor windows, in their cue canvases as well."
   #_(repaint-track-states show signature)  ; TODO: Phrase trigger equivalent.
   (update-playback-position show player))
 
-;; TODO: Need to call this from a general show track position listener, not one of the track-tied ones.
 (defn run-beat-functions
   "Invoked by the show's track position listener when a new beat packet
   has been received. Runs all the beat expressions for phrase triggers
@@ -1219,16 +1219,16 @@ editor windows, in their cue canvases as well."
   (doseq [phrase []]  ; TODO: Loop over all phrase triggers formerly active for this player.
     (run-phrase-function show phrase :beat [beat position] false)))
 
-;; TODO: Need to call this whenever a player starts playing.
 (defn now-playing
-  "Reacts to the fact that the specified player is now playing the
-  specified track. Must be passed a current view of the show. If we
-  learned about the playback from a status update, it will be in
-  `status`."
-  [show player status]
+  "Reacts to the fact that the specified player is now playing a phrase.
+  Must be passed a current view of the show and the now-playing phrase
+  trigger beat alignment maps. If we learned about the playback from a
+  status update, it will be in `status`."
+  [show player playing status]
   (doseq [phrase []]  ; TODO: Loop over all phrase triggers that are now playing for this player.
     (send-playing-messages show phrase status)
     (let [runtime-info (su/phrase-runtime-info show phrase)]
+      ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
       (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
         (cues/send-cue-messages phrase uuid :started-late status)
         (cues/repaint-cue phrase uuid)
@@ -1242,8 +1242,9 @@ editor windows, in their cue canvases as well."
   beat number. Called within `swap!` so simply returns the new value."
   [show player beat]
   (assoc-in show [:current-phrase player]
-           (when-let [intervals (get-in show [:phrase-intervals player])]
-             (first (util/iget intervals beat)))))
+            (when (get-in show [:raw :playing player])
+              (when-let [intervals (get-in show [:phrase-intervals player])]
+                (first (util/iget intervals beat))))))
 
 (defn update-phrase-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
@@ -1274,8 +1275,11 @@ editor windows, in their cue canvases as well."
   [show player ^CdjStatus status ^Beat beat ^TrackPositionUpdate position]
   (let [old-phrase (get-in show [:last :current-phrase player])
         phrase     (get-in show [:current-phrase player])]
-    (when (not= old-phrase phrase) (timbre/info "Player" player "phrase changed on-beat from" old-phrase "to" phrase)))
-  ;; TODO: Implement, with reference to version in show.
+    (when (not= old-phrase phrase)
+      (timbre/info "Player" player "phrase changed on-beat from" old-phrase "to" phrase)
+      (no-longer-playing show player (get-in show [:last :playing-phrases player]) nil)
+      (now-playing show player (get-in show [:playing-phrases player]) nil)))
+  ;; TODO: Implement cue level stuff, with reference to version in show.
 )
 
 (defn deliver-beat-events
@@ -1285,40 +1289,51 @@ editor windows, in their cue canvases as well."
   and must be the just-updated values, with a valid snapshot the
   show's `:last` key."
   [show player ^Beat beat ^TrackPositionUpdate position]
-  ;; TODO: This needs to be track-independent playing state!
-  (let [old-playing (get-in show [:last :playing player])
-        is-playing  (get-in show [:playing player])]
+  (let [old-playing (get-in show [:last :raw :playing player])
+        is-playing  (get-in show [:raw :playing player])]
     (when (and is-playing (not old-playing))
       (timbre/info "Phrases started playing with a beat.")
-      (now-playing show player nil))
+)
     (send-beat-changes show player nil beat position)
     (update-playback-position show player)))
 
-;; TODO: Per-phrase version of deliver-change-events, called by show/deliver-change-events. Implement similarly.
 (defn deliver-change-events
-  [show player ^CdjStatus status]
+  "Called when a status packet or signature change has updated the show
+  status. Compares the new status with the snapshot of the last
+  status, runs any relevant expressions, and updates any needed UI
+  elements. `show` must be the just-updated value, with a valid
+  snapshot in the `:last` key. `player` is the player number, in case
+  `status` is `nil` because we are reacting to a signature change
+  rather than a status packet. Finally, even if nothing has changed,
+  if there is a status packet the Tracked Update Expressions for any
+  active phrase triggers for the player will be called with it."
+  [show signature player ^CdjStatus status]
   (let [old-phrase (get-in show [:last :current-phrase player])
         phrase     (get-in show [:current-phrase player])]
-    (when (not= old-phrase phrase) (timbre/info "Player" player "phrase changed off-beat from" old-phrase "to" phrase))
+    (when (not= old-phrase phrase)
+      (timbre/info "Player" player "phrase changed off-beat from" old-phrase "to" phrase)
+      (no-longer-playing show player (get-in show [:last :playing-phrases player]) status)
+      (now-playing show player (get-in show [:playing-phrases player]) status))
+    ;; TODO: Implement cue-level stuff, with reference to version in show.
     (update-playback-position show player)))
 
 (defn- update-show-beat
   "Adjusts the show state to reflect a new beat packet received from a player."
   [show ^Beat beat ^TrackPositionUpdate position]
-  (let [player (.getDeviceNumber beat)
-        shows  (swap-show! show
-                           (fn [show]
-                             (-> show
-                                 su/capture-current-state
-                                 ;; TODO non-track version of this?
-                                 #_(assoc-in [:playing player] ; In case beat arrives before playing status.
-                                             ;; But ignore the beat as a playing indicator if DJ is actually cueing.
-                                             (when-not (get-in show [:cueing player]) signature))
-                                 (assoc-in [:last-beat player] (.getTimestamp beat))
-                                 (update-player-phrase player (.beatNumber position))
-                                 ;; TODO: Implement this, scanning all active phrases.
-                                 #_(update-cue-entered-states player (.beatNumber position)))))
-        show   (get shows (:file show))]
+  (let [player    (.getDeviceNumber beat)
+        signature (.getLatestSignatureFor util/signature-finder player)
+        shows     (swap-show! show
+                              (fn [show]
+                                (-> show
+                                    su/capture-current-state
+                                    (assoc-in [:raw :playing player] ; In case beat arrives before playing status.
+                                              ;; But ignore the beat as a playing indicator if DJ is actually cueing.
+                                              (when-not (get-in show [:raw :cueing player]) signature))
+                                    (assoc-in [:last-beat player] (.getTimestamp beat))
+                                    (update-player-phrase player (.beatNumber position))
+                                    ;; TODO: Implement this, scanning all active phrases.
+                                    #_(update-cue-entered-states player (.beatNumber position)))))
+        show      (get shows (:file show))]
     (deliver-beat-events show player beat position)))
 
 (defn add-position-listener
