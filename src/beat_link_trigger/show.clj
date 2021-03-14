@@ -39,7 +39,8 @@
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
-            RekordboxAnlz$SongStructureTag RekordboxAnlz$TaggedSection]
+            RekordboxAnlz$SongStructureBody RekordboxAnlz$SongStructureEntry RekordboxAnlz$SongStructureTag
+            RekordboxAnlz$TaggedSection]
            [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]
            [jiconfont.icons.font_awesome FontAwesome]
            [jiconfont.swing IconFontSwing]))
@@ -274,7 +275,8 @@
 (defn- update-playback-position
   "Updates the position and color of the playback position bar for the
   specified player in the track preview and, if there is an open Cues
-  editor window, in its waveform detail."
+  editor window, in its waveform detail, and then does the same for
+  any phrase triggers that are active for the track."
   [show signature ^Long player]
   (when-let [^TrackPositionUpdate position (.getLatestPositionFor util/time-finder player)]
     (let [interpolated-time (.getTimeFor util/time-finder player)]
@@ -283,7 +285,8 @@
           (.setPlaybackState preview player interpolated-time (.playing position))))
       (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
         (.setPlaybackState ^WaveformDetailComponent (:wave cues-editor)
-                           player interpolated-time (.playing position))))))
+                           player interpolated-time (.playing position)))
+      (phrases/update-playback-position show player position))))
 
 (defn- send-loaded-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
@@ -330,13 +333,13 @@
     (catch Exception e
       (timbre/error e "Problem reporting stopped track."))))
 
-
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   specified track. If this left the track with no player playing it,
   run the track's Stopped expression, if there is one. Must be passed
-  a current view of the show and the previous track state. If we
-  learned about the stoppage from a status update, it will be in
+  a current view of the show, the last snapshot version of the track,
+  and an indication of whether the track's tripped state has changed.
+  If we learned about the stoppage from a status update, it will be in
   `status`."
   [show player track status tripped-changed]
   (let [signature   (:signature track)
@@ -350,6 +353,7 @@
         (send-stopped-messages track status))
       (repaint-track-states show signature))
     (update-playing-text show signature now-playing)
+    (phrases/no-longer-playing show player track status)
     (update-playback-position show signature player)))
 
 (defn- update-loaded-text
@@ -429,6 +433,7 @@
                                          (try
                                            (when (su/enabled? show track)
                                              (run-track-function track :beat [beat position] false))
+                                           (phrases/run-beat-functions show player beat position)
                                            (catch Exception e
                                              (timbre/error e "Problem reporting track beat."))))))))))
         listener (get-in shows [(:file show) :tracks (:signature track) :listeners player])]
@@ -674,12 +679,6 @@
           (when (get-in track [:contents :cues :entered-only])
             (seesaw/invoke-later (cues/update-cue-visibility track))))))))
 
-(def min-beat-distance
-  "The number of nanoseconds that must have elapsed since the last
-  beat packet was received before we can trust the beat number in a
-  status packet."
-  (.toNanos java.util.concurrent.TimeUnit/MILLISECONDS 5))
-
 (defn- update-cue-state-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
   update the cues' entered state based on a status-packet's beat number.
@@ -691,7 +690,7 @@
   [show track player ^CdjStatus status]
   (let [last-beat (get-in show [:last-beat player])]
     (if (or (not last-beat)
-            (> (- (.getTimestamp status) last-beat) min-beat-distance))
+            (> (- (.getTimestamp status) last-beat) su/min-beat-distance))
       (update-cue-entered-state show track player (.getBeatNumber status))
       show)))
 
@@ -718,7 +717,8 @@
                                     (assoc-in [:master player] (when (.isTempoMaster status) signature))
                                     (assoc-in [:cueing player] (when (cueing-states (.getPlayState1 status)) signature))
                                     (update-track-trip-state track)
-                                    (update-cue-state-if-past-beat track player status))))
+                                    (update-cue-state-if-past-beat track player status)
+                                    (phrases/update-track-phrase-if-past-beat show track player status))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show signature track player status)))
@@ -804,6 +804,19 @@
 
 (declare write-song-structure)
 
+(defn build-phrase-intervals
+  "Given a song structure tag for a track, build an index that allows
+  efficient mapping from a beat number to the phrase (song structure
+  entry) to which that beat belongs, if any."
+  [^RekordboxAnlz$SongStructureTag song-structure]
+  (let [body    (.body song-structure)
+        entries (sort-by (fn [^RekordboxAnlz$SongStructureTag entry] (.beat entry)) (.entries body))]
+    (reduce (fn [intervals [^RekordboxAnlz$SongStructureEntry entry ^RekordboxAnlz$SongStructureEntry next-entry]]
+              (if (some? next-entry)
+                (util/iassoc intervals (.beat entry) (.beat next-entry) entry)
+                (util/iassoc intervals (.beat entry) (.endBeat body) entry)))
+            util/empty-interval-map (partition 2 1 (concat entries [nil])))))
+
 (defn- upgrade-song-structure
   "When we have learned about newly available phrase analysis
   information, see if it is for a track in the show which currently
@@ -818,6 +831,8 @@
             (write-song-structure track-path ss-bytes)
             (su/flush-show! show)
             (let [song-structure (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. ss-bytes))]
+              (swap-track! track assoc :song-structure song-structure
+                           :phrase-intervals (build-phrase-intervals song-structure))
               (when-let [preview-loader (:preview track)]
                 (when-let [^WaveformPreviewComponent preview (preview-loader)]
                   (.setSongStructure preview song-structure)))
@@ -1118,19 +1133,17 @@
   [show signature metadata]
   (soft-object-loader
    (fn []
-     (let [track-root (su/build-track-path show signature)
-           preview    (su/read-preview track-root)
-           cue-list   (su/read-cue-list track-root)
-           beat-grid  (su/read-beat-grid track-root)
-           raw-ss     (su/read-song-structure track-root)
-           component  (WaveformPreviewComponent. preview (:duration metadata) cue-list)]
+     (let [track-root     (su/build-track-path show signature)
+           preview        (su/read-preview track-root)
+           cue-list       (su/read-cue-list track-root)
+           beat-grid      (su/read-beat-grid track-root)
+           song-structure (get-in (latest-show show) [:tracks signature :song-structure])
+           component      (WaveformPreviewComponent. preview (:duration metadata) cue-list)]
        (.setBeatGrid component beat-grid)
        (.setOverlayPainter component (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                        (paintOverlay [component graphics]
                                          (cues/paint-preview-cues show signature component graphics))))
-       (when raw-ss
-         (let [song-structure (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss))]
-           (.setSongStructure component song-structure)))
+       (when song-structure (.setSongStructure component song-structure))
        component))))
 
 (defn- create-track-preview
@@ -1386,13 +1399,12 @@
                      (seesaw/action :handler
                                     (fn [_]
                                       (let [new-track (merge (select-keys track [:signature :metadata
-                                                                                 :contents])
+                                                                                 :contents :song-structure])
                                                              {:cue-list       (su/read-cue-list track-root)
                                                               :beat-grid      (su/read-beat-grid track-root)
                                                               :preview        (su/read-preview track-root)
                                                               :detail         (su/read-detail track-root)
-                                                              :art            (su/read-art track-root)
-                                                              :song-structure (su/read-song-structure track-root)})]
+                                                              :art            (su/read-art track-root)})]
                                         (import-track other-show new-track)
                                         (refresh-signatures other-show)))
                                     :name (str "Copy to Show \"" (fs/base-name (:file other-show) true) "\""))))
@@ -1537,6 +1549,8 @@
                                     :text comment :listen [:document update-comment])
         preview-loader (create-preview-loader show signature metadata)
         soft-preview   (create-track-preview preview-loader)
+        song-structure (when-let [raw-ss (su/read-song-structure track-root)]
+                         (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss)))
         outputs        (util/get-midi-outputs)
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         lock           (seesaw/button :id :lock :visible? (some? (su/read-song-structure track-root))
@@ -1659,19 +1673,22 @@
                                                                 (repaint-track-states show signature))])
                                  "hidemode 3"]])
 
-        track {:file              (:file show)
-               :signature         signature
-               :metadata          metadata
-               :contents          contents
-               :original-contents contents
-               :grid              (su/read-beat-grid track-root)
-               :panel             panel
-               :filter            (build-filter-target metadata comment)
-               :preview           preview-loader
-               :preview-canvas    soft-preview
-               :expression-locals (atom {})
-               :creating          true ; Suppress popup expression editors when reopening a show.
-               :entered           {}} ; Map from player number to set of UUIDs of cues that have been entered.
+        track (merge {:file              (:file show)
+                      :signature         signature
+                      :metadata          metadata
+                      :contents          contents
+                      :original-contents contents
+                      :grid              (su/read-beat-grid track-root)
+                      :panel             panel
+                      :filter            (build-filter-target metadata comment)
+                      :preview           preview-loader
+                      :preview-canvas    soft-preview
+                      :expression-locals (atom {})
+                      :creating          true ; Suppress popup expression editors when reopening a show.
+                      :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
+                     (when song-structure
+                       {:song-structure   song-structure
+                        :phrase-intervals (build-phrase-intervals song-structure)}))
 
         popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the track.
                    (if (.isShiftDown e)

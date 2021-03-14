@@ -197,6 +197,17 @@ described <<track-metadata,below>>.
 https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JPanel.html[`JPanel`]
 holding user interface of the track row.
 
+`:phrase`:: The current phrase being played within the track on each
+player which is actively playing the track. A map indexed by player
+number, this Will only have non-`nil` values when there is phrase
+analysis information available for the track.
+
+`:phrase-intervals`:: If there is phrase analysis information
+available for the track, holds an interval map allowing a beat number
+to be efficiently mapped to the
+https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html[`SongStructureEntry`]
+(if any) in which that beat falls.
+
 `:preview`:: An on-demand loader for the graphical waveform preview
 that shows the track waveform, cues, and current playback position of
 any players that have loaded the track when it is visible in the show
@@ -211,6 +222,11 @@ playback positions are drawn.
 this track, regardless of what media it was loaded from, so it can be
 recognized in the lists of which players have it loaded, playing, and
 so on, or looked up in the show's <<tracks-map,`:tracks` map>>.
+
+`:song-structure`:: If there is phrase analysis information available
+for the track, this holds the
+https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureTag.html[`SongStructureTag`]
+that describes it.
 
 `:tripped`:: Will be `true` when the track is currently enabled and
 loaded on at least one player (the same conditions under which there

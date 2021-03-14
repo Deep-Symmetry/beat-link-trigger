@@ -1425,7 +1425,6 @@
     (when unshifted  ; We have cursors defined, so apply the appropriate one
       (.setCursor wave-or-canvas (if (shift-down? e) shifted unshifted)))))
 
-;; TODO: Assuming beat will always be relative to the start of the selection's section.
 (defn- drag-cursor
   "Determines the proper cursor that will reflect the nearest edge of
   the selection that will be dragged, given the beat under the mouse."
@@ -1728,7 +1727,7 @@
   (let [[cue context]         (find-cue-under-mouse context wave-or-canvas e)
         [show _ runtime-info] (latest-show-and-context context)
         x                     (.getX e)
-        [beat section]        (beat-for-x context wave-or-canvas x)
+        [beat _section]       (beat-for-x context wave-or-canvas x)
         selection             (get-in runtime-info [:cues-editor :selection])
         [_ edge]              (find-click-edge-target context wave-or-canvas e selection cue)
         default-cursor        (case edge
@@ -2224,8 +2223,7 @@
                                                    ^BeatGrid (:grid context))
                          (seesaw/canvas :id :wave :paint (partial paint-cue-canvas context)
                                         :opaque? true :size [(cue-canvas-width context) :by 92]))
-        song-structure (when-let [bytes (when track-root (su/read-song-structure track-root))]
-                         (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. bytes)))
+        song-structure (when (track? context) (:song-structure context))
         zoom-slider    (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in contents [:cues :zoom] 4))
         filter-field   (seesaw/text (get-in contents [:cues :filter] ""))
         entered-only   (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (util/online?)

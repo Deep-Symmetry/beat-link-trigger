@@ -36,6 +36,12 @@
   []
   @open-shows)
 
+(def min-beat-distance
+  "The number of nanoseconds that must have elapsed since the last
+  beat packet was received before we can trust the beat number in a
+  status packet."
+  (.toNanos java.util.concurrent.TimeUnit/MILLISECONDS 5))
+
 (defonce ^{:private true
            :doc "Holds a map from phrase UUIDs to the files of the
   shows in which they belong, to enable them to be more conveniently

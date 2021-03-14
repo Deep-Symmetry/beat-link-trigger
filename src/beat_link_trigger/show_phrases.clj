@@ -2,30 +2,32 @@
   "Implements phrase trigger features for Show files, including their
   cue editing windows."
   (:require [beat-link-trigger.editors :as editors]
-            [beat-link-trigger.expressions :as expressions]
-            [beat-link-trigger.menus :as menus]
-            [beat-link-trigger.show-cues :as cues]
-            [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
-                                                        swap-show! swap-phrase! swap-phrase-runtime!
-                                                        phrase-runtime-info find-cue swap-cue!
-                                                        get-chosen-output no-output-chosen]]
-            [beat-link-trigger.util :as util]
-            [clojure.set :as set]
-            [clojure.string :as str]
-            [overtone.midi :as midi]
-            [seesaw.core :as seesaw]
-            [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre])
+           [beat-link-trigger.expressions :as expressions]
+           [beat-link-trigger.menus :as menus]
+           [beat-link-trigger.show-cues :as cues]
+           [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
+                                                  swap-show! swap-phrase! swap-phrase-runtime!
+                                                  phrase-runtime-info find-cue swap-cue!
+                                                  get-chosen-output no-output-chosen]]
+           [beat-link-trigger.util :as util]
+           [clojure.set :as set]
+           [clojure.string :as str]
+           [overtone.midi :as midi]
+           [seesaw.core :as seesaw]
+           [seesaw.mig :as mig]
+           [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util MidiChoice]
-           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
-           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
-           [java.awt.event InputEvent MouseEvent]
-           [java.awt.geom Rectangle2D$Double]
-           [java.util UUID]
-           [javax.swing JComponent JFrame JOptionPane JPanel JScrollPane]
-           [javax.swing.text JTextComponent]
-           [jiconfont.icons.font_awesome FontAwesome]
-           [jiconfont.swing IconFontSwing]))
+          [org.deepsymmetry.beatlink CdjStatus]
+          [org.deepsymmetry.beatlink.data TrackPositionUpdate]
+          [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
+          [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
+          [java.awt.event InputEvent MouseEvent]
+          [java.awt.geom Rectangle2D$Double]
+          [java.util UUID]
+          [javax.swing JComponent JFrame JOptionPane JPanel JScrollPane]
+          [javax.swing.text JTextComponent]
+          [jiconfont.icons.font_awesome FontAwesome]
+          [jiconfont.swing IconFontSwing]))
 
 (defn- run-phrase-function
   "Checks whether the phrase trigger has a custom function of the
@@ -1180,3 +1182,66 @@
       (when (instance? UUID signature-or-uuid)  ; It's a phrase trigger panel.
         (seesaw/config! panel :constraints constraints)
         (.revalidate panel)))))
+
+(defn update-playback-position
+  "Updates the position and color of the playback position bar for the
+specified player in the cue preview canvas for any phrase triggers
+that are active for the specified player, and if they have open Cues
+editor windows, in their cue canvases as well."
+  [show ^Long player ^TrackPositionUpdate position]
+  ;; TODO: Implement!
+  )
+
+(defn no-longer-playing
+  "Reacts to the fact that the specified player is no longer playing the
+  track it had been. Must be passed a current view of the show and the
+  snapshot of the former track state. If we learned about the stoppage
+  from a status update, it will be in `status`."
+  [show player track status]
+  (doseq [phrase []]  ; TODO: Loop over all phrase triggers that were previously playing for this player.
+    (let [runtime-info (su/phrase-runtime-info show phrase)]
+      (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
+        (cues/send-cue-messages phrase uuid :ended status)
+        (cues/repaint-cue phrase uuid)
+        (cues/repaint-cue-states phrase uuid)))
+    (send-stopped-messages show phrase status))
+  #_(repaint-track-states show signature))  ; TODO: Phrase trigger equivalent.
+
+(defn run-beat-functions
+  "Invoked by the show's track position listener when a new beat packet
+  has been received. Runs all the beat expressions for phrase triggers
+  that are active for the appropriate player."
+  [show player beat position]
+  (doseq [phrase []]  ; TODO: Loop over all phrase triggers active for this player.
+    (run-phrase-function show phrase :beat [beat position] false)))
+
+;; TODO: need now-playing version too.
+
+(defn- update-track-phrase
+  "As part of `show/update-show-status`, update the `:phrase` map of
+  the track's cues appropriately based on the current track
+  configuration, player number, and beat number. Called within `swap!`
+  so simply returns the new value. If `track` is `nil`, returns `show`
+  unmodified."
+  [show track player beat]
+  (when-let [intervals (:phrase-intervals track)]
+    (assoc-in show [:tracks (:signature track) :phrase player]
+              (first (util/iget intervals beat)))
+    show))
+
+(defn update-track-phrase-if-past-beat
+  "Checks if it has been long enough after a beat packet was received to
+  update the track's current playing phrase based on a status-packet's
+  beat number. This check needs to be made because we have seen status
+  packets that players send within a few milliseconds after a beat
+  sometimes still contain the old beat number, even though they have
+  updated their beat-within-bar number. So this function leaves the
+  track's phrase state unchanged if a beat happened too recently.
+  However, if the status update indicates the player is not playing,
+  we always remove any formerly playing phrase."
+  [show track player ^CdjStatus status]
+  (let [last-beat (get-in show [:last-beat player])]
+    (if (or (not last-beat) (not (.isPlaying status))
+            (> (- (.getTimestamp status) last-beat) su/min-beat-distance))
+      (update-track-phrase show track player (.getBeatNumber status))
+      show)))
