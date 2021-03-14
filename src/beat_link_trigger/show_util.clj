@@ -42,6 +42,14 @@
   status packet."
   (.toNanos java.util.concurrent.TimeUnit/MILLISECONDS 5))
 
+(defn capture-current-state
+  "Copies the expression-relevant show state into the `:last` key,
+  so that changes can be examined after a `swap!` operation, and
+  appropriate expressions run and user interface updates made."
+  [show]
+  (let [state (select-keys show [:loaded :playing :tracks :current-phrase])]
+    (assoc show :last state)))
+
 (defonce ^{:private true
            :doc "Holds a map from phrase UUIDs to the files of the
   shows in which they belong, to enable them to be more conveniently
