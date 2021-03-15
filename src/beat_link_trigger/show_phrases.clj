@@ -10,6 +10,7 @@
                                                   phrase-runtime-info find-cue swap-cue!
                                                   get-chosen-output no-output-chosen]]
            [beat-link-trigger.util :as util]
+           [clojure.math.numeric-tower :as math]
            [clojure.set :as set]
            [clojure.string :as str]
            [overtone.midi :as midi]
@@ -19,7 +20,7 @@
   (:import [beat_link_trigger.util MidiChoice]
           [org.deepsymmetry.beatlink Beat CdjStatus]
           [org.deepsymmetry.beatlink.data TrackPositionUpdate]
-          [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
+          [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$SongStructureEntry]
           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
           [java.awt.event InputEvent MouseEvent]
           [java.awt.geom Rectangle2D$Double]
@@ -1236,15 +1237,131 @@ editor windows, in their cue canvases as well."
   #_(repaint-track-states show signature)  ; TODO: Phrase trigger equivalent.
   (update-playback-position show player))
 
+(defonce ^{:private true
+           :doc "A map to determine whether a lottery has already been performed for
+  the triggers which are solo across all shows for a particular
+  phrase. The first show to choose eligible triggers will handle the
+  global lottery. Keys in the map are player numbers, and values are a
+  tuple of the playing phrase for which a lottery was most recently
+  performed (if any), and the UUID of the phrase trigger which won
+  that lottery (chosen from all eligible global solo phrase triggers
+  in all open shows)."}
+  global-lottery-phrases
+  (atom {}))
+
+(defn- weight-if-eligible
+  "Checks whether the supplied phrase trigger map is eligible to run for
+  the phrase that is starting, and if so returns a tuple of its UUID
+  and the weight with it should be assigned when randomly choosing
+  between solo triggers."
+  [player new-phrase status context phrase-trigger]
+  (let [[show phrase-trigger] (latest-show-and-phrase phrase-trigger)]
+    (case (:enabled phrase-trigger)
+
+      "Custom"  ; TODO: Aren't we supposed to pass in the phrase to the expression somehow?
+      (let [result (run-phrase-function show phrase-trigger :custom-enabled status false)]
+        (if (number? result)
+          (let [weight (long (min (math/round result) 1000))]
+            (when (pos? weight) [(:uuid phrase-trigger) weight]))
+          (when result [(:uuid phrase-trigger) 1])))
+
+      "See Below"
+      (when (and
+             ((:enabled-track-banks phrase-trigger) (:bank context))
+             ((:enabled-phrase-types phrase-trigger) (:phrase-type context))
+             (or (not (:max-bars? phrase-trigger)) (<= (:bars context) (:max-bars phrase-trigger)))
+             (or (not (:min-bars? phrase-trigger)) (>= (:bars context) (:min-bars phrase-trigger)))
+             (or (not (:max-bpm? phrase-trigger)) (<= (.getEffectiveTempo status) (:max-bpm phrase-trigger)))
+             (or (not (:min-bpm? phrase-trigger)) (>= (.getEffectiveTempo status) (:min-bpm phrase-trigger)))
+             (case (:players phrase-trigger)
+               "Any"    true
+               "Master" (.isTempoMaster status)
+               "On-Air" (.isOnAir status)))
+        [(:uuid phrase-trigger) (:weight phrase-trigger)]))))
+
+(defn run-lottery
+  "Given a list of phrase trigger maps, determines which are eligible to
+  run for the phrase that is starting, and their weights, and randomly
+  chooses one guided by the weights. Returns the UUID of the winner,
+  if any."
+  [candidates player new-phrase status context]
+  (let [contenders (filter identity (map (partial weight-if-eligible player new-phrase status context) candidates))])
+  ;; TODO: Set up interval map based on weights, pick a random number, and look up the winner.
+  )
+
+(defn- run-global-lottery
+  "Finds all global solo phrase triggers in all open shows, checks
+  whether they are eligible to run for the phrase that just started,
+  and picks one by weight, returning its UUID."
+  [player new-phrase status context]
+  (let [candidates (filter (fn [phrase-trigger] (= "Global" (:solo phrase-trigger)))
+                           (apply concat (map (fn [show] (vals (:phrases show)))
+                                              (vals (su/get-open-shows)))))]
+    (run-lottery candidates player new-phrase status context)))
+
+(defn beat-range
+  "Finds the range of beats that a phrase occupies, handling the fact
+  that the first phrase may start with a partial bar by offseting to
+  where its down beat would be."
+  [show player ^RekordboxAnlz$SongStructureEntry phrase]
+  (let [start (.beat phrase)
+        [start end] (first (first (util/matching-subsequence (get-in show [:phrase-intervals player]) start nil)))
+        offset (mod (- 4 (mod (- end start) 4)) 4)]
+    [(- start offset) end]))
+
+(defn trigger-context
+  "Returns a map holding the information that can be used to check
+  whether a phrase trigger is eligible to run for a phrase that is
+  starting."
+  [show player ^RekordboxAnlz$SongStructureEntry new-phrase ^CdjStatus status]
+  (let [[start end] (beat-range show player new-phrase)]
+    {:bars        (quot (- end start) 4)
+     :tempo       (.getEffectiveTempo status)
+     :master      (.isTempoMaster status)
+     :bank        (util/track-bank-keyword (.. new-phrase _parent _parent))
+     :phrase-type (util/phrase-type-keyword new-phrase)}))
+
+(defn-  choose-eligible-phrase-triggers
+  "Called when a new phrase has started playing on the specified player,
+and phrase triggers are known to be allowed for the track. Figures out
+  which triggers match the phrase, and for exclusive triggers performs
+  a lottery using their weights to decide which wins."
+  [show player new-phrase]
+  (let [status (.getLatestStatusFor util/virtual-cdj player)
+        context (trigger-context show player new-phrase status)]
+    (swap! global-lottery-phrases
+           (fn [state]
+             (let [[last-phrase _uuid] (get state player)]
+               (if (= last-phrase new-phrase)
+                 state  ; Global lottery has already been performed, no change.
+                 (assoc state player
+                        (when new-phrase [new-phrase (run-global-lottery player new-phrase status context)])))))))
+  (when new-phrase  ; There is something to match against.
+    ;; TODO: If we won the global lottery, add our trigger to the active list.
+    ;; TODO: run the show lottery and gather all the non-solo matches too.
+    ))
+
 (defn update-player-phrase
   "As part of `show/update-show-status`, update the show's
   `:current-phrase` map appropriately based on the player number, and
-  beat number. Called within `swap!` so simply returns the new value."
-  [show player beat]
-  (assoc-in show [:current-phrase player]
-            (when (get-in show [:raw :playing player])
-              (when-let [intervals (get-in show [:phrase-intervals player])]
-                (first (util/iget intervals beat))))))
+  beat number. Called within `swap!` so simply returns the new value.
+
+  When we have a new phrase playing, we conduct a lottery to determine
+  which eligible phrase triggers are now active, unless the track is
+  locked."
+  [show player track beat]
+  (let [previous-phrase  (get-in show [:current-phrase player])
+        previous-playing (get-in show [:playing-phrases player])
+        new-phrase       (when (get-in show [:raw :playing player])
+                           (when-let [intervals (get-in show [:phrase-intervals player])]
+                             (first (util/iget intervals beat))))]
+    (-> show
+        (assoc-in [:current-phrase player] new-phrase)
+        (assoc-in [:playing-phrases player]
+                  (if (= previous-phrase new-phrase)
+                    previous-playing
+                    (when (or (nil? track) (get-in track [:contents :phrase-unlocked]))
+                      (choose-eligible-phrase-triggers show player new-phrase)))))))
 
 (defn update-phrase-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
@@ -1255,12 +1372,15 @@ editor windows, in their cue canvases as well."
   updated their beat-within-bar number. So this function leaves the
   player's phrase state unchanged if a beat happened too recently.
   However, if the status update indicates the player is not playing,
-  we always remove any formerly playing phrase."
-  [show player ^CdjStatus status]
+  we always remove any formerly playing phrase.
+
+  When we have a new phrase playing, we conduct a lottery to determine
+  which eligible phrase triggers are now active."
+  [show player track ^CdjStatus status]
   (if (.isPlaying status)
     (let [last-beat (get-in show [:last-beat player])]
       (if (or (not last-beat) (> (- (.getTimestamp status) last-beat) su/min-beat-distance))
-        (update-player-phrase show player (.getBeatNumber status))
+        (update-player-phrase show player track (.getBeatNumber status))
         show))
     (update show :current-phrase dissoc player))
   show)
@@ -1322,6 +1442,7 @@ editor windows, in their cue canvases as well."
   [show ^Beat beat ^TrackPositionUpdate position]
   (let [player    (.getDeviceNumber beat)
         signature (.getLatestSignatureFor util/signature-finder player)
+        track     (get-in (latest-show show) [:tracks signature])
         shows     (swap-show! show
                               (fn [show]
                                 (-> show
@@ -1330,7 +1451,7 @@ editor windows, in their cue canvases as well."
                                               ;; But ignore the beat as a playing indicator if DJ is actually cueing.
                                               (when-not (get-in show [:raw :cueing player]) signature))
                                     (assoc-in [:last-beat player] (.getTimestamp beat))
-                                    (update-player-phrase player (.beatNumber position))
+                                    (update-player-phrase player track (.beatNumber position))
                                     ;; TODO: Implement this, scanning all active phrases.
                                     #_(update-cue-entered-states player (.beatNumber position)))))
         show      (get shows (:file show))]

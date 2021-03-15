@@ -11,8 +11,10 @@
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
            [org.deepsymmetry.beatlink.data TimeFinder SignatureFinder]
-           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$TrackMood
-            RekordboxAnlz$TrackBank]
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$PhraseLow RekordboxAnlz$PhraseMid RekordboxAnlz$PhraseHigh
+            RekordboxAnlz$MoodLowPhrase RekordboxAnlz$MoodMidPhrase RekordboxAnlz$MoodHighPhrase
+            RekordboxAnlz$SongStructureEntry RekordboxAnlz$SongStructureTag
+            RekordboxAnlz$TrackMood RekordboxAnlz$TrackBank]
            [java.awt Color Font GraphicsEnvironment RenderingHints]
            [java.io File]
            [javax.sound.midi Sequencer Synthesizer]
@@ -435,6 +437,21 @@
     RekordboxAnlz$TrackBank/VIVID   "Vivid"
     RekordboxAnlz$TrackBank/WARM    "Warm"))
 
+(defn track-bank-keyword
+  "Given a song structure tag parsed from a track, returns the bank that
+  was assigned to the track as a keyword for matching in code."
+  [^RekordboxAnlz$SongStructureTag tag]
+  (case-enum (.bank (.body tag))
+    RekordboxAnlz$TrackBank/CLUB_1  :club-1
+    RekordboxAnlz$TrackBank/CLUB_2  :club-2
+    RekordboxAnlz$TrackBank/COOL    :cool
+    RekordboxAnlz$TrackBank/DEFAULT :cool
+    RekordboxAnlz$TrackBank/HOT     :hot
+    RekordboxAnlz$TrackBank/NATURAL :natural
+    RekordboxAnlz$TrackBank/SUBTLE  :subtle
+    RekordboxAnlz$TrackBank/VIVID   :vivid
+    RekordboxAnlz$TrackBank/WARM    :warm))
+
 (defn track-mood-name
   "Given a song structure tag parsed from a track, returns the mood that
   was detected for the track in a nicely formatted way."
@@ -443,6 +460,51 @@
     RekordboxAnlz$TrackMood/HIGH "High"
     RekordboxAnlz$TrackMood/MID "Mid"
     RekordboxAnlz$TrackMood/LOW "Low"))
+
+(defn phrase-type-keyword
+  "Given a song structure entry parsed from a track, returns the keyword
+  that represents its unique phrase type for matching in code."
+  [^RekordboxAnlz$SongStructureEntry entry]
+  (case-enum (.mood (._parent entry))
+
+    RekordboxAnlz$TrackMood/LOW
+    (let [^RekordboxAnlz$PhraseLow kind (.kind entry)]
+      (case-enum (.id kind)
+        RekordboxAnlz$MoodLowPhrase/INTRO    :low-intro
+        RekordboxAnlz$MoodLowPhrase/VERSE_1  :low-verse-1
+        RekordboxAnlz$MoodLowPhrase/VERSE_1B :low-verse-1
+        RekordboxAnlz$MoodLowPhrase/VERSE_1C :low-verse-1
+        RekordboxAnlz$MoodLowPhrase/VERSE_2  :low-verse-2
+        RekordboxAnlz$MoodLowPhrase/VERSE_2B :low-verse-2
+        RekordboxAnlz$MoodLowPhrase/VERSE_2C :low-verse-2
+        RekordboxAnlz$MoodLowPhrase/BRIDGE   :low-bridge
+        RekordboxAnlz$MoodLowPhrase/CHORUS   :low-chorus
+        RekordboxAnlz$MoodLowPhrase/OUTRO    :low-outro))
+
+    RekordboxAnlz$TrackMood/MID
+    (let [^RekordboxAnlz$PhraseMid kind (.kind entry)]
+      (case-enum (.id kind)
+        RekordboxAnlz$MoodMidPhrase/INTRO   :mid-intro
+        RekordboxAnlz$MoodMidPhrase/VERSE_1 :mid-verse-1
+        RekordboxAnlz$MoodMidPhrase/VERSE_2 :mid-verse-2
+        RekordboxAnlz$MoodMidPhrase/VERSE_3 :mid-verse-3
+        RekordboxAnlz$MoodMidPhrase/VERSE_4 :mid-verse-4
+        RekordboxAnlz$MoodMidPhrase/VERSE_5 :mid-verse-5
+        RekordboxAnlz$MoodMidPhrase/VERSE_6 :mid-verse-6
+        RekordboxAnlz$MoodMidPhrase/BRIDGE  :mid-bridge
+        RekordboxAnlz$MoodMidPhrase/CHORUS  :mid-chorus
+        RekordboxAnlz$MoodMidPhrase/OUTRO   :mid-outro))
+
+    RekordboxAnlz$TrackMood/HIGH
+    (let [^RekordboxAnlz$PhraseHigh kind (.kind entry)]
+      (case-enum (.id kind)
+        RekordboxAnlz$MoodHighPhrase/INTRO  (if (= 1 (.k1 entry)) :high-intro-1 :high-intro-2)
+        RekordboxAnlz$MoodHighPhrase/UP     (if (zero? (.k2 entry))
+                                              (if (zero? (.k3 entry)) :high-up-1 :high-up-2)
+                                              :high-up-3)
+        RekordboxAnlz$MoodHighPhrase/DOWN   :high-down
+        RekordboxAnlz$MoodHighPhrase/CHORUS (if (= 1 (.k1 entry)) :high-chorus-1 :high-chorus-2)
+        RekordboxAnlz$MoodHighPhrase/OUTRO  (if (= 1 (.k1 entry)) :high-outro-1 :high-outro-2)))))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of
@@ -517,7 +579,7 @@
         (-> interval-map (dissoc k) (assoc [a x] vs [x b] vs))))
     interval-map))
 
-(defn- matching-subsequence
+(defn matching-subsequence
   "Extracts the sequence of key, value pairs from the interval map which
   cover the supplied range (either end of which can be `nil`, meaning
   from the beginning or to the end)."

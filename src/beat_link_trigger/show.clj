@@ -660,16 +660,17 @@
             (when-let [cue (find-cue track uuid)]
               (cues/run-cue-function track cue :tracked status false))))
 
-        ;; Rewport any phrase-related change events.
-        (phrases/deliver-change-events show signature player status)
-
         (update-playback-position show signature player)
+
         ;; If the set of entered cues has changed, update the UI appropriately.
         (when (not= entered old-entered)
           (cues/repaint-all-cue-states track)
           ;; If we are showing only entered cues, update cue row visibility.
           (when (get-in track [:contents :cues :entered-only])
-            (seesaw/invoke-later (cues/update-cue-visibility track))))))))
+            (seesaw/invoke-later (cues/update-cue-visibility track))))))
+
+    ;; Report any phrase-related change events.
+    (phrases/deliver-change-events show signature player status)))
 
 (defn- update-cue-state-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
@@ -717,7 +718,7 @@
                                                                  signature))
                                     (update-track-trip-state track)
                                     (update-cue-state-if-past-beat track player status)
-                                    (phrases/update-phrase-if-past-beat player status))))
+                                    (phrases/update-phrase-if-past-beat player track status))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show signature track player status)))
@@ -2288,7 +2289,7 @@
                                           track     (get-in (latest-show show) [:tracks signature])]
                                       (when track
                                         (run-custom-enabled show track status))
-                                      (update-show-status signature show track status)))
+                                      (update-show-status show signature track status)))
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))

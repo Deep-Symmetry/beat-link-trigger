@@ -105,6 +105,13 @@ contents section>>.
 `:playing`:: A map from player numbers to the track signature of the
 track, if any, currently playing on that player.
 
+`:playing-phrases`:: A map of playing numbers to the currently-playing
+phrase triggers that were chosen for the phrase playing on that
+player, if any. This value is itself a map, whose keys are the UUIDs
+of the active phrase triggers (only the ones from this show), and
+whose values identify how the sections of the phrase trigger map to
+beats in the track in order to make it fit.
+
 [[tracks-map]]
 `:tracks`:: A map holding information about all tracks in the show. The
 keys are the track's signatures, and the values are the track maps

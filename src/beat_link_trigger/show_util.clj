@@ -160,6 +160,7 @@
   function with the supplied arguments on the current contents of the
   specified show."
   [show f & args]
+  (when (nil? (:file show)) (throw (IllegalArgumentException. "Show cannot have a nil file.")))
   (swap! open-shows #(apply update % (:file show) f args)))
 
 (defn swap-track!

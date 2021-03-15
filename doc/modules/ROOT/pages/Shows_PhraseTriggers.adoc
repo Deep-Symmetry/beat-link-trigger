@@ -156,7 +156,7 @@ If you want to do more sophisticated filtering than that, you can
 swich to "`Custom`" enabled filtering by choosing
 menu:Enabled[Custom]. In this configuration BLT will call an
 expression when a phrase is starting to play, and pass your filter
-code the phrase, track and player status, and your code can use any
+code the phrase and player status, and your code can use any
 logic you like to decide if the trigger should be enabled.
 
 If your filter returns a number, that will be rounded to the nearest
