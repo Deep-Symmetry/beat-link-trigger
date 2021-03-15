@@ -857,7 +857,8 @@
         ^javax.swing.JMenu import-menu      (:import-menu show)
         disabled-reason                     (describe-disabled-reason show signature)
         ^javax.swing.JMenuItem item         (.getItem import-menu (dec player))
-        ^RekordboxAnlz$TaggedSection ss-tag (.getLatestTrackAnalysisFor analysis-finder player ".EXT" "PSSI")]
+        ^RekordboxAnlz$TaggedSection ss-tag (when (util/online?)
+                                              (.getLatestTrackAnalysisFor analysis-finder player ".EXT" "PSSI"))]
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " player disabled-reason))
     (let [shows (swap-show! show

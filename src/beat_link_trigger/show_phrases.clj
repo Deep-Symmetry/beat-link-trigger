@@ -1190,7 +1190,7 @@ specified player in the cue preview canvas for any phrase triggers
 that are active for the specified player, and if they have open Cues
 editor windows, in their cue canvases as well."
   [show ^Long player]
-  (when-let [^TrackPositionUpdate position (.getLatestPositionFor util/time-finder player)]
+  (when-let [^TrackPositionUpdate position (when (util/online?) (.getLatestPositionFor util/time-finder player))]
     ;; TODO: Implement! Loop over active phrase triggers, update positions (and their open cues editors).
     ))
 
