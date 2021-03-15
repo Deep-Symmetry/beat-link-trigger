@@ -1306,7 +1306,7 @@ editor windows, in their cue canvases as well."
   [show player ^RekordboxAnlz$SongStructureEntry phrase]
   (let [start (.beat phrase)
         [start end] (first (first (util/matching-subsequence (get-in show [:phrase-intervals player]) start nil)))
-        offset (mod (- 4 (mod (- end start) 4)) 4)]
+        offset (mod (- start end) 4)]
     [(- start offset) end]))
 
 (defn trigger-context
