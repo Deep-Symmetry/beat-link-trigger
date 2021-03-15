@@ -435,7 +435,8 @@
     RekordboxAnlz$TrackBank/NATURAL "Natural"
     RekordboxAnlz$TrackBank/SUBTLE  "Subtle"
     RekordboxAnlz$TrackBank/VIVID   "Vivid"
-    RekordboxAnlz$TrackBank/WARM    "Warm"))
+    RekordboxAnlz$TrackBank/WARM    "Warm"
+    "Unknown?"))
 
 (defn track-bank-keyword
   "Given a song structure tag parsed from a track, returns the bank that
@@ -450,7 +451,8 @@
     RekordboxAnlz$TrackBank/NATURAL :natural
     RekordboxAnlz$TrackBank/SUBTLE  :subtle
     RekordboxAnlz$TrackBank/VIVID   :vivid
-    RekordboxAnlz$TrackBank/WARM    :warm))
+    RekordboxAnlz$TrackBank/WARM    :warm
+    (timbre/error "Unrecognized track bank" (.bank (.body tag)))))
 
 (defn track-mood-name
   "Given a song structure tag parsed from a track, returns the mood that
@@ -459,7 +461,8 @@
   (case-enum (.mood (.body tag))
     RekordboxAnlz$TrackMood/HIGH "High"
     RekordboxAnlz$TrackMood/MID "Mid"
-    RekordboxAnlz$TrackMood/LOW "Low"))
+    RekordboxAnlz$TrackMood/LOW "Low"
+    "???"))
 
 (defn phrase-type-keyword
   "Given a song structure entry parsed from a track, returns the keyword
@@ -479,7 +482,8 @@
         RekordboxAnlz$MoodLowPhrase/VERSE_2C :low-verse-2
         RekordboxAnlz$MoodLowPhrase/BRIDGE   :low-bridge
         RekordboxAnlz$MoodLowPhrase/CHORUS   :low-chorus
-        RekordboxAnlz$MoodLowPhrase/OUTRO    :low-outro))
+        RekordboxAnlz$MoodLowPhrase/OUTRO    :low-outro
+        (timbre/error "Unrecognized low-mood phrase type" kind)))
 
     RekordboxAnlz$TrackMood/MID
     (let [^RekordboxAnlz$PhraseMid kind (.kind entry)]
@@ -493,7 +497,8 @@
         RekordboxAnlz$MoodMidPhrase/VERSE_6 :mid-verse-6
         RekordboxAnlz$MoodMidPhrase/BRIDGE  :mid-bridge
         RekordboxAnlz$MoodMidPhrase/CHORUS  :mid-chorus
-        RekordboxAnlz$MoodMidPhrase/OUTRO   :mid-outro))
+        RekordboxAnlz$MoodMidPhrase/OUTRO   :mid-outro
+        (timbre/error "Unrecognized mid-mood phrase type" kind)))
 
     RekordboxAnlz$TrackMood/HIGH
     (let [^RekordboxAnlz$PhraseHigh kind (.kind entry)]
@@ -504,7 +509,10 @@
                                               :high-up-3)
         RekordboxAnlz$MoodHighPhrase/DOWN   :high-down
         RekordboxAnlz$MoodHighPhrase/CHORUS (if (= 1 (.k1 entry)) :high-chorus-1 :high-chorus-2)
-        RekordboxAnlz$MoodHighPhrase/OUTRO  (if (= 1 (.k1 entry)) :high-outro-1 :high-outro-2)))))
+        RekordboxAnlz$MoodHighPhrase/OUTRO  (if (= 1 (.k1 entry)) :high-outro-1 :high-outro-2)
+        (timbre/error "Unrecognized high-mood phrase type" kind)))
+
+    (timbre/error "Unrecognized track mood phrase type" (.mood (._parent entry)))))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of
