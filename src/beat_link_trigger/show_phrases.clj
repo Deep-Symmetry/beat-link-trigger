@@ -1285,9 +1285,15 @@ editor windows, in their cue canvases as well."
   chooses one guided by the weights. Returns the UUID of the winner,
   if any."
   [candidates player new-phrase status context]
-  (let [contenders (filter identity (map (partial weight-if-eligible player new-phrase status context) candidates))])
-  ;; TODO: Set up interval map based on weights, pick a random number, and look up the winner.
-  )
+  (let [contenders (filter identity (map (partial weight-if-eligible player new-phrase status context) candidates))
+        lottery    (reduce (fn [{:keys [total intervals]} [uuid weight]]
+                             {:total     (+ total weight)
+                              :intervals (util/iassoc intervals total (+ total weight) uuid)})
+                           {:total     0
+                            :intervals util/empty-interval-map}
+                           contenders)]
+    (timbre/info "lottery:" lottery)
+    (first (util/iget (:intervals lottery) (rand-int (:total lottery))))))
 
 (defn- run-global-lottery
   "Finds all global solo phrase triggers in all open shows, checks
@@ -1295,7 +1301,7 @@ editor windows, in their cue canvases as well."
   and picks one by weight, returning its UUID."
   [player new-phrase status context]
   (let [candidates (filter (fn [phrase-trigger] (= "Global" (:solo phrase-trigger)))
-                           (apply concat (map (fn [show] (vals (:phrases show)))
+                           (apply concat (map (fn [show] (vals (get-in show [:contents :phrases])))
                                               (vals (su/get-open-shows)))))]
     (run-lottery candidates player new-phrase status context)))
 
@@ -1328,7 +1334,7 @@ and phrase triggers are known to be allowed for the track. Figures out
   a lottery using their weights to decide which wins."
   [show player new-phrase]
   (let [status (.getLatestStatusFor util/virtual-cdj player)
-        context (trigger-context show player new-phrase status)]
+        context (when new-phrase (trigger-context show player new-phrase status))]
     (swap! global-lottery-phrases
            (fn [state]
              (let [[last-phrase _uuid] (get state player)]
