@@ -1194,6 +1194,16 @@ editor windows, in their cue canvases as well."
     ;; TODO: Implement! Loop over active phrase triggers, update positions (and their open cues editors).
     ))
 
+(defn- repaint-phrase-state
+  "Causes the phrase trigger state indicator tor edraw itself to reflect
+  a change. Also update any cue state indicators if there is a cues
+  editor open for the track."
+  [show phrase]
+  (let [phrase (latest-phrase show phrase)
+        panel  (:panel phrase)]
+    (seesaw/repaint! (seesaw/select panel [:#state]))
+    (cues/repaint-all-cue-states phrase)))
+
 ;; TODO: Need to call this whenever a player stops playing.
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
@@ -1202,14 +1212,15 @@ editor windows, in their cue canvases as well."
   If we learned about the stoppage from a status update, it will be in
   `status`."
   [show player old-playing status]
-  (doseq [phrase []]  ; TODO: Loop over all phrase triggers that were previously playing for this player.
-    (let [runtime-info (su/phrase-runtime-info show phrase)]
+  (doseq [[uuid] old-playing]
+    (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
+          runtime-info (su/phrase-runtime-info show phrase)]
       (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
         (cues/send-cue-messages phrase uuid :ended status)
         (cues/repaint-cue phrase uuid)
-        (cues/repaint-cue-states phrase uuid)))
-    (send-stopped-messages show phrase status))
-  #_(repaint-track-states show signature)  ; TODO: Phrase trigger equivalent.
+        (cues/repaint-cue-states phrase uuid))
+      (send-stopped-messages show phrase status)
+      (repaint-phrase-state show phrase)))
   (update-playback-position show player))
 
 (defn run-beat-functions
@@ -1226,15 +1237,16 @@ editor windows, in their cue canvases as well."
   trigger beat alignment maps. If we learned about the playback from a
   status update, it will be in `status`."
   [show player playing status]
-  (doseq [phrase []]  ; TODO: Loop over all phrase triggers that are now playing for this player.
-    (send-playing-messages show phrase status)
-    (let [runtime-info (su/phrase-runtime-info show phrase)]
+  (doseq [[uuid] playing]
+    (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
+          runtime-info (su/phrase-runtime-info show phrase)]
+      (send-playing-messages show phrase status)
       ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
       (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
         (cues/send-cue-messages phrase uuid :started-late status)
         (cues/repaint-cue phrase uuid)
-        (cues/repaint-cue-states phrase uuid))))
-  #_(repaint-track-states show signature)  ; TODO: Phrase trigger equivalent.
+        (cues/repaint-cue-states phrase uuid))
+      (repaint-phrase-state show phrase)))
   (update-playback-position show player))
 
 (defonce ^{:private true
@@ -1384,6 +1396,7 @@ editor windows, in their cue canvases as well."
                ;; One of our global solo triggers won the lottery, so mark it active in this show.
                {uuid (align-trigger-to-phrase show player our-global-solo new-phrase)})
 
+             ;; TODO: Get rid of notion of global solo triggers.
              ;; TODO: run the show lottery and gather all the non-solo matches too.
 )
       )))
