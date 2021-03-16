@@ -1315,6 +1315,41 @@ editor windows, in their cue canvases as well."
         offset (mod (- start end) 4)]
     [(- start offset) end]))
 
+(defn align-sections
+  "Given the starting and ending beats of the non-fill section of an
+  actual phrase, figures out which sections of our phrase trigger fit,
+  and where their boundaries belong."
+  [start end phrase-trigger]
+  (let [phrase-size (- end start)
+        start-size  (* (:start-bars phrase-trigger) 4)]
+    (if (<= phrase-size start-size) ; There's only room for the start section.
+      (util/iassoc util/empty-interval-map start end [:start start])
+      (let [end-size (* (:end-bars phrase-trigger) 4)]
+        (if (<= phrase-size (+ start-size end-size)) ; Only room for start and end
+          (-> util/empty-interval-map
+              (util/iassoc start (+ start start-size) [:start start])
+              (util/iassoc (+ start start-size) end [:end (+ start start-size)]))
+          (let [loop-size (- phrase-size start-size end-size) ; All non-fill sections fit.
+                loop-beat (+ start start-size)
+                end-beat  (+ loop-beat loop-size)]
+            (-> util/empty-interval-map
+                (util/iassoc start loop-beat [:start start])
+                (util/iassoc loop-beat end-beat [:loop loop-beat])
+                (util/iassoc end-beat end [:end end-beat]))))))))
+
+(defn- align-trigger-to-phrase
+  "Figures out how to shrink or stretch a phrase trigger to line up with
+  the sections of the actual phrase that it has matched. Returns an
+  interval map that translates track beat numbers to tuples of
+  [section starting-beat]"
+  [show player phrase-trigger ^RekordboxAnlz$SongStructureEntry phrase]
+  (let [[start end] (beat-range show player phrase)]
+    (if (zero? (.fill phrase))
+      (align-sections start end phrase-trigger)
+      (let [fill (.beatFill phrase)]
+        (-> (align-sections start fill phrase-trigger)
+            (util/iassoc fill end [:fill fill]))))))
+
 (defn trigger-context
   "Returns a map holding the information that can be used to check
   whether a phrase trigger is eligible to run for a phrase that is
@@ -1329,23 +1364,29 @@ editor windows, in their cue canvases as well."
 
 (defn-  choose-eligible-phrase-triggers
   "Called when a new phrase has started playing on the specified player,
-and phrase triggers are known to be allowed for the track. Figures out
+  and phrase triggers are known to be allowed for the track. Figures out
   which triggers match the phrase, and for exclusive triggers performs
   a lottery using their weights to decide which wins."
   [show player new-phrase]
-  (let [status (.getLatestStatusFor util/virtual-cdj player)
-        context (when new-phrase (trigger-context show player new-phrase status))]
-    (swap! global-lottery-phrases
-           (fn [state]
-             (let [[last-phrase _uuid] (get state player)]
-               (if (= last-phrase new-phrase)
-                 state  ; Global lottery has already been performed, no change.
-                 (assoc state player
-                        (when new-phrase [new-phrase (run-global-lottery player new-phrase status context)])))))))
-  (when new-phrase  ; There is something to match against.
-    ;; TODO: If we won the global lottery, add our trigger to the active list.
-    ;; TODO: run the show lottery and gather all the non-solo matches too.
-    ))
+  (let [status   (.getLatestStatusFor util/virtual-cdj player)
+        context  (when new-phrase (trigger-context show player new-phrase status))
+        global   (swap! global-lottery-phrases
+                        (fn [state]
+                          (let [[last-phrase _uuid] (get state player)]
+                            (if (= last-phrase new-phrase)
+                              state ; Global lottery has already been performed, no change.
+                              (assoc state player
+                                     (when new-phrase
+                                       [new-phrase (run-global-lottery player new-phrase status context)]))))))
+        [_ uuid] (get global player)]
+    (when new-phrase  ; There is something to match against.
+      (merge (when-let [our-global-solo (get-in (latest-show show) [:contents :phrases uuid])]
+               ;; One of our global solo triggers won the lottery, so mark it active in this show.
+               {uuid (align-trigger-to-phrase show player our-global-solo new-phrase)})
+
+             ;; TODO: run the show lottery and gather all the non-solo matches too.
+)
+      )))
 
 (defn update-player-phrase
   "As part of `show/update-show-status`, update the show's
