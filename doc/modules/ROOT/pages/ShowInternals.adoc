@@ -629,15 +629,15 @@ Loop section.
 
 `:solo`:: Controls the
 <<Shows_PhraseTriggers.adoc#exclusivity,Exclusivity>> of the phrase
-trigger. The default value is `"Solo in show"`, which means that only
-one such trigger will be chosen for the entire show (but other `"Solo
-in show"` triggers might be running for the same phrase in other
-shows). Other choices include `"Solo across all shows"`, which (as its
-name suggest) will only allow one such trigger to be chosen from any
-open show (although triggers in other exculsivity modes will still be
-allowed to run), and `"Blend"`, which means this trigger will activate
-whenever its criteria are met, regardless of how many other triggers
-are activating in any show for the current phrase.
+trigger. The default value is `"Show"`, which means that only one such
+trigger will be chosen for the entire show (but other `"Show"` Solo
+triggers might be running for the same phrase in other shows). Other
+choices include `"Global"`, which (as its name suggests) will only
+allow one such trigger to be chosen from any open show (although
+triggers in other exculsivity modes will still be allowed to run), and
+`"Blend"`, which means this trigger will activate whenever its
+criteria are met, regardless of how many other triggers are activating
+in any show for the current phrase.
 
 `:uuid`:: The unique identifier (a Java
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID]

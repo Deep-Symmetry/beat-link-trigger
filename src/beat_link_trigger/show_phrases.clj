@@ -1281,7 +1281,7 @@ editor windows, in their cue canvases as well."
   If we learned about the stoppage from a status update, it will be in
   `status`."
   [show player old-playing status]
-  (doseq [[uuid] old-playing]
+  (doseq [uuid old-playing]
     (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
           runtime-info (su/phrase-runtime-info show phrase)]
       (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
@@ -1307,7 +1307,7 @@ editor windows, in their cue canvases as well."
   trigger beat alignment maps. If we learned about the playback from a
   status update, it will be in `status`."
   [show player playing status]
-  (doseq [[uuid] playing]
+  (doseq [uuid playing]
     (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
           runtime-info (su/phrase-runtime-info show phrase)]
       (send-playing-messages show phrase status)
@@ -1377,7 +1377,7 @@ editor windows, in their cue canvases as well."
                            {:total     0
                             :intervals util/empty-interval-map}
                            contenders)]
-    (timbre/info "lottery:" lottery "candidates:" (count candidates))
+    (timbre/debug "lottery:" lottery "candidates:" (count candidates))
     (first (util/iget (:intervals lottery) (rand-int (:total lottery))))))
 
 (defn- run-global-lottery
@@ -1400,6 +1400,19 @@ editor windows, in their cue canvases as well."
                                                        phrase-trigger (get-in shows [file :contents :phrases uuid])]
                                                    (= "Global" (:solo phrase-trigger))))
                                                (all-phrase-triggers-playing shows))))]
+    (and uuid (or (not= player running-player) (current-phrase-trigger-weight shows uuid player)))))
+
+(defn- show-survivor
+  "Sees if there is a currently-running per-show solo phrase trigger
+  which remains enabled in the current state. Returns truthy if so."
+  [shows show player old-phrase new-phrase]
+  (let [[running-player uuid] (when (= old-phrase new-phrase)
+                                (first (filter (fn [[_ uuid]]
+                                                 (let [phrase-trigger (get-in show [:contents :phrases uuid])]
+                                                   (= "Show" (:solo phrase-trigger))))
+                                               (mapcat (fn [[player triggers-map]]
+                                                         (for [uuid (keys triggers-map)] [player uuid]))
+                                                       (:playing-phrases show)))))]
     (and uuid (or (not= player running-player) (current-phrase-trigger-weight shows uuid player)))))
 
 (defn beat-range
@@ -1459,27 +1472,55 @@ editor windows, in their cue canvases as well."
      :bank        (util/track-bank-keyword (.. new-phrase _parent _parent))
      :phrase-type (util/phrase-type-keyword new-phrase)}))
 
-(defn remove-no-longer-eligible
-  "TODO: Explain"
+(defn- remove-no-longer-eligible
+  "Given the updated show state, examines each running phrase trigger,
+  re-evaluating its Enabled rules. Returns the UUIDs of all phrase
+  triggers which should continue to run."
   [shows running player old-phrase new-phrase]
   (let [survivors (filter (fn [uuid] (current-phrase-trigger-weight shows uuid player))
                           (when (= old-phrase new-phrase) (keys running)))]
     (select-keys running survivors)))
 
+(defn- newly-eligible-blend-triggers
+  "Give the updated show state, and the set of UUIDs of phrase triggers
+  from the show which are already running, returns a map of UUID to
+  aligned phrase trigger for each non-solo trigger in the show which
+  should be started."
+  [running-uuids shows show player new-phrase]
+  (reduce-kv (fn [result uuid phrase-trigger]
+               (if (and (= "Blend" (:solo phrase-trigger))
+                        (not (running-uuids uuid))
+                        (current-phrase-trigger-weight shows uuid player))
+                 (assoc result uuid (align-trigger-to-phrase player phrase-trigger new-phrase))
+                 result))
+             {}
+             (get-in show [:contents :phrases])))
+
 (defn- phrases-now-running-for-show
-  "Updates the map of UUIDs to aligned phrases for a show based on the
-  current state."  ;; TODO expand explanation!
+  "Updates the map of UUIDs to aligned phrase triggers for a show based
+  on the current state. Filters out any phrase triggers which have
+  become ineligible given the current track state, and if this means a
+  previous solo winner has ended, conducts a new lottery to see
+  which (if any) solo phrase trigger can take its place, both at the
+  global and per-show levels."
   [running shows show player old-phrase new-phrase unblocked new-global]
   (when (and unblocked new-phrase)  ; Phrase triggers can run at all.
-    (let [survivors (remove-no-longer-eligible shows running player old-phrase new-phrase)]
+    (let [survivors (remove-no-longer-eligible shows running player old-phrase new-phrase)
+          uuid-set  (set (keys survivors))]
       (merge survivors
              (when-let [our-global-solo (get-in show [:contents :phrases new-global])]
                ;; The new winning global solo trigger is in this show.
                {new-global (align-trigger-to-phrase player our-global-solo new-phrase)})
 
-             ;; TODO: run the show lottery and gather all the non-solo matches too.
-             ;; remember that we don't have to re-align anything that is already in survivors.
-             ))))
+             (when-not (show-survivor shows show player old-phrase new-phrase)
+               (when-let [new-solo-uuid (run-lottery shows
+                                                     (filter (fn [phrase-trigger] (= "Show" (:solo phrase-trigger)))
+                                                             (vals (get-in show [:contents :phrases])))
+                                                     player)]
+                 {new-solo-uuid (align-trigger-to-phrase player (get-in show [:contents :phrases new-solo-uuid])
+                                                         new-phrase)}))
+
+             (newly-eligible-blend-triggers uuid-set shows show player new-phrase)))))
 
 (defn- update-enabled-runtime-info-for-show
   "Given the current runtime info map for a show (`phrases`), the full
@@ -1599,10 +1640,7 @@ editor windows, in their cue canvases as well."
   updated their beat-within-bar number. So this function leaves the
   player's phrase state unchanged if a beat happened too recently.
   However, if the status update indicates the player is not playing,
-  we always remove any formerly playing phrase.
-
-  When we have a new phrase playing, we conduct a lottery to determine
-  which eligible phrase triggers are now active."
+  we always remove any formerly playing phrase."
   [state player ^CdjStatus status]
   (if (get-in state [:playing player])
     (let [last-beat (get-in state [:last-beat player])]
@@ -1622,11 +1660,15 @@ editor windows, in their cue canvases as well."
   [state show player ^CdjStatus status ^Beat beat ^TrackPositionUpdate position]
   (let [old-phrase (get-in state [:last :current-phrase player])
         phrase     (get-in state [:current-phrase player])]
-    (when (not= old-phrase phrase)
-      (timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
-      (no-longer-playing show player (get-in show [:last :playing-phrases player]) nil)
-      (now-playing show player (get-in show [:playing-phrases player]) nil)))
-  ;; TODO: Change above when to if, in else clause send diffs between old and new playing sets.
+    (if (not= old-phrase phrase)
+      (do
+        (timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
+        (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status)
+        (now-playing show player (keys (get-in show [:playing-phrases player])) status))
+      (let [was-playing (set (keys (get-in show [:last :playing-phrases player])))
+            playing (set (keys (get-in show [:playing-phrases player])))]
+        (no-longer-playing show player (set/difference was-playing playing) status)
+        (now-playing show player (set/difference playing was-playing) status))))
   ;; TODO: Implement cue level stuff, with reference to version in show.
 
   ;; Repaint the status indicators of any phrases whose enabled state has changed
