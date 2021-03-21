@@ -275,8 +275,7 @@
 (defn- update-playback-position
   "Updates the position and color of the playback position bar for the
   specified player in the track preview and, if there is an open Cues
-  editor window, in its waveform detail, and then does the same for
-  any phrase triggers that are active for the track."
+  editor window, in its waveform detail."
   [show signature ^Long player]
   (when-let [^TrackPositionUpdate position (.getLatestPositionFor util/time-finder player)]
     (let [interpolated-time (.getTimeFor util/time-finder player)]

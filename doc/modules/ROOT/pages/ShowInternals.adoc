@@ -266,6 +266,10 @@ Loaded and Unloaded messages, as configured with the track's
 as configured with the track's
 <<Shows_Tracks.adoc#track-midi-output,MIDI Output Menu>>.
 
+`:phrase-unlocked`:: A boolean flag indicating whether phrase triggers
+are allowed to run for this track. By default tracks do not allow
+this, because their custom cues will likely be more meaningful.
+
 `:playing-channel`:: The MIDI channel on which Playing and Stopped
 messages are sent, as configured with the track's
 <<Shows_Tracks.adoc#playing-channel-spinner,Playing Channel Spinner>>.

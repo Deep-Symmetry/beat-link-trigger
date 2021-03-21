@@ -1533,6 +1533,16 @@ editor windows, in their cue canvases as well."
                          phrases
                          phrases)))))
 
+(defn- track-unblocked?
+  "Makes sure that any show which contains the track playing on the
+  player has marked that track as allowing phrase triggers to run."
+  [player]
+  (let [signature (.getLatestSignatureFor util/signature-finder player)]
+    (not-any? (fn [show]
+                (when-let [track (get-in show [:tracks signature])]
+                  (not (get-in track [:contents :phrase-unlocked]))))
+              (vals (su/get-open-shows)))))
+
 (defn- update-running-phrase-triggers
   "Figure out which phrase triggers should now be running across all
   shows given a state update caused by a player. If the playing phrase
@@ -1545,12 +1555,12 @@ editor windows, in their cue canvases as well."
         new-phrase (get-in state [:current-phrase player])
         status     (.getLatestStatusFor util/virtual-cdj player)
         context    (when new-phrase (trigger-context player new-phrase status))
-        unblocked  true ; TODO: Need to make sure no show has the track locked.
+        unblocked  (track-unblocked? player)
         updated    (swap! @#'su/open-shows
                           (fn [current]
                             (let [current (update-phrase-enabled-states current player new-phrase status context
                                                                         unblocked)
-                                  global (when (and unblocked
+                                  global (when (and unblocked new-phrase
                                                     (not (global-survivor current player old-phrase new-phrase)))
                                            (run-global-lottery current player))]
                               (reduce-kv (fn [shows k show]
