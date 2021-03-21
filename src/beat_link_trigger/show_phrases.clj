@@ -120,7 +120,7 @@
         outline  (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
         show     (latest-show show)
         enabled? (boolean (seq (get-in show [:phrases uuid :enabled])))
-        active?  (some (fn [player-map] (contains? player-map uuid)) (vals (:playing-phrases show)))]
+        active?  (get-in show [:phrases uuid :tripped])]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
     (when active? ; Draw the inner filled circle showing the trigger is playing.
@@ -210,7 +210,6 @@
         phrase       (get-in show [:contents :phrases uuid])
         runtime-info (get-in show [:phrases uuid])
         sections     (:sections runtime-info)
-        active?      false ; TODO: TBD!
         bars         (:total-bars sections)
         spacing      (su/cue-canvas-preview-bar-spacing bars w)
         stroke       (.getStroke g)
@@ -459,8 +458,7 @@
         (doseq [[section cues] (get-in phrase [:cues :cues])
                 cue             cues]
           (cues/cleanup-cue true show phrase section cue))
-        (when ((apply set/union (map #(set (keys %)) (vals (:playing-phrases show)))) (:uuid phrase))
-          (send-stopped-messages show phrase nil)))
+        (send-stopped-messages show phrase nil))
       (run-phrase-function show phrase :shutdown nil (not force?))
       (su/phrase-removed phrase))
     true))
@@ -1484,11 +1482,14 @@ editor windows, in their cue canvases as well."
              ))))
 
 (defn- update-enabled-runtime-info-for-show
-  "Given the current state of a player the phrase being played on it,
-  and the runtime-info map for a show, updates the `:enabled` entry
-  for each phrase trigger to reflect whether that phrase trigger is
-  currently enabled for the player, and if so, what its weight should
-  be in a lottery."
+  "Given the current runtime info map for a show (`phrases`), the full
+  show map, the state of a player, the phrase being played on it, the
+  current player status, the phrase trigger context information map
+  built by `trigger-context`, and an indication of whether there is no
+  show track blockng phrase triggers from running, updates the
+  `:enabled` entry for each phrase trigger to reflect whether that
+  phrase trigger is currently enabled for the player, and if so, what
+  its weight should be in a lottery."
   [phrases show player phrase-playing status context unblocked]
   (reduce-kv (fn [info-map uuid runtime-info]
                (assoc info-map uuid
@@ -1517,6 +1518,21 @@ editor windows, in their cue canvases as well."
              {}
              shows))
 
+(defn- update-phrase-tripped-states
+  "Given the updated state of a show (including the phrase triggers
+  which are now running in it), update each phrase trigger's
+  `:tripped` flag for easy access to that information at rendering
+  time."
+  [show]
+  (let [playing-phrases (vals (:playing-phrases show))]
+    (update show :phrases
+            (fn [phrases]
+              (reduce-kv (fn [phrases uuid _runtime-info]
+                           (assoc-in phrases [uuid :tripped]
+                                     (boolean (some (fn [player-map] (contains? player-map uuid)) playing-phrases))))
+                         phrases
+                         phrases)))))
+
 (defn- update-running-phrase-triggers
   "Figure out which phrase triggers should now be running across all
   shows given a state update caused by a player. If the playing phrase
@@ -1538,10 +1554,10 @@ editor windows, in their cue canvases as well."
                                                     (not (global-survivor current player old-phrase new-phrase)))
                                            (run-global-lottery current player))]
                               (reduce-kv (fn [shows k show]
-                                           (assoc shows k
-                                                  (update-in show [:playing-phrases player] phrases-now-running-for-show
-                                                             current show player old-phrase new-phrase
-                                                             unblocked global)))
+                                           (let [updated-show (update-in show [:playing-phrases player]
+                                                                         phrases-now-running-for-show current show
+                                                                         player old-phrase new-phrase unblocked global)]
+                                             (assoc shows k (update-phrase-tripped-states updated-show))))
                                          {}
                                          current))))]
     updated))
