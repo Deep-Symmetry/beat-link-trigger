@@ -45,14 +45,6 @@ described <<show-contents,below>>.
 specified player is currently cue-playing (rather than normally
 playing) the specified track.
 
-`:current-phrase`:: The current
-https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html[`SongStructureEntry`]
-being played on each player which is actively playing. A map indexed
-by player number, this will only have non-`nil` values when there is
-phrase analysis information available for the track.
-
-
-
 `:default-ui`:: The Swing
 https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/javax/swing/JPanel.html[`JPanel`]
 holding the normal show interface displayed by Beat Link Trigger
@@ -84,14 +76,6 @@ is the current Tempo Master.
 which tracks are currently loaded into players that are on the air
 according to the mixer. (Requires a DJM mixer, and the players and
 mixer must be configured to offer the on-air feature.)
-
-`:phrase-intervals`:: A map of player numbers to an index of beat
-numbers to phrase details. If there is phrase analysis information
-available for the track playing on a player, the value under that
-player number's key holds an interval map allowing a beat number to be
-efficiently mapped to the
-https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html[`SongStructureEntry`]
-(if any) in which that beat falls.
 
 [[phrases-map]]
 `:phrases`:: A map holding runtime (not saved) information about all

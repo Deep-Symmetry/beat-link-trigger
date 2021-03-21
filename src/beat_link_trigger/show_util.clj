@@ -11,7 +11,7 @@
             [taoensso.timbre :as timbre]
             [thi.ng.color.core :as color])
   (:import [beat_link_trigger.util MidiChoice]
-           [org.deepsymmetry.beatlink CdjStatus$TrackSourceSlot VirtualCdj]
+           [org.deepsymmetry.beatlink CdjStatus$PlayState1 CdjStatus$TrackSourceSlot VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference WaveformDetail WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
            [java.awt Color]
@@ -47,7 +47,7 @@
   so that changes can be examined after a `swap!` operation, and
   appropriate expressions run and user interface updates made."
   [show]
-  (let [state (select-keys show [:loaded :playing :tracks :raw :current-phrase :playing-phrases])]
+  (let [state (select-keys show [:loaded :playing :tracks :playing-phrases :phrases])]
     (assoc show :last state)))
 
 (defonce ^{:private true
@@ -80,6 +80,13 @@
   [phrase-or-uuid]
   (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
     (swap! phrase-show-files dissoc uuid)))
+
+(defn show-file-from-phrase
+  "Looks up the file of the show to which a phrase belongs, given its
+  registered UUID."
+  [phrase-or-uuid]
+  (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
+    (get @phrase-show-files uuid)))
 
 (defn show-from-phrase
   "Looks up the show to which a phrase belongs, given its registered
@@ -782,3 +789,9 @@
         bar-spacing (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))
         bar         (/ (- x cue-canvas-margin) bar-spacing)]
     (long (* bar 2000))))
+
+(def cueing-states
+  "The enumeration values for a CDJ Status' `playState1` property that
+  indicate that cue play is taking place, so we should not consider
+  beat packets an indication that the track is actually playing."
+  #{CdjStatus$PlayState1/CUE_PLAYING CdjStatus$PlayState1/CUE_SCRATCHING})

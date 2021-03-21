@@ -29,7 +29,7 @@
            [java.nio.file Files FileSystem FileSystems Path StandardCopyOption StandardOpenOption]
            [javax.swing JComponent JFrame JMenu JMenuBar JPanel JScrollPane]
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
-           [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$PlayState1 CdjStatus$TrackSourceSlot
+           [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceAnnouncementListener DeviceUpdateListener DeviceFinder
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder AnalysisTagListener
@@ -667,10 +667,7 @@
           (cues/repaint-all-cue-states track)
           ;; If we are showing only entered cues, update cue row visibility.
           (when (get-in track [:contents :cues :entered-only])
-            (seesaw/invoke-later (cues/update-cue-visibility track))))))
-
-    ;; Report any phrase-related change events.
-    (phrases/deliver-change-events show signature player status)))
+            (seesaw/invoke-later (cues/update-cue-visibility track))))))))
 
 (defn- update-cue-state-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
@@ -687,18 +684,10 @@
       (update-cue-entered-state show track player (.getBeatNumber status))
       show)))
 
-(def ^:private cueing-states
-  "The enumeration values for a CDJ Status' playState1 property that
-  indicate that cue play is taking place, so we should not consider
-  beat packets an indication that the track is actually playing."
-  #{CdjStatus$PlayState1/CUE_PLAYING CdjStatus$PlayState1/CUE_SCRATCHING})
-
 (defn- update-show-status
   "Adjusts the track state to reflect a new status packet received from
   a player that has it loaded. `track` may be `nil` if the track is
-  unrecognized or not part of the show, but we will still track which
-  players are playing the raw signature play/on-air/master/cueing
-  state under the key `:raw`."
+  unrecognized or not part of the show."
   [show signature track ^CdjStatus status]
   (let [player    (.getDeviceNumber status)
         track     (when track (latest-track track))
@@ -709,16 +698,11 @@
                                     (assoc-in [:playing player] (when (and track (.isPlaying status)) signature))
                                     (assoc-in [:on-air player] (when (and track (.isOnAir status)) signature))
                                     (assoc-in [:master player] (when (and track (.isTempoMaster status)) signature))
-                                    (assoc-in [:cueing player] (when (and track (cueing-states (.getPlayState1 status)))
-                                                                 signature))
-                                    (assoc-in [:raw :playing player] (when (.isPlaying status) signature))
-                                    (assoc-in [:raw :on-air player] (when (.isOnAir status) signature))
-                                    (assoc-in [:raw :master player] (when (.isTempoMaster status) signature))
-                                    (assoc-in [:raw :cueing player] (when (cueing-states (.getPlayState1 status))
+                                    (assoc-in [:cueing player] (when (and track
+                                                                          (su/cueing-states (.getPlayState1 status)))
                                                                  signature))
                                     (update-track-trip-state track)
-                                    (update-cue-state-if-past-beat track player status)
-                                    (phrases/update-phrase-if-past-beat player track status))))
+                                    (update-cue-state-if-past-beat track player status))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
     (deliver-change-events show signature track player status)))
@@ -758,8 +742,7 @@
                                     (update-cue-entered-state track player (.beatNumber position)))))
         show      (get shows (:file show))
         track     (when track (get-in show [:tracks signature]))]
-    (when track (deliver-beat-events show track player beat position))
-    (phrases/deliver-beat-events show player beat position)))
+    (when track (deliver-beat-events show track player beat position))))
 
 (defn- clear-player-track-state
   "When a player has changed track signatures, clear the tripped flag
@@ -804,19 +787,6 @@
       show)))
 
 (declare write-song-structure)
-
-(defn build-phrase-intervals
-  "Given a song structure tag for a track, build an index that allows
-  efficient mapping from a beat number to the phrase (song structure
-  entry) to which that beat belongs, if any."
-  [^RekordboxAnlz$SongStructureTag song-structure]
-  (let [body    (.body song-structure)
-        entries (sort-by (fn [^RekordboxAnlz$SongStructureTag entry] (.beat entry)) (.entries body))]
-    (reduce (fn [intervals [^RekordboxAnlz$SongStructureEntry entry ^RekordboxAnlz$SongStructureEntry next-entry]]
-              (if (some? next-entry)
-                (util/iassoc intervals (.beat entry) (.beat next-entry) entry)
-                (util/iassoc intervals (.beat entry) (.endBeat body) entry)))
-            util/empty-interval-map (partition 2 1 (concat entries [nil])))))
 
 (defn- upgrade-song-structure
   "When we have learned about newly available phrase analysis
@@ -872,15 +842,12 @@
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))
+    (when ss-tag (phrases/upgrade-song-structure player (.body ss-tag)))
     (when signature
       (when ss-tag (upgrade-song-structure show ss-tag signature))
       (when-let [track (get-in (latest-show show) [:tracks signature])]
         (when-let [song-structure (:song-structure track)]
-          (swap-show! show update-in [:phrase-intervals player]
-                      (fn [current] (or current (build-phrase-intervals song-structure)))))))
-    (when ss-tag
-      (swap-show! show update-in [:phrase-intervals player]
-                  (fn [current] (or current (build-phrase-intervals ss-tag)))))))
+          (phrases/upgrade-song-structure player song-structure))))))
 
 (defn- refresh-signatures
   "Reports the current track signatures on each player; this is done
@@ -2245,11 +2212,9 @@
             layout          (seesaw/border-panel :north top-panel :center tracks-scroll)
             dev-listener    (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
                               (deviceFound [this announcement]
-                                (update-player-item-visibility announcement show true)
-                                (phrases/add-position-listener show (.getDeviceNumber announcement)))
+                                (update-player-item-visibility announcement show true))
                               (deviceLost [this announcement]
-                                (update-player-item-visibility announcement show false)
-                                (phrases/remove-position-listener show (.getDeviceNumber announcement))))
+                                (update-player-item-visibility announcement show false)))
             mf-listener     (reify LifecycleListener  ; Hide or show all players if we go offline or online.
                               (started [this sender]
                                 (.start util/time-finder)  ; We need this too, and it doesn't auto-restart.
@@ -2277,9 +2242,8 @@
                                   (do
                                     (when-let [signature (.getLatestSignatureFor signature-finder (.player tag-update))]
                                       (upgrade-song-structure show song-structure signature))
-                                    (swap-show! show assoc-in [:phrase-intervals (.player tag-update)]
-                                                (build-phrase-intervals (.body song-structure))))
-                                  (swap-show! show update :phrase-intervals dissoc (.player tag-update)))))
+                                    (phrases/upgrade-song-structure (.player tag-update) (.body song-structure)))
+                                  (phrases/clear-song-structure (.player tag-update)))))
             update-listener (reify DeviceUpdateListener
                               (received [this status]
                                 (try
@@ -2290,7 +2254,8 @@
                                           track     (get-in (latest-show show) [:tracks signature])]
                                       (when track
                                         (run-custom-enabled show track status))
-                                      (update-show-status show signature track status)))
+                                      (when show  ; In case we are still creating it.
+                                        (update-show-status show signature track status))))
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
@@ -2305,8 +2270,6 @@
                                                    (vals (:expression-editors show))))
                                   (.removeUpdateListener virtual-cdj update-listener)
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
-                                  (doseq [player (keys (:listeners show))]
-                                    (phrases/remove-position-listener show player))
                                   (.removeLifecycleListener metadata-finder mf-listener)
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
@@ -2336,8 +2299,6 @@
         (.addDeviceAnnouncementListener device-finder dev-listener)
         (.addLifecycleListener metadata-finder mf-listener)
         (.addSignatureListener signature-finder sig-listener)
-        (doseq [player (util/visible-player-numbers)]
-          (phrases/add-position-listener show player))
         (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
         (.addUpdateListener virtual-cdj update-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
