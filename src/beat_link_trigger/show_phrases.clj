@@ -1275,19 +1275,23 @@ editor windows, in their cue canvases as well."
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   track it had been. Must be passed a current view of the show and the
-  snapshot of the formerly playing phrase trigger beat alignment maps.
-  If we learned about the stoppage from a status update, it will be in
-  `status`."
-  [show player old-playing status]
+  snapshot of the formerly playing phrase trigger uuids. If we learned
+  about the stoppage from a status update, it will be in `status`. If
+  `phrase-changed` is true, this is a new instance of the trigger even
+  if the set of players playing it would not suggest that."
+  [show player old-playing status phrase-changed]
   (doseq [uuid old-playing]
-    (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
-          runtime-info (su/phrase-runtime-info show phrase)]
-      (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
-        (cues/send-cue-messages phrase uuid :ended status)
-        (cues/repaint-cue phrase uuid)
-        (cues/repaint-cue-states phrase uuid))
-      (send-stopped-messages show phrase status)
-      (repaint-phrase-state show phrase)))
+    (when (or phrase-changed (empty? (util/players-phrase-uuid-set (:playing-phrases show) uuid)))
+      ;; No other player is still playing the phrase trigger.
+      (let [phrase (get-in show [:contents :phrases uuid])
+            runtime-info (su/phrase-runtime-info show phrase)]
+        (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
+          (cues/send-cue-messages phrase uuid :ended status)
+          (cues/repaint-cue phrase uuid)
+          (cues/repaint-cue-states phrase uuid))
+        (send-stopped-messages show phrase status)
+        (repaint-phrase-state show phrase)
+        (seesaw/invoke-later (su/update-row-visibility show)))))
   (update-playback-position show player))
 
 (defn run-beat-functions
@@ -1302,19 +1306,24 @@ editor windows, in their cue canvases as well."
 (defn now-playing
   "Reacts to the fact that the specified player is now playing a phrase.
   Must be passed a current view of the show and the now-playing phrase
-  trigger beat alignment maps. If we learned about the playback from a
-  status update, it will be in `status`."
-  [show player playing status]
+  trigger uuids. If we learned about the playback from a status
+  update, it will be in `status`. If `phrase-changed` is true, this is
+  a new instance of the trigger even if the set of players playing it
+  would not suggest that."
+  [show player playing status phrase-changed]
   (doseq [uuid playing]
-    (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
-          runtime-info (su/phrase-runtime-info show phrase)]
-      (send-playing-messages show phrase status)
-      ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
-      (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
-        (cues/send-cue-messages phrase uuid :started-late status)
-        (cues/repaint-cue phrase uuid)
-        (cues/repaint-cue-states phrase uuid))
-      (repaint-phrase-state show phrase)))
+    (when (or phrase-changed (= #{player} (util/players-phrase-uuid-set (:playing-phrases show) uuid)))
+      ;; This is the first player playing the phrase trigger.
+      (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
+            runtime-info (su/phrase-runtime-info show phrase)]
+        (send-playing-messages show phrase status)
+        ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
+        (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
+          (cues/send-cue-messages phrase uuid :started-late status)
+          (cues/repaint-cue phrase uuid)
+          (cues/repaint-cue-states phrase uuid))
+        (repaint-phrase-state show phrase)
+        (seesaw/invoke-later (su/update-row-visibility show)))))
   (update-playback-position show player))
 
 (defn- weight-if-eligible
@@ -1661,25 +1670,21 @@ editor windows, in their cue canvases as well."
     (if (not= old-phrase phrase)
       (do
         (timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
-        (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status)
-        (now-playing show player (keys (get-in show [:playing-phrases player])) status))
+        (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status true)
+        (now-playing show player (keys (get-in show [:playing-phrases player])) status true))
       (let [was-playing (set (keys (get-in show [:last :playing-phrases player])))
             playing (set (keys (get-in show [:playing-phrases player])))]
-        (no-longer-playing show player (set/difference was-playing playing) status)
-        (now-playing show player (set/difference playing was-playing) status))))
+        (no-longer-playing show player (set/difference was-playing playing) status false)
+        (now-playing show player (set/difference playing was-playing) status false))))
   ;; TODO: Implement cue level stuff, with reference to version in show.
 
   ;; Repaint the status indicators of any phrases whose enabled state has changed
-  (let [any-changed (atom false)]
-    (doseq [[uuid phrase] (get-in show [:contents :phrases])]
-      (let [now-disabled (empty? (get-in show [:phrases uuid :enabled]))
-            was-disabled (empty? (get-in show [:last :phrases uuid :enabled]))]
-        (when (not= now-disabled was-disabled)
-          (reset! any-changed true)
-          (seesaw/invoke-later (repaint-phrase-state show phrase)))))
-    (update-playback-position show player)
-    (when @any-changed
-      (seesaw/invoke-later (su/update-row-visibility show)))))
+  (doseq [[uuid phrase] (get-in show [:contents :phrases])]
+    (let [now-disabled (empty? (get-in show [:phrases uuid :enabled]))
+          was-disabled (empty? (get-in show [:last :phrases uuid :enabled]))]
+      (when (not= now-disabled was-disabled)
+        (seesaw/invoke-later (repaint-phrase-state show phrase)))))
+  (update-playback-position show player))
 
 (defn- deliver-beat-events
   "Called when a beat has been received and updated the show status.
