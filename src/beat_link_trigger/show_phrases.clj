@@ -474,7 +474,6 @@
                               (try
                                 (cleanup-phrase true show phrase)
                                 (swap-show! show expunge-deleted-phrase phrase panel)
-                                #_(refresh-signatures show)  ; TODO: Is there a phrase equivalent?
                                 (su/update-row-visibility show)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting phrase trigger")
@@ -1273,7 +1272,6 @@ editor windows, in their cue canvases as well."
                     (:playing-phrases show)))
           (vals shows)))
 
-;; TODO: Need to call this whenever a player stops playing. Or not? Will be picked up by event handler?
 (defn- no-longer-playing
   "Reacts to the fact that the specified player is no longer playing the
   track it had been. Must be passed a current view of the show and the
@@ -1296,10 +1294,10 @@ editor windows, in their cue canvases as well."
   "Invoked by the our track position listener when a new beat packet
   has been received. Runs all the beat expressions for phrase triggers
   that are active for the appropriate player in all shows."
-  [beat position]
+  [^Beat beat ^TrackPositionUpdate position]
   (doseq [show (vals (su/get-open-shows))]
-    (doseq [phrase []]  ; TODO: Loop over all phrase triggers active for this player and show.
-      (run-phrase-function show phrase :beat [beat position] false))))
+    (doseq [uuid (keys (get-in show [:playing-phrases (.getDeviceNumber beat)]))]
+      (run-phrase-function show (get-in show [:contents :phrases uuid]) :beat [beat position] false))))
 
 (defn now-playing
   "Reacts to the fact that the specified player is now playing a phrase.
@@ -1328,7 +1326,7 @@ editor windows, in their cue canvases as well."
   [show player phrase-playing status context phrase-trigger]
   (case (:enabled phrase-trigger)
 
-    "Custom"  ; TODO: Aren't we supposed to pass in the phrase to the expression somehow?
+    "Custom"  ; TODO: Pass in the playing phrase to the expression somehow, along the lines of :beat-tpu?
     (let [result (run-phrase-function show phrase-trigger :custom-enabled status false)]
       (if (number? result)
         (let [weight (long (min (math/round result) 1000))]
@@ -1672,12 +1670,16 @@ editor windows, in their cue canvases as well."
   ;; TODO: Implement cue level stuff, with reference to version in show.
 
   ;; Repaint the status indicators of any phrases whose enabled state has changed
-  (doseq [[uuid phrase] (get-in show [:contents :phrases])]
-    (let [now-disabled (empty? (get-in show [:phrases uuid :enabled]))
-          was-disabled (empty? (get-in show [:last :phrases uuid :enabled]))]
-      (when (not= now-disabled was-disabled)
-        (repaint-phrase-state show phrase))))
-  (update-playback-position show player))
+  (let [any-changed (atom false)]
+    (doseq [[uuid phrase] (get-in show [:contents :phrases])]
+      (let [now-disabled (empty? (get-in show [:phrases uuid :enabled]))
+            was-disabled (empty? (get-in show [:last :phrases uuid :enabled]))]
+        (when (not= now-disabled was-disabled)
+          (reset! any-changed true)
+          (seesaw/invoke-later (repaint-phrase-state show phrase)))))
+    (update-playback-position show player)
+    (when @any-changed
+      (seesaw/invoke-later (su/update-row-visibility show)))))
 
 (defn- deliver-beat-events
   "Called when a beat has been received and updated the show status.
@@ -1710,8 +1712,8 @@ editor windows, in their cue canvases as well."
       (try
         (doseq [show (vals updated)]
           (send-phrase-changes state show player status nil nil)
-          ;; TODO: Run tracked update expressions for active phrase triggers.
-          )
+          (doseq [uuid (keys (get-in show [:playing-phrases player]))]
+            (run-phrase-function show (get-in show [:contents :phrases uuid]) :tracked status false)))
         (catch Throwable t
           (timbre/info t "Problem delivering phrase status events."))))))
 

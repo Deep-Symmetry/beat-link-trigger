@@ -657,8 +657,7 @@
                                            (or (str/blank? text)
                                                (str/includes? target text))
                                            (or (not loaded-only?) (not (util/online?))
-                                               true ;; TODO: Add test for activation of the phrase trigger here.
-                                               ))
+                                               (get-in show [:phrases uuid :tripped])))
                                       (get-in show [:contents :phrases uuid])))))]
     (swap-show! show assoc :visible (mapv :signature sorted-tracks)
                 :visible-phrases (mapv :uuid visible-phrases))
