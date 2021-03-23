@@ -199,6 +199,10 @@
     (repaint-cue-canvases show phrase preview)
     (cues/update-all-cue-spinner-end-models phrase)))
 
+(def playback-marker-color
+  "The color used for drawing playback markers in cue canvases."
+  (Color. 255 0 0 235))
+
 (defn- paint-phrase-preview
   "Draws the compact view of the phrase shown within the Show window
   row, identifying the relative sizes of the sections, and positions
@@ -284,7 +288,47 @@
                   x          (su/cue-canvas-preview-x-for-time c runtime-info start-time)
                   width      (- (su/cue-canvas-preview-x-for-time c runtime-info end-time) x)]
               (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
-                                                           (double width) (double (dec (.getHeight c))))))))))))
+                                                           (double width) (double (dec (.getHeight c)))))))))
+      (.dispose g2))
+
+    ;; Paint the positions of the players that are playing within this phrase trigger.
+    (.setPaint g playback-marker-color)
+    (doseq [player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
+      (when-let [position (.getLatestPositionFor util/time-finder player)]
+        (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
+                                                          (.beatNumber position)))]
+          (let [beat        (- (.beatNumber position) first-beat -1)
+                tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
+                ms-per-beat (/ 60000.0 tempo)
+                fraction    (/ (- (.milliseconds position)
+                                  (.getTimeWithinTrack (.beatGrid position) (.beatNumber position)))
+                               ms-per-beat)
+                x           (su/cue-canvas-preview-x-for-beat c runtime-info beat section fraction)]
+            (.fillRect g (dec x) 0 2 (.getHeight c))))))))
+
+(defn- start-animation-thread
+  "Creates a background thread that repaints the preview canvas 30 times
+  a second so the player positions will move smoothly while it is
+  actively playing. The thread will exit when the phrase trigger
+  becomes inactive. If one is already running, this does nothing."
+  [show uuid]
+  (swap-show! show (fn [current]
+                     (if (get-in current [:phrases uuid :animating?])
+                       show  ; There is already an animation thread running for this phrase trigger.
+                       (let [preview (seesaw/select (get-in show [:phrases uuid :panel]) [:#preview])]
+                         (future
+                           (timbre/info "Animation thread started for cue" uuid)
+                           (try
+                             (loop [show (latest-show show)]
+                               (when (get-in show [:phrases uuid :tripped])  ; Still active
+                                 (seesaw/repaint! preview)
+                                 (Thread/sleep 33)
+                                 (recur (latest-show show))))
+                             (catch Exception e
+                               (timbre/error e "Problem running phrase trigger preview animation thread.")))
+                           (swap-show! show update-in [:phrases uuid] dissoc :animating?)
+                           (timbre/info "Animation thread ended for cue" uuid))
+                         (assoc-in show [:phrases uuid :animating?] true))))))
 
 (defn- edit-cues-action
   "Creates the menu action which opens the phrase trigger's cue editor
@@ -455,9 +499,9 @@
     (let [[show phrase] (latest-show-and-phrase show phrase)
           runtime-info (phrase-runtime-info show phrase)]
       (when (:tripped runtime-info)
-        (doseq [[section cues] (get-in phrase [:cues :cues])
+        (doseq [[_section cues] (get-in phrase [:cues :cues])
                 cue             cues]
-          (cues/cleanup-cue true show phrase section cue))
+          (cues/cleanup-cue true phrase cue))
         (send-stopped-messages show phrase nil))
       (run-phrase-function show phrase :shutdown nil (not force?))
       (su/phrase-removed phrase))
@@ -1247,9 +1291,10 @@ specified player in the cue preview canvas for any phrase triggers
 that are active for the specified player, and if they have open Cues
 editor windows, in their cue canvases as well."
   [show ^Long player]
-  (when-let [^TrackPositionUpdate position (when (util/online?) (.getLatestPositionFor util/time-finder player))]
-    ;; TODO: Implement! Loop over active phrase triggers, update positions (and their open cues editors).
-    ))
+  (when-let [^TrackPositionUpdate _position (when (util/online?) (.getLatestPositionFor util/time-finder player))]
+    (doseq [uuid (keys (get-in show [:playing-phrases player]))]
+      (let [runtime-info (get-in show [:phrases uuid])]
+        (seesaw/repaint! (seesaw/select (:panel runtime-info) [:#preview]))))))
 
 (defn- repaint-phrase-state
   "Causes the phrase trigger state indicator tor redraw itself to reflect
@@ -1316,6 +1361,7 @@ editor windows, in their cue canvases as well."
       ;; This is the first player playing the phrase trigger.
       (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
             runtime-info (su/phrase-runtime-info show phrase)]
+        (start-animation-thread show uuid)
         (send-playing-messages show phrase status)
         ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
         (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.

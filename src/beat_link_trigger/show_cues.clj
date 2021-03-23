@@ -2136,10 +2136,9 @@
   can be placed."
   [context c ^Graphics2D g]
   (let [h              (double (seesaw/height c))
-        [show phrase
+        [_show phrase
          runtime-info] (latest-show-and-context context)
         sections       (:sections runtime-info)
-        active?        false ; TODO: TBD!
         bars           (:total-bars sections)
         stroke         (.getStroke g)
         label-font     (.getFont (javax.swing.UIManager/getDefaults) "Label.font")
