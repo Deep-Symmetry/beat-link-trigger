@@ -19,7 +19,7 @@
            [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util MidiChoice]
           [org.deepsymmetry.beatlink Beat CdjStatus DeviceAnnouncementListener DeviceUpdateListener]
-          [org.deepsymmetry.beatlink.data TrackPositionUpdate]
+          [org.deepsymmetry.beatlink.data BeatGrid TrackPositionUpdate]
           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$SongStructureEntry]
           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
           [java.awt.event InputEvent MouseEvent]
@@ -1445,10 +1445,10 @@ editor windows, in their cue canvases as well."
   "Finds the range of beats that a phrase occupies, handling the fact
   that the first phrase may start with a partial bar by offseting to
   where its down beat would be."
-  [player ^RekordboxAnlz$SongStructureEntry phrase]
-  (let [start (.beat phrase)
+  [player ^RekordboxAnlz$SongStructureEntry phrase ^BeatGrid grid]
+  (let [start       (.beat phrase)
         [start end] (first (first (util/matching-subsequence (get @phrase-intervals player) start nil)))
-        offset (mod (- start end) 4)]
+        offset      (dec (.getBeatWithinBar grid start))]
     [(- start offset) end]))
 
 (defn align-sections
@@ -1479,7 +1479,8 @@ editor windows, in their cue canvases as well."
   interval map that translates track beat numbers to tuples of
   [section starting-beat]"
   [player phrase-trigger ^RekordboxAnlz$SongStructureEntry phrase]
-  (let [[start end] (beat-range player phrase)]
+  (let [grid        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player)
+        [start end] (beat-range player phrase grid)]
     (if (zero? (.fill phrase))
       (align-sections start end phrase-trigger)
       (let [fill (.beatFill phrase)]
@@ -1491,7 +1492,8 @@ editor windows, in their cue canvases as well."
   whether a phrase trigger is eligible to run for a phrase that is
   starting."
   [player ^RekordboxAnlz$SongStructureEntry new-phrase ^CdjStatus status]
-  (let [[start end] (beat-range player new-phrase)]
+  (let [grid        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player)
+        [start end] (beat-range player new-phrase grid)]
     {:bars        (quot (- end start) 4)
      :tempo       (.getEffectiveTempo status)
      :master      (.isTempoMaster status)
