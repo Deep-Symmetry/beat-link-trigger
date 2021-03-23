@@ -766,18 +766,16 @@ looping it if necessary."
   component. The beat is wrapped to fit into the specified section in
   case it is looping. If `fraction` is supplied, moves that much
   towards the next beat."
-  ([^JPanel canvas runtime-info beat section]
-   (cue-canvas-preview-x-for-beat canvas runtime-info beat section 0))
-  ([^JPanel canvas runtime-info beat section fraction]
-   (let [sections            (:sections runtime-info)
-         [start-bar end-bar] (section sections)
-         beat-modulus        (* 4 (- end-bar start-bar))
-         looped-beat         (mod (dec beat) beat-modulus)
-         bar                 (quot looped-beat 4)
-         beat-within-bar     (mod looped-beat 4)
-         bar-spacing         (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
-     (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing)
-        (* (+ beat-within-bar fraction) (quot bar-spacing 4))))))
+  [^JPanel canvas runtime-info beat section]
+  (let [sections            (:sections runtime-info)
+        [start-bar end-bar] (section sections)
+        beat-modulus        (* 4 (- end-bar start-bar))
+        looped-beat         (mod (dec beat) beat-modulus)
+        bar                 (quot looped-beat 4)
+        beat-within-bar     (mod looped-beat 4)
+        bar-spacing         (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
+    (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing)
+       (* beat-within-bar (quot bar-spacing 4)))))
 
 (defn cue-canvas-preview-x-for-time
   "Calculates the x position at which notional number if milliseconds

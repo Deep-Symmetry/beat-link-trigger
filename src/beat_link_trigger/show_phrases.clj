@@ -297,38 +297,12 @@
       (when-let [position (.getLatestPositionFor util/time-finder player)]
         (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
                                                           (.beatNumber position)))]
-          (let [beat        (- (.beatNumber position) first-beat -1)
-                tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
-                ms-per-beat (/ 60000.0 tempo)
-                fraction    (/ (- (.milliseconds position)
-                                  (.getTimeWithinTrack (.beatGrid position) (.beatNumber position)))
-                               ms-per-beat)
-                x           (su/cue-canvas-preview-x-for-beat c runtime-info beat section fraction)]
-            (.fillRect g (dec x) 0 2 (.getHeight c))))))))
-
-(defn- start-animation-thread
-  "Creates a background thread that repaints the preview canvas 30 times
-  a second so the player positions will move smoothly while it is
-  actively playing. The thread will exit when the phrase trigger
-  becomes inactive. If one is already running, this does nothing."
-  [show uuid]
-  (swap-show! show (fn [current]
-                     (if (get-in current [:phrases uuid :animating?])
-                       show  ; There is already an animation thread running for this phrase trigger.
-                       (let [preview (seesaw/select (get-in show [:phrases uuid :panel]) [:#preview])]
-                         (future
-                           (timbre/info "Animation thread started for cue" uuid)
-                           (try
-                             (loop [show (latest-show show)]
-                               (when (get-in show [:phrases uuid :tripped])  ; Still active
-                                 (seesaw/repaint! preview)
-                                 (Thread/sleep 33)
-                                 (recur (latest-show show))))
-                             (catch Exception e
-                               (timbre/error e "Problem running phrase trigger preview animation thread.")))
-                           (swap-show! show update-in [:phrases uuid] dissoc :animating?)
-                           (timbre/info "Animation thread ended for cue" uuid))
-                         (assoc-in show [:phrases uuid :animating?] true))))))
+          (let [^Graphics2D g2 (.create g)
+                beat           (- (.beatNumber position) first-beat -1)
+                x              (su/cue-canvas-preview-x-for-beat c runtime-info beat section)]
+            (.setStroke g2 (java.awt.BasicStroke. 3))
+            (.drawRect g2 x 1 (quot spacing 4) (- (.getHeight c) 2))
+            (.dispose g2)))))))
 
 (defn- edit-cues-action
   "Creates the menu action which opens the phrase trigger's cue editor
@@ -1361,7 +1335,6 @@ editor windows, in their cue canvases as well."
       ;; This is the first player playing the phrase trigger.
       (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
             runtime-info (su/phrase-runtime-info show phrase)]
-        (start-animation-thread show uuid)
         (send-playing-messages show phrase status)
         ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
         (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
