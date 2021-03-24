@@ -2,33 +2,30 @@
   "Implements phrase trigger features for Show files, including their
   cue editing windows."
   (:require [beat-link-trigger.editors :as editors]
-           [beat-link-trigger.expressions :as expressions]
-           [beat-link-trigger.menus :as menus]
-           [beat-link-trigger.show-cues :as cues]
-           [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
-                                                  swap-show! swap-phrase! swap-phrase-runtime!
-                                                  phrase-runtime-info find-cue swap-cue!
-                                                  get-chosen-output no-output-chosen]]
-           [beat-link-trigger.util :as util]
-           [clojure.math.numeric-tower :as math]
-           [clojure.set :as set]
-           [clojure.string :as str]
-           [overtone.midi :as midi]
-           [seesaw.core :as seesaw]
-           [seesaw.mig :as mig]
-           [taoensso.timbre :as timbre])
-  (:import [beat_link_trigger.util MidiChoice]
-          [org.deepsymmetry.beatlink Beat CdjStatus DeviceAnnouncementListener DeviceUpdateListener]
-          [org.deepsymmetry.beatlink.data BeatGrid TrackPositionUpdate]
-          [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$SongStructureEntry]
-          [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
-          [java.awt.event InputEvent MouseEvent]
-          [java.awt.geom Rectangle2D$Double]
-          [java.util UUID]
-          [javax.swing JComponent JFrame JOptionPane JPanel JScrollPane]
-          [javax.swing.text JTextComponent]
-          [jiconfont.icons.font_awesome FontAwesome]
-          [jiconfont.swing IconFontSwing]))
+            [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.show-cues :as cues]
+            [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
+                                                        swap-show! swap-phrase! swap-phrase-runtime!
+                                                        phrase-runtime-info get-chosen-output no-output-chosen]]
+            [beat-link-trigger.util :as util]
+            [clojure.math.numeric-tower :as math]
+            [clojure.set :as set]
+            [clojure.string :as str]
+            [overtone.midi :as midi]
+            [seesaw.core :as seesaw]
+            [seesaw.mig :as mig]
+            [taoensso.timbre :as timbre])
+  (:import [org.deepsymmetry.beatlink Beat CdjStatus DeviceAnnouncementListener DeviceUpdateListener]
+           [org.deepsymmetry.beatlink.data BeatGrid TrackPositionUpdate]
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$SongStructureEntry]
+           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
+           [java.awt.event InputEvent MouseEvent]
+           [java.awt.geom Rectangle2D$Double]
+           [java.util UUID]
+           [javax.swing JComponent JFrame JOptionPane JPanel JScrollPane]
+           [javax.swing.text JTextComponent]
+           [jiconfont.icons.font_awesome FontAwesome]
+           [jiconfont.swing IconFontSwing]))
 
 (defonce ^{:private true
            :doc "Holds a map of player numbers to an index of beat
@@ -1305,7 +1302,7 @@ editor windows, in their cue canvases as well."
       (let [phrase (get-in show [:contents :phrases uuid])
             runtime-info (su/phrase-runtime-info show phrase)]
         (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
-          (cues/send-cue-messages phrase uuid :ended status)
+          (cues/send-cue-messages phrase runtime-info uuid :ended status)
           (cues/repaint-cue phrase uuid)
           (cues/repaint-cue-states phrase uuid))
         (send-stopped-messages show phrase status)
@@ -1338,7 +1335,7 @@ editor windows, in their cue canvases as well."
         (send-playing-messages show phrase status)
         ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
         (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
-          (cues/send-cue-messages phrase uuid :started-late status)
+          (cues/send-cue-messages phrase runtime-info uuid :started-late status)
           (cues/repaint-cue phrase uuid)
           (cues/repaint-cue-states phrase uuid))
         (repaint-phrase-state show phrase)
@@ -1587,6 +1584,30 @@ editor windows, in their cue canvases as well."
              {}
              shows))
 
+;; TODO: This is going to go away, but we probably need the past-beat logic in update-phrase-tripped-states
+;;       below, which is gaining this responsibility. That may mean we need to pass in a beat/past-beat flag
+;;       to it somehow.
+#_(defn- update-cue-state-if-past-beat
+  "Checks if it has been long enough after a beat packet was received to
+  update any playing phrase triggers' cues' entered state based on a
+  status-packet's beat number. This check needs to be made because we
+  have seen status packets that players send within a few milliseconds
+  after a beat sometimes still contain the old beat number, even
+  though they have updated their beat-within-bar number. So this
+  function leaves the show's cue state unchanged if a beat happened
+  too recently."
+ [state shows player ^CdjStatus status]
+  (let [last-beat (get-in state [:last-beat player])]
+    (if (and (.isPlaying status)
+             (or (not last-beat)
+                 (> (- (.getTimestamp status) last-beat) su/min-beat-distance)))
+      ;; Reduce over playing phrase triggers, updating their cue entered flags.
+      #_(update-cue-entered-state show track player (.getBeatNumber status))
+      shows ;; TODO this is where the reduction would go.
+      shows)))
+
+;; TODO: This is where we should also update the phrase's cues' :entered states; clear them out
+;;       if the phrase is not tripped, and set them for the correct cues when it is.
 (defn- update-phrase-tripped-states
   "Given the updated state of a show (including the phrase triggers
   which are now running in it), update each phrase trigger's
@@ -1694,10 +1715,48 @@ editor windows, in their cue canvases as well."
         (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status true)
         (now-playing show player (keys (get-in show [:playing-phrases player])) status true))
       (let [was-playing (set (keys (get-in show [:last :playing-phrases player])))
-            playing (set (keys (get-in show [:playing-phrases player])))]
+            playing     (set (keys (get-in show [:playing-phrases player])))]
         (no-longer-playing show player (set/difference was-playing playing) status false)
         (now-playing show player (set/difference playing was-playing) status false))))
-  ;; TODO: Implement cue level stuff, with reference to version in show.
+
+  (doseq [[uuid sections] (get-in show [:playing-phrases player])]
+    (let [runtime-info     (get-in show [:phrases uuid])
+          old-runtime-info (get-in show [:last :phrases uuid])
+          phrase           (get-in show [:contents :phrases uuid])
+          entered          (reduce set/union (vals (:entered runtime-info)))
+          old-entered      (reduce set/union (vals (:entered old-runtime-info)))]
+
+      ;; Report cues we have newly entered.
+      (when (:tripped old-runtime-info)  ; Otherwise we already reported them above, because the phrase just activated.
+        (doseq [cue-uuid (set/difference entered old-entered)]
+          (when-let [cue (su/find-cue phrase cue-uuid)]  ; Make sure it wasn't deleted.
+            (let [event (if (and beat (= :start cue) (.beatNumber position)) :started-on-beat :started-late)
+                  status-or-beat (if (= event :started-on-beat) [beat position] (or status beat))]
+              (cues/send-cue-messages phrase cue :entered status-or-beat)
+              (cues/send-cue-messages phrase cue event status-or-beat))
+            (cues/repaint-cue phrase cue)
+            (cues/repaint-cue-states phrase cue))))
+
+      ;; Report cues we have newly exited.
+      (doseq [cue-uuid (set/difference old-entered entered)]
+        (when-let [cue (su/find-cue phrase cue-uuid)]
+          (cues/send-cue-messages phrase old-runtime-info cue :ended (or status beat))
+          (cues/send-cue-messages phrase old-runtime-info cue :exited (or status beat))
+          (cues/repaint-cue phrase cue)
+          (cues/repaint-cue-states phrase cue)))
+
+      ;; If we received a beat, run the basic beat expression for cues that we were already inside.
+      (when beat
+        (doseq [cue-uuid (set/intersection old-entered entered)]
+          (when-let [cue (su/find-cue phrase cue-uuid)]
+            (cues/run-cue-function phrase cue :beat [beat position] false))))
+
+      ;; If the set of entered cues has changed, update the UI appropriately.
+      (when (not= entered old-entered)
+        (cues/repaint-all-cue-states phrase)
+        ;; If we are showing only entered cues, update cue row visibility.
+        (when (get-in phrase [:cues :entered-only])
+        (seesaw/invoke-later (cues/update-cue-visibility phrase))))))
 
   ;; Repaint the status indicators of any phrases whose enabled state has changed
   (doseq [[uuid phrase] (get-in show [:contents :phrases])]
@@ -1705,6 +1764,12 @@ editor windows, in their cue canvases as well."
           was-disabled (empty? (get-in show [:last :phrases uuid :enabled]))]
       (when (not= now-disabled was-disabled)
         (seesaw/invoke-later (repaint-phrase-state show phrase)))))
+
+  ;; Run the tracked update expression for the running phrases, if appropriate.
+  (when status
+    (doseq [uuid (keys (get-in show [:playing-phrases player]))]
+      (run-phrase-function show (get-in show [:contents :phrases uuid]) :tracked status false)))
+
   (update-playback-position show player))
 
 (defn- deliver-beat-events
@@ -1737,9 +1802,7 @@ editor windows, in their cue canvases as well."
     (future
       (try
         (doseq [show (vals updated)]
-          (send-phrase-changes state show player status nil nil)
-          (doseq [uuid (keys (get-in show [:playing-phrases player]))]
-            (run-phrase-function show (get-in show [:contents :phrases uuid]) :tracked status false)))
+          (send-phrase-changes state show player status nil nil))
         (catch Throwable t
           (timbre/info t "Problem delivering phrase status events."))))))
 

@@ -300,17 +300,20 @@
   [context cue]
   [(seesaw/action :name "Entered"
                   :enabled? (cue-event-enabled? context cue :entered)
-                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
-                                                      cue :entered (su/random-beat-or-status))))
+                  :handler (fn [_]
+                             (let [[_show context runtime-info] (latest-show-and-context context)]
+                               (send-cue-messages context runtime-info cue :entered (su/random-beat-or-status)))))
    (seesaw/action :name "Started On-Beat"
                   :enabled? (cue-event-enabled? context cue :started-on-beat)
-                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
-                                                      cue :started-on-beat
-                                                      (su/random-beat-and-position (when (track? context) context)))))
+                  :handler (fn [_]
+                             (let [[_show context runtime-info] (latest-show-and-context context)]
+                               (send-cue-messages context runtime-info cue :started-on-beat
+                                                  (su/random-beat-and-position (when (track? context) context))))))
    (seesaw/action :name "Started Late"
                   :enabled? (cue-event-enabled? context cue :started-late)
-                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
-                                                      cue :started-late (su/random-cdj-status))))
+                  :handler (fn [_]
+                             (let [[_show context runtime-info] (latest-show-and-context context)]
+                               (send-cue-messages context runtime-info cue :started-late (su/random-cdj-status)))))
    (seesaw/action :name "Beat"
                   :enabled? (not (cue-missing-expression? context cue :beat))
                   :handler (fn [_] (run-cue-function context cue :beat
@@ -329,8 +332,9 @@
                                                   cue :ended (su/random-beat-or-status)))))
    (seesaw/action :name "Exited"
                   :enabled? (cue-event-enabled? context cue :entered)
-                  :handler (fn [_] (send-cue-messages (second (latest-show-and-context context))
-                                                      cue :exited (su/random-beat-or-status))))])
+                  :handler (fn [_]
+                             (let [[_show context runtime-info] (latest-show-and-context context)]
+                               (send-cue-messages context runtime-info cue :exited (su/random-beat-or-status)))))])
 
 (defn- cue-simulate-menu
   "Creates the submenu containing actions that simulate events happening
@@ -465,22 +469,21 @@
 (defn send-cue-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a cue has changed state. `context` must be a current
-  track or phrase trigger map, and `cue` can either be a cue map, or a
-  uuid by which such a cue can be looked up. If it has been deleted,
-  nothing is sent. `event` is the key identifying how look up the
-  appropriate MIDI message or custom expression in the cue, and
-  `status-or-beat` is the protocol message, if any, which caused the
-  state change, if any."
-  [context cue event status-or-beat]
+  track or phrase trigger map, `runtime-info` is its runtime
+  information state (which, for a track is just the track again), and
+  `cue` can either be a cue map, or a uuid by which such a cue can be
+  looked up. If it has been deleted, nothing is sent. `event` is the
+  key identifying how look up the appropriate MIDI message or custom
+  expression in the cue, and `status-or-beat` is the protocol message,
+  if any, which caused the state change, if any."
+  [context runtime-info cue event status-or-beat]
   #_(timbre/info "sending cue messages" event (.getTimestamp status-or-beat)
                  (if (instance? Beat status-or-beat)
                    (str "Beat " (.getBeatWithinBar status-or-beat) "/4")
                    (str "Status " (.getBeatNumber status-or-beat))))
   (when-let [cue (find-cue context cue)]
     (try
-      (let [runtime-info                   (if (track? context) context
-                                               (phrase-runtime-info (su/show-from-phrase context) context))
-            base-event                     ({:entered         :entered
+      (let [base-event                     ({:entered         :entered
                                              :exited          :entered
                                              :started-on-beat :started-on-beat
                                              :ended           (get-in runtime-info [:cues (:uuid cue)
@@ -520,9 +523,9 @@
      (let [[_show context runtime-info] (latest-show-and-context context)]
        (when (:tripped runtime-info)
          (when (seq (players-playing-cue context cue))
-           (send-cue-messages context cue :ended nil))
+           (send-cue-messages context runtime-info cue :ended nil))
          (when (entered? context cue)
-           (send-cue-messages context cue :exited nil))))
+           (send-cue-messages context runtime-info cue :exited nil))))
      true)))
 
 (defn- delete-cue-action

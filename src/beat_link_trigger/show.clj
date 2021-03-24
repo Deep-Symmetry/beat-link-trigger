@@ -345,7 +345,7 @@
     (when (or tripped-changed (empty? now-playing))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce set/union (vals (:entered track)))]  ; All cues we had been playing are now ended.
-          (cues/send-cue-messages track uuid :ended status)
+          (cues/send-cue-messages track track uuid :ended status)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid))
         (send-stopped-messages track status))
@@ -393,7 +393,7 @@
     (when (or tripped-changed (empty? now-loaded))
       (when (:tripped track)  ; This tells us it was formerly tripped, because we are run on the last state.
         (doseq [uuid (reduce set/union (vals (:entered track)))]  ; All cues we had been playing are now exited.
-          (cues/send-cue-messages track uuid :exited nil)
+          (cues/send-cue-messages track track uuid :exited nil)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid))
         (seesaw/invoke-later (cues/update-cue-visibility track))
@@ -449,7 +449,7 @@
         (send-loaded-messages track)
         ;; Report entry to all cues we've been sitting on.
         (doseq [uuid (reduce set/union (vals (:entered track)))]
-          (cues/send-cue-messages track uuid :entered nil)
+          (cues/send-cue-messages track track uuid :entered nil)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid))
         (seesaw/invoke-later (cues/update-cue-visibility track)))
@@ -471,7 +471,7 @@
         (send-playing-messages track status)
         ;; Report late start for any cues we were sitting on.
         (doseq [uuid (reduce set/union (vals (:entered track)))]
-          (cues/send-cue-messages track uuid :started-late status)
+          (cues/send-cue-messages track track uuid :started-late status)
           (cues/repaint-cue track uuid)
           (cues/repaint-cue-states track uuid)))
       (repaint-track-states show signature))
@@ -533,14 +533,14 @@
                               :started-late)
                             :ended)]
           (when (not= is-playing was-playing)
-            (cues/send-cue-messages track cue event (if (= event :started-late) (or status beat) [beat position]))
+            (cues/send-cue-messages track track cue event (if (= event :started-late) (or status beat) [beat position]))
             (cues/repaint-cue track cue)
             (cues/repaint-cue-states track cue)))))
 
     ;; Report cues we have newly entered, which we might also be newly playing.
     (doseq [uuid (set/difference entered old-entered)]
       (when-let [cue (find-cue track uuid)]
-        (cues/send-cue-messages track cue :entered (or status beat))
+        (cues/send-cue-messages track track cue :entered (or status beat))
         (when (seq (cues/players-playing-cue track cue))
           (let [event          (if (and beat (= (:start cue) (.beatNumber position)))
                                  :started-on-beat
@@ -548,7 +548,7 @@
                 status-or-beat (if (= event :started-on-beat)
                                  [beat position]
                                  (or status beat))]
-            (cues/send-cue-messages track cue event status-or-beat)))
+            (cues/send-cue-messages track track cue event status-or-beat)))
         (cues/repaint-cue track cue)
         (cues/repaint-cue-states track cue)))
 
@@ -557,8 +557,8 @@
       (when-let [cue (find-cue track uuid)]
         (when (seq (cues/players-playing-cue old-track cue))
           #_(timbre/info "detected end..." (:uuid cue))
-          (cues/send-cue-messages old-track cue :ended (or status beat)))
-        (cues/send-cue-messages old-track cue :exited (or status beat))
+          (cues/send-cue-messages old-track old-track cue :ended (or status beat)))
+        (cues/send-cue-messages old-track old-track cue :exited (or status beat))
         (cues/repaint-cue track cue)
         (cues/repaint-cue-states track cue)))
 
@@ -637,9 +637,9 @@
           (when (:tripped old-track)  ; Otherwise we already reported them above because the track just activated.
             (doseq [uuid (set/difference entered old-entered)]
               (when-let [cue (find-cue track uuid)]
-                (cues/send-cue-messages track cue :entered status)
+                (cues/send-cue-messages track track cue :entered status)
                 (when (seq (cues/players-playing-cue track cue))
-                  (cues/send-cue-messages track cue :started-late status))
+                  (cues/send-cue-messages track track cue :started-late status))
                 (cues/repaint-cue track cue)
                 (cues/repaint-cue-states track cue))))
 
@@ -648,8 +648,8 @@
             (doseq [uuid (set/difference old-entered entered)]
               (when-let [cue (find-cue track uuid)]
                 (when (seq (cues/players-playing-cue old-track cue))
-                  (cues/send-cue-messages track cue :ended status))
-                (cues/send-cue-messages track cue :exited status)
+                  (cues/send-cue-messages track track cue :ended status))
+                (cues/send-cue-messages track track cue :exited status)
                 (cues/repaint-cue track cue)
                 (cues/repaint-cue-states track cue))))
 
