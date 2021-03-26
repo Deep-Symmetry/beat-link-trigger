@@ -670,16 +670,19 @@
 
 (defn- update-cue-state-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
-  update the cues' entered state based on a status-packet's beat number.
-  This check needs to be made because we have seen status packets that
-  players send within a few milliseconds after a beat sometimes still
-  contain the old beat number, even though they have updated their
-  beat-within-bar number. So this function leaves the show's cue state
-  unchanged if a beat happened too recently."
+  update the cues' entered state based on a status-packet's beat
+  number. This check needs to be made because we have seen status
+  packets that players send within a few milliseconds after a beat
+  sometimes still contain the old beat number, even though they have
+  updated their beat-within-bar number. So this function leaves the
+  show's cue state unchanged if a beat happened too recently for the
+  previous beat number in a status packet to be considered a jump
+  back."
   [show track player ^CdjStatus status]
-  (let [last-beat (get-in show [:last-beat player])]
-    (if (or (not last-beat)
-            (> (- (.getTimestamp status) last-beat) su/min-beat-distance))
+  (let [[timestamp last-beat] (get-in show [:last-beat player])]
+    (if (or (not timestamp)
+            (> (- (.getTimestamp status) timestamp) su/min-beat-distance)
+            (not= (.getBeatNumber status) (dec last-beat)))
       (update-cue-entered-state show track player (.getBeatNumber status))
       show)))
 
@@ -736,7 +739,7 @@
                                     (assoc-in [:playing player] ; In case beat arrives before playing status.
                                               ;; But ignore the beat as a playing indicator if DJ is actually cueing.
                                               (when-not (get-in show [:cueing player]) signature))
-                                    (assoc-in [:last-beat player] (.getTimestamp beat))
+                                    (assoc-in [:last-beat player] [(.getTimestamp beat) (.beatNumber position)])
                                     (update-track-trip-state track)
                                     (update-cue-entered-state track player (.beatNumber position)))))
         show      (get shows (:file show))
