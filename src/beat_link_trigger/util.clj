@@ -389,7 +389,7 @@
   album artwork for the type of media being played in the specified
   player number, if any."
   [^Long player]
-  (let [^CdjStatus status (.getLatestStatusFor virtual-cdj player)
+  (let [^CdjStatus status (when (.isRunning virtual-cdj) (.getLatestStatusFor virtual-cdj player))
         xdj-xz            (when status (str/starts-with? (.getDeviceName status) "XDJ-XZ"))
         slot              (when status (.getTrackSourceSlot status))]
     (cond
