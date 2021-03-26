@@ -462,7 +462,7 @@
   the cue is entered and playing."
   [context cue]
   (let [[_show context runtime-info] (latest-show-and-context context)]
-    (if (and (:tripped runtime-info) (entered? context cue))
+    (if (and (:tripped runtime-info) (entered? runtime-info cue))
       (if (started? context cue) 0.8 0.65)
       0.5)))
 
@@ -758,14 +758,14 @@
   uuid."
   [context cue]
   (let [[_ context runtime-info] (latest-show-and-context context)
-        cue                         (find-cue context cue)]
+        cue                      (find-cue context cue)]
     (if (track? context)
       (when-let [preview-loader (:preview runtime-info)]
         (when-let [^WaveformPreviewComponent preview (preview-loader)]
           (let [preview-rect (cue-preview-rectangle context cue preview)]
             (.repaint ^JComponent (:preview-canvas runtime-info)
                       (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect)))))
-      (let [^JPanel preview (:preview runtime-info)  ; Phrase triggers are a little simpler.
+      (let [^JPanel preview (:preview-canvas runtime-info) ; Phrase triggers are a little simpler.
             preview-rect    (cue-preview-rectangle context cue preview)]
         (.repaint preview (.x preview-rect) (.y preview-rect) (.width preview-rect) (.height preview-rect))))
     (when-let [^JPanel wave (get-in runtime-info [:cues-editor :wave])]

@@ -1585,42 +1585,40 @@ editor windows, in their cue canvases as well."
              {}
              shows))
 
-;; TODO: This is going to go away, but we probably need the past-beat logic in update-phrase-tripped-states
-;;       below, which is gaining this responsibility. That may mean we need to pass in a beat/past-beat flag
-;;       to it somehow.
-#_(defn- update-cue-state-if-past-beat
-  "Checks if it has been long enough after a beat packet was received to
-  update any playing phrase triggers' cues' entered state based on a
-  status-packet's beat number. This check needs to be made because we
-  have seen status packets that players send within a few milliseconds
-  after a beat sometimes still contain the old beat number, even
-  though they have updated their beat-within-bar number. So this
-  function leaves the show's cue state unchanged if a beat happened
-  too recently."
- [state shows player ^CdjStatus status]
-  (let [last-beat (get-in state [:last-beat player])]
-    (if (and (.isPlaying status)
-             (or (not last-beat)
-                 (> (- (.getTimestamp status) last-beat) su/min-beat-distance)))
-      ;; Reduce over playing phrase triggers, updating their cue entered flags.
-      #_(update-cue-entered-state show track player (.getBeatNumber status))
-      shows ;; TODO this is where the reduction would go.
-      shows)))
+(defn- entered-cues-for-player
+  "Given an updated show state, a phrase trigger UUID and its
+  runtime-info map, a player number, and the current playback position
+  of that player, return the set of that phrase trigger's cues which
+  the player is positioned within."
+  [show uuid runtime-info player position]
+  (or
+   (when position
+     (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
+                                                       (.beatNumber position)))]
+       (let [beat-in-section (- (.beatNumber position) first-beat -1)]
+         (util/iget (get-in runtime-info [:cues :intervals section])
+                    (su/loop-phrase-trigger-beat runtime-info beat-in-section section)))))
+   #{}))
 
-;; TODO: This is where we should also update the phrase's cues' :entered states; clear them out
-;;       if the phrase is not tripped, and set them for the correct cues when it is.
 (defn- update-phrase-tripped-states
   "Given the updated state of a show (including the phrase triggers
   which are now running in it), update each phrase trigger's
   `:tripped` flag for easy access to that information at rendering
-  time."
-  [show]
+  time, and update all their cues' `:entered` states."
+  [show player ^TrackPositionUpdate position]
   (let [playing-phrases (vals (:playing-phrases show))]
     (update show :phrases
             (fn [phrases]
-              (reduce-kv (fn [phrases uuid _runtime-info]
-                           (assoc-in phrases [uuid :tripped]
-                                     (boolean (some (fn [player-map] (contains? player-map uuid)) playing-phrases))))
+              (reduce-kv (fn [phrases uuid runtime-info]
+                           (let [tripped (boolean (some (fn [player-map]
+                                                          (contains? player-map uuid)) playing-phrases))]
+                             (-> phrases
+                                 (assoc-in [uuid :tripped] tripped)
+                                 (update-in [uuid :entered]
+                                            (fn [entered]
+                                              (when tripped
+                                                (assoc entered player (entered-cues-for-player
+                                                                       show uuid runtime-info player position))))))))
                          phrases
                          phrases)))))
 
@@ -1641,7 +1639,7 @@ editor windows, in their cue canvases as well."
   triggers, but if that doesn't leave a solo trigger running, perform
   a new lottery using their weights to add one, both at the global
   level and in each show."
-  [state player]
+  [state player position]
   (let [old-phrase (get-in state [:last :current-phrase player])
         new-phrase (get-in state [:current-phrase player])
         status     (.getLatestStatusFor util/virtual-cdj player)
@@ -1658,7 +1656,8 @@ editor windows, in their cue canvases as well."
                                            (let [updated-show (update-in show [:playing-phrases player]
                                                                          phrases-now-running-for-show current show
                                                                          player old-phrase new-phrase unblocked global)]
-                                             (assoc shows k (update-phrase-tripped-states updated-show))))
+                                             (assoc shows k
+                                                    (update-phrase-tripped-states updated-show player position))))
                                          {}
                                          current))))]
     updated))
@@ -1734,7 +1733,7 @@ editor windows, in their cue canvases as well."
         (no-longer-playing show player (set/difference was-playing playing) status false)
         (now-playing show player (set/difference playing was-playing) status false))))
 
-  (doseq [[uuid sections] (get-in show [:playing-phrases player])]
+  (doseq [[uuid _sections] (get-in show [:playing-phrases player])]
     (let [runtime-info     (get-in show [:phrases uuid])
           old-runtime-info (get-in show [:last :phrases uuid])
           phrase           (get-in show [:contents :phrases uuid])
@@ -1747,8 +1746,8 @@ editor windows, in their cue canvases as well."
           (when-let [cue (su/find-cue phrase cue-uuid)]  ; Make sure it wasn't deleted.
             (let [event (if (and beat (= :start cue) (.beatNumber position)) :started-on-beat :started-late)
                   status-or-beat (if (= event :started-on-beat) [beat position] (or status beat))]
-              (cues/send-cue-messages phrase cue :entered status-or-beat)
-              (cues/send-cue-messages phrase cue event status-or-beat))
+              (cues/send-cue-messages phrase runtime-info cue :entered status-or-beat)
+              (cues/send-cue-messages phrase runtime-info cue event status-or-beat))
             (cues/repaint-cue phrase cue)
             (cues/repaint-cue-states phrase cue))))
 
@@ -1794,7 +1793,7 @@ editor windows, in their cue canvases as well."
   and must be the just-updated values, with a valid snapshot the
   show's `:last` key."
   [state player ^Beat beat ^TrackPositionUpdate position]
-  (let [updated (update-running-phrase-triggers state player)]
+  (let [updated (update-running-phrase-triggers state player position)]
     (future
       (try
         (doseq [show (vals updated)]
@@ -1813,7 +1812,7 @@ editor windows, in their cue canvases as well."
   packet the Tracked Update Expressions for any active phrase triggers
   for the player will be called with it."
   [state player ^CdjStatus status]
-  (let [updated (update-running-phrase-triggers state player)]
+  (let [updated (update-running-phrase-triggers state player (.getLatestPositionFor util/time-finder player))]
     (future
       (try
         (doseq [show (vals updated)]
