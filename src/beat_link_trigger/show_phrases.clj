@@ -46,7 +46,8 @@
   `:cueing` is a map from player number to a boolean indicating that the
   player seems to be previewing a track rather than actually playing it,
   which is used in calculating `:playing`, and `:last-beat` is a map from
-  player number to the timestamp when we last received a beat, so we can
+  player number to a tuple of the timestamp when we last received a beat
+  and the number of the beat that it started, so we can
   avoid being tricked by status messages arriving within a few
   milliseconds after which still report the old beat number."}
   phrase-state (atom {}))
@@ -1680,6 +1681,21 @@ editor windows, in their cue canvases as well."
                        (first (util/iget intervals beat))))]
     (assoc-in state [:current-phrase player] new-phrase)))
 
+(defn- past-beat?
+  "Checks if it has been long enough after a beat packet was received to
+  trust a status-packet's beat number. `state` is a current snapshot
+  of our phrase state global, which includes information about when we
+  received the most recent beat from the specified `player`, and
+  `status` is a status update from the player that we are considering
+  whether we should trust. If the beat happened long enough ago, or
+  did not represent a beat one higher than the one found in the status
+  packet we just received, then we will process the status packet."
+  [state player ^CdjStatus status]
+  (let [[timestamp last-beat] (get-in state [:last-beat player])]
+    (or (not timestamp)
+        (> (- (.getTimestamp status) timestamp) su/min-beat-distance)
+        (not= (.getBeatNumber status) (dec last-beat)))))
+
 (defn- update-phrase-if-past-beat
   "Checks if it has been long enough after a beat packet was received to
   update the player's current playing phrase based on a status-packet's
@@ -1692,10 +1708,9 @@ editor windows, in their cue canvases as well."
   we always remove any formerly playing phrase."
   [state player ^CdjStatus status]
   (if (get-in state [:playing player])
-    (let [last-beat (get-in state [:last-beat player])]
-      (if (or (not last-beat) (> (- (.getTimestamp status) last-beat) su/min-beat-distance))
-        (update-player-phrase state player (.getBeatNumber status))
-        state))
+    (if (past-beat? state player status)
+      (update-player-phrase state player (.getBeatNumber status))
+      state)
     (update state :current-phrase dissoc player))
   state)
 
@@ -1788,15 +1803,15 @@ editor windows, in their cue canvases as well."
           (timbre/info t "Problem delivering phrase beat events."))))))
 
 (defn- deliver-change-events
-  "Called when a status packet or signature change has updated the phrase
-  status. Compares the new status with the snapshot of the last
-  status, runs any relevant expressions, and updates any needed UI
-  elements. `show` must be the just-updated value, with a valid
-  snapshot in the `:last` key. `player` is the player number, in case
-  `status` is `nil` because we are reacting to a signature change
-  rather than a status packet. Finally, even if nothing has changed,
-  if there is a status packet the Tracked Update Expressions for any
-  active phrase triggers for the player will be called with it."
+  "Called when a status packet or beat has updated the phrase status.
+  Compares the new status with the snapshot of the last status, runs
+  any relevant expressions, and updates any needed UI elements. `show`
+  must be the just-updated value, with a valid snapshot in the `:last`
+  key. `player` is the player number, in case `status` is `nil`
+  because we are reacting to a signature change rather than a status
+  packet. Finally, even if nothing has changed, if there is a status
+  packet the Tracked Update Expressions for any active phrase triggers
+  for the player will be called with it."
   [state player ^CdjStatus status]
   (let [updated (update-running-phrase-triggers state player)]
     (future
@@ -1818,7 +1833,7 @@ editor windows, in their cue canvases as well."
                              (assoc-in [:playing player] ; In case beat arrives before playing status.
                                        ;; But ignore the beat as a playing indicator if DJ is actually cueing.
                                        (not (get-in state [:cueing player])))
-                             (assoc-in [:last-beat player] (.getTimestamp beat))
+                             (assoc-in [:last-beat player] [(.getTimestamp beat) (.beatNumber position)])
                              (update-player-phrase player (.beatNumber position)))))]
     (deliver-beat-events updated player beat position)))
 
@@ -1884,7 +1899,8 @@ editor windows, in their cue canvases as well."
                                 (assoc-in [:master player] (.isTempoMaster status))
                                 (assoc-in [:cueing player] (boolean (su/cueing-states (.getPlayState1 status))))
                                 (update-phrase-if-past-beat player status))))]
-    (deliver-change-events updated player status)))
+    (when (past-beat? updated player status)
+      (deliver-change-events updated player status))))
 
 (defonce ^{:private true
            :doc "Responds appropriately to device status updates."}
