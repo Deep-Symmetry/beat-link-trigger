@@ -262,7 +262,7 @@
               (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
               (.drawLine g x (- h su/cue-canvas-margin 9) x (- h su/cue-canvas-margin 5)))))))
 
-    ;; Paint the cues. TODO: Someday we could be fancy like show-cues/paint-preview-cues and figure
+    ;; Paint the cues. Someday we could be fancy like show-cues/paint-preview-cues and figure
     ;; out which ones are actually visible in the clip rect, but I am punting on that for now to get
     ;; things basically working, and then we can see if performance seems to merit it.
     (let [^Graphics2D g2 (.create g)]
@@ -1325,17 +1325,17 @@ editor windows, in their cue canvases as well."
   trigger uuids. If we learned about the playback from a status
   update, it will be in `status`. If `phrase-changed` is true, this is
   a new instance of the trigger even if the set of players playing it
-  would not suggest that."
-  [show player playing status phrase-changed]
+  would not suggest that. `on-beat` indicates whether this is in
+  response to a beat."
+  [show player playing status phrase-changed on-beat?]
   (doseq [uuid playing]
     (when (or phrase-changed (= #{player} (util/players-phrase-uuid-set (:playing-phrases show) uuid)))
       ;; This is the first player playing the phrase trigger.
       (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
             runtime-info (su/phrase-runtime-info show phrase)]
         (send-playing-messages show phrase status)
-        ;; TODO: I don't think these are necessarily automatically late? How to tell? Also, what sets this up?
-        (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report late start for any cues we were on.
-          (cues/send-cue-messages phrase runtime-info uuid :started-late status)
+        (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report start for any cues we are on.
+          (cues/send-cue-messages phrase runtime-info uuid (if on-beat? :started-on-beat :started-late) status)
           (cues/repaint-cue phrase uuid)
           (cues/repaint-cue-states phrase uuid))
         (repaint-phrase-state show phrase)
@@ -1725,11 +1725,11 @@ editor windows, in their cue canvases as well."
       (do
         #_(timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
         (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status true)
-        (now-playing show player (keys (get-in show [:playing-phrases player])) status true))
+        (now-playing show player (keys (get-in show [:playing-phrases player])) status true (some? beat)))
       (let [was-playing (set (keys (get-in show [:last :playing-phrases player])))
             playing     (set (keys (get-in show [:playing-phrases player])))]
         (no-longer-playing show player (set/difference was-playing playing) status false)
-        (now-playing show player (set/difference playing was-playing) status false))))
+        (now-playing show player (set/difference playing was-playing) status false (some? beat)))))
 
   (doseq [[uuid _sections] (get-in show [:playing-phrases player])]
     (let [runtime-info     (get-in show [:phrases uuid])
@@ -1800,7 +1800,7 @@ editor windows, in their cue canvases as well."
           (timbre/info t "Problem delivering phrase beat events."))))))
 
 (defn- deliver-change-events
-  "Called when a status packet or beat has updated the phrase status.
+  "Called when a status packet has updated the phrase status.
   Compares the new status with the snapshot of the last status, runs
   any relevant expressions, and updates any needed UI elements. `show`
   must be the just-updated value, with a valid snapshot in the `:last`
