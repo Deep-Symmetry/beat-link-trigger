@@ -202,14 +202,17 @@
 
 (defn x-for-beat
   "Translates a beat number into an x coordinate over either a waveform
-  detail component (for tracks), or cue canvas (for phrase triggers)."
-  [context ^JPanel wave-or-canvas beat section]
-  (if (track? context)
-    (let [^WaveformDetailComponent wave wave-or-canvas]
-      (long (.getXForBeat wave beat)))
-    (let [[_ phrase runtime-info] (su/latest-show-and-context context)
-          [start-bar] (get-in runtime-info [:sections section])]
-      (long (cue-canvas-x-for-time phrase (* 500 (+ (dec beat) (* 4 start-bar))))))))
+  detail component (for tracks), or cue canvas (for phrase triggers).
+  If `fraction` is supplied, moves that much towards the next beat."
+  ([context ^JPanel wave-or-canvas beat section]
+   (x-for-beat context wave-or-canvas beat section 0))
+  ([context ^JPanel wave-or-canvas beat section fraction]
+   (if (track? context)
+     (let [^WaveformDetailComponent wave wave-or-canvas]
+       (long (.getXForBeat wave beat)))
+     (let [[_ phrase runtime-info] (su/latest-show-and-context context)
+           [start-bar] (get-in runtime-info [:sections section])]
+       (long (cue-canvas-x-for-time phrase (* 500 (+ (dec beat) fraction (* 4 start-bar)))))))))
 
 (defn- cue-rectangle
   "Calculates the outline of a cue within the coordinate system of the
@@ -2044,17 +2047,13 @@
                 (when-let [position (.getLatestPositionFor util/time-finder player)]
                   (.setPlaybackState ^WaveformDetailComponent (:wave editor)
                                      player (.getTimeFor util/time-finder player) (.playing position))))
-              (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context))]
-                (when-let [position (.getLatestPositionFor util/time-finder player)]
-                  ;; TODO: Something equivalent for phrase triggers.
-                  #_(.setPlaybackState ^WaveformDetailComponent (:wave editor)
-                                       player (.getTimeFor util/time-finder player) (.playing position))))))
+              (seesaw/repaint! (:wave editor))))  ; We don't have a more efficient phrase paint handler anyway.
           (catch Throwable t
             (timbre/warn "Problem animating cues editor waveform" t)))
         (recur (:cues-editor (if (track? context)
                                (latest-track context)
                                (phrase-runtime-info (latest-show show) context))))))
-    #_(timbre/info "Cues editor animation thread ending.")))
+    (timbre/debug "Cues editor animation thread ending.")))
 
 (defn- new-cue-folder
   "Opens a dialog in which a new cue folder can be created."
@@ -2134,12 +2133,16 @@
                                                                               (remove-cue-folder context
                                                                                                  folder)))))])))])))
 
+(def playback-marker-color
+  "The color used for drawing playback markers in cue canvases."
+  (Color. 255 0 0 235))
+
 (defn- paint-cue-canvas
   "Draws the zommable scrolling view of the phrase trigger on which cues
   can be placed."
   [context c ^Graphics2D g]
   (let [h              (double (seesaw/height c))
-        [_show phrase
+        [show phrase
          runtime-info] (latest-show-and-context context)
         sections       (:sections runtime-info)
         bars           (:total-bars sections)
@@ -2207,7 +2210,24 @@
         (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
         (.setPaint g2 Color/white)
         (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) h))))
-      (.dispose g2))))
+      (.dispose g2))
+
+    ;; Paint the positions of the players that are playing within this phrase trigger.
+    (let [uuid (:uuid context)]
+      (.setPaint g playback-marker-color)
+      (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
+        (when-let [position (.getLatestPositionFor util/time-finder player)]
+          (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
+                                                            (.beatNumber position)))]
+            (let [beat        (- (.beatNumber position) first-beat -1)
+                  tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
+                  ms-per-beat (/ 60000.0 tempo)
+                  fraction    (/ (- (.getTimeFor util/time-finder player)
+                                    (.getTimeWithinTrack (.beatGrid position) (.beatNumber position)))
+                                 ms-per-beat)
+                  looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                  x (x-for-beat context c (long (- looped-beat fraction)) section fraction)]
+              (.fillRect g (dec x) 0 2 (.getHeight c)))))))))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified track or phrase

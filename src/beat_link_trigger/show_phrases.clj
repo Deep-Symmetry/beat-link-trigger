@@ -197,10 +197,6 @@
     (repaint-cue-canvases show phrase preview)
     (cues/update-all-cue-spinner-end-models phrase)))
 
-(def playback-marker-color
-  "The color used for drawing playback markers in cue canvases."
-  (Color. 255 0 0 235))
-
 (defn- paint-phrase-preview
   "Draws the compact view of the phrase shown within the Show window
   row, identifying the relative sizes of the sections, and positions
@@ -290,7 +286,7 @@
       (.dispose g2))
 
     ;; Paint the positions of the players that are playing within this phrase trigger.
-    (.setPaint g playback-marker-color)
+    (.setPaint g cues/playback-marker-color)
     (doseq [player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
       (when-let [position (.getLatestPositionFor util/time-finder player)]
         (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
