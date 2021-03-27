@@ -1709,8 +1709,7 @@ editor windows, in their cue canvases as well."
     (if (past-beat? state player status)
       (update-player-phrase state player (.getBeatNumber status))
       state)
-    (update state :current-phrase dissoc player))
-  state)
+    (update state :current-phrase dissoc player)))
 
 (defn- send-phrase-changes
   "Compares the old and new sets of entered cues for all phrase
