@@ -267,7 +267,7 @@
   [show signature playing]
   (let [text         (if (empty? playing)
                        "--"
-                       (str/join ", " (sort playing))) ;; TODO: Make Master players amber?
+                       (str/join ", " (sort playing)))
         playing-label (seesaw/select (get-in (latest-show show) [:tracks signature :panel]) [:#playing])]
     (seesaw/invoke-later
      (seesaw/config! playing-label :text text))))
@@ -359,7 +359,7 @@
   [show signature loaded]
   (let [text         (if (empty? loaded)
                        "--"
-                       (str/join ", " (sort loaded))) ;; TODO: Make on-air players red?
+                       (str/join ", " (sort loaded)))
         loaded-label (seesaw/select (get-in (latest-show show) [:tracks signature :panel]) [:#players])]
     (seesaw/invoke-later
      (seesaw/config! loaded-label :text text))))
@@ -2326,7 +2326,6 @@
         (phrases/create-phrase-panels show)
         (su/update-row-visibility show)
         (refresh-signatures show)
-        ;; TODO: Phrase equivalent of refresh-signatures.
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
         (attach-track-custom-editor-opener show nil enabled-default :enabled nil)

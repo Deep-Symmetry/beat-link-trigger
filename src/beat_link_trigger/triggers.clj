@@ -388,7 +388,7 @@
   ([trigger status data real?]
    (try
      (let [{:keys [note channel message send start start-stop]} (:value data)]
-       (timbre/info "Reporting activation:" message note "on channel" channel)  ; TODO: reduce these to debug?
+       (timbre/debug "Reporting activation:" message note "on channel" channel)
        (when-let [output (get-chosen-output trigger data)]
          (case message
            "Note"  (midi/midi-note-on output note 127 (dec channel))
@@ -415,7 +415,7 @@
   ([trigger status data real?]
    (try
      (let [{:keys [note channel message stop start-stop]} (:value data)]
-       (timbre/info "Reporting deactivation:" message note "on channel" channel)
+       (timbre/debug "Reporting deactivation:" message note "on channel" channel)
        (when-let [output (get-chosen-output trigger data)]
          (case message
            "Note"  (midi/midi-note-off output note (dec channel))

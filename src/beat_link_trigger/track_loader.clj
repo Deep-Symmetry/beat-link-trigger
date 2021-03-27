@@ -781,7 +781,7 @@
          (attach-menu-node-children node (.requestColorMenuFrom menu-loader slot-reference 0) slot-reference))))
    true))
 
-;; Creates a menu item node for the color pink. TODO: Make it actually pink?
+;; Creates a menu item node for the color pink.
 (defmethod menu-item-node Message$MenuItemType/COLOR_PINK color-pink-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -795,7 +795,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 1) slot-reference))))
    true))
 
-;; Creates a menu item node for the color red. TODO: Make it actually red?
+;; Creates a menu item node for the color red.
 (defmethod menu-item-node Message$MenuItemType/COLOR_RED color-red-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -809,7 +809,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 2) slot-reference))))
    true))
 
-;; Creates a menu item node for the color orange. TODO: Make it actually orange?
+;; Creates a menu item node for the color orange.
 (defmethod menu-item-node Message$MenuItemType/COLOR_ORANGE color-orange-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -823,7 +823,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 3) slot-reference))))
    true))
 
-;; Creates a menu item node for the color yellow. TODO: Make it actually yellow?
+;; Creates a menu item node for the color yellow.
 (defmethod menu-item-node Message$MenuItemType/COLOR_YELLOW color-yellow-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -837,7 +837,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 4) slot-reference))))
    true))
 
-;; Creates a menu item node for the color green. TODO: Make it actually green?
+;; Creates a menu item node for the color green.
 (defmethod menu-item-node Message$MenuItemType/COLOR_GREEN color-green-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -851,7 +851,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 5) slot-reference))))
    true))
 
-;; Creates a menu item node for the color aqua. TODO: Make it actually aqua?
+;; Creates a menu item node for the color aqua.
 (defmethod menu-item-node Message$MenuItemType/COLOR_AQUA color-aqua-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -865,7 +865,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 6) slot-reference))))
    true))
 
-;; Creates a menu item node for the color blue. TODO: Make it actually blue?
+;; Creates a menu item node for the color blue.
 (defmethod menu-item-node Message$MenuItemType/COLOR_BLUE color-blue-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
@@ -879,7 +879,7 @@
          (attach-menu-node-children node (.requestTracksByColorFrom menu-loader slot-reference 0 7) slot-reference))))
    true))
 
-;; Creates a menu item node for the color purple. TODO: Make it actually purple?
+;; Creates a menu item node for the color purple.
 (defmethod menu-item-node Message$MenuItemType/COLOR_PURPLE color-purple-menu-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.

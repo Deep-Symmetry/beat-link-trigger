@@ -1723,7 +1723,7 @@ editor windows, in their cue canvases as well."
         phrase     (get-in state [:current-phrase player])]
     (if (not= old-phrase phrase)
       (do
-        (timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
+        #_(timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
         (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status true)
         (now-playing show player (keys (get-in show [:playing-phrases player])) status true))
       (let [was-playing (set (keys (get-in show [:last :playing-phrases player])))

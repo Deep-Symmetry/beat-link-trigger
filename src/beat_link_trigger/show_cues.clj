@@ -445,13 +445,13 @@
 (defn entered?
   "Checks whether any player has entered the cue.
   `track-or-phrase-runtime-info` must be current."
-  [track-or-phrase-runtime-info cue]
-  ((reduce clojure.set/union (vals (:entered track-or-phrase-runtime-info))) (:uuid cue)))
+  [_context runtime-info cue]
+  ((reduce clojure.set/union (vals (:entered runtime-info))) (:uuid cue)))
 
 (defn- started?
   "Checks whether any players which have entered a cue is actually
   playing."
-  [context cue]
+  [context _runtime-info cue]
   (seq (players-playing-cue context cue)))
 
 (def cue-opacity
@@ -465,8 +465,8 @@
   the cue is entered and playing."
   [context cue]
   (let [[_show context runtime-info] (latest-show-and-context context)]
-    (if (and (:tripped runtime-info) (entered? runtime-info cue))
-      (if (started? context cue) 0.8 0.65)
+    (if (and (:tripped runtime-info) (entered? context runtime-info cue))
+      (if (started? context runtime-info cue) 0.8 0.65)
       0.5)))
 
 (defn send-cue-messages
@@ -775,18 +775,18 @@
       (let [cue-rect (cue-rectangle context cue wave)]
         (.repaint wave (.x cue-rect) (.y cue-rect) (.width cue-rect) (.height cue-rect))))))
 
-;; TODO: Will need a versioon for phrase cues, either rename this one or add both branches to it.
 (defn- paint-cue-state
   "Draws a representation of the state of the cue, including whether its
-  track is enabled and whether any players are positioned or playing
-  inside it (as deterimined by the function passed in `f`)."
-  [track cue f c ^Graphics2D g]
-  (let [w            (double (seesaw/width c))
-        h            (double (seesaw/height c))
-        outline      (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
-        [show track] (latest-show-and-track track)
-        enabled?     (su/enabled? show track)
-        active?      (f track cue)]
+  track is enabled (or its phrase trigger is playing) and whether any
+  players are positioned or playing inside it (as deterimined by the
+  function passed in `f`)."
+  [context cue f c ^Graphics2D g]
+  (let [w                           (double (seesaw/width c))
+        h                           (double (seesaw/height c))
+        outline                     (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
+        [show context runtime-info] (latest-show-and-context context)
+        enabled?                    (if (track? context) (su/enabled? show context) (:tripped runtime-info))
+        active?                     (f context runtime-info cue)]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
 
     (when active? ; Draw the inner filled circle showing the cue is entered or playing.
@@ -1129,7 +1129,7 @@
                        ["Entered:" "gap unrelated, align right"]
                        [(seesaw/canvas :id :entered-state :size [18 :by 18] :opaque? false
                                        :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
-                                       :paint (partial paint-cue-state context cue entered?))  ; TODO: phrase version?
+                                       :paint (partial paint-cue-state context cue entered?))
                         "spanx, split"]
                        [(seesaw/label :text "Message:" :halign :right) "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:entered :message])]
@@ -1143,7 +1143,7 @@
                                        :tip (str "Outer ring shows "
                                                  (if track? "track enabled" "phrase trigger chosen")
                                                  ", inner light when player(s) playing inside cue.")
-                                       :paint (partial paint-cue-state context cue started?))  ; TODO: phrase version?
+                                       :paint (partial paint-cue-state context cue started?))
                         "spanx, split"]
                        ["On-Beat Message:" "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:started-on-beat :message])]
