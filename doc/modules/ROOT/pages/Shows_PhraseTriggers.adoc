@@ -127,9 +127,9 @@ image:PhraseTriggerEnabled.png[Phrase trigger Enabled choices,1164,159]
   the track playing is too slow or too fast when it starts playing the
   phrase, it will not activate this phrase trigger.
 
-* And you can assign a weight, from 1 to 1,000, that adjusts how
-  likely this trigger is likely to be picked among all the triggers
-  which are enabled.
+* And you can assign a weight, from 1 to 1000, that adjusts how likely
+  this trigger is likely to be picked among all the triggers which are
+  enabled.
 
 TIP: A good way to understand how weights work is to think of all the
 competing Solo phrase triggers that might be activated when a phrase
@@ -175,12 +175,12 @@ and be used instead of your filter code.
 [[structure]]
 == Phrase Trigger Structure
 
-The phrase trigger is divided into, whose sizes you get to choose
-using the
-<<Shows_PhraseTriggers.adoc#enabling-weighting,*Start*, *Loop*, *End*,
-and *Fill* Spinners>>. The size you choose will determine the size of
-the portion of canvas on which you can place cues for each section of
-the phrase trigger:
+The phrase trigger is divided into four sections, whose sizes you get
+to choose using the *Start*, *Loop*, *End*, and *Fill* Spinners shown
+in the screen shot
+<<Shows_PhraseTriggers.adoc#enabling-weighting,above>>. The size you
+choose will determine the size of the portion of canvas on which you
+can place cues for each section of the phrase trigger:
 
 * Start, which gets lined up with the beginning of the phrase in the
   track, and can contain zero or more bars, identified by a green
@@ -222,7 +222,7 @@ Playing and Stopped message, which can be configured as MIDI or a
 custom expression. When a trigger is enabled as a phrase begins, and
 chosen (if it is solo), the Playing message is sent. When the end of
 the phrase is reached (or the player stops, or the DJ jumps out of the
-phrase), the Stop message is sent.
+phrase), the Stopped message is sent.
 
 However, the real power of phrases for building creative shows is that
 they will <<editing-cues,provide a canvas>> on which you can draw
@@ -283,13 +283,16 @@ is a filled circle inside the enabled indicator ring:
 |Enabled, Not Playing
 |image:Enabled.png[Enabled,52,52]
 
-|Disabled, Playing
-|image:DisabledPlaying.png[alt=Disabled, Playing,width=52,height=52]
-
 |Enabled, Playing
 |image:EnabledPlaying.png[alt=Enabled, Playing,width=52,height=52]
 
 |===
+
+Phrase triggers which are Enabled might not play because of
+exclusivity (they are Solo and a different phrase trigger was chosen).
+Because only Enabled phrase triggers are considered when a phrase
+plays, unlike tracks, you will never see a phrase trigger that is
+Disabled but Playing.
 
 NOTE: Because of a limitation of the DJ Link protocol, if a player is
 positioned right before a beat, and the DJ uses Cue Play (holds down
