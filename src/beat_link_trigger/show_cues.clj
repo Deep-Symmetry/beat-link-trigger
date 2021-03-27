@@ -2147,6 +2147,7 @@
         sections       (:sections runtime-info)
         bars           (:total-bars sections)
         stroke         (.getStroke g)
+        composite      (.getComposite g)
         label-font     (.getFont (javax.swing.UIManager/getDefaults) "Label.font")
         stripe         (fn [section]  ; Paint one of the section stripes.
                          (let [x              (x-for-beat phrase c 1 section)
@@ -2166,25 +2167,30 @@
                            (.setPaint g Color/black)
                            (.drawString g label (int (+ x 2)) (int (- h su/cue-canvas-margin 4)))
                            (.setClip g old-clip)))
-        fence (fn [section]  ; Paint one of the section boundary fences.
-                (let [[from-bar to-bar] (section sections)
-                      x                 (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)]
-                  (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
+        fence          (fn [section]  ; Paint one of the section boundary fences.
+                         (let [[from-bar to-bar] (section sections)
+                               x                 (x-for-beat phrase c (inc (* 4 (- to-bar from-bar))) section)]
+                           (.drawLine g x su/cue-canvas-margin x (- h su/cue-canvas-margin))))]
 
     (doseq [i (range 0 (inc (* 4 bars)) (if (< (get-in phrase [:cues :zoom] 4) 10) 1 4))]
-      (.setPaint g (if (zero? (mod i 4)) Color/red Color/white))
+      (let [down-beat? (zero? (mod i 4))]
+        (.setPaint g (if down-beat? Color/red Color/white))
+        (.setStroke g (BasicStroke. (if down-beat? 2.0 1.0))))
       (let [x (cue-canvas-x-for-time phrase (* 500 i))]
         (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
         (.drawLine g x (- h su/cue-canvas-margin 8) x (- h su/cue-canvas-margin 4))))
 
     ;; Paint the section stripes.
     (.setFont g label-font)
+    (.setStroke g stroke)
+    (.setComposite g (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER 0.75))
     (when (:start sections)
       (stripe :start))
     (stripe :loop)
     (when (:end sections)
       (stripe :end))
     (stripe :fill)
+    (.setComposite g composite)
 
     ;; Paint the section boundaries.
     (.setPaint g Color/white)
@@ -2197,20 +2203,19 @@
       (fence :end))
     (.setStroke g stroke)
 
-    (let [g2 (.create g)]
-      ;; Paint the cues.
-      (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
-      (doseq [cue (vals (get-in phrase [:cues :cues]))]
-        (.setPaint g2 (su/hue-to-color (:hue cue) (cue-lightness phrase cue)))
-        (.fill g2 (cue-rectangle phrase cue c)))
-      ;; Paint the beat selection, if any.
-      (when-let [[start end section] (get-current-selection phrase)]
-        (let [x (x-for-beat phrase c start section)
-              w (- (x-for-beat phrase c end section) x)]
-        (.setComposite g2 (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
-        (.setPaint g2 Color/white)
-        (.fill g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) h))))
-      (.dispose g2))
+    ;; Paint the cues.
+    (.setComposite g (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER cue-opacity))
+    (doseq [cue (vals (get-in phrase [:cues :cues]))]
+      (.setPaint g (su/hue-to-color (:hue cue) (cue-lightness phrase cue)))
+      (.fill g (cue-rectangle phrase cue c)))
+    ;; Paint the beat selection, if any.
+    (when-let [[start end section] (get-current-selection phrase)]
+      (let [x (x-for-beat phrase c start section)
+            w (- (x-for-beat phrase c end section) x)]
+        (.setComposite g (java.awt.AlphaComposite/getInstance java.awt.AlphaComposite/SRC_OVER selection-opacity))
+        (.setPaint g Color/white)
+        (.fill g (java.awt.geom.Rectangle2D$Double. (double x) 0.0 (double w) h))))
+    (.setComposite g composite)
 
     ;; Paint the positions of the players that are playing within this phrase trigger.
     (let [uuid (:uuid context)]
@@ -2226,7 +2231,7 @@
                                     (.getTimeWithinTrack (.beatGrid position) (.beatNumber position)))
                                  ms-per-beat)
                   looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
-                  x (x-for-beat context c (long (- looped-beat fraction)) section fraction)]
+                  x           (x-for-beat context c (long (- looped-beat fraction)) section fraction)]
               (.fillRect g (dec x) 0 2 (.getHeight c)))))))))
 
 (defn- create-cues-window

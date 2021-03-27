@@ -246,10 +246,12 @@
 
     (when (>= spacing 4)  ; There's enough room to draw bar lines.
       (.setPaint g Color/red)
+      (.setStroke g (BasicStroke. 2.0))
       (doseq [bar (range (inc bars))]
         (let [x (su/cue-canvas-preview-bar-x bar spacing)]
           (.drawLine g x su/cue-canvas-margin x (+ su/cue-canvas-margin 4))
-          (.drawLine g x (- h su/cue-canvas-margin 8) x (- h su/cue-canvas-margin 4)))))
+          (.drawLine g x (- h su/cue-canvas-margin 8) x (- h su/cue-canvas-margin 4))))
+      (.setStroke g stroke))
 
     (let [beat-spacing (quot spacing 4)]
       (when (>= beat-spacing 4)  ; There is enough room to draw beat lines.
