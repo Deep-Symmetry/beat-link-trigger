@@ -763,17 +763,13 @@ looping it if necessary."
 
 (defn cue-canvas-preview-x-for-beat
   "Calculate the x coordinate where a beat falls in a cue canvas preview
-  component. The beat is wrapped to fit into the specified section in
-  case it is looping. If `fraction` is supplied, moves that much
-  towards the next beat."
+  component."
   [^JPanel canvas runtime-info beat section]
-  (let [sections            (:sections runtime-info)
-        [start-bar end-bar] (section sections)
-        beat-modulus        (* 4 (- end-bar start-bar))
-        looped-beat         (mod (dec beat) beat-modulus)
-        bar                 (quot looped-beat 4)
-        beat-within-bar     (mod looped-beat 4)
-        bar-spacing         (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
+  (let [sections        (:sections runtime-info)
+        [start-bar]     (section sections)
+        bar             (quot (dec beat) 4)
+        beat-within-bar (mod (dec beat) 4)
+        bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
     (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing)
        (* beat-within-bar (quot bar-spacing 4)))))
 

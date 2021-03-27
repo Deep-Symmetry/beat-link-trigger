@@ -293,7 +293,8 @@
                                                           (.beatNumber position)))]
           (let [^Graphics2D g2 (.create g)
                 beat           (- (.beatNumber position) first-beat -1)
-                x              (su/cue-canvas-preview-x-for-beat c runtime-info beat section)]
+                looped-beat    (su/loop-phrase-trigger-beat runtime-info beat section)
+                x              (su/cue-canvas-preview-x-for-beat c runtime-info looped-beat section)]
             (.setStroke g2 (java.awt.BasicStroke. 3))
             (.drawRect g2 x 1 (quot spacing 4) (- (.getHeight c) 2))
             (.dispose g2)))))))
