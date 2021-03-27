@@ -49,6 +49,45 @@
   milliseconds after which still report the old beat number."}
   phrase-state (atom {}))
 
+(defn current-phrase
+  "Returns the `SongStructureEntry`, if any, from the track analysis for
+  the phrase that is currently playing on the specified player"
+  [player]
+  (get-in @phrase-state [:current-phrase player]))
+
+(defn current-phrase-type
+  "Returns the phrase type keyword identifying the phrase, if any,
+  currently playing on the specified player."
+  [player]
+  (when-let [phrase (current-phrase player)]
+    (util/phrase-type-keyword phrase)))
+
+(defn current-track-bank
+  "Returns the track bank keyword associated with the track phrase
+  analysis, if any, available for the track playing on the specified
+  player."
+  [player]
+  (when-let [phrase (current-phrase player)]
+    (util/track-bank-keyword (.. phrase _parent _parent))))
+
+(defn beat-range
+  "Finds the range of beats that a phrase occupies, handling the fact
+  that the first phrase may start with a partial bar by offseting to
+  where its down beat would be."
+  [player ^RekordboxAnlz$SongStructureEntry phrase ^BeatGrid grid]
+  (let [start       (.beat phrase)
+        [start end] (first (first (util/matching-subsequence (get @phrase-intervals player) start nil)))
+        offset      (dec (.getBeatWithinBar grid start))]
+    [(- start offset) end]))
+
+(defn current-phrase-beat-range
+  "Returns a tuple of the starting and ending beats for the phrase, if
+  any, which is currently playing on the specified player."
+  [player]
+  (when-let [phrase (current-phrase player)]
+    (let [grid (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player)]
+      (beat-range player phrase grid))))
+
 (defn- capture-current-state
   "Sets up the value of the `:last` key in `phrase-state` as described
   above, suitable for use as part of a `swap!` operation."
@@ -1348,7 +1387,7 @@ editor windows, in their cue canvases as well."
   [show status context phrase-trigger]
   (case (:enabled phrase-trigger)
 
-    "Custom"  ; TODO: Pass in the playing phrase to the expression somehow, along the lines of :beat-tpu?
+    "Custom"
     (let [result (run-phrase-function show phrase-trigger :custom-enabled status false)]
       (if (number? result)
         (let [weight (long (min (math/round result) 1000))]
@@ -1434,16 +1473,6 @@ editor windows, in their cue canvases as well."
                                                          (for [uuid (keys triggers-map)] [player uuid]))
                                                        (:playing-phrases show)))))]
     (and uuid (or (not= player running-player) (current-phrase-trigger-weight shows uuid player)))))
-
-(defn beat-range
-  "Finds the range of beats that a phrase occupies, handling the fact
-  that the first phrase may start with a partial bar by offseting to
-  where its down beat would be."
-  [player ^RekordboxAnlz$SongStructureEntry phrase ^BeatGrid grid]
-  (let [start       (.beat phrase)
-        [start end] (first (first (util/matching-subsequence (get @phrase-intervals player) start nil)))
-        offset      (dec (.getBeatWithinBar grid start))]
-    [(- start offset) end]))
 
 (defn align-sections
   "Given the starting and ending beats of the non-fill section of an

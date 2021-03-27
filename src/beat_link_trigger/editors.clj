@@ -392,6 +392,27 @@
                        (help/user-guide-link "ShowInternals.html#phrase-contents")
                        "\">User Guide</a> for details.")}
 
+   'phrase-type {:code '(when status ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-type)
+                                      (.getDeviceNumber status)))
+                 :doc  "The keyword identifying the type of the phrase that activated this phrase trigger."}
+
+   'phrase-beat-range {:code '(when status
+                                ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-beat-range)
+                                 (.getDeviceNumber status)))
+                 :doc  "A tuple of the starting and ending beats within the track corresponding to the phrase
+  that activated this phrase trigger."}
+
+   'track-bank {:code '(when status
+                         ((requiring-resolve 'beat-link-trigger.show-phrases/current-track-bank)
+                          (.getDeviceNumber status)))
+                 :doc  "The keyword identifying the track bank assigned to the track playing this phrase trigger."}
+
+   'phrase-structure {:code '(when status
+                               ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase)
+                                (.getDeviceNumber status)))
+                      :doc  "The track analysis <code><a href=\"https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html\">SongStructureEntry</a></code>
+  describing the phrase that activated this phrase trigger."}
+
    'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
                          show (:phrase trigger-data))
                  :doc  "The MIDI output object chosen for this phrase trigger. May be
@@ -412,7 +433,6 @@
              :doc  "The MIDI channel on which phrase trigger
   playing messages are sent."}
 
-   ;; TODO: And, current section? Anything else?
    'playing-players {:code '(util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
                                                           (:uuid (:phrase trigger-data)))
                      :doc  "The set of player numbers that are currently
@@ -642,12 +662,12 @@
   []
   {'track {:code '(:track trigger-data)
            :doc (str "All the details known about the track, if this cue is
-  in a track. See the <a href=\""
+  in a track rather than a phrase trigger. See the <a href=\""
                     (help/user-guide-link "ShowInternals.html#track")
                     "\">User Guide</a> for details.")}
    'phrase {:code '(:phrase trigger-data)
            :doc (str "All the details saved about the phrase trigger, if this
-  cue is in a phrase trigger. See the <a href=\""
+  cue is in a phrase trigger rather than a track. See the <a href=\""
                     (help/user-guide-link "ShowInternals.html#phrase-contents")
                     "\">User Guide</a> for details.")}
    'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
@@ -737,7 +757,6 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    ;; TODO: Set up special bindings that include track mood, phrase type keywords, see :beat-tpu.
                     :bindings (show-bindings-for-phrase-and-class CdjStatus)}
 
           :playing {:title "Playing Expression"
@@ -756,7 +775,6 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    ;; TODO: Same special bindings as enabled filter?
                     :bindings (show-bindings-for-phrase-and-class CdjStatus)}
 
           :beat {:title "Beat Expression"
