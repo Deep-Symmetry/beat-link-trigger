@@ -18,14 +18,11 @@
   (:import [org.deepsymmetry.beatlink Beat CdjStatus DeviceAnnouncementListener DeviceUpdateListener]
            [org.deepsymmetry.beatlink.data BeatGrid TrackPositionUpdate]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$SongStructureEntry]
-           [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
-           [java.awt.event InputEvent MouseEvent]
-           [java.awt.geom Rectangle2D$Double]
+           [java.awt BasicStroke Color Graphics2D RenderingHints]
+           [java.awt.event MouseEvent]
            [java.util UUID]
-           [javax.swing JComponent JFrame JOptionPane JPanel JScrollPane]
-           [javax.swing.text JTextComponent]
-           [jiconfont.icons.font_awesome FontAwesome]
-           [jiconfont.swing IconFontSwing]))
+           [javax.swing JFrame JPanel JScrollPane]
+           [javax.swing.text JTextComponent]))
 
 (defonce ^{:private true
            :doc "Holds a map of player numbers to an index of beat
@@ -1348,7 +1345,7 @@ editor windows, in their cue canvases as well."
   be assigned when randomly choosing between solo triggers. This is
   called in the context of a `swap!` operation with the most current
   values of `show` and `phrase-trigger`."
-  [show player phrase-playing status context phrase-trigger]
+  [show status context phrase-trigger]
   (case (:enabled phrase-trigger)
 
     "Custom"  ; TODO: Pass in the playing phrase to the expression somehow, along the lines of :beat-tpu?
@@ -1556,10 +1553,10 @@ editor windows, in their cue canvases as well."
   `:enabled` entry for each phrase trigger to reflect whether that
   phrase trigger is currently enabled for the player, and if so, what
   its weight should be in a lottery."
-  [phrases show player phrase-playing status context unblocked]
+  [phrases show player status context unblocked]
   (reduce-kv (fn [info-map uuid runtime-info]
                (assoc info-map uuid
-                      (let [weight (when unblocked (weight-if-eligible show player phrase-playing status context
+                      (let [weight (when unblocked (weight-if-eligible show status context
                                                                        (get-in show [:contents :phrases uuid])))]
                         (if weight
                           (assoc-in runtime-info [:enabled player] weight)
@@ -1575,12 +1572,11 @@ editor windows, in their cue canvases as well."
   accordingly. Performed in the context of a `swap!` operation on the
   open shows map, and starts out by capturing the prior state of each
   show, so we can detect when things have changed."
-  [shows player phrase-playing status context unblocked]
+  [shows player status context unblocked]
   (reduce-kv (fn [shows k show]
                (assoc shows k
                       (update (su/capture-current-state show) :phrases
-                              update-enabled-runtime-info-for-show show player phrase-playing
-                              status context unblocked)))
+                              update-enabled-runtime-info-for-show show player status context unblocked)))
              {}
              shows))
 
@@ -1646,8 +1642,7 @@ editor windows, in their cue canvases as well."
         unblocked  (track-unblocked? player)
         updated    (swap! @#'su/open-shows
                           (fn [current]
-                            (let [current (update-phrase-enabled-states current player new-phrase status context
-                                                                        unblocked)
+                            (let [current (update-phrase-enabled-states current player status context unblocked)
                                   global (when (and unblocked new-phrase
                                                     (not (global-survivor current player old-phrase new-phrase)))
                                            (run-global-lottery current player))]
