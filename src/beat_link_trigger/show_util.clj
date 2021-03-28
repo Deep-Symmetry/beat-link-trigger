@@ -9,9 +9,10 @@
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre]
-            [thi.ng.color.core :as color])
+            [thi.ng.color.core :as color]
+            [thi.ng.math.core :as thing-math])
   (:import [beat_link_trigger.util MidiChoice]
-           [org.deepsymmetry.beatlink CdjStatus$PlayState1 CdjStatus$TrackSourceSlot VirtualCdj]
+           [org.deepsymmetry.beatlink CdjStatus$PlayState1 CdjStatus$TrackSourceSlot Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference WaveformDetail WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
            [java.awt Color]
@@ -705,6 +706,34 @@
    :end   (hue-to-color 0.0 0.8)
    :fill  (hue-to-color 280.0 0.75)})
 
+(def playback-marker-color
+  "The color used for drawing standard playback markers."
+  (Color. 255 0 0 235))
+
+(defn phrase-playback-marker-color
+  "Determine the color to use for drawing a playback marker in a phrase
+  trigger cue canvas, which depends on the section. If `next-section`
+  is not `nil`, we are playing the final beat of a section, and this
+  tells us what section comes next. If it is the same as `section` we
+  are looping back, so we fade out the marker through the beat.
+  Otherwise we gradually fade form the color of the current section to
+  the color of the next section. `fraction` tells us how far into the
+  beat we have reached."
+  [section next-section fraction]
+  (if next-section
+    (if (= section next-section)
+      ;; We are looping back to the start of this section, fade to transparent over the beat.
+      (let [alpha  (.getAlpha playback-marker-color)
+            scaled (int (* alpha (- 1.0 fraction)))]
+        (Util/buildColor (phrase-section-colors section) (Color. 255 255 255 scaled)))
+      ;; We are moving to another section, interpolate between the colors over the beat.
+      (let [current (color/as-rgba (color/int32 (.getRGB (phrase-section-colors section))))
+            next    (color/as-rgba (color/int32 (.getRGB (phrase-section-colors next-section))))
+            blended (Color. @(color/as-int24 (thing-math/mix current next fraction)))]
+        (Util/buildColor blended playback-marker-color)))
+    ;; We are not ending a section, the color is simply that of the current section.
+    (Util/buildColor (phrase-section-colors section) playback-marker-color)))
+
 (defn swap-cue!
   "Atomically updates the map of open shows by calling the specified
   function with the supplied arguments on the current contents of the
@@ -755,11 +784,13 @@
 
 (defn loop-phrase-trigger-beat
   "Normalizes a beat to fit within the specified phrase trigger section,
-looping it if necessary."
+  looping it if necessary. Returns a tuple of the possibly-looped beat
+  value, and a flag indicating whether it is about to loop after this
+  beat."
   [runtime-info beat section]
   (let [[start-bar end-bar] (get-in runtime-info [:sections section])
         beat-modulus        (* 4 (- end-bar start-bar))]
-    (inc (mod (dec beat) beat-modulus))))
+    [(inc (mod (dec beat) beat-modulus)) (= (dec beat-modulus) (mod (dec (long beat)) beat-modulus))]))
 
 (defn cue-canvas-preview-x-for-beat
   "Calculate the x coordinate where a beat falls in a cue canvas preview

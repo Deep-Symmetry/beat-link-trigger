@@ -498,3 +498,13 @@ a phrase). This means whenever a phrase trigger cue's Entered message
 is sent it will always immediately be followed by a Started message,
 and whenever an Ended message is sent it will immediately be followed
 by an Exited.
+
+When drawing playback position markers in phrase trigger cue canvases,
+rather than the red color used in track waveforms, the color of the
+current phrase trigger section is used, to make it easier at a glance
+to tell what part of the phrase trigger is being played. When playing
+the final beat of that section, you can tell whether the position is
+about to loop back to the start of the section if the playback
+indicator gradually fades into transparency. Otherwise, if it is
+continuing on to a new section, it will instead fade to the color of
+the section that is about to begin.

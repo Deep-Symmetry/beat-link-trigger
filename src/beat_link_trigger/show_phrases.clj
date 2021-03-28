@@ -324,18 +324,22 @@
       (.dispose g2))
 
     ;; Paint the positions of the players that are playing within this phrase trigger.
-    (.setPaint g cues/playback-marker-color)
     (doseq [player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
       (when-let [time (.getTimeFor util/time-finder player)]
         (let [position   (.getLatestPositionFor util/time-finder player)
               track-beat (.findBeatAtTime (.beatGrid position) time)]
           (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
-            (let [beat        (- track-beat first-beat -1)
-                  tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
-                  ms-per-beat (/ 60000.0 tempo)
-                  fraction    (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
-                  looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
-                  x           (su/cue-canvas-preview-x-for-beat c runtime-info (long looped-beat) section fraction)]
+            (let [beat         (- track-beat first-beat -1)
+                  tempo        (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
+                  ms-per-beat  (/ 60000.0 tempo)
+                  fraction     (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
+                  [looped-beat
+                   will-loop]  (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                  next-section (when will-loop (or (first (first (util/iget (get-in show [:playing-phrases player uuid])
+                                                                            (inc track-beat))))
+                                                   :start))
+                  x            (su/cue-canvas-preview-x-for-beat c runtime-info (long looped-beat) section fraction)]
+              (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
               (.fillRect g (dec x) 0 2 (.getHeight c)))))))))
 
 (defn- start-animation-thread
@@ -1647,7 +1651,7 @@ editor windows, in their cue canvases as well."
                                                        (.beatNumber position)))]
        (let [beat-in-section (- (.beatNumber position) first-beat -1)]
          (util/iget (get-in runtime-info [:cues :intervals section])
-                    (su/loop-phrase-trigger-beat runtime-info beat-in-section section)))))
+                    (first (su/loop-phrase-trigger-beat runtime-info beat-in-section section))))))
    #{}))
 
 (defn- update-phrase-tripped-states

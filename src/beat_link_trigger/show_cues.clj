@@ -2129,10 +2129,6 @@
                                                                               (remove-cue-folder context
                                                                                                  folder)))))])))])))
 
-(def playback-marker-color
-  "The color used for drawing playback markers in cue canvases."
-  (Color. 255 0 0 235))
-
 (defn- paint-cue-canvas
   "Draws the zommable scrolling view of the phrase trigger on which cues
   can be placed."
@@ -2215,18 +2211,23 @@
 
     ;; Paint the positions of the players that are playing within this phrase trigger.
     (let [uuid (:uuid context)]
-      (.setPaint g playback-marker-color)
       (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
         (when-let [time (.getTimeFor util/time-finder player)]
           (let [position   (.getLatestPositionFor util/time-finder player)
                 track-beat (.findBeatAtTime (.beatGrid position) time)]
             (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
-              (let [beat        (- track-beat first-beat -1)
-                    tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
-                    ms-per-beat (/ 60000.0 tempo)
-                    fraction    (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
-                    looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
-                    x           (x-for-beat context c (long looped-beat) section fraction)]
+              (let [beat         (- track-beat first-beat -1)
+                    tempo        (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
+                    ms-per-beat  (/ 60000.0 tempo)
+                    fraction     (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
+                    [looped-beat
+                     will-loop]  (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                    x            (x-for-beat context c (long looped-beat) section fraction)
+                    next-section (when will-loop (or
+                                                  (first (first (util/iget (get-in show [:playing-phrases player uuid])
+                                                                           (inc track-beat))))
+                                                  :start))]
+                (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
                 (.fillRect g (dec x) 0 2 (.getHeight c))))))))))
 
 (defn- create-cues-window
