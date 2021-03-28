@@ -326,16 +326,41 @@
     ;; Paint the positions of the players that are playing within this phrase trigger.
     (.setPaint g cues/playback-marker-color)
     (doseq [player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
-      (when-let [position (.getLatestPositionFor util/time-finder player)]
-        (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
-                                                          (.beatNumber position)))]
-          (let [^Graphics2D g2 (.create g)
-                beat           (- (.beatNumber position) first-beat -1)
-                looped-beat    (su/loop-phrase-trigger-beat runtime-info beat section)
-                x              (su/cue-canvas-preview-x-for-beat c runtime-info looped-beat section)]
-            (.setStroke g2 (java.awt.BasicStroke. 3))
-            (.drawRect g2 x 1 (quot spacing 4) (- (.getHeight c) 2))
-            (.dispose g2)))))))
+      (when-let [time (.getTimeFor util/time-finder player)]
+        (let [position   (.getLatestPositionFor util/time-finder player)
+              track-beat (.findBeatAtTime (.beatGrid position) time)]
+          (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
+            (let [beat        (- track-beat first-beat -1)
+                  tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
+                  ms-per-beat (/ 60000.0 tempo)
+                  fraction    (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
+                  looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                  x           (su/cue-canvas-preview-x-for-beat c runtime-info (long looped-beat) section fraction)]
+              (.fillRect g (dec x) 0 2 (.getHeight c)))))))))
+
+(defn- start-animation-thread
+  "Creates a background thread that repaints the preview canvas 30 times
+   a second so the player positions will move smoothly while it is
+   actively playing. The thread will exit when the phrase trigger
+   becomes inactive. If one is already running, this does nothing."
+   [show uuid]
+   (swap-show! show (fn [current]
+                      (if (get-in current [:phrases uuid :animating?])
+                        show  ; There is already an animation thread running for this phrase trigger.
+                        (let [preview (seesaw/select (get-in show [:phrases uuid :panel]) [:#preview])]
+                          (future
+                            #_(timbre/info "Animation thread started for phrase trigger" uuid)
+                            (try
+                              (loop [show (latest-show show)]
+                                (when (get-in show [:phrases uuid :tripped])  ; Still active
+                                  (seesaw/repaint! preview)
+                                  (Thread/sleep 33)
+                                  (recur (latest-show show))))
+                              (catch Exception e
+                                (timbre/error e "Problem running phrase trigger preview animation thread.")))
+                            (swap-show! show update-in [:phrases uuid] dissoc :animating?)
+                            #_(timbre/info "Animation thread ended for phrase trigger" uuid))
+                          (assoc-in show [:phrases uuid :animating?] true))))))
 
 (defn- edit-cues-action
   "Creates the menu action which opens the phrase trigger's cue editor
@@ -1369,6 +1394,7 @@ editor windows, in their cue canvases as well."
       ;; This is the first player playing the phrase trigger.
       (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
             runtime-info (su/phrase-runtime-info show phrase)]
+        (start-animation-thread show uuid)
         (send-playing-messages show phrase status)
         (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report start for any cues we are on.
           (cues/send-cue-messages phrase runtime-info uuid (if on-beat? :started-on-beat :started-late) status)

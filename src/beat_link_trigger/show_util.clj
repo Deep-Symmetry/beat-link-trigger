@@ -763,15 +763,18 @@ looping it if necessary."
 
 (defn cue-canvas-preview-x-for-beat
   "Calculate the x coordinate where a beat falls in a cue canvas preview
-  component."
-  [^JPanel canvas runtime-info beat section]
-  (let [sections        (:sections runtime-info)
-        [start-bar]     (section sections)
-        bar             (quot (dec beat) 4)
-        beat-within-bar (mod (dec beat) 4)
-        bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
-    (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing)
-       (* beat-within-bar (quot bar-spacing 4)))))
+  component. If `fraction` is supplied, moves that much towards the
+  next beat."
+  ([^JPanel canvas runtime-info beat section]
+   (cue-canvas-preview-x-for-beat canvas runtime-info beat section 0))
+  ([^JPanel canvas runtime-info beat section fraction]
+   (let [sections        (:sections runtime-info)
+         [start-bar]     (section sections)
+         bar             (quot (dec beat) 4)
+         beat-within-bar (mod (dec beat) 4)
+         bar-spacing     (cue-canvas-preview-bar-spacing (:total-bars sections) (.getWidth canvas))]
+     (+ (cue-canvas-preview-bar-x (+ start-bar bar) bar-spacing)
+        (* (+ beat-within-bar fraction) (quot bar-spacing 4))))))
 
 (defn cue-canvas-preview-x-for-time
   "Calculates the x position at which notional number if milliseconds

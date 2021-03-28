@@ -2217,18 +2217,17 @@
     (let [uuid (:uuid context)]
       (.setPaint g playback-marker-color)
       (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
-        (when-let [position (.getLatestPositionFor util/time-finder player)]
-          (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
-                                                            (.beatNumber position)))]
-            (let [beat        (- (.beatNumber position) first-beat -1)
-                  tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
-                  ms-per-beat (/ 60000.0 tempo)
-                  fraction    (/ (- (.getTimeFor util/time-finder player)
-                                    (.getTimeWithinTrack (.beatGrid position) (.beatNumber position)))
-                                 ms-per-beat)
-                  looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
-                  x           (x-for-beat context c (long (- looped-beat fraction)) section fraction)]
-              (.fillRect g (dec x) 0 2 (.getHeight c)))))))))
+        (when-let [time (.getTimeFor util/time-finder player)]
+          (let [position   (.getLatestPositionFor util/time-finder player)
+                track-beat (.findBeatAtTime (.beatGrid position) time)]
+            (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
+              (let [beat        (- track-beat first-beat -1)
+                    tempo       (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
+                    ms-per-beat (/ 60000.0 tempo)
+                    fraction    (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
+                    looped-beat (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                    x           (x-for-beat context c (long looped-beat) section fraction)]
+                (.fillRect g (dec x) 0 2 (.getHeight c))))))))))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified track or phrase
