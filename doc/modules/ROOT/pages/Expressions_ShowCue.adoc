@@ -1,18 +1,21 @@
 = Show Cue Expressions
 include::partial$PagePreamble.adoc[]
 
-Each Cue you add to a show track can have its own set of expressions
-which apply to that cue, allowing you to take actions when some player
-moves into or out of that cue, if the cue starts playing on its first
-beat or from some point later within the cue, or if it stops playing.
+Each Cue you add to a show <<Shows_Tracks.adoc#,track>> (or
+<<Shows_PhraseTriggers.adoc#,phrase trigger>>) can have its own set of
+expressions which apply to that cue, allowing you to take actions when
+some player moves into or out of that cue, if the cue starts playing
+on its first beat or from some point later within the cue, or if it
+stops playing.
 
 The cue expressions can be accessed from the cue’s context menu. Cues
 have access to the same `globals` and `locals` atoms, and `show` and
-`track` values that track expressions in the cue’s track do. They also
-can use a `cue` value that contains everything Beat Link Trigger
-<<ShowInternals.adoc#cue,knows about the cue>>, and individual kinds
-of expressions will automatically have other values available to them
-which make sense in the context in which the expression is used.
+`track` or `phrase` values that track expressions in the cue’s track
+or phrase trigger do. They also can use a `cue` value that contains
+everything Beat Link Trigger <<ShowInternals.adoc#cue,knows about the
+cue>>, and individual kinds of expressions will automatically have
+other values available to them which make sense in the context in
+which the expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of
@@ -21,10 +24,11 @@ expression.
 [[cue-entered-expression]]
 == Entered Expression
 
-Called when the cue’s track is enabled, and the first player moves
-inside the cue (in other words, the playback position of at least one
-player that has the cue’s track loaded is within the beat range that
-defines the cue).
+Called when the cue’s track or phrase trigger is enabled, and the
+first player moves inside the cue (in other words, the playback
+position of at least one player that has the cue’s track loaded--or
+that is playing a phrase matched by the cue's phrase trigger--is
+within the beat range that defines the cue).
 
 NOTE: If you want this expression to run, make sure the cue’s
 menu:Entered Message[] menu is set to `Custom`.
@@ -32,15 +36,15 @@ menu:Entered Message[] menu is set to `Custom`.
 There can be multiple players inside the cue at any given moment, but
 this expression will be called only when the first one enters it.
 
-If the track is disabled, no players will be considered to be inside
-any of its cues.
+If the track or phrase trigger is disabled, no players will be
+considered to be inside any of its cues.
 
 [[cue-started-on-beat-expression]]
 == Started On-Beat Expression
 
-Called when the first player that is playing the track moves into the
-cue, as long as it does so right at the beginning of the cue, and hits
-the start of the first beat that defines the cue.
+Called when the first player that is playing the track or phrase moves
+into the cue, as long as it does so right at the beginning of the cue,
+and hits the start of the first beat that defines the cue.
 
 NOTE: If you want this expression to run, make sure the cue’s
 menu:On-Beat Message[] menu is set to `Custom`.
@@ -48,18 +52,18 @@ menu:On-Beat Message[] menu is set to `Custom`.
 There can be multiple players playing the cue at any given moment, but
 this expression will be called only when the first one enters it.
 
-If the track is disabled, no players will be considered to be playing
-any of its cues.
+If the track or phrase trigger is disabled, no players will be
+considered to be playing any of its cues.
 
 [[cue-started-late-expression]]
 == Started Late Expression
 
-Called when the first player that is playing the track moves into the
-cue, but misses the beginning of the cue, either because the DJ jumped
-into the middle of the cue, or because the player was paused somewhere
-in the middle of cue and then started playing, or because the Track
-was disabled when the cue was entered from the beginning and became
-enabled somewhere in the middle of the cue.
+Called when the first player that is playing the track or phrase moves
+into the cue, but misses the beginning of the cue, either because the
+DJ jumped into the middle of the cue, or because the player was paused
+somewhere in the middle of cue and then started playing, or because
+the track or phrase trigger was disabled when the cue was entered from
+the beginning and became enabled somewhere in the middle of the cue.
 
 NOTE: If you want this expression to run, make sure the cue’s
 menu:Late Message[] menu is set to `Custom`.
@@ -67,23 +71,24 @@ menu:Late Message[] menu is set to `Custom`.
 There can be multiple players playing the cue at any given moment, but
 this expression will be called only when the first one enters it.
 
-If the track is disabled, no players will be considered to be playing
-any of its cues.
+If the track or phrase trigger is disabled, no players will be
+considered to be playing any of its cues.
 
 [[cue-beat-expression]]
 == Beat Expression
 
 Called whenever a beat packet is received from a player that is
-playing inside this cue, as long as the track is enabled. (This
-is not called for the first beat of the cue; when that is played,
-the Started on-Beat expression is called instead.)
+playing inside this cue, as long as the track or phrase trigger is
+enabled. (This is not called for the first beat of the cue; when that
+is played, the Started on-Beat expression is called instead.)
 
 [[cue-tracked-update-expression]]
 == Tracked Update Expression
 
-Called whenever a status update packet is received from a player
-whose playback position is inside this cue (as long as the track
-is enabled), after the Entered or Started expression, if appropriate.
+Called whenever a status update packet is received from a player whose
+playback position is inside this cue (as long as the track or phrase
+trigger is enabled), after the Entered or Started expression, if
+appropriate.
 
 [[cue-ended-expression]]
 == Ended Expression
@@ -114,5 +119,6 @@ this expression will be called as soon as there are none left.
 NOTE: If you want this expression to run, make sure the cue’s
 menu:Entered Message[] menu is set to `Custom`.
 
-If the track becomes disabled while there were players positioned
-inside this cue, this expression will be called at that point as well.
+If the track or phrase trigger becomes disabled while there were
+players positioned inside this cue, this expression will be called at
+that point as well.

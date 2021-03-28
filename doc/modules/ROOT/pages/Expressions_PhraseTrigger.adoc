@@ -1,0 +1,209 @@
+= Phrase Trigger Expressions
+include::partial$PagePreamble.adoc[]
+
+Each phrase trigger you add to a show can have its own set of
+expressions which apply to that phrase trigger, allowing you to take
+actions when the phrase trigger starts or stops playing (because it
+has been succesfully matched to a playing phrase), or as part of
+deciding whether it should match a phrase, and how likely it should be
+chosen if it a Solo phrase trigger in competition with other matched
+phrase triggers. To react to more specific regions of the phrase trigger, see
+the <<Expressions_ShowCue.adoc#,Cue Expressions, above>>.
+
+The phrase trigger expressions can be accessed from the phrase
+trigger’s <<Shows_PhraseTriggers.adoc#context-menu,context menu>>. In
+addition to the `globals` atom and `show` value described above, these
+have access to a very similar `locals` atom which can be used to share
+values across expressions within the phrase trigger itself (but not
+other phrase triggers; each gets its own `locals` map), a `phrase`
+value that contains everything Beat Link Trigger
+<<ShowInternals.adoc#phrase-contents,knows about the phrase trigger>>,
+and individual kinds of expressions will automatically have other
+values available to them which make sense in the context in which the
+expression is used.
+
+TIP: The help text below the expression editor will list and explain
+the values that are automatically available for use in that kind of
+expression.
+
+[[setup-expression]]
+== Setup Expression
+
+This is run when the Show file is opened, either because you
+explicitly opened it using the Triggers window menu:File[] menu, or
+because Beat Link Trigger automatically reopened it at launch because
+you had it open the last time you used the program. You can use it to
+open network connections or set up other values for this phrase
+trigger and its cue expressions to use.
+
+[[enabled-filter-expression]]
+== Enabled Filter Expression
+
+The basic concept of an Enabled Filter is described in the
+<<Expressions#,introduction>> to this section; phrase triggers use
+them in a similar way. If the phrase trigger’s menu:Enabled[] menu is
+set to Custom, it will run its Enabled Filter Expression to decide
+what to do. If your expression returns a `true` value, this phrase
+trigger will be enabled as a candidate to activate during the current
+phrase; otherwise it will be disabled and not considered.
+
+In cases where you want to enable the phrase trigger you can also
+determine the _weight_ that should be used if it is a Solo phrase
+trigger in competition with other Solo phrase triggers to start
+playing (phrase triggers which are marked to Blend always activate
+when they are enabled, so weights do not matter for them). To do this,
+instead of simply returning `true`, return a number from 1 to 1000.
+The higher the number, the greater the chance that this phrase trigger
+will be chosen. (You can think of the weight value as the number of
+raffle tickets that the phrase trigger has purchased.) Returning
+`true` is equivalent to returning `1`.
+
+Disabled phrase triggers do not activate, and all of their configured
+cues are disabled.
+
+In your Enabled Filter expression, if you want to build logic on top
+of the kind of decisions that the phrase trigger UI offers, there are
+some convenience variables made available to you which describe the
+phrase that is currently playing:
+
+`phrase-type`:: A keyword which identifies the type of phrase it has
+been analyzed to be, corresponding to the options you can choose in
+the <<Shows_PhraseTriggers.adoc#phrase-picker,phrase picker>>. For
+tracks in a “low” mood, this will be one of `:low-intro`,
+`:low-verse-1`, `:low-verse-2`, `:low-bridge`, `:low-chorus`, or
+`:low-outro`.
++
+If the track was analyzed as a “mid” mood, it will be
+one of `:mid-intro`, `:mid-verse-1`, `:mid-verse-2`, `:mid-verse-3`,
+`:mid-verse-4`, `:mid-verse-5`, `:mid-verse-6`, `:mid-bridge`,
+`:mid-chorus`, or `:mid-outro`.
++
+And if the track has a “high” mood, it
+will be one of `:high-intro-1`, `:high-intro-2`, `:high-up-1`,
+`:high-up-2`, `:high-up-3`, `:high-down`, `:high-chorus-1`,
+`:high-chorus-2`, `:high-outro-1`, or `:high-outro-2`.
+
+`phrase-beat-range`:: A tuple (two-element vector) holding the beat
+numbers within the track at which the phrase begins and ends.
+
+`phrase-structure`:: The
+https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html[`SongStructureEntry`]
+object describing everything we have been able to decode about the
+phrase.
+
+`track-bank`:: A keyword identifying the lighting bank the DJ assigned
+to the track, corresponding to the options you can choose in the
+<<Shows_PhraseTriggers.adoc#bank-picker,bank picker>>. Will be one of
+`:club-1`, `:club-2`, `:cool`, `:hot`, `:natural`, `:subtle`,
+`:vivid`, or `:warm`.
+
+[[playing-expression]]
+== Playing Expression
+
+This is called when the phrase trigger activates because it was
+enabled and chosen for a phrase that is playing. (The same phrase
+trigger might be activated for phrases that are playing on multiple
+players at the same time; this expression is called only when the
+first phrase activates it. The phrase trigger will continue to be
+considered playing until the final phrase it is activated for ends or
+stops playing or stops matching the Enabled Filter expression.)
+
+NOTE: If you want this expression to run, make sure the phrase
+trigger’s menu:Playing Message[] menu is set to `Custom`.
+
+As an example, here is a Playing Expression that would do the exact
+same thing as setting the phrase trigger's menu:Playing Message[] menu
+to `Note`:
+
+[source,clojure]
+----
+(when midi-output
+  (midi/midi-note-on midi-output playing-note 127 (dec playing-channel)))
+----
+
+The `(when midi-output …)` clause that wraps the `midi-note-on` call
+just protects against the situation where the chosen output can’t be
+found because it isn’t plugged in at the moment. Without this, the
+attempt to send the note will throw an exception that gets written at
+length to the log file. In the context of this Expression, the
+`midi-output` variable is set to the MIDI output device chosen for the
+phrase trigger, and will be `nil` if that device is not currently
+connected.
+
+This uses the embedded MIDI library to send a Note On message to the
+phrase trigger's chosen output device. The variable `playing-note` is
+set to the note number chosen for the phrase trigger's Playing
+Message, `127` is the maximum MIDI note velocity, and
+`playing-channel` is set to the channel chosen for the phrase trigger,
+but since the user interface displays MIDI channel numbers in the
+traditional user-centric range from 1 to 16, and the actual protocol
+requires them to be sent in the 4-bit range 0-15, we need to subtract
+1 from the variable value before sending it, which is what the `dec`
+(decrement) function does.
+
+You can tweak this to send different notes (by substituting your own
+value or variable for `playing-note`) at different velocities (by
+replacing the `127`) on different channels, or of course do something
+else completely. The Stopped discussion <<stopped-expression,below>>
+shows what you would need to set up to emulate the other half of the
+`Note` mode using your own expressions.
+
+[[beat-expression]]
+== Beat Expression
+
+Called whenever a beat packet is received from a player that is
+playing a phrase that activated this phrase trigger.
+
+[[tracked-update-expression]]
+== Tracked Update Expression
+
+Called whenever a status update packet is received from a player that
+is playing a phrase that activated this phrase trigger, after the
+Enabled Filter Expression, if any, has had a chance to decide that the
+phrase trigger is enabled, and after the Playing expression, if
+appropriate.
+
+
+[[stopped-expression]]
+== Stopped Expression
+
+This is called when the last player that had been playing a phrase
+that activated the phrase trigger stops, or moves past the phrase. (A
+phrase which activated this phrase trigger might be playing on
+multiple players at the same time; this expression is called only when
+the final player stops playing one, so it is no longer playing on any
+player.)
+
+NOTE: If you want this expression to run, make sure the phrase
+trigger’s Playing Message menu is set to `Custom`.
+
+A phrase trigger will also report stopping if it becomes disabled
+while it was playing.
+
+To complete the example introduced in the Playing Expression
+<<playing-expression,above>>, here is an expression that sends the
+same MIDI event when a phrase trigger stops that you get by setting
+the menu:Playing Message[] menu to `Note`:
+
+[source,clojure]
+----
+(when midi-output
+  (midi/midi-note-off midi-output playing-note (dec playing-channel)))
+----
+
+As described in the initial example <<playing-expression,above>>, this
+checks to be sure the MIDI output device that has been selected for
+the phrase trigger is currently connected before sending it a Note Off
+message for the configured note and channel. Again, you can tweak this
+to send different messages. For example, you might actually want to
+send a different Note On message when the phrase trigger stops
+playing; for that, you would use the same code shown in the
+<<playing-expression,Playing Expression>> section.
+
+[[shutdown-expression]]
+== Shutdown Expression
+
+This is run when the Show file is closed, either because you closed
+the window, or because Beat Link Trigger is shutting down. You can use
+it to close any network connections or clean up any other resources
+your Setup Expression allocated.

@@ -16,6 +16,11 @@ image:CuesWindow.png[Cues Window,912,461]
 Before introducing the various ways to add Cues to the track, let’s
 explore the features available at the top of the window.
 
+NOTE: This kind of window is also used for editing cues within
+<<Shows_PhraseTriggers.adoc#,phrase triggers>>, although it has a
+slightly different appearance and set of features
+<<Shows_PhraseTriggers.adoc#editing-cues,in that context>>.
+
 == Cues Window Header Elements
 
 At the top of the Cues window, above any Cues that you have added to
@@ -181,11 +186,18 @@ is sent when the first player moves into the cue (as long as the Cue’s
 Track is Enabled), or when the last player that had been positioned
 inside the cue moves out of it.
 
-NOTE: The player does not need to actually be playing for
+[NOTE]
+====
+The player does not need to actually be playing for
 Entered/Exited messages to be sent: if the track loads and the player
 auto-cues within the Cue, or the DJ uses cue/loop call, needle jump,
 the jog wheel, or search to move into or out of the cue, its state
 will update and the appropriate messages will be sent.
+
+For cues within phrase triggers the situation is different because the
+phrase trigger will only ever be active if the underlying phrase (and
+track) are actually playing.
+====
 
 image:EnteredMessageMenu.png[Entered Message Menu,912,554]
 

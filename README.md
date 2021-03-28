@@ -5,7 +5,8 @@
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
 An application to trigger MIDI events when CDJs start playing tracks,
-reach particular beats, or whatever else you can think of. Built using
+play certain kinds of phrases, reach particular beats, or whatever
+else you can think of. Built using
 [beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
 
 > ”It's a shame Pioneer doesn't support this project, even

@@ -510,16 +510,14 @@ trigger. This can be used to filter visible phrase triggers.
 `:cues`:: Holds information about the Cues Editor associated with the
 phrase trigger, as described <<phrase-cues-editor,below>>.
 
-> TODO: Next item needs a link to enabled filter once the phrase
-  trigger expressions section is written.
-
 `:enabled`:: Controls how the phrase trigger is matched against
 playing track phrases. Has one of two values: `"See Below"` means that
 all of the <<Shows_PhraseTriggers.adoc#enabling-weighting,Enabling and
 Weighting>> user elements (and their associated values in this
-section) are used, and `"Custom"` means that your own Enabled Filter
-expression will be called instead, and its results will control what
-happens.
+section) are used, and `"Custom"` means that your own
+<<Expressions_PhraseTrigger.adoc#enabled-filter-expression,Enabled
+Filter expression>> will be called instead, and its results will
+control what happens.
 
 `:enabled-phrase-types`:: The set of phrase types which will allow
 this phrase trigger to activate when they play. Controlled by the

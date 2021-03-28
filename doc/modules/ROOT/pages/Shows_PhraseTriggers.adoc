@@ -6,7 +6,9 @@ phrase analysis information in tracks, if the DJ has added that. In
 addition to adding useful information along the bottom of track
 waveforms, this enabled the creation of a major new feature for
 running attractive light shows even for tracks that you have not been
-able to build custom cues for.
+able to build custom cues for, using any player hardware that works
+with Beat Link Trigger, regardless of whether the player itself
+supports lighting mode.
 
 This is achieved by adding Phrase Triggers to your show, which allow
 you to arrange cues that look good whenever a particular phrase type
@@ -15,9 +17,6 @@ is played, timed to the beginning, middle, ending, and fill-in section
 triggers are used for which types of phrases, and assign weights so
 that when multiple alternatives exist, one is chosen more or less
 often than another.
-
-NOTE: This page is a draft, describing the new phrase triggers
-feature as it is in the process of being implemented.
 
 To add a Phrase Trigger to your show, choose menu:Phrases[New Phrase Trigger].
 
@@ -337,13 +336,10 @@ value 127 and the controller number shown to the right of the menu,
 when the the phrase trigger starts playing, and sends a CC with value
 0 when the phrase trigger stops playing.
 
-> TODO: The below expression link needs to be replaced to link to to
-  the phrase trigger expressions section once that gets written!
-
 Custom:: When this option is chosen, you can send any kind of message
 you want when the phrase trigger starts and/or stops, by writing code
 as described in the
-<<Expressions_ShowTrack.adoc#track-playing-expression,Expressions>>
+<<Expressions_PhraseTrigger.adoc#playing-expression,Expressions>>
 section. This gives you the most flexibility because in addition to
 MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
 whatever you might need.
@@ -371,15 +367,12 @@ started/stopped messages are sent for this phrase trigger.
 [context-menu]
 === Context Menu
 
-> TODO: This link needs to be updated to the phrase triggers
-  expressions section once that is written too.
-
 Each phrase trigger row has a context menu attached to it, which can
 be accessed by right-clicking (or control-clicking) anywhere on the
 row’s background, but you can also open the context menu with a
 regular mouse click on the button with a gear icon in it. Most of the
 menu is devoted to editing various expressions to customize the phrase
-trigger, as described in the <<Expressions_ShowTrack.adoc#,Expressions
+trigger, as described in the <<Expressions_PhraseTrigger.adoc#,Expressions
 section>>. The gear icon next to an expression will be filled in if
 that expression has a value, and the gear in the button will be filled
 in if any expression associated with the Track has a value, or if
@@ -443,7 +436,7 @@ sizes you have chosen for them (although if you set the Start or End
 sections to zero bars, those will not be visible). The window looks
 like this:
 
-image:PTCuesEditor.png[Phrase Trigger Cues Editor window,898,726]
+image:PTCuesEditor.png[Phrase Trigger Cues Editor window,850,700]
 
 It provides a canvas on which you can drag to paint cues, like you can
 on the track waveform in a track cues editor window, but there is no
@@ -497,3 +490,11 @@ likely to be needed, and it would be more complicated to implement. If
 you really want a feature like this, please say so in the
 https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Deep
 Symmetry Zulip stream].
+
+One difference when compared with cues in a track is that, as noted in
+<<playing-status>>, phrase triggers are always enabled when they are
+playing (otherwise they would not have been chosen to play along with
+a phrase). This means whenever a phrase trigger cue's Entered message
+is sent it will always immediately be followed by a Started message,
+and whenever an Ended message is sent it will immediately be followed
+by an Exited.

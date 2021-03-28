@@ -16,9 +16,13 @@ This change log follows the conventions of
 - Song structure (phrase analysis) is now displayed on waveforms when
   it is available, both in Player Status and in Show windows, where it
   can be helpful in deciding where to position cues.
-- A major new feature which allows cues to be mapped out for specific
-  types of phrases, regardless of the tracks in which they appear, is
-  being developed.
+- In addition to Tracks, shows can now contain Phrase Triggers,
+  allowing cues to be mapped out for specific types of phrases,
+  regardless of the tracks in which they appear. This allows you to
+  build lighting looks and effects for any tracks for which the DJ has
+  performed phrase analysis, and this works for any player hardware
+  supported by Beat Link Trigger; the player does not itself have to
+  support lighting.
 - Show cues can now be linked to library cues, which means whenever
   one of the linked cues is edited, the library cue and any other cues
   that are linked to the same library cue are instantly updated to

@@ -39,7 +39,7 @@ The basic concept of an Enabled Filter is described in the
 <<Expressions#,introduction>> to this section; tracks use them in a
 similar way. If the track’s menu:Enabled[] menu is set to Custom, it
 will run its Enabled Filter Expression to decide what to do. If your
-expression returns a `true` value, this tracks will be enabled;
+expression returns a `true` value, this track will be enabled;
 otherwise it will be disabled.
 
 Disabled Tracks do not respond to being played, and all of their
@@ -80,13 +80,12 @@ This expression is only called when the track is enabled (disabled
 tracks are not considered to be playing).
 
 As an example, here is a Playing Expression that would do the exact
-same thing as setting the menu:Playing Message[] menu to `Note`:
+same thing as setting the track's menu:Playing Message[] menu to `Note`:
 
 [source,clojure]
 ----
 (when midi-output
-  (midi/midi-note-on midi-output playing-note 127
-                     (dec playing-channel)))
+  (midi/midi-note-on midi-output playing-note 127 (dec playing-channel)))
 ----
 
 The `(when midi-output …)` clause that wraps the `midi-note-on` call
@@ -153,8 +152,7 @@ menu:Playing Message[] menu to `Note`:
 [source,clojure]
 ----
 (when midi-output
-  (midi/midi-note-off midi-output playing-note
-                     (dec playing-channel)))
+  (midi/midi-note-off midi-output playing-note (dec playing-channel)))
 ----
 
 As described in the initial example
