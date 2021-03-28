@@ -3,11 +3,10 @@
   (:require [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.menus :as menus]
-            [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track
-                                                        swap-show! swap-track! find-cue swap-cue!
-                                                        track? phrase? latest-show-and-context
+            [beat-link-trigger.show-util :as su :refer [latest-show latest-track swap-show! swap-track!
+                                                        find-cue swap-cue! track? phrase? latest-show-and-context
                                                         phrase-runtime-info latest-phrase
-                                                        latest-show-and-phrase swap-phrase! swap-phrase-runtime!]]
+                                                        swap-phrase! swap-phrase-runtime!]]
             [beat-link-trigger.util :as util]
             [clojure.set]
             [clojure.string :as str]
@@ -15,12 +14,9 @@
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [thi.ng.color.core :as color]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink.data BeatGrid CueList WaveformDetail WaveformDetailComponent
             WaveformPreviewComponent]
-           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag]
-           [io.kaitai.struct ByteBufferKaitaiStream]
            [java.awt BasicStroke Color Cursor Graphics2D Rectangle RenderingHints]
            [java.awt.event InputEvent MouseEvent]
            [java.awt.geom Rectangle2D$Double]
@@ -1284,8 +1280,8 @@
     (let [^WaveformDetailComponent wave wave-or-canvas]
       (swap-track! context assoc-in [:contents :cues :auto-scroll] auto?)
       (.setAutoScroll wave (and auto? (util/online?))))
-    (do  ; Someday actualy implement for phrase trigger cue canvas?
-      (swap-phrase! (su/show-from-phrase context) context assoc-in [:cues :auto-scroll] auto?)))
+    ;; Someday actualy implement for phrase trigger cue canvas?
+    (swap-phrase! (su/show-from-phrase context) context assoc-in [:cues :auto-scroll] auto?))
   (su/repaint-preview context)
   (when-not auto? (seesaw/scroll! wave-or-canvas :to [:point 0 0])))
 
@@ -1669,9 +1665,9 @@
   breaking any links to it, after confirming the user really wants
   this to happen."
   [cue-name _cue context]
-  (let [[show context runtime-info] (latest-show-and-context context)
-        parent                      (get-in runtime-info [:cues-editor :frame])
-        unlinking                   (describe-unlinking cue-name show)]
+  (let [[show _context runtime-info] (latest-show-and-context context)
+        parent                       (get-in runtime-info [:cues-editor :frame])
+        unlinking                    (describe-unlinking cue-name show)]
     (seesaw/action :name (str "Delete “" cue-name "”")
                    :handler (fn [_]
                               (when (util/confirm parent
@@ -1690,8 +1686,8 @@
                                     (swap-show! show update-in [:contents :cue-library-folders folder-name]
                                                 disj cue-name)))
                                 ;; Unlink any cues that had been linked to it.
-                                (doseq [track (vals (:tracks show))
-                                        other-cue   (vals (get-in track [:contents :cues :cues]))]
+                                (doseq [track     (vals (:tracks show))
+                                        other-cue (vals (get-in track [:contents :cues :cues]))]
                                   (when (= cue-name (:linked other-cue))
                                     (swap-track! track
                                                  update-in [:contents :cues :cues (:uuid other-cue)]
@@ -1699,8 +1695,8 @@
                                     ;; If there is an editor open for that cue, update its link button icon.
                                     (when-let [panel (get-in track [:cues-editor :panels (:uuid other-cue)])]
                                       (update-cue-link-icon track other-cue (seesaw/select panel [:#link])))))
-                                (doseq [phrase (vals (get-in show [:contents :phrases]))
-                                        other-cue   (vals (get-in phrase [:cues :cues]))]
+                                (doseq [phrase    (vals (get-in show [:contents :phrases]))
+                                        other-cue (vals (get-in phrase [:cues :cues]))]
                                   (when (= cue-name (:linked other-cue))
                                     (swap-phrase! show phrase
                                                   update-in [:cues :cues (:uuid other-cue)]
