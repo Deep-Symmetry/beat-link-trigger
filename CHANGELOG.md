@@ -16,7 +16,8 @@ This change log follows the conventions of
 - Song structure (phrase analysis) is now displayed on waveforms when
   it is available, both in Player Status and in Show windows, where it
   can be helpful in deciding where to position cues.
-- In addition to Tracks, shows can now contain Phrase Triggers,
+- In addition to Tracks, shows can now contain [Phrase
+  Triggers](https://blt-guide.deepsymmetry.org/beat-link-trigger/shows_phrasetriggers),
   allowing cues to be mapped out for specific types of phrases,
   regardless of the tracks in which they appear. This allows you to
   build lighting looks and effects for any tracks for which the DJ has
