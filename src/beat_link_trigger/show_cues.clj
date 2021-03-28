@@ -327,8 +327,8 @@
                     :handler (fn [_]
                                (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event]
                                                          (rand-nth enabled-events))
-                               (send-cue-messages (second (latest-show-and-context context))
-                                                  cue :ended (su/random-beat-or-status)))))
+                               (let [[_show context runtime-info] (latest-show-and-context context)]
+                                 (send-cue-messages context runtime-info cue :ended (su/random-beat-or-status))))))
    (seesaw/action :name "Exited"
                   :enabled? (cue-event-enabled? context cue :entered)
                   :handler (fn [_]
@@ -523,7 +523,7 @@
        (when (:tripped runtime-info)
          (when (seq (players-playing-cue context cue))
            (send-cue-messages context runtime-info cue :ended nil))
-         (when (entered? context cue)
+         (when (entered? context runtime-info cue)
            (send-cue-messages context runtime-info cue :exited nil))))
      true)))
 
