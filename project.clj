@@ -23,6 +23,7 @@
                  [com.taoensso/timbre "5.1.2"]
                  [compojure "1.6.2"]
                  [fipp "0.6.23"]
+                 [http.async.client "1.3.1"]
                  [http-kit "2.5.3"]
                  [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
                  [me.raynes/fs "1.4.6"]

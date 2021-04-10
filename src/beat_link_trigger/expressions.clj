@@ -10,6 +10,7 @@
             [beat-link-trigger.util :as util]
             [cemerick.pomegranate :as pomegranate]
             [cemerick.pomegranate.aether :as aether]
+            [http.async.client :as http]
             [overtone.midi :as midi]
             [overtone.osc :as osc]
             [seesaw.core :as seesaw]
