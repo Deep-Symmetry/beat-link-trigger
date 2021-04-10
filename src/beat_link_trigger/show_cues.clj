@@ -52,14 +52,14 @@
             [nil t]))))
     ;; The phrase trigger version.
     (let [[show phrase runtime-info] (latest-show-and-context context)
-          cue (find-cue phrase cue)]
-      (when-let [expression-fn (get-in runtime-info [:expression-fns (:uuid cue) kind])]
+          cue                        (find-cue phrase cue)]
+      (when-let [expression-fn (get-in runtime-info [:cues :expression-fns (:uuid cue) kind])]
        (try
          (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-           [(expression-fn status-or-beat {:locals  (:expression-locals runtime-info)
-                                           :show    show
-                                           :phrase  phrase
-                                           :cue     cue}
+           [(expression-fn status-or-beat {:locals (:expression-locals runtime-info)
+                                           :show   show
+                                           :phrase phrase
+                                           :cue    cue}
                            (:expression-globals show)) nil])
          (catch Throwable t
            (timbre/error t (str "Problem running " (editors/cue-editor-title kind phrase cue) ":\n"
@@ -503,7 +503,7 @@
                 "CC"   (midi/midi-control output note 127 (dec channel))))))
         (when (= "Custom" message)
           (let [effective-event (if (and (= "Same" base-message) (= :started-late event)) :started-on-beat event)]
-            (run-cue-function context  cue effective-event status-or-beat false))))
+            (run-cue-function context cue effective-event status-or-beat false))))
       (when (#{:started-on-beat :started-late} event)
         ;; Record how we started this cue so we know which event to send upon ending it.
         (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event] event))
