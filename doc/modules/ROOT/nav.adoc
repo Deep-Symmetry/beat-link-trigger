@@ -27,6 +27,7 @@
 ** xref:Integration_MIDI_rekordbox.adoc[MIDI cues from rekordbox]
 ** xref:Integration_BeyondAdvanced.adoc[Pangolin BEYOND Advanced]
 ** xref:Integration_BeyondEssentials.adoc[Pangolin BEYOND Essentials]
+** xref:Integration_QLC.adoc[QLC+ lighting cues]
 ** xref:Integration_SMPTE.adoc[SMPTE Linear Timecode]
 ** xref:Integration_XoneOnAir.adoc[Xone:96 Channels On Air]
 * xref:Older.adoc[Older Approaches]

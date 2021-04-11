@@ -184,7 +184,7 @@ function to be run as tracks come and go:
 === Global Shutdown Expression
 
 When the Triggers window is being closed, or a different configuration
-file is being loaded, this to unregistes our indexer:
+file is being loaded, this line unregisters our indexer:
 
 ```clojure
 (.removeTrackMetadataListener metadata-finder midi-cue-indexer)
