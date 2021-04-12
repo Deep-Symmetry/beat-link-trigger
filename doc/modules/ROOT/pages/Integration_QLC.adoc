@@ -182,7 +182,7 @@ To save all the effort of typing in the code, you can start by
 downloading the link:{attachmentsdir}/cueQLCSender.blt[configuration
 file] I created for this exmaple and opening that within Beat Link
 Trigger. That will set up a single trigger called “Cue-driven QLC+
-Sender” that watches the current Master player.
+Button Presser” that watches the current Master player.
 
 WARNING: If you already have triggers of your own that you want to
 keep, be sure to save your configuration before opening another one!
@@ -191,7 +191,7 @@ and paste the relevant pieces of code into your Shared Functions and
 Expressions.
 
 [[trigger-window]]
-image:rbMidiTrigger.png[Cue-driven trigger,900,270]
+image:rbQLCTrigger.png[Cue-driven QLC trigger,883,285]
 
 === Overview
 
@@ -214,7 +214,7 @@ reached, you can list multiple numbers separated by commas (but no
 spaces or other characters), like `QLC:5,42,100` which would press
 buttons 5, 42, and 100 when reached.
 
-image:rbMidiTrack.png[Tracks with MIDI cues,620,850]
+image:rbQLCTrack.png[Tracks with QLC cues,620,850]
 
 TIP: If you don't want to only respond to cues being played on the
 Master player, you can change the player being watched by the trigger
@@ -266,11 +266,11 @@ end of your Triggers window Shared Functions:
   (when md
     (when-let [cue-list (.getCueList md)]
       (reduce (fn [result cue]
-                (if-let [[_ notes] (re-find #"QLC:(\d+(,\d+)*)"
+                (if-let [[_ ids] (re-find #"QLC:(\d+(,\d+)*)"
                                             (.-comment cue))]
                   ;; Cue name matches.
                   (update result (.-cueTime cue) (fnil clojure.set/union #{})
-                          (clojure.string/split notes #","))
+                          (clojure.string/split ids #","))
                   result))
               {} (.-entries cue-list)))))
 
@@ -412,12 +412,12 @@ particular beat, so this code doesn't send that beat's QLC+ button
 presses more than once.
 
 If the current beat hasn't been marked as already handled, this code
-finds the start time of the current beat, looks up any notes that
-should be sent for it, and sends them in the same way the Beat
+finds the start time of the current beat, looks up any button presses
+that should be sent for it, and sends them in the same way the Beat
 Expression did.
 
 With those two expressions in place, it doesn't matter how a beat is
-reached, its notes (if any) get sent.
+reached, its button presses (if any) get sent.
 
 === Deactivation Expression
 
