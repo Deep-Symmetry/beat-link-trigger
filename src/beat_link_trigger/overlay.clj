@@ -993,3 +993,15 @@
   (if @window
     (make-window-visible trigger-frame)
     (create-window trigger-frame)))
+
+(defn run-server
+  "Starts the overlay server running if it isn't, creating the window
+  first if needed. Provides a convenient way for doing this from user
+  code, for example in the Came Online expression."
+  []
+  (seesaw/invoke-later
+   (try
+     (when-not @window (show-window nil))
+     (seesaw/value! (seesaw/select @window [:#run]) true)
+     (catch Exception e
+       (timbre/error e "Problem starting the OBS overlay server.")))))

@@ -133,7 +133,7 @@ Beat Link Trigger is online, such as opening the Player Status window.
 The simplest approach described <<global-setup-expression,above>> is
 safe to use in this expression, unlike in the Global Setup expression:
 
-[source,clojure,subs=attributes+]
+[source,clojure]
 ----
 (beat-link-trigger.triggers/show-player-status)
 ----
@@ -141,6 +141,18 @@ safe to use in this expression, unlike in the Global Setup expression:
 With this in place, every time you successfully go online, either at
 startup or using menu:Network[Online?], the Player Status window will
 open for you.
+
+Similarly, if you want the OBS overlay server to automatically start
+one Beat Link Trigger is online, you can add this to your Came Online
+expression:
+
+[source,clojure]
+----
+(overlay/run-server)
+----
+
+TIP: You can combine both of the above lines, in either order, if you
+want both features to automatically activate for you.
 
 Another example came up in the
 https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[community
