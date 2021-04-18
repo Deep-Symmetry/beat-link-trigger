@@ -26,7 +26,7 @@ resources, however, will only work if you are online.
 endif::[]
 ifndef::page-origin-worktree[]
 ifeval::["{page-component-version}" == "master"]
-You are looking at the **master** branch of the User Guide. This tries
+You are looking at the **main** branch of the User Guide. This tries
 to keep up with the latest in-progress changes to the software, which
 are frequently made available as preview builds.
 
@@ -38,7 +38,7 @@ ifeval::["{page-component-version}" != "master"]
 You are looking at version *{page-component-version}* of the User
 Guide, which corresponds to that release of the software.
 
-To look at a different version (including the master branch, which
+To look at a different version (including the main branch, which
 reflects ongoing development that is available as a preview release
 but not yet officially released), choose it in the versions menu
 either at the top right (just before the **Edit this Page** link), or
@@ -339,7 +339,7 @@ Public License 2.0]. By using this software in any fashion, you are
 agreeing to be bound by the terms of this license. You must not remove
 this notice, or any other, from this software. A copy of the license
 can be found in
-https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/LICENSE[LICENSE]
+https://github.com/Deep-Symmetry/beat-link-trigger/blob/main/LICENSE[LICENSE]
 within this project.
 
 
