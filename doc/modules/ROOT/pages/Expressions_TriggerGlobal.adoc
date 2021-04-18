@@ -19,7 +19,7 @@ share across expressions.
 This is run when Beat Link Trigger starts up, or when you open a new
 Trigger file, so it runs before any of your individual trigger
 expressions. As a simple example of what you might want to do, here is
-an expression opens the Player Status window:
+an expression opens the <<Players.adoc#,Player Status window>>:
 
 [source,clojure,subs=attributes+]
 ----
@@ -129,9 +129,10 @@ You have access to the expression globals if you need to use anything
 in them.
 
 This is the perfect place to take actions that can only succeed when
-Beat Link Trigger is online, such as opening the Player Status window.
-The simplest approach described <<global-setup-expression,above>> is
-safe to use in this expression, unlike in the Global Setup expression:
+Beat Link Trigger is online, such as opening the
+<<Players.adoc#,Player Status window>>. The simplest approach
+described <<global-setup-expression,above>> is safe to use in this
+expression, unlike in the Global Setup expression:
 
 [source,clojure]
 ----
@@ -142,9 +143,9 @@ With this in place, every time you successfully go online, either at
 startup or using menu:Network[Online?], the Player Status window will
 open for you.
 
-Similarly, if you want the OBS overlay server to automatically start
-one Beat Link Trigger is online, you can add this to your Came Online
-expression:
+Similarly, if you want the <<ObsOverlay.adoc#,OBS overlay server>> to
+automatically start once Beat Link Trigger is online, you can add this
+to your Came Online expression:
 
 [source,clojure]
 ----
