@@ -234,7 +234,7 @@
   []
   (or (when-let [pref (on-air-pref-key (prefs/get-preferences))]
         (try
-          (Boolean/parseBoolean pref)
+          (Boolean/valueOf pref)
           (catch Exception e
             (timbre/error e "Problem parsing playlist on-air preference value:" pref))))
       false))
