@@ -3,11 +3,11 @@ name: Create überjar and native installers
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   blt_name: Beat Link Trigger
-  blt_copyright: © 2016-2020 Deep Symmetry, LLC
+  blt_copyright: © 2016-2021 Deep Symmetry, LLC
   blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
   blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
   blt_mac_notarization_user: "james@deepsymmetry.org"
