@@ -1,13 +1,13 @@
 = Pangolin BEYOND Advanced
 include::partial$PagePreamble.adoc[]
 
-http://pangolin.com/shop/lasershow-designer-beyond-advanced/#tab-description[Pangolin
-BEYOND] is such flexible and powerful laser show software that Deep
-Symmetry invested in a Windows virtual machine purely to be able to
-use it to control our best laser projector. With an Advanced license,
-you can send it PangoScript commands over the network to achieve a
-deep level of integration with other systems. Here are some ways you
-can use it with Beat Link Trigger.
+https://pangolin.com/collections/beyond-software[Pangolin BEYOND] is
+such flexible and powerful laser show software that Deep Symmetry
+invested in a Windows virtual machine purely to be able to use it to
+control our best laser projector. With an Advanced license, you can
+send it PangoScript commands over the network to achieve a deep level
+of integration with other systems. Here are some ways you can use it
+with Beat Link Trigger.
 
 TIP: This section shows how to achieve tight integration using the
 PangoTalk UDP server, which requires BEYOND Advanced, but you can use
