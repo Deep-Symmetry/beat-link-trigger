@@ -12,9 +12,8 @@ finally possible.
 By opening menu:Network[OBS Overlay Web Server] you can configure and
 launch an embedded web server that renders an HTML template that can
 contain the content of your choice, arranged and styled however you
-like, to work with the
-https://obsproject.com/forum/resources/browser-plugin.115/[Browser
-Plugin] that is bundled with https://obsproject.com[OBS Studio].
+like, to work with the Browser Plugin that is bundled with
+https://obsproject.com[OBS Studio].
 
 image:ObsOverlay.png[OBS Overlay Server Window,560,250]
 
