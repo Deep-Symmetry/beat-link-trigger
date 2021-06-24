@@ -50,8 +50,8 @@ At this point, your expressions can do things like:
 ----
 
 Which returns a string holding the JSON representation of the Clojure
-map. See the library's http://clojure.github.com/data.json/[API
-documentation] for more details.
+map. See the library's https://clojure.github.io[API documentation]
+for more details.
 
 If you want to add multiple libraries, you can call call `add-library`
 multiple times, or in a slightly more compact and efficient variation,
