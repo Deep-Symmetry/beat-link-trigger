@@ -223,7 +223,7 @@ played forwards, without loops.
 
 The first thing you will need is an Orange Pi Zero board, an enclosure
 and a power supply. Then you will need the
-http://www.orangepi-dmx.org/orange-pi-smpte-timecode-ltc-reader-converter[LTC
+https://www.orangepi-dmx.org/9-ltc-smpte-timecode-reader-converter-generator[LTC
 SMPTE Timecode project uImage] file to boot from. If you want a
 display to show the timecode being generated, there are some
 compatible options. Look on the project page for more information, or
