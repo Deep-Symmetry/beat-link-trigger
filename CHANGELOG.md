@@ -65,6 +65,9 @@ This change log follows the conventions of
 - Quitting Beat Link Trigger could leave Carabiner running in the
   background even if it had been installed and started by BLT. This is
   now properly cleaned up.
+- Triggers which send MIDI clock are now less sensitive to minute
+  changes in tempo, which makes them less twitchy. Their sensitivity
+  can be configured using an expression if desired.
 
 ### Removed
 

@@ -213,6 +213,18 @@ great deal of CPU to try to work around the above-mentioned issues,
 you are probably better off only ever using it with a single trigger
 anyway.
 
+If you are sending MIDI clock directly from BLT, you can adjust the
+sensitivity at which tempo changes are reflected. By default, to avoid
+excessive twitchiness, the MIDI clock is only adjusted when the tempo
+changes at least 0.01 beat per minute from what is being sent. For
+example, to reduce the sensitiity by half, your expression could
+include:
+
+[source,clojure]
+----
+(reset! beat-link-trigger.triggers/midi-clock-sensitivity 0.02)
+----
+
 ====
 
 Link:: When this option is chosen, the trigger does not send MIDI

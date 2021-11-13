@@ -319,6 +319,10 @@
                        (or bpm-override 120.0))]  ; Default to 120 bpm if we lost status information momentarily.
     (* base-tempo 24.0)))
 
+(defonce ^{:doc "How much the tempo must change (in beats per minute) before we adjust the MIDI clock rate."}
+  midi-clock-sensitivity
+  (atom 0.01))
+
 (defn- clock-running?
   "Checks whether the supplied trigger data contains an active MIDI
   clock sender thread. If so, returns a truthy value after alerting
@@ -330,7 +334,7 @@
   (let [[^Thread clock-thread ^Metronome metro :as all] (:clock trigger-data)]
     (when (and clock-thread (.isAlive clock-thread))
       (let [tempo (clock-tempo trigger-data)]
-        (when (> (Math/abs (- tempo (.getTempo metro))) 0.0001)
+        (when (> (Math/abs (- tempo (.getTempo metro))) @midi-clock-sensitivity)
           (.setTempo metro tempo)      ; Tempo has changed, update metronome, and...
           (.interrupt clock-thread)))  ; wake up the thread so it can adjust immediately.
       all)))
