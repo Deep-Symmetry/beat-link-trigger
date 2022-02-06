@@ -27,7 +27,7 @@ But the most important thing you need to read, after skimming the
 introduction below, is the [:notebook: user
 guide](https://blt-guide.deepsymmetry.org/).
 
-[![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#license)
+[![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#licenses)
 
 > :boom: **Warning**: This may not yet work with the new CDJ-3000s.
 > We have started making the changes required to work with more than
