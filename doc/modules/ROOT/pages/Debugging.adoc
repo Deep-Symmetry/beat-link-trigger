@@ -84,7 +84,7 @@ when it encounters unexpected messages sent by CDJs it is talking to.
 If the problem turns out to be trickier than can be understood from
 just logs, follow-up questions and experimentation may be needed. In
 such cases
-https://helpx.adobe.com/experience-manager/kb/TakeThreadDump.html[thread
+https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-options/[thread
 dumps] are often a valuable next step.
 
 [[wireshark]]
