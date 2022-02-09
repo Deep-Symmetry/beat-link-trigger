@@ -1,3 +1,6 @@
+# Fail if any step fails
+set -e
+
 # Download and expand the Oracle OpenJDK 14, which is properly notarized.
 # But if it already exists (because we use a cache action to speed things up), we can skip this section.
 if [ ! -d jdk-14.0.1.jdk ]; then
