@@ -14,5 +14,9 @@
   # Default build command.
   command = "doc/build.sh"
 
+  # Specify node version required for antora 3
+  environment = { NODE_VERSION = "16.13.1" }
+
+
 [[plugins]]
 package = "./netlify-plugins/cache-htmltest"

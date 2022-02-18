@@ -1,6 +1,6 @@
 name: beat-link-trigger
 title: Beat Link Trigger
-version: 'master'
+version: ~
 display_version: 'main'
 prerelease: true
 start_page: ROOT:README.adoc
@@ -8,7 +8,7 @@ asciidoc:
   attributes:
     icons: font
     experimental: ''
-    page-copyright: 2016–2021
+    page-copyright: 2016–2022
     page-pagination: ''
 nav:
 - modules/ROOT/nav.adoc

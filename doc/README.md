@@ -28,12 +28,3 @@ are pushed to the relevant branches on GitHub. The netlify build
 command is `npm run netlify-docs`.
 
 And the publish directory is `doc/build/site`.
-
-An older workflow was to build the documentation site manually for
-hosting on the Deep Symmetry web site by running the following
-commands from the project root (this also predated the integration of
-lunr search features, and the management of local antora versions
-using `package.json`):
-
-    antora --fetch doc/ds.yml
-    rsync -avz doc/build/site/ slice:/var/www/ds/beatlink/trigger/guide

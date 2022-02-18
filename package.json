@@ -3,13 +3,13 @@
   "description": "Used to build the documentation site, not the project itself.",
   "dependencies": {},
   "devDependencies": {
-    "@antora/cli": "^2.3.4",
-    "@antora/site-generator-default": "^2.3.4",
-    "antora-site-generator-lunr": "^0.6.1"
+    "@antora/cli": "3.0",
+    "@antora/site-generator": "3.0",
+    "@antora/lunr-extension": "^1.0.0-alpha.4"
   },
   "scripts": {
-    "local-docs": "DOCSEARCH_ENABLED=true DOCSEARCH_ENGINE=lunr npx antora --fetch --generator antora-site-generator-lunr doc/embedded.yml",
-    "netlify-docs": "DOCSEARCH_ENABLED=true DOCSEARCH_ENGINE=lunr DOCSEARCH_INDEX_VERSION=latest npx antora --fetch --generator antora-site-generator-lunr doc/netlify.yml"
+    "local-docs": "npx antora --fetch doc/embedded.yml",
+    "netlify-docs": "npx antora --fetch doc/netlify.yml"
   },
   "repository": {
     "type": "git",
