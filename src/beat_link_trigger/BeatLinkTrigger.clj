@@ -27,7 +27,7 @@
   [options-summary]
   (clojure.string/join
    \newline
-   [(str "Beat Link Trigger" (util/get-version) " " (util/get-build-date))
+   [(str "Beat Link Trigger " (util/get-version) " " (util/get-build-date))
     ""
     "Options:"
     options-summary
