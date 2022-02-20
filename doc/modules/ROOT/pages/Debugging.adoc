@@ -271,6 +271,51 @@ total time they played.
 When you are done recording the playlist you can either click kbd:[Stop]
 or close the window, and the file will be closed out.
 
+=== Automatically Starting the Playlist Writer
+
+If you want to be sure that playlsits are always being written, you
+can add a line to your Came Online Expression that starts the playlist
+writer as soon as Beat Link Trigger is connected to a DJ Link network.
+Call the function `playlist-writer/write-playlist` with three
+arguments, `folder` (which determines the directory in which the
+playlist should be written), `prefix` (which specifies the first part
+of the playlist's filename), and `append?` which controls what happens
+if the file already exists.
+
+The filename will be built by adding ".csv" after `prefix`. If a file
+by that name already exists in the specified `folder`, then if
+`append?` is true, the existing file will be used, and new tracks will
+be added to the end. If the file exists and `append?` is false, then a
+timestamp will be added in between the prefix and the ".csv" extension
+so that a new playlist file will always be created.
+
+For example, consider the following code:
+
+[source,clojure]
+----
+(playlist-writer/write-playlist "/Users/james/playlists" "playlist" false)
+----
+
+With this in the Came Online Expression, whenever BLT establishes
+connection to a DJ Link network, a new playlist will be created in the
+directory `/Users/james/playlists/`. If there is not already such a
+file present, it will be called `/Users/james/playlists/playlist.csv`.
+If that file already exists, then a file with a name like
+`/Users/james/playlists/playlist_2022_02_20T17_16_19.csv` will be
+created, using the year, month, day, hour, minute, and second to
+ensure it is unique.
+
+Alternately, a line like the following would always use the file
+`/tmp/played.csv`, creating it and writing the header line if it did
+not exist, and otherwise just adding new tracks to the end of the
+file:
+
+[source,clojure]
+----
+(playlist-writer/write-playlist "/tmp" "played" true)
+----
+
+
 [[advanced-coding]]
 == Advanced Coding
 

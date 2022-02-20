@@ -39,6 +39,12 @@ This change log follows the conventions of
   imported into a show from physical media attached to the computer
   rather than over a DJ Link network), the History menu is now
   available as well, to find tracks from recent performances.
+- The Playlist Writer window can now be started automatically when
+  connecting to a DJ Link network using the Came Online expression, to
+  ensure that playlists are always being written. In the situation
+  where the specified playlist file already exists, you can choose
+  whether to append to it, or to use a timestamp to create a unique
+  new file.
 
 ### Fixed
 

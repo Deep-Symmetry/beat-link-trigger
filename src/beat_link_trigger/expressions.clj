@@ -457,6 +457,7 @@
     (alias 'carabiner 'beat-link-trigger.carabiner)
     (alias 'help 'beat-link-trigger.help)
     (alias 'overlay 'beat-link-trigger.overlay)
+    (alias 'playlist-writer 'beat-link-trigger.playlist-writer)
     (alias 'players 'beat-link-trigger.players)
     (alias 'prefs 'beat-link-trigger.prefs)
     (alias 'show 'beat-link-trigger.show)
