@@ -223,7 +223,7 @@
   []
   (or (when-let [pref (min-time-pref-key (prefs/get-preferences))]
         (try
-          (Long/parseUnsignedLong pref)
+          (Long/valueOf pref)
           (catch Exception e
             (timbre/error e "Problem parsing playlist minimum play time preference value:" pref))))
       10))
