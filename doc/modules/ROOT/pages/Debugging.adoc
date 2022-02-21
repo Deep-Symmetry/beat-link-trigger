@@ -245,20 +245,27 @@ to give you a robust, convenient solution.
 Start by choosing menu:File[Write Playlist]. This will bring up the
 Playlist Writer window.
 
-image:PlaylistWriter.png[Playlist Writer,412,256]
+image:PlaylistWriter.png[Playlist Writer,460,313]
 
 You can configure how long a track needs to be played for before it
-gets included in the playlist and whether you want to ignore players
-that are not reporting themselves as being on the air (very convenient
-to ignore DJs pre-screening tracks, as long as you are using a DJM
-mixer that supports this feature, and the players are configured and
-connected properly).
+gets included in the playlist (the default is ten seconds) and whether
+you want to ignore players that are not reporting themselves as being
+on the air (very convenient to ignore DJs pre-screening tracks, as
+long as you are using a DJM mixer that supports this feature, and the
+players are configured and connected properly).
+
+You can also configure how many minutes can pass with no player
+playing anything before a new playlist file is created when another
+track is played. The default for this is 30 minutes. When creating new
+files because this New Playlist Threshold has been exceeded, the file
+names have timestamps added to them as described in the
+<<#automatically-starting,next section>>.
 
 Once everything is set the way you want it, click kbd:[Start] and you
 will be prompted to choose where to save the file. Once you have done
 that, the window updates to show you that the playlist is being written:
 
-image:PlaylistWriterActive.png[Playlist Writer active,412,256]
+image:PlaylistWriterActive.png[Playlist Writer active,460,313]
 
 From this point on, all tracks that play longer than your configured
 minimum time will be written to the playlist, in Comma-Separated Value
@@ -271,6 +278,7 @@ total time they played.
 When you are done recording the playlist you can either click kbd:[Stop]
 or close the window, and the file will be closed out.
 
+[[automatically-starting]]
 === Automatically Starting the Playlist Writer
 
 If you want to be sure that playlsits are always being written, you

@@ -42,6 +42,12 @@
   player must be On-Air for it to contribute to a playlist."
   :playlist-on-air-only)
 
+(def new-playlist-threshold-pref-key
+  "The key used to store the global preference that controls the number
+  of minutes for which all players can be stopped before forcing a new
+  playlist to be written when a new track begins playing."
+  :playlist-stopped-new-threshold)
+
 (defn- make-window-visible
   "Ensures that the playlist writer window is in front, and shown."
   [parent]
@@ -123,13 +129,13 @@
 
 (defn- build-toggle-handler
   "Creates an event handler for the Start/Stop button."
-  [button status file-atom stop-handler frame]
+  [button status state-atom stop-handler frame]
   (fn [_]
-    (if @file-atom
+    (if (:file @state-atom)
       (do  ; Time to stop writing a playlist
         (stop-handler)
         (seesaw/config! button :text "Start")
-        (reset! file-atom nil))
+        (reset! state-atom nil))
       (let [extension (util/extension-for-file-type :playlist)]
         (when-let [file (util/confirm-overwrite-file
                          (seesaw.chooser/choose-file frame :type :save
@@ -139,14 +145,16 @@
                          frame)]
           (try
             (write-csv-header file)
-            (reset! file-atom file)
+            (reset! state-atom {:file   file
+                                :folder (.getParent file)
+                                :prefix (subs (.getName file) 0 (- (count (.getName file)) (count extension) 1))})
             (seesaw/config! button :text "Stop")
             (catch Throwable t
               (seesaw/alert (.getMessage t)
                             :title (str "Problem creating playlist file" file)
                             :type :error)
               (timbre/error t "Problem creating playlist file" file))))))
-    (seesaw/config! status :text (status-for-file @file-atom))))
+    (seesaw/config! status :text (status-for-file (:file @state-atom)))))
 
 (defn- format-play-time
   "Formats the number of seconds a track has been playing as minutes:seconds"
@@ -224,17 +232,33 @@
   consisting of that listener and a function that can be called to
   write out playlist entries for any tracks that have currently been
   playing long enough because the playlist file is being closed."
-  [time-spinner on-air-checkbox file-atom]
+  [time-spinner on-air-checkbox threshold-spinner state-atom]
   (let [playing-tracks (atom {})]
     [(reify DeviceUpdateListener
         (received [_this device-update]
           (when (instance? CdjStatus device-update)
             (let [now              (System/currentTimeMillis)
+                  last-playing     (:last-playing @state-atom)
                   cdj-status       ^CdjStatus device-update
                   player-number    (.getDeviceNumber cdj-status)
                   min-play-seconds (seesaw/value time-spinner)
                   on-air-required? (seesaw/value on-air-checkbox)
-                  playlist-file    @file-atom]
+                  playlist-file    (:file @state-atom)]
+              ;; First see if we are playing again after having been
+              ;; stopped for long enough to merit rolling to a new playlist file.
+              (when (and last-playing (.isPlaying cdj-status))
+                (let [interval (.toMinutes java.util.concurrent.TimeUnit/MILLISECONDS (- now last-playing))]
+                  (when (>= interval (seesaw/value threshold-spinner))
+                    (swap! state-atom (fn [old-state]
+                                        (-> old-state
+                                            (assoc :file (open-playlist (:folder old-state) (:prefix old-state) false))
+                                            (assoc :last-playing now)))))))
+
+              ;; Regardless, if we are curently playing, make note of that for future threshold computations.
+              (when (.isPlaying cdj-status)
+                (swap! state-atom assoc :last-playing now))
+
+              ;; Now see if there are any track changes due to be written to the playlist.
               (swap! playing-tracks update player-number
                      (fn [old-entry]
                        (if (and
@@ -243,13 +267,13 @@
                          (if (track-changed? cdj-status old-entry)
                            (do  ; Write out old entry if it had played enough, and swap in our new one.
                              (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry)
-                             {:started now
+                             {:started    now
                               :cdj-status cdj-status})
                            (if old-entry
                              (if (or (:metadata old-entry) (not (.isRunning metadata-finder)))
                                old-entry  ; We are still playing a track we already have metadata for (or unavailable).
                                (assoc old-entry :metadata (.getLatestMetadataFor metadata-finder player-number)))
-                             {:started now  ; We have a new entry, there was nothing there before.
+                             {:started    now ; We have a new entry, there was nothing there before.
                               :cdj-status cdj-status}))
                          (do  ; Not playing, so clear any existing entry, but write it out if it had played enough.
                            (when old-entry
@@ -257,14 +281,14 @@
                            nil))))))))
      (fn [] ; Closing the playlist, write out any entries that deserve it.
        (let [min-play-seconds (seesaw/value time-spinner)
-             playlist-file    @file-atom]
+             playlist-file    (:file @state-atom)]
          (when playlist-file
            (doseq [[player-number entry] @playing-tracks]
              (write-entry-if-played-enough min-play-seconds playlist-file player-number entry)))))]))
 
 (defn- min-time-pref
-  "Retrieve the preferred minimum time a track must be playing in order
-  to get written to the playlist."
+  "Retrieve the preferred minimum time, in seconds, a track must be
+  playing in order to get written to the playlist."
   []
   (or (when-let [pref (min-time-pref-key (prefs/get-preferences))]
         (try
@@ -284,6 +308,18 @@
             (timbre/error e "Problem parsing playlist on-air preference value:" pref))))
       false))
 
+(defn- new-playlist-threshold-pref
+  "Retrieve the maximum time, in minutes, all players can be stopped
+  before forcing the start of a new playlist when a new track starts
+  playing."
+  []
+  (or (when-let [pref (new-playlist-threshold-pref-key (prefs/get-preferences))]
+        (try
+          (Long/valueOf pref)
+          (catch Exception e
+            (timbre/error e "Problem parsing new playlist threshold idle time preference value:" pref))))
+      30))
+
 (defn- create-window
   "Creates the playlist writer window. If `folder`, `prefix` and
   `append?` are specified, starts up already writing a playlist to
@@ -292,31 +328,40 @@
    (create-window nil nil false))
   ([folder prefix append?]
    (try
-     (let [playlist-file   (atom (when folder (open-playlist folder prefix append?)))
-           time-spinner    (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
-           on-air-checkbox (seesaw/checkbox :id :on-air :selected? (on-air-pref))
-           toggle-button   (seesaw/button :id :start :text (if @playlist-file "Stop" "Start"))
-           status-label    (seesaw/label :id :status :text (status-for-file @playlist-file))
-           panel           (mig/mig-panel
-                            :background "#ccc"
-                            :items [[(seesaw/label :text "Minimum Play Time:") "align right"]
-                                    [time-spinner]
-                                    [(seesaw/label :text "seconds") "align left, wrap"]
+     (let [playlist-state    (atom (when folder
+                                     {:file   (open-playlist folder prefix append?)
+                                      :folder folder
+                                      :prefix prefix}))
+           time-spinner      (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
+           on-air-checkbox   (seesaw/checkbox :id :on-air :selected? (on-air-pref))
+           threshold-spinner (seesaw/spinner :id :time :model (seesaw/spinner-model (new-playlist-threshold-pref)
+                                                                                    :from 1 :to 720))
+           toggle-button     (seesaw/button :id :start :text (if @playlist-state "Stop" "Start"))
+           status-label      (seesaw/label :id :status :text (status-for-file (:file @playlist-state)))
+           panel             (mig/mig-panel
+                              :background "#ccc"
+                              :items [[(seesaw/label :text "Minimum Play Time:") "align right"]
+                                      [time-spinner]
+                                      [(seesaw/label :text "seconds") "align left, wrap"]
 
-                                    [(seesaw/label :text "On-Air Players Only?") "align right"]
-                                    [on-air-checkbox]
-                                    [(seesaw/label :text "") "wrap"]
+                                      [(seesaw/label :text "On-Air Players Only?") "align right"]
+                                      [on-air-checkbox]
+                                      [(seesaw/label :text "") "wrap"]
 
-                                    [(seesaw/label :text "Status:") "align right"]
-                                    [status-label "span, grow, wrap 15"]
+                                      [(seesaw/label :text "New Playlist Threshold:") "align right"]
+                                      [threshold-spinner]
+                                      [(seesaw/label :text "minutes") "align left, wrap"]
 
-                                    [(seesaw/label :text "")]
-                                    [toggle-button "span 2"]])
+                                      [(seesaw/label :text "Status:") "align right"]
+                                      [status-label "span, grow, wrap 15"]
+
+                                      [(seesaw/label :text "")]
+                                      [toggle-button "span 2"]])
            ^JFrame root    (seesaw/frame :title "Playlist Writer"
                                          :content panel
                                          :on-close :dispose)
            [update-listener
-            close-handler] (build-update-listener time-spinner on-air-checkbox playlist-file)
+            close-handler] (build-update-listener time-spinner on-air-checkbox threshold-spinner playlist-state)
            stop-listener   (reify LifecycleListener
                              (started [_this _sender])  ; Nothing to do, we exited as soon as stop happened anyway.
                              (stopped [_this _sender]   ; Close window if VirtualCdj gets shut down (we went offline).
@@ -333,9 +378,10 @@
                                        (prefs/put-preferences
                                         (assoc (prefs/get-preferences)
                                                min-time-pref-key (seesaw/value time-spinner)
-                                               on-air-pref-key (seesaw/value on-air-checkbox))))
+                                               on-air-pref-key (seesaw/value on-air-checkbox)
+                                               new-playlist-threshold-pref-key (seesaw/value threshold-spinner))))
                       :component-moved (fn [_] (util/save-window-position root :playlist-writer true)))
-       (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-file
+       (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-state
                                                                   close-handler root))
        (seesaw/pack! root)
        #_(.setResizable root false)

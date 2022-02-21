@@ -45,6 +45,11 @@ This change log follows the conventions of
   where the specified playlist file already exists, you can choose
   whether to append to it, or to use a timestamp to create a unique
   new file.
+- The Playlist Writer window also has a new configuration field, New
+  Playlist Threshold, which causes the playlist to roll to a new file
+  if all players have been idle for that long. This facilitates
+  automatically creating separate playlist files for different
+  activities even if Beat Link Trigger is running unattended.
 
 ### Fixed
 
