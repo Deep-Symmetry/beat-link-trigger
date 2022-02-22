@@ -165,11 +165,11 @@ it:
 
 [source,clojure,subs=attributes+]
 ----
-(beat-link-trigger.carabiner/show-window nil)  ;; <1>
-(beat-link-trigger.carabiner/connect)  ;; <2>
-(beat-link-trigger.carabiner/sync-mode :passive)  ;; <3>
-(beat-link-trigger.carabiner/sync-link true)  ;; <4>
-(beat-link-trigger.carabiner/align-bars true)  ;; <5>
+(carabiner/show-window nil)  ;; <1>
+(carabiner/connect)  ;; <2>
+(carabiner/sync-mode :passive)  ;; <3>
+(carabiner/sync-link true)  ;; <4>
+(carabiner/align-bars true)  ;; <5>
 ----
 
 <1> Opens the Carabiner window.

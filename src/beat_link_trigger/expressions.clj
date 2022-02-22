@@ -454,6 +454,7 @@
   circular dependencies."
   []
   (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+    (alias 'beat-carabiner 'beat-carabiner.core)
     (alias 'carabiner 'beat-link-trigger.carabiner)
     (alias 'help 'beat-link-trigger.help)
     (alias 'overlay 'beat-link-trigger.overlay)
