@@ -9,7 +9,7 @@
   },
   "scripts": {
     "local-docs": "npx antora --fetch doc/embedded.yml",
-    "netlify-docs": "npx antora --fetch doc/netlify.yml"
+    "netlify-docs": "npx antora --redirect-facility=netlify --fetch doc/netlify.yml"
   },
   "repository": {
     "type": "git",
