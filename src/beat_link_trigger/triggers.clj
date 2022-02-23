@@ -1563,10 +1563,11 @@
                        (if (and (show/close-all-shows false)
                                 (delete-all-triggers false))
                          (do
-                           (menus/respond-to-quit-request true)  ; In case it came from the OS
+                           (writer/close-window)
                            (when (beat-carabiner/active?)
                              (beat-carabiner/disconnect)
                              (Thread/sleep 250))  ; Give any spawned daemon time to exit gracefully.
+                           (menus/respond-to-quit-request true)  ; In case it came from the OS
                            (System/exit 0))
                          (menus/respond-to-quit-request false)))
 

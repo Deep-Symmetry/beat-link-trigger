@@ -9,7 +9,7 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import java.awt.event.WindowEvent
+  (:import (java.awt.event ItemEvent WindowEvent)
            java.util.concurrent.TimeUnit
            [javax.swing JFrame]
            [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
@@ -41,6 +41,12 @@
   "The key used to store the global preference that controls whether a
   player must be On-Air for it to contribute to a playlist."
   :playlist-on-air-only)
+
+(def split-pref-key
+  "The key used to store the global preference that controls whether a
+  new playlist file is automatically created when all players have
+  been stopped for a threshold amount of time."
+  :playlist-auto-split)
 
 (def new-playlist-threshold-pref-key
   "The key used to store the global preference that controls the number
@@ -125,11 +131,11 @@
   [file]
   (if file
     (str "Writing to " (.getName file))
-    "Idle (not writing a playlist)"))
+    "Idle (not currently writing a playlist to any file)"))
 
 (defn- build-toggle-handler
   "Creates an event handler for the Start/Stop button."
-  [button status state-atom stop-handler frame]
+  [button status-label state-atom stop-handler frame]
   (fn [_]
     (if (:file @state-atom)
       (do  ; Time to stop writing a playlist
@@ -154,7 +160,7 @@
                             :title (str "Problem creating playlist file" file)
                             :type :error)
               (timbre/error t "Problem creating playlist file" file))))))
-    (seesaw/config! status :text (status-for-file (:file @state-atom)))))
+    (seesaw/config! status-label :text (status-for-file (:file @state-atom)))))
 
 (defn- format-play-time
   "Formats the number of seconds a track has been playing as minutes:seconds"
@@ -232,53 +238,58 @@
   consisting of that listener and a function that can be called to
   write out playlist entries for any tracks that have currently been
   playing long enough because the playlist file is being closed."
-  [time-spinner on-air-checkbox threshold-spinner state-atom]
+  [time-spinner on-air-checkbox split-checkbox threshold-spinner status-label state-atom]
   (let [playing-tracks (atom {})]
     [(reify DeviceUpdateListener
-        (received [_this device-update]
-          (when (instance? CdjStatus device-update)
-            (let [now              (System/currentTimeMillis)
-                  last-playing     (:last-playing @state-atom)
-                  cdj-status       ^CdjStatus device-update
-                  player-number    (.getDeviceNumber cdj-status)
-                  min-play-seconds (seesaw/value time-spinner)
-                  on-air-required? (seesaw/value on-air-checkbox)
-                  playlist-file    (:file @state-atom)]
-              ;; First see if we are playing again after having been
-              ;; stopped for long enough to merit rolling to a new playlist file.
-              (when (and last-playing (.isPlaying cdj-status))
-                (let [interval (.toMinutes java.util.concurrent.TimeUnit/MILLISECONDS (- now last-playing))]
-                  (when (>= interval (seesaw/value threshold-spinner))
-                    (swap! state-atom (fn [old-state]
-                                        (-> old-state
-                                            (assoc :file (open-playlist (:folder old-state) (:prefix old-state) false))
-                                            (assoc :last-playing now)))))))
+       (received [_this device-update]
+         (when (instance? CdjStatus device-update)
+           (let [now              (System/currentTimeMillis)
+                 last-playing     (:last-playing @state-atom)
+                 cdj-status       ^CdjStatus device-update
+                 player-number    (.getDeviceNumber cdj-status)
+                 min-play-seconds (seesaw/value time-spinner)
+                 on-air-required? (seesaw/value on-air-checkbox)
+                 split?           (seesaw/value split-checkbox)
+                 playlist-file    (:file @state-atom)]
 
-              ;; Regardless, if we are curently playing, make note of that for future threshold computations.
-              (when (.isPlaying cdj-status)
-                (swap! state-atom assoc :last-playing now))
+             ;; First see if we are configured to auto-split, and are playing again after having been stopped
+             ;; for long enough to merit rolling to a new playlist file.
+             (when (and split? last-playing (.isPlaying cdj-status))
+               (let [interval (.toMinutes java.util.concurrent.TimeUnit/MILLISECONDS (- now last-playing))]
+                 (when (>= interval (seesaw/value threshold-spinner))
+                   (swap! state-atom (fn [old-state]
+                                       (-> old-state
+                                           (assoc :file (open-playlist (:folder old-state) (:prefix old-state) false))
+                                           (assoc :last-playing now))))
+                   (seesaw/invoke-later
+                    (seesaw/config! status-label :text (status-for-file (:file @state-atom)))))))
 
-              ;; Now see if there are any track changes due to be written to the playlist.
-              (swap! playing-tracks update player-number
-                     (fn [old-entry]
-                       (if (and
-                            (.isPlaying cdj-status)
-                            (or (.isOnAir cdj-status) (not on-air-required?)))
-                         (if (track-changed? cdj-status old-entry)
-                           (do  ; Write out old entry if it had played enough, and swap in our new one.
-                             (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry)
-                             {:started    now
-                              :cdj-status cdj-status})
-                           (if old-entry
-                             (if (or (:metadata old-entry) (not (.isRunning metadata-finder)))
-                               old-entry  ; We are still playing a track we already have metadata for (or unavailable).
-                               (assoc old-entry :metadata (.getLatestMetadataFor metadata-finder player-number)))
-                             {:started    now ; We have a new entry, there was nothing there before.
-                              :cdj-status cdj-status}))
-                         (do  ; Not playing, so clear any existing entry, but write it out if it had played enough.
-                           (when old-entry
-                             (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry))
-                           nil))))))))
+             ;; Regardless, if we are curently playing, make note of that for future threshold computations.
+             (when (.isPlaying cdj-status)
+               (swap! state-atom assoc :last-playing now))
+
+             ;; Now see if there are any track changes due to be written to the playlist.
+             (swap! playing-tracks update player-number
+                    (fn [old-entry]
+                      (if (and
+                           (.isPlaying cdj-status)
+                           (or (.isOnAir cdj-status) (not on-air-required?)))
+                        (if (track-changed? cdj-status old-entry)
+                          (do  ; Write out old entry if it had played enough, and swap in our new one.
+                            (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry)
+                            {:started    now
+                             :cdj-status cdj-status})
+                          (if old-entry
+                            (if (or (:metadata old-entry) (not (.isRunning metadata-finder)))
+                              old-entry  ; We are still playing a track we already have metadata for (or unavailable).
+                              (assoc old-entry :metadata (.getLatestMetadataFor metadata-finder player-number)))
+                            {:started    now ; We have a new entry, there was nothing there before.
+                             :cdj-status cdj-status}))
+                        (do  ; Not playing, so clear any existing entry, but write it out if it had played enough.
+                          (when old-entry
+                            (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry))
+                          nil))))))))
+
      (fn [] ; Closing the playlist, write out any entries that deserve it.
        (let [min-play-seconds (seesaw/value time-spinner)
              playlist-file    (:file @state-atom)]
@@ -308,6 +319,18 @@
             (timbre/error e "Problem parsing playlist on-air preference value:" pref))))
       false))
 
+(defn- split-pref
+  "Retrieve the preference setting for automatically switching to a new
+  playlist file when all players have been stopped for a threshold
+  interval."
+  []
+  (or (when-let [pref (split-pref-key (prefs/get-preferences))]
+        (try
+          (Boolean/valueOf pref)
+          (catch Exception e
+            (timbre/error e "Problem parsing playlist auto-split preference value:" pref))))
+      false))
+
 (defn- new-playlist-threshold-pref
   "Retrieve the maximum time, in minutes, all players can be stopped
   before forcing the start of a new playlist when a new track starts
@@ -334,8 +357,10 @@
                                       :prefix prefix}))
            time-spinner      (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
            on-air-checkbox   (seesaw/checkbox :id :on-air :selected? (on-air-pref))
+           split-checkbox    (seesaw/checkbox :id :split :selected? (split-pref))
            threshold-spinner (seesaw/spinner :id :time :model (seesaw/spinner-model (new-playlist-threshold-pref)
-                                                                                    :from 1 :to 720))
+                                                                                    :from 1 :to 720)
+                                             :enabled? (split-pref))
            toggle-button     (seesaw/button :id :start :text (if @playlist-state "Stop" "Start"))
            status-label      (seesaw/label :id :status :text (status-for-file (:file @playlist-state)))
            panel             (mig/mig-panel
@@ -346,11 +371,15 @@
 
                                       [(seesaw/label :text "On-Air Players Only?") "align right"]
                                       [on-air-checkbox]
+                                      [(seesaw/label :text "") "wrap unrelated"]
+
+                                      [(seesaw/label :text "Auto-Split When Idle?") "align right"]
+                                      [split-checkbox]
                                       [(seesaw/label :text "") "wrap"]
 
                                       [(seesaw/label :text "New Playlist Threshold:") "align right"]
                                       [threshold-spinner]
-                                      [(seesaw/label :text "minutes") "align left, wrap"]
+                                      [(seesaw/label :text "minutes") "align left, wrap unrelated"]
 
                                       [(seesaw/label :text "Status:") "align right"]
                                       [status-label "span, grow, wrap 15"]
@@ -361,7 +390,8 @@
                                          :content panel
                                          :on-close :dispose)
            [update-listener
-            close-handler] (build-update-listener time-spinner on-air-checkbox threshold-spinner playlist-state)
+            close-handler] (build-update-listener time-spinner on-air-checkbox split-checkbox threshold-spinner
+                                                  status-label playlist-state)
            stop-listener   (reify LifecycleListener
                              (started [_this _sender])  ; Nothing to do, we exited as soon as stop happened anyway.
                              (stopped [_this _sender]   ; Close window if VirtualCdj gets shut down (we went offline).
@@ -370,19 +400,23 @@
        (.addUpdateListener virtual-cdj update-listener)
        (.addLifecycleListener virtual-cdj stop-listener)
        (seesaw/listen root
-                      :window-closed (fn [_]
-                                       (.removeUpdateListener virtual-cdj update-listener)
-                                       (.removeLifecycleListener virtual-cdj stop-listener)
-                                       (close-handler)
-                                       (reset! writer-window nil)
-                                       (prefs/put-preferences
-                                        (assoc (prefs/get-preferences)
-                                               min-time-pref-key (seesaw/value time-spinner)
-                                               on-air-pref-key (seesaw/value on-air-checkbox)
-                                               new-playlist-threshold-pref-key (seesaw/value threshold-spinner))))
+                      :window-closing (fn [_]
+                                        (.removeUpdateListener virtual-cdj update-listener)
+                                        (.removeLifecycleListener virtual-cdj stop-listener)
+                                        (close-handler)
+                                        (reset! writer-window nil)
+                                        (prefs/put-preferences
+                                         (assoc (prefs/get-preferences)
+                                                min-time-pref-key (seesaw/value time-spinner)
+                                                on-air-pref-key (seesaw/value on-air-checkbox)
+                                                split-pref-key (seesaw/value split-checkbox)
+                                                new-playlist-threshold-pref-key (seesaw/value threshold-spinner))))
                       :component-moved (fn [_] (util/save-window-position root :playlist-writer true)))
        (seesaw/listen toggle-button :action (build-toggle-handler toggle-button status-label playlist-state
                                                                   close-handler root))
+       (seesaw/listen split-checkbox :item-state-changed
+                      (fn [^ItemEvent e]
+                        (seesaw/config! threshold-spinner :enabled? (= (.getStateChange e) ItemEvent/SELECTED))))
        (seesaw/pack! root)
        #_(.setResizable root false)
        (reset! writer-window root)
@@ -397,6 +431,13 @@
   (locking writer-window
     (when-not @writer-window (create-window)))
   (make-window-visible trigger-frame))
+
+(defn close-window
+  "If the playlist window is open, close it, which also saves
+  preferences."
+  []
+  (when-let [^JFrame window @writer-window]
+    (.dispatchEvent window (WindowEvent. window WindowEvent/WINDOW_CLOSING))))
 
 (defn write-playlist
   "Programatically start writing a playlist, so we can do this from the

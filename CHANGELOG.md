@@ -79,6 +79,11 @@ This change log follows the conventions of
 - Triggers which send MIDI clock are now less sensitive to minute
   changes in tempo, which makes them less twitchy. Their sensitivity
   can be configured using an expression if desired.
+- If the Playlist Writer window is open when Beat Link Trigger is
+  quit, changes made to its settings were lost. They are now
+  persisted.
+- A few other graceful shutdown operations that were supposed to take
+  place were being skipped.
 
 ### Removed
 
