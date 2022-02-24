@@ -73,6 +73,10 @@ This change log follows the conventions of
 - There was a timing issue which could result in incorrect MIDI device
   status reporting when changing MIDI devices in the original Triggers
   window.
+- Remixer data was not properly handled in the OBS overlay server;
+  this was a particular problem when working with tracks served by
+  rekordbox, because those always have remixer data even if it is just
+  an empty string.
 - Quitting Beat Link Trigger could leave Carabiner running in the
   background even if it had been installed and started by BLT. This is
   now properly cleaned up.

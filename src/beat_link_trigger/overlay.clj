@@ -220,7 +220,7 @@
      :label           (item-label (.getLabel metadata))
      :original-artist (item-label (.getOriginalArtist metadata))
      :rating          (.getRating metadata)
-     :remixer         (.getRemixer metadata)
+     :remixer         (item-label (.getRemixer metadata))
      :starting-tempo  (/ (.getTempo metadata) 100.0)
      :year            (.getYear metadata)}))
 
