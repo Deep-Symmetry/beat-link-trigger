@@ -50,6 +50,11 @@ This change log follows the conventions of
   if all players have been idle for that long. This facilitates
   automatically creating separate playlist files for different
   activities even if Beat Link Trigger is running unattended.
+- The the variable `bar-number` is available inside beat and status
+  expressions, and holds the number of the current measure being
+  played if that can be determined (starting with 1, and properly
+  accounting for the potential of a partial bar if the track does not
+  begin with a downbeat).
 
 ### Fixed
 

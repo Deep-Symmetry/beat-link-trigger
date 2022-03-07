@@ -133,6 +133,23 @@
       (when-not (neg? result)
         result))))
 
+(defn current-beat
+  "Obtains the current beat number of the player that sent the
+  supplied device update, or `nil` if we don't know."
+  [^DeviceUpdate device-update]
+  (when (.isRunning time-finder)
+    (let [position (.getLatestPositionFor time-finder device-update)]
+      (when position
+        (.-beatNumber position)))))
+
+(defn current-bar
+  "Obtains the current bar number of the player that sent the
+  supplied device update, or `nil` if we don't know."
+  [^DeviceUpdate device-update]
+  (when-let [beat (current-beat device-update)]
+    (when-let [grid (.getLatestBeatGridFor beatgrid-finder device-update)]
+      (.getBarNumber grid beat))))
+
 (defn extract-raw-cue-update
   "Given a status value from a show cue's started-on-beat or
   started-late expression, returns the raw device update object
@@ -185,6 +202,8 @@
                             'bar-meaningful?    {:code '(.isBeatWithinBarMeaningful status)
                                                  :doc
                                                  "Will be <code>true</code> if this update is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
+                            'bar-number   {:code '(or (current-bar status) -1)
+                                           :doc "Identifies the bar in which the beat that just played falls. This counter starts at bar 1 as the track is played, and increments on each downbeat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
                             'cdj?               {:code '(or (instance? CdjStatus status)
                                                             (and (instance? Beat status)
                                                                  (< (.getDeviceNumber status 17))))
@@ -235,10 +254,7 @@
                                                  :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window."}}}
 
    Beat {:inherit  [DeviceUpdate]
-         :bindings {'beat-number   {:code '(or (when-let [position (playback-time status)]
-                                                 (when-let [grid (.getLatestBeatGridFor beatgrid-finder status)]
-                                                   (.findBeatAtTime grid position)))
-                                               -1)
+         :bindings {'beat-number   {:code '(or (current-beat status) -1)
                                     :doc "Identifies the beat of the track that just played. This counter starts at beat 1 as the track is played, and increments on each beat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
                     'tempo-master? {:code '(.isTempoMaster status)
                                     :doc  "Was this beat sent by the current tempo master?"}
