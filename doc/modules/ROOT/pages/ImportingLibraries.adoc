@@ -20,7 +20,7 @@ be able to write out JSON files. BLT doesn't include that ability out
 of the box, but there is a nice Clojure library,
 https://github.com/clojure/data.json[data.json], that offers it.
 Looking at the project page, we can see that it has a Leiningen
-dependency "`coordinate`" of `[org.clojure/data.json "0.2.6"]`.
+dependency "`coordinate`" of `[org.clojure/data.json "2.4.0"]`.
 Leiningen is a very common tool for managing library dependencies in
 Clojure projects, and that format is what the BLT library loader uses
 as well. To make this library available, add this to the Shared
@@ -28,7 +28,7 @@ Functions:
 
 [source,clojure,subs=attributes+]
 ----
-(add-library '[org.clojure/data.json "0.2.6"])
+(add-library '[org.clojure/data.json "2.4.0"])
 (require '[clojure.data.json :as json])
 ----
 
@@ -60,10 +60,10 @@ call `add-libraries` instead and pass a vector of all the coordinates
 
 [source,clojure,subs=attributes+]
 ----
-(add-libraries '[[org.clojure/data.json "0.2.6"]
+(add-libraries '[[org.clojure/data.json "2.4.0"]
                  [incanter "1.9.3"]])
 (require '[clojure.data.json :as json])
-(require '[incanter/incanter-core :as incanter])
+(require '[incanter.core :as incanter])
 ----
 
 Notice that you still need individual `require` statements for all the

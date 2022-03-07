@@ -29,11 +29,17 @@
   singleton."
   (VirtualCdj/getInstance))
 
+(def dynamic-class-loader
+  "The class loader that supports dynamic additions, for users to be
+  able to pull in new dependencies. This gets initialized in `start`."
+  (atom nil))
+
 (defn finish-startup
   "Called when we have successfully gone online, or the user has said
   they want to proceed offline."
   []
   (seesaw/invoke-now
+   (.setContextClassLoader (Thread/currentThread) @dynamic-class-loader)  ; This is getting reset somewhere.
    (when (triggers/start)             ; Set up the Triggers window, and check if it was created for the first time.
      (show/reopen-previous-shows))))  ; If so also reopen any Show windows the user had open during their last session.
 
@@ -180,6 +186,7 @@
    ;; expression code at runtime.
    (let [cl (clojure.lang.DynamicClassLoader. (clojure.lang.RT/baseLoader))]
      (.bindRoot Compiler/LOADER cl)
+     (reset! dynamic-class-loader cl)
      (.setContextClassLoader (Thread/currentThread) cl)
 
      ;; Switch to the Swing Event Dispatch Thread to configure the user interface.
@@ -220,7 +227,6 @@
      ;; Restore saved window positions if they exist
      (when-let [saved (:window-positions (prefs/get-preferences))]
        (reset! util/window-positions saved))
-
 
      (if offline
        (finish-startup)       ; User did not want to go online.
