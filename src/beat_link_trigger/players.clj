@@ -541,18 +541,18 @@
                                          [player "left, bottom"]
                                          [preview "width 408!, height 56!, right, bottom, span"]]))
         md-listener    (reify TrackMetadataListener
-                         (metadataChanged [this md-update]
+                         (metadataChanged [_this md-update]
                            (when (= n (.player md-update))
                              (update-metadata-labels (.metadata md-update) n title-label artist-label)
                              (seesaw/repaint! art))))  ; In case we still have no art but need a new generic image.
         ss-listener    (reify AnalysisTagListener
-                         (analysisChanged [this tag-update]
+                         (analysisChanged [_this tag-update]
                            (when (= n (.player tag-update))
                              (let [wrapped (when-let [wrapper (.taggedSection tag-update)]
                                              (.body wrapper))]
                                (update-phrase-labels wrapped mood-label bank-label)))))
         art-listener   (reify AlbumArtListener
-                         (albumArtChanged [this art-update]
+                         (albumArtChanged [_this art-update]
                            (when (= n (.player art-update))
                              (seesaw/repaint! art))))
         slot-elems     (fn [^SlotReference slot-reference]
@@ -563,13 +563,13 @@
                              nil)))
         mount-listener (reify
                          MountListener
-                         (mediaMounted [this slot-reference]
+                         (mediaMounted [_this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-later
                                 (seesaw/config! label :text (media-description slot-reference))
                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
-                         (mediaUnmounted [this slot-reference]
+                         (mediaUnmounted [_this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-soon
@@ -577,7 +577,7 @@
                                 (seesaw/config! label :text "Empty")))))
 
                          MediaDetailsListener
-                         (detailsAvailable [this details]
+                         (detailsAvailable [_this details]
                            (let [slot-reference (.-slotReference details)
                                  [_ label] (slot-elems slot-reference)]
                              (when label
@@ -784,19 +784,19 @@
           players       (create-player-cells shutdown-chan)
           no-players    (build-no-player-indicator)
           dev-listener  (reify DeviceAnnouncementListener  ; Update the grid contents as players come and go
-                          (deviceFound [this _]
+                          (deviceFound [_this _]
                             (seesaw/invoke-later
                              (seesaw/config! root
                                              :content (seesaw/scrollable (players-present grid players no-players)))
                              (seesaw/pack! root)))
-                          (deviceLost [this _]
+                          (deviceLost [_this _]
                             (seesaw/invoke-later
                              (seesaw/config! root
                                              :content (seesaw/scrollable (players-present grid players no-players)))
                              (seesaw/pack! root))))
           stop-listener (reify LifecycleListener
-                          (started [this sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
-                          (stopped [this sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
+                          (started [_this _sender])  ; Nothing for us to do, we exited as soon a stop happened anyway.
+                          (stopped [_this _sender]  ; Close our window if VirtualCdj gets shut down (we went offline).
                             (seesaw/invoke-later
                              (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
       (seesaw/config! root :content (seesaw/scrollable (players-present grid players no-players)))

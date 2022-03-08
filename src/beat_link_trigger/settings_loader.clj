@@ -192,18 +192,18 @@
                                                    "padButtonBrightness") "wrap"]])
            layout           (seesaw/border-panel :center (seesaw/scrollable settings-panel) :south player-panel)
            stop-listener    (reify LifecycleListener
-                              (started [this _]) ; Nothing to do, we exited as soon as a stop happened anyway.
-                              (stopped [this _]  ; Close our window if VirtualCdj stops (we need it).
+                              (started [_this _]) ; Nothing to do, we exited as soon as a stop happened anyway.
+                              (stopped [_this _]  ; Close our window if VirtualCdj stops (we need it).
                                 (seesaw/invoke-later
                                  (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
            dev-listener     (reify DeviceAnnouncementListener
-                              (deviceFound [this announcement]
+                              (deviceFound [_this announcement]
                                 (seesaw/invoke-later (track-loader/add-device players (.getDeviceNumber announcement))))
-                              (deviceLost [this announcement]
+                              (deviceLost [_this announcement]
                                 (seesaw/invoke-later (track-loader/remove-device players (.getDeviceNumber announcement)
                                                                                  stop-listener))))
            status-listener  (reify DeviceUpdateListener
-                              (received [this status]
+                              (received [_this status]
                                 (let [player @selected-player]
                                   (when (and (= (.getDeviceNumber status) (:number player))
                                              (not= (.isPlaying ^CdjStatus status) (:playing player)))

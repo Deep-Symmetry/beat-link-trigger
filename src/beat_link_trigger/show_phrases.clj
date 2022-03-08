@@ -1925,11 +1925,11 @@ editor windows, in their cue canvases as well."
            :doc "Watches for players to come and go so we can register the
   track position listeners we need."}
   device-listener (reify DeviceAnnouncementListener
-                    (deviceFound [this announcement]
+                    (deviceFound [_this announcement]
                       (let [player (.getDeviceNumber announcement)]
                         (when (< player 16)  ; Only care about players, not mixers, rekordbox, etc.
                           (add-position-listener player))))
-                    (deviceLost [this announcement])))  ; Nothing to do.
+                    (deviceLost [_this _announcement])))  ; Nothing to do.
 
 (.addDeviceAnnouncementListener util/device-finder device-listener)
 
@@ -1956,7 +1956,7 @@ editor windows, in their cue canvases as well."
 (defonce ^{:private true
            :doc "Responds appropriately to device status updates."}
   update-listener (reify DeviceUpdateListener
-                    (received [this status]
+                    (received [_this status]
                       (try
                         (when (and (.isRunning util/signature-finder)  ; Ignore packets when not yet fully online.
                                    (instance? CdjStatus status))  ; We only want CDJ information.

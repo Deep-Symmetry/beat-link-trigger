@@ -1,6 +1,9 @@
+#_{:clj-kondo/ignore [:unused-namespace :unused-refer :unused-import :refer-all]}
 (ns beat-link-trigger.expressions
   "A namespace in which user-entered custom expressions will be
-  evaluated, which provides support for making them easier to write."
+  evaluated, which provides support for making them easier to write.
+  We require, refer, and import a lot of things not used in this file,
+  simply for the convenience of expressions created by users later."
   (:require [clojure.repl :refer :all]
             [clojure.set]
             [clojure.string :as str]

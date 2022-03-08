@@ -1976,24 +1976,24 @@
                                       (when (and (seesaw/config load-button :enabled?) (= 2 (.getClickCount e)))
                                         (.doClick ^JButton load-button))))
                stop-listener      (reify LifecycleListener
-                                    (started [this _]) ; Nothing to do, we exited as soon a stop happened anyway.
-                                    (stopped [this _]  ; Close our window if MetadataFinder stops (we need it).
+                                    (started [_this _]) ; Nothing to do, we exited as soon a stop happened anyway.
+                                    (stopped [_this _]  ; Close our window if MetadataFinder stops (we need it).
                                       (seesaw/invoke-later
                                        (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
                dev-listener       (reify DeviceAnnouncementListener
-                                    (deviceFound [this announcement]
+                                    (deviceFound [_this announcement]
                                       (seesaw/invoke-later (add-device players (.getDeviceNumber announcement))))
-                                    (deviceLost [this announcement]
+                                    (deviceLost [_this announcement]
                                       (seesaw/invoke-later
                                        (remove-device players (.getDeviceNumber announcement) stop-listener))))
                mount-listener     (reify MountListener
-                                    (mediaMounted [this slot]
+                                    (mediaMounted [_this slot]
                                       (seesaw/invoke-later (add-slot-node slots-tree slot)))
-                                    (mediaUnmounted [this slot]
+                                    (mediaUnmounted [_this slot]
                                       (swap! searches dissoc slot)
                                       (seesaw/invoke-later (remove-slot-node slots-tree slot stop-listener))))
                status-listener    (reify DeviceUpdateListener
-                                    (received [this status]
+                                    (received [_this status]
                                       (let [player @selected-player]
                                         (when (and (= (.getDeviceNumber status) (:number player))
                                                    (or (not= (.isPlaying ^CdjStatus status) (:playing player))

@@ -39,8 +39,7 @@
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
-            RekordboxAnlz$SongStructureBody RekordboxAnlz$SongStructureEntry RekordboxAnlz$SongStructureTag
-            RekordboxAnlz$TaggedSection]
+            RekordboxAnlz$SongStructureTag RekordboxAnlz$TaggedSection]
            [io.kaitai.struct RandomAccessFileKaitaiStream ByteBufferKaitaiStream]
            [jiconfont.icons.font_awesome FontAwesome]
            [jiconfont.swing IconFontSwing]))
@@ -2213,12 +2212,12 @@
                                                    [loaded-only "hidemode 3"]])
             layout          (seesaw/border-panel :north top-panel :center tracks-scroll)
             dev-listener    (reify DeviceAnnouncementListener  ; Update the import submenu as players come and go.
-                              (deviceFound [this announcement]
+                              (deviceFound [_this announcement]
                                 (update-player-item-visibility announcement show true))
-                              (deviceLost [this announcement]
+                              (deviceLost [_this announcement]
                                 (update-player-item-visibility announcement show false)))
             mf-listener     (reify LifecycleListener  ; Hide or show all players if we go offline or online.
-                              (started [this sender]
+                              (started [_this _sender]
                                 (.start util/time-finder)  ; We need this too, and it doesn't auto-restart.
                                 (.start signature-finder)  ; In case we started out offline.
                                 (seesaw/invoke-later
@@ -2227,7 +2226,7 @@
                                    (update-player-item-visibility announcement show true))
                                  (su/update-row-visibility show)
                                  (cues/update-cue-window-online-status show true)))
-                              (stopped [this sender]
+                              (stopped [_this _sender]
                                 (seesaw/invoke-later
                                  (seesaw/hide! loaded-only)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
@@ -2235,11 +2234,11 @@
                                  (su/update-row-visibility show)
                                  (cues/update-cue-window-online-status show false))))
             sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
-                              (signatureChanged [this sig-update]
+                              (signatureChanged [_this sig-update]
                                 (update-player-item-signature sig-update show)
                                 (seesaw/invoke-later (su/update-row-visibility show))))
             ss-listener     (reify AnalysisTagListener  ; Add newly-available phrase analysis info to tracks and show.
-                              (analysisChanged [this tag-update]
+                              (analysisChanged [_this tag-update]
                                 (if-let [song-structure (.taggedSection tag-update)]
                                   (do
                                     (when-let [signature (.getLatestSignatureFor signature-finder (.player tag-update))]
@@ -2247,7 +2246,7 @@
                                     (phrases/upgrade-song-structure (.player tag-update) (.body song-structure)))
                                   (phrases/clear-song-structure (.player tag-update)))))
             update-listener (reify DeviceUpdateListener
-                              (received [this status]
+                              (received [_this status]
                                 (try
                                   (when (and (.isRunning signature-finder)  ; Ignore packets when not yet fully online.
                                              (instance? CdjStatus status))  ; We only want CDJ information.

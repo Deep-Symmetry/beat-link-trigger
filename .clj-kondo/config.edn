@@ -1,0 +1,3 @@
+{:linters
+  {:unresolved-symbol
+    {:exclude [(beat-link-trigger.util/doseq-indexed)]}}}

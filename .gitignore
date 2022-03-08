@@ -9,6 +9,7 @@ pom.xml
 pom.xml.asc
 *.jar
 *.class
+/.clj-kondo/.cache
 /.lein-*
 /.nrepl-port
 .hgignore

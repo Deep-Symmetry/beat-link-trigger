@@ -1,5 +1,8 @@
+#_{:clj-kondo/ignore [:unused-namespace :unused-refer :unused-import]}
 (ns beat-link-trigger.overlay
-  "Serves a customizable overlay page for use with OBS Studio."
+  "Serves a customizable overlay page for use with OBS Studio. We
+  require, refer, and import a lot of things not used directly in this
+  file for the convenience of code in templates."
   (:require [clojure.edn :as edn]
             [clojure.java.browse :as browse]
             [clojure.java.io :as io]

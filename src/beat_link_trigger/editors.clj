@@ -19,28 +19,28 @@
            [org.fife.ui.rtextarea RTextArea SearchResult]
            [org.fife.ui.rsyntaxtextarea RSyntaxTextArea]))
 
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defonce
   ^{:private true
     :doc "Protect protocols against namespace reloads"}
   _PROTOCOLS_
-  (do
-(defprotocol IExpressionEditor
-  "A window which allows the user to edit Clojure expressions which
+  (defprotocol IExpressionEditor
+    "A window which allows the user to edit Clojure expressions which
   make up the body of a function that customizes application
   behavior."
-  (show [this]
-    "Make the window visible again if it had been closed or dropped
+    (show [this]
+      "Make the window visible again if it had been closed or dropped
   behind others.")
-  (retitle [this]
-    "Update the window title to reflect a new index for its associated
+    (retitle [this]
+      "Update the window title to reflect a new index for its associated
   trigger.")
-  (can-close? [this]
-    "Check if the editor has no unsaved changes, or if the user is
+    (can-close? [this]
+      "Check if the editor has no unsaved changes, or if the user is
   willing to abandon them. If so, return truthy. Otherwise return falsey,
   which should abort whatever operation was in process.")
-  (dispose [this]
-    "Permanently close the window and release its resources, without
-  regard to whether there are unsaved changes."))))
+    (dispose [this]
+      "Permanently close the window and release its resources, without
+  regard to whether there are unsaved changes.")))
 
 (defn sort-setup-to-front
   "Given a sequence of expression keys and value tuples, makes sure that

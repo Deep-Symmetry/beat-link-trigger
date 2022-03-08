@@ -46,6 +46,8 @@
 ;; Make the expression globals conveniently available when compiling
 ;; shared functions too.
 (in-ns 'beat-link-trigger.expressions)
+
+#_{:clj-kondo/ignore [:unresolved-namespace]}
 (def globals
   "The Beat Link Trigger expression globals"
   beat-link-trigger.triggers/expression-globals)
@@ -1188,7 +1190,7 @@
   state of any triggers watching them."}
   status-listener
   (reify DeviceUpdateListener
-    (received [this status]
+    (received [_this status]
       (try
         (doseq [trigger (get-triggers)]
           (let [selection (get-in @(seesaw/user-data trigger) [:value :players])]
@@ -1212,7 +1214,7 @@
   that are assigned to Ableton Link."}
   beat-listener
   (reify BeatListener
-    (newBeat [this beat]
+    (newBeat [_this beat]
       (try
         (doseq [trigger (get-triggers)]
           (let [data @(seesaw/user-data trigger)
@@ -1239,9 +1241,9 @@
   headless operation."}
   device-listener
   (reify DeviceAnnouncementListener
-    (deviceFound [this announcement]
+    (deviceFound [_this _announcement]
       (rebuild-all-device-status))
-    (deviceLost [this announcement]
+    (deviceLost [_this _announcement]
       (rebuild-all-device-status)
       (when (and (util/online?) (empty? (.getCurrentDevices device-finder)))
         ;; We are online but lost the last DJ Link device. Switch back to looking for the network.
@@ -1260,8 +1262,8 @@
            recognize that we are offline and try to recover."}
   vcdj-lifecycle-listener
   (reify LifecycleListener
-    (started [this _]) ; Nothing to do.
-    (stopped [this _]
+    (started [_this _]) ; Nothing to do.
+    (stopped [_this _]
       (future
         (go-offline true) ; Indicate this is a special case of going offline even though VirtualCdj is offline already.
         (seesaw/invoke-now
@@ -1623,7 +1625,7 @@
         ;; Request notifications when MIDI devices appear or vanish
         (CoreMidiDeviceProvider/addNotificationListener
          (reify uk.co.xfactorylibrarians.coremidi4j.CoreMidiNotification
-           (midiSystemUpdated [this]
+           (midiSystemUpdated [_this]
              (midi-environment-changed))))
 
         ;; Open the trigger window

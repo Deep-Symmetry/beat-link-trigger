@@ -284,9 +284,9 @@
   "Responds to the Virtual CDJ starting or stopping so we can enable or
   disable the sync and master buttons appropriately."
   (reify LifecycleListener
-    (started [this sender]
+    (started [_this _sender]
       (enable-pioneer-sync-controls true))
-    (stopped [this sender]
+    (stopped [_this _sender]
       (enable-pioneer-sync-controls false)
       (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off"))))
 
@@ -406,9 +406,9 @@
   the corresponding sync control elements."}
   device-announcement-listener
   (reify DeviceAnnouncementListener
-    (deviceFound [this announcement]
+    (deviceFound [_this announcement]
       (update-device-visibility (.getDeviceNumber announcement) true))
-    (deviceLost [this announcement]
+    (deviceLost [_this announcement]
       (update-device-visibility (.getDeviceNumber announcement) false))))
 
 (defn- link-sync-state-changed
