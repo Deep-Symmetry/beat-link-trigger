@@ -29,15 +29,15 @@ guide](https://blt-guide.deepsymmetry.org/).
 
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#licenses)
 
-> :boom: **Warning**: While we seem to have this working with
-> CDJ-3000s and more than four players, we still do not own any
-> ourselves so we are not able to test directly, and we don't know
-> what else might be needed. This also means we have not yet been able
-> to take advantage of the more detailed position updates these new
-> players send. If you can do any testing with this new hardware,
-> please share status reports and (even more important) open issues
-> with log files, packet captures, and track analysis files if you run
-> into problems!
+> :construction: **New Hardware Support In Progress**: While we seem
+> to have this working with CDJ-3000s and more than four players, we
+> still do not own any ourselves so we are not able to test directly,
+> and we don't know what else might be needed. This also means we have
+> not yet been able to take advantage of the more detailed position
+> updates these new players send. If you can do any testing with this
+> new hardware, please share status reports and (even more important)
+> open issues with log files, packet captures, and track analysis
+> files if you run into problems!
 
 ## Usage
 
