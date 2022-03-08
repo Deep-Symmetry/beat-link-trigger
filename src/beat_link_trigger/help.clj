@@ -90,7 +90,7 @@
   (let [display-name (.getDisplayName interface)
         raw-name     (.getName interface)]
     (str display-name
-         (when (not= display-name raw-name) " (" raw-name ")")
+         (when (not= display-name raw-name) (str " (" raw-name ")"))
          ": " (describe-ipv4-addresses interface))))
 
 (defn list-network-interfaces
