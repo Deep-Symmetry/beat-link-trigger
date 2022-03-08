@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+
+## [7.0.0] - 2022-03-07
+
 ### Added
 
 - The Player Status window can now handle up to six players, to work
@@ -1249,7 +1254,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.3...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.0...HEAD
+[7.0.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.3...v7.0.0
 [0.6.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.0...v0.6.1
