@@ -163,9 +163,8 @@ player 2, so you can work on your template design even when you don’t
 have actual player hardware handy. Even though those are the only two
 simulated tracks available, you can configure them to be in more or
 different players if your template design requires; ask for help on
-the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
-stream] if you are interested in doing that.
+the https://deep-symmetry.zulipchat.com[Zulip stream] if you are
+interested in doing that.
 
 .Top Level Variables
 [cols="1l,4",options="header"]

@@ -488,8 +488,7 @@ NOTE: You may have also noticed there is no *Auto Scroll* check box.
 Since phrase triggers are much shorter than tracks, this is less
 likely to be needed, and it would be more complicated to implement. If
 you really want a feature like this, please say so in the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Deep
-Symmetry Zulip stream].
+https://deep-symmetry.zulipchat.com[Deep Symmetry Zulip stream].
 
 One difference when compared with cues in a track is that, as noted in
 <<playing-status>>, phrase triggers are always enabled when they are
