@@ -113,7 +113,7 @@
 
 (def zulip-chat-url
   "Where people discuss Beat Link Trigger."
-  "https://deep-symmetry.zulipchat.com")
+  "https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger")
 
 (def project-home-url
   "The GitHub front page for the project."

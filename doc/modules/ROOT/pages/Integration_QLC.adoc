@@ -3,12 +3,13 @@ include::partial$PagePreamble.adoc[]
 
 I heard from https://www.mixcloud.com/nicoj_music/[Nico J] (Cappiz on
 the
-https://deep-symmetry.zulipchat.com[Zulip stream]) with an interesting
-question about triggering cues in the QLC+ open-source lighting control
-software. While this could be done by MIDI, it would be nice to do it
-in a way that also allowed the same virtual button to be controlled by
-a physical MIDI controller, and to provide feedback on that controller
-to make it visible when Beat Link Trigger is activating cues.
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream]) with an interesting question about triggering cues in the
+QLC+ open-source lighting control software. While this could be done
+by MIDI, it would be nice to do it in a way that also allowed the same
+virtual button to be controlled by a physical MIDI controller, and to
+provide feedback on that controller to make it visible when Beat Link
+Trigger is activating cues.
 
 == Using Show Cues
 
@@ -436,4 +437,5 @@ clean it could be.
 
 If you have any questions about using this, or ideas about new
 directions to take it, please raise them on the
-https://deep-symmetry.zulipchat.com[Zulip stream].
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream].
