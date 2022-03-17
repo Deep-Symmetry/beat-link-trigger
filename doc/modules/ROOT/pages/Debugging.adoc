@@ -4,7 +4,8 @@ include::partial$PagePreamble.adoc[]
 Beat Link Trigger offers a few mechanisms to help you understand how
 your triggers are (or are not) working, and to save and restore
 versions of them, or share them with friends and colleagues (or on the
-https://deep-symmetry.zulipchat.com[Zulip stream] or
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream] or
 https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]
 to either get help from others, or share and show them off). +++<img
 src="_images/HelpMenu.png" width="250" height="205" alt="Help Menu"
@@ -444,4 +445,5 @@ Clojure, troubleshooting, and so on.)
 
 For more ideas specifically about how to explore Beat Link Trigger
 from a Clojure IDE, mention you are doing it on the
-https://deep-symmetry.zulipchat.com[Zulip stream]!
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream]!

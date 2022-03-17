@@ -227,9 +227,11 @@ https://www.orangepi-dmx.org/9-ltc-smpte-timecode-reader-converter-generator[LTC
 SMPTE Timecode project uImage] file to boot from. If you want a
 display to show the timecode being generated, there are some
 compatible options. Look on the project page for more information, or
-ask on the https://deep-symmetry.zulipchat.com[Zulip stream]. Clint and I
-worked with the developer to arrange for the project to support OSC commands
-that would allow Beat Link Trigger to control it.
+ask on the
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream]. Clint and I worked with the developer to arrange for the
+project to support OSC commands that would allow Beat Link Trigger to
+control it.
 
 Clint's written a guide to getting started with the Orange Pi project
 in the Beat Link Trigger Wiki. You can check it out
@@ -286,7 +288,9 @@ This show doesn't handle mutiple players playing the same configured
 track at once, or even two different configured tracks playing on
 different players. Such refinements are possible, by making the code
 more sophisticated. If you would like help doing that, please ask on
-the https://deep-symmetry.zulipchat.com[Zulip stream].
+the
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream].
 
 
 === Controlling the Pi using a Trigger

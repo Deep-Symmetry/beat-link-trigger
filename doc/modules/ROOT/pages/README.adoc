@@ -5,7 +5,9 @@ This is an introduction to the Beat Link Trigger interface and
 expression programming environment. It shows some ways you can use it,
 but as an open-ended environment, the possibilities are endless. If
 you have questions or other approaches you’d like to share, please
-post to the https://deep-symmetry.zulipchat.com[Zulip stream].
+post to the
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream].
 
 To keep page sizes manageable, this guide is split into several pages.
 It is worth reading through this whole guide once if you are new to
@@ -152,7 +154,9 @@ network adapter on the computer running Beat Link Trigger. So here is
 a list of things to think about and watch out for.
 
 > If you are still stuck after following this advice, you can ask for
-> help on the https://deep-symmetry.zulipchat.com[Zulip stream].
+> help on the
+> https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+> stream].
 
 === Use a Separate Network for your DJ gear
 
@@ -292,7 +296,8 @@ on the left.)
 
 If you have any thoughts, questions, your own integration examples, or
 even crazy ideas, please share them in the
-https://deep-symmetry.zulipchat.com[Zulip stream] or
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream] or
 https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]!
 
 If you find what seems to be an actual problem with the software,

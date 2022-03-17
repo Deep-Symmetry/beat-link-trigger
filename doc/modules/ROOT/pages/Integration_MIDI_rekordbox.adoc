@@ -294,4 +294,5 @@ clean it could be.
 
 If you have any questions about using this, or ideas about new
 directions to take it, please raise them on the
-https://deep-symmetry.zulipchat.com[Zulip stream].
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+stream].
