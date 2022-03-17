@@ -6,7 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Changed
+
+- The links to the Zulip chat have been updated to take advangage of
+  the fact that it is now possible for people browse the streams
+  without creating an account until they want to contribute to the
+  discussion.
 
 
 ## [7.0.0] - 2022-03-07
