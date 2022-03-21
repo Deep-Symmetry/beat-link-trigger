@@ -87,6 +87,48 @@ such cases
 https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-options/[thread
 dumps] are often a valuable next step.
 
+[TIP]
+====
+Thread dumps can be very useful, and yet tedious to create, especially
+in Windows, so here is a way to make them more easily. Add the
+following function to your <<Expressions.adoc#shared-functions,Shared
+Functions>>:
+
+[source,clojure]
+----
+(defn log-thread-dump
+  "Writes a thread dump to the BLT log."
+  []
+  (timbre/info "----- Start of thread dump")
+  (doseq [t (.dumpAllThreads
+              (java.lang.management.ManagementFactory/getThreadMXBean)
+              true true)]
+    (timbre/info t))
+  (timbre/info "----- End of thread dump"))
+----
+
+This defines a new shared function called `log-thread-dump` which
+writes a thread dump to the BLT log file. Then you can trigger one by
+editing your
+<<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup
+Expression>> and adding:
+
+[source,clojure]
+----
+(log-thread-dump)
+----
+
+When you Update the Global Setup Expression to contain this call, BLT
+will immediately log a thread dump to the log file. You can make it
+happen again by editing the Global Setup Expression, adding a space at
+the end, and Updating it again.
+
+You will want to remember to take the `log-thread-dump` call back out
+of your Global Setup Expression when you are done troubleshooting,
+though, or you will get a thread dump in the log every time you start
+up BLT.
+====
+
 [[wireshark]]
 === Wireshark Captures
 
