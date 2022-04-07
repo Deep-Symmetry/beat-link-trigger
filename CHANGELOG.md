@@ -6,6 +6,13 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- The sample OBS overlay template was not updating the waveforms or
+  album art images in some browsers because they were
+  over-aggressively assuming they could cache previous versions. Now a
+  query parameter is used to force them to get the latest versions.
+
 ### Changed
 
 - The links to the Zulip chat have been updated to take advangage of

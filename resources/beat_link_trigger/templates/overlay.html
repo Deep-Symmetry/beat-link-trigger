@@ -43,8 +43,10 @@
        */
       function animateImage(id, interval) {
         const element = document.getElementById(id);
+        const baseSrc = element.src;
+        const delimiter = baseSrc.includes("?") ? "&now=" : "?now=";
         const refresher = function() {
-          element.src = element.src;
+          element.src = baseSrc + delimiter + Date.now();
           setTimeout(refresher, nextInterval(interval));
         }
         setTimeout(refresher, nextInterval(interval));
