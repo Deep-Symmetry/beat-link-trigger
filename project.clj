@@ -70,8 +70,6 @@
   ;; distributed archive. Then compile the adapter class we need to
   ;; work with the Radiance GUI look and feel, and set up the resource
   ;; that allows runtime access to the build version information.
-  :shell {:env {"DOCSEARCH_ENABLED" "true"
-                "DOCSEARCH_ENGINE"  "lunr"}}
   :prep-tasks [["shell" "npm" "run" "local-docs"]
                "javac"
                "compile"
