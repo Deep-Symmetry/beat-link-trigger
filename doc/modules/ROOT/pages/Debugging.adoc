@@ -127,6 +127,40 @@ You will want to remember to take the `log-thread-dump` call back out
 of your Global Setup Expression when you are done troubleshooting,
 though, or you will get a thread dump in the log every time you start
 up BLT.
+
+If your user interface is getting locked up and preventing you from
+editing and saving the Global Setup expression (or you just find that
+too clumsy an approach), you can instead use a REPL connection to call
+`log-thread-dump`. First, install https://leiningen.org[Leiningen] on
+your system, then start up BLT's built-in nREPL server as described in
+<<#advanced-coding,Advanced Coding>>. Once the Run checkbox is active,
+open a command or terminal window, and type:
+
+    lein repl :connect 17001
+
+(If you chose a different nREPL port in the nREPL Server window, enter
+that number instead, without any commas or punctuation.) This will
+open a REPL connection to the Clojure environment inside Beat Link
+Trigger:
+
+    Connecting to nREPL at 127.0.0.1:17001
+    REPL-y 0.5.1, nREPL 0.9.0
+    Clojure 1.10.3
+    OpenJDK 64-Bit Server VM 11.0.14.1+10-LTS
+    beat-link-trigger loaded.
+    user=>
+
+At this point you can type Clojure expressions and have them
+immediately evaluated. Tab-completion should work to help make thigs
+faster. Assuming you installed `log-thread-dump` as a Shared Function
+as described above, you can run it by typing this in the REPL:
+
+    (beat-link-trigger.expressions/log-thread-dump)
+
+You will want to have set up this REPL connection, as well as opening
+the BLT logs folder, before doing the experiments that lead to the
+problem you are trying to debug, so that they will be ready and
+available even if the BLT user interface becomes unresponsive.
 ====
 
 [[wireshark]]
