@@ -12,6 +12,10 @@ This change log follows the conventions of
   album art images in some browsers because they were
   over-aggressively assuming they could cache previous versions. Now a
   query parameter is used to force them to get the latest versions.
+- When the OBS overlay server crashed because it encountered an
+  unexpected value that it did not know how to JSON encode (or for
+  other reasons), the details were not being captured in the log file,
+  so it was impossible to diagnose and fix the problem.
 
 ### Changed
 
