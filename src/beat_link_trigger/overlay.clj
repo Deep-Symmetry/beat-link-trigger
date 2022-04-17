@@ -430,10 +430,14 @@
   "Builds a handler that renders the overlay template configured for
   the server being built."
   []
-  (fn [_]
-    (-> (parser/render-file overlay-template-name (build-params))
-        response/response
-        (response/content-type "text/html; charset=utf-8"))))
+  (try
+    (fn [_]
+      (-> (parser/render-file overlay-template-name (build-params))
+          response/response
+          (response/content-type "text/html; charset=utf-8")))
+    (catch Throwable t
+      (timbre/error t "Problem rendering OBS overlay")
+      (throw t))))
 
 (defn- return-styles
   "A handler that renders the default embedded stylesheet."
@@ -444,8 +448,17 @@
 (defn- return-params
   "A handler that renders the current template parameters as JSON."
   []
-  (-> (response/response (json/encode (build-params)))
-      (response/content-type "application/json")))
+  (try
+    (let [params (build-params)]
+      (try
+        (-> (response/response (json/encode params))
+            (response/content-type "application/json"))
+        (catch Throwable t
+          (timbre/error t "Problem JSON encoding OBS overlay params" params)
+          (throw t))))
+    (catch Throwable t
+      (timbre/error t "Problem building OBS overlay params")
+      (throw t))))
 
 (defn- return-font
   "A handler that returns one of the embedded fonts, given the shorthand
@@ -460,7 +473,7 @@
                   nil)]
     (-> (response/resource-response (str "fonts/" path))
         (response/content-type "font/ttf"))
-    (response/not-found)))
+    (response/not-found (str "Font " font " not found."))))
 
 (defn return-artwork
   "Returns the artwork associated with the track on the specified
