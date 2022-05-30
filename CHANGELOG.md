@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [7.0.1] - 2022-05-30
+
 ### Fixed
 
 - The sample OBS overlay template was not updating the waveforms or
@@ -1270,7 +1274,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.0...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.1...HEAD
+[7.0.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.0...v7.0.1
 [7.0.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.3...v7.0.0
 [0.6.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.1...v0.6.2
