@@ -3,7 +3,7 @@ include::partial$PagePreamble.adoc[]
 
 I heard from https://www.mixcloud.com/nicoj_music/[Nico J] (Cappiz on
 the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream]) with an interesting question about triggering cues in the
 QLC+ open-source lighting control software. While this could be done
 by MIDI, it would be nice to do it in a way that also allowed the same
@@ -437,5 +437,5 @@ clean it could be.
 
 If you have any questions about using this, or ideas about new
 directions to take it, please raise them on the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream].

@@ -80,7 +80,7 @@ of the nature of JVM classloaders. If any of the jars you add provide
 conflicting versions of an existing Beat Link Trigger dependency, this
 will lead to very bad results. So when this works, it can let you add
 new features quickly, but if it doesn't, ask for help from the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 chat community] to see if there might be another library that would
 work better, or if the functionality you need can be safely
 incorporated in a future release.

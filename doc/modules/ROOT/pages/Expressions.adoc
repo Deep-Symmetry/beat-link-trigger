@@ -82,7 +82,7 @@ expression local or global.
 TIP: There aren’t any examples of this kind of asynchronous code in
 the user guide yet, but if you have a situation where you need one,
 ask in the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream], and perhaps we can turn your needs into a new example for
 future releases.
 
@@ -143,7 +143,7 @@ compilation error when you click kbd:[Update], and you can check the
 try searching the web for information about the error, or looking in
 the Clojure https://clojure.org/guides/getting_started[documentation],
 but you can also ask for help in the Beat Link Trigger
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream].
 
 If you are working with large expressions, you can focus on the part

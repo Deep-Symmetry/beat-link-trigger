@@ -501,5 +501,5 @@ turning off Sync before loading a track with a radically different
 tempo, and doing a hard cut over to it. Try experimenting! If you come
 up with great ideas (or just get stuck and want help), come talk about
 it on the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream].

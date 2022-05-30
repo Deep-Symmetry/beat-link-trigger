@@ -156,7 +156,7 @@ TIP: You can combine both of the above lines, in either order, if you
 want both features to automatically activate for you.
 
 Another example came up in the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[community
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[community
 chat room], from a user who wanted to set up a turn-key lighting
 system that automatically started Beat Link Trigger and Carabiner. If
 you are in a situation like that, you can set up a Came Online

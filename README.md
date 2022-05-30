@@ -1,6 +1,6 @@
 # beat-link-trigger
 
-[![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/)
+[![project chat](https://img.shields.io/badge/chat-on%20zulip-brightgreen)](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)
  <img align="right" width="275" height="250" alt="Beat Link"
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
@@ -17,7 +17,7 @@ else you can think of. Built using
 >
 > —[Nicholas Maddix](http://maddix.it) on the project Gitter channel
 > (where we discussed the project before we moved to the [Zulip
-> stream](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/)).
+> stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)).
 
 There is more description and a video in a [DJ TechTools
 article](http://djtechtools.com/2017/07/19/decoding-pioneer-pro-link-connect-cdjs-ableton-link/),
@@ -96,7 +96,7 @@ Trigger, please add a page or two the Wiki to share them with others!
 First of all, we would *love* to hear from you! We have no way of
 knowing who has discovered, explored, downloaded and tried Beat Link
 Trigger. So if you have, please write a quick note on the [Zulip
-stream](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/)
+stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)
 to let us know! Even if it is only to explain why it didn&rsquo;t
 quite work for you.
 
@@ -172,7 +172,7 @@ gear and DJ-Link hardware released after that. It has been reported to
 work well with XDJ-1000 gear, and (starting with version 0.6.0) with
 the XDJ-XZ as well. If you can try it with anything else, *please* let
 us know what you learn in the [Zulip
-stream](https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/),
+stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger),
 or if you have worked out actionable details about something that
 could be improved, [open an
 Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or

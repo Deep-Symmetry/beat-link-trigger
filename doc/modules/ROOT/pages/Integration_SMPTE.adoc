@@ -228,7 +228,7 @@ SMPTE Timecode project uImage] file to boot from. If you want a
 display to show the timecode being generated, there are some
 compatible options. Look on the project page for more information, or
 ask on the
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream]. Clint and I worked with the developer to arrange for the
 project to support OSC commands that would allow Beat Link Trigger to
 control it.
@@ -288,7 +288,8 @@ This show doesn't handle mutiple players playing the same configured
 track at once, or even two different configured tracks playing on
 different players. Such refinements are possible, by making the code
 more sophisticated. If you would like help doing that, please ask on
-https://deep-symmetry.zulipchat.com/join/lp5i6yolkay7erzjzodx365q/[Zulip
+the
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream].
 
 
