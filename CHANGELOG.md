@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- The binding of `midi-output` in Phrase Expressions was incorrectly
+  expecting `show` to be already bound for it, which caused
+  expressions that used `midi-output` to fail to compile.
 
 ## [7.0.1] - 2022-05-30
 

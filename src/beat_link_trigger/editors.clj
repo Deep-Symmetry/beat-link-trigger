@@ -413,8 +413,7 @@
                       :doc  "The track analysis <code><a href=\"https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html\">SongStructureEntry</a></code>
   describing the phrase that activated this phrase trigger."}
 
-   'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output)
-                         show (:phrase trigger-data))
+   'midi-output {:code '((resolve 'beat-link-trigger.show-util/get-chosen-output) (:phrase trigger-data))
                  :doc  "The MIDI output object chosen for this phrase trigger. May be
   <code>nil</code> if the output device cannot be found in the current
   MIDI environment."}
