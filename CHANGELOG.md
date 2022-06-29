@@ -11,6 +11,9 @@ This change log follows the conventions of
 - The binding of `midi-output` in Phrase Expressions was incorrectly
   expecting `show` to be already bound for it, which caused
   expressions that used `midi-output` to fail to compile.
+- Phrase Expression bindings which relied on calling
+  `.getDeviceNumber` did not work for expressions that receive
+  beat-tpu tuples.
 
 ## [7.0.1] - 2022-05-30
 

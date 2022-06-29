@@ -84,6 +84,14 @@
   singleton."
   (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
 
+(defn extract-device-update
+  "Allow expressions which might receive either a simple device update
+  or a beat-tpu vector to find the device update in either."
+  [status]
+  (if (instance? DeviceUpdate status)
+    status
+    (first status)))
+
 (defn add-library
   "Allow expression code to add a new Maven dependency at runtime by
   specifying its coordinate, and optionally the repositories to

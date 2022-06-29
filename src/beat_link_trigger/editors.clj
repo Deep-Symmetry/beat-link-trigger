@@ -393,23 +393,23 @@
                        "\">User Guide</a> for details.")}
 
    'phrase-type {:code '(when status ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-type)
-                                      (.getDeviceNumber status)))
+                                      (.getDeviceNumber (extract-device-update status))))
                  :doc  "The keyword identifying the type of the phrase that activated this phrase trigger."}
 
    'phrase-beat-range {:code '(when status
                                 ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-beat-range)
-                                 (.getDeviceNumber status)))
+                                 (.getDeviceNumber (extract-device-update status))))
                  :doc  "A tuple of the starting and ending beats within the track corresponding to the phrase
   that activated this phrase trigger."}
 
    'track-bank {:code '(when status
                          ((requiring-resolve 'beat-link-trigger.show-phrases/current-track-bank)
-                          (.getDeviceNumber status)))
+                          (.getDeviceNumber (extract-device-update status))))
                  :doc  "The keyword identifying the track bank assigned to the track playing this phrase trigger."}
 
    'phrase-structure {:code '(when status
                                ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase)
-                                (.getDeviceNumber status)))
+                                (.getDeviceNumber (extract-device-update status))))
                       :doc  "The track analysis <code><a href=\"https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html\">SongStructureEntry</a></code>
   describing the phrase that activated this phrase trigger."}
 
