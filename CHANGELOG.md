@@ -8,6 +8,9 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Phrase trigger cues were [not reliably sending their end
+  messages](https://github.com/Deep-Symmetry/beat-link-trigger/issues/142)
+  when the phrase ended.
 - The binding of `midi-output` in Phrase Expressions was incorrectly
   expecting `show` to be already bound for it, which caused
   expressions that used `midi-output` to fail to compile.
