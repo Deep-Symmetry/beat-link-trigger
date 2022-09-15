@@ -1364,12 +1364,14 @@ editor windows, in their cue canvases as well."
   (doseq [uuid old-playing]
     (when (or phrase-changed (empty? (util/players-phrase-uuid-set (:playing-phrases show) uuid)))
       ;; No other player is still playing the phrase trigger.
-      (let [phrase (get-in show [:contents :phrases uuid])
-            runtime-info (su/phrase-runtime-info show phrase)]
-        (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; All cues we had been playing are now ended.
-          (cues/send-cue-messages phrase runtime-info uuid :ended status)
-          (cues/repaint-cue phrase uuid)
-          (cues/repaint-cue-states phrase uuid))
+      (let [phrase           (get-in show [:contents :phrases uuid])
+            old-runtime-info (get-in show [:last :phrases uuid])]
+        (doseq [cue-uuid (reduce set/union (vals (:entered old-runtime-info)))]
+          ;; All cues we had been playing are now ended.
+          (cues/send-cue-messages phrase old-runtime-info cue-uuid :ended status)
+          (cues/send-cue-messages phrase old-runtime-info cue-uuid :exited status)
+          (cues/repaint-cue phrase cue-uuid)
+          (cues/repaint-cue-states phrase cue-uuid))
         (send-stopped-messages show phrase status)
         (repaint-phrase-state show phrase)
         (seesaw/invoke-later (su/update-row-visibility show)))))
