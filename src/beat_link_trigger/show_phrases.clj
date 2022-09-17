@@ -122,6 +122,14 @@
   [player]
   (swap! phrase-intervals dissoc player))
 
+(defn player-phrase-intervals
+  "Returns the phrase structure information known for the specified player.
+  Will be `nil` if the player has no phrase analysis, or an interval
+  tree allowing efficient lookup of the `SongStructureEntry` that
+  covers a beat number."
+  [player]
+  (get @phrase-intervals player))
+
 (defn- run-phrase-function
   "Checks whether the phrase trigger has a custom function of the
   specified kind installed and if so runs it with the supplied status

@@ -18,6 +18,13 @@ This change log follows the conventions of
   `.getDeviceNumber` did not work for expressions that receive
   beat-tpu tuples.
 
+### Added
+
+- A simple way to check whether the track loaded on a particular
+  player has phrase analysis available, as long as a Show is open.
+  This will support a new integration example showing how to set a
+  default lighting look for tracks without phrase analysis.
+
 ## [7.0.1] - 2022-05-30
 
 ### Fixed
