@@ -1,8 +1,9 @@
 = MA Lighting grandMA2
 include::partial$PagePreamble.adoc[]
 
-http://lxhues.com[Alex Hughes] inquired if it would be possible to use
-a trigger to synchronize a speed master for effects on a
+https://web.archive.org/web/20211204155543/https://lxhues.com/[Alex
+Hughes] inquired if it would be possible to use a trigger to
+synchronize a speed master for effects on a
 https://www.malighting.com/product-archive/products/grandma2/[grandMA2]
 lighting control system. With his help and pointers to the relevant
 documentation, we were able to achieve that. The approach is described
