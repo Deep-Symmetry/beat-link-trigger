@@ -554,7 +554,7 @@
   Returns a tuple of the name by which it will be stored, and the
   content to be stored (or compared to see if it matches another cue)."
   [cue]
-   [(:comment cue) (dissoc cue :uuid :start :end :hue :linked :section)])
+   [(:comment cue) (dissoc cue :uuid :start :end :linked :section)])
 
 (defn linked-cues-equal?
   "Checks whether all the supplied cues have the same values for any
@@ -1541,7 +1541,7 @@
                                     new-cue             (merge cue {:uuid    uuid
                                                                     :start   start
                                                                     :end     end
-                                                                    :hue     (assign-cue-hue context)
+                                                                    :hue     (get-in cue [:hue])
                                                                     :comment new-name
                                                                     :linked  cue-name}
                                                                (when section {:section section}))]
