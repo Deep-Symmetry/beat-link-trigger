@@ -16,6 +16,8 @@ pom.xml.asc
 .hg/
 .idea
 beat-link-trigger.iml
-
+.github/scripts/**/*
+*.log
+.cache
 # Local Netlify folder
 .netlify
