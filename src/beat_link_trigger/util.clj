@@ -635,7 +635,7 @@
    (if (vector? x)
      (let [[from to] x]
        (iget interval-map from to))
-     (get interval-map [x x])))
+     (iget interval-map [x x])))
   ([interval-map from to]
    (reduce (fn [result [_ vs]]
              (clojure.set/union result vs))
