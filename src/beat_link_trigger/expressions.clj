@@ -435,14 +435,22 @@
   based on the status, and returns the results of evaluating the user
   expression in that context. If `nil-status?` is `true`, the bindings
   must be built in a way that protects against the possibility of
-  `status` being `nil`."
-  [body available-bindings nil-status?]
+  `status` being `nil`. If `no-locals?` is `true`, this is a
+  function (like a global setup function) which should have no
+  `locals` binding available."
+  [body available-bindings nil-status? no-locals?]
   (let [bindings (gather-convenience-bindings body available-bindings nil-status?)]
-    `(fn ~'[status {:keys [locals] :as trigger-data} globals]
-       ~(if (seq bindings)
-          `(let [~@bindings]
-             ~body)
-          body))))
+    (if no-locals?
+      `(fn ~'[status trigger-data globals]
+         ~(if (seq bindings)
+            `(let [~@bindings]
+               ~body)
+            body))
+      `(fn ~'[status {:keys [locals] :as trigger-data} globals]
+         ~(if (seq bindings)
+            `(let [~@bindings]
+               ~body)
+            body)))))
 
 (defn build-user-expression
   "Takes a string that a user has entered as a custom expression, adds
@@ -453,13 +461,17 @@
   `true`, the bindings must be built in a way that protects against
   the possibility of `status` being `nil`. The `title` describes the
   expression and is reported as the file name in any exception arising
-  during parsing or execution of the expression."
-  [expr available-bindings nil-status? title]
-  (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-    (let [reader (rt/indexing-push-back-reader expr 1 title)
-          eof (Object.)
-          forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
-      (eval `(wrap-user-expression (do ~@forms) ~available-bindings ~nil-status?)))))
+  during parsing or execution of the expression. If `no-locals?` is
+  `true`, this is a function (like a global setup function) which
+  should have no `locals` binding available."
+  ([expr available-bindings nil-status? title]
+   (build-user-expression expr available-bindings nil-status? title false))
+  ([expr available-bindings nil-status? title no-locals?]
+   (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+     (let [reader (rt/indexing-push-back-reader expr 1 title)
+           eof (Object.)
+           forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
+       (eval `(wrap-user-expression (do ~@forms) ~available-bindings ~nil-status? ~no-locals?))))))
 
 (defn define-shared-functions
   "Takes a string that a user has entered as shared functions for

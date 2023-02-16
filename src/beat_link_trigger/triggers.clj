@@ -751,7 +751,8 @@
          (try
            (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
                   (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                     (editors/triggers-editor-title kind trigger false)))
+                                                     (editors/triggers-editor-title kind trigger false)
+                                                     (:no-locals? editor-info)))
            (catch Exception e
              (swap! (seesaw/user-data trigger) assoc :expression-load-error true)
              (timbre/error e (str "Problem parsing " (:title editor-info)
@@ -1332,7 +1333,8 @@
                    (if (= kind :shared)
                      (expressions/define-shared-functions expr (editors/triggers-editor-title kind nil true))
                      (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                        (editors/triggers-editor-title kind nil true))))
+                                                        (editors/triggers-editor-title kind nil true)
+                                                        (:no-locals? editor-info))))
             (catch Exception e
               (timbre/error e (str "Problem parsing " (:title editor-info)
                                    " when loading Triggers. Expression:\n" expr "\n"))

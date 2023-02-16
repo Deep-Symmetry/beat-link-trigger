@@ -106,25 +106,28 @@
   compile the expressions they edit. Created as an explicit array map
   to keep the keys in the order they are found here."
   (array-map
-   :shared {:title "Shared Functions"
-            :tip "The place to define functions used by expressions."
+   :shared {:title       "Shared Functions"
+            :tip         "The place to define functions used by expressions."
+            :no-locals?  true
             :description "Compiled before any expressions are, so you
             can define any functions those expressions might find
             useful. This is just ordinary Clojure code that can be
             conveniently edited using an IDE if you turn on the
             embedded nREPL server."}
-   :setup {:title    "Global Setup Expression"
-           :tip      "Called once to set up any state your trigger expressions may need."
+   :setup {:title      "Global Setup Expression"
+           :tip        "Called once to set up any state your trigger expressions may need."
+           :no-locals? true
            :description
            "Called once when the triggers are loaded, or when you update
   the expression. Set up any global state (such as counters, flags, or
   network connections) that your expressions within any trigger need.
   Use the Global Shutdown expression to clean up resources when the
   trigger window is shutting down."
-           :bindings nil}
+           :bindings   nil}
 
-   :online {:title    "Came Online Expression"
-            :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
+   :online {:title      "Came Online Expression"
+            :tip        "Called when BLT has succesfully joined a Pro DJ Link network."
+            :no-locals? true
             :description
             "Called after the Global Setup Expression when loading a
            Triggers file if Online, or by itself if you have taken BLT
@@ -133,13 +136,14 @@
            performed when online. Use the Going Offline expression to
            gracefully disconnect from anything you need to when going
            Offline or when the trigger window is shutting down."
-            :bindings {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
-                                       :doc  "The player number we are using when talking to DJ Link devices."}
-                       'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
-                                       :doc  "The IP address we are using to talk to DJ Link devices."}}}
+            :bindings   {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+                                         :doc  "The player number we are using when talking to DJ Link devices."}
+                         'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
+                                         :doc  "The IP address we are using to talk to DJ Link devices."}}}
 
-   :offline {:title    "Going Offline Expression"
-             :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
+   :offline {:title      "Going Offline Expression"
+             :tip        "Called when BLT is disconnecting from a Pro DJ Link network."
+             :no-locals? true
              :description
              "Called before the Global Shutdown Expression when the
   trigger window is closing or when a new trigger file is being
@@ -147,16 +151,17 @@
   Gracefully close and release any shared system resources (such as
   network connections) that you opened in the Came Online
   expression."
-             :bindings nil}
+             :bindings   nil}
 
-   :shutdown {:title    "Global Shutdown Expression"
-              :tip      "Called once to release global resources."
+   :shutdown {:title      "Global Shutdown Expression"
+              :tip        "Called once to release global resources."
+              :no-locals? true
               :description
               "Called when when the trigger window is closing, or a
   new trigger file is being loaded. Close and release any shared
   system resources (such as network connections) that you opened in
   the Global Setup expression."
-              :bindings nil}))
+              :bindings   nil}))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -454,26 +459,29 @@
   to keep the keys in the order they are found here."
   (delay
    (array-map
-    :shared {:title "Shared Functions"
-             :tip "The place to define functions used by expressions."
+    :shared {:title       "Shared Functions"
+             :tip         "The place to define functions used by expressions."
+             :no-locals?  true
              :description "Compiled before any expressions are, so you
             can define any functions those expressions might find
             useful. This is just ordinary Clojure code that can be
             conveniently edited using an IDE if you turn on the
             embedded nREPL server."}
 
-    :setup {:title "Global Setup Expression"
-            :tip "Called once to set up any state your show expressions may need."
+    :setup {:title      "Global Setup Expression"
+            :tip        "Called once to set up any state your show expressions may need."
+            :no-locals? true
             :description
             "Called once when the show is loaded, or when you update the
   expression. Set up any global state (such as counters, flags, or
   network connections) that your expressions within any track or cue
   need. Use the Global Shutdown expression to clean up resources when
   the show window is shutting down."
-            :bindings (show-bindings-for-class nil)}
+            :bindings   (show-bindings-for-class nil)}
 
-    :online {:title    "Came Online Expression"
-             :tip      "Called when BLT has succesfully joined a Pro DJ Link network."
+    :online {:title      "Came Online Expression"
+             :tip        "Called when BLT has succesfully joined a Pro DJ Link network."
+             :no-locals? true
              :description
              "Called after the Global Setup Expression when loading a
   Show if Online, or by itself if you have taken BLT Online manually.
@@ -481,15 +489,16 @@
   Status window) that can only be performed when online. Use the Going
   Offline expression to gracefully disconnect from anything you need
   to when going Offline or when the Show is shutting down."
-             :bindings (merge
-                        (show-bindings-for-class nil)
-                        {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
-                                         :doc  "The player number we are using when talking to DJ Link devices."}
-                         'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
-                                         :doc  "The IP address we are using to talk to DJ Link devices."}})}
+             :bindings   (merge
+                          (show-bindings-for-class nil)
+                          {'device-number {:code '(.getDeviceNumber (VirtualCdj/getInstance))
+                                           :doc  "The player number we are using when talking to DJ Link devices."}
+                           'address       {:code '(.getLocalAddress (VirtualCdj/getInstance))
+                                           :doc  "The IP address we are using to talk to DJ Link devices."}})}
 
-    :enabled {:title "Default Enabled Filter Expression"
-              :tip "Called to see if a track set to Default should be enabled."
+    :enabled {:title      "Default Enabled Filter Expression"
+              :tip        "Called to see if the tracks set to Default should be enabled."
+              :no-locals? true
               :description
               "Called whenever a status update packet is received from
   a player that has loaded a track whose Enabled mode is set to
@@ -501,25 +510,27 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-              :bindings (show-bindings-for-class CdjStatus)}
+              :bindings   (show-bindings-for-class CdjStatus)}
 
-    :offline {:title    "Going Offline Expression"
-              :tip      "Called when BLT is disconnecting from a Pro DJ Link network."
+    :offline {:title      "Going Offline Expression"
+              :tip        "Called when BLT is disconnecting from a Pro DJ Link network."
+              :no-locals? true
               :description
               "Called before the Global Shutdown Expression when the
   Show window is closing, or by itself when you are taking BLT Offline
   manually. Gracefully close and release any shared system
   resources (such as network connections) that you opened in the Came
   Online expression."
-              :bindings (show-bindings-for-class nil)}
+              :bindings   (show-bindings-for-class nil)}
 
-    :shutdown {:title "Global Shutdown Expression"
-               :tip "Called once to release global resources."
+    :shutdown {:title      "Global Shutdown Expression"
+               :tip        "Called once to release global resources."
+               :no-locals? true
                :description
                "Called when when the show window is closing. Close and
   release any shared system resources (such as network connections)
   that you opened in the Global Setup expression."
-               :bindings (show-bindings-for-class nil)})))
+               :bindings   (show-bindings-for-class nil)})))
 
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
@@ -1018,7 +1029,7 @@
           (expressions/define-shared-functions text (triggers-editor-title kind trigger global?))
           (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
                  (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                    (triggers-editor-title kind trigger global?)))))
+                                                    (triggers-editor-title kind trigger global?) global?))))
       (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
         (dispose editor)  ; Close the editor
         (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
@@ -1107,7 +1118,8 @@
         (if (= kind :shared)
           (expressions/define-shared-functions text (show-editor-title kind show track-or-phrase))
           (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                            (show-editor-title kind show track-or-phrase))]
+                                                            (show-editor-title kind show track-or-phrase)
+                                                            (:no-locals? editor-info))]
             (cond
               (:signature track-or-phrase)
               (show-util/swap-track! track-or-phrase assoc-in [:expression-fns kind] compiled)

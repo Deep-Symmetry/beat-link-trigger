@@ -2313,7 +2313,8 @@
                           (if (= kind :shared)
                             (expressions/define-shared-functions expr (editors/show-editor-title kind show nil))
                             (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                               (editors/show-editor-title kind show nil))))
+                                                               (editors/show-editor-title kind show nil)
+                                                               (:no-locals? editor-info))))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
                                      " when loading Show. Expression:\n" expr "\n"))

@@ -9,14 +9,14 @@ more specific regions of the track, see the
 
 The track expressions can be accessed from the track’s
 <<Shows_Tracks.adoc#track-context-menu,context menu>>. In addition to
-the `globals` atom and `show` value described above, these have access
-to a very similar `locals` atom which can be used to share values
-across expressions within the track itself (but not other tracks; each
-gets its own `locals` map), a `track` value that contains everything
-Beat Link Trigger <<ShowInternals.adoc#track,knows about the track>>,
-and individual kinds of expressions will automatically have other
-values available to them which make sense in the context in which the
-expression is used.
+the `globals` and `trigger-globals` atoms and the `show` value
+described above, these have access to a very similar `locals` atom
+which can be used to share values across expressions within the track
+itself (but not other tracks; each gets its own `locals` map), a
+`track` value that contains everything Beat Link Trigger
+<<ShowInternals.adoc#track,knows about the track>>, and individual
+kinds of expressions will automatically have other values available to
+them which make sense in the context in which the expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of

@@ -12,15 +12,15 @@ the <<Expressions_ShowCue.adoc#,Cue Expressions, above>>.
 
 The phrase trigger expressions can be accessed from the phrase
 trigger’s <<Shows_PhraseTriggers.adoc#context-menu,context menu>>. In
-addition to the `globals` atom and `show` value described above, these
-have access to a very similar `locals` atom which can be used to share
-values across expressions within the phrase trigger itself (but not
-other phrase triggers; each gets its own `locals` map), a `phrase`
-value that contains everything Beat Link Trigger
-<<ShowInternals.adoc#phrase-contents,knows about the phrase trigger>>,
-and individual kinds of expressions will automatically have other
-values available to them which make sense in the context in which the
-expression is used.
+addition to the `globals` and `trigger-globals` atoms and `show` value
+described above, these have access to a very similar `locals` atom
+which can be used to share values across expressions within the phrase
+trigger itself (but not other phrase triggers; each gets its own
+`locals` map), a `phrase` value that contains everything Beat Link
+Trigger <<ShowInternals.adoc#phrase-contents,knows about the phrase
+trigger>>, and individual kinds of expressions will automatically have
+other values available to them which make sense in the context in
+which the expression is used.
 
 TIP: The help text below the expression editor will list and explain
 the values that are automatically available for use in that kind of
