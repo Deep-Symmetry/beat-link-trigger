@@ -17,6 +17,11 @@ This change log follows the conventions of
 - Phrase Expression bindings which relied on calling
   `.getDeviceNumber` did not work for expressions that receive
   beat-tpu tuples.
+- The variable `locals` was being bound even in expressions which have
+  no locals, such as the Global Setup Expression. This caused the
+  expression to seem to compile fine, allowing the editor to close,
+  but would lead to a `NullPointerException` if any code tried to use
+  `locals`.
 
 ### Added
 
@@ -24,6 +29,12 @@ This change log follows the conventions of
   player has phrase analysis available, as long as a Show is open.
   This will support a new integration example showing how to set a
   default lighting look for tracks without phrase analysis.
+
+### Changed
+
+- The Continuous Integration pipeline which builds Beat Link Trigger
+  releases on Github was updated to accommodate a variety of
+  deprecations in the actions that it relies on.
 
 ## [7.0.1] - 2022-05-30
 
