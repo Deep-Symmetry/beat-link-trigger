@@ -52,7 +52,7 @@ jobs:
         fi
 
     - name: Cache Leiningen dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
@@ -126,7 +126,7 @@ jobs:
         github_token: ${{ github.token }}
 
     - name: Cache bundled OpenJDK runtime
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: Runtime
         key: ${{ runner.os }}-bundled-jdk-14
@@ -184,7 +184,7 @@ jobs:
         distribution: 'corretto'
 
     - name: Cache OpenJDK 14
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: jdk-14.0.1.jdk
         key: ${{ runner.os }}-bundled-jdk-14-0-1
