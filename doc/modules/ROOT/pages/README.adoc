@@ -322,7 +322,7 @@ efforts, tools, toys, and time to explore.
 +++
 <a href="https://liberapay.com/deep-symmetry/donate"><img style="vertical-align:middle" alt="Donate using Liberapay"
     src="https://liberapay.com/assets/widgets/donate.svg"></a> using Liberapay, or
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=J26G6ULJKV8RL"><img
+<a href="https://www.paypal.com/donate/?hosted_button_id=J26G6ULJKV8RL"><img
     style="vertical-align:middle"
     alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 +++
