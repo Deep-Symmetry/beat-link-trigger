@@ -35,10 +35,10 @@ This change log follows the conventions of
 - The Continuous Integration pipeline which builds Beat Link Trigger
   releases on Github was updated to accommodate a variety of
   deprecations in the actions that it relies on.
-- The MacOS build has been greatly simplified because the underlying
+- The macOS build has been greatly simplified because the underlying
   Java package creation tools have caught up to the requirements for
   code signing and notarization. It also now embeds a current Java 17
-  runtime rather than an old Java 14 runtime.
+  long-term-support runtime rather than an old Java 14 runtime.
 
 ## [7.0.1] - 2022-05-30
 
