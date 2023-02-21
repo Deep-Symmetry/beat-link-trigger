@@ -26,49 +26,29 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
     # Run jpackage to build the native application as a code signed disk image
-    jpackage --name "$blt_name" --input Input \
-      --add-modules java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported \
-      --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
-      --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
-      --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version $build_version \
-      --mac-sign --mac-package-signing-prefix "org.deepsymmetry.beat-link-trigger." \
-      --mac-signing-key-user-name  "Deep Symmetry, LLC (9M6LKU948Y)" \
-      --mac-entitlements  .github/resources/Clojure.entitlements
+    jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
+             --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
+             --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
+             --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version $build_version \
+             --mac-sign --mac-package-signing-prefix "org.deepsymmetry.beat-link-trigger." \
+             --mac-signing-key-user-name  "Deep Symmetry, LLC (9M6LKU948Y)" \
+             --mac-entitlements  .github/resources/Clojure.entitlements
 
     # Submit the disk image to Apple for notarization.
     echo "Sumbitting the disk image to Apple for notarization..."
-    xcrun altool --notarize-app --primary-bundle-id "org.deepsymmetry.beat-link-trigger" \
-          --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
-          --file "$dmg_name" --output-format xml > upload_result.plist
-    request_id=`/usr/libexec/PlistBuddy -c "Print :notarization-upload:RequestUUID" upload_result.plist`
+    xcrun notarytool submit --apple-id "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
+          --team-id "$blt_mac_team_id" "$dmg_name" --wait
 
-    # Wait until the request is done processing.
-    while true; do
-        sleep 60
-        xcrun altool --notarization-info $request_id \
-              --username "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
-              --output-format xml > status.plist
-        if [ "`/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist`" != "in progress" ]; then
-            break;
-        fi
-        echo "...still waiting for notarization to finish..."
-    done
-
-    # See if notarization succeeded, and if so, staple the ticket to the disk image.
-    if [ `/usr/libexec/PlistBuddy -c "Print :notarization-info:Status" status.plist` = "success" ]; then
-        echo "Notarization succeeded, stapling receipt to disk image."
-        xcrun stapler staple "$dmg_name"
-    else
-        false;
-    fi
+    # Staple the notarization ticket to the disk image.
+    echo "Notarization succeeded, stapling receipt to disk image."
+    xcrun stapler staple "$dmg_name"
 
 else
     # We have no secrets, so build the native application disk image without code signing.
-    jpackage --name "$blt_name" --input Input \
-      --add-modules java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported \
-      --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
-      --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
-      --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version $build_version
+    jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
+             --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
+             --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
+             --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version $build_version
 fi
 
 # Rename the disk image to the name we like to use for the release artifact.
