@@ -126,12 +126,6 @@ jobs:
         assets: ${{ env.uberjar_name }}
         github_token: ${{ github.token }}
 
-    - name: Cache bundled OpenJDK runtime
-      uses: actions/cache@v3
-      with:
-        path: Runtime
-        key: ${{ runner.os }}-bundled-jdk-14
-
     - name: Build Windows Installer
       run: .\.github\scripts\build_msi.ps1
 

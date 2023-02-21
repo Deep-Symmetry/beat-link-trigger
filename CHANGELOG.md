@@ -39,6 +39,9 @@ This change log follows the conventions of
   Java package creation tools have caught up to the requirements for
   code signing and notarization. It also now embeds a current Java 17
   long-term-support runtime rather than an old Java 14 runtime.
+- The Windows build has also been simplified using improved
+  Java package creation tools, and also now embeds a current Java 17
+  long-term-support runtime rather than an old Java 11 runtime.
 
 ## [7.0.1] - 2022-05-30
 

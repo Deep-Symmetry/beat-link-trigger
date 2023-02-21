@@ -18,31 +18,17 @@ if (!(Test-Path $Light)) {
   Write-Warning "Light location not found, please check if Wix-Toolset is installed correctly"
 }
 
-# Download and expand the Amazon Corretto 11 JDK, then use it to build the embedded JRE for inside
-# the Mac application. But if it already exists (because we use a cache action to speed things up),
-# we can skip this section.
-If (! (Test-Path "Runtime")) {
-	Write-Warning "Runtime Folder not found! Downloading Corretto JDK!"
-    Invoke-WebRequest https://corretto.aws/downloads/latest/amazon-corretto-11-x64-windows-jdk.zip `
-      -OutFile jdk11.zip
-    Expand-Archive .\jdk11.zip -DestinationPath .\jdk11
-    $jdk11Subdir = (Get-ChildItem -Path jdk11 -name)
-    $jlink = ".\jdk11\$jdk11Subdir\bin\jlink"
-      & $jlink --no-header-files --no-man-pages --compress=2 --strip-debug `
-        --add-modules="$env:blt_java_modules" --output .\Runtime
-}
-
 # Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
 # native app bundle.
 mkdir Input
 copy "$env:uberjar_name" Input/beat-link-trigger.jar
 
 # Build the native application bundle and installer.
-jpackage --name "$env:blt_name" --input .\Input --runtime-image .\Runtime `
+jpackage --name "$env:blt_name" --input .\Input --runtime-image  --add-modules "$env:blt_java_modules" `
  --icon ".\.github\resources\BeatLink.ico" `
  --main-jar beat-link-trigger.jar `
  --type app-image `
-  --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
+ --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
 
 #Get the Wix-Toolset file for Beat Link Trigger
