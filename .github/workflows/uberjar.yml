@@ -7,7 +7,7 @@ on:
 
 env:
   blt_name: Beat Link Trigger
-  blt_copyright: © 2016-2022 Deep Symmetry, LLC
+  blt_copyright: © 2016-2023 Deep Symmetry, LLC
   blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
   blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
   blt_mac_notarization_user: "james@deepsymmetry.org"
