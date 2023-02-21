@@ -178,16 +178,10 @@ jobs:
           echo "release_snapshot=false" >>$GITHUB_ENV
         fi
 
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'corretto'
-
-    - name: Cache OpenJDK 14
-      uses: actions/cache@v3
-      with:
-        path: jdk-14.0.1.jdk
-        key: ${{ runner.os }}-bundled-jdk-14-0-1
 
     - name: Download überjar
       uses: Xotl/cool-github-releases@v1

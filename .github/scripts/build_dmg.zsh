@@ -26,7 +26,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
     # Run jpackage to build the native application as a code signed disk image
-    jpackage --name "$blt_name" --input Input
+    jpackage --name "$blt_name" --input Input \
       --add-modules java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported \
       --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
       --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
@@ -64,7 +64,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
 
 else
     # We have no secrets, so build the native application disk image without code signing.
-    jpackage --name "$blt_name" --input Input
+    jpackage --name "$blt_name" --input Input \
       --add-modules java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.zipfs,jdk.unsupported \
       --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
       --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
