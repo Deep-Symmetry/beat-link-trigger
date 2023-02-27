@@ -22,6 +22,10 @@ This change log follows the conventions of
   expression to seem to compile fine, allowing the editor to close,
   but would lead to a `NullPointerException` if any code tried to use
   `locals`.
+- It seems that Java under Windows sometimes sees its own broadcast
+  packets come back from an IPv6 address, which has led to quirky
+  networking problems. The upgrade to Java 17 made this even worse, so
+  the Windows installer now runs Java in a way that disables IPv6.
 
 ### Added
 
@@ -42,6 +46,7 @@ This change log follows the conventions of
 - The Windows build has also been simplified using improved
   Java package creation tools, and also now embeds a current Java 17
   long-term-support runtime rather than an old Java 11 runtime.
+
 
 ## [7.0.1] - 2022-05-30
 
