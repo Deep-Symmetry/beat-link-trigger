@@ -115,8 +115,8 @@ jobs:
 
     - uses: actions/setup-java@v3
       with:
-        java-version: '11' # Many bugs were showing up in Windows Java 17!
-        distribution: 'corretto'
+        java-version: '19' # Many bugs were showing up in Windows Java 17!
+        distribution: 'zulu'
 
     - name: Download überjar
       uses: Xotl/cool-github-releases@v1

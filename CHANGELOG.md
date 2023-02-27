@@ -44,9 +44,10 @@ This change log follows the conventions of
   code signing and notarization. It also now embeds a current Java 17
   long-term-support runtime rather than an old Java 14 runtime.
 - The Windows build has also been simplified using improved Java
-  package creation tools. It is presently being held back at the older
-  Java 11 long-term-support runtime because users found some
-  disturbing buggy behavior under Java 17.
+  package creation tools. We have found some disturbing bugs trying to
+  use the same Amazon Corretto Java 17 distribution that works fine on
+  macOS, however, so we are currently hunting for a safe distribution
+  to use. The current attempt is Zulu Java 19.
 
 
 ## [7.0.1] - 2022-05-30
