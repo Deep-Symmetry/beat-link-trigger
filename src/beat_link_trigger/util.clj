@@ -204,7 +204,7 @@
   ([existing-names]
    (assign-unique-name existing-names ""))
   ([existing-names base-name]
-   (let [base-name      (str/trim base-name)
+   (let [base-name      (str/trim (or base-name ""))
          without-number (if (str/blank? base-name)
                           "Untitled"
                           (str/replace base-name #"\s+\d*$" ""))

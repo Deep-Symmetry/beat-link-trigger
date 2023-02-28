@@ -30,6 +30,8 @@ This change log follows the conventions of
   packets come back from an IPv6 address, which has led to quirky
   networking problems. The upgrade to Java 17 made this even worse, so
   the Windows installer now runs Java in a way that disables IPv6.
+- Trying to duplicate a cue with a blank name would result in a
+  `NullPointerException` rather than a new cue.
 
 ### Added
 
