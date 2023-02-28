@@ -635,7 +635,7 @@
    (if (vector? x)
      (let [[from to] x]
        (iget interval-map from to))
-     (iget interval-map [x x])))
+     (get interval-map [x x])))  ; Yes, `get`, not `iget`, don't try to "fix" this, you'll break it!
   ([interval-map from to]
    (reduce (fn [result [_ vs]]
              (clojure.set/union result vs))
