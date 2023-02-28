@@ -22,6 +22,10 @@ This change log follows the conventions of
   expression to seem to compile fine, allowing the editor to close,
   but would lead to a `NullPointerException` if any code tried to use
   `locals`.
+- The implementation of the expression convenience variable
+  `players-inside` was broken when phrase triggers were implemented,
+  leading to a crash when attempting to use it. This release restores
+  its intended value.
 - It seems that Java under Windows sometimes sees its own broadcast
   packets come back from an IPv6 address, which has led to quirky
   networking problems. The upgrade to Java 17 made this even worse, so

@@ -427,22 +427,36 @@
 (defn players-playing-cue
   "Returns the set of players that are currently playing the specified
   cue."
-  ([context cue]
-   (let [[show context runtime-info] (latest-show-and-context context)]
-     (reduce (fn [result player]
-               (if ((get-in runtime-info [:entered player]) (:uuid cue))
-                 (conj result player)
-                 result))
-             #{}
-             (if (track? context)
-               (util/players-signature-set (:playing show) (:signature context))
-               (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context)))))))
+  [context cue]
+  (let [[show context runtime-info] (latest-show-and-context context)]
+    (reduce (fn [result player]
+              (if ((get-in runtime-info [:entered player]) (:uuid cue))
+                (conj result player)
+                result))
+            #{}
+            (if (track? context)
+              (util/players-signature-set (:playing show) (:signature context))
+              (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context))))))
 
 (defn entered?
   "Checks whether any player has entered the cue.
   `track-or-phrase-runtime-info` must be current."
   [_context runtime-info cue]
   ((reduce clojure.set/union (vals (:entered runtime-info))) (:uuid cue)))
+
+(defn players-inside-cue
+  "Returns the set of players that are currently inside the specified
+  cue."
+  [context cue]
+  (let [[show context runtime-info] (latest-show-and-context context)]
+    (reduce (fn [result player]
+              (if ((get-in runtime-info [:entered player]) (:uuid cue))
+                (conj result player)
+                result))
+            #{}
+            (if (track? context)
+              (util/players-signature-set (:loaded show) (:signature context))
+              (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context))))))
 
 (defn- started?
   "Checks whether any players which have entered a cue is actually

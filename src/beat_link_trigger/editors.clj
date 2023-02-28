@@ -702,7 +702,7 @@
    'entered-channel {:code '(get-in trigger-data [:cue :events :entered :channel])
                      :doc  "The MIDI channel on which cue enter and exit messages are sent."}
 
-   'players-inside {:code '((resolve 'beat-link-trigger.show/players-inside-cue)
+   'players-inside {:code '((resolve 'beat-link-trigger.show-cues/players-inside-cue)
                             (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data))
                     :doc  "The set of player numbers that are currently
   positioned inside this cue, if any."}
