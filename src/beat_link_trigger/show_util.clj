@@ -222,7 +222,7 @@
   specified phrase, which can either be a UUID or a full phrase
   trigger map."
   [show phrase-or-uuid f & args]
-  ((when (nil? (:file show)) (throw (IllegalArgumentException. "swap-phrase! show cannot have a nil show file."))))
+  (when (nil? (:file show)) (throw (IllegalArgumentException. "swap-phrase! show cannot have a nil show file.")))
   (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
     (swap! open-shows #(apply update-in % [(:file show) :contents :phrases uuid] f args))))
 
