@@ -11,6 +11,13 @@ This change log follows the conventions of
 - Phrase trigger cues were [not reliably sending their end
   messages](https://github.com/Deep-Symmetry/beat-link-trigger/issues/142)
   when the phrase ended.
+- Duplicating a cue did not compile its expressions, so they would not
+  work until edited, or the show was closed and reopened, #151.
+- Duplicating a cue also corrupted the show structure, which would
+  cause BLT to fail to quit because of an exception later on, #153.
+- Duplicating a cue with an empty name would fail because of a
+  `NullPointerException` trying to assign a unique name to the new
+  cue, #152.
 - The binding of `midi-output` in Phrase Expressions was incorrectly
   expecting `show` to be already bound for it, which caused
   expressions that used `midi-output` to fail to compile.
