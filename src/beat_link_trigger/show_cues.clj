@@ -362,6 +362,25 @@
   (seesaw/action :handler (fn [_] (scroll-wave-to-cue context cue))
                  :name (if (phrase? context) "Scroll Canvas to This Cue" "Scroll Waveform to This Cue")))
 
+(defn compile-cue-expressions
+  "Compiles and installs all the expressions associated with a track's
+  or phrase trigger's cue. Used when opening a show, when adding a cue
+  from the library, and when duplicating a cue."
+  [context cue]
+  (doseq [[kind expr] (:expressions cue)]
+    (let [editor-info (get @editors/show-cue-editors kind)]
+      (try
+        (su/swap-context-runtime! nil context assoc-in [:cues :expression-fns (:uuid cue) kind]
+                                  (expressions/build-user-expression
+                                   expr (:bindings editor-info) (:nil-status? editor-info)
+                                   (editors/cue-editor-title kind context cue)))
+        (catch Exception e
+          (timbre/error e (str "Problem parsing " (:title editor-info)
+                               " when loading Show. Expression:\n" expr "\n"))
+          (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
+                             "Check the log file for details.")
+                        :title "Exception during Clojure evaluation" :type :error))))))
+
 (defn- duplicate-cue-action
   "Creates the menu action which duplicates an existing cue."
   [context cue]
@@ -384,6 +403,7 @@
                                                                    (assoc-in [:cues :cues uuid] new-cue)
                                                                    (update-in [:cues :sections (:section cue)]
                                                                               (fnil conj #{}) uuid)))))
+                                (compile-cue-expressions context new-cue)
                                 (build-cues context)
                                 (scroll-to-cue context new-cue true))
                               (catch Exception e
@@ -1476,25 +1496,6 @@
         [cue :start (:section cue)]
         (when (<= (Math/abs (- (.getX e) (+ (.getX r) (.getWidth r)))) click-edge-tolerance)
           [cue :end (:section cue)])))))
-
-(defn compile-cue-expressions
-  "Compiles and installs all the expressions associated with a track's
-  or phrase trigger's cue. Used both when opening a show, and when
-  adding a cue from the library."
-  [context cue]
-  (doseq [[kind expr] (:expressions cue)]
-    (let [editor-info (get @editors/show-cue-editors kind)]
-      (try
-        (su/swap-context-runtime! nil context assoc-in [:cues :expression-fns (:uuid cue) kind]
-                                  (expressions/build-user-expression
-                                   expr (:bindings editor-info) (:nil-status? editor-info)
-                                   (editors/cue-editor-title kind context cue)))
-        (catch Exception e
-          (timbre/error e (str "Problem parsing " (:title editor-info)
-                               " when loading Show. Expression:\n" expr "\n"))
-          (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
-                             "Check the log file for details.")
-                        :title "Exception during Clojure evaluation" :type :error))))))
 
 (defn- move-cue-to-folder
   "Helper method that moves a cue to the specified folder, or the top
