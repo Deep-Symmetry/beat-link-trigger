@@ -375,7 +375,7 @@
                                                     (map :comment (vals (get-in contents [:cues :cues])))
                                                     (:comment cue))
                                     new-cue        (merge cue {:uuid    uuid
-                                                               :hue     (assign-cue-hue contents)
+                                                               :hue     (assign-cue-hue context)
                                                                :comment comment})]
                                 (if (track? context)
                                   (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)

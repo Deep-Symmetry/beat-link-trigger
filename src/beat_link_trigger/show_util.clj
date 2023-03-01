@@ -168,7 +168,7 @@
   function with the supplied arguments on the current contents of the
   specified show."
   [show f & args]
-  (when (nil? (:file show)) (throw (IllegalArgumentException. "Show cannot have a nil file.")))
+  (when (nil? (:file show)) (throw (IllegalArgumentException. "swap-show! show cannot have a nil file.")))
   (swap! open-shows #(apply update % (:file show) f args)))
 
 (defn swap-track!
@@ -176,6 +176,7 @@
   function with the supplied arguments on the current contents of the
   specified track, which must be a full track map."
   [track f & args]
+  (when (nil? (:file track)) (throw (IllegalArgumentException. "swap-track! track cannot have a nil file")))
   (swap! open-shows #(apply update-in % [(:file track) :tracks (:signature track)] f args)))
 
 (defn swap-signature!
@@ -185,6 +186,7 @@
   be a full show map, or the File from which one was loaded."
   [show signature f & args]
   (let [show-file (if (instance? java.io.File show) show (:file show))]
+    (when (nil? show-file) (throw (IllegalArgumentException. "swap-signature! show-file cannot be nil")))
     (swap! open-shows #(apply update-in % [show-file :tracks signature] f args))))
 
 (defn build-track-path
@@ -220,6 +222,7 @@
   specified phrase, which can either be a UUID or a full phrase
   trigger map."
   [show phrase-or-uuid f & args]
+  ((when (nil? (:file show)) (throw (IllegalArgumentException. "swap-phrase! show cannot have a nil show file."))))
   (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
     (swap! open-shows #(apply update-in % [(:file show) :contents :phrases uuid] f args))))
 
