@@ -25,12 +25,12 @@ Setup Expression.
 
 To illustrate how different expressions in a trigger can work together
 using `locals`, suppose you have a single trigger that wants to send
-pitch information to https://resolume.com[Resolume] Arena 5 so that a
+pitch information to https://resolume.com[Resolume] Arena so that a
 clip you are triggering runs at the same speed as the track playing on
 the CDJ. Beat Link Trigger embeds Project Overtone’s
 https://github.com/rosejn/osc-clj[osc-clj] library and aliases it to
 `osc` within the context of expressions to make it easy to send Open
-Sound Control messages. Assuming your copy of Arena 5 is running on
+Sound Control messages. Assuming your copy of Arena is running on
 the same machine, and listening for OSC messages on port 9801, here is
 how you could set things up so your other expressions on this trigger
 can communicate with it:
@@ -44,7 +44,7 @@ http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/swap![`swap!
 to modify the map in `locals` by using
 http://clojure.github.io/clojure/clojure.core-api.html#clojure.core/assoc[`assoc`]
 to add the key `:resolume`, which will hold an OSC client that can be
-used to send Open Sound Control messages to Arena 5 on the local
+used to send Open Sound Control messages to Arena on the local
 machine. See the Enabled Filter Expression <<enabled-filter-expression,below>> for
 how we use it. And keep this setup in mind, because it will be
 built on throughout the rest of this section.
@@ -166,7 +166,7 @@ deck becomes tempo master, the chosen message will be sent.
 
 Continuing our more complex multi-expression Resolume example, we can
 also use a Tracked Update Expression to update the playback speed
-within Arena 5 to stay synced with the current tempo of the CDJ. We
+within Arena to stay synced with the current tempo of the CDJ. We
 want to send messages to Resolume only when the trigger is
 active--which means it is enabled and the player it is watching is
 currently playing--so we wrap our expression in a `when` clause like
@@ -191,9 +191,9 @@ to 1.0, slightly off-center.
 <3> With that calculation accomplished, we can simply send the
 appropriate OSC message to tell it the speed at which it should be
 playing. (The OSC path was found by Editing the OSC Applicaton Map
-within Arena 5 and clicking on the parameter I wanted to control, as
+within Arena and clicking on the parameter I wanted to control, as
 described in the
-https://resolume.com/manual/en/r4/controlling#open_sound_control_osc[manual].)
+https://resolume.com/training/2/13/76[online training].)
 
 There is one more improvement we can make, though. Our code as it
 stands sends an OSC message to Resolume for every status packet from
