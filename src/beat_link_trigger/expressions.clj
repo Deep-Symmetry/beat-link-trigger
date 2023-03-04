@@ -417,7 +417,7 @@
                                (swap! result assoc elem (if nil-status?
                                                           `(when ~'status ~(:code binding))
                                                           (:code binding)))))
-                           form)
+                           (clojure.walk/macroexpand-all form))
     ;; If we have any metadata bindings, make sure to bind track-metadata as the first binding form,
     ;; since the others rely on it.
     (if (seq (clojure.set/intersection metadata-bindings (set (keys @result))))

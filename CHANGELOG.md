@@ -56,6 +56,10 @@ This change log follows the conventions of
   player has phrase analysis available, as long as a Show is open.
   This will support a new integration example showing how to set a
   default lighting look for tracks without phrase analysis.
+- It is now possible to refer to convenience bindings [from within
+  macros](https://github.com/Deep-Symmetry/beat-link-trigger/issues/156),
+  to make it possible to define concise domain-specific languages for
+  use in expressions.
 
 ### Changed
 
