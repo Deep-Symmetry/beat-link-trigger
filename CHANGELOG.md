@@ -26,6 +26,8 @@ This change log follows the conventions of
   fail](https://github.com/Deep-Symmetry/beat-link-trigger/issues/152)
   because of a `NullPointerException` trying to assign a unique name
   to the new cue.
+- Editing a cue expression [could show a stale cue name in the title
+  bar](https://github.com/Deep-Symmetry/beat-link-trigger/issues/154).
 - The binding of `midi-output` in Phrase Expressions was incorrectly
   expecting `show` to be already bound for it, which caused
   expressions that used `midi-output` to fail to compile.

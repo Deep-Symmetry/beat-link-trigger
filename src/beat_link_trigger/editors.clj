@@ -1860,7 +1860,8 @@ a {
   [kind context cue parent-frame update-fn]
   (try
     (let [[_ context runtime-info] (show-util/latest-show-and-context context)
-          editor (or (get-in runtime-info [:cues-editor :expression-editors (:uuid cue) kind])
+          cue                      (show-util/find-cue context cue)
+          editor                   (or (get-in runtime-info [:cues-editor :expression-editors (:uuid cue) kind])
                      (find-linked-cue-editor kind context cue)
                      (create-cue-editor-window kind context cue parent-frame update-fn))]
       (show editor))
