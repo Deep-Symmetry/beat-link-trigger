@@ -525,7 +525,7 @@
     (doseq [uuid (set/intersection entered old-entered)]
       (when-let [cue (find-cue track uuid)]  ; Make sure it wasn't deleted.
         (let [is-playing  (seq (cues/players-playing-cue track cue))
-              was-playing (seq (cues/players-playing-cue old-track cue))
+              was-playing (seq (cues/players-playing-cue (:last show) old-track old-track cue))
               event       (if is-playing
                             (if (and beat (= (:start cue) (.beatNumber position)))
                               :started-on-beat
@@ -554,7 +554,7 @@
     ;; Report cues we have newly exited, which we might also have previously been playing.
     (doseq [uuid (set/difference old-entered entered)]
       (when-let [cue (find-cue track uuid)]
-        (when (seq (cues/players-playing-cue old-track cue))
+        (when (seq (cues/players-playing-cue (:last show) old-track old-track cue))
           #_(timbre/info "detected end..." (:uuid cue))
           (cues/send-cue-messages old-track old-track cue :ended (or status beat)))
         (cues/send-cue-messages old-track old-track cue :exited (or status beat))
@@ -646,7 +646,7 @@
           (when (:tripped old-track)  ; Otherwise we never reported entering/playing them, so nothing to do now.
             (doseq [uuid (set/difference old-entered entered)]
               (when-let [cue (find-cue track uuid)]
-                (when (seq (cues/players-playing-cue old-track cue))
+                (when (seq (cues/players-playing-cue (:last show) old-track old-track cue))
                   (cues/send-cue-messages track track cue :ended status))
                 (cues/send-cue-messages track track cue :exited status)
                 (cues/repaint-cue track cue)

@@ -11,34 +11,42 @@ This change log follows the conventions of
 - Phrase trigger cues were [not reliably sending their end
   messages](https://github.com/Deep-Symmetry/beat-link-trigger/issues/142)
   when the phrase ended.
-- Duplicating a cue did not compile its expressions, so they would not
-  work until edited, or the show was closed and reopened, #151.
-- Duplicating a cue also corrupted the show structure, which would
-  cause BLT to fail to quit because of an exception later on, #153.
-- Duplicating a cue with an empty name would fail because of a
-  `NullPointerException` trying to assign a unique name to the new
-  cue, #152.
+- Due to a [different
+  issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues/155),
+  track cues were never sending their end messages.
+- Duplicating a cue [did not compile its
+  expressions](https://github.com/Deep-Symmetry/beat-link-trigger/issues/151),
+  so they would not work until edited, or the show was closed and
+  reopened.
+- Duplicating a cue also [corrupted the show
+  structure](https://github.com/Deep-Symmetry/beat-link-trigger/issues/153),
+  which would cause BLT to fail to quit because of an exception later
+  on.
+- Duplicating a cue with an empty name [would
+  fail](https://github.com/Deep-Symmetry/beat-link-trigger/issues/152)
+  because of a `NullPointerException` trying to assign a unique name
+  to the new cue.
 - The binding of `midi-output` in Phrase Expressions was incorrectly
   expecting `show` to be already bound for it, which caused
   expressions that used `midi-output` to fail to compile.
 - Phrase Expression bindings which relied on calling
   `.getDeviceNumber` did not work for expressions that receive
   beat-tpu tuples.
-- The variable `locals` was being bound even in expressions which have
-  no locals, such as the Global Setup Expression. This caused the
-  expression to seem to compile fine, allowing the editor to close,
-  but would lead to a `NullPointerException` if any code tried to use
-  `locals`.
+- The variable `locals` was being bound [even in expressions which
+  have no
+  locals](https://github.com/Deep-Symmetry/beat-link-trigger/issues/147),
+  such as the Global Setup Expression. This caused the expression to
+  seem to compile fine, allowing the editor to close, but would lead
+  to a `NullPointerException` if any code tried to use `locals`.
 - The implementation of the expression convenience variable
-  `players-inside` was broken when phrase triggers were implemented,
-  leading to a crash when attempting to use it. This release restores
-  its intended value.
+  `players-inside` [was
+  broken](https://github.com/Deep-Symmetry/beat-link-trigger/issues/150)
+  when phrase triggers were implemented, leading to a crash when
+  attempting to use it. This release restores its intended value.
 - It seems that Java under Windows sometimes sees its own broadcast
   packets come back from an IPv6 address, which has led to quirky
   networking problems. The upgrade to Java 17 made this even worse, so
   the Windows installer now runs Java in a way that disables IPv6.
-- Trying to duplicate a cue with a blank name would result in a
-  `NullPointerException` rather than a new cue.
 
 ### Added
 

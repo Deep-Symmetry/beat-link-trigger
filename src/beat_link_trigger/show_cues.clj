@@ -446,17 +446,21 @@
 
 (defn players-playing-cue
   "Returns the set of players that are currently playing the specified
-  cue."
-  [context cue]
-  (let [[show context runtime-info] (latest-show-and-context context)]
-    (reduce (fn [result player]
-              (if ((get-in runtime-info [:entered player]) (:uuid cue))
-                (conj result player)
-                result))
-            #{}
-            (if (track? context)
-              (util/players-signature-set (:playing show) (:signature context))
-              (util/players-phrase-uuid-set (:playing-phrases show) (:uuid context))))))
+  cue. Or, with the four-argument arity, reports the players that were
+  playing the cue at the time the show snapshot and runtime-info were
+  captured."
+  ([context cue]
+   (let [[show context runtime-info] (latest-show-and-context context)]
+     (players-playing-cue show context runtime-info cue)))
+  ([show-snapshot context runtime-info cue]
+   (reduce (fn [result player]
+             (if ((get-in runtime-info [:entered player]) (:uuid cue))
+               (conj result player)
+               result))
+           #{}
+           (if (track? context)
+             (util/players-signature-set (:playing show-snapshot) (:signature context))
+             (util/players-phrase-uuid-set (:playing-phrases show-snapshot) (:uuid context))))))
 
 (defn entered?
   "Checks whether any player has entered the cue.
