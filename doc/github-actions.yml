@@ -1,19 +1,19 @@
 site:
   title: Beat Link Trigger User Guide
-  url: /guide
+  url: https://blt-guide.deepsymmetry.org/
   start_page: beat-link-trigger::README.adoc
+urls:
+  redirect_facility: httpd
 content:
-  edit_url: false
   sources:
-  - url: ./..
-    branches: HEAD
+  - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
+    branches: [main, guide-*]
     start_path: doc
 antora:
   extensions:
-  - '@antora/lunr-extension'
+  - require: '@antora/lunr-extension'
+    index_latest_only: true
 ui:
   bundle:
     url: https://deepsymmetry.org/media/antora/ui-bundle-3-self.zip
     snapshot: true
-output:
-  dir: ./../target/classes/user_guide

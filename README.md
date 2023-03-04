@@ -404,15 +404,10 @@ General Public License, version
 [gpl-2.0.md](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/gpl-2.0.md)
 within this project.
 
-
-<a href="https://www.netlify.com">
-  <img align="right" src="https://www.netlify.com/img/global/badges/netlify-color-accent.svg"/>
-</a>
-
 #### [Antora](https://antora.org)
 
 Used to build the [user guide](https://blt-guide.deepsymmetry.org/),
 for embedding inside the application, and hosting on
-[Netlify](https://www.netlify.com). Antora is licensed under the
-[Mozilla Public License Version
+[deepsymmetry.org](https://deepsymmetry.org). Antora is licensed under
+the [Mozilla Public License Version
 2.0](https://www.mozilla.org/en-US/MPL/2.0/) (MPL-2.0).
