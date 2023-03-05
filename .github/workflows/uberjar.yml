@@ -46,7 +46,8 @@ jobs:
         java-version: '17'
         distribution: 'corretto'
 
-    - uses: Deep-Symmetry/github-version-action@v1
+    - name: Determine version being built
+      uses: Deep-Symmetry/github-version-action@v1
       with:
         tag-var-name: release_tag
 

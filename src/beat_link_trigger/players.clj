@@ -367,7 +367,7 @@
                               (catch Exception e
                                 (timbre/error e "Problem requesting album art to draw player row, leaving blank.")))]
     (if-let [image (.getImage art)]
-      (.drawImage g image 0 0 nil)
+      (.drawImage g image 0 0 80 80 nil)
       (when-let [image (generic-media-image n)]  ; No image found, try drawing a generic substitute.
       (.drawImage g image 0 0 80 80 nil)))
     (when-let [image (generic-media-image n)]  ; No actual art found, try drawing a generic substitute.

@@ -2,6 +2,9 @@ site:
   title: Beat Link Trigger User Guide
   url: https://blt-guide.deepsymmetry.org/
   start_page: beat-link-trigger::README.adoc
+  robots: allow
+  keys:
+    google_analytics: G-EKPJVHDXKV
 urls:
   redirect_facility: httpd
 content:
