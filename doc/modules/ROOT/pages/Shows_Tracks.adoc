@@ -274,13 +274,14 @@ players doing things with the Track.
 image:TrackEnabledMenu.png[Enabled Menu,1005,582]
 
 Default:: With this setting, which will be used by most Tracks, the
-Show’s shared menu:Enabled Default[] menu (at the top of the window)
-is used. This allows you to enable and disable most or all tracks
-using a common set of rules, while special tracks that need to be
-different can still use their own settings. All of the options in this
-list (except for `Default` itself) are available in the Enabled
-Default menu, and have the same meaning there, being used by any
-Tracks whose own Enabled menu is set to `Default`.
+Show’s <<Shows.adoc#enabled-default,shared menu:Enabled Default[]
+menu>> (at the top of the window) is used. This allows you to enable
+and disable most or all tracks using a common set of rules, while
+special tracks that need to be different can still use their own
+settings. All of the options in this list (except for `Default`
+itself) are available in the Enabled Default menu, and have the same
+meaning there, being used by any Tracks whose own Enabled menu is set
+to `Default`.
 
 Never:: With this setting, the Track is disabled until you re-enable
 it.

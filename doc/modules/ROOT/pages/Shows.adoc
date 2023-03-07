@@ -94,7 +94,7 @@ Beat Link Triggers window and navigating to the show file.
 At the top of the Show window, above any Tracks or Phrase Triggers
 that you have added to it, is a header that allows you to configure
 the default Enabled filter (explained
-<<Shows_Tracks.adoc#enabled-menu,below>>), and to filter which Tracks
+<<#enabled-default,below>>), and to filter which Tracks
 and Phrase Triggers are currently visible, which is helpful when you
 have added a lot of them to the Show.
 
@@ -148,6 +148,47 @@ more details.
 
 The menu:Help[] Menu is the same as in the Triggers window, providing
 a variety of helpful information and shortcuts for getting support.
+
+=== Enabled Default
+
+Each track can have its own <<Shows_Tracks.adoc#enabled-menu,Enabled
+filter>>, which determines whether the show will react to players
+doing things with the track. Often, every track in the show will want
+to follow the same rules, so you can configure those rules using the
+show's Enabled Default setting, and leave each track's Enabled filter
+set to `Default`. Any tracks which have more specific needs can switch
+their Enabled filter to a different setting.
+
+If the track's Enabled filter is set to `Default`, the value of the
+Show's Enabled Default filter is used. It has the following options:
+
+Never:: With this setting, the Track is disabled until you re-enable
+it.
+
+On-Air:: With this setting, the Track is enabled whenever it is
+loaded by at least one player that reports that it is On the Air. (For
+that to work, the player must be connected to a Nexus mixer, and must
+have the feature turned on.)
+
+Master:: With this setting, the Track is enabled whenever it is loaded
+by the player that is the current Tempo Master.
+
+Custom:: With this setting, the Track is controlled by an Enabled
+Filter, Clojure code that you write yourself. Whenever a status update
+is received from any player, your expressions are evaluated. If the
+last expression in your filter returns a `true` value, the Track will
+be enabled. This lets you apply sophisticated logic, like enabling the
+Track when another track is loaded into a different player, or only
+during particular times of day. Expressions are further explained in
+the
+<<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,Expressions>>
+section. If you choose `Custom` and have not yet written an Enabled
+Default Filter expression, the expression editor will be opened to let
+you do that. You can always open that editor using the Tracks
+Menu, described <<show-menu-bar,above>>.
+
+Always:: With this setting, the Track is enabled until you disable
+it.
 
 [[adding-tracks]]
 == Adding Tracks to a Show
