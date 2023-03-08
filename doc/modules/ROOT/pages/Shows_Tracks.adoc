@@ -290,6 +290,11 @@ On-Air:: With this setting, the Track is enabled whenever it is
 loaded by at least one player that reports that it is On the Air. (For
 that to work, the player must be connected to a Nexus mixer, and must
 have the feature turned on.)
++
+TIP: If you work with a DJ who likes to fade out his tracks to coax
+the audience into singing along, you might be interested in using the
+<<Expressions_ShowTrack.adoc#track-enabled-filter-expression,example Custom
+Enabled Filter Expression>> rather than this setting.
 
 Master:: With this setting, the Track is enabled whenever it is loaded
 by the player that is the current Tempo Master.

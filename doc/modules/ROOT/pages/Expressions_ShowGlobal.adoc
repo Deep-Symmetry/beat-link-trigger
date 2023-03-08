@@ -51,19 +51,45 @@ anything in them.
 == Default Enabled Filter Expression
 
 The basic concept of an Enabled Filter is described in the
-<<Shows.adoc#,introduction>> to this section; shows use them in a similar
-way. Each Track that you are watching in the Show can be enabled
-separately. If the track’s menu:Enabled[] menu is set to Default, that
-track will look to the show itself to decide whether it should be
-enabled. There is an Enabled Default menu at the top of the Show
-window that is used by all tracks whose Enabled mode is Default. If
-the Show’s Enabled Default is set to Custom, it will run your Default
-Enabled Filter Expression to decide what to do. If your expression
-returns a `true` value, all these tracks will be enabled; otherwise
-they will be disabled.
+<<Expressions.adoc#editing-expressions,introduction>> to the
+Expressions section; shows use them in a similar way. Each Track that
+you are watching in the Show can be enabled separately. If the track’s
+menu:Enabled[] menu is set to Default, that track will look to the
+show itself to decide whether it should be enabled. There is an
+Enabled Default menu at the top of the Show window that is used by all
+tracks whose Enabled mode is Default. If the Show’s Enabled Default is
+set to Custom, it will run your Default Enabled Filter Expression to
+decide what to do. If your expression returns a `true` value, all
+these tracks will be enabled; otherwise they will be disabled.
 
 Disabled Tracks do not respond to being played, and all of their
 configured cues are disabled.
+
+=== Enhanced On-Air Example
+
+As an example of a useful Default Enabled Filter Expression, one of
+the most convenient Default Enabled Filter options is `On-Air`, which
+will prevent your tracks from being inadvertently enabled when a DJ is
+just previewing tracks in his headphones, but will enable them once
+they are actually playing through the house speakers. But this setting
+runs into trouble if the DJ also likes to fade out tracks to coax the
+audience to sing along: your On-Air filter will interrupt your cues
+while the track is faded out completely.
+
+To fix this, we can write a Default Enabled Filter expression that
+enables the tracks both when they are On-Air, and when they
+temporarily go off the air, as long as they are still playing, and
+were previously enabled. Here's the custom Default Enabled Filter
+expression code that implements this goal:
+
+```clojure
+(let [new-state (swap! globals update-in [:previously-enabled device-number]
+                       (fn [was-enabled?]
+                         (and playing? (or on-air? was-enabled?))))]
+    (or (get-in new-state [:previously-enabled device-number])
+        on-air?))
+
+```
 
 
 [[show-going-offline-expression]]

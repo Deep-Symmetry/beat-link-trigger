@@ -40,12 +40,13 @@ trigger and its cue expressions to use.
 == Enabled Filter Expression
 
 The basic concept of an Enabled Filter is described in the
-<<Expressions#,introduction>> to this section; phrase triggers use
-them in a similar way. If the phrase trigger’s menu:Enabled[] menu is
-set to Custom, it will run its Enabled Filter Expression to decide
-what to do. If your expression returns a `true` value, this phrase
-trigger will be enabled as a candidate to activate during the current
-phrase; otherwise it will be disabled and not considered.
+<<Expressions.adoc#editing-expressions,introduction>> to the
+Expressions section; phrase triggers use them in a similar way. If the
+phrase trigger’s menu:Enabled[] menu is set to Custom, it will run its
+Enabled Filter Expression to decide what to do. If your expression
+returns a `true` value, this phrase trigger will be enabled as a
+candidate to activate during the current phrase; otherwise it will be
+disabled and not considered.
 
 In cases where you want to enable the phrase trigger you can also
 determine the _weight_ that should be used if it is a Solo phrase

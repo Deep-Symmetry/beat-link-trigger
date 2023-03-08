@@ -36,18 +36,48 @@ Cue expressions to use.
 == Enabled Filter Expression
 
 The basic concept of an Enabled Filter is described in the
-<<Expressions#,introduction>> to this section; tracks use them in a
-similar way. If the track’s menu:Enabled[] menu is set to Custom, it
-will run its Enabled Filter Expression to decide what to do. If your
-expression returns a `true` value, this track will be enabled;
-otherwise it will be disabled.
+<<Expressions.adoc#editing-expressions,introduction>> to the
+Expressions section; tracks use them in a similar way. If the track’s
+menu:Enabled[] menu is set to Custom, it will run its Enabled Filter
+Expression to decide what to do. If your expression returns a `true`
+value, this track will be enabled; otherwise it will be disabled.
 
 Disabled Tracks do not respond to being played, and all of their
 configured cues are disabled.
 
-Note that you can also set the menu:Enabled[] menu to Default in order
-to run the Show-level Default Enabled Filter as described
-<<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,above>>.
+[[track-enhanced-on-air-example]]
+=== Enhanced On-Air Example
+
+As an example of a useful Enabled Filter Expression, one of the most
+convenient Enabled Filter options is `On-Air`, which will prevent your
+cues from running when a DJ is previewing a track in his headphones,
+but run them once it is actually playing through the house speakers.
+But this runs into trouble if the DJ also likes to fade out tracks to
+coax the audience to sing along: your On-Air filter will stop your
+cues while the track is faded out completely.
+
+To fix this, we can write an Enabled Filter expression that enables
+the track both when it is On-Air, and when it temporarily goes off the
+air, as long as it is still playing, and was previously enabled.
+Here's the custom Enabled Filter expression code that implements this
+goal:
+
+```clojure
+(let [new-state (swap! globals update-in [:previously-enabled device-number]
+                       (fn [was-enabled?]
+                         (and playing? (or on-air? was-enabled?))))]
+    (or (get-in new-state [:previously-enabled device-number])
+        on-air?))
+
+```
+
+NOTE: You can also set the menu:Enabled[] menu to Default in order to
+run the Show-level Default Enabled Filter as described
+<<Shows_Tracks.adoc#enabled-menu,above>>. This expression probably
+deserves to live at the Show level, and then you can tweak individual
+tracks that should behave differently.
+
+
 
 [[track-loaded-expression]]
 == Loaded Expression
