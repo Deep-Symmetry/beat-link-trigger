@@ -86,7 +86,7 @@ jobs:
       with:
         mode: update
         tag_name: ${{ env.release_tag }}
-        isPrerelease: true
+        isPrerelease: ${{ env.release_snapshot }}
         replace_assets: ${{ env.release_snapshot }}
         assets: ${{ env.uberjar_name }}
         github_token: ${{ github.token }}
