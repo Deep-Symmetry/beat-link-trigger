@@ -54,7 +54,7 @@ jobs:
     - name: Determine überjar name from git version, and snapshot status
       run: |
         echo "uberjar_name=beat-link-trigger-$git_version.jar" >> $GITHUB_ENV
-        if [[ release_tag =~ .*-SNAPSHOT ]]
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
         then
           echo "release_snapshot=true" >> $GITHUB_ENV
         else
