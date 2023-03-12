@@ -39,6 +39,20 @@ guide](https://blt-guide.deepsymmetry.org/).
 > open issues with log files, packet captures, and track analysis
 > files if you run into problems!
 
+## Getting Help
+
+<a href="http://zulip.com"><img align="right" alt="Zulip logo"
+ src="doc/modules/ROOT/assets/images/zulip-icon-circle.svg"
+ width="128" height="128"></a>
+
+Deep Symmetry&rsquo;s projects are generously sponsored with hosting
+by <a href="https://zulip.com">Zulip</a>, an open-source modern team
+chat app designed to keep both live and asynchronous conversations
+organized. Thanks to them, you can <a
+href="https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger">chat
+with our community</a>, ask questions, get inspiration, and share your
+own ideas.
+
 ## Usage
 
 Download the latest disk image (`.dmg`) installer for the Mac, `.msi`
@@ -252,7 +266,7 @@ on, you will be able to run that copy by just double-clicking it.
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
  src="doc/modules/ROOT/assets/images/DS-logo-github.png" width="250" height="150"></a>
 
-Copyright © 2016&ndash;2022 [Deep Symmetry, LLC](http://deepsymmetry.org)
+Copyright © 2016&ndash;2023 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
 Distributed under the [Eclipse Public License
 2.0](https://opensource.org/licenses/EPL-2.0). By using this software
