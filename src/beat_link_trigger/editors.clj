@@ -8,7 +8,7 @@
             [beat-link-trigger.util :as util]
             [clojure.java.browse]
             [clojure.java.io]
-            [clojure.string]
+            [clojure.string :as str]
             [me.raynes.fs :as fs]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
@@ -532,14 +532,24 @@
   that you opened in the Global Setup expression."
                :bindings   (show-bindings-for-class nil)})))
 
+(defn simulate-track-event
+  "Helper function for simulating events in show track editors."
+  [simulated-status context compiled]
+  (let [[show track] (show-util/latest-show-and-context context)]
+    (compiled simulated-status
+              {:locals (:expression-locals track)
+               :show   show
+               :track  track}
+              (:expression-globals show))))
+
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
   along with the details needed to describe and compile the
   expressions they edit. Created as an explicit array map to keep the
   keys in the order they are found here."
   (delay (array-map
-          :setup {:title "Setup Expression"
-                  :tip "Called once to set up any state your other expressions may need."
+          :setup {:title    "Setup Expression"
+                  :tip      "Called once to set up any state your other expressions may need."
                   :description
                   "Called once when the show is loaded, or when you update the
   expression. Set up any state (such as counters, flags, or network
@@ -548,8 +558,8 @@
   shutting down."
                   :bindings (show-bindings-for-track-and-class nil)}
 
-          :enabled {:title "Enabled Filter Expression"
-                    :tip "Called to see if the track should be enabled."
+          :enabled {:title    "Enabled Filter Expression"
+                    :tip      "Called to see if the track should be enabled."
                     :description
                     "Called whenever a status update packet is received from
   a player that has loaded a track whose Enabled mode is set to
@@ -562,17 +572,19 @@
   generally easier to use the convenience variables described below."
                     :bindings (show-bindings-for-track-and-class CdjStatus)}
 
-          :loaded {:title "Loaded Expression"
-                   :tip "Called when a player loads this track, if enabled."
+          :loaded {:title    "Loaded Expression"
+                   :tip      "Called when a player loads this track, if enabled."
                    :description
                    "Called when the track is enabled and the first player loads
   this track. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-                   :bindings (show-bindings-for-track-and-class nil)}
+                   :bindings (show-bindings-for-track-and-class nil)
+                   :simulate (fn [_kind context compiled]
+                               (simulate-track-event nil context compiled))}
 
           :playing {:title "Playing Expression"
-                    :tip "Called when a player plays this track, if enabled."
+                    :tip   "Called when a player plays this track, if enabled."
                     :description
                     "Called when the track is enabled and the first player starts
   playing this track. You can use this to trigger systems that do
@@ -586,10 +598,12 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    :bindings (show-bindings-for-track-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-and-class CdjStatus)
+                    :simulate (fn [_kind context compiled]
+                                (simulate-track-event (show-util/random-cdj-status) context compiled))}
 
-          :beat {:title "Beat Expression"
-                 :tip "Called on each beat from devices with the track loaded."
+          :beat {:title       "Beat Expression"
+                 :tip         "Called on each beat from devices with the track loaded."
                  :description "Called whenever a beat packet is received from
   a player that is playing this track. You can use this for
   beat-driven integrations with other systems.<p>
@@ -602,10 +616,13 @@
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
   easier to use the convenience variables described below."
-                 :bindings (show-bindings-for-track-and-class :beat-tpu)}
+                 :bindings (show-bindings-for-track-and-class :beat-tpu)
+                 :simulate (fn [_kind context compiled]
+                             (let [[_ track] (show-util/latest-show-and-context context)]
+                               (simulate-track-event (show-util/random-beat-and-position track) context compiled)))}
 
-          :tracked {:title "Tracked Update Expression"
-                    :tip "Called for each update from a player with this track loaded, when enabled."
+          :tracked {:title    "Tracked Update Expression"
+                    :tip      "Called for each update from a player with this track loaded, when enabled."
                     :description
                     "Called whenever a status update packet is received from
   a player that has this track loaded, after the Enabled Filter
@@ -621,10 +638,12 @@
   enabled, and at least one player is playing), wrap your code inside a
   <code>when</code> expression conditioned on the
   <code>playing-players</code> convenience variable."
-                    :bindings (show-bindings-for-track-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-and-class CdjStatus)
+                    :simulate (fn [_kind context compiled]
+                                (simulate-track-event (show-util/random-cdj-status) context compiled))}
 
-          :stopped {:title "Stopped Expression"
-                    :tip "Called when all players stop playing the track, or the track is disabled."
+          :stopped {:title       "Stopped Expression"
+                    :tip         "Called when all players stop playing the track, or the track is disabled."
                     :description "Called when the track becomes disabled or when the last
   player stops playing the track, if any had been. You can use this
   to trigger systems that do not respond to MIDI, or to send more
@@ -644,19 +663,23 @@
   has disappeared or the track settings have been changed, so your
   expression must be able to cope with <code>nil</code> values for all
   the convenience variables that it uses."
-                    :bindings (show-bindings-for-track-and-class CdjStatus)
+                    :bindings    (show-bindings-for-track-and-class CdjStatus)
+                    :simulate    (fn [_kind context compiled]
+                                   (simulate-track-event (show-util/random-cdj-status {:f 0}) context compiled))
                     :nil-status? true}
 
-          :unloaded {:title "Unloaded Expression"
-                     :tip "Called when all players unload the track, or the track is disabled."
+          :unloaded {:title       "Unloaded Expression"
+                     :tip         "Called when all players unload the track, or the track is disabled."
                      :description "Called when the track becomes disabled or when the last
   player unloads the track, if any had it loaded. You can use this
   to trigger systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows."
-                     :bindings (show-bindings-for-track-and-class nil)}
+                     :bindings    (show-bindings-for-track-and-class nil)
+                     :simulate (fn [_kind context compiled]
+                                 (simulate-track-event nil context compiled))}
 
-          :shutdown {:title "Shutdown Expression"
-                     :tip "Called once to release resources your track had been using."
+          :shutdown {:title    "Shutdown Expression"
+                     :tip      "Called once to release resources your track had been using."
                      :description
                      "Called when when the track is shutting down, either
   because it was deleted or the show was closed. Close and release any
@@ -861,6 +884,28 @@
          (show-bindings-for-track-or-phrase-and-cue)
          (when update-class (expressions/bindings-for-update-class update-class))))
 
+(defn simulate-cue-event
+  "Helper function for simulating events in show cue editors."
+  [simulated-status context cue compiled]
+  (if (show-util/track? context)
+    (let [[show track] (show-util/latest-show-and-context context)
+          cue          (show-util/find-cue track cue)]
+      (compiled simulated-status
+                {:locals (:expression-locals track)
+                 :show   show
+                 :track  track
+                 :cue    cue}
+                (:expression-globals show)))
+    ;; The phrase trigger version.
+    (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
+          cue                        (show-util/find-cue phrase cue)]
+      (compiled simulated-status
+                {:locals (:expression-locals runtime-info)
+                 :show   show
+                 :phrase phrase
+                 :cue    cue}
+                (:expression-globals show)))))
+
 (def show-cue-editors
   "Specifies the kinds of editor which can be opened for a show track cue,
   along with the kinds of details needed to compile the expressions
@@ -874,9 +919,11 @@
   moves inside this cue. You can use this to trigger systems that do
   not respond to MIDI, or to send more detailed information than MIDI
   allows."
-                    :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)}
+                    :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
+                    :simulate (fn [_kind context cue compiled]
+                                (simulate-cue-event (show-util/random-beat-or-status) context cue compiled))}
 
-          :started-on-beat {:title    "Started On-Beat Expression"
+          :started-on-beat {:title "Started On-Beat Expression"
                             :tip
                             "Called when a player starts playing this cue from its first beat, if the track is enabled."
                             :description
@@ -901,9 +948,13 @@
   object, as described in the help for the Started Late expression,
   instead of the above-described tuple, so you will need to write your
   code to handle both possibilities."
-                            :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)}
-          :started-late {:title    "Started Late Expression"
-                         :tip "Called when a player starts playing this cue later than its first beat, if the track is enabled."
+                            :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)
+                            :simulate (fn [_kind context cue compiled]
+                                        (simulate-cue-event (show-util/random-beat-and-position
+                                                             (when (show-util/track? context) context))
+                                                            context cue compiled))}
+          :started-late {:title "Started Late Expression"
+                         :tip   "Called when a player starts playing this cue later than its first beat, if the track is enabled."
                          :description
                          "Called when the track is enabled and the first player
   starts playing the cue from somewhere other than the beginning of
@@ -919,7 +970,9 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described
   below."
-                         :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)}
+                         :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
+                         :simulate (fn [_kind context cue compiled]
+                                     (simulate-cue-event (show-util/random-cdj-status) context cue compiled))}
 
           :beat   {:title "Beat Expression"
                    :tip   "Called on each beat from devices playing inside the cue."
@@ -938,10 +991,14 @@
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
   easier to use the convenience variables described below."
-                   :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)}
+                   :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)
+                   :simulate (fn [_kind context cue compiled]
+                               (simulate-cue-event (show-util/random-beat-and-position
+                                                    (when (show-util/track? context) context))
+                                                   context cue compiled))}
 
-          :tracked {:title "Tracked Update Expression"
-                    :tip "Called for each update from a player that is positioned inside the cue, when the track is enabled."
+          :tracked {:title    "Tracked Update Expression"
+                    :tip      "Called for each update from a player that is positioned inside the cue, when the track is enabled."
                     :description
                     "Called whenever a status update packet is received from
   a player whose playback position is inside the cue (as long as the
@@ -956,7 +1013,9 @@
   one player is playing it), wrap your code inside a <code>when</code>
   expression conditioned on the <code>players-playing</code>
   convenience variable."
-                    :bindings (show-bindings-for-track-or-phrase-cue-and-class CdjStatus)}
+                    :bindings (show-bindings-for-track-or-phrase-cue-and-class CdjStatus)
+                    :simulate (fn [_kind context cue compiled]
+                                (simulate-cue-event (show-util/random-cdj-status) context cue compiled))}
 
           :ended {:title "Ended Expression"
                   :tip   "Called when all players stop playing this cue, if the track is enabled."
@@ -972,6 +1031,8 @@
   <code>nil</code> values for all the convenience variables that it
   uses."
                   :bindings    (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
+                  :simulate    (fn [_kind context cue compiled]
+                                 (simulate-cue-event (show-util/random-beat-or-status) context cue compiled))
                   :nil-status? true}
 
           :exited {:title "Exited Expression"
@@ -988,6 +1049,8 @@
   <code>nil</code> values for all the convenience variables that it
   uses."
                    :bindings    (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
+                   :simulate    (fn [_kind context cue compiled]
+                                  (simulate-cue-event (show-util/random-beat-or-status) context cue compiled))
                    :nil-status? true})))
 
 (def ^:private editor-theme
@@ -1021,7 +1084,7 @@
   arguments."
   [kind trigger global? text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
-  (let [text (clojure.string/trim text)  ; Remove whitespace on either end
+  (let [text (str/trim text)  ; Remove whitespace on either end
         editor-info (get (if global? global-trigger-editors trigger-editors) kind)]
     (try
       (when (seq text)  ; If we got a new expression, try to compile it
@@ -1109,7 +1172,7 @@
         :else
         (show-util/swap-show! show update :expression-fns dissoc kind))
 
-  (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
+  (let [text        (str/trim text) ; Remove whitespace on either end.
         editor-info (get (cond (:signature track-or-phrase) @show-track-editors
                                (:uuid track-or-phrase)      @show-phrase-editors
                                :else                        @global-show-editors) kind)]
@@ -1199,7 +1262,7 @@
                              dissoc kind)
       (show-util/swap-phrase-runtime! show context update-in [:cues :expression-fns (:uuid cue)]
                                       dissoc kind))
-    (let [text        (clojure.string/trim text) ; Remove whitespace on either end.
+    (let [text        (str/trim text) ; Remove whitespace on either end.
           editor-info (get @show-cue-editors kind)]
       (try
         (when (seq text)  ; If we got a new expression, try to compile it.
@@ -1257,29 +1320,28 @@ a {
   available."
   [kind global?]
   (when-not (= kind :shared)
-    (clojure.string/join (concat ["<p>The "
-                                  (when-not global? "atom
+    (str/join (concat ["<p>The " (when-not global? "atom
   <code>locals</code> is available for use by all expressions on this
   trigger, and the ")
-                                  "atom <code>globals</code> is shared across all expressions in any trigger."]))))
+                       "atom <code>globals</code> is shared across all expressions in any trigger."]))))
 
 (defn- build-triggers-help
   "Create the help information for a triggers window editor with the
   specified kind."
   [kind global? editors]
   (let [editor-info (get editors kind)]
-    (clojure.string/join (concat [help-header "<h1>Description</h1>"
-                                  (:description editor-info)
-                                  (triggers-locals-globals kind global?)]
-                                 (when (seq (:bindings editor-info))
-                                      (concat ["
+    (str/join (concat [help-header "<h1>Description</h1>"
+                       (:description editor-info)
+                       (triggers-locals-globals kind global?)]
+                      (when (seq (:bindings editor-info))
+                        (concat ["
 
   <h1>Values Available</h1>
 
   The following values are available for you to use in writing your expression:<dl>"]
-                                              (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
-                                                (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
-                                 ["</dl>"]))))
+                                (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
+                                  (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
+                      ["</dl>"]))))
 
 (defn- confirm-close-if-dirty
   "Checks if an editor window has unsaved changes (which will be
@@ -1483,17 +1545,19 @@ a {
 
 (defn- build-menubar
   "Creates the menu bar for an editor window."
-  [frame editor editor-panel update-action {:keys [find-dialog replace-dialog find-toolbar replace-toolbar]}]
+  [frame editor editor-panel update-action simulate-action
+   {:keys [find-dialog replace-dialog find-toolbar replace-toolbar]}]
   (seesaw/menubar
    :items [#_(seesaw/menu :text "File" :items (concat [load-action save-action]))  ; TODO: Add save/load capabilities?
            (seesaw/menu :text "File"
-                        :items [(build-load-action frame editor)
-                                (build-insert-action frame editor)
-                                (build-save-action frame editor)
-                                (seesaw/separator)
-                                update-action
-                                (seesaw/separator)
-                                (build-close-action frame)])
+                        :items (concat [(build-load-action frame editor)
+                                        (build-insert-action frame editor)
+                                        (build-save-action frame editor)
+                                        (seesaw/separator)
+                                        update-action]
+                                       (when simulate-action [simulate-action])
+                                       [(seesaw/separator)
+                                        (build-close-action frame)]))
            (seesaw/menu :text "Edit"
                         :items [(RTextArea/getAction RTextArea/UNDO_ACTION)
                                 (RTextArea/getAction RTextArea/REDO_ACTION)
@@ -1544,7 +1608,7 @@ a {
 
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "span 3, sizegroup a, gapy unrelated, width 100%"]]))
-    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action tools))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action nil tools))
     (seesaw/config! editor :id :source)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
@@ -1604,11 +1668,11 @@ a {
   available."
   [kind global?]
   (when-not (= kind :shared)
-    (clojure.string/join (concat ["<p>The "
-                                  (when-not global? "atom
+    (str/join (concat ["<p>The "
+                       (when-not global? "atom
   <code>locals</code> is available for use by all expressions on this
   track, and the ")
-                                  "atom <code>globals</code> is shared
+                       "atom <code>globals</code> is shared
   across all expressions in this show. You can also use the atom
   <code>trigger-globals</code> to share the expression globals of the
   Triggers window."]))))
@@ -1618,18 +1682,58 @@ a {
   specified kind."
   [kind global? editors]
   (let [editor-info (get editors kind)]
-    (clojure.string/join (concat [help-header "<h1>Description</h1>"
-                                  (:description editor-info)
-                                  (show-locals-globals kind global?)]
-                                 (when (seq (:bindings editor-info))
-                                   (concat ["
+    (str/join (concat [help-header "<h1>Description</h1>"
+                       (:description editor-info)
+                       (show-locals-globals kind global?)]
+                      (when (seq (:bindings editor-info))
+                        (concat ["
 
   <h1>Values Available</h1>
 
   The following values are available for you to use in writing your expression:<dl>"]
-                                           (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
-                                             (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
-                                 ["</dl>"]))))
+                                (for [[sym spec] (into (sorted-map) (:bindings editor-info))]
+                                  (str "<dt><code>" (name sym) "</code></dt><dd>" (:doc spec) "</dd>"))))
+                      ["</dl>"]))))
+
+(defn- build-show-simulate-action
+  "Creates a menu action to simulate the expression associated with a
+  show editor window, if that is appropriate for the kind of
+  expression."
+  [^RSyntaxTextArea editor editors-map kind show context]
+  (when-let [simulate-fn (get-in editors-map [kind :simulate])]
+    (seesaw/action :handler (fn [_]
+                              (let [source      (.getText editor)
+                                    editor-info (get editors-map kind)
+                                    compiled    (when-not (str/blank? source)
+                                                  (try
+                                                    (expressions/build-user-expression
+                                                     source (:bindings editor-info) (:nil-status? editor-info)
+                                                     (show-editor-title kind show context)
+                                                     (:no-locals? editor-info))
+                                                    (catch Throwable e
+                                                      (timbre/error e "Problem parsing" (:title editor-info))
+                                                      (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                                                                         ".<br><br>" e
+                                                                         (when-let [cause (.getCause e)]
+                                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                                    :title "Exception during Clojure evaluation"
+                                                                    :type :error))))]
+                                (when compiled
+                                  (try
+                                    (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+                                      (simulate-fn kind context compiled))
+                                    (catch Throwable t
+                                      (timbre/error t (str "Problem simulating expression:\n" t))
+                                      (seesaw/alert (str "<html>Problem simulating expression.<br><br>" t
+                                                                         (when-let [cause (.getCause t)]
+                                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                                    :title "Exception during Clojure evaluation"
+                                                                    :type :error))))))
+                   :name "Simulate"
+                   :key "menu shift S"
+                   :enabled? false)))
 
 (defn- create-show-editor-window
   "Create and show a window for editing the Clojure code of a particular
@@ -1637,6 +1741,9 @@ a {
   called when the editor successfully updates the expression."
   [kind show track-or-phrase parent-frame update-fn]
   (let [text            (find-show-expression-text kind show track-or-phrase)
+        editors-map     (cond (:signature track-or-phrase) @show-track-editors
+                              (:uuid track-or-phrase)      @show-phrase-editors
+                              :else                        @global-show-editors)
         save-fn         (fn [text] (update-show-expression kind show track-or-phrase text update-fn))
         ^JFrame root    (seesaw/frame :title (show-editor-title kind show track-or-phrase)
                                       :on-close :nothing :size [800 :by 600])
@@ -1646,6 +1753,7 @@ a {
         status-label    (seesaw/label)
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
+        simulate-action (build-show-simulate-action editor editors-map kind show track-or-phrase)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
         close-fn        (fn [] (cond (:signature track-or-phrase)
                                      (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
@@ -1664,27 +1772,27 @@ a {
                    (fn [e]
                      (seesaw/config! update-action :enabled?
                                      (not= (util/remove-blanks (find-show-expression-text kind show track-or-phrase))
-                                           (util/remove-blanks (seesaw/text e))))))
+                                           (util/remove-blanks (seesaw/text e))))
+                     (when simulate-action
+                       (seesaw/config! simulate-action :enabled? (not (str/blank? (.getText editor)))))))
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
 
                                                          [status-label "align left, sizegroup b"]
                                                          [update-action "align center, push"]
-                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
+                                                         [(or simulate-action (seesaw/label ""))
+                                                          "align right, sizegroup b, wrap"]
 
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "span 3, sizegroup a, gapy unrelated, width 100%"]]))
-    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action tools))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action simulate-action tools))
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setCaretPosition editor 0)
     (.discardAllEdits editor)
     (.setContentType help "text/html")
-    (.setText help (build-show-help kind (not track-or-phrase)
-                                    (cond (:signature track-or-phrase) @show-track-editors
-                                          (:uuid track-or-phrase)      @show-phrase-editors
-                                          :else                        @global-show-editors)))
+    (.setText help (build-show-help kind (not track-or-phrase) editors-map))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
@@ -1744,6 +1852,46 @@ a {
     (catch Throwable t
       (timbre/error t "Problem showing show" kind "editor"))))
 
+(defn- build-cue-simulate-action
+  "Creates a menu action to simulate the expression associated with a
+  cue editor window, if that is appropriate for the kind of
+  expression."
+  [^RSyntaxTextArea editor kind context cue]
+  (when-let [simulate-fn (get-in @show-cue-editors [kind :simulate])]
+    (seesaw/action :handler (fn [_]
+                              (let [source      (.getText editor)
+                                    editor-info (get @show-cue-editors kind)
+                                    compiled    (when-not (str/blank? source)
+                                                  (try
+                                                    (expressions/build-user-expression
+                                                     source (:bindings editor-info) (:nil-status? editor-info)
+                                                     (cue-editor-title kind context cue)
+                                                     (:no-locals? editor-info))
+                                                    (catch Throwable e
+                                                      (timbre/error e "Problem parsing" (:title editor-info))
+                                                      (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                                                                         ".<br><br>" e
+                                                                         (when-let [cause (.getCause e)]
+                                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                                    :title "Exception during Clojure evaluation"
+                                                                    :type :error))))]
+                                (when compiled
+                                  (try
+                                    (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+                                      (simulate-fn kind context cue compiled))
+                                    (catch Throwable t
+                                      (timbre/error t (str "Problem simulating expression:\n" t))
+                                      (seesaw/alert (str "<html>Problem simulating expression.<br><br>" t
+                                                         (when-let [cause (.getCause t)]
+                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                    :title "Exception during Clojure evaluation"
+                                                    :type :error))))))
+                   :name "Simulate"
+                   :key "menu shift S"
+                   :enabled? false)))
+
 (defn- create-cue-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Cues Editor window expression, with an update function to be
@@ -1761,6 +1909,7 @@ a {
         status-label    (seesaw/label)
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
+        simulate-action (build-cue-simulate-action editor kind context cue)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
         close-fn        (fn []
                           (if track?
@@ -1778,18 +1927,21 @@ a {
                    (fn [e]
                      (seesaw/config! update-action :enabled?
                                      (not= (util/remove-blanks (find-cue-expression-text kind context cue))
-                                           (util/remove-blanks (seesaw/text e))))))
+                                           (util/remove-blanks (seesaw/text e))))
+                     (when simulate-action
+                       (seesaw/config! simulate-action :enabled? (not (str/blank? (.getText editor)))))))
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
 
                                                          [status-label "align left, sizegroup b"]
                                                          [update-action "align center, push"]
-                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
+                                                         [(or simulate-action (seesaw/label ""))
+                                                          "align right, sizegroup b, wrap"]
 
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "span 3, sizegroup a, gapy unrelated, width 100%"]]))
-    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action tools))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action simulate-action tools))
     (seesaw/config! editor :id :source)
     (seesaw/value! root {:source text})
     (.setCaretPosition editor 0)
