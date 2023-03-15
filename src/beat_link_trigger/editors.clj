@@ -1160,7 +1160,7 @@
   "Called when an show window expression's editor is ending and the user
   has asked to update the expression with the value they have edited.
   If `update-fn` is not nil, it will be called with no arguments."
-  [kind show track-or-phrase text update-fn]
+  [kind show track-or-phrase text update-fn editor]
 
   ;; In case the parse fails, leave nothing as the compiled function.
   (cond (:signature track-or-phrase)
@@ -1214,7 +1214,8 @@
         (show-util/swap-show! show assoc-in [:contents :expressions kind] text))
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
-        (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+        (seesaw/alert editor
+                      (str "<html>Unable to use " (:title editor-info)
                            ".<br><br>" e
                            (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
                            "<br><br>You may wish to check the log file for the detailed stack trace.")
@@ -1253,7 +1254,7 @@
   the user has asked to update the expression with the value they have
   edited. If `update-fn` is not nil, it will be called with no
   arguments."
-  [kind context cue text update-fn]
+  [kind context cue text update-fn editor]
   (let [[show context] (show-util/latest-show-and-context context)
         track?         (show-util/track? context)]
     ;; Clean up any old value first in case the parse fails.
@@ -1285,7 +1286,8 @@
 
         (catch Throwable e
           (timbre/error e "Problem parsing" (:title editor-info))
-          (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+          (seesaw/alert editor
+                        (str "<html>Unable to use " (:title editor-info)
                              ".<br><br>" e
                              (when-let [cause (.getCause e)] (str "<br>Cause: " (.getMessage cause)))
                              "<br><br>You may wish to check the log file for the detailed stack trace.")
@@ -1712,7 +1714,8 @@ a {
                                                      (:no-locals? editor-info))
                                                     (catch Throwable e
                                                       (timbre/error e "Problem parsing" (:title editor-info))
-                                                      (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                                                      (seesaw/alert editor
+                                                                    (str "<html>Unable to use " (:title editor-info)
                                                                          ".<br><br>" e
                                                                          (when-let [cause (.getCause e)]
                                                                            (str "<br>Cause: " (.getMessage cause)))
@@ -1725,12 +1728,13 @@ a {
                                       (simulate-fn kind context compiled))
                                     (catch Throwable t
                                       (timbre/error t (str "Problem simulating expression:\n" t))
-                                      (seesaw/alert (str "<html>Problem simulating expression.<br><br>" t
-                                                                         (when-let [cause (.getCause t)]
-                                                                           (str "<br>Cause: " (.getMessage cause)))
-                                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
-                                                                    :title "Exception during Clojure evaluation"
-                                                                    :type :error))))))
+                                      (seesaw/alert editor
+                                                    (str "<html>Problem simulating expression.<br><br>" t
+                                                         (when-let [cause (.getCause t)]
+                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                    :title "Exception during Clojure evaluation"
+                                                    :type :error))))))
                    :name "Simulate"
                    :key "menu shift S"
                    :enabled? false)))
@@ -1744,10 +1748,10 @@ a {
         editors-map     (cond (:signature track-or-phrase) @show-track-editors
                               (:uuid track-or-phrase)      @show-phrase-editors
                               :else                        @global-show-editors)
-        save-fn         (fn [text] (update-show-expression kind show track-or-phrase text update-fn))
         ^JFrame root    (seesaw/frame :title (show-editor-title kind show track-or-phrase)
                                       :on-close :nothing :size [800 :by 600])
         editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        save-fn         (fn [text] (update-show-expression kind show track-or-phrase text update-fn editor))
         scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
         editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
         status-label    (seesaw/label)
@@ -1873,7 +1877,8 @@ a {
                                                      (:no-locals? editor-info))
                                                     (catch Throwable e
                                                       (timbre/error e "Problem parsing" (:title editor-info))
-                                                      (seesaw/alert (str "<html>Unable to use " (:title editor-info)
+                                                      (seesaw/alert editor
+                                                                    (str "<html>Unable to use " (:title editor-info)
                                                                          ".<br><br>" e
                                                                          (when-let [cause (.getCause e)]
                                                                            (str "<br>Cause: " (.getMessage cause)))
@@ -1886,7 +1891,8 @@ a {
                                       (simulate-fn kind context cue compiled))
                                     (catch Throwable t
                                       (timbre/error t (str "Problem simulating expression:\n" t))
-                                      (seesaw/alert (str "<html>Problem simulating expression.<br><br>" t
+                                      (seesaw/alert editor
+                                                    (str "<html>Problem simulating expression.<br><br>" t
                                                          (when-let [cause (.getCause t)]
                                                            (str "<br>Cause: " (.getMessage cause)))
                                                          "<br><br>You may wish to check the log file for the detailed stack trace.")
@@ -1903,11 +1909,11 @@ a {
   [kind context cue parent-frame update-fn]
   (let [text            (find-cue-expression-text kind context cue)
         track?          (show-util/track? context)
-        save-fn         (fn [text] (update-cue-expression kind context cue text update-fn))
         ^JFrame root    (seesaw/frame :title (cue-editor-title kind context cue)
                                       :on-close :nothing
                                       :size [800 :by 600])
         editor          (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea. 16 80)
+        save-fn         (fn [text] (update-cue-expression kind context cue text update-fn editor))
         scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
         editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
         status-label    (seesaw/label)
