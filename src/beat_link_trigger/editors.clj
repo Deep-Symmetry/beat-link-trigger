@@ -1780,9 +1780,13 @@ a {
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
 
                                                          [status-label "align left, sizegroup b"]
-                                                         [update-action "align center, push"]
-                                                         [(or simulate-action (seesaw/label ""))
-                                                          "align right, sizegroup b, wrap"]
+                                                         [(if simulate-action
+                                                            (seesaw/horizontal-panel
+                                                             :items [update-action (seesaw/label "    ")
+                                                                     simulate-action])
+                                                            update-action)
+                                                          "align center, push"]
+                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
 
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "span 3, sizegroup a, gapy unrelated, width 100%"]]))
@@ -1935,9 +1939,13 @@ a {
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
 
                                                          [status-label "align left, sizegroup b"]
-                                                         [update-action "align center, push"]
-                                                         [(or simulate-action (seesaw/label ""))
-                                                          "align right, sizegroup b, wrap"]
+                                                         [(if simulate-action
+                                                            (seesaw/horizontal-panel
+                                                             :items [update-action (seesaw/label "   ")
+                                                                     simulate-action])
+                                                            update-action)
+                                                          "align center, push"]
+                                                         [(seesaw/label "") "align right, sizegroup b, wrap"]
 
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "span 3, sizegroup a, gapy unrelated, width 100%"]]))
