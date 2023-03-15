@@ -761,6 +761,16 @@
    ;; TODO: Copy in lots of other status and/or beat information with safe finders?
    })
 
+(defn simulate-phrase-event
+  "Helper function for simulating events in show phrase trigger editors."
+  [simulated-status context compiled]
+  (let [[show phrase runtime-info] (show-util/latest-show-and-context context)]
+    (compiled simulated-status
+               {:locals (:expression-locals runtime-info)
+                :show   show
+                :phrase phrase}
+               (:expression-globals show))))
+
 (def show-phrase-editors
   "Specifies the kinds of editor which can be opened for a show phrase
   trigger, along with the details needed to describe and compile the
@@ -808,7 +818,9 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    :bindings (show-bindings-for-phrase-and-class CdjStatus)}
+                    :bindings (show-bindings-for-phrase-and-class CdjStatus)
+                    :simulate (fn [_kind context compiled]
+                                (simulate-phrase-event (show-util/random-cdj-status) context compiled))}
 
           :beat {:title "Beat Expression"
                  :tip "Called on each beat from devices playing the matched phrase."
@@ -824,7 +836,9 @@
   href=\"http://clojure.org/reference/java_interop\">Java interop
   syntax</a> to access its fields and methods, but it is generally
   easier to use the convenience variables described below."
-                 :bindings (show-bindings-for-phrase-and-class :beat-tpu)}
+                 :bindings (show-bindings-for-phrase-and-class :beat-tpu)
+                 :simulate (fn [_kind context compiled]
+                             (simulate-phrase-event (show-util/random-beat-and-position nil) context compiled))}
 
           :tracked {:title "Tracked Update Expression"
                     :tip "Called for each update from a player playing the matched phrase."
@@ -839,7 +853,9 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    :bindings (show-bindings-for-phrase-and-class CdjStatus)}
+                    :bindings (show-bindings-for-phrase-and-class CdjStatus)
+                    :simulate (fn [_kind context compiled]
+                                (simulate-phrase-event (show-util/random-cdj-status) context compiled))}
 
           :stopped {:title "Stopped Expression"
                     :tip "Called when all players stop playing the matched phrase."
@@ -863,6 +879,8 @@
   expression must be able to cope with <code>nil</code> values for all
   the convenience variables that it uses."
                     :bindings (show-bindings-for-phrase-and-class CdjStatus)
+                    :simulate (fn [_kind context compiled]
+                                (simulate-phrase-event (show-util/random-cdj-status {:f 0}) context compiled))
                     :nil-status? true}
 
           :shutdown {:title "Shutdown Expression"
