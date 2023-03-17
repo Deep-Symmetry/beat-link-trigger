@@ -63,19 +63,29 @@ Here's the custom Enabled Filter expression code that implements this
 goal:
 
 ```clojure
-(let [new-state (swap! globals update-in [:previously-enabled device-number]
-                       (fn [was-enabled?]
-                         (and playing? (or on-air? was-enabled?))))]
-    (or (get-in new-state [:previously-enabled device-number])
-        on-air?))
-
+(let [signature   (get-in show [:loaded device-number])
+      any-on-air? ((set (vals (:on-air show))) signature)
+      new-state   (swap! globals update :enable-locked
+                         (fn [old-locks]
+                           (let [locked (get old-locks device-number)]
+                             (if (and playing?
+                                      (or on-air? (= locked signature)))
+                               (assoc old-locks device-number signature)
+                               (dissoc old-locks device-number)))))]
+  (or (get-in new-state [:enable-locked device-number])
+      any-on-air?))
 ```
 
 NOTE: You can also set the menu:Enabled[] menu to Default in order to
 run the Show-level Default Enabled Filter as described
 <<Shows_Tracks.adoc#enabled-menu,above>>. This expression probably
-deserves to live at the Show level, and then you can tweak individual
-tracks that should behave differently.
+deserves to
+<<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,live
+at the Show level>>, and then you can tweak individual tracks that
+should behave differently. The expression explanation
+<<Expressions_ShowGlobal.adoc#show-enhanced-on-air-example,found
+there>> also walks through an earlier, simpler version of the
+expression, and explains why it was not quite enough.
 
 
 

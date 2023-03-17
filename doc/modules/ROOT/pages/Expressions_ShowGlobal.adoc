@@ -65,6 +65,7 @@ these tracks will be enabled; otherwise they will be disabled.
 Disabled Tracks do not respond to being played, and all of their
 configured cues are disabled.
 
+[[show-enhanced-on-air-example]]
 === Enhanced On-Air Example
 
 As an example of a useful Default Enabled Filter Expression, one of
@@ -79,8 +80,9 @@ while the track is faded out completely.
 To fix this, we can write a Default Enabled Filter expression that
 enables the tracks both when they are On-Air, and when they
 temporarily go off the air, as long as they are still playing, and
-were previously enabled. Here's the custom Default Enabled Filter
-expression code that implements this goal:
+were previously enabled. Here's a first draft of a Default Enabled
+Filter expression code that implements this goal (but read on before
+you use it, for an even better version):
 
 ```clojure
 (let [new-state (swap! globals update-in [:previously-enabled device-number]
@@ -90,6 +92,31 @@ expression code that implements this goal:
         on-air?))
 
 ```
+
+This works pretty well under most circumstances, but you will discover
+that if the DJ happens to have the same track loaded into more than
+one player, this expression will get confused, and the track will
+flash between enabled and disabled when only one player is on-air. To
+fix that, we need to extend the expression so that we track the
+"on-air locked" state for each such player separately. Here is how we
+can do that:
+
+```clojure
+(let [signature   (get-in show [:loaded device-number])
+      any-on-air? ((set (vals (:on-air show))) signature)
+      new-state   (swap! globals update :enable-locked
+                         (fn [old-locks]
+                           (let [locked (get old-locks device-number)]
+                             (if (and playing?
+                                      (or on-air? (= locked signature)))
+                               (assoc old-locks device-number signature)
+                               (dissoc old-locks device-number)))))]
+  (or (get-in new-state [:enable-locked device-number])
+      any-on-air?))
+```
+
+NOTE: These kinds of multi-player issues presented some of the biggest
+challenges when adding the Show feature to Beat Link Trigger.
 
 
 [[show-going-offline-expression]]
