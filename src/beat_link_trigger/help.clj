@@ -5,9 +5,22 @@
             [clojure.java.browse]
             [compojure.route :as route]
             [compojure.core :as compojure]
+            [ring.middleware.defaults :as ring-defaults]
             [ring.util.response :as response]
             [org.httpkit.server :as server])
   (:import [org.deepsymmetry.beatlink VirtualCdj]))
+
+(defn- return-bulma
+  "A handler that renders the Bulma stylesheet."
+  []
+  (-> (response/resource-response "beat_link_trigger/bulma.min.css")
+      (response/content-type "text/css")))
+
+(defn- return-report-css
+  "A handler that renders the report-specific stylesheet."
+  []
+  (-> (response/resource-response "beat_link_trigger/report.css")
+      (response/content-type "text/css")))
 
 (defn show-landing-page
   "The home page for the embedded web server, currently does not do
@@ -25,6 +38,13 @@
                                            "bltx"   "application/x-beat-link-trigger-export"
                                            "blts"   "application/x-beat-link-trigger-show"
                                            "maxpat" "application/x-maxmsp-patch-file"}})
+  ;; Routes for show reports.
+  (compojure/GET "/bulma.min.css" [] (return-bulma))
+  (compojure/GET "/report.css" [] (return-report-css))
+  (compojure/GET "/show/reports/expressions" [show]
+                 ((requiring-resolve 'beat-link-trigger.show-util/expressions-report) show))
+
+  ;; We give up!
   (route/not-found "<p>Page not found.</p>"))
 
 ;; Once the server is started, holds a map where :port contains the
@@ -39,13 +59,14 @@
   []
   (locking running-server
     (when-not @running-server
-      (loop [port 9889]
-        (try
-          (reset! running-server {:port port
-                                  :stop (server/run-server all-routes {:port port})})
-          (catch java.net.BindException _))  ; We will just retry until we are out of ports.
-        (when (and (not @running-server) (< port 65535))
-          (recur (inc port)))))
+      (let [handler (ring-defaults/wrap-defaults all-routes ring-defaults/site-defaults)]
+        (loop [port 9889]
+          (try
+            (reset! running-server {:port port
+                                    :stop (server/run-server handler {:port port})})
+            (catch java.net.BindException _))  ; We will just retry until we are out of ports.
+          (when (and (not @running-server) (< port 65535))
+            (recur (inc port))))))
     (:port @running-server)))
 
 (defn stop-server

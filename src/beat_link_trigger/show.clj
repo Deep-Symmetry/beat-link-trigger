@@ -5,15 +5,18 @@
   (:require [beat-link-trigger.util :as util]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.track-loader :as loader]
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-phrases :as phrases]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track find-cue
                                                         swap-show! swap-track! swap-signature!]]
-            [clojure.java.io]
+            [clojure.java.browse]
+            [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
+            [hiccup.util]
             [inspector-jay.core :as inspector]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
@@ -2085,28 +2088,43 @@
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))
 
+(defn expression-report-link
+  ([file]
+   (expression-report-link file nil))
+  ([file anchor]
+   (let [port           (help/help-server)
+         anchor-segment (when anchor (str "#" anchor))]
+     (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))
+          anchor-segment))))
+
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map."
   [show]
-  (let [^File file     (:file show)
-        title          (str "Expression Globals for Show " (util/trim-extension (.getPath file)))
-        inspect-action (seesaw/action :handler (fn [_] (try
+  (let [^File file       (:file show)
+        title            (str "Expression Globals for Show " (util/trim-extension (.getPath file)))
+        inspect-action   (seesaw/action :handler (fn [_] (try
                                                          (inspector/inspect @(:expression-globals show)
                                                                             :window-name title)
                                                          (catch StackOverflowError _
-                                                            (util/inspect-overflowed))
-                                                          (catch Throwable t
-                                                            (util/inspect-failed t))))
+                                                           (util/inspect-overflowed))
+                                                         (catch Throwable t
+                                                           (util/inspect-failed t))))
                                       :name "Inspect Expression Globals"
-                                      :tip "Examine any values set as globals by any Track Expressions.")]
+                                      :tip "Examine any values set as globals by any Track Expressions.")
+        ex-report-action (seesaw/action :handler (fn [_]
+                                                   (when (help/help-server)
+                                                     (clojure.java.browse/browse-url (expression-report-link file))))
+                                        :name "Expression Report"
+                                        :tip "Open a web page describing all expressions in the show.")]
     (seesaw/menubar :items [(seesaw/menu :text "File"
-                                         :items [(build-save-action show) (build-save-as-action show) (seesaw/separator)
+                                         :items [(build-save-action show) (build-save-as-action show)
+                                                 ex-report-action (seesaw/separator)
                                                  (build-close-action show)])
                             (seesaw/menu :text "Tracks"
                                          :id :tracks-menu
                                          :items (concat [(:import-menu show)]
                                                         (map (partial build-global-editor-action show)
-                                                              (keys @editors/global-show-editors))
+                                                             (keys @editors/global-show-editors))
                                                         [(seesaw/separator) inspect-action]))
                             (seesaw/menu :text "Phrases"
                                          :id :phrases-menu
@@ -2393,7 +2411,7 @@
   (doseq [window (keys @util/window-positions)]
     (when (and (string? window)
                (.startsWith ^String window "show-"))
-      (when-not (open-internal nil (clojure.java.io/file (subs window 5)))
+      (when-not (open-internal nil (io/file (subs window 5)))
         (swap! util/window-positions dissoc window)))))  ; Remove saved position if show is no longer available.
 
 (defn new

@@ -3,8 +3,12 @@
   (:require [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.string :as str]
+            [compojure.route :as route]
             [fipp.edn :as fipp]
+            [hiccup.core :as hiccup]
+            [hiccup.page :as page]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
@@ -18,7 +22,8 @@
            [java.awt Color]
            [java.io File]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardOpenOption]
-           [java.util UUID]
+           [java.text SimpleDateFormat]
+           [java.util Date UUID]
            [javax.swing JComponent JFrame JPanel]))
 
 (defonce ^{:private true
@@ -840,3 +845,78 @@
   indicate that cue play is taking place, so we should not consider
   beat packets an indication that the track is actually playing."
   #{CdjStatus$PlayState1/CUE_PLAYING CdjStatus$PlayState1/CUE_SCRATCHING})
+
+
+(defn- expression-section
+  "Builds a section of the expressions report of `body` is not empty."
+  [title id expressions]
+  (when (seq expressions)
+    [:div
+     [:h2.title.is-4.mt-2.mb-0 {:id id} title]
+     [:table.table
+      [:thead
+       [:tr [:td "Expression"] [:td "Actions"] [:td "Value"]]]
+      [:tbody
+       expressions]]]))
+
+(defn describe-show-global-expression
+  "When a global expression of a particular kind is not empty, builds a
+  table row for it."
+  [show editors kind]
+  (let [value   (get-in show [:contents :expressions kind])]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td]
+       [:td [:pre.code.expression value]]])))
+
+(defn- global-expressions
+  "Builds the report of show global expressions."
+  [show]
+  (expression-section
+   "Show-Level (Global) Expressions" "global"
+   (let [editors @@(requiring-resolve 'beat-link-trigger.editors/global-show-editors)]
+     (filter identity (map (partial describe-show-global-expression show editors)
+                           (keys editors))))))
+
+(defn- describe-show-track-expression
+  [show signature track editors kind]
+  (let [value (get-in track [:contents :expressions kind])]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td]  ; TODO: Add simulate buttons
+       [:td [:pre.code.expression value]]])))
+
+(defn- track-expressions
+  "Builds the report of expressions for a particular track, and any of
+  its cues."
+  [show [signature track]]
+  (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-track-editors)]
+    (expression-section
+     (str "Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
+     (str "track-" signature)
+     (filter identity (map (partial describe-show-track-expression show signature track editors)
+                           (keys editors))))))
+
+
+(defn expressions-report
+  "Return an HTML report of all the expressions used in the specified show."
+  [path]
+  (if-let [show (latest-show (io/file path))]
+    (let [when (Date.)]
+      (page/html5
+       [:head
+        [:meta {:charset "utf-8"}]
+        [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+        [:title (str "Expressions in Show " path)]
+        (page/include-css "/bulma.min.css")
+        (page/include-css "/report.css")
+        [:body
+         [:section.section
+          [:div.container
+           [:h1.title "Expressions in Show " [:span.has-text-primary path]]
+           [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
+           (global-expressions show)
+           (filter identity (map (partial track-expressions show) (:tracks show)))]]]]))
+    (route/not-found "<p>Show not found.</p>")))
