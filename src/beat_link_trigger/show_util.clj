@@ -879,7 +879,28 @@
      (filter identity (map (partial describe-show-global-expression show editors)
                            (keys editors))))))
 
-(defn- describe-show-track-expression
+(defn- describe-track-cue-expression
+  [show signature track cue editors kind]
+  (let [value (get-in cue [:expressions kind])]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td]  ; TODO: Add simulate buttons
+       [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
+
+(defn- track-cue-expressions
+  "Builds the report of expressions for a particular track cue."
+  [show signature track cue]
+  (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)
+        comment (:comment cue)
+        title   (if (str/blank? comment) "Untitled" comment)]
+    (expression-section
+     (str "Cue &ldquo;" title "&rdquo; in Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
+     (str "track-" signature)
+     (filter identity (map (partial describe-track-cue-expression show signature track cue editors)
+                           (keys editors))))))
+
+(defn- describe-track-expression
   [show signature track editors kind]
   (let [value (get-in track [:contents :expressions kind])]
     (when-not (str/blank? value)
@@ -892,13 +913,15 @@
   "Builds the report of expressions for a particular track, and any of
   its cues."
   [show [signature track]]
-  (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-track-editors)]
-    (expression-section
-     (str "Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
-     (str "track-" signature)
-     (filter identity (map (partial describe-show-track-expression show signature track editors)
-                           (keys editors))))))
-
+  (let [editors     @@(requiring-resolve 'beat-link-trigger.editors/show-track-editors)
+        track-level (expression-section
+                     (str "Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
+                     (str "track-" signature)
+                     (filter identity (map (partial describe-track-expression show signature track editors)
+                                           (keys editors))))
+        cue-level (filter identity (map (partial track-cue-expressions show signature track)
+                                        (vals (get-in track [:contents :cues :cues]))))]
+    [:div (concat [track-level] cue-level)]))
 
 (defn expressions-report
   "Return an HTML report of all the expressions used in the specified show."
