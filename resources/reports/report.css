@@ -46,17 +46,28 @@
   opacity: 1;
 }
 
-/* Expression source code, abbreviated except when hovered over. */
-.expression {
+/* Expression source code, abbreviated except when printed, or hovered over. */
+
+pre.expression {
     padding: 0px;
-    height: 55px;
-    min-height: 55px;
-    width: 800px;
-    min-width: 800px;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
-.expression:hover {
-    height: auto;
-    width: auto;
+
+pre code.hljs {
+    padding: 0px;
+}
+
+@media screen {
+    .expression {
+        margin: 0px;
+        height: 55px;
+        min-height: 55px;
+        width: 800px;
+        min-width: 800px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .expression:hover {
+        height: auto;
+        width: auto;
+    }
 }

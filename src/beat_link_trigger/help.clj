@@ -10,17 +10,6 @@
             [org.httpkit.server :as server])
   (:import [org.deepsymmetry.beatlink VirtualCdj]))
 
-(defn- return-bulma
-  "A handler that renders the Bulma stylesheet."
-  []
-  (-> (response/resource-response "beat_link_trigger/bulma.min.css")
-      (response/content-type "text/css")))
-
-(defn- return-report-css
-  "A handler that renders the report-specific stylesheet."
-  []
-  (-> (response/resource-response "beat_link_trigger/report.css")
-      (response/content-type "text/css")))
 
 (defn show-landing-page
   "The home page for the embedded web server, currently does not do
@@ -39,8 +28,7 @@
                                            "blts"   "application/x-beat-link-trigger-show"
                                            "maxpat" "application/x-maxmsp-patch-file"}})
   ;; Routes for show reports.
-  (compojure/GET "/bulma.min.css" [] (return-bulma))
-  (compojure/GET "/report.css" [] (return-report-css))
+  (route/resources "/resources/" {:root "reports"})
   (compojure/GET "/show/reports/expressions" [show]
                  ((requiring-resolve 'beat-link-trigger.show-util/expressions-report) show))
 

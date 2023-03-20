@@ -868,7 +868,7 @@
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
        [:td]
-       [:td [:pre.code.expression value]]])))
+       [:td [:pre.expression [:code.expression.language-clojure value]]]])))
 
 (defn- global-expressions
   "Builds the report of show global expressions."
@@ -886,7 +886,7 @@
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
        [:td]  ; TODO: Add simulate buttons
-       [:td [:pre.code.expression value]]])))
+       [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- track-expressions
   "Builds the report of expressions for a particular track, and any of
@@ -910,8 +910,9 @@
         [:meta {:charset "utf-8"}]
         [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
         [:title (str "Expressions in Show " path)]
-        (page/include-css "/bulma.min.css")
-        (page/include-css "/report.css")
+        (page/include-css "/resources/bulma.min.css" "/resources/highlight.min.css" "/resources/report.css")
+        (page/include-js "/resources/highlight.min.js")
+        [:script "hljs.highlightAll();"]
         [:body
          [:section.section
           [:div.container
