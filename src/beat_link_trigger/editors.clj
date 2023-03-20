@@ -1563,10 +1563,22 @@ a {
                  :name "Close"
                  :key "menu W"))
 
+(defn- build-report-action
+  "Creates a menu action to open the expression reports window and sroll
+  it to a tag."
+  [show tag]
+  (seesaw/action :handler (fn [_]
+                            (when (help/help-server)
+                              (clojure.java.browse/browse-url (show-util/expression-report-link (:file show) tag))))
+                 :name "View in Report"))
+;; For reasons incomprehesible, adding a :key to the report action just results in a beep and not even
+;; running the first line in the handler! I would like menu-shift-V to run it, but so far that is not
+;; possible.
+
 (defn- build-menubar
   "Creates the menu bar for an editor window."
   [frame editor editor-panel update-action simulate-action
-   {:keys [find-dialog replace-dialog find-toolbar replace-toolbar]}]
+   {:keys [find-dialog replace-dialog find-toolbar replace-toolbar report-action]}]
   (seesaw/menubar
    :items [#_(seesaw/menu :text "File" :items (concat [load-action save-action]))  ; TODO: Add save/load capabilities?
            (seesaw/menu :text "File"
@@ -1576,6 +1588,7 @@ a {
                                         (seesaw/separator)
                                         update-action]
                                        (when simulate-action [simulate-action])
+                                       (when report-action [report-action])
                                        [(seesaw/separator)
                                         (build-close-action frame)]))
            (seesaw/menu :text "Edit"
@@ -1757,12 +1770,24 @@ a {
                    :key "menu shift S"
                    :enabled? false)))
 
+(defn- show-report-tag
+  "Determines the anchor that will scroll an expression report to the
+  section for the specified track or phrase, and, if supplied, cue."
+  [context cue track?]
+  (if context
+    (let [kind (if track? "track-" "phrase-")
+          id (if track? (:signature context) (:uuid context))]
+      (str kind id (when cue (str  "-cue-" (:uuid (show-util/find-cue context cue))))))
+    "global"))
+
 (defn- create-show-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind show track-or-phrase parent-frame update-fn]
   (let [text            (find-show-expression-text kind show track-or-phrase)
+        track?          (show-util/track? track-or-phrase)
+
         editors-map     (cond (:signature track-or-phrase) @show-track-editors
                               (:uuid track-or-phrase)      @show-phrase-editors
                               :else                        @global-show-editors)
@@ -1773,7 +1798,8 @@ a {
         scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
         editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
         status-label    (seesaw/label)
-        tools           (build-search-tools root editor status-label)
+        tools           (assoc (build-search-tools root editor status-label) :report-action
+                               (build-report-action show (show-report-tag track-or-phrase nil track?)))
         update-action   (build-update-action editor save-fn)
         simulate-action (build-show-simulate-action editor editors-map kind show track-or-phrase)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
@@ -1927,6 +1953,7 @@ a {
   [kind context cue parent-frame update-fn]
   (let [text            (find-cue-expression-text kind context cue)
         track?          (show-util/track? context)
+        [show]          (show-util/latest-show-and-context context)
         ^JFrame root    (seesaw/frame :title (cue-editor-title kind context cue)
                                       :on-close :nothing
                                       :size [800 :by 600])
@@ -1935,7 +1962,8 @@ a {
         scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
         editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
         status-label    (seesaw/label)
-        tools           (build-search-tools root editor status-label)
+        tools           (assoc (build-search-tools root editor status-label) :report-action
+                               (build-report-action show (show-report-tag context cue track?)))
         update-action   (build-update-action editor save-fn)
         simulate-action (build-cue-simulate-action editor kind context cue)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)

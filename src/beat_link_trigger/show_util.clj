@@ -1,6 +1,7 @@
 (ns beat-link-trigger.show-util
   "Defines utility functions used by both show and cue windows."
-  (:require [beat-link-trigger.prefs :as prefs]
+  (:require [beat-link-trigger.help :as help]
+            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
@@ -8,6 +9,7 @@
             [compojure.route :as route]
             [fipp.edn :as fipp]
             [hiccup.core :as hiccup]
+            [hiccup.util]
             [hiccup.page :as page]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
@@ -888,15 +890,20 @@
        [:td]  ; TODO: Add simulate buttons
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
+(defn- comment-or-untitled
+  "Returns the supplied comment, unless that is blank, in which case
+  returns \"Untitled\"."
+  [comment]
+  (if (str/blank? comment) "Untitled" comment))
+
 (defn- track-cue-expressions
   "Builds the report of expressions for a particular track cue."
   [show signature track cue]
-  (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)
-        comment (:comment cue)
-        title   (if (str/blank? comment) "Untitled" comment)]
+  (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)]
     (expression-section
-     (str "Cue &ldquo;" title "&rdquo; in Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
-     (str "track-" signature)
+     (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Track &ldquo;"
+          (get-in track [:metadata :title]) "&rdquo;")
+     (str "track-" signature "-cue-" (:uuid cue))
      (filter identity (map (partial describe-track-cue-expression show signature track cue editors)
                            (keys editors))))))
 
@@ -923,6 +930,49 @@
                                         (vals (get-in track [:contents :cues :cues]))))]
     [:div (concat [track-level] cue-level)]))
 
+(defn- describe-phrase-cue-expression
+  [show uuid phrase cue editors kind]
+  (let [value (get-in cue [:expressions kind])]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td]  ; TODO: Add simulate buttons
+       [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
+
+(defn- phrase-cue-expressions
+  "Builds the report of expressions for a particular phrase trigger cue."
+  [show uuid phrase cue]
+  (let [editors   @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)]
+    (expression-section
+     (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Phrase Trigger &ldquo;"
+          (comment-or-untitled (:comment phrase)) "&rdquo;")
+     (str "phrase-" uuid "-cue-" (:uuid cue))
+     (filter identity (map (partial describe-phrase-cue-expression show uuid phrase cue editors)
+                           (keys editors))))))
+
+(defn- describe-phrase-expression
+  [show signature phrase editors kind]
+  (let [value (get-in phrase [:expressions kind])]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td]  ; TODO: Add simulate buttons
+       [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
+
+(defn- phrase-expressions
+  "Builds the report of expressions for a particular track, and any of
+  its cues."
+  [show [uuid phrase]]
+  (let [editors     @@(requiring-resolve 'beat-link-trigger.editors/show-phrase-editors)
+        phrase-level (expression-section
+                      (str "Phrase Trigger &ldquo;" (comment-or-untitled (:comment phrase)) "&rdquo;")
+                      (str "phrase-" uuid)
+                      (filter identity (map (partial describe-phrase-expression show uuid phrase editors)
+                                           (keys editors))))
+        cue-level (filter identity (map (partial phrase-cue-expressions show uuid phrase)
+                                        (vals (get-in phrase [:cues :cues]))))]
+    [:div (concat [phrase-level] cue-level)]))
+
 (defn expressions-report
   "Return an HTML report of all the expressions used in the specified show."
   [path]
@@ -942,5 +992,15 @@
            [:h1.title "Expressions in Show " [:span.has-text-primary path]]
            [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
            (global-expressions show)
-           (filter identity (map (partial track-expressions show) (:tracks show)))]]]]))
+           (filter identity (map (partial track-expressions show) (:tracks show)))
+           (filter identity (map (partial phrase-expressions show) (get-in show [:contents :phrases])))]]]]))
     (route/not-found "<p>Show not found.</p>")))
+
+(defn expression-report-link
+  ([file]
+   (expression-report-link file nil))
+  ([file anchor]
+   (let [port           (help/help-server)
+         anchor-segment (when anchor (str "#" anchor))]
+     (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))
+          anchor-segment))))

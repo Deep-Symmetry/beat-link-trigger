@@ -16,7 +16,6 @@
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
-            [hiccup.util]
             [inspector-jay.core :as inspector]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
@@ -2088,15 +2087,6 @@
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))
 
-(defn expression-report-link
-  ([file]
-   (expression-report-link file nil))
-  ([file anchor]
-   (let [port           (help/help-server)
-         anchor-segment (when anchor (str "#" anchor))]
-     (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))
-          anchor-segment))))
-
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map."
   [show]
@@ -2113,7 +2103,7 @@
                                       :tip "Examine any values set as globals by any Track Expressions.")
         ex-report-action (seesaw/action :handler (fn [_]
                                                    (when (help/help-server)
-                                                     (clojure.java.browse/browse-url (expression-report-link file))))
+                                                     (clojure.java.browse/browse-url (su/expression-report-link file))))
                                         :name "Expression Report"
                                         :tip "Open a web page describing all expressions in the show.")]
     (seesaw/menubar :items [(seesaw/menu :text "File"
