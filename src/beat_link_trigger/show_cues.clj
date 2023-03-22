@@ -292,6 +292,17 @@
       :else ; Is a MIDI note or CC
       true)))
 
+(defn random-status-for-simulation
+  "Creates an appropriate random status object for simulating a
+  particular kind of event. Returns `nil` if the event type is not
+  recognized as one that can be simulaed for a cue."
+  [event context]
+  (case event
+    (:entered :ended :exited) (su/random-beat-or-status)
+    (:started-on-beat :beat)  (su/random-beat-and-position (when (track? context) context))
+    (:started-late :tracked)  (su/random-cdj-status)
+    nil))
+
 (defn- cue-simulate-actions
   "Creates the actions that simulate events happening to the cue, for
   testing expressions or creating and testing MIDI mappings in other
@@ -301,26 +312,30 @@
                   :enabled? (cue-event-enabled? context cue :entered)
                   :handler (fn [_]
                              (let [[_show context runtime-info] (latest-show-and-context context)]
-                               (send-cue-messages context runtime-info cue :entered (su/random-beat-or-status)))))
+                               (send-cue-messages context runtime-info cue :entered
+                                                  (random-status-for-simulation :entered context)))))
    (seesaw/action :name "Started On-Beat"
                   :enabled? (cue-event-enabled? context cue :started-on-beat)
                   :handler (fn [_]
                              (let [[_show context runtime-info] (latest-show-and-context context)]
                                (send-cue-messages context runtime-info cue :started-on-beat
-                                                  (su/random-beat-and-position (when (track? context) context))))))
+                                                  (random-status-for-simulation :started-on-beat context)))))
    (seesaw/action :name "Started Late"
                   :enabled? (cue-event-enabled? context cue :started-late)
                   :handler (fn [_]
                              (let [[_show context runtime-info] (latest-show-and-context context)]
-                               (send-cue-messages context runtime-info cue :started-late (su/random-cdj-status)))))
+                               (send-cue-messages context runtime-info cue :started-late
+                                                  (random-status-for-simulation :started-late context)))))
    (seesaw/action :name "Beat"
                   :enabled? (not (cue-missing-expression? context cue :beat))
                   :handler (fn [_] (run-cue-function context cue :beat
-                                                     (su/random-beat-and-position (when (track? context) context))
+                                                     (random-status-for-simulation :beat context)
                                                      true)))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (cue-missing-expression? context cue :tracked))
-                  :handler (fn [_] (run-cue-function context cue :tracked (su/random-cdj-status) true)))
+                  :handler (fn [_] (run-cue-function context cue :tracked
+                                                     (random-status-for-simulation :tracked context)
+                                                     true)))
    (let [enabled-events (filterv (partial cue-event-enabled? context cue) [:started-on-beat :started-late])]
      (seesaw/action :name "Ended"
                     :enabled? (seq enabled-events)
@@ -328,12 +343,14 @@
                                (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event]
                                                          (rand-nth enabled-events))
                                (let [[_show context runtime-info] (latest-show-and-context context)]
-                                 (send-cue-messages context runtime-info cue :ended (su/random-beat-or-status))))))
+                                 (send-cue-messages context runtime-info cue :ended
+                                                    (random-status-for-simulation :ended context))))))
    (seesaw/action :name "Exited"
                   :enabled? (cue-event-enabled? context cue :entered)
                   :handler (fn [_]
                              (let [[_show context runtime-info] (latest-show-and-context context)]
-                               (send-cue-messages context runtime-info cue :exited (su/random-beat-or-status)))))])
+                               (send-cue-messages context runtime-info cue :exited
+                                                  (random-status-for-simulation :exited context)))))])
 
 (defn- cue-simulate-menu
   "Creates the submenu containing actions that simulate events happening

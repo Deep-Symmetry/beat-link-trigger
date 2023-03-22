@@ -25,7 +25,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [java.awt Color Font Graphics2D Rectangle RenderingHints]
-           [java.awt.event MouseEvent WindowEvent]
+           [java.awt.event ItemEvent MouseEvent WindowEvent]
            [java.io File]
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems Path StandardCopyOption StandardOpenOption]
@@ -2093,23 +2093,29 @@
   (let [^File file       (:file show)
         title            (str "Expression Globals for Show " (util/trim-extension (.getPath file)))
         inspect-action   (seesaw/action :handler (fn [_] (try
-                                                         (inspector/inspect @(:expression-globals show)
-                                                                            :window-name title)
-                                                         (catch StackOverflowError _
-                                                           (util/inspect-overflowed))
-                                                         (catch Throwable t
-                                                           (util/inspect-failed t))))
-                                      :name "Inspect Expression Globals"
-                                      :tip "Examine any values set as globals by any Track Expressions.")
+                                                           (inspector/inspect @(:expression-globals show)
+                                                                              :window-name title)
+                                                           (catch StackOverflowError _
+                                                             (util/inspect-overflowed))
+                                                           (catch Throwable t
+                                                             (util/inspect-failed t))))
+                                        :name "Inspect Expression Globals"
+                                        :tip "Examine any values set as globals by any Track Expressions.")
         ex-report-action (seesaw/action :handler (fn [_]
                                                    (when (help/help-server)
                                                      (clojure.java.browse/browse-url (su/expression-report-link file))))
                                         :name "Expression Report"
-                                        :tip "Open a web page describing all expressions in the show.")]
+                                        :tip "Open a web page describing all expressions in the show.")
+        actions-item     (seesaw/checkbox-menu-item :text "Enable Report Actions"
+                                                :tip (str "Allow buttons in reports to affect the show: "
+                                                          "use only on secure networks."))]
+    (seesaw/listen actions-item :item-state-changed
+                   (fn [^ItemEvent e]
+                     (swap-show! show assoc :actions-enabled (= (.getStateChange e) ItemEvent/SELECTED))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items [(build-save-action show) (build-save-as-action show)
-                                                 ex-report-action (seesaw/separator)
-                                                 (build-close-action show)])
+                                                 (seesaw/separator) ex-report-action actions-item
+                                                 (seesaw/separator) (build-close-action show)])
                             (seesaw/menu :text "Tracks"
                                          :id :tracks-menu
                                          :items (concat [(:import-menu show)]
@@ -2555,3 +2561,50 @@
   [show f & args]
   (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
           [(:file show) :contents :user]))
+
+
+(defn simulate-track-cue-expression
+  "Helper function used by requests from the expressions report
+  requesting simulation of an expression in a track cue."
+  [path signature cue-uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [track (get-in show [:tracks signature])]
+        (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
+          (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
+            (do
+              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
+              (cues/run-cue-function track cue (keyword kind) status true)
+              (su/expression-report-success-response))
+            (su/expression-report-error-response "There is no expression of the specified kind."))
+          (su/expression-report-error-response "There is no cue with the requested UUID in the specified track."
+                                               "Cue Not Found"))
+        (su/track-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn edit-track-cue-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for an expression in a track cue."
+  [path signature cue-uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [track (get-in show [:tracks signature])]
+        (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
+          (if-let [_ (cues/random-status-for-simulation (keyword kind) track)]  ; Validates expression kind
+            (let [panel (get-in track [:cues-editor :panels (:uuid cue)])
+                  gear  (when panel (seesaw/select panel [:#gear]))]
+              (seesaw/invoke-later
+               (editors/show-cue-editor (keyword kind) track cue panel
+                                        (fn []
+                                          (cues/update-all-linked-cues track cue)
+                                          (when gear (cues/update-cue-gear-icon track cue gear)))))
+              (su/expression-report-error-response (str "The editor has been opened, but you will need to "
+                                                        "switch back to Beat Link Trigger to work with it."
+                                                        "Expression Editor Opened")))
+            (su/expression-report-error-response "There is no expression of the specified kind."))
+          (su/expression-report-error-response "There is no cue with the requested UUID in the specified track."
+                                               "Cue Not Found"))
+        (su/track-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))

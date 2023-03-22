@@ -3,6 +3,7 @@
   (:require [beat-link-trigger.help :as help]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
+            [cheshire.core :as json]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as str]
@@ -857,7 +858,7 @@
      [:h2.title.is-4.mt-2.mb-0 {:id id} title]
      [:table.table
       [:thead
-       [:tr [:td "Expression"] [:td "Actions"] [:td "Value"]]]
+       [:tr [:td "Expression"] [:td {:colspan 2} "Actions"] [:td "Value"]]]
       [:tbody
        expressions]]]))
 
@@ -869,7 +870,7 @@
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td]
+       [:td] [:td]
        [:td [:pre.expression [:code.expression.language-clojure value]]]])))
 
 (defn- global-expressions
@@ -881,20 +882,29 @@
      (filter identity (map (partial describe-show-global-expression show editors)
                            (keys editors))))))
 
+(defn- comment-or-untitled
+  "Returns the supplied comment, unless that is blank, in which case
+  returns \"Untitled\"."
+  [comment]
+  (if (str/blank? comment) "Untitled" comment))
+
 (defn- describe-track-cue-expression
   [show signature track cue editors kind]
   (let [value (get-in cue [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td]  ; TODO: Add simulate buttons
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:simulateTrackCueExpression('" signature "','"
+                                                     (:uuid cue) "','" (name kind) "');")
+                                         :title "Simulate"}
+             [:img {:src   "/resources/play-solid.svg"
+                    :width 12}]]]
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editTrackCueExpression('" signature "','"
+                                                     (:uuid cue) "','" (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
-
-(defn- comment-or-untitled
-  "Returns the supplied comment, unless that is blank, in which case
-  returns \"Untitled\"."
-  [comment]
-  (if (str/blank? comment) "Untitled" comment))
 
 (defn- track-cue-expressions
   "Builds the report of expressions for a particular track cue."
@@ -913,7 +923,7 @@
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td]  ; TODO: Add simulate buttons
+       [:td] [:td]  ; TODO: Add simulate buttons
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- track-expressions
@@ -936,7 +946,7 @@
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td]  ; TODO: Add simulate buttons
+       [:td] [:td]  ; TODO: Add simulate buttons
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- phrase-cue-expressions
@@ -956,7 +966,7 @@
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td]  ; TODO: Add simulate buttons
+       [:td] [:td]  ; TODO: Add simulate buttons
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- phrase-expressions
@@ -985,7 +995,10 @@
         [:title (str "Expressions in Show " path)]
         (page/include-css "/resources/bulma.min.css" "/resources/highlight.min.css" "/resources/report.css")
         (page/include-js "/resources/highlight.min.js")
-        [:script "hljs.highlightAll();"]
+        [:script
+         (str "var showFile='" (hiccup.util/url-encode path) "';\n")
+         "hljs.highlightAll();"]
+        (page/include-js "/resources/expression-report.js")
         [:body
          [:section.section
           [:div.container
@@ -993,7 +1006,17 @@
            [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
            (global-expressions show)
            (filter identity (map (partial track-expressions show) (:tracks show)))
-           (filter identity (map (partial phrase-expressions show) (get-in show [:contents :phrases])))]]]]))
+           (filter identity (map (partial phrase-expressions show) (get-in show [:contents :phrases])))]]
+         [:div.modal {:id "error-modal"}
+          [:div.modal-background]
+          [:div.modal-card
+           [:header.modal-card-head
+            [:p.modal-card-title {:id "error-modal-title"} "Modal title"]
+            [:button.delete {:aria-label "close"}]]
+           [:section.modal-card-body {:id "error-modal-body"}
+            "Modal content here!"]
+           [:footer.modal-card-foot
+            [:button.button "OK"]]]]]]))
     (route/not-found "<p>Show not found.</p>")))
 
 (defn expression-report-link
@@ -1004,3 +1027,45 @@
          anchor-segment (when anchor (str "#" anchor))]
      (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))
           anchor-segment))))
+
+(defn expression-report-success-response
+  "Formats a response that an expression was simulated successfully."
+  []
+   {:status  200
+   :headers {"Content-Type" "application/json"}
+   :body    (json/generate-string
+             {:status "Success."})})
+
+(defn expression-report-error-response
+  "Formats a response that will cause the expressions report to show an
+  error modal in response to an action button."
+  ([message]
+   (expression-report-error-response message nil))
+  ([message title]
+   {:status  200
+   :headers {"Content-Type" "application/json"}
+   :body    (json/generate-string
+             {:error {:title title
+                      :details message}})}))
+
+(defn show-not-found
+  "Helper expression used by request handlers from the expressions report
+   to report that the specified show could not be found."
+  []
+  (expression-report-error-response "There is no open show with the requested file path." "Show Not Found"))
+
+(defn show-not-enabled
+  "Helper expression used by request handlers from the expressions report
+   to report that the specified show has not enabled report actions"
+  []
+  (expression-report-error-response (str "<p>You must choose Enable Report Actions in the Show's File menu "
+                                         "for action buttons to work.</p>\n"
+                                         "<p><em>Be sure to only do this on secure networks.</em></p>")
+                                    "Show Actions Not Enabled"))
+
+(defn track-not-found
+  "Helper expression used by request handlers from the expressions report
+   to report that the specified show could not be found."
+  []
+  (expression-report-error-response "There is no track with the specified signature in the chosen show."
+                                    "Track Not Found"))
