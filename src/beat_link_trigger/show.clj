@@ -2613,13 +2613,20 @@
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
           (if (contains? @editors/show-cue-editors (keyword kind))
-            (let [panel (or (get-in track [:cues-editor :panels (:uuid cue)]) (:frame show))
-                  gear  (when panel (seesaw/select panel [:#gear]))]
+            (do
+              (when-not (get-in track [:cues-editor :panels (:uuid cue)])
+                ;; Make sure the cues editor window is open before trying to edit a cue expression.
+                (seesaw/invoke-now (cues/open-cues track (:frame show))))
               (seesaw/invoke-later
-               (editors/show-cue-editor (keyword kind) track cue panel
-                                        (fn []
-                                          (cues/update-all-linked-cues track cue)
-                                          (when gear (cues/update-cue-gear-icon track cue gear)))))
+               (let [track (latest-track track)
+                     panel (get-in track [:cues-editor :panels (:uuid cue)])
+                     gear  (when panel (seesaw/select panel [:#gear]))]
+                 (if gear
+                   (editors/show-cue-editor (keyword kind) track cue panel
+                                            (fn []
+                                              (cues/update-all-linked-cues track cue)
+                                              (when gear (cues/update-cue-gear-icon track cue gear))))
+                   (timbre/error "The Cues Editor window for the track could not be found or created."))))
               (su/editor-opened-in-background))
             (su/unrecognized-expression))
           (su/cue-not-found))
