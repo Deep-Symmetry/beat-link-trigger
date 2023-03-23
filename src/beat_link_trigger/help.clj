@@ -31,6 +31,8 @@
   (route/resources "/resources/" {:root "reports"})
   (compojure/GET "/show/reports/expressions" [show]
                  ((requiring-resolve 'beat-link-trigger.show-util/expressions-report) show))
+  (compojure/GET "/show/edit-show-expression" [show kind]
+                 ((requiring-resolve 'beat-link-trigger.show/edit-show-expression) show kind))
   (compojure/GET "/show/edit-track-cue-expression" [show track cue kind]
                  ((requiring-resolve 'beat-link-trigger.show/edit-track-cue-expression) show track cue kind))
   (compojure/GET "/show/simulate-track-cue-expression" [show track cue kind]

@@ -866,11 +866,18 @@
   "When a global expression of a particular kind is not empty, builds a
   table row for it."
   [show editors kind]
-  (let [value   (get-in show [:contents :expressions kind])]
+  (let [value   (get-in show [:contents :expressions kind])
+        default (get-in show [:contents :enabled])]
     (when-not (str/blank? value)
       [:tr
-       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td] [:td]
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
+        (when (and (= kind :enabled) (not= default "Custom"))
+          [:span.has-text-danger [:br] "Inactive: Enabled Default is &ldquo;" default "&rdquo;"])]
+       [:td]
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editShowExpression('" (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
        [:td [:pre.expression [:code.expression.language-clojure value]]]])))
 
 (defn- global-expressions
@@ -888,12 +895,47 @@
   [comment]
   (if (str/blank? comment) "Untitled" comment))
 
+(defn cue-expression-disabled-warning
+  "Builds a warning message if the expression is not currently in use by
+  the cue because the message for that event is set to something other
+  than Custom."
+  [cue kind]
+  (case kind
+    (:entered :exited)
+    (let [message (get-in cue [:events :entered :message])]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: Enabled Message is &ldquo;" message "&rdquo;"]))
+
+    :started-on-beat
+    (let [message (get-in cue [:events :started-on-beat :message])]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: On-Beat Message is &ldquo;" message "&rdquo;"]))
+
+    :started-late
+    (let [late-message (get-in cue [:events :started-late :message])
+          on-beat-message (get-in cue [:events :started-on-beat :message])]
+      (if (= late-message "Same")
+        (when (not= on-beat-message "Custom")
+          [:span.has-text-danger [:br] "Inactive: On-Beat Message is &ldquo;" on-beat-message "&rdquo;"])
+        (when (not= late-message "Custom")
+          [:span.has-text-danger [:br] "Inactive: Late Message is &ldquo;" late-message "&rdquo;"])))
+
+    :ended
+    (let [late-message (get-in cue [:events :started-late :message])
+          on-beat-message (get-in cue [:events :started-on-beat :message])
+          late-message (if (= late-message "Same") on-beat-message late-message)]
+      (when-not ((set [on-beat-message late-message]) "Custom")
+        [:span.has-text-danger [:br] "Inactive: Neither On-Beat or Late is &ldquo;Custom&rdquo;"]))
+
+    nil))
+
 (defn- describe-track-cue-expression
   [show signature track cue editors kind]
   (let [value (get-in cue [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
-       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
+        (cue-expression-disabled-warning cue kind)]
        [:td [:a.button.is-small.is-link {:href  (str "javascript:simulateTrackCueExpression('" signature "','"
                                                      (:uuid cue) "','" (name kind) "');")
                                          :title "Simulate"}
@@ -1048,24 +1090,66 @@
              {:error {:title title
                       :details message}})}))
 
+(def action-security-warning
+  "A message reminding people to only enable report actions on secure networks."
+  [:p [:em "Be sure to only do this on secure networks, where you trust any "
+                      "device that would be able to connect to Beat Link Trigger."]])
+
 (defn show-not-found
   "Helper expression used by request handlers from the expressions report
    to report that the specified show could not be found."
   []
-  (expression-report-error-response "There is no open show with the requested file path." "Show Not Found"))
+  (expression-report-error-response
+   (hiccup/html [:p "There is no open show with the requested file path. "
+                 "You&rsquo;ll need to re-open it and re-enable report actions "
+                 "if you want the action buttons to work."]
+                [:br]
+                action-security-warning)
+   "Show Not Found"))
 
 (defn show-not-enabled
   "Helper expression used by request handlers from the expressions report
    to report that the specified show has not enabled report actions"
   []
-  (expression-report-error-response (str "<p>You must choose Enable Report Actions in the Show's File menu "
-                                         "for action buttons to work.</p>\n"
-                                         "<p><em>Be sure to only do this on secure networks.</em></p>")
-                                    "Show Actions Not Enabled"))
+  (expression-report-error-response
+   (hiccup/html [:p "You must choose " [:strong  "Enable Report Actions"] " in the Show's " [:strong "File "]
+                 "menu in order for action buttons to work."]
+                [:br]
+                action-security-warning)
+   "Show Actions Not Enabled"))
 
 (defn track-not-found
   "Helper expression used by request handlers from the expressions report
    to report that the specified show could not be found."
   []
-  (expression-report-error-response "There is no track with the specified signature in the chosen show."
-                                    "Track Not Found"))
+  (expression-report-error-response
+   (hiccup/html [:p "There is no track with the specified signature in the chosen show."]
+                [:br]
+                [:p "You may want to refresh the report to view the current state of the show."])
+   "Track Not Found"))
+
+(defn cue-not-found
+  "Helper expression used by request handlers from the expressions report
+   to report that the specified show could not be found."
+  []
+  (expression-report-error-response
+   (hiccup/html [:p "There is no cue with the requested UUID in the specified track."]
+                [:br]
+                [:p "You may want to refresh the report to view the current state of the show."])
+   "Cue Not Found"))
+
+(defn unrecognized-expression
+  "Helper expression used by request handlers from the expressions report
+   to report that the requested expression type is not known."
+  []
+  (expression-report-error-response "There is no expression of the specified kind."
+                                    "Unexpected Error"))
+
+(defn editor-opened-in-background
+  "Helper expression used by request handlers from the expressions report
+   to let the user know how to find the editor they just opened."
+  []
+  (expression-report-error-response
+   (hiccup/html [:p "The editor has been opened, but you&rsquo;ll need to "
+                 "switch back to Beat Link Trigger to work with it."])
+   "Expression Editor Opened"))

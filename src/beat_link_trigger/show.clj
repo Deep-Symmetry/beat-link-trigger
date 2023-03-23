@@ -16,6 +16,7 @@
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
+            [hiccup.core :as hiccup]
             [inspector-jay.core :as inspector]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
@@ -2067,20 +2068,24 @@
                                (.dispatchEvent frame (WindowEvent. frame WindowEvent/WINDOW_CLOSING)))))
                  :name "Close"))
 
+(defn- global-editor-update-fn
+  "The function called to propagate necessary changes when a show global
+  expression has been updated."
+  [show kind]
+  (when (= :setup kind)
+    (when (util/online?)
+      (run-global-function show :offline nil true))
+    (run-global-function show :shutdown nil true)
+    (reset! (:expression-globals show) {})
+    (run-global-function show :setup nil true)
+    (when (util/online?)
+      (run-global-function show :online nil true))))
+
 (defn build-global-editor-action
   "Creates an action which edits one of a show's global expressions."
   [show kind]
   (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show) nil (:frame show)
-                                                            (fn []
-                                                              (when (= :setup kind)
-                                                                (when (util/online?)
-                                                                  (run-global-function show :offline nil true))
-                                                                (run-global-function show :shutdown nil true)
-                                                                (reset! (:expression-globals show) {})
-                                                                (run-global-function show :setup nil true)
-                                                                (when (util/online?)
-                                                                  (run-global-function show :online nil true)))
-                                                              (update-tracks-global-expression-icons show))))
+                                                            (partial global-editor-update-fn show kind)))
                  :name (str "Edit " (get-in @editors/global-show-editors [kind :title]))
                  :tip (get-in @editors/global-show-editors [kind :tip])
                  :icon (seesaw/icon (if (str/blank? (get-in show [:contents :expressions kind]))
@@ -2562,6 +2567,23 @@
   (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
           [(:file show) :contents :user]))
 
+;; Functions that support the show expressions report action buttions.
+
+(defn edit-show-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for an global expression."
+  [path kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if (contains? @editors/global-show-editors (keyword kind))
+        (do
+          (seesaw/invoke-later
+           (editors/show-show-editor (keyword kind) show nil (:frame show)
+                                     (partial global-editor-update-fn show kind)))
+          (su/editor-opened-in-background))
+        (su/unrecognized-expression))
+      (su/show-not-enabled))
+    (su/show-not-found)))
 
 (defn simulate-track-cue-expression
   "Helper function used by requests from the expressions report
@@ -2576,9 +2598,8 @@
               ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
               (cues/run-cue-function track cue (keyword kind) status true)
               (su/expression-report-success-response))
-            (su/expression-report-error-response "There is no expression of the specified kind."))
-          (su/expression-report-error-response "There is no cue with the requested UUID in the specified track."
-                                               "Cue Not Found"))
+            (su/unrecognized-expression))
+          (su/cue-not-found))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
@@ -2591,20 +2612,17 @@
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
-          (if-let [_ (cues/random-status-for-simulation (keyword kind) track)]  ; Validates expression kind
-            (let [panel (get-in track [:cues-editor :panels (:uuid cue)])
+          (if (contains? @editors/show-cue-editors (keyword kind))
+            (let [panel (or (get-in track [:cues-editor :panels (:uuid cue)]) (:frame show))
                   gear  (when panel (seesaw/select panel [:#gear]))]
               (seesaw/invoke-later
                (editors/show-cue-editor (keyword kind) track cue panel
                                         (fn []
                                           (cues/update-all-linked-cues track cue)
                                           (when gear (cues/update-cue-gear-icon track cue gear)))))
-              (su/expression-report-error-response (str "The editor has been opened, but you will need to "
-                                                        "switch back to Beat Link Trigger to work with it."
-                                                        "Expression Editor Opened")))
-            (su/expression-report-error-response "There is no expression of the specified kind."))
-          (su/expression-report-error-response "There is no cue with the requested UUID in the specified track."
-                                               "Cue Not Found"))
+              (su/editor-opened-in-background))
+            (su/unrecognized-expression))
+          (su/cue-not-found))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
