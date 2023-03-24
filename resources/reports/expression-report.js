@@ -29,14 +29,19 @@ function editShowExpression(kind) {
   runAction("/show/edit-show-expression?show=" + showFile + "&kind=" + kind);
 }
 
+function editTrackExpression(signature, kind) {
+  runAction("/show/edit-track-expression?show=" + showFile + "&track=" + signature +
+            "&kind=" + kind);
+}
+
 function simulateTrackCueExpression(signature, cue, kind) {
   runAction("/show/simulate-track-cue-expression?show=" + showFile + "&track=" + signature +
-                "&cue=" + cue + "&kind=" + kind);
+            "&cue=" + cue + "&kind=" + kind);
 }
 
 function editTrackCueExpression(signature, cue, kind) {
   runAction("/show/edit-track-cue-expression?show=" + showFile + "&track=" + signature +
-                "&cue=" + cue + "&kind=" + kind);
+            "&cue=" + cue + "&kind=" + kind);
 }
 
 

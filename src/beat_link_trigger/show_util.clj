@@ -965,7 +965,12 @@
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td] [:td]  ; TODO: Add simulate buttons
+       [:td]  ; TODO: Add simulate button
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editTrackExpression('" signature "','"
+                                                     (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- track-expressions

@@ -1295,24 +1295,29 @@
   [track kind]
   (str/blank? (get-in (latest-track track) [:contents :expressions kind])))
 
+(defn- track-editor-update-fn
+  "The function called when a track-level expression has been updated, to
+  properly update the application state and user interface."
+  [kind track gear]
+  (when (= kind :setup)  ; Clean up then run the new setup function
+    (run-track-function track :shutdown nil true)
+    (reset! (:expression-locals track) {})
+    (run-track-function track :setup nil true))
+  (su/update-gear-icon track gear))
+
 (defn- track-editor-actions
   "Creates the popup menu actions corresponding to the available
   expression editors for a given track."
   [show track panel gear]
   (for [[kind spec] @editors/show-track-editors]
-    (let [update-fn (fn []
-                      (when (= kind :setup)  ; Clean up then run the new setup function
-                        (run-track-function track :shutdown nil true)
-                        (reset! (:expression-locals track) {})
-                        (run-track-function track :setup nil true))
-                      (su/update-gear-icon track gear))]
-      (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
-                                       (latest-track track) panel update-fn))
-                     :name (str "Edit " (:title spec))
-                     :tip (:tip spec)
-                     :icon (if (track-missing-expression? track kind)
-                             "images/Gear-outline.png"
-                             "images/Gear-icon.png")))))
+    (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
+                                                              (latest-track track) panel
+                                                              (partial track-editor-update-fn kind track gear)))
+                   :name (str "Edit " (:title spec))
+                   :tip (:tip spec)
+                   :icon (if (track-missing-expression? track kind)
+                           "images/Gear-outline.png"
+                           "images/Gear-icon.png"))))
 
 (defn- track-event-enabled?
   "Checks whether the specified event type is enabled for the given
@@ -2600,6 +2605,25 @@
               (su/expression-report-success-response))
             (su/unrecognized-expression))
           (su/cue-not-found))
+        (su/track-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn edit-track-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for an expression in a track."
+  [path signature kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [track (get-in show [:tracks signature])]
+        (if (contains? @editors/show-track-editors (keyword kind))
+          (seesaw/invoke-now
+           (let [track (latest-track track)
+                 panel (:panel track)
+                 gear  (seesaw/select panel [:#gear])]
+             (editors/show-show-editor (keyword kind) show track panel (partial track-editor-update-fn kind track gear))
+             (su/editor-opened-in-background)))
+          (su/unrecognized-expression))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
