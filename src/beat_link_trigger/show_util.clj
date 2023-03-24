@@ -961,7 +961,7 @@
 
 (defn track-expression-disabled-warning
   "Builds a warning message if the expression is not currently in use by
-  the track because the messagefor that event is set to something
+  the track because the message for that event is set to something
   other than Custom."
   [track kind]
   (case kind
@@ -1046,12 +1046,31 @@
      (filter identity (map (partial describe-phrase-cue-expression uuid cue editors)
                            (keys editors))))))
 
+(defn phrase-expression-disabled-warning
+  "Builds a warning message if the expression is not currently in use by
+  the phrase because the message for that event is set to something
+  other than Custom."
+  [phrase kind]
+  (case kind
+    (:playing :stopped)
+    (let [message (:message phrase)]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: Playing Message is &ldquo;" message "&rdquo;"]))
+
+    :enabled
+    (let [message (:enabled phrase)]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: Enabled Filter is &ldquo;" message "&rdquo;"]))
+
+    nil))
+
 (defn- describe-phrase-expression
   [uuid phrase editors kind]
   (let [value (get-in phrase [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
-       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
+        (phrase-expression-disabled-warning phrase kind)]
        [:td (when (get-in editors [kind :simulate])
               [:a.button.is-small.is-link {:href  (str "javascript:simulatePhraseExpression('" uuid "','"
                                                        (name kind) "');")
