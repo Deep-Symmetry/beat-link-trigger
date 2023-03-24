@@ -997,7 +997,8 @@
   (let [value (get-in cue [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
-       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
+        (cue-expression-disabled-warning cue kind)]
        [:td [:a.button.is-small.is-link {:href  (str "javascript:simulatePhraseCueExpression('" uuid "','"
                                                      (:uuid cue) "','" (name kind) "');")
                                          :title "Simulate"}
