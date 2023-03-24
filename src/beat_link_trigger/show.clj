@@ -2617,17 +2617,20 @@
               (when-not (get-in track [:cues-editor :panels (:uuid cue)])
                 ;; Make sure the cues editor window is open before trying to edit a cue expression.
                 (seesaw/invoke-now (cues/open-cues track (:frame show))))
-              (seesaw/invoke-later
+              (seesaw/invoke-now
                (let [track (latest-track track)
                      panel (get-in track [:cues-editor :panels (:uuid cue)])
                      gear  (when panel (seesaw/select panel [:#gear]))]
                  (if gear
-                   (editors/show-cue-editor (keyword kind) track cue panel
-                                            (fn []
-                                              (cues/update-all-linked-cues track cue)
-                                              (when gear (cues/update-cue-gear-icon track cue gear))))
-                   (timbre/error "The Cues Editor window for the track could not be found or created."))))
-              (su/editor-opened-in-background))
+                   (do
+                     (editors/show-cue-editor (keyword kind) track cue panel
+                                              (fn []
+                                                (cues/update-all-linked-cues track cue)
+                                                (when gear (cues/update-cue-gear-icon track cue gear))))
+                     (su/editor-opened-in-background))
+                   (su/expression-report-error-response
+                    "The Cues Editor window for the track could not be found or created."
+                    "Problem Opening Editor")))))
             (su/unrecognized-expression))
           (su/cue-not-found))
         (su/track-not-found))
