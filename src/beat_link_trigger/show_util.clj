@@ -1114,7 +1114,7 @@
          (str "var showFile='" (hiccup.util/url-encode path) "';\n")
          "hljs.highlightAll();"]
         (page/include-js "/resources/expression-report.js")
-        [:body {:onblur "closeAllModals();"}
+        [:body {:onfocus "closeAllModals();"}
          [:section.section
           [:div.container
            [:h1.title "Expressions in Show " [:span.has-text-primary path]]
