@@ -35,6 +35,8 @@
                  ((requiring-resolve 'beat-link-trigger.show/edit-show-expression) show kind))
   (compojure/GET "/show/edit-track-expression" [show track kind]
                  ((requiring-resolve 'beat-link-trigger.show/edit-track-expression) show track kind))
+  (compojure/GET "/show/simulate-track-expression" [show track kind]
+                 ((requiring-resolve 'beat-link-trigger.show/simulate-track-expression) show track kind))
   (compojure/GET "/show/edit-track-cue-expression" [show track cue kind]
                  ((requiring-resolve 'beat-link-trigger.show/edit-track-cue-expression) show track cue kind))
   (compojure/GET "/show/simulate-track-cue-expression" [show track cue kind]

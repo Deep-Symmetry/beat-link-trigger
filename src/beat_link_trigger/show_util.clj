@@ -965,7 +965,12 @@
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td]  ; TODO: Add simulate button
+       [:td (when (get-in editors [kind :simulate])
+              [:a.button.is-small.is-link {:href  (str "javascript:simulateTrackExpression('" signature "','"
+                                                       (name kind) "');")
+                                           :title "Simulate"}
+               [:img {:src   "/resources/play-solid.svg"
+                      :width 12}]])]
        [:td [:a.button.is-small.is-link {:href  (str "javascript:editTrackExpression('" signature "','"
                                                      (name kind) "');")
                                          :title "Edit"}

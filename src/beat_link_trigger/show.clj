@@ -1336,6 +1336,15 @@
       :else ; Is a MIDI note or CC
       true)))
 
+(defn track-random-status-for-simulation
+  "Generates an appropriate status object for simulating a track
+  expression of the specified kind."
+  [kind track]
+  (case kind
+    (:playing :tracked :stopped) (su/random-cdj-status)
+    :beat               (su/random-beat-and-position track)
+    nil))
+
 (defn- track-simulate-actions
   "Creates the actions that simulate events happening to the track, for
   testing expressions or creating and testing MIDI mappings in other
@@ -1346,16 +1355,20 @@
                   :handler (fn [_] (send-loaded-messages (latest-track track))))
    (seesaw/action :name "Playing"
                   :enabled? (track-event-enabled? track :playing)
-                  :handler (fn [_] (send-playing-messages (latest-track track) (su/random-cdj-status))))
+                  :handler (fn [_] (send-playing-messages (latest-track track)
+                                                          (track-random-status-for-simulation :playing track))))
    (seesaw/action :name "Beat"
                   :enabled? (not (track-missing-expression? track :beat))
-                  :handler (fn [_] (run-track-function track :beat (su/random-beat-and-position track) true)))
+                  :handler (fn [_] (run-track-function track :beat
+                                                       (track-random-status-for-simulation :beat track) true)))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (track-missing-expression? track :tracked))
-                  :handler (fn [_] (run-track-function track :tracked (su/random-cdj-status) true)))
+                  :handler (fn [_] (run-track-function track :tracked
+                                                       (track-random-status-for-simulation :tracked track) true)))
    (seesaw/action :name "Stopped"
                   :enabled? (track-event-enabled? track :playing)
-                  :handler (fn [_] (send-stopped-messages (latest-track track) (su/random-cdj-status {:f 0}))))
+                  :handler (fn [_] (send-stopped-messages (latest-track track)
+                                                          (track-random-status-for-simulation :stopped track))))
    (seesaw/action :name "Unloaded"
                   :enabled? (track-event-enabled? track :loaded)
                   :handler (fn [_] (send-unloaded-messages (latest-track track))))])
@@ -2590,21 +2603,18 @@
       (su/show-not-enabled))
     (su/show-not-found)))
 
-(defn simulate-track-cue-expression
+(defn simulate-track-expression
   "Helper function used by requests from the expressions report
-  requesting simulation of an expression in a track cue."
-  [path signature cue-uuid kind]
+  requesting simulation of an expression in a track."
+  [path signature kind]
   (if-let [show (latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
-        (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
-          (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
-            (do
-              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
-              (cues/run-cue-function track cue (keyword kind) status true)
-              (su/expression-report-success-response))
-            (su/unrecognized-expression))
-          (su/cue-not-found))
+        (if-let [status (track-random-status-for-simulation (keyword kind) track)]
+          (do
+            (run-track-function track (keyword kind) status true)
+            (su/expression-report-success-response))
+          (su/unrecognized-expression))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
@@ -2624,6 +2634,25 @@
              (editors/show-show-editor (keyword kind) show track panel (partial track-editor-update-fn kind track gear))
              (su/editor-opened-in-background)))
           (su/unrecognized-expression))
+        (su/track-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn simulate-track-cue-expression
+  "Helper function used by requests from the expressions report
+  requesting simulation of an expression in a track cue."
+  [path signature cue-uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [track (get-in show [:tracks signature])]
+        (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
+          (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
+            (do
+              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
+              (cues/run-cue-function track cue (keyword kind) status true)
+              (su/expression-report-success-response))
+            (su/unrecognized-expression))
+          (su/cue-not-found))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))

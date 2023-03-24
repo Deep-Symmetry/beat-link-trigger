@@ -29,9 +29,12 @@ function editShowExpression(kind) {
   runAction("/show/edit-show-expression?show=" + showFile + "&kind=" + kind);
 }
 
+function simulateTrackExpression(signature, kind) {
+  runAction("/show/simulate-track-expression?show=" + showFile + "&track=" + signature + "&kind=" + kind);
+}
+
 function editTrackExpression(signature, kind) {
-  runAction("/show/edit-track-expression?show=" + showFile + "&track=" + signature +
-            "&kind=" + kind);
+  runAction("/show/edit-track-expression?show=" + showFile + "&track=" + signature + "&kind=" + kind);
 }
 
 function simulateTrackCueExpression(signature, cue, kind) {
