@@ -1193,6 +1193,8 @@
 
         popup-fn (fn [^MouseEvent _e]  ; Creates the popup menu for the gear button or right-clicking in the phrase.
                    (concat [(edit-cues-action show phrase panel) (seesaw/separator)]
+                           (when (seq (su/gear-content phrase))
+                             [(su/view-expressions-in-report-action show phrase)])
                            (phrase-editor-actions show phrase panel gear)
                            [(seesaw/separator) (phrase-simulate-menu show phrase) (su/inspect-action phrase)
                             (seesaw/separator)]

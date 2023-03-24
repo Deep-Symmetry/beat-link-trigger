@@ -1770,7 +1770,7 @@ a {
                    :key "menu shift S"
                    :enabled? false)))
 
-(defn- show-report-tag
+(defn show-report-tag
   "Determines the anchor that will scroll an expression report to the
   section for the specified track or phrase, and, if supplied, cue."
   [context cue track?]

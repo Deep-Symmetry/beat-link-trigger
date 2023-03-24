@@ -5,6 +5,7 @@
             [beat-link-trigger.util :as util]
             [cheshire.core :as json]
             [clojure.edn :as edn]
+            [clojure.java.browse]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [compojure.route :as route]
@@ -610,6 +611,17 @@
         false)
       false)))
 
+(defn gear-content
+  "Checks for reasons that a track or phrase trigger might need to be
+  filled in. Returns a set that may contain `:cues` or `:expressions`
+  if either or both are present."
+  [context]
+  (let [[_show context] (latest-show-and-context context)
+        contents        (if (phrase? context) context (:contents context))]
+    (set (filter identity
+                 [(when (seq (get-in contents [:cues :cues])) :cues)
+                  (when-not (every? clojure.string/blank? (vals (:expressions contents))) :expressions)]))))
+
 (defn update-gear-icon
   "Determines whether the gear button for a track or phrase trigger
   should be hollow or filled in, depending on whether any cues or
@@ -618,13 +630,9 @@
    (let [[_show context runtime-info] (latest-show-and-context context)]
      (update-gear-icon context (seesaw/select (:panel runtime-info) [:#gear]))))
   ([context gear]
-   (let [[_show context] (latest-show-and-context context)
-         contents        (if (phrase? context) context (:contents context))]
-     (seesaw/config! gear :icon (if (and
-                                     (empty? (get-in contents [:cues :cues]))
-                                     (every? clojure.string/blank? (vals (:expressions contents))))
-                                  (seesaw/icon "images/Gear-outline.png")
-                                  (seesaw/icon "images/Gear-icon.png"))))))
+   (seesaw/config! gear :icon (if (empty? (gear-content context))
+                                (seesaw/icon "images/Gear-outline.png")
+                                (seesaw/icon "images/Gear-icon.png")))))
 
 (defn repaint-preview
   "Tells the track or phrase trigger's preview component to repaint
@@ -1142,6 +1150,21 @@
          anchor-segment (when anchor (str "#" anchor))]
      (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))
           anchor-segment))))
+
+(defn view-expressions-in-report-action
+  "Creates a vector containing the menu action which opens the expression
+  report window and scrolls it to this track or phrase."
+  ([show context]
+   (view-expressions-in-report-action show context nil))
+  ([show context cue]
+   (let [track? (track? context)]
+     (seesaw/action :handler (fn [_]
+                               (when (help/help-server)
+                                 (clojure.java.browse/browse-url
+                                  (expression-report-link
+                                   (:file show) ((requiring-resolve 'beat-link-trigger.editors/show-report-tag)
+                                                 context cue track?)))))
+                    :name "View Expressions in Report"))))
 
 (defn expression-report-success-response
   "Formats a response that an expression was simulated successfully."

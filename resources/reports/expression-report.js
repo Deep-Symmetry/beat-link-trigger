@@ -20,7 +20,8 @@ function checkActionResponse(req, url) {
 function runAction(url) {
   const req = new XMLHttpRequest();
   req.open("GET", url);
-  req.onerror = () => { errorModal("There was a network problem requesting " + url, "Request Failed") };
+  req.onerror = () => { errorModal("There was a network problem requesting " + url + "<br><br>" +
+                                   "You might want to check that Beat Link Trigger is running?", "Request Failed") };
   req.onload = () => { checkActionResponse(req, url); };
   req.send();
 }

@@ -1207,7 +1207,11 @@
                        [(get-in event-components [:started-late :note]) "hidemode 3"]
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-late :channel]) "hidemode 3"]])
-        popup-fn (fn [_] (concat (cue-editor-actions context cue panel gear)
+        popup-fn (fn [_] (concat (when-not (every? (fn [[kind _spec]]
+                                                     (cue-missing-expression? context cue kind))
+                                                   @editors/show-cue-editors)
+                                   [(su/view-expressions-in-report-action show context cue)])
+                                 (cue-editor-actions context cue panel gear)
                                  [(seesaw/separator) (cue-simulate-menu context cue) (su/inspect-action context)
                                   (seesaw/separator) (scroll-wave-to-cue-action context cue) (seesaw/separator)
                                   (duplicate-cue-action context cue) (cue-library-action context cue)

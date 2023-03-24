@@ -1691,6 +1691,8 @@
                      [(copy-track-content-action track) ; The special track content copy/paste menu.
                       (paste-track-content-action track panel)]
                      (concat [(edit-cues-action track panel) (seesaw/separator)] ; The normal context menu.
+                             (when (seq (su/gear-content track))
+                               [(su/view-expressions-in-report-action show track)])
                              (track-editor-actions show track panel gear)
                              [(seesaw/separator) (track-simulate-menu track) (su/inspect-action track)
                               (seesaw/separator)]
