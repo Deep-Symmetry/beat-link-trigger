@@ -47,6 +47,24 @@ function editTrackCueExpression(signature, cue, kind) {
             "&cue=" + cue + "&kind=" + kind);
 }
 
+function simulatePhraseExpression(uuid, kind) {
+  runAction("/show/simulate-phrase-expression?show=" + showFile + "&phrase=" + uuid + "&kind=" + kind);
+}
+
+function editPhraseExpression(uuid, kind) {
+  runAction("/show/edit-phrase-expression?show=" + showFile + "&phrase=" + uuid + "&kind=" + kind);
+}
+
+function simulatePhraseCueExpression(uuid, cue, kind) {
+  runAction("/show/simulate-phrase-cue-expression?show=" + showFile + "&phrase=" + uuid +
+            "&cue=" + cue + "&kind=" + kind);
+}
+
+function editPhraseCueExpression(uuid, cue, kind) {
+  runAction("/show/edit-phrase-cue-expression?show=" + showFile + "&phrase=" + uuid +
+            "&cue=" + cue + "&kind=" + kind);
+}
+
 
 // Functions supporting Bulma modals.
 

@@ -930,7 +930,7 @@
     nil))
 
 (defn- describe-track-cue-expression
-  [show signature track cue editors kind]
+  [signature cue editors kind]
   (let [value (get-in cue [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
@@ -950,17 +950,17 @@
 
 (defn- track-cue-expressions
   "Builds the report of expressions for a particular track cue."
-  [show signature track cue]
+  [signature track cue]
   (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)]
     (expression-section
      (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Track &ldquo;"
           (get-in track [:metadata :title]) "&rdquo;")
      (str "track-" signature "-cue-" (:uuid cue))
-     (filter identity (map (partial describe-track-cue-expression show signature track cue editors)
+     (filter identity (map (partial describe-track-cue-expression signature cue editors)
                            (keys editors))))))
 
 (defn- describe-track-expression
-  [show signature track editors kind]
+  [signature track editors kind]
   (let [value (get-in track [:contents :expressions kind])]
     (when-not (str/blank? value)
       [:tr
@@ -981,57 +981,76 @@
 (defn- track-expressions
   "Builds the report of expressions for a particular track, and any of
   its cues."
-  [show [signature track]]
+  [[signature track]]
   (let [editors     @@(requiring-resolve 'beat-link-trigger.editors/show-track-editors)
         track-level (expression-section
                      (str "Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
                      (str "track-" signature)
-                     (filter identity (map (partial describe-track-expression show signature track editors)
+                     (filter identity (map (partial describe-track-expression  signature track editors)
                                            (keys editors))))
-        cue-level (filter identity (map (partial track-cue-expressions show signature track)
+        cue-level (filter identity (map (partial track-cue-expressions signature track)
                                         (vals (get-in track [:contents :cues :cues]))))]
     [:div (concat [track-level] cue-level)]))
 
 (defn- describe-phrase-cue-expression
-  [show uuid phrase cue editors kind]
+  [uuid cue editors kind]
   (let [value (get-in cue [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td] [:td]  ; TODO: Add simulate buttons
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:simulatePhraseCueExpression('" uuid "','"
+                                                     (:uuid cue) "','" (name kind) "');")
+                                         :title "Simulate"}
+             [:img {:src   "/resources/play-solid.svg"
+                    :width 12}]]]
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editPhraseCueExpression('" uuid "','"
+                                                     (:uuid cue) "','" (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- phrase-cue-expressions
   "Builds the report of expressions for a particular phrase trigger cue."
-  [show uuid phrase cue]
+  [uuid phrase cue]
   (let [editors   @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)]
     (expression-section
      (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Phrase Trigger &ldquo;"
           (comment-or-untitled (:comment phrase)) "&rdquo;")
      (str "phrase-" uuid "-cue-" (:uuid cue))
-     (filter identity (map (partial describe-phrase-cue-expression show uuid phrase cue editors)
+     (filter identity (map (partial describe-phrase-cue-expression uuid cue editors)
                            (keys editors))))))
 
 (defn- describe-phrase-expression
-  [show signature phrase editors kind]
+  [uuid phrase editors kind]
   (let [value (get-in phrase [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
        [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
-       [:td] [:td]  ; TODO: Add simulate buttons
+       [:td (when (get-in editors [kind :simulate])
+              [:a.button.is-small.is-link {:href  (str "javascript:simulatePhraseExpression('" uuid "','"
+                                                       (name kind) "');")
+                                           :title "Simulate"}
+               [:img {:src   "/resources/play-solid.svg"
+                      :width 12}]])]
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editPhraseExpression('" uuid "','"
+                                                     (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
        [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
 
 (defn- phrase-expressions
   "Builds the report of expressions for a particular track, and any of
   its cues."
-  [show [uuid phrase]]
+  [[uuid phrase]]
   (let [editors     @@(requiring-resolve 'beat-link-trigger.editors/show-phrase-editors)
         phrase-level (expression-section
                       (str "Phrase Trigger &ldquo;" (comment-or-untitled (:comment phrase)) "&rdquo;")
                       (str "phrase-" uuid)
-                      (filter identity (map (partial describe-phrase-expression show uuid phrase editors)
+                      (filter identity (map (partial describe-phrase-expression uuid phrase editors)
                                            (keys editors))))
-        cue-level (filter identity (map (partial phrase-cue-expressions show uuid phrase)
+        cue-level (filter identity (map (partial phrase-cue-expressions uuid phrase)
                                         (vals (get-in phrase [:cues :cues]))))]
     [:div (concat [phrase-level] cue-level)]))
 
@@ -1057,8 +1076,8 @@
            [:h1.title "Expressions in Show " [:span.has-text-primary path]]
            [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
            (global-expressions show)
-           (filter identity (map (partial track-expressions show) (:tracks show)))
-           (filter identity (map (partial phrase-expressions show) (get-in show [:contents :phrases])))]]
+           (filter identity (map track-expressions (:tracks show)))
+           (filter identity (map phrase-expressions (get-in show [:contents :phrases])))]]
          [:div.modal {:id "error-modal"}
           [:div.modal-background]
           [:div.modal-card
@@ -1130,7 +1149,7 @@
 
 (defn track-not-found
   "Helper expression used by request handlers from the expressions report
-   to report that the specified show could not be found."
+   to report that the specified track could not be found."
   []
   (expression-report-error-response
    (hiccup/html [:p "There is no track with the specified signature in the chosen show."]
@@ -1138,12 +1157,22 @@
                 [:p "You may want to refresh the report to view the current state of the show."])
    "Track Not Found"))
 
+(defn phrase-not-found
+  "Helper expression used by request handlers from the expressions report
+   to report that the specified phrase could not be found."
+  []
+  (expression-report-error-response
+   (hiccup/html [:p "There is no phrase with the specified UUID in the chosen show."]
+                [:br]
+                [:p "You may want to refresh the report to view the current state of the show."])
+   "Phrase Not Found"))
+
 (defn cue-not-found
   "Helper expression used by request handlers from the expressions report
    to report that the specified show could not be found."
-  []
+  [context]
   (expression-report-error-response
-   (hiccup/html [:p "There is no cue with the requested UUID in the specified track."]
+   (hiccup/html [:p "There is no cue with the requested UUID in the specified " context "."]
                 [:br]
                 [:p "You may want to refresh the report to view the current state of the show."])
    "Cue Not Found"))

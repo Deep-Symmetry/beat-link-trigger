@@ -130,7 +130,7 @@
   [player]
   (get @phrase-intervals player))
 
-(defn- run-phrase-function
+(defn run-phrase-function
   "Checks whether the phrase trigger has a custom function of the
   specified kind installed and if so runs it with the supplied status
   argument and the track local and global atoms. Returns a tuple of
@@ -423,25 +423,31 @@
   [show phrase kind]
   (str/blank? (get-in (latest-phrase show phrase) [:expressions kind])))
 
+(defn phrase-editor-update-fn
+  "The function run when an expression has been edited, to update the
+  show state and user interface appropriately."
+  [kind show phrase gear]
+  (when (= kind :setup)  ; Clean up then run the new setup function
+    (run-phrase-function show phrase :shutdown nil true)
+    (let [runtime-info (su/phrase-runtime-info (latest-show show) phrase)]
+      (reset! (:expression-locals runtime-info) {}))
+    (run-phrase-function show phrase :setup nil true))
+  (su/update-gear-icon phrase gear))
+
+
 (defn- phrase-editor-actions
   "Creates the popup menu actions corresponding to the available
   expression editors for a given phrase trigger."
   [show phrase panel gear]
   (for [[kind spec] @editors/show-phrase-editors]
-    (let [update-fn (fn []
-                      (when (= kind :setup)  ; Clean up then run the new setup function
-                        (run-phrase-function show phrase :shutdown nil true)
-                        (let [runtime-info (su/phrase-runtime-info (latest-show show) phrase)]
-                          (reset! (:expression-locals runtime-info) {}))
-                        (run-phrase-function show phrase :setup nil true))
-                      (su/update-gear-icon phrase gear))]
-      (seesaw/action :handler (fn [_] (editors/show-show-editor kind (latest-show show)
-                                       (latest-phrase show phrase) panel update-fn))
-                     :name (str "Edit " (:title spec))
-                     :tip (:tip spec)
-                     :icon (if (phrase-missing-expression? show phrase kind)
-                             "images/Gear-outline.png"
-                             "images/Gear-icon.png")))))
+    (seesaw/action :handler (fn [_] (editors/show-show-editor
+                                     kind (latest-show show) (latest-phrase show phrase) panel
+                                     (partial phrase-editor-update-fn kind show phrase gear)))
+                   :name (str "Edit " (:title spec))
+                   :tip (:tip spec)
+                   :icon (if (phrase-missing-expression? show phrase kind)
+                           "images/Gear-outline.png"
+                           "images/Gear-icon.png"))))
 
 (defn phrase-event-enabled?
   "Checks whether the Message menu is set to something other than None,
@@ -460,6 +466,15 @@
       :else ; Is a MIDI note or CC
       true)))
 
+(defn phrase-random-status-for-simulation
+  "Generates an appropriate status object for simulating a phrase
+  expression of the specified kind."
+  [kind]
+  (case kind
+    (:playing :tracked :stopped) (su/random-cdj-status)
+    :beat               (su/random-beat-and-position nil)
+    nil))
+
 (defn- phrase-simulate-actions
   "Creates the actions that simulate events happening to the phrase, for
   testing expressions or creating and testing MIDI mappings in other
@@ -467,20 +482,22 @@
   [show phrase]
   [(seesaw/action :name "Playing"
                   :enabled? (phrase-event-enabled? show phrase :playing)
-                  :handler (fn [_] (apply send-playing-messages (concat (latest-show-and-phrase show phrase)
-                                                                        [(su/random-cdj-status)]))))
+                  :handler (fn [_] (apply send-playing-messages
+                                          (concat (latest-show-and-phrase show phrase)
+                                                  [(phrase-random-status-for-simulation :playing)]))))
    (seesaw/action :name "Beat"
                   :enabled? (not (phrase-missing-expression? show phrase :beat))
                   :handler (fn [_] (run-phrase-function
-                                    show phrase :beat
-                                    (su/random-beat-and-position nil) true)))
+                                    show phrase :beat (phrase-random-status-for-simulation :beat) true)))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (phrase-missing-expression? show phrase :tracked))
-                  :handler (fn [_] (run-phrase-function show phrase :tracked (su/random-cdj-status) true)))
+                  :handler (fn [_] (run-phrase-function show phrase :tracked
+                                                        (phrase-random-status-for-simulation :tracked) true)))
    (seesaw/action :name "Stopped"
                   :enabled? (phrase-event-enabled? show phrase :stopped)
-                  :handler (fn [_] (apply send-stopped-messages (concat (latest-show-and-phrase show phrase)
-                                                                        [(su/random-cdj-status {:f 0})]))))])
+                  :handler (fn [_] (apply send-stopped-messages
+                                          (concat (latest-show-and-phrase show phrase)
+                                                  [(phrase-random-status-for-simulation :stopped)]))))])
 
 (defn- phrase-simulate-menu
   "Creates the submenu containing actions that simulate events happening

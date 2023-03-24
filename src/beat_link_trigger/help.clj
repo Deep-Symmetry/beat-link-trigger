@@ -41,6 +41,14 @@
                  ((requiring-resolve 'beat-link-trigger.show/edit-track-cue-expression) show track cue kind))
   (compojure/GET "/show/simulate-track-cue-expression" [show track cue kind]
                  ((requiring-resolve 'beat-link-trigger.show/simulate-track-cue-expression) show track cue kind))
+  (compojure/GET "/show/edit-phrase-expression" [show phrase kind]
+                 ((requiring-resolve 'beat-link-trigger.show/edit-phrase-expression) show phrase kind))
+  (compojure/GET "/show/simulate-phrase-expression" [show phrase kind]
+                 ((requiring-resolve 'beat-link-trigger.show/simulate-phrase-expression) show phrase kind))
+  (compojure/GET "/show/edit-phrase-cue-expression" [show phrase cue kind]
+                 ((requiring-resolve 'beat-link-trigger.show/edit-phrase-cue-expression) show phrase cue kind))
+  (compojure/GET "/show/simulate-phrase-cue-expression" [show phrase cue kind]
+                 ((requiring-resolve 'beat-link-trigger.show/simulate-phrase-cue-expression) show phrase cue kind))
 
   ;; We give up!
   (route/not-found "<p>Page not found.</p>"))

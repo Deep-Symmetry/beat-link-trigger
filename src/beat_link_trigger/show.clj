@@ -16,7 +16,6 @@
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
-            [hiccup.core :as hiccup]
             [inspector-jay.core :as inspector]
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
@@ -30,6 +29,7 @@
            [java.io File]
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems Path StandardCopyOption StandardOpenOption]
+           [java.util UUID]
            [javax.swing JComponent JFrame JMenu JMenuBar JPanel JScrollPane]
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$TrackSourceSlot
@@ -2628,8 +2628,7 @@
       (if-let [track (get-in show [:tracks signature])]
         (if (contains? @editors/show-track-editors (keyword kind))
           (seesaw/invoke-now
-           (let [track (latest-track track)
-                 panel (:panel track)
+           (let [panel (:panel track)
                  gear  (seesaw/select panel [:#gear])]
              (editors/show-show-editor (keyword kind) show track panel (partial track-editor-update-fn kind track gear))
              (su/editor-opened-in-background)))
@@ -2645,14 +2644,14 @@
   (if-let [show (latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
-        (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
+        (if-let [cue (find-cue track (UUID/fromString cue-uuid))]
           (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
             (do
               ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
               (cues/run-cue-function track cue (keyword kind) status true)
               (su/expression-report-success-response))
             (su/unrecognized-expression))
-          (su/cue-not-found))
+          (su/cue-not-found "track"))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
@@ -2664,7 +2663,7 @@
   (if-let [show (latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
-        (if-let [cue (find-cue track (java.util.UUID/fromString cue-uuid))]
+        (if-let [cue (find-cue track (UUID/fromString cue-uuid))]
           (if (contains? @editors/show-cue-editors (keyword kind))
             (do
               (when-not (get-in track [:cues-editor :panels (:uuid cue)])
@@ -2685,7 +2684,94 @@
                     "The Cues Editor window for the track could not be found or created."
                     "Problem Opening Editor")))))
             (su/unrecognized-expression))
-          (su/cue-not-found))
+          (su/cue-not-found "track"))
         (su/track-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn simulate-phrase-expression
+  "Helper function used by requests from the expressions report
+  requesting simulation of an expression in a phrase."
+  [path uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
+        (if-let [status (phrases/phrase-random-status-for-simulation (keyword kind))]
+          (do
+            (phrases/run-phrase-function show phrase (keyword kind) status true)
+            (su/expression-report-success-response))
+          (su/unrecognized-expression))
+        (su/phrase-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn edit-phrase-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for an expression in a phrase."
+  [path uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
+         (if (contains? @editors/show-phrase-editors (keyword kind))
+          (seesaw/invoke-now
+           (let [panel (:panel (su/phrase-runtime-info show phrase))
+                 gear  (seesaw/select panel [:#gear])]
+             (editors/show-show-editor (keyword kind) show phrase panel
+                                       (partial phrases/phrase-editor-update-fn kind show phrase gear))
+             (su/editor-opened-in-background)))
+          (su/unrecognized-expression))
+        (su/phrase-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn simulate-phrase-cue-expression
+  "Helper function used by requests from the expressions report
+  requesting simulation of an expression in a phrase cue."
+  [path uuid cue-uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
+        (if-let [cue (find-cue phrase (UUID/fromString cue-uuid))]
+          (if-let [status (cues/random-status-for-simulation (keyword kind) phrase)]
+            (do
+              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
+              (cues/run-cue-function phrase cue (keyword kind) status true)
+              (su/expression-report-success-response))
+            (su/unrecognized-expression))
+          (su/cue-not-found "phrase"))
+        (su/phrase-not-found))
+      (su/show-not-enabled))
+    (su/show-not-found)))
+
+(defn edit-phrase-cue-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for an expression in a phrase cue."
+  [path uuid cue-uuid kind]
+  (if-let [show (latest-show (io/file path))]
+    (if (:actions-enabled show)
+      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
+        (if-let [cue (find-cue phrase (UUID/fromString cue-uuid))]
+          (if (contains? @editors/show-cue-editors (keyword kind))
+            (do
+              (when-not (get-in phrase [:cues-editor :panels (:uuid cue)])
+                ;; Make sure the cues editor window is open before trying to edit a cue expression.
+                (seesaw/invoke-now (cues/open-cues phrase (:frame show))))
+              (seesaw/invoke-now
+               (let [[show phrase] (su/latest-show-and-phrase show phrase)
+                     panel (get-in (su/phrase-runtime-info show phrase) [:cues-editor :panels (:uuid cue)])
+                     gear  (when panel (seesaw/select panel [:#gear]))]
+                 (if gear
+                   (do
+                     (editors/show-cue-editor (keyword kind) phrase cue panel
+                                              (fn []
+                                                (cues/update-all-linked-cues phrase cue)
+                                                (when gear (cues/update-cue-gear-icon phrase cue gear))))
+                     (su/editor-opened-in-background))
+                   (su/expression-report-error-response
+                    "The Cues Editor window for the phrase could not be found or created."
+                    "Problem Opening Editor")))))
+            (su/unrecognized-expression))
+          (su/cue-not-found "phrase"))
+        (su/phrase-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
