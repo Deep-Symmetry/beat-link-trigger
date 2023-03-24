@@ -959,12 +959,36 @@
      (filter identity (map (partial describe-track-cue-expression signature cue editors)
                            (keys editors))))))
 
+(defn track-expression-disabled-warning
+  "Builds a warning message if the expression is not currently in use by
+  the track because the messagefor that event is set to something
+  other than Custom."
+  [track kind]
+  (case kind
+    (:loaded :unloaded)
+    (let [message (get-in track [:contents :loaded-message])]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: Loaded Message is &ldquo;" message "&rdquo;"]))
+
+    (:playing :stopped)
+    (let [message (get-in track [:contents :playing-message])]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: Playing Message is &ldquo;" message "&rdquo;"]))
+
+    :enabled
+    (let [message (get-in track [:contents :enabled])]
+      (when (not= message "Custom")
+        [:span.has-text-danger [:br] "Inactive: Enabled Filter is &ldquo;" message "&rdquo;"]))
+
+    nil))
+
 (defn- describe-track-expression
   [signature track editors kind]
   (let [value (get-in track [:contents :expressions kind])]
     (when-not (str/blank? value)
       [:tr
-       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
+        (track-expression-disabled-warning track kind)]
        [:td (when (get-in editors [kind :simulate])
               [:a.button.is-small.is-link {:href  (str "javascript:simulateTrackExpression('" signature "','"
                                                        (name kind) "');")
