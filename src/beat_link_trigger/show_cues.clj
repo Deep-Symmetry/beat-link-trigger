@@ -117,7 +117,7 @@
 
 (declare build-cues)
 
-(defn- scroll-to-cue
+(defn scroll-to-cue
   "Makes sure the specified cue editor is visible (it has just been
   created or edited), or give the user a warning that the current cue
   filters have hidden it. If `select-comment` is true, this is a

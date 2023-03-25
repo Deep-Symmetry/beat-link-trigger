@@ -2595,13 +2595,17 @@
   [path kind]
   (if-let [show (latest-show (io/file path))]
     (if (:actions-enabled show)
-      (if (contains? @editors/global-show-editors (keyword kind))
-        (do
-          (seesaw/invoke-later
-           (editors/show-show-editor (keyword kind) show nil (:frame show)
-                                     (partial global-editor-update-fn show kind)))
-          (su/editor-opened-in-background))
-        (su/unrecognized-expression))
+      (if (str/blank? kind)
+        (do  ; Just bring the show window to the front.
+          (seesaw/invoke-later (seesaw/show! (:frame show)))
+          (su/window-brought-to-front "Show"))
+        (if (contains? @editors/global-show-editors (keyword kind))
+          (do
+            (seesaw/invoke-later
+             (editors/show-show-editor (keyword kind) show nil (:frame show)
+                                       (partial global-editor-update-fn show kind)))
+            (su/editor-opened-in-background))
+          (su/unrecognized-expression)))
       (su/show-not-enabled))
     (su/show-not-found)))
 
@@ -2648,11 +2652,11 @@
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (find-cue track (UUID/fromString cue-uuid))]
           (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
-            (do
-              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
-              (cues/run-cue-function track cue (keyword kind) status true)
-              (su/expression-report-success-response))
-            (su/unrecognized-expression))
+              (do
+                ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
+                (cues/run-cue-function track cue (keyword kind) status true)
+                (su/expression-report-success-response))
+              (su/unrecognized-expression))
           (su/cue-not-found "track"))
         (su/track-not-found))
       (su/show-not-enabled))
@@ -2666,26 +2670,31 @@
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (find-cue track (UUID/fromString cue-uuid))]
-          (if (contains? @editors/show-cue-editors (keyword kind))
-            (do
-              (when-not (get-in track [:cues-editor :panels (:uuid cue)])
-                ;; Make sure the cues editor window is open before trying to edit a cue expression.
-                (seesaw/invoke-now (cues/open-cues track (:frame show))))
-              (seesaw/invoke-now
+          (do
+            (when-not (get-in track [:cues-editor :panels (:uuid cue)])
+              ;; Make sure the cues editor window is open before trying to edit a cue expression.
+              (seesaw/invoke-now (cues/open-cues track (:frame show))))
+            (seesaw/invoke-now
                (let [track (latest-track track)
                      panel (get-in track [:cues-editor :panels (:uuid cue)])
                      gear  (when panel (seesaw/select panel [:#gear]))]
                  (if gear
-                   (do
-                     (editors/show-cue-editor (keyword kind) track cue panel
-                                              (fn []
-                                                (cues/update-all-linked-cues track cue)
-                                                (when gear (cues/update-cue-gear-icon track cue gear))))
-                     (su/editor-opened-in-background))
+                   (if (str/blank? kind)
+                     (do  ; Just scroll the cues editor to this cue and bring it to the front.
+                       (seesaw/show! (get-in track [:cues-editor :frame]))
+                       (seesaw/invoke-later (cues/scroll-to-cue track cue))  ; This can block with a modal!
+                       (su/window-brought-to-front "Cues Editor" "cue"))
+                     (if (contains? @editors/show-cue-editors (keyword kind))
+                       (do
+                         (editors/show-cue-editor (keyword kind) track cue panel
+                                                  (fn []
+                                                    (cues/update-all-linked-cues track cue)
+                                                    (when gear (cues/update-cue-gear-icon track cue gear))))
+                         (su/editor-opened-in-background))
+                       (su/unrecognized-expression)))
                    (su/expression-report-error-response
                     "The Cues Editor window for the track could not be found or created."
                     "Problem Opening Editor")))))
-            (su/unrecognized-expression))
           (su/cue-not-found "track"))
         (su/track-not-found))
       (su/show-not-enabled))
@@ -2753,26 +2762,31 @@
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
         (if-let [cue (find-cue phrase (UUID/fromString cue-uuid))]
-          (if (contains? @editors/show-cue-editors (keyword kind))
-            (do
-              (when-not (get-in phrase [:cues-editor :panels (:uuid cue)])
-                ;; Make sure the cues editor window is open before trying to edit a cue expression.
-                (seesaw/invoke-now (cues/open-cues phrase (:frame show))))
-              (seesaw/invoke-now
+          (do
+            (when-not (get-in phrase [:cues-editor :panels (:uuid cue)])
+              ;; Make sure the cues editor window is open before trying to edit a cue expression.
+              (seesaw/invoke-now (cues/open-cues phrase (:frame show))))
+            (seesaw/invoke-now
                (let [[show phrase] (su/latest-show-and-phrase show phrase)
                      panel (get-in (su/phrase-runtime-info show phrase) [:cues-editor :panels (:uuid cue)])
                      gear  (when panel (seesaw/select panel [:#gear]))]
                  (if gear
-                   (do
-                     (editors/show-cue-editor (keyword kind) phrase cue panel
-                                              (fn []
-                                                (cues/update-all-linked-cues phrase cue)
-                                                (when gear (cues/update-cue-gear-icon phrase cue gear))))
-                     (su/editor-opened-in-background))
+                   (if (str/blank? kind)
+                     (do  ; Just scroll the cues editor to this cue and bring it to the front.
+                       (seesaw/show! (get-in phrase [:cues-editor :frame]))
+                       (seesaw/invoke-later (cues/scroll-to-cue phrase cue))  ; This can block with a modal!
+                       (su/window-brought-to-front "Cues Editor" "cue"))
+                     (if (contains? @editors/show-cue-editors (keyword kind))
+                       (do
+                         (editors/show-cue-editor (keyword kind) phrase cue panel
+                                                  (fn []
+                                                    (cues/update-all-linked-cues phrase cue)
+                                                    (when gear (cues/update-cue-gear-icon phrase cue gear))))
+                         (su/editor-opened-in-background))
+                       (su/unrecognized-expression)))
                    (su/expression-report-error-response
                     "The Cues Editor window for the phrase could not be found or created."
                     "Problem Opening Editor")))))
-            (su/unrecognized-expression))
           (su/cue-not-found "phrase"))
         (su/phrase-not-found))
       (su/show-not-enabled))

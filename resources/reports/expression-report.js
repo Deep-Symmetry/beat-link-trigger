@@ -27,7 +27,7 @@ function runAction(url) {
 }
 
 function editShowExpression(kind) {
-  runAction("/show/edit-show-expression?show=" + showFile + "&kind=" + kind);
+  runAction("/show/edit-show-expression?show=" + showFile + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulateTrackExpression(signature, kind) {
@@ -35,7 +35,7 @@ function simulateTrackExpression(signature, kind) {
 }
 
 function editTrackExpression(signature, kind) {
-  runAction("/show/edit-track-expression?show=" + showFile + "&track=" + signature + "&kind=" + kind);
+  runAction("/show/edit-track-expression?show=" + showFile + "&track=" + signature + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulateTrackCueExpression(signature, cue, kind) {
@@ -45,7 +45,7 @@ function simulateTrackCueExpression(signature, cue, kind) {
 
 function editTrackCueExpression(signature, cue, kind) {
   runAction("/show/edit-track-cue-expression?show=" + showFile + "&track=" + signature +
-            "&cue=" + cue + "&kind=" + kind);
+            "&cue=" + cue + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulatePhraseExpression(uuid, kind) {
@@ -53,7 +53,7 @@ function simulatePhraseExpression(uuid, kind) {
 }
 
 function editPhraseExpression(uuid, kind) {
-  runAction("/show/edit-phrase-expression?show=" + showFile + "&phrase=" + uuid + "&kind=" + kind);
+  runAction("/show/edit-phrase-expression?show=" + showFile + "&phrase=" + uuid + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulatePhraseCueExpression(uuid, cue, kind) {
@@ -63,7 +63,7 @@ function simulatePhraseCueExpression(uuid, cue, kind) {
 
 function editPhraseCueExpression(uuid, cue, kind) {
   runAction("/show/edit-phrase-cue-expression?show=" + showFile + "&phrase=" + uuid +
-            "&cue=" + cue + "&kind=" + kind);
+            "&cue=" + cue + (kind? ("&kind=" + kind) : ""));
 }
 
 

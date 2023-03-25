@@ -860,10 +860,15 @@
 
 (defn- expression-section
   "Builds a section of the expressions report of `body` is not empty."
-  [title id expressions]
+  [title id button-code button-title expressions]
   (when (seq expressions)
     [:div
-     [:h2.title.is-4.mt-2.mb-0 {:id id} title]
+     [:h2.title.is-4.mt-2.mb-0 {:id id} title
+      (when button-code
+        [:a.button.is-small.is-link.ml-5 {:href  (str "javascript:" button-code)
+                                          :title button-title}
+             [:img {:src   "/resources/cog.svg"
+                    :width 15}]])]
      [:table.table
       [:thead
        [:tr [:td "Expression"] [:td {:colspan 2} "Actions"] [:td "Value"]]]
@@ -893,6 +898,7 @@
   [show]
   (expression-section
    "Show-Level (Global) Expressions" "global"
+   "editShowExpression();" "Bring this Show window to front"
    (let [editors @@(requiring-resolve 'beat-link-trigger.editors/global-show-editors)]
      (filter identity (map (partial describe-show-global-expression show editors)
                            (keys editors))))))
@@ -964,6 +970,7 @@
      (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Track &ldquo;"
           (get-in track [:metadata :title]) "&rdquo;")
      (str "track-" signature "-cue-" (:uuid cue))
+     (str "editTrackCueExpression('" signature "','" (:uuid cue) "');") "Scroll Cues Editor to this Cue"
      (filter identity (map (partial describe-track-cue-expression signature cue editors)
                            (keys editors))))))
 
@@ -1018,6 +1025,7 @@
         track-level (expression-section
                      (str "Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
                      (str "track-" signature)
+                     nil nil
                      (filter identity (map (partial describe-track-expression  signature track editors)
                                            (keys editors))))
         cue-level (filter identity (map (partial track-cue-expressions signature track)
@@ -1051,6 +1059,7 @@
      (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Phrase Trigger &ldquo;"
           (comment-or-untitled (:comment phrase)) "&rdquo;")
      (str "phrase-" uuid "-cue-" (:uuid cue))
+     (str "editPhraseCueExpression('" uuid "','" (:uuid cue) "');") "Scroll Cues Editor to this Cue"
      (filter identity (map (partial describe-phrase-cue-expression uuid cue editors)
                            (keys editors))))))
 
@@ -1100,6 +1109,7 @@
         phrase-level (expression-section
                       (str "Phrase Trigger &ldquo;" (comment-or-untitled (:comment phrase)) "&rdquo;")
                       (str "phrase-" uuid)
+                      nil nil
                       (filter identity (map (partial describe-phrase-expression uuid phrase editors)
                                            (keys editors))))
         cue-level (filter identity (map (partial phrase-cue-expressions uuid phrase)
@@ -1259,3 +1269,14 @@
    (hiccup/html [:p "The editor has been opened, but you&rsquo;ll need to "
                  "switch back to Beat Link Trigger to work with it."])
    "Expression Editor Opened"))
+
+(defn window-brought-to-front
+  ([window]
+   (window-brought-to-front window nil))
+  ([window scroll-target]
+   (expression-report-error-response
+    (hiccup/html (vec (concat [:p "The " window " window has been brought to the front, "]
+                              (when scroll-target
+                                ["and the " scroll-target " has been scrolled into view, "])
+                              ["but you&rsquo;ll need to switch back to Beat Link Trigger to work with it."])))
+    "Window Brought Forward")))
