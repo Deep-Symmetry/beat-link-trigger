@@ -1570,7 +1570,8 @@ a {
   (seesaw/action :handler (fn [_]
                             (when (help/help-server)
                               (clojure.java.browse/browse-url (show-util/expression-report-link (:file show) tag))))
-                 :name "View in Report"))
+                 :name "View in Expression Report"
+                 :key "menu E"))
 ;; For reasons incomprehesible, adding a :key to the report action just results in a beep and not even
 ;; running the first line in the handler! I would like menu-shift-V to run it, but so far that is not
 ;; possible.
