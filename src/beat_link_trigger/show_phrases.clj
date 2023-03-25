@@ -1279,7 +1279,7 @@
   (doseq [uuid (get-in (latest-show show) [:contents :phrase-order])]
     (create-phrase-panel show uuid)))
 
-(defn- scroll-to-phrase
+(defn scroll-to-phrase
   "Makes sure the specified phrase trigger is visible (it has just been
   created), or give the user a warning that the current filters have
   hidden it. If the comment field is empty, focuses on it to encourage

@@ -2632,13 +2632,20 @@
   (if-let [show (latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
-        (if (contains? @editors/show-track-editors (keyword kind))
-          (seesaw/invoke-now
-           (let [panel (:panel track)
-                 gear  (seesaw/select panel [:#gear])]
-             (editors/show-show-editor (keyword kind) show track panel (partial track-editor-update-fn kind track gear))
-             (su/editor-opened-in-background)))
-          (su/unrecognized-expression))
+        (if (str/blank? kind)
+          (do  ; Just bring the show window to the front and scroll to the track.
+            (seesaw/invoke-later
+             (seesaw/show! (:frame show))
+             (scroll-to-track show track))  ; This can block with a modal.
+            (su/window-brought-to-front "Show" "track"))
+          (if (contains? @editors/show-track-editors (keyword kind))
+            (seesaw/invoke-now
+             (let [panel (:panel track)
+                   gear  (seesaw/select panel [:#gear])]
+               (editors/show-show-editor (keyword kind) show track panel
+                                         (partial track-editor-update-fn kind track gear))
+               (su/editor-opened-in-background)))
+            (su/unrecognized-expression)))
         (su/track-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))
@@ -2718,19 +2725,25 @@
 
 (defn edit-phrase-expression
   "Helper function used by requests from the expressions report
-  requesting an editor window for an expression in a phrase."
+  requesting an editor window for an expression in a phrase trigge."
   [path uuid kind]
   (if-let [show (latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-         (if (contains? @editors/show-phrase-editors (keyword kind))
-          (seesaw/invoke-now
-           (let [panel (:panel (su/phrase-runtime-info show phrase))
-                 gear  (seesaw/select panel [:#gear])]
-             (editors/show-show-editor (keyword kind) show phrase panel
-                                       (partial phrases/phrase-editor-update-fn kind show phrase gear))
-             (su/editor-opened-in-background)))
-          (su/unrecognized-expression))
+        (if (str/blank? kind)
+          (do  ; Just bring the show window to the front and scroll to the phrase trigger.
+            (seesaw/invoke-later
+             (seesaw/show! (:frame show))
+             (phrases/scroll-to-phrase show phrase))  ; This can block with a modal.
+            (su/window-brought-to-front "Show" "phrase trigger"))
+          (if (contains? @editors/show-phrase-editors (keyword kind))
+            (seesaw/invoke-now
+             (let [panel (:panel (su/phrase-runtime-info show phrase))
+                   gear  (seesaw/select panel [:#gear])]
+               (editors/show-show-editor (keyword kind) show phrase panel
+                                         (partial phrases/phrase-editor-update-fn kind show phrase gear))
+               (su/editor-opened-in-background)))
+            (su/unrecognized-expression)))
         (su/phrase-not-found))
       (su/show-not-enabled))
     (su/show-not-found)))

@@ -1025,7 +1025,7 @@
         track-level (expression-section
                      (str "Track &ldquo;" (get-in track [:metadata :title]) "&rdquo;")
                      (str "track-" signature)
-                     nil nil
+                     (str "editTrackExpression('" signature "');") "Scroll Show to this Track"
                      (filter identity (map (partial describe-track-expression  signature track editors)
                                            (keys editors))))
         cue-level (filter identity (map (partial track-cue-expressions signature track)
@@ -1109,7 +1109,7 @@
         phrase-level (expression-section
                       (str "Phrase Trigger &ldquo;" (comment-or-untitled (:comment phrase)) "&rdquo;")
                       (str "phrase-" uuid)
-                      nil nil
+                      (str "editPhraseExpression('" uuid "');") "Scroll Show to this Phrase Trigger"
                       (filter identity (map (partial describe-phrase-expression uuid phrase editors)
                                            (keys editors))))
         cue-level (filter identity (map (partial phrase-cue-expressions uuid phrase)
@@ -1275,8 +1275,8 @@
    (window-brought-to-front window nil))
   ([window scroll-target]
    (expression-report-error-response
-    (hiccup/html (vec (concat [:p "The " window " window has been brought to the front, "]
+    (hiccup/html (vec (concat [:p "The " window " window has been opened or brought to the front, "]
                               (when scroll-target
                                 ["and the " scroll-target " has been scrolled into view, "])
-                              ["but you&rsquo;ll need to switch back to Beat Link Trigger to work with it."])))
-    "Window Brought Forward")))
+                              ["but you&rsquo;ll need to switch to Beat Link Trigger to work with it."])))
+    "Window Adjusted")))
