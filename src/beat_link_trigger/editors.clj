@@ -163,6 +163,11 @@
   the Global Setup expression."
               :bindings   nil}))
 
+(defn simulate-trigger-event
+  "Helper function for simulating events in trigger editors."
+  [simulated-status trigger compiled]
+  (compiled simulated-status @(seesaw/user-data trigger) (requiring-resolve 'beat-link-trigger.expressions/globals)))
+
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
   along with the details needed to describe and compile the
@@ -208,7 +213,9 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                :bindings (trigger-bindings-for-class CdjStatus)}
+                :bindings (trigger-bindings-for-class CdjStatus)
+                :simulate (fn [_kind trigger compiled]
+                            (simulate-trigger-event (show-util/random-cdj-status) trigger compiled))}
 
    :beat {:title "Beat Expression"
           :tip "Called on each beat from the watched devices."
@@ -223,7 +230,9 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-          :bindings (trigger-bindings-for-class Beat)}
+          :bindings (trigger-bindings-for-class Beat)
+          :simulate (fn [_kind trigger compiled]
+                            (simulate-trigger-event (show-util/random-beat) trigger compiled))}
 
    :tracked {:title "Tracked Update Expression"
              :tip "Called for each update from the player a trigger is tracking."
@@ -242,7 +251,9 @@
   enabled, and the watched player is playing), wrap your code inside a
   <code>when</code> expression conditioned on the
   <code>trigger-active?</code> convenience variable."
-             :bindings (trigger-bindings-for-class CdjStatus)}
+             :bindings (trigger-bindings-for-class CdjStatus)
+             :simulate (fn [_kind trigger compiled]
+                            (simulate-trigger-event (show-util/random-cdj-status) trigger compiled))}
 
    :deactivation {:title "Deactivation Expression"
                   :tip "Called when the trigger becomes disabled or idle."
@@ -267,7 +278,9 @@
   expression must be able to cope with <code>nil</code> values for all
   the convenience variables that it uses."
                   :bindings (trigger-bindings-for-class CdjStatus)
-                  :nil-status? true}
+                  :nil-status? true
+                  :simulate (fn [_kind trigger compiled]
+                            (simulate-trigger-event (show-util/random-cdj-status) trigger compiled))}
 
    :shutdown {:title "Shutdown Expression"
               :tip "Called once to release resources your trigger had been using."
@@ -1610,6 +1623,47 @@ a {
                                 (build-replace-dialog-action find-dialog replace-dialog)])
            (menus/build-help-menu)]))
 
+(defn- build-trigger-simulate-action
+  "Creates a menu action to simulate the expression associated with a
+  trigger, if that is appropriate for the kind of expression."
+  [^RSyntaxTextArea editor editors-map kind trigger global?]
+  (when-let [simulate-fn (get-in editors-map [kind :simulate])]
+    (seesaw/action :handler (fn [_]
+                              (let [source      (.getText editor)
+                                    editor-info (get editors-map kind)
+                                    compiled    (when-not (str/blank? source)
+                                                  (try
+                                                    (expressions/build-user-expression
+                                                     source (:bindings editor-info) (:nil-status? editor-info)
+                                                     (triggers-editor-title kind trigger global?)
+                                                     (:no-locals? editor-info))
+                                                    (catch Throwable e
+                                                      (timbre/error e "Problem parsing" (:title editor-info))
+                                                      (seesaw/alert editor
+                                                                    (str "<html>Unable to use " (:title editor-info)
+                                                                         ".<br><br>" e
+                                                                         (when-let [cause (.getCause e)]
+                                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                                    :title "Exception during Clojure evaluation"
+                                                                    :type :error))))]
+                                (when compiled
+                                  (try
+                                    (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+                                      (simulate-fn kind trigger compiled))
+                                    (catch Throwable t
+                                      (timbre/error t (str "Problem simulating expression:\n" t))
+                                      (seesaw/alert editor
+                                                    (str "<html>Problem simulating expression.<br><br>" t
+                                                         (when-let [cause (.getCause t)]
+                                                           (str "<br>Cause: " (.getMessage cause)))
+                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                                    :title "Exception during Clojure evaluation"
+                                                    :type :error))))))
+                   :name "Simulate"
+                   :key "menu shift S"
+                   :enabled? false)))
+
 (defn- create-triggers-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Triggers window expression, with an update function to be
@@ -1618,6 +1672,7 @@ a {
   (let [global?         (:global @(seesaw/user-data trigger))
         text            (get-in @(seesaw/user-data trigger) [:expressions kind])
         save-fn         (fn [text] (update-triggers-expression kind trigger global? text update-fn))
+        editors-map     (if global? global-trigger-editors trigger-editors)
         ^JFrame root    (seesaw/frame :title (triggers-editor-title kind trigger global?) :on-close :nothing
                                       :size [800 :by 600])
         editor          (RSyntaxTextArea. 16 80)
@@ -1626,6 +1681,7 @@ a {
         status-label    (seesaw/label)
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
+        simulate-action (build-trigger-simulate-action editor editors-map kind trigger global?)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
@@ -1637,23 +1693,30 @@ a {
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
 
                                                          [status-label "align left, sizegroup b"]
-                                                         [update-action "align center, push"]
+                                                         [(if simulate-action
+                                                            (seesaw/horizontal-panel
+                                                             :items [update-action (seesaw/label "    ")
+                                                                     simulate-action])
+                                                            update-action)
+                                                          "align center, push"]
                                                          [(seesaw/label "") "align right, sizegroup b, wrap"]
 
                                                          [(seesaw/scrollable help :hscroll :never)
                                                           "span 3, sizegroup a, gapy unrelated, width 100%"]]))
-    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action nil tools))
+    (seesaw/config! root :menubar (build-menubar root editor editor-panel update-action simulate-action tools))
     (seesaw/config! editor :id :source)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
                                      (not= (util/remove-blanks (get-in @(seesaw/user-data trigger) [:expressions kind]))
-                                           (util/remove-blanks (seesaw/text e))))))
+                                           (util/remove-blanks (seesaw/text e))))
+                     (when simulate-action
+                       (seesaw/config! simulate-action :enabled? (not (str/blank? (.getText editor)))))))
     (seesaw/value! root {:source text})
     (.setCaretPosition editor 0)
     (.discardAllEdits editor)
     (.setContentType help "text/html")
-    (.setText help (build-triggers-help kind global? (if global? global-trigger-editors trigger-editors)))
+    (.setText help (build-triggers-help kind global? editors-map))
     (seesaw/scroll! help :to :top)
     (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
