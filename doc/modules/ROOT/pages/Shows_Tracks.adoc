@@ -336,7 +336,13 @@ window for the Track, which is how you can create Cues that respond to
 particular beat ranges in the Track, as discussed in
 <<Shows_Cues.adoc#,that section>>.
 
-Below that come the expression-related options, allowing you to open
+Once you have attached any expressions to your track, a
+menu:View Expressions in Report[] option will appear below
+menu:Edit Track Cues[]. Selecting it tells your system browser to
+open the <<Expressions_Report.adoc#>> and scroll it to the section
+that holds this track’s expressions.
+
+Below that come the expression-specific options, allowing you to open
 editors to create or edit Clojure code that runs at well-defined
 moments to customize the behavior of the Track. These are followed by
 the menu:Simulate[] submenu, which allows you to test your MIDI

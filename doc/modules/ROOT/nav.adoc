@@ -9,6 +9,7 @@
 ** xref:Expressions_ShowTrack.adoc[Show Track Expressions]
 ** xref:Expressions_ShowCue.adoc[Show Cue Expressions]
 ** xref:Expressions_PhraseTrigger.adoc[Phrase Trigger Expressions]
+** xref:Expressions_Report.adoc[Expressions Report]
 ** xref:ShowInternals.adoc[Show Internal Structures]
 * xref:Players.adoc[The Player Status Window]
 * xref:Shows.adoc[Shows]

@@ -163,6 +163,7 @@ editing it in a powerful way, consider
 ====
 
 
+[[editor-menus]]
 === The Editor Menus
 
 Beat Link Trigger now offers a menu bar inside the expression editor
@@ -172,11 +173,40 @@ letting you save your expression to a text file for that editor to
 work with, and load the results when you are done, or insert another
 file at the current insertion point.
 
-image:EditorFileMenu.png[Editor File Menu,230,140]
+image:EditorFileMenu.png[Editor File Menu,290,175]
 
 It also lets you update the expression when you have changed it,
 compiling and loading the new version, or close the editor without
 saving your changes.
+
+menu:File[Simulate] lets you test the effect of the current text in
+the editor window without updating it, by pretending that the
+expression is being run in a plausible show context.
+
+TIP: This is slightly different from the Simulate submenu in the
+context menu that opened the editor, because that outer submenu uses
+the last-saved version of the expression, not the current contents of
+the editor. This Simulate option will only be available for
+expressions that can be simulated--that is, expressions which do
+appear in the outer Simulate submenu. (Keep in mind that even when you
+can simulate it, if you have written an expression that relies on very
+deep interaction with <<ShowInternals.adoc#,show internals>> or the DJ
+Link environment, it can’t be practically simulated in this way:
+you’ll need to hook up actual player hardware and create the situation
+that the expression responds to. But for most expressions this is a
+valuable testing and troubleshooting tool.)
+
+Of course if there are any errors in the syntax or semantics of your
+expression, they will be revealed in the attempt to simulate it as
+well.
+
+Finally, if you are editing an expression that is part of a
+<<Shows.adoc#,show>>, menu:File[View in Expression Report] tells your
+system browser to open that show’s <<Expressions_Report.adoc#>> and
+scroll it to the section that holds this expression. This allows you
+to compare it to the related expressions (and copy in relevant parts
+if they are helpful), or simulate more than one in sequence to test
+how they will interact in a real performance.
 
 The menu:Edit[] menu gives you access to the standard editing
 capabilities that were formerly available in the context menu (which

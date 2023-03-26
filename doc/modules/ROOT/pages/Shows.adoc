@@ -89,6 +89,7 @@ downloaded, you can open it by choosing menu:File[Open Show] in the
 Beat Link Triggers window and navigating to the show file.
 ====
 
+[[show-window-header-elements]]
 == Show Window Header Elements
 
 At the top of the Show window, above any Tracks or Phrase Triggers
@@ -117,6 +118,7 @@ TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
 is Online, because otherwise there is no way tracks could be
 identified as loaded.
 
+[[show-menu-bar]]
 === Show Menu Bar
 
 The Show window has its own menu bar with commands that apply to the
@@ -128,7 +130,17 @@ avoid the risk of losing data, you can manually save it by choosing
 menu:File[Save]. You can also save a copy to a different file at any
 time using menu:File[Save a Copy].
 
-image:ShowFileMenu.png[Show File Menu,172,94]
+image:ShowFileMenu.png[Show File Menu,265,135]
+
+Choosing menu:File[Expression Report] opens a browser window holding a
+<<Expressions_Report.adoc#,report>> that provides a powerful and
+convenient way of exploring, managing, and simulating all of the
+expressions that you are using in the show. To use the full power of
+this report you need to choose menu:File[Enable Report Actions], but
+you should only do this on a trusted network, because any other
+machine on the network will then be able to trigger simulations of
+your expressions, or manipulate the Beat Link Trigger interface in the
+ways the report can.
 
 If you want to stop working with a show, and don’t want Beat Link
 Trigger to automatically open it the next time you launch the program,

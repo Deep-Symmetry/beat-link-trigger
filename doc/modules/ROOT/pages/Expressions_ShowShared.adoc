@@ -6,6 +6,11 @@ more conveniently perform actions when specific sections of particular
 tracks are played. Shows have their own sets of expressions, which we
 cover next.
 
+TIP: Between tracks, phrase triggers, and all of the cues you might
+put inside them, shows can accumulate a great many expressions. You can
+use the <<Expressions_Report.adoc#,Expressions Report>> to help
+manage them.
+
 The Tracks menu at the top of a Show window lets you define
 expressions that can manage values you want to make available to all
 your other expressions within the Show. Most of them are described in

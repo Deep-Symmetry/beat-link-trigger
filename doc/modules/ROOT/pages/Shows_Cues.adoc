@@ -454,14 +454,19 @@ The gear icon next to an expression will be filled in if that
 expression has a value, and the gear in the button will be filled in
 if any expression associated with the Cue has a value.
 
-image:CueContextMenu.png[Context Menu,912,613]
+image:CueContextMenu.png[Context Menu,912,673]
 
 The menu starts with the expression-related options, allowing you to
 open editors to create or edit Clojure code that runs at well-defined
-moments to customize the behavior of the Cue. These are followed by
-the menu:Simulate[] submenu, which allows you to test your MIDI
-mappings and custom expressions as described in the
-<<cue-simulate,next section>>.
+moments to customize the behavior of the Cue. If you have created any
+expressions for the cue, the menu:View Expressions in Report[] option
+will be present at the top of the menu. Selecting it tells your system
+browser to open the <<Expressions_Report.adoc#>> and scroll it to the
+section that holds this cue’s expressions.
+
+The expression-related options are followed by the menu:Simulate[]
+submenu, which allows you to test your MIDI mappings and custom
+expressions as described in the <<cue-simulate,next section>>.
 
 The menu:Inspect Expression Locals[] option allows you to explore any
 values that have been set up by expressions in any Cue or the Track
