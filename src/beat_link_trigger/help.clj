@@ -30,25 +30,29 @@
   ;; Routes for show reports.
   (route/resources "/resources/" {:root "reports"})
   (compojure/GET "/show/reports/expressions" [show]
-                 ((requiring-resolve 'beat-link-trigger.show-util/expressions-report) show))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/expressions-report) show))
   (compojure/GET "/show/edit-show-expression" [show kind]
-                 ((requiring-resolve 'beat-link-trigger.show/edit-show-expression) show kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/edit-show-expression) show kind))
   (compojure/GET "/show/edit-track-expression" [show track kind]
-                 ((requiring-resolve 'beat-link-trigger.show/edit-track-expression) show track kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/edit-track-expression) show track kind))
   (compojure/GET "/show/simulate-track-expression" [show track kind]
-                 ((requiring-resolve 'beat-link-trigger.show/simulate-track-expression) show track kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/simulate-track-expression) show track kind))
   (compojure/GET "/show/edit-track-cue-expression" [show track cue kind]
-                 ((requiring-resolve 'beat-link-trigger.show/edit-track-cue-expression) show track cue kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/edit-track-cue-expression)
+                  show track cue kind))
   (compojure/GET "/show/simulate-track-cue-expression" [show track cue kind]
-                 ((requiring-resolve 'beat-link-trigger.show/simulate-track-cue-expression) show track cue kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/simulate-track-cue-expression)
+                  show track cue kind))
   (compojure/GET "/show/edit-phrase-expression" [show phrase kind]
-                 ((requiring-resolve 'beat-link-trigger.show/edit-phrase-expression) show phrase kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/edit-phrase-expression) show phrase kind))
   (compojure/GET "/show/simulate-phrase-expression" [show phrase kind]
-                 ((requiring-resolve 'beat-link-trigger.show/simulate-phrase-expression) show phrase kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/simulate-phrase-expression) show phrase kind))
   (compojure/GET "/show/edit-phrase-cue-expression" [show phrase cue kind]
-                 ((requiring-resolve 'beat-link-trigger.show/edit-phrase-cue-expression) show phrase cue kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/edit-phrase-cue-expression)
+                  show phrase cue kind))
   (compojure/GET "/show/simulate-phrase-cue-expression" [show phrase cue kind]
-                 ((requiring-resolve 'beat-link-trigger.show/simulate-phrase-cue-expression) show phrase cue kind))
+                 ((requiring-resolve 'beat-link-trigger.expression-report/simulate-phrase-cue-expression)
+                  show phrase cue kind))
 
   ;; We give up!
   (route/not-found "<p>Page not found.</p>"))

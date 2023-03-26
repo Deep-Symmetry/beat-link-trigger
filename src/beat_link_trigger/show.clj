@@ -29,7 +29,6 @@
            [java.io File]
            [java.lang.ref SoftReference]
            [java.nio.file Files FileSystem FileSystems Path StandardCopyOption StandardOpenOption]
-           [java.util UUID]
            [javax.swing JComponent JFrame JMenu JMenuBar JPanel JScrollPane]
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$TrackSourceSlot
@@ -134,7 +133,7 @@
                                      :title "Exception in Show Expression" :type :error))
           [nil t])))))
 
-(defn- run-track-function
+(defn run-track-function
   "Checks whether the track has a custom function of the specified kind
   installed and if so runs it with the supplied status argument and
   the track local and global atoms. Returns a tuple of the function
@@ -1295,7 +1294,7 @@
   [track kind]
   (str/blank? (get-in (latest-track track) [:contents :expressions kind])))
 
-(defn- track-editor-update-fn
+(defn track-editor-update-fn
   "The function called when a track-level expression has been updated, to
   properly update the application state and user interface."
   [kind track gear]
@@ -1762,7 +1761,7 @@
       (doseq [track-path (Files/newDirectoryStream tracks-path)]
         (create-track-panel show track-path)))))
 
-(defn- scroll-to-track
+(defn scroll-to-track
   "Makes sure the specified track is visible (it has just been imported
   or copied), or give the user a warning that the current track
   filters have hidden it. `track` is likely to be shockingly
@@ -2088,7 +2087,7 @@
                                (.dispatchEvent frame (WindowEvent. frame WindowEvent/WINDOW_CLOSING)))))
                  :name "Close"))
 
-(defn- global-editor-update-fn
+(defn global-editor-update-fn
   "The function called to propagate necessary changes when a show global
   expression has been updated."
   [show kind]
@@ -2586,221 +2585,3 @@
   [show f & args]
   (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
           [(:file show) :contents :user]))
-
-;; Functions that support the show expressions report action buttions.
-
-(defn edit-show-expression
-  "Helper function used by requests from the expressions report
-  requesting an editor window for an global expression."
-  [path kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if (str/blank? kind)
-        (do  ; Just bring the show window to the front.
-          (seesaw/invoke-later (seesaw/show! (:frame show)))
-          (su/window-brought-to-front "Show"))
-        (if (contains? @editors/global-show-editors (keyword kind))
-          (do
-            (seesaw/invoke-later
-             (editors/show-show-editor (keyword kind) show nil (:frame show)
-                                       (partial global-editor-update-fn show kind)))
-            (su/editor-opened-in-background))
-          (su/unrecognized-expression)))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn simulate-track-expression
-  "Helper function used by requests from the expressions report
-  requesting simulation of an expression in a track."
-  [path signature kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [track (get-in show [:tracks signature])]
-        (if-let [status (track-random-status-for-simulation (keyword kind) track)]
-          (do
-            (run-track-function track (keyword kind) status true)
-            (su/expression-report-success-response))
-          (su/unrecognized-expression))
-        (su/track-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn edit-track-expression
-  "Helper function used by requests from the expressions report
-  requesting an editor window for an expression in a track."
-  [path signature kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [track (get-in show [:tracks signature])]
-        (if (str/blank? kind)
-          (do  ; Just bring the show window to the front and scroll to the track.
-            (seesaw/invoke-later
-             (seesaw/show! (:frame show))
-             (scroll-to-track show track))  ; This can block with a modal.
-            (su/window-brought-to-front "Show" "track"))
-          (if (contains? @editors/show-track-editors (keyword kind))
-            (seesaw/invoke-now
-             (let [panel (:panel track)
-                   gear  (seesaw/select panel [:#gear])]
-               (editors/show-show-editor (keyword kind) show track panel
-                                         (partial track-editor-update-fn kind track gear))
-               (su/editor-opened-in-background)))
-            (su/unrecognized-expression)))
-        (su/track-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn simulate-track-cue-expression
-  "Helper function used by requests from the expressions report
-  requesting simulation of an expression in a track cue."
-  [path signature cue-uuid kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [track (get-in show [:tracks signature])]
-        (if-let [cue (find-cue track (UUID/fromString cue-uuid))]
-          (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
-              (do
-                ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
-                (cues/run-cue-function track cue (keyword kind) status true)
-                (su/expression-report-success-response))
-              (su/unrecognized-expression))
-          (su/cue-not-found "track"))
-        (su/track-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn edit-track-cue-expression
-  "Helper function used by requests from the expressions report
-  requesting an editor window for an expression in a track cue."
-  [path signature cue-uuid kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [track (get-in show [:tracks signature])]
-        (if-let [cue (find-cue track (UUID/fromString cue-uuid))]
-          (do
-            (when-not (get-in track [:cues-editor :panels (:uuid cue)])
-              ;; Make sure the cues editor window is open before trying to edit a cue expression.
-              (seesaw/invoke-now (cues/open-cues track (:frame show))))
-            (seesaw/invoke-now
-               (let [track (latest-track track)
-                     panel (get-in track [:cues-editor :panels (:uuid cue)])
-                     gear  (when panel (seesaw/select panel [:#gear]))]
-                 (if gear
-                   (if (str/blank? kind)
-                     (do  ; Just scroll the cues editor to this cue and bring it to the front.
-                       (seesaw/show! (get-in track [:cues-editor :frame]))
-                       (seesaw/invoke-later (cues/scroll-to-cue track cue))  ; This can block with a modal!
-                       (su/window-brought-to-front "Cues Editor" "cue"))
-                     (if (contains? @editors/show-cue-editors (keyword kind))
-                       (do
-                         (editors/show-cue-editor (keyword kind) track cue panel
-                                                  (fn []
-                                                    (cues/update-all-linked-cues track cue)
-                                                    (when gear (cues/update-cue-gear-icon track cue gear))))
-                         (su/editor-opened-in-background))
-                       (su/unrecognized-expression)))
-                   (su/expression-report-error-response
-                    "The Cues Editor window for the track could not be found or created."
-                    "Problem Opening Editor")))))
-          (su/cue-not-found "track"))
-        (su/track-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn simulate-phrase-expression
-  "Helper function used by requests from the expressions report
-  requesting simulation of an expression in a phrase."
-  [path uuid kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-        (if-let [status (phrases/phrase-random-status-for-simulation (keyword kind))]
-          (do
-            (phrases/run-phrase-function show phrase (keyword kind) status true)
-            (su/expression-report-success-response))
-          (su/unrecognized-expression))
-        (su/phrase-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn edit-phrase-expression
-  "Helper function used by requests from the expressions report
-  requesting an editor window for an expression in a phrase trigge."
-  [path uuid kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-        (if (str/blank? kind)
-          (do  ; Just bring the show window to the front and scroll to the phrase trigger.
-            (seesaw/invoke-later
-             (seesaw/show! (:frame show))
-             (phrases/scroll-to-phrase show phrase))  ; This can block with a modal.
-            (su/window-brought-to-front "Show" "phrase trigger"))
-          (if (contains? @editors/show-phrase-editors (keyword kind))
-            (seesaw/invoke-now
-             (let [panel (:panel (su/phrase-runtime-info show phrase))
-                   gear  (seesaw/select panel [:#gear])]
-               (editors/show-show-editor (keyword kind) show phrase panel
-                                         (partial phrases/phrase-editor-update-fn kind show phrase gear))
-               (su/editor-opened-in-background)))
-            (su/unrecognized-expression)))
-        (su/phrase-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn simulate-phrase-cue-expression
-  "Helper function used by requests from the expressions report
-  requesting simulation of an expression in a phrase cue."
-  [path uuid cue-uuid kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-        (if-let [cue (find-cue phrase (UUID/fromString cue-uuid))]
-          (if-let [status (cues/random-status-for-simulation (keyword kind) phrase)]
-            (do
-              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
-              (cues/run-cue-function phrase cue (keyword kind) status true)
-              (su/expression-report-success-response))
-            (su/unrecognized-expression))
-          (su/cue-not-found "phrase"))
-        (su/phrase-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
-
-(defn edit-phrase-cue-expression
-  "Helper function used by requests from the expressions report
-  requesting an editor window for an expression in a phrase cue."
-  [path uuid cue-uuid kind]
-  (if-let [show (latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-        (if-let [cue (find-cue phrase (UUID/fromString cue-uuid))]
-          (do
-            (when-not (get-in phrase [:cues-editor :panels (:uuid cue)])
-              ;; Make sure the cues editor window is open before trying to edit a cue expression.
-              (seesaw/invoke-now (cues/open-cues phrase (:frame show))))
-            (seesaw/invoke-now
-               (let [[show phrase] (su/latest-show-and-phrase show phrase)
-                     panel (get-in (su/phrase-runtime-info show phrase) [:cues-editor :panels (:uuid cue)])
-                     gear  (when panel (seesaw/select panel [:#gear]))]
-                 (if gear
-                   (if (str/blank? kind)
-                     (do  ; Just scroll the cues editor to this cue and bring it to the front.
-                       (seesaw/show! (get-in phrase [:cues-editor :frame]))
-                       (seesaw/invoke-later (cues/scroll-to-cue phrase cue))  ; This can block with a modal!
-                       (su/window-brought-to-front "Cues Editor" "cue"))
-                     (if (contains? @editors/show-cue-editors (keyword kind))
-                       (do
-                         (editors/show-cue-editor (keyword kind) phrase cue panel
-                                                  (fn []
-                                                    (cues/update-all-linked-cues phrase cue)
-                                                    (when gear (cues/update-cue-gear-icon phrase cue gear))))
-                         (su/editor-opened-in-background))
-                       (su/unrecognized-expression)))
-                   (su/expression-report-error-response
-                    "The Cues Editor window for the phrase could not be found or created."
-                    "Problem Opening Editor")))))
-          (su/cue-not-found "phrase"))
-        (su/phrase-not-found))
-      (su/show-not-enabled))
-    (su/show-not-found)))
