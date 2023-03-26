@@ -1,15 +1,13 @@
-== Show Global Expressions
+= Show Global Expressions
 
-Starting with version 0.5 you can use <<Shows.adoc#,Show files>> to
-more conveniently perform actions when specific sections of particular
-tracks are played. Shows have their own sets of expressions, which we
-cover next.
-
-The Tracks menu at the top of a Show window lets you define three
+The Tracks menu at the top of a Show window lets you define
 expressions that can manage values you want to make available to all
-your other expressions within the Show.
+your other expressions within the Show. The
+<<Expressions_ShowShared.adoc#,previous section>> explained how to
+share functions with all the expressions in your show. Now we will
+look at how to manage values for them during the show lifecycle.
 
-To support that, all Show expressions have access to a Clojure
+All Show expressions have access to a Clojure
 http://clojure.org/reference/atoms[atom] named `globals` that is
 shared with all other Show expressions, so that’s a great place to put
 things for them to find. The atom starts out holding an empty
