@@ -52,6 +52,14 @@ This change log follows the conventions of
 
 ### Added
 
+- Shows now have an [Expression
+  Report](https://github.com/Deep-Symmetry/beat-link-trigger/issues/156),
+  which provides a convenient way to review, manage, and validate the
+  many expressions that can be added to a show.
+- The editor windows for expressions have a new Simulate button and
+  menu option when the expression makes sense to simulate, which allow
+  the current state of the expression code to be simulated and tested
+  while the editor remains open.
 - A simple way to check whether the track loaded on a particular
   player has phrase analysis available, as long as a Show is open.
   This will support a new integration example showing how to set a
