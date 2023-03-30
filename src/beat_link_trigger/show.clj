@@ -2098,7 +2098,8 @@
     (reset! (:expression-globals show) {})
     (run-global-function show :setup nil true)
     (when (util/online?)
-      (run-global-function show :online nil true))))
+      (run-global-function show :online nil true)))
+  (update-tracks-global-expression-icons show))
 
 (defn build-global-editor-action
   "Creates an action which edits one of a show's global expressions."
