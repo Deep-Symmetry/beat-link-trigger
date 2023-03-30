@@ -49,6 +49,9 @@ This change log follows the conventions of
   packets come back from an IPv6 address, which has led to quirky
   networking problems. The upgrade to Java 17 made this even worse, so
   the Windows installer now runs Java in a way that disables IPv6.
+- The gear icons in the show menu bar were [not properly
+  updating](https://github.com/Deep-Symmetry/beat-link-trigger/issues/161)
+  when global expressions were edited.
 
 ### Added
 
