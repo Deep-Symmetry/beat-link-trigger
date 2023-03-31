@@ -733,19 +733,25 @@
   the color of the next section. `fraction` tells us how far into the
   beat we have reached."
   [section next-section fraction]
-  (if next-section
-    (if (= section next-section)
-      ;; We are looping back to the start of this section, fade to transparent over the beat.
-      (let [alpha  (.getAlpha playback-marker-color)
-            scaled (int (* alpha (- 1.0 fraction)))]
-        (Util/buildColor (phrase-section-colors section) (Color. 255 255 255 scaled)))
-      ;; We are moving to another section, interpolate between the colors over the beat.
-      (let [current (color/as-rgba (color/int32 (.getRGB (phrase-section-colors section))))
-            next    (color/as-rgba (color/int32 (.getRGB (phrase-section-colors next-section))))
-            blended (Color. @(color/as-int24 (thing-math/mix current next fraction)))]
-        (Util/buildColor blended playback-marker-color)))
-    ;; We are not ending a section, the color is simply that of the current section.
-    (Util/buildColor (phrase-section-colors section) playback-marker-color)))
+  (try
+    (if next-section
+      (if (= section next-section)
+        ;; We are looping back to the start of this section, fade to transparent over the beat.
+        (let [alpha  (.getAlpha playback-marker-color)
+              scaled (int (* alpha (- 1.0 fraction)))]
+          (Util/buildColor (phrase-section-colors section) (Color. 255 255 255 scaled)))
+        ;; We are moving to another section, interpolate between the colors over the beat.
+        (let [current (color/as-rgba (color/int32 (.getRGB (phrase-section-colors section))))
+              next    (color/as-rgba (color/int32 (.getRGB (phrase-section-colors next-section))))
+              blended (Color. @(color/as-int24 (thing-math/mix current next fraction)))]
+          (Util/buildColor blended playback-marker-color)))
+      ;; We are not ending a section, the color is simply that of the current section.
+      (Util/buildColor (phrase-section-colors section) playback-marker-color))
+    (catch Exception e
+      (timbre/error e "Problem computing phrase playback marker color. section:" section
+                    "next-section:" next-section "fraction:" fraction)
+      ;; Return generic marker.
+      playback-marker-color)))
 
 (defn swap-cue!
   "Atomically updates the map of open shows by calling the specified
