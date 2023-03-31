@@ -600,12 +600,13 @@
   "Parses all of the expressions associated with a phrase trigger and
   its cues. `phrase` must be current."
   [show phrase]
-  (doseq [[kind expr] (editors/sort-setup-to-front (get-in phrase [:contents :expressions]))]
+  (doseq [[kind expr] (editors/sort-setup-to-front (:expressions phrase))]
     (let [editor-info (get @editors/show-phrase-editors kind)]
         (try
-          (swap-phrase! show phrase assoc-in [:expression-fns kind]
-                        (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                           (editors/show-editor-title kind show phrase)))
+          (swap-phrase-runtime! show phrase assoc-in [:expression-fns kind]
+                                (expressions/build-user-expression expr (:bindings editor-info)
+                                                                   (:nil-status? editor-info)
+                                                                   (editors/show-editor-title kind show phrase)))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
                                      " when loading Show. Expression:\n" expr "\n"))
