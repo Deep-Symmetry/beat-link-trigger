@@ -213,8 +213,8 @@
                             'bar-meaningful?    {:code '(.isBeatWithinBarMeaningful status)
                                                  :doc
                                                  "Will be <code>true</code> if this update is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
-                            'bar-number   {:code '(or (current-bar status) -1)
-                                           :doc "Identifies the bar in which the beat that just played falls. This counter starts at bar 1 as the track is played, and increments on each downbeat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
+                            'bar-number         {:code '(or (current-bar status) -1)
+                                                 :doc  "Identifies the bar in which the beat that just played falls. This counter starts at bar 1 as the track is played, and increments on each downbeat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
                             'cdj?               {:code '(or (instance? CdjStatus status)
                                                             (and (instance? Beat status)
                                                                  (< (.getDeviceNumber status 17))))
@@ -266,7 +266,7 @@
 
    Beat {:inherit  [DeviceUpdate]
          :bindings {'beat-number   {:code '(or (current-beat status) -1)
-                                    :doc "Identifies the beat of the track that just played. This counter starts at beat 1 as the track is played, and increments on each beat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
+                                    :doc  "Identifies the beat of the track that just played. This counter starts at beat 1 as the track is played, and increments on each beat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
                     'tempo-master? {:code '(.isTempoMaster status)
                                     :doc  "Was this beat sent by the current tempo master?"}
                     'on-air?       {:code '(.isOnAir (.getLatestStatusFor (VirtualCdj/getInstance) status))
@@ -306,17 +306,23 @@
                                                :doc  "Is the player currently in Sync mode?"}
                          'tempo-master?       {:code '(.isTempoMaster status)
                                                :doc  "Is this player the current tempo master?"}
-                         'track-album         {:code '(when (some? track-metadata) (when-let [album (.getAlbum track-metadata)] (.label album)))
+                         'track-album         {:code '(when (some? track-metadata)
+                                                        (when-let [album (.getAlbum track-metadata)] (.label album)))
                                                :doc  "The album of the loaded track, if metadata is available."}
-                         'track-artist        {:code '(when (some? track-metadata) (when-let [artist (.getArtist track-metadata)] (.label artist)))
+                         'track-artist        {:code '(when (some? track-metadata)
+                                                        (when-let [artist (.getArtist track-metadata)] (.label artist)))
                                                :doc  "The artist of the loaded track, if metadata is available."}
-                         'track-comment       {:code '(when (some? track-metadata) (when-let [comment (.getComment track-metadata)] comment))
+                         'track-comment       {:code '(when (some? track-metadata)
+                                                        (when-let [comment (.getComment track-metadata)] comment))
                                                :doc  "The comment assigned to the loaded track, if metadata is available."}
-                         'track-genre         {:code '(when (some? track-metadata) (when-let [genre (.getGenre track-metadata)] (.label genre)))
+                         'track-genre         {:code '(when (some? track-metadata)
+                                                        (when-let [genre (.getGenre track-metadata)] (.label genre)))
                                                :doc  "The genre of the loaded track, if metadata is available."}
-                         'track-key           {:code '(when (some? track-metadata) (when-let [key (.getKey track-metadata)] (.label key)))
+                         'track-key           {:code '(when (some? track-metadata)
+                                                        (when-let [key (.getKey track-metadata)] (.label key)))
                                                :doc  "The key of the loaded track, if metadata is available."}
-                         'track-label         {:code '(when (some? track-metadata) (when-let [label (.getLabel track-metadata)] (.label label)))
+                         'track-label         {:code '(when (some? track-metadata)
+                                                        (when-let [label (.getLabel track-metadata)] (.label label)))
                                                :doc  "The label of the loaded track, if metadata is available."}
                          'track-length        {:code '(when (some? track-metadata) (.getLength track-metadata))
                                                :doc  "The length in seconds of the loaded track, if metadata is available."}
@@ -338,6 +344,9 @@
    ;; A tuple of [Beat TrackPositionUpdate]
    :beat-tpu {:bindings {'beat             {:code '(first status)
                                             :doc  "The raw beat message received from the player."}
+                         'beat-number      {:code '(.beatNumber (second status))
+                                            :doc
+                                            "Identifies the beat of the track that is being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0."}
                          'tempo-master?    {:code '(.isTempoMaster (first status))
                                             :doc  "Was this beat sent by the current tempo master?"}
                          'on-air?          {:code '(.isOnAir (.getLatestStatusFor (VirtualCdj/getInstance) (first status)))
@@ -353,6 +362,10 @@
                          'bar-meaningful?  {:code '(.isBeatWithinBarMeaningful (first status))
                                             :doc
                                             "Will be <code>true</code> if this beat is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
+                         'bar-number       {:code '(when-let [grid (.getLatestBeatGridFor beatgrid-finder
+                                                                                          (first status))]
+                                                     (.getBarNumber grid (.beatNumber (second status))))
+                                            :doc  "Identifies the bar in which the beat that just played falls. This counter starts at bar 1 as the track is played, and increments on each downbeat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
                          'cdj?             {:code '(< (.getDeviceNumber (first status) 17))
                                             :doc  "Will be <code>true</code> if this beat is reporting the status of a CDJ."}
                          'device-name      {:code '(.getDeviceName (first status))
@@ -363,12 +376,26 @@
                                             :doc  "The effective tempo reflected by this beat, which reflects both its track BPM and pitch as needed."}
                          'mixer?           {:code '(> (.getDeviceNumber (first status)) 32)
                                             :doc  "Will be <code>true</code> if this beat came from a Mixer."}
+                         'next-cue         {:code '(when-let [reached (playback-time (first status))]
+                                                     (when-let [metadata (.getLatestMetadataFor
+                                                                          (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                          (first status))]
+                                                       (when-let [cue-list (.getCueList metadata)]
+                                                         (.findEntryAfter cue-list reached))))
+                                            :doc  "The next rekordbox cue that will be reached in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>previous-cue</code> will be equal to that cue."}
                          'pitch-multiplier {:code '(Util/pitchToMultiplier (.getPitch (first status)))
                                             :doc
                                             "Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
                          'pitch-percent    {:code '(Util/pitchToPercentage (.getPitch (first status)))
                                             :doc
                                             "Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
+                         'previous-cue     {:code '(when-let [reached (playback-time (first status))]
+                                                     (when-let [metadata (.getLatestMetadataFor
+                                                                          (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                          (first status))]
+                                                       (when-let [cue-list (.getCueList metadata)]
+                                                         (.findEntryBefore cue-list reached))))
+                                            :doc  "The rekordbox cue that was most recently passed in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>next-cue</code> will be equal to that cue."}
                          'raw-bpm          {:code '(.getBpm (first status))
                                             :doc
                                             "Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
@@ -381,15 +408,38 @@
                          'track-bpm        {:code '(/ (.getBpm (first status)) 100.0)
                                             :doc
                                             "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}
+                         'track-metadata   {:code '(.getLatestMetadataFor
+                                                    (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                    (first status))
+                                            :doc  "The metadata object for the loaded track, if one is available."}
+                         'track-album      {:code '(when (some? track-metadata)
+                                                     (when-let [album (.getAlbum track-metadata)] (.label album)))
+                                            :doc  "The album of the loaded track, if metadata is available."}
+                         'track-artist     {:code '(when (some? track-metadata)
+                                                     (when-let [artist (.getArtist track-metadata)] (.label artist)))
+                                            :doc  "The artist of the loaded track, if metadata is available."}
+                         'track-comment    {:code '(when (some? track-metadata)
+                                                     (when-let [comment (.getComment track-metadata)] comment))
+                                            :doc  "The comment assigned to the loaded track, if metadata is available."}
+                         'track-genre      {:code '(when (some? track-metadata)
+                                                     (when-let [genre (.getGenre track-metadata)] (.label genre)))
+                                            :doc  "The genre of the loaded track, if metadata is available."}
+                         'track-key        {:code '(when (some? track-metadata)
+                                                     (when-let [key (.getKey track-metadata)] (.label key)))
+                                            :doc  "The key of the loaded track, if metadata is available."}
+                         'track-label      {:code '(when (some? track-metadata)
+                                                     (when-let [label (.getLabel track-metadata)] (.label label)))
+                                            :doc  "The label of the loaded track, if metadata is available."}
+                         'track-length     {:code '(when (some? track-metadata) (.getLength track-metadata))
+                                            :doc  "The length in seconds of the loaded track, if metadata is available."}
 
                          'track-position     {:code '(second status)
                                               :doc  "The raw TrackPositionUpdate object built from the beat."}
-                         'beat-number        {:code '(.beatNumber (second status))
-                                              :doc
-                                              "Identifies the beat of the track that is being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0."}
                          'track-time-reached {:code '(.milliseconds (second status))
                                               :doc
-                                              "How far into the track has been played, in thousandths of a second."}}}})
+                                              "How far into the track has been played, in thousandths of a second."}
+                         'track-title        {:code '(when (some? track-metadata) (.getTitle track-metadata))
+                                              :doc  "The title of the loaded track, if metadata is available."}}}})
 
 (def ^:private metadata-bindings
   "The convenience bindings which require the track metadata to be
