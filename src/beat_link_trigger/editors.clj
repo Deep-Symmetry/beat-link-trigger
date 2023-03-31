@@ -453,7 +453,10 @@
    'playing-players {:code '(util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
                                                           (:uuid (:phrase trigger-data)))
                      :doc  "The set of player numbers that are currently
-  playing a phrase that acivated this phrase trigger, if any."}})
+  playing a phrase that acivated this phrase trigger, if any."}
+   'section {:code '(when-let [[section first-beat] (first (util/iget (get-in {:show trigger-data} [:playing-phrases device-number (get-in trigger-data [:phrase :uuid])]) (current-beat status)))]
+                      section)
+             :doc  "The section of the phrase that is currently playing, one of <code>:start</code>, <code>:loop</code>, <code>:end</code>, or <code>:fill</code>."}})
 
 (defn- show-bindings-for-phrase-and-class
   "Collects the set of bindings for a show phrase trigger editor which
