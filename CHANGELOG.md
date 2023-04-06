@@ -11,6 +11,8 @@ This change log follows the conventions of
 - Phrase trigger cues were [not reliably sending their end
   messages](https://github.com/Deep-Symmetry/beat-link-trigger/issues/142)
   when the phrase ended.
+- Phrase trigger expressions were not being parsed when opening a
+  show, so they would not do anything until edited.
 - Due to a [different
   issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues/155),
   track cues were never sending their end messages.
@@ -71,6 +73,10 @@ This change log follows the conventions of
   macros](https://github.com/Deep-Symmetry/beat-link-trigger/issues/156),
   to make it possible to define concise domain-specific languages for
   use in expressions.
+- Phrase trigger expressions can now tell what section of a phrase is
+  playing (`:start`, `:loop`, `:end`, or `:fill`) using a new
+  `section` convenience binding.
+- Track metadata is available in more kinds of expressions.
 
 ### Changed
 

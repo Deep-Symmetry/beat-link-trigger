@@ -146,12 +146,18 @@
 
 (defn current-beat
   "Obtains the current beat number of the player that sent the
-  supplied device update, or `nil` if we don't know."
-  [^DeviceUpdate device-update]
-  (when (.isRunning time-finder)
-    (let [position (.getLatestPositionFor time-finder device-update)]
-      (when position
-        (.-beatNumber position)))))
+  supplied status, or `nil` if we don't know."
+  [status]
+  (cond
+    (instance? DeviceUpdate status)
+    (when (.isRunning time-finder)
+      (let [^DeviceUpdate device-update status
+            position                    (.getLatestPositionFor time-finder device-update)]
+        (when position
+          (.-beatNumber position))))
+
+    (vector? status)  ; A beat-tpu tuple.
+    (.beatNumber (second status))))
 
 (defn current-bar
   "Obtains the current bar number of the player that sent the
