@@ -64,9 +64,11 @@ cues are disabled.
 
 In your Enabled Filter expression, if you want to build logic on top
 of the kind of decisions that the phrase trigger UI offers, there are
-some convenience variables made available to you which describe the
-phrase that is currently playing:
+some convenience variables made available to you (in phrase trigger
+expressions other than the Setup, Stopped and Shutdown) which describe
+the phrase that is currently playing:
 
+[[phrase-convenience-variables]]
 `phrase-type`:: A keyword which identifies the type of phrase it has
 been analyzed to be, corresponding to the options you can choose in
 the <<Shows_PhraseTriggers.adoc#phrase-picker,phrase picker>>. For
@@ -98,6 +100,11 @@ to the track, corresponding to the options you can choose in the
 `:club-1`, `:club-2`, `:cool`, `:hot`, `:natural`, `:subtle`,
 `:vivid`, or `:warm`.
 
+`section`:: A keyword identifying which part of the phrase trigger is
+currently playing. Will be one of `:start`, `:loop`, `:end`, or (when
+a fill section is present in the phrase) `:fill`.
+
+
 [[playing-expression]]
 == Playing Expression
 
@@ -108,6 +115,9 @@ players at the same time; this expression is called only when the
 first phrase activates it. The phrase trigger will continue to be
 considered playing until the final phrase it is activated for ends or
 stops playing or stops matching the Enabled Filter expression.)
+
+The convenience variables <<#phrase-convenience-variables,listed
+above>> are available here as well.
 
 NOTE: If you want this expression to run, make sure the phrase
 trigger’s menu:Playing Message[] menu is set to `Custom`.
@@ -155,6 +165,10 @@ shows what you would need to set up to emulate the other half of the
 Called whenever a beat packet is received from a player that is
 playing a phrase that activated this phrase trigger.
 
+The convenience variables <<#phrase-convenience-variables,listed
+above>> are available here as well.
+
+
 [[tracked-update-expression]]
 == Tracked Update Expression
 
@@ -163,6 +177,9 @@ is playing a phrase that activated this phrase trigger, after the
 Enabled Filter Expression, if any, has had a chance to decide that the
 phrase trigger is enabled, and after the Playing expression, if
 appropriate.
+
+The convenience variables <<#phrase-convenience-variables,listed
+above>> are available here as well.
 
 
 [[stopped-expression]]
