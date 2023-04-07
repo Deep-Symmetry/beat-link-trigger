@@ -77,6 +77,10 @@ This change log follows the conventions of
   playing (`:start`, `:loop`, `:end`, or `:fill`) using a new
   `section` convenience binding.
 - Track metadata is available in more kinds of expressions.
+- Simulation is useful for testing many more expressions because
+  [plausible simulated data is
+  produced](https://github.com/Deep-Symmetry/beat-link-trigger/issues/160)
+  for more convenience bindings.
 
 ### Changed
 

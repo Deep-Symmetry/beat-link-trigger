@@ -887,20 +887,24 @@
          sim-actions    (fn []
                           [(seesaw/action :name "Activation"
                                           :enabled? (simulate-enabled? panel :activation)
-                                          :handler (fn [_] (report-activation panel (show-util/random-cdj-status)
-                                                                              @(seesaw/user-data panel) false)))
+                                          :handler (fn [_] (binding [util/*simulating* true]
+                                                             (report-activation panel (show-util/random-cdj-status)
+                                                                                @(seesaw/user-data panel) false))))
                            (seesaw/action :name "Beat"
                                           :enabled? (not (missing-expression? panel :beat))
-                                          :handler (fn [_] (run-trigger-function panel :beat
-                                                                                 (show-util/random-beat) true)))
+                                          :handler (fn [_] (binding [util/*simulating* true]
+                                                             (run-trigger-function panel :beat
+                                                                                   (show-util/random-beat) true))))
                            (seesaw/action :name "Tracked Update"
                                           :enabled? (not (missing-expression? panel :tracked))
-                                          :handler (fn [_] (run-trigger-function
-                                                            panel :tracked (show-util/random-cdj-status) true)))
+                                          :handler (fn [_] (binding [util/*simulating* true]
+                                                             (run-trigger-function
+                                                              panel :tracked (show-util/random-cdj-status) true))))
                            (seesaw/action :name "Deactivation"
                                           :enabled? (simulate-enabled? panel :deactivation)
-                                          :handler (fn [_] (report-deactivation panel (show-util/random-cdj-status)
-                                                                                @(seesaw/user-data panel) false)))])
+                                          :handler (fn [_] (binding [util/*simulating* true]
+                                                             (report-deactivation panel (show-util/random-cdj-status)
+                                                                                  @(seesaw/user-data panel) false))))])
          popup-fn       (fn [_] (concat (editor-actions)
                                         [(seesaw/separator) (seesaw/menu :text "Simulate" :items (sim-actions))
                                          inspect-action (seesaw/separator) import-action export-action]

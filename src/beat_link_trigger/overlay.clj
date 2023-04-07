@@ -23,6 +23,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.tree_node ITemplateParent]
+           [io.kaitai.struct ByteBufferKaitaiStream]
            [java.awt Color]
            [java.awt.image BufferedImage]
            [java.io ByteArrayInputStream ByteArrayOutputStream]
@@ -34,7 +35,8 @@
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [org.deepsymmetry.beatlink.data DataReference TimeFinder MetadataFinder SignatureFinder
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt ColorItem SearchableItem
-            WaveformDetailComponent WaveformPreviewComponent]))
+            WaveformDetailComponent WaveformPreviewComponent]
+           [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxAnlz$SongStructureTag]))
 
 (defonce ^{:private true
            :doc     "Holds the overlay web server when it is running."}
@@ -146,6 +148,8 @@
      :cue-list  (show-util/read-cue-list path)
      :detail    (show-util/read-detail path ref)
      :preview   (show-util/read-preview path ref)
+     :phrases   (when-let [raw-ss (show-util/read-song-structure path)]
+                  (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss)))
      :metadata  (-> (.getResourceAsStream VirtualCdj (str "/beat_link_trigger/sampleTracks/" player "/metadata.edn"))
                     slurp
                     edn/read-string

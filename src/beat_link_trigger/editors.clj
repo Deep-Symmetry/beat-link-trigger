@@ -166,7 +166,8 @@
 (defn simulate-trigger-event
   "Helper function for simulating events in trigger editors."
   [simulated-status trigger compiled]
-  (compiled simulated-status @(seesaw/user-data trigger) (requiring-resolve 'beat-link-trigger.expressions/globals)))
+  (binding [util/*simulating* true]
+    (compiled simulated-status @(seesaw/user-data trigger) (requiring-resolve 'beat-link-trigger.expressions/globals))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -349,8 +350,10 @@
                     :doc "The MIDI channel on which track load and
   unload messages are sent."}
 
-   'loaded-players {:code '(util/players-signature-set (:loaded (:show trigger-data))
-                                                       (:signature (:track trigger-data)))
+   'loaded-players {:code '(if util/*simulating*
+                             #{(device-number status)}
+                             (util/players-signature-set (:loaded (:show trigger-data))
+                                                         (:signature (:track trigger-data))))
                     :doc "The set of player numbers that currently
   have this track loaded, if any."}
 
@@ -384,8 +387,10 @@
   is configured as \"Default\", the show's Enabled Default value is
   returned.)"}
 
-   'playing-players {:code '(util/players-signature-set (:playing (:show trigger-data))
-                                                        (:signature (:track trigger-data)))
+   'playing-players {:code '(if util/*simulating*
+                              #{(device-number status)}
+                              (util/players-signature-set (:playing (:show trigger-data))
+                                                          (:signature (:track trigger-data))))
                      :doc "The set of player numbers that are currently
   playing this track, if any."}})
 
@@ -410,24 +415,33 @@
                        (help/user-guide-link "ShowInternals.html#phrase-contents")
                        "\">User Guide</a> for details.")}
 
-   'phrase-type {:code '(when status ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-type)
-                                      (.getDeviceNumber (extract-device-update status))))
+   'phrase-type {:code '(if util/*simulating*
+                          (rand-nth (keys @(requiring-resolve 'beat-link-trigger.show-phrases/phrase-types)))
+                          (when status ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-type)
+                                        (.getDeviceNumber (extract-device-update status)))))
                  :doc  "The keyword identifying the type of the phrase that activated this phrase trigger."}
 
-   'phrase-beat-range {:code '(when status
-                                ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-beat-range)
-                                 (.getDeviceNumber (extract-device-update status))))
+   'phrase-beat-range {:code '(if util/*simulating*
+                                (let [start (inc (rand 100))]
+                                  [start (+ start (* 4 (inc (rand 100))))])
+                                (when status
+                                  ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-beat-range)
+                                   (.getDeviceNumber (extract-device-update status)))))
                  :doc  "A tuple of the starting and ending beats within the track corresponding to the phrase
   that activated this phrase trigger."}
 
-   'track-bank {:code '(when status
-                         ((requiring-resolve 'beat-link-trigger.show-phrases/current-track-bank)
-                          (.getDeviceNumber (extract-device-update status))))
+   'track-bank {:code '(if util/*simulating*
+                         (rand-nth (keys @(requiring-resolve 'beat-link-trigger.show-phrases/track-banks)))
+                         (when status
+                           ((requiring-resolve 'beat-link-trigger.show-phrases/current-track-bank)
+                            (.getDeviceNumber (extract-device-update status)))))
                  :doc  "The keyword identifying the track bank assigned to the track playing this phrase trigger."}
 
-   'phrase-structure {:code '(when status
-                               ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase)
-                                (.getDeviceNumber (extract-device-update status))))
+   'phrase-structure {:code '(if util/*simulating*
+                               (rand-nth (.entries (.body (get-in @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) [2 :phrases]))))
+                               (when status
+                                 ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase)
+                                  (.getDeviceNumber (extract-device-update status)))))
                       :doc  "The track analysis <code><a href=\"https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html\">SongStructureEntry</a></code>
   describing the phrase that activated this phrase trigger."}
 
@@ -450,11 +464,15 @@
              :doc  "The MIDI channel on which phrase trigger
   playing messages are sent."}
 
-   'playing-players {:code '(util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
-                                                          (:uuid (:phrase trigger-data)))
+   'playing-players {:code '(if util/*simulating*
+                              #{(device-number status)}
+                              (util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
+                                                            (:uuid (:phrase trigger-data))))
                      :doc  "The set of player numbers that are currently
   playing a phrase that acivated this phrase trigger, if any."}
-   'section {:code '(first (first (util/iget (get-in (:show trigger-data) [:playing-phrases device-number (get-in trigger-data [:phrase :uuid])]) (current-beat status))))
+   'section {:code '(if util/*simulating*
+                      (rand-nth [:start :loop :end :fill])
+                      (first (first (util/iget (get-in (:show trigger-data) [:playing-phrases (device-number status) (get-in trigger-data [:phrase :uuid])]) (current-beat status)))))
              :doc  "The section of the phrase that is currently playing, one of <code>:start</code>, <code>:loop</code>, <code>:end</code>, or <code>:fill</code>."}})
 
 (defn- show-bindings-for-phrase-and-class
@@ -550,12 +568,13 @@
 (defn simulate-track-event
   "Helper function for simulating events in show track editors."
   [simulated-status context compiled]
-  (let [[show track] (show-util/latest-show-and-context context)]
-    (compiled simulated-status
-              {:locals (:expression-locals track)
-               :show   show
-               :track  track}
-              (:expression-globals show))))
+  (binding [util/*simulating* true]
+    (let [[show track] (show-util/latest-show-and-context context)]
+      (compiled simulated-status
+                {:locals (:expression-locals track)
+                 :show   show
+                 :track  track}
+                (:expression-globals show)))))
 
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
@@ -769,22 +788,22 @@
    'started-late-channel {:code '(get-in trigger-data [:cue :events :started-late :channel])
                           :doc  "The MIDI channel on which late cue start and end messages are sent."}
 
-   'players-playing {:code '((resolve 'beat-link-trigger.show/players-playing-cue)
-                             (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data))
-                     :doc  "The set of player numbers currently playing this cue, if any."}
-
-   ;; TODO: Copy in lots of other status and/or beat information with safe finders?
-   })
+   'players-playing {:code '(if util/*simulating*
+                              #{(device-number status)}
+                              ((resolve 'beat-link-trigger.show/players-playing-cue)
+                               (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data)))
+                     :doc  "The set of player numbers currently playing this cue, if any."}})
 
 (defn simulate-phrase-event
   "Helper function for simulating events in show phrase trigger editors."
   [simulated-status context compiled]
-  (let [[show phrase runtime-info] (show-util/latest-show-and-context context)]
-    (compiled simulated-status
-               {:locals (:expression-locals runtime-info)
-                :show   show
-                :phrase phrase}
-               (:expression-globals show))))
+  (binding [util/*simulating* true]
+    (let [[show phrase runtime-info] (show-util/latest-show-and-context context)]
+      (compiled simulated-status
+                {:locals (:expression-locals runtime-info)
+                 :show   show
+                 :phrase phrase}
+                (:expression-globals show)))))
 
 (def show-phrase-editors
   "Specifies the kinds of editor which can be opened for a show phrase
@@ -920,24 +939,25 @@
 (defn simulate-cue-event
   "Helper function for simulating events in show cue editors."
   [simulated-status context cue compiled]
-  (if (show-util/track? context)
-    (let [[show track] (show-util/latest-show-and-context context)
-          cue          (show-util/find-cue track cue)]
-      (compiled simulated-status
-                {:locals (:expression-locals track)
-                 :show   show
-                 :track  track
-                 :cue    cue}
-                (:expression-globals show)))
-    ;; The phrase trigger version.
-    (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
-          cue                        (show-util/find-cue phrase cue)]
-      (compiled simulated-status
-                {:locals (:expression-locals runtime-info)
-                 :show   show
-                 :phrase phrase
-                 :cue    cue}
-                (:expression-globals show)))))
+  (binding [util/*simulating* true]
+    (if (show-util/track? context)
+      (let [[show track] (show-util/latest-show-and-context context)
+            cue          (show-util/find-cue track cue)]
+        (compiled simulated-status
+                  {:locals (:expression-locals track)
+                   :show   show
+                   :track  track
+                   :cue    cue}
+                  (:expression-globals show)))
+      ;; The phrase trigger version.
+      (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
+            cue                        (show-util/find-cue phrase cue)]
+        (compiled simulated-status
+                  {:locals (:expression-locals runtime-info)
+                   :show   show
+                   :phrase phrase
+                   :cue    cue}
+                  (:expression-globals show))))))
 
 (def show-cue-editors
   "Specifies the kinds of editor which can be opened for a show track cue,

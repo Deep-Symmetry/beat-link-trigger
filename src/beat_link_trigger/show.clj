@@ -1351,26 +1351,32 @@
   [track]
   [(seesaw/action :name "Loaded"
                   :enabled? (track-event-enabled? track :loaded)
-                  :handler (fn [_] (send-loaded-messages (latest-track track))))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (send-loaded-messages (latest-track track)))))
    (seesaw/action :name "Playing"
                   :enabled? (track-event-enabled? track :playing)
-                  :handler (fn [_] (send-playing-messages (latest-track track)
-                                                          (track-random-status-for-simulation :playing track))))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (send-playing-messages (latest-track track)
+                                                            (track-random-status-for-simulation :playing track)))))
    (seesaw/action :name "Beat"
                   :enabled? (not (track-missing-expression? track :beat))
-                  :handler (fn [_] (run-track-function track :beat
-                                                       (track-random-status-for-simulation :beat track) true)))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (run-track-function track :beat
+                                                         (track-random-status-for-simulation :beat track) true))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (track-missing-expression? track :tracked))
-                  :handler (fn [_] (run-track-function track :tracked
-                                                       (track-random-status-for-simulation :tracked track) true)))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (run-track-function track :tracked
+                                                         (track-random-status-for-simulation :tracked track) true))))
    (seesaw/action :name "Stopped"
                   :enabled? (track-event-enabled? track :playing)
-                  :handler (fn [_] (send-stopped-messages (latest-track track)
-                                                          (track-random-status-for-simulation :stopped track))))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (send-stopped-messages (latest-track track)
+                                                            (track-random-status-for-simulation :stopped track)))))
    (seesaw/action :name "Unloaded"
                   :enabled? (track-event-enabled? track :loaded)
-                  :handler (fn [_] (send-unloaded-messages (latest-track track))))])
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (send-unloaded-messages (latest-track track)))))])
 
 (defn- track-simulate-menu
   "Creates the submenu containing actions that simulate events happening

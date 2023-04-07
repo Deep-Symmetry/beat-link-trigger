@@ -482,22 +482,26 @@
   [show phrase]
   [(seesaw/action :name "Playing"
                   :enabled? (phrase-event-enabled? show phrase :playing)
-                  :handler (fn [_] (apply send-playing-messages
-                                          (concat (latest-show-and-phrase show phrase)
-                                                  [(phrase-random-status-for-simulation :playing)]))))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (apply send-playing-messages
+                                            (concat (latest-show-and-phrase show phrase)
+                                                    [(phrase-random-status-for-simulation :playing)])))))
    (seesaw/action :name "Beat"
                   :enabled? (not (phrase-missing-expression? show phrase :beat))
-                  :handler (fn [_] (run-phrase-function
-                                    show phrase :beat (phrase-random-status-for-simulation :beat) true)))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (run-phrase-function
+                                      show phrase :beat (phrase-random-status-for-simulation :beat) true))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (phrase-missing-expression? show phrase :tracked))
-                  :handler (fn [_] (run-phrase-function show phrase :tracked
-                                                        (phrase-random-status-for-simulation :tracked) true)))
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (run-phrase-function show phrase :tracked
+                                                          (phrase-random-status-for-simulation :tracked) true))))
    (seesaw/action :name "Stopped"
                   :enabled? (phrase-event-enabled? show phrase :stopped)
-                  :handler (fn [_] (apply send-stopped-messages
-                                          (concat (latest-show-and-phrase show phrase)
-                                                  [(phrase-random-status-for-simulation :stopped)]))))])
+                  :handler (fn [_] (binding [util/*simulating* true]
+                                     (apply send-stopped-messages
+                                            (concat (latest-show-and-phrase show phrase)
+                                                    [(phrase-random-status-for-simulation :stopped)])))))])
 
 (defn- phrase-simulate-menu
   "Creates the submenu containing actions that simulate events happening

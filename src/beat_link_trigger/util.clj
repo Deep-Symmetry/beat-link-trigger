@@ -644,6 +644,18 @@
 
 ;;; Support for simulating events
 
+(def ^:dynamic *simulating*
+  "Tells the expression convenience value functions that simulation is in
+  progress so they should return a random value rather than trying to
+  look at actual player context."
+  false)
+
+(defn simulated-metadata
+  "Returns metadata information from a sample track for use in simulating
+  expressions."
+  []
+  (get-in @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) [2 :metadata]))
+
 (def ^:private packet-header
   "The byte sequence that begins any device update packet."
   (byte-array 10 (map byte [0x51 0x73 0x70 0x74 0x31 0x57 0x6d 0x4a 0x4f 0x4c])))
