@@ -351,7 +351,7 @@
   unload messages are sent."}
 
    'loaded-players {:code '(if util/*simulating*
-                             #{(device-number status)}
+                             #{(extract-device-number status)}
                              (util/players-signature-set (:loaded (:show trigger-data))
                                                          (:signature (:track trigger-data))))
                     :doc "The set of player numbers that currently
@@ -388,7 +388,7 @@
   returned.)"}
 
    'playing-players {:code '(if util/*simulating*
-                              #{(device-number status)}
+                              #{(extract-device-number status)}
                               (util/players-signature-set (:playing (:show trigger-data))
                                                           (:signature (:track trigger-data))))
                      :doc "The set of player numbers that are currently
@@ -465,14 +465,14 @@
   playing messages are sent."}
 
    'playing-players {:code '(if util/*simulating*
-                              #{(device-number status)}
+                              #{(extract-device-number status)}
                               (util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
                                                             (:uuid (:phrase trigger-data))))
                      :doc  "The set of player numbers that are currently
   playing a phrase that acivated this phrase trigger, if any."}
    'section {:code '(if util/*simulating*
                       (rand-nth [:start :loop :end :fill])
-                      (first (first (util/iget (get-in (:show trigger-data) [:playing-phrases (device-number status) (get-in trigger-data [:phrase :uuid])]) (current-beat status)))))
+                      (first (first (util/iget (get-in (:show trigger-data) [:playing-phrases (extract-device-number status) (get-in trigger-data [:phrase :uuid])]) (current-beat status)))))
              :doc  "The section of the phrase that is currently playing, one of <code>:start</code>, <code>:loop</code>, <code>:end</code>, or <code>:fill</code>."}})
 
 (defn- show-bindings-for-phrase-and-class
@@ -789,7 +789,7 @@
                           :doc  "The MIDI channel on which late cue start and end messages are sent."}
 
    'players-playing {:code '(if util/*simulating*
-                              #{(device-number status)}
+                              #{(extract-device-number status)}
                               ((resolve 'beat-link-trigger.show/players-playing-cue)
                                (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data)))
                      :doc  "The set of player numbers currently playing this cue, if any."}})

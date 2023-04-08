@@ -175,7 +175,7 @@
     (when-let [grid (.getLatestBeatGridFor beatgrid-finder (update-from-status status))]
       (.getBarNumber grid beat))))
 
-(defn device-number
+(defn extract-device-number
   "Obtains the device number that is responsible for the current
   expression running."
   [status]
