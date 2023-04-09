@@ -166,7 +166,7 @@
 (defn simulate-trigger-event
   "Helper function for simulating events in trigger editors."
   [simulated-status trigger compiled]
-  (binding [util/*simulating* true]
+  (binding [util/*simulating* (util/data-for-simulation)]
     (compiled simulated-status @(seesaw/user-data trigger) (requiring-resolve 'beat-link-trigger.expressions/globals))))
 
 (def trigger-editors
@@ -568,8 +568,8 @@
 (defn simulate-track-event
   "Helper function for simulating events in show track editors."
   [simulated-status context compiled]
-  (binding [util/*simulating* true]
-    (let [[show track] (show-util/latest-show-and-context context)]
+  (let [[show track] (show-util/latest-show-and-context context)]
+    (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
       (compiled simulated-status
                 {:locals (:expression-locals track)
                  :show   show
@@ -797,7 +797,7 @@
 (defn simulate-phrase-event
   "Helper function for simulating events in show phrase trigger editors."
   [simulated-status context compiled]
-  (binding [util/*simulating* true]
+  (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
     (let [[show phrase runtime-info] (show-util/latest-show-and-context context)]
       (compiled simulated-status
                 {:locals (:expression-locals runtime-info)
@@ -939,19 +939,20 @@
 (defn simulate-cue-event
   "Helper function for simulating events in show cue editors."
   [simulated-status context cue compiled]
-  (binding [util/*simulating* true]
-    (if (show-util/track? context)
-      (let [[show track] (show-util/latest-show-and-context context)
-            cue          (show-util/find-cue track cue)]
+  (if (show-util/track? context)
+    (let [[show track] (show-util/latest-show-and-context context)
+          cue          (show-util/find-cue track cue)]
+      (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
         (compiled simulated-status
                   {:locals (:expression-locals track)
                    :show   show
                    :track  track
                    :cue    cue}
-                  (:expression-globals show)))
-      ;; The phrase trigger version.
-      (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
-            cue                        (show-util/find-cue phrase cue)]
+                  (:expression-globals show))))
+    ;; The phrase trigger version.
+    (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
+          cue                        (show-util/find-cue phrase cue)]
+      (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
         (compiled simulated-status
                   {:locals (:expression-locals runtime-info)
                    :show   show

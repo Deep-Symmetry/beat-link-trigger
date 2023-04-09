@@ -151,7 +151,7 @@
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
         (if-let [status (show/track-random-status-for-simulation (keyword kind) track)]
-          (binding [util/*simulating* true]
+          (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
             (show/run-track-function track (keyword kind) status true)
             (expression-report-success-response))
           (unrecognized-expression))
@@ -193,7 +193,7 @@
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (su/find-cue track (UUID/fromString cue-uuid))]
           (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
-              (binding [util/*simulating* true]
+              (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
                 ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
                 (cues/run-cue-function track cue (keyword kind) status true)
                 (expression-report-success-response))
@@ -249,7 +249,7 @@
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
         (if-let [status (phrases/phrase-random-status-for-simulation (keyword kind))]
-          (binding [util/*simulating* true]
+          (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
             (phrases/run-phrase-function show phrase (keyword kind) status true)
             (expression-report-success-response))
           (unrecognized-expression))
@@ -291,7 +291,7 @@
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
         (if-let [cue (su/find-cue phrase (UUID/fromString cue-uuid))]
           (if-let [status (cues/random-status-for-simulation (keyword kind) phrase)]
-            (binding [util/*simulating* true]
+            (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
               ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
               (cues/run-cue-function phrase cue (keyword kind) status true)
               (expression-report-success-response))

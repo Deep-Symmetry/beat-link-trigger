@@ -311,51 +311,83 @@
   [(seesaw/action :name "Entered"
                   :enabled? (cue-event-enabled? context cue :entered)
                   :handler (fn [_]
-                             (binding [util/*simulating* true]
-                               (let [[_show context runtime-info] (latest-show-and-context context)]
+                             (let [[show context runtime-info] (latest-show-and-context context)
+                                   data                        (if (su/track? context)
+                                                                 (util/data-for-simulation
+                                                                  :entry [(:file show) (:signature context)])
+                                                                 (util/data-for-simulation :phrases-required? true))]
+                               (binding [util/*simulating* data]
                                  (send-cue-messages context runtime-info cue :entered
                                                     (random-status-for-simulation :entered context))))))
    (seesaw/action :name "Started On-Beat"
                   :enabled? (cue-event-enabled? context cue :started-on-beat)
                   :handler (fn [_]
-                             (binding [util/*simulating* true]
-                               (let [[_show context runtime-info] (latest-show-and-context context)]
+                             (let [[show context runtime-info] (latest-show-and-context context)
+                                   data                        (if (su/track? context)
+                                                                 (util/data-for-simulation
+                                                                  :entry [(:file show) (:signature context)])
+                                                                 (util/data-for-simulation :phrases-required? true))]
+                               (binding [util/*simulating* data]
                                  (send-cue-messages context runtime-info cue :started-on-beat
                                                     (random-status-for-simulation :started-on-beat context))))))
    (seesaw/action :name "Started Late"
                   :enabled? (cue-event-enabled? context cue :started-late)
                   :handler (fn [_]
-                             (binding [util/*simulating* true]
-                               (let [[_show context runtime-info] (latest-show-and-context context)]
+                             (let [[show context runtime-info] (latest-show-and-context context)
+                                   data                        (if (su/track? context)
+                                                                 (util/data-for-simulation
+                                                                  :entry [(:file show) (:signature context)])
+                                                                 (util/data-for-simulation :phrases-required? true))]
+                               (binding [util/*simulating* data]
                                  (send-cue-messages context runtime-info cue :started-late
                                                     (random-status-for-simulation :started-late context))))))
    (seesaw/action :name "Beat"
                   :enabled? (not (cue-missing-expression? context cue :beat))
-                  :handler (fn [_] (binding [util/*simulating* true]
-                                     (run-cue-function context cue :beat
-                                                       (random-status-for-simulation :beat context)
-                                                       true))))
+                  :handler (fn [_]
+                             (let [[show context] (latest-show-and-context context)
+                                   data           (if (su/track? context)
+                                                    (util/data-for-simulation
+                                                     :entry [(:file show) (:signature context)])
+                                                    (util/data-for-simulation :phrases-required? true))]
+                               (binding [util/*simulating* data]
+                                 (run-cue-function context cue :beat
+                                                   (random-status-for-simulation :beat context)
+                                                   true)))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (cue-missing-expression? context cue :tracked))
-                  :handler (fn [_] (binding [util/*simulating* true]
-                                     (run-cue-function context cue :tracked
+                  :handler (fn [_]
+                             (let [[show context] (latest-show-and-context context)
+                                   data           (if (su/track? context)
+                                                    (util/data-for-simulation
+                                                     :entry [(:file show) (:signature context)])
+                                                    (util/data-for-simulation :phrases-required? true))]
+                               (binding [util/*simulating* data]
+                                 (run-cue-function context cue :tracked
                                                        (random-status-for-simulation :tracked context)
-                                                       true))))
+                                                       true)))))
    (let [enabled-events (filterv (partial cue-event-enabled? context cue) [:started-on-beat :started-late])]
      (seesaw/action :name "Ended"
                     :enabled? (seq enabled-events)
                     :handler (fn [_]
                                (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event]
                                                          (rand-nth enabled-events))
-                               (binding [util/*simulating* true]
-                                 (let [[_show context runtime-info] (latest-show-and-context context)]
+                               (let [[show context runtime-info] (latest-show-and-context context)
+                                     data                        (if (su/track? context)
+                                                                   (util/data-for-simulation
+                                                                    :entry [(:file show) (:signature context)])
+                                                                   (util/data-for-simulation :phrases-required? true))]
+                                 (binding [util/*simulating* data]
                                    (send-cue-messages context runtime-info cue :ended
                                                       (random-status-for-simulation :ended context)))))))
    (seesaw/action :name "Exited"
                   :enabled? (cue-event-enabled? context cue :entered)
                   :handler (fn [_]
-                             (binding [util/*simulating* true]
-                               (let [[_show context runtime-info] (latest-show-and-context context)]
+                             (let [[show context runtime-info] (latest-show-and-context context)
+                                   data                        (if (su/track? context)
+                                                                 (util/data-for-simulation
+                                                                  :entry [(:file show) (:signature context)])
+                                                                 (util/data-for-simulation :phrases-required? true))]
+                               (binding [util/*simulating* data]
                                  (send-cue-messages context runtime-info cue :exited
                                                     (random-status-for-simulation :exited context))))))])
 

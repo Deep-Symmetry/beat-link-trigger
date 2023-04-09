@@ -647,14 +647,50 @@
 (def ^:dynamic *simulating*
   "Tells the expression convenience value functions that simulation is in
   progress so they should return a random value rather than trying to
-  look at actual player context."
-  false)
+  look at actual player context, and provides information about the
+  track and point in time that is being simulated."
+  nil)
 
-(defn simulated-metadata
-  "Returns metadata information from a sample track for use in simulating
-  expressions."
-  []
-  (get-in @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) [2 :metadata]))
+(defn tracks-for-simulation
+  "Return a list of all the candidate tracks that can be used to set up a
+  simulation context, which is a list of integers (representing the
+  sample tracks embedded in Beat Link Trigger) and tuples of show
+  files and track signatures (representing all tracks present in all
+  open shows). If `phrases-required?` is `true`, then only candidates
+  with song structure information are returned."
+  ([]
+   (tracks-for-simulation false))
+  ([phrases-required?]
+   (let [shows   @@(requiring-resolve 'beat-link-trigger.show-util/open-shows)
+         samples @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data)]
+     (cond->> (apply concat
+                     (keys samples)
+                     (for [file (keys shows)]
+                       (map (fn [signature] [file signature]) (keys (get-in shows [file :tracks])))))
+       phrases-required?
+       (filter (fn [entry]
+                 (if (number? entry)
+                   (get-in samples [entry :phrases])
+                   (let [[file signature] entry]
+                     (get-in shows [file :tracks signature :song-structure])))))))))
+
+(defn data-for-simulation
+  "Finds the track metadata for a track about to be simulated. If `:entry`
+  is supplied, it holds either a number representing one of the sample
+  tracks embedded in BLT, or a tuple of [file signature] identifying a
+  track in an open show. If not supplied, a random track will be
+  chosen using `tracks-for-simulation` and the value (if any) passed
+  with `:phrases-required?`."
+  [& {:keys [entry phrases-required?]}]
+  (let [entry (or entry (rand-nth (tracks-for-simulation phrases-required?)))]
+    (if (number? entry)
+      (let [sample (get @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) entry)]
+        (merge (select-keys sample [:beat-grid :cue-list :metadata])
+               {:song-structure (:phrases sample)}))
+      (let [[file signature] entry
+            track            (get-in @@(requiring-resolve 'beat-link-trigger.show-util/open-shows)
+                                     [file :tracks signature])]
+        (select-keys track [:beat-grid :cue-list :metadata :song-structure])))))
 
 (def ^:private packet-header
   "The byte sequence that begins any device update packet."

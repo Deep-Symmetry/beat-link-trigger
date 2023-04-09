@@ -287,38 +287,38 @@
                                                  :doc  "How far into the track has been played, in milliseconds. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window."}}}
 
    ;; Shared bindings for obtaining metadata about the track associated with a status object.
-   :metadata {:bindings {'track-album    {:code '(if util/*simulating*
-                                                   (:album (util/simulated-metadata))
+   :metadata {:bindings {'track-album    {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :album])
                                                    (when (some? track-metadata)
                                                      (when-let [album (.getAlbum track-metadata)] (.label album))))
                                           :doc  "The album of the loaded track, if metadata is available."}
-                         'track-artist   {:code '(if util/*simulating*
-                                                   (:artist (util/simulated-metadata))
+                         'track-artist   {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :artist])
                                                    (when (some? track-metadata)
                                                      (when-let [artist (.getArtist track-metadata)] (.label artist))))
                                           :doc  "The artist of the loaded track, if metadata is available."}
-                         'track-comment  {:code '(if util/*simulating*
-                                                   (:comment (util/simulated-metadata))
+                         'track-comment  {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :comment])
                                                    (when (some? track-metadata)
                                                      (when-let [comment (.getComment track-metadata)] comment)))
                                           :doc  "The comment assigned to the loaded track, if metadata is available."}
-                         'track-genre    {:code '(if util/*simulating*
-                                                   (:genre (util/simulated-metadata))
+                         'track-genre    {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :genre])
                                                    (when (some? track-metadata)
                                                      (when-let [genre (.getGenre track-metadata)] (.label genre))))
                                           :doc  "The genre of the loaded track, if metadata is available."}
-                         'track-key      {:code '(if util/*simulating*
-                                                   (:key (util/simulated-metadata))
+                         'track-key      {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :key])
                                                    (when (some? track-metadata)
                                                      (when-let [key (.getKey track-metadata)] (.label key))))
                                           :doc  "The key of the loaded track, if metadata is available."}
-                         'track-label    {:code '(if util/*simulating*
-                                                   (:label (util/simulated-metadata))
+                         'track-label    {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :label])
                                                    (when (some? track-metadata)
                                                      (when-let [label (.getLabel track-metadata)] (.label label))))
                                           :doc  "The label of the loaded track, if metadata is available."}
-                         'track-length   {:code '(if util/*simulating*
-                                                   (:duration (util/simulated-metadata))
+                         'track-length   {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :duration])
                                                    (when (some? track-metadata) (.getLength track-metadata)))
                                           :doc  "The length in seconds of the loaded track, if metadata is available."}
                          'track-metadata {:code '(when-not util/*simulating*
@@ -326,14 +326,16 @@
                                                     (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
                                                     (update-from-status status)))
                                           :doc  "The metadata object for the loaded track, if one is available."}
-                         'track-title    {:code '(if util/*simulating*
-                                                   (:title (util/simulated-metadata))
+                         'track-title    {:code '(if-let [data util/*simulating*]
+                                                   (get-in data [:metadata :title])
                                                    (when (some? track-metadata) (.getTitle track-metadata)))
                                           :doc  "The title of the loaded track, if metadata is available."}}}
 
    ;; Shared bindings for Beat objects and beat-tpu tuples.
-   :beat {:bindings {'bar-number  {:code '(if util/*simulating*
-                                            (quot (current-beat status) 4)
+   :beat {:bindings {'bar-number  {:code '(if-let [data util/*simulating*]
+                                            (when-let [beat (current-beat status)]
+                                              (when-let [grid (:beat-grid data)]
+                                                (.getBarNumber grid beat)))
                                             (current-bar status))
                                    :doc  "Identifies the bar in which the beat that just played falls. This counter starts at bar 1 as the track is played, and increments on each downbeat.<p>When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, or the <code>TimeFinder</code> is not running, this information is not available, and the value -1 is reported."}
                      'beat-number {:code '(or (current-beat status) -1)

@@ -482,23 +482,23 @@
   [show phrase]
   [(seesaw/action :name "Playing"
                   :enabled? (phrase-event-enabled? show phrase :playing)
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (apply send-playing-messages
                                             (concat (latest-show-and-phrase show phrase)
                                                     [(phrase-random-status-for-simulation :playing)])))))
    (seesaw/action :name "Beat"
                   :enabled? (not (phrase-missing-expression? show phrase :beat))
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (run-phrase-function
                                       show phrase :beat (phrase-random-status-for-simulation :beat) true))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (phrase-missing-expression? show phrase :tracked))
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (run-phrase-function show phrase :tracked
                                                           (phrase-random-status-for-simulation :tracked) true))))
    (seesaw/action :name "Stopped"
                   :enabled? (phrase-event-enabled? show phrase :stopped)
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (apply send-stopped-messages
                                             (concat (latest-show-and-phrase show phrase)
                                                     [(phrase-random-status-for-simulation :stopped)])))))])

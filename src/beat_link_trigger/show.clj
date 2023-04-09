@@ -1348,42 +1348,48 @@
   "Creates the actions that simulate events happening to the track, for
   testing expressions or creating and testing MIDI mappings in other
   software."
-  [track]
+  [show track]
   [(seesaw/action :name "Loaded"
                   :enabled? (track-event-enabled? track :loaded)
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
+                                                                :entry [(:file show) (:signature track)])]
                                      (send-loaded-messages (latest-track track)))))
    (seesaw/action :name "Playing"
                   :enabled? (track-event-enabled? track :playing)
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
+                                                                :entry [(:file show) (:signature track)])]
                                      (send-playing-messages (latest-track track)
                                                             (track-random-status-for-simulation :playing track)))))
    (seesaw/action :name "Beat"
                   :enabled? (not (track-missing-expression? track :beat))
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
+                                                                :entry [(:file show) (:signature track)])]
                                      (run-track-function track :beat
                                                          (track-random-status-for-simulation :beat track) true))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (track-missing-expression? track :tracked))
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
+                                                                :entry [(:file show) (:signature track)])]
                                      (run-track-function track :tracked
                                                          (track-random-status-for-simulation :tracked track) true))))
    (seesaw/action :name "Stopped"
                   :enabled? (track-event-enabled? track :playing)
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
+                                                                :entry [(:file show) (:signature track)])]
                                      (send-stopped-messages (latest-track track)
                                                             (track-random-status-for-simulation :stopped track)))))
    (seesaw/action :name "Unloaded"
                   :enabled? (track-event-enabled? track :loaded)
-                  :handler (fn [_] (binding [util/*simulating* true]
+                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
+                                                                :entry [(:file show) (:signature track)])]
                                      (send-unloaded-messages (latest-track track)))))])
 
 (defn- track-simulate-menu
   "Creates the submenu containing actions that simulate events happening
   to the track, for testing expressions or creating and testing MIDI
   mappings in other software."
-  [track]
-  (seesaw/menu :text "Simulate" :items (track-simulate-actions track)))
+  [show track]
+  (seesaw/menu :text "Simulate" :items (track-simulate-actions show track)))
 
 (declare import-track)
 
@@ -1699,7 +1705,7 @@
                              (when (seq (su/gear-content track))
                                [(su/view-expressions-in-report-action show track)])
                              (track-editor-actions show track panel gear)
-                             [(seesaw/separator) (track-simulate-menu track) (su/inspect-action track)
+                             [(seesaw/separator) (track-simulate-menu show track) (su/inspect-action track)
                               (seesaw/separator)]
                              (track-copy-actions track)
                              [(seesaw/separator) (delete-track-action show track panel)])))
