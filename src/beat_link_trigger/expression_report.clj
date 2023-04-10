@@ -150,11 +150,12 @@
   (if-let [show (su/latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
-        (if-let [status (show/track-random-status-for-simulation (keyword kind) track)]
-          (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
-            (show/run-track-function track (keyword kind) status true)
-            (expression-report-success-response))
-          (unrecognized-expression))
+        (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+          (if-let [[update-binding create-status] (show/track-random-status-for-simulation (keyword kind))]
+            (binding [util/*simulating* (update-binding)]
+              (show/run-track-function track (keyword kind) (create-status) true)
+              (expression-report-success-response))
+            (unrecognized-expression)))
         (track-not-found))
       (show-not-enabled))
     (show-not-found)))
@@ -192,12 +193,13 @@
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (su/find-cue track (UUID/fromString cue-uuid))]
-          (if-let [status (cues/random-status-for-simulation (keyword kind) track)]
-              (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+          (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+            (if-let [[update-binding create-status] (cues/random-status-for-simulation (keyword kind))]
+              (binding [util/*simulating* (update-binding)]
                 ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
-                (cues/run-cue-function track cue (keyword kind) status true)
+                (cues/run-cue-function track cue (keyword kind) (create-status) true)
                 (expression-report-success-response))
-              (unrecognized-expression))
+              (unrecognized-expression)))
           (cue-not-found "track"))
         (track-not-found))
       (show-not-enabled))
@@ -248,11 +250,12 @@
   (if-let [show (su/latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-        (if-let [status (phrases/phrase-random-status-for-simulation (keyword kind))]
-          (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-            (phrases/run-phrase-function show phrase (keyword kind) status true)
-            (expression-report-success-response))
-          (unrecognized-expression))
+        (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+          (if-let [[update-binding create-status] (phrases/phrase-random-status-for-simulation (keyword kind))]
+            (binding [util/*simulating* (update-binding)]
+              (phrases/run-phrase-function show phrase (keyword kind) (create-status) true)
+              (expression-report-success-response))
+            (unrecognized-expression)))
         (phrase-not-found))
       (show-not-enabled))
     (show-not-found)))
@@ -290,12 +293,13 @@
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
         (if-let [cue (su/find-cue phrase (UUID/fromString cue-uuid))]
-          (if-let [status (cues/random-status-for-simulation (keyword kind) phrase)]
-            (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-              ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
-              (cues/run-cue-function phrase cue (keyword kind) status true)
-              (expression-report-success-response))
-            (unrecognized-expression))
+          (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+            (if-let [[update-binding create-status] (cues/random-status-for-simulation (keyword kind))]
+              (binding [util/*simulating* (update-binding)]
+                ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
+                (cues/run-cue-function phrase cue (keyword kind) (create-status) true)
+                (expression-report-success-response))
+              (unrecognized-expression)))
           (cue-not-found "phrase"))
         (phrase-not-found))
       (show-not-enabled))

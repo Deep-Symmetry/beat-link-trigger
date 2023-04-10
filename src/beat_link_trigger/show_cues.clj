@@ -293,14 +293,18 @@
       true)))
 
 (defn random-status-for-simulation
-  "Creates an appropriate random status object for simulating a
-  particular kind of event. Returns `nil` if the event type is not
-  recognized as one that can be simulaed for a cue."
-  [event context]
+  "Returns functions that update simulation bindings and create
+  appropriate random status objects for simulating a particular kind
+  of event. Returns `nil` if the event type is not recognized as one
+  that can be simulaed for a cue."
+  [event]
   (case event
-    (:entered :ended :exited) (su/random-beat-or-status)
-    (:started-on-beat :beat)  (su/random-beat-and-position (when (track? context) context))
-    (:started-late :tracked)  (su/random-cdj-status)
+    (:entered :ended :exited) [util/time-for-simulation su/random-beat-or-status]
+    (:started-on-beat :beat)  [util/beat-for-simulation
+                                  (fn []
+                                    (let [beat-object (su/random-beat)]
+                                      [beat-object (su/position-from-random-beat beat-object)]))]
+    (:started-late :tracked)  [util/time-for-simulation su/random-cdj-status]
     nil))
 
 (defn- cue-simulate-actions
@@ -317,8 +321,9 @@
                                                                   :entry [(:file show) (:signature context)])
                                                                  (util/data-for-simulation :phrases-required? true))]
                                (binding [util/*simulating* data]
-                                 (send-cue-messages context runtime-info cue :entered
-                                                    (random-status-for-simulation :entered context))))))
+                                 (let [[update-binding create-status] (random-status-for-simulation :entered)]
+                                   (binding [util/*simulating* (update-binding)]
+                                     (send-cue-messages context runtime-info cue :entered (create-status))))))))
    (seesaw/action :name "Started On-Beat"
                   :enabled? (cue-event-enabled? context cue :started-on-beat)
                   :handler (fn [_]
@@ -328,8 +333,9 @@
                                                                   :entry [(:file show) (:signature context)])
                                                                  (util/data-for-simulation :phrases-required? true))]
                                (binding [util/*simulating* data]
-                                 (send-cue-messages context runtime-info cue :started-on-beat
-                                                    (random-status-for-simulation :started-on-beat context))))))
+                                 (let [[update-binding create-status] (random-status-for-simulation :started-on-beat)]
+                                   (binding [util/*simulating* (update-binding)]
+                                     (send-cue-messages context runtime-info cue :started-on-beat (create-status))))))))
    (seesaw/action :name "Started Late"
                   :enabled? (cue-event-enabled? context cue :started-late)
                   :handler (fn [_]
@@ -339,8 +345,9 @@
                                                                   :entry [(:file show) (:signature context)])
                                                                  (util/data-for-simulation :phrases-required? true))]
                                (binding [util/*simulating* data]
-                                 (send-cue-messages context runtime-info cue :started-late
-                                                    (random-status-for-simulation :started-late context))))))
+                                 (let [[update-binding create-status] (random-status-for-simulation :started-late)]
+                                   (binding [util/*simulating* (update-binding)]
+                                     (send-cue-messages context runtime-info cue :started-late (create-status))))))))
    (seesaw/action :name "Beat"
                   :enabled? (not (cue-missing-expression? context cue :beat))
                   :handler (fn [_]
@@ -350,9 +357,9 @@
                                                      :entry [(:file show) (:signature context)])
                                                     (util/data-for-simulation :phrases-required? true))]
                                (binding [util/*simulating* data]
-                                 (run-cue-function context cue :beat
-                                                   (random-status-for-simulation :beat context)
-                                                   true)))))
+                                 (let [[update-binding create-status] (random-status-for-simulation :beat)]
+                                   (binding [util/*simulating* (update-binding)]
+                                     (run-cue-function context cue :beat (create-status) true)))))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (cue-missing-expression? context cue :tracked))
                   :handler (fn [_]
@@ -362,9 +369,9 @@
                                                      :entry [(:file show) (:signature context)])
                                                     (util/data-for-simulation :phrases-required? true))]
                                (binding [util/*simulating* data]
-                                 (run-cue-function context cue :tracked
-                                                       (random-status-for-simulation :tracked context)
-                                                       true)))))
+                                 (let [[update-binding create-status] (random-status-for-simulation :tracked)]
+                                   (binding [util/*simulating* (update-binding)]
+                                     (run-cue-function context cue :tracked (create-status) true)))))))
    (let [enabled-events (filterv (partial cue-event-enabled? context cue) [:started-on-beat :started-late])]
      (seesaw/action :name "Ended"
                     :enabled? (seq enabled-events)
@@ -377,8 +384,9 @@
                                                                     :entry [(:file show) (:signature context)])
                                                                    (util/data-for-simulation :phrases-required? true))]
                                  (binding [util/*simulating* data]
-                                   (send-cue-messages context runtime-info cue :ended
-                                                      (random-status-for-simulation :ended context)))))))
+                                   (let [[update-binding create-status] (random-status-for-simulation :ended)]
+                                     (binding [util/*simulating* (update-binding)]
+                                       (send-cue-messages context runtime-info cue :ended (create-status)))))))))
    (seesaw/action :name "Exited"
                   :enabled? (cue-event-enabled? context cue :entered)
                   :handler (fn [_]
@@ -388,8 +396,9 @@
                                                                   :entry [(:file show) (:signature context)])
                                                                  (util/data-for-simulation :phrases-required? true))]
                                (binding [util/*simulating* data]
-                                 (send-cue-messages context runtime-info cue :exited
-                                                    (random-status-for-simulation :exited context))))))])
+                                 (let [[update-binding create-status] (random-status-for-simulation :exited)]
+                                   (binding [util/*simulating* (update-binding)]
+                                     (send-cue-messages context runtime-info cue :exited (create-status))))))))])
 
 (defn- cue-simulate-menu
   "Creates the submenu containing actions that simulate events happening

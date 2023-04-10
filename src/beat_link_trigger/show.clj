@@ -1336,12 +1336,16 @@
       true)))
 
 (defn track-random-status-for-simulation
-  "Generates an appropriate status object for simulating a track
-  expression of the specified kind."
-  [kind track]
+  "Returns functions that update simulation bindings and generate
+  appropriate status objects for simulating a track expression of the
+  specified kind."
+  [kind]
   (case kind
-    (:playing :tracked :stopped) (su/random-cdj-status)
-    :beat               (su/random-beat-and-position track)
+    (:playing :tracked :stopped) [util/time-for-simulation su/random-cdj-status]
+    :beat                        [util/beat-for-simulation
+                                  (fn []
+                                    (let [beat-object (su/random-beat)]
+                                      [beat-object (su/position-from-random-beat beat-object)]))]
     nil))
 
 (defn- track-simulate-actions
@@ -1358,26 +1362,30 @@
                   :enabled? (track-event-enabled? track :playing)
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
                                                                 :entry [(:file show) (:signature track)])]
-                                     (send-playing-messages (latest-track track)
-                                                            (track-random-status-for-simulation :playing track)))))
+                                     (let [[update-binding create-status] (track-random-status-for-simulation :playing)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (send-playing-messages (latest-track track) (create-status)))))))
    (seesaw/action :name "Beat"
                   :enabled? (not (track-missing-expression? track :beat))
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
                                                                 :entry [(:file show) (:signature track)])]
-                                     (run-track-function track :beat
-                                                         (track-random-status-for-simulation :beat track) true))))
+                                     (let [[update-binding create-status] (track-random-status-for-simulation :beat)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (run-track-function track :beat (create-status) true))))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (track-missing-expression? track :tracked))
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
                                                                 :entry [(:file show) (:signature track)])]
-                                     (run-track-function track :tracked
-                                                         (track-random-status-for-simulation :tracked track) true))))
+                                     (let [[update-binding create-status] (track-random-status-for-simulation :tracked)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (run-track-function track :tracked (create-status) true))))))
    (seesaw/action :name "Stopped"
                   :enabled? (track-event-enabled? track :playing)
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation
                                                                 :entry [(:file show) (:signature track)])]
-                                     (send-stopped-messages (latest-track track)
-                                                            (track-random-status-for-simulation :stopped track)))))
+                                     (let [[update-binding create-status] (track-random-status-for-simulation :stopped)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (send-stopped-messages (latest-track track) (create-status)))))))
    (seesaw/action :name "Unloaded"
                   :enabled? (track-event-enabled? track :loaded)
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation

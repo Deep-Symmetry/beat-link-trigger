@@ -467,12 +467,16 @@
       true)))
 
 (defn phrase-random-status-for-simulation
-  "Generates an appropriate status object for simulating a phrase
-  expression of the specified kind."
+  "Returns functions that update simulation bindings and generate
+  appropriate status objects for simulating a phrase expression of the
+  specified kind."
   [kind]
   (case kind
-    (:playing :tracked :stopped) (su/random-cdj-status)
-    :beat               (su/random-beat-and-position nil)
+    (:playing :tracked :stopped) [util/time-for-simulation su/random-cdj-status]
+    :beat                        [util/beat-for-simulation
+                                  (fn []
+                                    (let [beat-object (su/random-beat)]
+                                      [beat-object (su/position-from-random-beat beat-object)]))]
     nil))
 
 (defn- phrase-simulate-actions
@@ -483,25 +487,36 @@
   [(seesaw/action :name "Playing"
                   :enabled? (phrase-event-enabled? show phrase :playing)
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-                                     (apply send-playing-messages
-                                            (concat (latest-show-and-phrase show phrase)
-                                                    [(phrase-random-status-for-simulation :playing)])))))
+                                     (let [[update-binding create-status]
+                                           (phrase-random-status-for-simulation :playing)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (apply send-playing-messages
+                                                (concat (latest-show-and-phrase show phrase)
+                                                        [(create-status)])))))))
    (seesaw/action :name "Beat"
                   :enabled? (not (phrase-missing-expression? show phrase :beat))
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-                                     (run-phrase-function
-                                      show phrase :beat (phrase-random-status-for-simulation :beat) true))))
+                                     (let [[update-binding create-status]
+                                           (phrase-random-status-for-simulation :beat)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (run-phrase-function
+                                          show phrase :beat (create-status) true))))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (phrase-missing-expression? show phrase :tracked))
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-                                     (run-phrase-function show phrase :tracked
-                                                          (phrase-random-status-for-simulation :tracked) true))))
+                                     (let [[update-binding create-status]
+                                           (phrase-random-status-for-simulation :tracked)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (run-phrase-function show phrase :tracked (create-status) true))))))
    (seesaw/action :name "Stopped"
                   :enabled? (phrase-event-enabled? show phrase :stopped)
                   :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-                                     (apply send-stopped-messages
-                                            (concat (latest-show-and-phrase show phrase)
-                                                    [(phrase-random-status-for-simulation :stopped)])))))])
+                                     (let [[update-binding create-status]
+                                           (phrase-random-status-for-simulation :stopped)]
+                                       (binding [util/*simulating* (update-binding)]
+                                         (apply send-stopped-messages
+                                                (concat (latest-show-and-phrase show phrase)
+                                                        [(create-status)])))))))])
 
 (defn- phrase-simulate-menu
   "Creates the submenu containing actions that simulate events happening

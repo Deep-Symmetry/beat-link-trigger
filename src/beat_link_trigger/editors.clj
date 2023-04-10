@@ -163,11 +163,13 @@
   the Global Setup expression."
               :bindings   nil}))
 
-(defn simulate-trigger-event
+(defn- simulate-trigger-event
   "Helper function for simulating events in trigger editors."
-  [simulated-status trigger compiled]
+  [update-binding simulate-status trigger compiled]
   (binding [util/*simulating* (util/data-for-simulation)]
-    (compiled simulated-status @(seesaw/user-data trigger) (requiring-resolve 'beat-link-trigger.expressions/globals))))
+    (binding [util/*simulating* (update-binding)]
+      (compiled (simulate-status) @(seesaw/user-data trigger)
+                (requiring-resolve 'beat-link-trigger.expressions/globals)))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -216,7 +218,8 @@
   generally easier to use the convenience variables described below."
                 :bindings (trigger-bindings-for-class CdjStatus)
                 :simulate (fn [_kind trigger compiled]
-                            (simulate-trigger-event (show-util/random-cdj-status) trigger compiled))}
+                            (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
+                                                    trigger compiled))}
 
    :beat {:title "Beat Expression"
           :tip "Called on each beat from the watched devices."
@@ -233,7 +236,7 @@
   generally easier to use the convenience variables described below."
           :bindings (trigger-bindings-for-class Beat)
           :simulate (fn [_kind trigger compiled]
-                            (simulate-trigger-event (show-util/random-beat) trigger compiled))}
+                      (simulate-trigger-event util/beat-for-simulation show-util/random-beat trigger compiled))}
 
    :tracked {:title "Tracked Update Expression"
              :tip "Called for each update from the player a trigger is tracking."
@@ -254,7 +257,8 @@
   <code>trigger-active?</code> convenience variable."
              :bindings (trigger-bindings-for-class CdjStatus)
              :simulate (fn [_kind trigger compiled]
-                            (simulate-trigger-event (show-util/random-cdj-status) trigger compiled))}
+                         (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
+                                                 trigger compiled))}
 
    :deactivation {:title "Deactivation Expression"
                   :tip "Called when the trigger becomes disabled or idle."
@@ -281,7 +285,8 @@
                   :bindings (trigger-bindings-for-class CdjStatus)
                   :nil-status? true
                   :simulate (fn [_kind trigger compiled]
-                            (simulate-trigger-event (show-util/random-cdj-status) trigger compiled))}
+                              (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
+                                                      trigger compiled))}
 
    :shutdown {:title "Shutdown Expression"
               :tip "Called once to release resources your trigger had been using."
@@ -565,16 +570,17 @@
   that you opened in the Global Setup expression."
                :bindings   (show-bindings-for-class nil)})))
 
-(defn simulate-track-event
+(defn- simulate-track-event
   "Helper function for simulating events in show track editors."
-  [simulated-status context compiled]
+  [update-binding simulate-status context compiled]
   (let [[show track] (show-util/latest-show-and-context context)]
     (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
-      (compiled simulated-status
-                {:locals (:expression-locals track)
-                 :show   show
-                 :track  track}
-                (:expression-globals show)))))
+      (binding [util/*simulating* (update-binding)]
+        (compiled (simulate-status)
+                  {:locals (:expression-locals track)
+                   :show   show
+                   :track  track}
+                  (:expression-globals show))))))
 
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
@@ -615,7 +621,7 @@
   allows."
                    :bindings (show-bindings-for-track-and-class nil)
                    :simulate (fn [_kind context compiled]
-                               (simulate-track-event nil context compiled))}
+                               (simulate-track-event (fn [] util/*simulating*) (constantly nil) context compiled))}
 
           :playing {:title "Playing Expression"
                     :tip   "Called when a player plays this track, if enabled."
@@ -634,7 +640,8 @@
   generally easier to use the convenience variables described below."
                     :bindings (show-bindings-for-track-and-class CdjStatus)
                     :simulate (fn [_kind context compiled]
-                                (simulate-track-event (show-util/random-cdj-status) context compiled))}
+                                (simulate-track-event util/time-for-simulation show-util/random-cdj-status
+                                                      context compiled))}
 
           :beat {:title       "Beat Expression"
                  :tip         "Called on each beat from devices with the track loaded."
@@ -652,8 +659,11 @@
   easier to use the convenience variables described below."
                  :bindings (show-bindings-for-track-and-class :beat-tpu)
                  :simulate (fn [_kind context compiled]
-                             (let [[_ track] (show-util/latest-show-and-context context)]
-                               (simulate-track-event (show-util/random-beat-and-position track) context compiled)))}
+                             (simulate-track-event util/beat-for-simulation
+                                                   (fn []
+                                                     (let [beat-object (show-util/random-beat)]
+                                                       [beat-object (show-util/position-from-random-beat beat-object)]))
+                                                   context compiled))}
 
           :tracked {:title    "Tracked Update Expression"
                     :tip      "Called for each update from a player with this track loaded, when enabled."
@@ -674,7 +684,8 @@
   <code>playing-players</code> convenience variable."
                     :bindings (show-bindings-for-track-and-class CdjStatus)
                     :simulate (fn [_kind context compiled]
-                                (simulate-track-event (show-util/random-cdj-status) context compiled))}
+                                (simulate-track-event util/time-for-simulation show-util/random-cdj-status
+                                                      context compiled))}
 
           :stopped {:title       "Stopped Expression"
                     :tip         "Called when all players stop playing the track, or the track is disabled."
@@ -699,7 +710,9 @@
   the convenience variables that it uses."
                     :bindings    (show-bindings-for-track-and-class CdjStatus)
                     :simulate    (fn [_kind context compiled]
-                                   (simulate-track-event (show-util/random-cdj-status {:f 0}) context compiled))
+                                   (simulate-track-event util/time-for-simulation
+                                                      (fn [] (show-util/random-cdj-status {:f 0}))
+                                                      context compiled))
                     :nil-status? true}
 
           :unloaded {:title       "Unloaded Expression"
@@ -710,7 +723,7 @@
   detailed information than MIDI allows."
                      :bindings    (show-bindings-for-track-and-class nil)
                      :simulate (fn [_kind context compiled]
-                                 (simulate-track-event nil context compiled))}
+                                 (simulate-track-event (fn [] util/*simulating*) (constantly nil) context compiled))}
 
           :shutdown {:title    "Shutdown Expression"
                      :tip      "Called once to release resources your track had been using."
@@ -794,16 +807,17 @@
                                (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data)))
                      :doc  "The set of player numbers currently playing this cue, if any."}})
 
-(defn simulate-phrase-event
+(defn- simulate-phrase-event
   "Helper function for simulating events in show phrase trigger editors."
-  [simulated-status context compiled]
+  [update-binding simulate-status context compiled]
   (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
     (let [[show phrase runtime-info] (show-util/latest-show-and-context context)]
-      (compiled simulated-status
-                {:locals (:expression-locals runtime-info)
-                 :show   show
-                 :phrase phrase}
-                (:expression-globals show)))))
+      (binding [util/*simulating* (update-binding)]
+        (compiled (simulate-status)
+                  {:locals (:expression-locals runtime-info)
+                   :show   show
+                   :phrase phrase}
+                  (:expression-globals show))))))
 
 (def show-phrase-editors
   "Specifies the kinds of editor which can be opened for a show phrase
@@ -854,7 +868,9 @@
   generally easier to use the convenience variables described below."
                     :bindings (show-bindings-for-phrase-and-class CdjStatus)
                     :simulate (fn [_kind context compiled]
-                                (simulate-phrase-event (show-util/random-cdj-status) context compiled))}
+                                (simulate-phrase-event util/time-for-simulation
+                                                       show-util/random-cdj-status
+                                                       context compiled))}
 
           :beat {:title "Beat Expression"
                  :tip "Called on each beat from devices playing the matched phrase."
@@ -872,7 +888,11 @@
   easier to use the convenience variables described below."
                  :bindings (show-bindings-for-phrase-and-class :beat-tpu)
                  :simulate (fn [_kind context compiled]
-                             (simulate-phrase-event (show-util/random-beat-and-position nil) context compiled))}
+                             (simulate-phrase-event util/beat-for-simulation
+                                                   (fn []
+                                                     (let [beat-object (show-util/random-beat)]
+                                                       [beat-object (show-util/position-from-random-beat beat-object)]))
+                                                   context compiled))}
 
           :tracked {:title "Tracked Update Expression"
                     :tip "Called for each update from a player playing the matched phrase."
@@ -889,7 +909,8 @@
   generally easier to use the convenience variables described below."
                     :bindings (show-bindings-for-phrase-and-class CdjStatus)
                     :simulate (fn [_kind context compiled]
-                                (simulate-phrase-event (show-util/random-cdj-status) context compiled))}
+                                (simulate-phrase-event util/time-for-simulation show-util/random-cdj-status
+                                                       context compiled))}
 
           :stopped {:title "Stopped Expression"
                     :tip "Called when all players stop playing the matched phrase."
@@ -914,7 +935,9 @@
   the convenience variables that it uses."
                     :bindings (show-bindings-for-phrase-and-class CdjStatus)
                     :simulate (fn [_kind context compiled]
-                                (simulate-phrase-event (show-util/random-cdj-status {:f 0}) context compiled))
+                                (simulate-phrase-event util/time-for-simulation
+                                                      (fn [] (show-util/random-cdj-status {:f 0}))
+                                                      context compiled))
                     :nil-status? true}
 
           :shutdown {:title "Shutdown Expression"
@@ -936,29 +959,31 @@
          (show-bindings-for-track-or-phrase-and-cue)
          (when update-class (expressions/bindings-for-update-class update-class))))
 
-(defn simulate-cue-event
+(defn- simulate-cue-event
   "Helper function for simulating events in show cue editors."
-  [simulated-status context cue compiled]
+  [update-binding simulate-status context cue compiled]
   (if (show-util/track? context)
     (let [[show track] (show-util/latest-show-and-context context)
           cue          (show-util/find-cue track cue)]
       (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
-        (compiled simulated-status
-                  {:locals (:expression-locals track)
-                   :show   show
-                   :track  track
-                   :cue    cue}
-                  (:expression-globals show))))
+        (binding [util/*simulating* (update-binding)]
+          (compiled (simulate-status)
+                    {:locals (:expression-locals track)
+                     :show   show
+                     :track  track
+                     :cue    cue}
+                    (:expression-globals show)))))
     ;; The phrase trigger version.
     (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
           cue                        (show-util/find-cue phrase cue)]
       (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
-        (compiled simulated-status
-                  {:locals (:expression-locals runtime-info)
-                   :show   show
-                   :phrase phrase
-                   :cue    cue}
-                  (:expression-globals show))))))
+        (binding [util/*simulating* (update-binding)]
+          (compiled (simulate-status)
+                    {:locals (:expression-locals runtime-info)
+                     :show   show
+                     :phrase phrase
+                     :cue    cue}
+                    (:expression-globals show)))))))
 
 (def show-cue-editors
   "Specifies the kinds of editor which can be opened for a show track cue,
@@ -975,7 +1000,8 @@
   allows."
                     :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
                     :simulate (fn [_kind context cue compiled]
-                                (simulate-cue-event (show-util/random-beat-or-status) context cue compiled))}
+                                (simulate-cue-event util/beat-for-simulation show-util/random-beat-or-status
+                                                    context cue compiled))}
 
           :started-on-beat {:title "Started On-Beat Expression"
                             :tip
@@ -1004,9 +1030,12 @@
   code to handle both possibilities."
                             :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)
                             :simulate (fn [_kind context cue compiled]
-                                        (simulate-cue-event (show-util/random-beat-and-position
-                                                             (when (show-util/track? context) context))
-                                                            context cue compiled))}
+                                        (simulate-cue-event
+                                         util/beat-for-simulation
+                                         (fn []
+                                           (let [beat-object (show-util/random-beat)]
+                                             [beat-object (show-util/position-from-random-beat beat-object)]))
+                                         context cue compiled))}
           :started-late {:title "Started Late Expression"
                          :tip   "Called when a player starts playing this cue later than its first beat, if the track is enabled."
                          :description
@@ -1026,7 +1055,8 @@
   below."
                          :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
                          :simulate (fn [_kind context cue compiled]
-                                     (simulate-cue-event (show-util/random-cdj-status) context cue compiled))}
+                                     (simulate-cue-event util/time-for-simulation show-util/random-cdj-status
+                                                         context cue compiled))}
 
           :beat   {:title "Beat Expression"
                    :tip   "Called on each beat from devices playing inside the cue."
@@ -1047,8 +1077,10 @@
   easier to use the convenience variables described below."
                    :bindings (show-bindings-for-track-or-phrase-cue-and-class :beat-tpu)
                    :simulate (fn [_kind context cue compiled]
-                               (simulate-cue-event (show-util/random-beat-and-position
-                                                    (when (show-util/track? context) context))
+                               (simulate-cue-event util/beat-for-simulation
+                                                   (fn []
+                                                     (let [beat-object (show-util/random-beat)]
+                                                       [beat-object (show-util/position-from-random-beat beat-object)]))
                                                    context cue compiled))}
 
           :tracked {:title    "Tracked Update Expression"
@@ -1069,7 +1101,8 @@
   convenience variable."
                     :bindings (show-bindings-for-track-or-phrase-cue-and-class CdjStatus)
                     :simulate (fn [_kind context cue compiled]
-                                (simulate-cue-event (show-util/random-cdj-status) context cue compiled))}
+                                (simulate-cue-event util/time-for-simulation show-util/random-cdj-status
+                                                    context cue compiled))}
 
           :ended {:title "Ended Expression"
                   :tip   "Called when all players stop playing this cue, if the track is enabled."
@@ -1086,7 +1119,8 @@
   uses."
                   :bindings    (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
                   :simulate    (fn [_kind context cue compiled]
-                                 (simulate-cue-event (show-util/random-beat-or-status) context cue compiled))
+                                 (simulate-cue-event util/beat-for-simulation show-util/random-beat-or-status
+                                                     context cue compiled))
                   :nil-status? true}
 
           :exited {:title "Exited Expression"
@@ -1104,7 +1138,8 @@
   uses."
                    :bindings    (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
                    :simulate    (fn [_kind context cue compiled]
-                                  (simulate-cue-event (show-util/random-beat-or-status) context cue compiled))
+                                  (simulate-cue-event util/beat-for-simulation show-util/random-beat-or-status
+                                                      context cue compiled))
                    :nil-status? true})))
 
 (def ^:private editor-theme

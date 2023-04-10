@@ -15,8 +15,9 @@
             [thi.ng.color.core :as color]
             [thi.ng.math.core :as thing-math])
   (:import [beat_link_trigger.util MidiChoice]
-           [org.deepsymmetry.beatlink CdjStatus$PlayState1 CdjStatus$TrackSourceSlot Util VirtualCdj]
-           [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference WaveformDetail WaveformPreview]
+           [org.deepsymmetry.beatlink CdjStatus$PlayState1 CdjStatus$TrackSourceSlot Util]
+           [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference TrackPositionUpdate
+            WaveformDetail WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
            [java.awt Color]
            [java.io File]
@@ -496,6 +497,14 @@
                                 ;; TODO: Add next beats/bars information.
                                 options)))))
 
+(defn position-from-random-beat
+  "When simulating a beat-TPU tuple, creates the `TrackPositionUpdate`
+  consistent with the simulation context and chosen `Beat`."
+  [beat-object]
+  (let [{:keys [beat grid time]} util/*simulating*]
+    (TrackPositionUpdate. (System/nanoTime) time beat true true (Util/pitchToMultiplier (.getPitch beat-object))
+                          false grid)))
+
 (defn random-cdj-status
   "Creates a [`CdjStatus`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
@@ -538,45 +547,6 @@
    (if (zero? (rand-int 2))
      (random-beat options)
      (random-cdj-status options))))
-
-(def ^:private sample-beatgrid
-  "Holds a beat grid that can be used by `random-beat-and-position`
-  when a simulation context of track data has not been established.
-  Delayed so it is not loaded until it is actually used."
-  (delay
-   (let [url (.getResource VirtualCdj "/beat_link_trigger/sampleTracks/1")
-         uri (.toURI url)
-         ref (DataReference. 1 (rand-nth [CdjStatus$TrackSourceSlot/USB_SLOT CdjStatus$TrackSourceSlot/SD_SLOT])
-                             (inc (rand-int 3000)))]
-    (if (= (.getScheme uri) "jar")
-      (let [conn            (.openConnection url) ; Running from a jar, need to open a jar filesystem.
-            jar-file-path   (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
-            ^ClassLoader cl nil
-            entry-name      (.getEntryName conn)]
-        (with-open [jar-filesystem (java.nio.file.FileSystems/newFileSystem jar-file-path cl)]
-          (read-beat-grid (.getPath jar-filesystem entry-name (into-array String [])) ref)))
-      ;; We are not running from a jar, and can build the path to the sample track directly.
-      (read-beat-grid (java.nio.file.Paths/get uri) ref)))))
-
-;; TODO: This should now be replaced using simulation contexts and `random-beat`.
-;;       The position can be constructed from the `:time` stored in `*simulating*`.
-;;       Once that is done, `sample-beatgrid` can be deleted.
-(defn ^:deprecated random-beat-and-position
-  "Creates random, mutually consistent
-  [`Beat`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
-  and
-  [`TrackPositionUpdate`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackPositionUpdate.html)
-  objects for simulating expression calls, using the track
-  [`BeatGrid`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html).
-  If `track` is `nil`, an example beat grid is used instead."
-  [track]
-  (let [^BeatGrid grid (if track (:grid track) @sample-beatgrid)
-        beat           (inc (rand-int (.beatCount grid)))
-        time           (.getTimeWithinTrack grid beat)]
-    [(util/simulate-beat {:beat          (.getBeatWithinBar grid beat)
-                          :device-number (inc (rand-int 4))
-                          :bpm           (+ 4000 (rand-int 12000))})
-     (org.deepsymmetry.beatlink.data.TrackPositionUpdate. (System/nanoTime) time beat true true 1.0 false grid)]))
 
 (defn- get-chosen-output-internal
   "Finishes the task of `get-chosen-output` (see below) after the track
