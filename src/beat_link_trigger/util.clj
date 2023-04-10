@@ -685,12 +685,56 @@
   (let [entry (or entry (rand-nth (tracks-for-simulation phrases-required?)))]
     (if (number? entry)
       (let [sample (get @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) entry)]
-        (merge (select-keys sample [:beat-grid :cue-list :metadata])
-               {:song-structure (:phrases sample)}))
+        (merge (select-keys sample [:cue-list :metadata])
+               {:song-structure    (:phrases sample)
+                :grid              (:beat-grid sample)
+                :phrases-required? (boolean phrases-required?)}))
       (let [[file signature] entry
             track            (get-in @@(requiring-resolve 'beat-link-trigger.show-util/open-shows)
                                      [file :tracks signature])]
-        (select-keys track [:beat-grid :cue-list :metadata :song-structure])))))
+        (merge (select-keys track [:cue-list :grid :metadata :song-structure])
+               {:phrases-required? (boolean phrases-required?)})))))
+
+(defn- phrase-beat-range
+  "Once `*simulating*` has been set up with track data to be simulated
+  for a track with phrase analysis, returns the beats at which the
+  analysis starts and ends."
+  []
+  (let [body       (.body (:song-structure *simulating*))
+        start-beat (.beat (first (sort-by (fn [^RekordboxAnlz$SongStructureEntry entry] (.beat entry))
+                                          (.entries body))))
+        end-beat   (.endBeat body)]
+    [start-beat end-beat]))
+
+(defn time-for-simulation
+  "Once `*simulating*` has been set up with track data to be simulated,
+  chooses a random time within that track for a status packet to be
+  created, and adds it to the map. If phrases are required, ensures
+  the time falls within a track phrase."
+  []
+  (let [{:keys [metadata grid phrases-required?]} *simulating*]
+    (if phrases-required?
+      (let [[start-beat end-beat] (phrase-beat-range)
+            start-ms              (.getTimeWithinTrack grid start-beat)
+            end-ms                (.getTimeWithinTrack grid end-beat)]
+        (assoc *simulating* :time (+ start-ms (rand-int (- end-ms start-ms)))))
+      (assoc *simulating* :time (inc (rand-int (* 1000 (:duration metadata))))))))
+
+(defn beat-for-simulation
+  "Once `*simulating*` has been set up with track data to be simulated,
+  chooses a random beat within that track for a beat packet to be
+  created, and adds it (and the time it falls within the track) to the
+  map. If phrases are required, ensures the beat falls within a track
+  phrase."
+  []
+  (let [{:keys [grid phrases-required?]} *simulating*
+        beat                             (if phrases-required?
+                                           (let [[start-beat end-beat] (phrase-beat-range)]
+                                             (+ start-beat (rand-int (- end-beat start-beat))))
+                                           (inc (rand-int (.findBeatAtTime grid Long/MAX_VALUE))))]
+    (merge *simulating*
+           {:beat beat
+            :time (.getTimeWithinTrack grid beat)})))
 
 (def ^:private packet-header
   "The byte sequence that begins any device update packet."

@@ -464,34 +464,64 @@
                       :tip (str "Examine any values set as " (if (track? context) "Track" "Phrase Trigger")
                                 " locals by its Expressions."))))
 
+(defn- bpm-at-beat
+  "Finds the actual track tempo at the specified beat, for use when
+  simulating with actual track data."
+  [beat]
+  (let [from-grid (.getBpm (:grid util/*simulating*) beat)]
+    (if (zero? from-grid)
+      (long (* (get-in util/*simulating* [:metadata :starting-tempo]) 100))
+      from-grid)))
 
 (defn random-beat
   "Creates a [`Beat`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
-  with random attributes for simulating expression calls."
-  []
-  (util/simulate-beat {:beat          (inc (rand-int 4))
-                       :device-number (inc (rand-int 4))
-                       :bpm           (+ 4000 (rand-int 12000))}))
+  with random attributes for simulating expression calls. If a
+  simulation context has been set up, makes it consistent with that
+  data. If provided, the supplied options are used to further
+  configure the object."
+  ([]
+   (random-beat {}))
+  ([options]
+   (let [chosen-beat (:beat util/*simulating*)
+         beat        (if chosen-beat
+                       (.getBeatWithinBar (:grid util/*simulating*) chosen-beat)
+                       (inc (rand-int 4)))
+         bpm         (if chosen-beat
+                       (bpm-at-beat chosen-beat)
+                       (+ 4000 (rand-int 12000)))]
+     (util/simulate-beat (merge {:beat          beat
+                                 :device-number (inc (rand-int 6))
+                                 :bpm           bpm}
+                                ;; TODO: Add next beats/bars information.
+                                options)))))
 
 (defn random-cdj-status
   "Creates a [`CdjStatus`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html)
-  with random attributes for simulating expression calls. If provided,
-  the supplied options are used to further configure the object."
+  with random attributes for simulating expression calls. If a
+  simulation context has been set up, makes it consistent with that
+  data. If provided, the supplied options are used to further
+  configure the object."
   ([]
    (random-cdj-status {}))
   ([options]
-   (let [device (inc (rand-int 4))]
-     (util/simulate-player-status (merge {:bb            (inc (rand-int 4))
-                                          :beat          (rand-int 2000)
+   (let [device      (inc (rand-int 6))
+         chosen-time (:time util/*simulating*)
+         chosen-beat (when chosen-time (.findBeatAtTime (:grid util/*simulating*) chosen-time))]
+     (util/simulate-player-status (merge {:bb            (if chosen-beat
+                                                           (.getBeatWithinBar (:grid util/*simulating*) chosen-beat)
+                                                           (inc (rand-int 4)))
+                                          :beat          (or chosen-beat (rand-int 2000))
                                           :device-number device
-                                          :bpm           (+ 4000 (rand-int 12000))
+                                          :bpm           (if chosen-beat
+                                                           (bpm-at-beat chosen-beat)
+                                                           (+ 4000 (rand-int 12000)))
                                           :d-r           device
                                           :s-r           2
                                           :t-r           1
                                           :rekordbox     (inc (rand-int 1000))
-                                          :f 0x40}
+                                          :f             0x40}
                                          options)))))
 
 (defn random-beat-or-status
@@ -506,11 +536,12 @@
    (random-beat-or-status {}))
   ([options]
    (if (zero? (rand-int 2))
-     (random-beat)
+     (random-beat options)
      (random-cdj-status options))))
 
 (def ^:private sample-beatgrid
-  "Holds a beat grid that can be used by `random-beat-and-position`.
+  "Holds a beat grid that can be used by `random-beat-and-position`
+  when a simulation context of track data has not been established.
   Delayed so it is not loaded until it is actually used."
   (delay
    (let [url (.getResource VirtualCdj "/beat_link_trigger/sampleTracks/1")
@@ -527,7 +558,10 @@
       ;; We are not running from a jar, and can build the path to the sample track directly.
       (read-beat-grid (java.nio.file.Paths/get uri) ref)))))
 
-(defn random-beat-and-position
+;; TODO: This should now be replaced using simulation contexts and `random-beat`.
+;;       The position can be constructed from the `:time` stored in `*simulating*`.
+;;       Once that is done, `sample-beatgrid` can be deleted.
+(defn ^:deprecated random-beat-and-position
   "Creates random, mutually consistent
   [`Beat`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/Beat.html)
   and

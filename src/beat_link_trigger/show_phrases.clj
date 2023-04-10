@@ -100,7 +100,7 @@
   entry) to which that beat belongs, if any."
   [^RekordboxAnlz$SongStructureTag song-structure]
   (let [body    (.body song-structure)
-        entries (sort-by (fn [^RekordboxAnlz$SongStructureTag entry] (.beat entry)) (.entries body))]
+        entries (sort-by (fn [^RekordboxAnlz$SongStructureEntry entry] (.beat entry)) (.entries body))]
     (reduce (fn [intervals [^RekordboxAnlz$SongStructureEntry entry ^RekordboxAnlz$SongStructureEntry next-entry]]
               (if (some? next-entry)
                 (util/iassoc intervals (.beat entry) (.beat next-entry) entry)
