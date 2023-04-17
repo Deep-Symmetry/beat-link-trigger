@@ -81,6 +81,8 @@ This change log follows the conventions of
   [plausible simulated data is
   produced](https://github.com/Deep-Symmetry/beat-link-trigger/issues/160)
   for more convenience bindings.
+- A new integration example shows how to send phrase information to
+  TouchDesigner.
 
 ### Changed
 
