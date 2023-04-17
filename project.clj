@@ -31,7 +31,7 @@
                  [me.raynes/fs "1.4.6"]
                  [nrepl "1.0.0"]
                  [org.apache.maven/maven-artifact "3.9.0"]
-                 [org.deepsymmetry/beat-link "7.1.0-SNAPSHOT"]
+                 [org.deepsymmetry/beat-link "7.1.0"]
                  [org.deepsymmetry/electro "0.1.4"]
                  [org.pushing-pixels/radiance-substance "1.0.2"]
                  [org.pushing-pixels/radiance-substance-extras "1.0.2"]

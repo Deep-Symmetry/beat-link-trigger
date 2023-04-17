@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [7.1.0] - 2023-04-16
+
 ### Fixed
 
 - Phrase trigger cues were [not reliably sending their end
@@ -1364,7 +1368,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.1...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.1.0...HEAD
+[7.1.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.1...v7.1.0
 [7.0.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.0...v7.0.1
 [7.0.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.3...v7.0.0
 [0.6.3]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v0.6.2...v0.6.3
