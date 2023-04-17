@@ -6,7 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Added
+
+- Working on a "shallow playback simulation" system that will allow
+  coordinated sets of show expressions to be tested by pretending that
+  a player is sending events as a track is played.
 
 ## [7.1.0] - 2023-04-16
 
