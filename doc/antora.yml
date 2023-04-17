@@ -1,8 +1,7 @@
 name: beat-link-trigger
 title: Beat Link Trigger
-version: ~
-display_version: 'main'
-prerelease: true
+version: "7.1"
+prerelease: false
 start_page: ROOT:README.adoc
 asciidoc:
   attributes:
