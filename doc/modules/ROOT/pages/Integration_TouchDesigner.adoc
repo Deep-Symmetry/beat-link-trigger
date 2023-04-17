@@ -134,7 +134,7 @@ this string to match the name of the table that you actually want to
 be affected by these JSON UDP packets.
 
 This leads to table contents like the following, updated on each beat
-from a track for phrase analysis information is available playing on
-the current master player:
+from a track for which phrase analysis information is available, that
+is playing on the current master player:
 
 image:TableFromJSON.png[Phrase information table,988,181]
