@@ -12,6 +12,7 @@
             [beat-link-trigger.show-phrases :as phrases]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track find-cue
                                                         swap-show! swap-track! swap-signature!]]
+            [beat-link-trigger.show-simulator :as sim]
             [clojure.java.browse]
             [clojure.java.io :as io]
             [clojure.set :as set]
@@ -2166,7 +2167,7 @@
                                          :items (concat [(:import-menu show)]
                                                         (map (partial build-global-editor-action show)
                                                              (keys @editors/global-show-editors))
-                                                        [(seesaw/separator) inspect-action]))
+                                                        [(seesaw/separator) inspect-action (:simulate-item show)]))
                             (seesaw/menu :text "Phrases"
                                          :id :phrases-menu
                                          :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))
@@ -2238,10 +2239,12 @@
       (let [^JFrame root    (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
                                           :on-close :nothing)
             import-menu     (seesaw/menu :text "Import Track")
+            simulate-item   (seesaw/menu-item :visible? (not (util/online?)))
             show            {:creating    true
                              :frame       root
                              :expression-globals (atom {})
                              :import-menu import-menu
+                             :simulate-item simulate-item
                              :file        file
                              :filesystem  filesystem
                              :contents    contents
@@ -2281,6 +2284,9 @@
                                 (.start signature-finder)  ; In case we started out offline.
                                 (seesaw/invoke-later
                                  (seesaw/show! loaded-only)
+                                 (seesaw/hide! simulate-item)
+                                 (doseq [simulator (vals (:simulators (latest-show show)))]
+                                   ((:close-fn simulator)))
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show true))
                                  (su/update-row-visibility show)
@@ -2288,6 +2294,7 @@
                               (stopped [_this _sender]
                                 (seesaw/invoke-later
                                  (seesaw/hide! loaded-only)
+                                 (seesaw/show! simulate-item)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show false))
                                  (su/update-row-visibility show)
@@ -2333,6 +2340,8 @@
                                   (.removeLifecycleListener metadata-finder mf-listener)
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
+                                  (doseq [simulator (vals (:simulators show))]
+                                    ((:close-fn simulator)))
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true track))
                                   (doseq [phrase (vals (get-in show [:contents :phrases]))]
@@ -2362,6 +2371,7 @@
         (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
         (.addUpdateListener virtual-cdj update-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
+        (seesaw/config! simulate-item :action (sim/build-simulator-action show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
 
         ;; Need to compile the show expressions before building the tracks, so shared functions are available.
