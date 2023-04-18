@@ -69,11 +69,14 @@
     (doseq [simulator (vals (:simulators show))]
       (let [combo   (seesaw/select (:frame simulator) [:#track])
             current (seesaw/selection combo)
+            model   (track-menu-model show)
             lost    (or (and (instance? TrackChoice current) (not (signatures (:signature current))))
                         (and (instance? SampleChoice current) (seq signatures)))]
         (when-not lost (swap-show! show assoc-in [:simulators (:uuid simulator) :adjusting] true))
-        (seesaw/config! combo :model (track-menu-model show))
-        (when-not lost (seesaw/selection! combo current))
+        (seesaw/config! combo :model model)
+        (if lost
+          (swap-show! show assoc-in [:simulators (:uuid simulator) :track] (first model))
+          (seesaw/selection! combo current))
         (swap-show! show update-in [:simulators (:uuid simulator)] dissoc :adjusting)))))
 
 (defn build-simulator-panel
