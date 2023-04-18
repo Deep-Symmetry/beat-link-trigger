@@ -1509,6 +1509,7 @@
                                 (swap-show! show expunge-deleted-track track panel)
                                 (refresh-signatures show)
                                 (su/update-row-visibility show)
+                                (sim/recompute-track-models show)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting track")
                                   (seesaw/alert (str e) :title "Problem Deleting Track" :type :error)))))
@@ -1830,6 +1831,7 @@
         (create-track-panel show track-root)
         (su/update-row-visibility show)
         (scroll-to-track show track)
+        (sim/recompute-track-models show)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
         ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.

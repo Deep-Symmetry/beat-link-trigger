@@ -10,6 +10,20 @@
             [taoensso.timbre :as timbre])
   (:import [javax.swing JFrame]))
 
+;; Used to represent one of the sample tracks available for simulation
+(defrecord SampleChoice [number]
+  Object
+  (toString [_]
+    (let [samples @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data)]
+      (get-in samples [number :metadata :title]))))
+
+;; Used to represent a track from a show available for simulation
+(defrecord TrackChoice [file signature]
+  Object
+  (toString [_]
+    (let [show (latest-show file)]
+      (get-in show [:tracks signature :metadata :title]))))
+
 (defn- choose-simulator-player
   "Finds the first player number that has not yet been used by a
   simulator in the show."
@@ -37,6 +51,31 @@
       (seesaw/selection! combo current)
       (swap-show! show update-in [:simulators (:uuid simulator)] dissoc :adjusting))))
 
+(defn- track-menu-model
+  "Returns the available tracks this simulator can choose."
+  [show]
+  (let [tracks (vals (:tracks (latest-show show)))]
+    (sort-by #(.toString %)
+             (if (empty? tracks)
+               (map #(SampleChoice. (inc %)) (range 2))
+               (map #(TrackChoice. (:file show) (:signature %)) tracks)))))
+
+(defn recompute-track-models
+  "Updates the track combo-boxes of all open windows to reflect the
+  addition or removal of a track from the show."
+  [show]
+  (let [show       (latest-show show)
+        signatures (set (keys (:tracks show)))]
+    (doseq [simulator (vals (:simulators show))]
+      (let [combo   (seesaw/select (:frame simulator) [:#track])
+            current (seesaw/selection combo)
+            lost    (or (and (instance? TrackChoice current) (not (signatures (:signature current))))
+                        (and (instance? SampleChoice current) (seq signatures)))]
+        (when-not lost (swap-show! show assoc-in [:simulators (:uuid simulator) :adjusting] true))
+        (seesaw/config! combo :model (track-menu-model show))
+        (when-not lost (seesaw/selection! combo current))
+        (swap-show! show update-in [:simulators (:uuid simulator)] dissoc :adjusting)))))
+
 (defn build-simulator-panel
   "Creates the UI of the simulator window, once the show has its basic
   configuration added."
@@ -51,8 +90,27 @@
                                           (let [chosen (seesaw/selection e)]
                                             (swap-show! show assoc-in [:simulators uuid :player] chosen)
                                             (when-not (get-in (latest-show show) [:simulators uuid :adjusting])
-                                              (recompute-player-models show))))])
-              "wrap"]])))
+                                              (recompute-player-models show))))])]
+             [(seesaw/checkbox :id :on-air :text "On-Air" :selected? true
+                               :listen [:action (fn [e] (swap-show! show assoc-in [:simulators uuid :on-air]
+                                                                    (seesaw/value e)))])]
+             [(seesaw/checkbox :id :master :text "Master"
+                               :listen [:action (fn [e]
+                                                  (let [master? (seesaw/value e)]
+                                                    (swap-show! show assoc-in [:simulators uuid :master] master?)
+                                                    (when master?
+                                                      (doseq [simulator (vals (:simulators (latest-show show)))]
+                                                        (when (not= uuid (:uuid simulator))
+                                                          (seesaw/value! (seesaw/select (:frame simulator) [:#master])
+                                                                         false))))))])
+              "wrap"]
+             ["Track:"]
+             [(seesaw/combobox :id :track :model (track-menu-model show)
+                               :listen [:item-state-changed
+                                        (fn [e]
+                                          (let [chosen (seesaw/selection e)]
+                                            (swap-show! show assoc-in [:simulators uuid :track] chosen)))])
+              "span 3"]])))
 
 (defn- create-simulator
   "Creates a new shallow playback simulator for the show. Must be called
@@ -75,12 +133,14 @@
                  :player   player
                  :sync     true
                  :master   false
+                 :on-air   true
                  :playing  false
                  :pitch    0
                  :time     0
                  :close-fn close-fn})
     (seesaw/config! root :content (build-simulator-panel show uuid))
     (recompute-player-models show)
+    (swap-show! show assoc-in [:simulators uuid :track] (seesaw/selection (seesaw/select root [:#track])))
     (seesaw/listen root :window-closing (fn [_] (close-fn)))
     (seesaw/pack! root)
     (seesaw/show! root))
