@@ -1416,12 +1416,13 @@
                      (seesaw/action :handler
                                     (fn [_]
                                       (let [new-track (merge (select-keys track [:signature :metadata
-                                                                                 :contents :song-structure])
+                                                                                 :contents])
                                                              {:cue-list       (su/read-cue-list track-root)
                                                               :beat-grid      (su/read-beat-grid track-root)
                                                               :preview        (su/read-preview track-root)
                                                               :detail         (su/read-detail track-root)
-                                                              :art            (su/read-art track-root)})]
+                                                              :art            (su/read-art track-root)
+                                                              :song-structure (su/read-song-structure track-root)})]
                                         (import-track other-show new-track)
                                         (refresh-signatures other-show)))
                                     :name (str "Copy to Show \"" (fs/base-name (:file other-show) true) "\""))))

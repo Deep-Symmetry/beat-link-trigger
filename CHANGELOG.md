@@ -6,6 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- Trying to copy a track with phrase analysis information to a
+  different show would result in an exceptiono that prevented the
+  copy.
+
 ### Added
 
 - Working on a "shallow playback simulation" system that will allow
