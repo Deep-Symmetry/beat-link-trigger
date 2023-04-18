@@ -60,6 +60,16 @@
                (map #(SampleChoice. (inc %)) (range 2))
                (map #(TrackChoice. (:file show) (:signature %)) tracks)))))
 
+(defn- set-simulation-data
+  "Given the track menu choice, finds and records the appropriate data
+  for simulation of that track."
+  [show uuid choice]
+  (let [data (util/data-for-simulation :entry (if (instance? SampleChoice choice)
+                                                (:number choice)
+                                                [(:file choice) (:signature choice)])
+                                       :include-preview? true)]
+    (swap-show! show assoc-in [:simulators uuid :track] data)))
+
 (defn recompute-track-models
   "Updates the track combo-boxes of all open windows to reflect the
   addition or removal of a track from the show."
@@ -75,7 +85,7 @@
         (when-not lost (swap-show! show assoc-in [:simulators (:uuid simulator) :adjusting] true))
         (seesaw/config! combo :model model)
         (if lost
-          (swap-show! show assoc-in [:simulators (:uuid simulator) :track] (first model))
+          (set-simulation-data show (:uuid simulator) (first model))
           (seesaw/selection! combo current))
         (swap-show! show update-in [:simulators (:uuid simulator)] dissoc :adjusting)))))
 
@@ -112,7 +122,7 @@
                                :listen [:item-state-changed
                                         (fn [e]
                                           (let [chosen (seesaw/selection e)]
-                                            (swap-show! show assoc-in [:simulators uuid :track] chosen)))])
+                                            (set-simulation-data show uuid chosen)))])
               "span 3"]])))
 
 (defn- create-simulator
@@ -143,7 +153,7 @@
                  :close-fn close-fn})
     (seesaw/config! root :content (build-simulator-panel show uuid))
     (recompute-player-models show)
-    (swap-show! show assoc-in [:simulators uuid :track] (seesaw/selection (seesaw/select root [:#track])))
+    (set-simulation-data show uuid (seesaw/selection (seesaw/select root [:#track])))
     (seesaw/listen root :window-closing (fn [_] (close-fn)))
     (seesaw/pack! root)
     (seesaw/show! root))

@@ -136,6 +136,13 @@
              :year (+ (rand-int 100) 1920))
       (dissoc :date-added :tempo)))
 
+(defn- read-edn-file
+  "Reads and parses an EDN file that is part of a sample track."
+  [track-root file-name]
+  (let [path (.resolve track-root file-name)]
+     (when (java.nio.file.Files/isReadable path)
+       (show-util/read-edn-path path))))
+
 (defn- read-sample-track-internal
   "Once we have obtained a proper path (dependent on if we are running
   from a jar or the filesystem), reads the sample track data from it."
@@ -150,10 +157,9 @@
      :preview   (show-util/read-preview path ref)
      :phrases   (when-let [raw-ss (show-util/read-song-structure path)]
                   (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss)))
-     :metadata  (-> (.getResourceAsStream VirtualCdj (str "/beat_link_trigger/sampleTracks/" player "/metadata.edn"))
-                    slurp
-                    edn/read-string
-                    (reformat-sample-metadata ref))}))
+     :metadata  (-> (read-edn-file path "metadata.edn")
+                    (reformat-sample-metadata ref))
+     :signature (read-edn-file path "signature.edn")}))
 
 (defn read-sample-track
   "Reads the sample track data stored for the given player number."
