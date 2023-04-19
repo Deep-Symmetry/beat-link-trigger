@@ -11,6 +11,7 @@
             [beat-link-trigger.overlay :as overlay]
             [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.settings-loader :as settings-loader]
+            [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.show :as show]
             [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.prefs :as prefs]
@@ -1415,7 +1416,12 @@
                                    (overlay/show-window @trigger-frame))
                         :name "OBS Overlay Web Server" :enabled? true)))
 
-
+(defonce ^{:private true
+           :doc "The menu action which opens a shallow playback simulator."}
+  open-simulator-item
+  (delay (let [item (seesaw/menu-item :visible? (not (util/online?)))]
+           (seesaw/config! item :action (sim/build-simulator-action item))
+           item)))
 
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
@@ -1525,6 +1531,7 @@
                             (seesaw/menu :text "Network"
                                          :items [online-item real-item
                                                  (seesaw/separator)
+                                                 @open-simulator-item
                                                  @player-status-action @load-track-action @load-settings-action
                                                  (seesaw/separator)
                                                  @carabiner-action @overlay-server-action @nrepl-action]
@@ -1588,13 +1595,17 @@
   "Updates the File and Network menus so they are appropriate for
   whether we are currently online or not. If online, we show the
   player number in the `Online?` option, and enable the options which
-  require that state. Otherwise we disable them."
+  require that state (but we hide the Simulator option). Otherwise we
+  disable the online-dependent options and show the Simulator option."
   []
   (seesaw/invoke-soon
    (try
      (seesaw/config! [@playlist-writer-action @load-track-action @load-settings-action @player-status-action]
                      :enabled? (util/online?))
      (.setText (online-menu-item) (online-menu-name))
+     (if (util/online?)
+       (seesaw/hide! @open-simulator-item)
+       (seesaw/show! @open-simulator-item))
      (catch Throwable t
        (timbre/error t "Problem updating interface to reflect online state")))))
 
@@ -1703,7 +1714,9 @@
   "Try to transition to an online state, updating the UI appropriately."
   []
   (future
-    (seesaw/invoke-now (seesaw/hide! @trigger-frame))
+    (seesaw/invoke-now
+     (seesaw/hide! @trigger-frame)
+     (sim/close-all-simulators))
     ((resolve 'beat-link-trigger.core/try-going-online))
     (when-not (util/online?)
       (seesaw/invoke-now  ; We failed to go online, so update the menu to reflect that.

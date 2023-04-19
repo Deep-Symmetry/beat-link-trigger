@@ -12,7 +12,7 @@
             [beat-link-trigger.show-phrases :as phrases]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track latest-show-and-track find-cue
                                                         swap-show! swap-track! swap-signature!]]
-            [beat-link-trigger.show-simulator :as sim]
+            [beat-link-trigger.simulator :as sim]
             [clojure.java.browse]
             [clojure.java.io :as io]
             [clojure.set :as set]
@@ -1510,7 +1510,7 @@
                                 (swap-show! show expunge-deleted-track track panel)
                                 (refresh-signatures show)
                                 (su/update-row-visibility show)
-                                (sim/recompute-track-models show)
+                                (sim/recompute-track-models)
                                 (catch Exception e
                                   (timbre/error e "Problem deleting track")
                                   (seesaw/alert (str e) :title "Problem Deleting Track" :type :error)))))
@@ -1832,7 +1832,7 @@
         (create-track-panel show track-root)
         (su/update-row-visibility show)
         (scroll-to-track show track)
-        (sim/recompute-track-models show)
+        (sim/recompute-track-models)
         ;; Finally, flush the show to move the newly-created filesystem elements into the actual ZIP file. This
         ;; both protects against loss due to a crash, and also works around a Java bug which is creating temp files
         ;; in the same folder as the ZIP file when FileChannel/open is used with a ZIP filesystem.
@@ -2170,7 +2170,7 @@
                                          :items (concat [(:import-menu show)]
                                                         (map (partial build-global-editor-action show)
                                                              (keys @editors/global-show-editors))
-                                                        [(seesaw/separator) inspect-action (:simulate-item show)]))
+                                                        [(seesaw/separator) inspect-action]))
                             (seesaw/menu :text "Phrases"
                                          :id :phrases-menu
                                          :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))
@@ -2242,12 +2242,10 @@
       (let [^JFrame root    (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
                                           :on-close :nothing)
             import-menu     (seesaw/menu :text "Import Track")
-            simulate-item   (seesaw/menu-item :visible? (not (util/online?)))
             show            {:creating    true
                              :frame       root
                              :expression-globals (atom {})
                              :import-menu import-menu
-                             :simulate-item simulate-item
                              :file        file
                              :filesystem  filesystem
                              :contents    contents
@@ -2287,9 +2285,6 @@
                                 (.start signature-finder)  ; In case we started out offline.
                                 (seesaw/invoke-later
                                  (seesaw/show! loaded-only)
-                                 (seesaw/hide! simulate-item)
-                                 (doseq [simulator (vals (:simulators (latest-show show)))]
-                                   ((:close-fn simulator)))
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show true))
                                  (su/update-row-visibility show)
@@ -2297,7 +2292,6 @@
                               (stopped [_this _sender]
                                 (seesaw/invoke-later
                                  (seesaw/hide! loaded-only)
-                                 (seesaw/show! simulate-item)
                                  (doseq [announcement (.getCurrentDevices device-finder)]
                                    (update-player-item-visibility announcement show false))
                                  (su/update-row-visibility show)
@@ -2343,8 +2337,6 @@
                                   (.removeLifecycleListener metadata-finder mf-listener)
                                   (.removeSignatureListener signature-finder sig-listener)
                                   (.removeAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
-                                  (doseq [simulator (vals (:simulators show))]
-                                    ((:close-fn simulator)))
                                   (doseq [track (vals (:tracks show))]
                                     (cleanup-track true track))
                                   (doseq [phrase (vals (get-in show [:contents :phrases]))]
@@ -2361,7 +2353,8 @@
                                     (.close database))
                                   (seesaw/invoke-later
                                    ;; Gives windows time to close first, so they don't recreate a broken show.
-                                   (su/remove-file-from-open-shows! file))
+                                   (su/remove-file-from-open-shows! file)
+                                   (sim/recompute-track-models))
                                   ;; Remove the instruction to reopen this window the next time the program runs,
                                   ;; unless we are closing it because the application is quitting.
                                   (when-not quitting? (swap! util/window-positions dissoc window-name))
@@ -2374,7 +2367,6 @@
         (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")
         (.addUpdateListener virtual-cdj update-listener)
         (seesaw/config! import-menu :items (build-import-submenu-items show))
-        (seesaw/config! simulate-item :action (sim/build-simulator-action show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
 
         ;; Need to compile the show expressions before building the tracks, so shared functions are available.
@@ -2420,7 +2412,8 @@
         (when (util/online?) (run-global-function show :online nil true))
         (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
-        (seesaw/show! root))
+        (seesaw/show! root)
+        (sim/recompute-track-models))
       (catch Throwable t
         (su/remove-file-from-open-shows! file)
         (.close filesystem)
