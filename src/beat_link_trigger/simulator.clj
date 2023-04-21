@@ -8,7 +8,8 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [javax.swing JFrame]))
+  (:import [org.deepsymmetry.beatlink.data SignatureUpdate]
+           [javax.swing JFrame]))
 
 (defonce ^{:private true
            :doc "The open simulator windows, keyed by their UUID."}
@@ -27,6 +28,14 @@
        (map :track)
        (map :signature)
        set))
+
+(defn for-player
+  "Returns the simulator window with the specified player number, if one
+  is open."
+  [player]
+  (->> (vals @simulators)
+       (filter #(= (:player %) player))
+       first))
 
 ;; Used to represent one of the sample tracks available for simulation
 (defrecord SampleChoice [number signature]
@@ -90,7 +99,8 @@
 
 (defn- set-simulation-data
   "Given the track menu choice, finds and records the appropriate data
-  for simulation of that track."
+  for simulation of that track, then lets any open shows know about
+  the simulated presence of the track."
   [uuid choice]
   (let [data (util/data-for-simulation :entry (if (instance? SampleChoice choice)
                                                 (:number choice)
@@ -101,7 +111,13 @@
     (let [preview (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])]
       (if old
         (seesaw/replace! preview old (:preview data))
-        (seesaw/config! preview :center (:preview data))))))
+        (seesaw/config! preview :center (:preview data))))
+    (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature data))]
+      (doseq [show (vals (su/get-open-shows))]
+        (try
+          ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update show)
+          (catch Throwable t
+            (timbre/error t "Problem delivering simulated signature update to show" sig-update (:file show))))))))
 
 (defn recompute-track-models
   "Updates the track combo-boxes of all open windows to reflect the
@@ -168,9 +184,16 @@
         player       (choose-simulator-player)
         close-fn     (fn []
                        (.dispose root)
-                       (let [removed (swap! simulators dissoc uuid)]
+                       (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) nil)
+                             removed (swap! simulators dissoc uuid)]
                          (recompute-player-models)
                          (seesaw/config! simulate-item :enabled? true)
+                         (doseq [show (vals (su/get-open-shows))]
+                           (try
+                             ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update show)
+                             (catch Throwable t
+                               (timbre/error t "Problem delivering simulated signature update to show" sig-update
+                                             (:file show)))))
                          (when (empty? removed)
                            (doseq [show (vals (su/get-open-shows))]
                              ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false))))

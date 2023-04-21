@@ -279,14 +279,16 @@
   specified player in the track preview and, if there is an open Cues
   editor window, in its waveform detail."
   [show signature ^Long player]
-  (when-let [^TrackPositionUpdate position (.getLatestPositionFor util/time-finder player)]
-    (let [interpolated-time (.getTimeFor util/time-finder player)]
-      (when-let [preview-loader (get-in show [:tracks signature :preview])]
+  (let [[interpolated-time playing?] (if-let [simulator (sim/for-player player)]
+                                       [(:time simulator) (:playing simulator)]
+                                       (when-let [^TrackPositionUpdate position
+                                                  (.getLatestPositionFor util/time-finder player)]
+                                         [(.getTimeFor util/time-finder player) (.playing position)]))]
+    (when-let [preview-loader (get-in show [:tracks signature :preview])]
         (when-let [^WaveformPreviewComponent preview (preview-loader)]
-          (.setPlaybackState preview player interpolated-time (.playing position))))
+          (.setPlaybackState preview player interpolated-time playing?)))
       (when-let [cues-editor (get-in (latest-show show) [:tracks signature :cues-editor])]
-        (.setPlaybackState ^WaveformDetailComponent (:wave cues-editor)
-                           player interpolated-time (.playing position))))))
+        (.setPlaybackState ^WaveformDetailComponent (:wave cues-editor) player interpolated-time playing?))))
 
 (defn- send-loaded-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
@@ -815,7 +817,7 @@
               (when-let [^WaveformDetailComponent wave (get-in track [:cues-editor :wave])]
                 (.setSongStructure wave song-structure)))))))))
 
-(defn- update-player-item-signature
+(defn update-player-item-signature
   "Makes a player's entry in the import menu enabled or disabled (with
   an explanation), given the track signature that has just been
   associated with the player, updates the affected track(s) sets of
@@ -847,6 +849,8 @@
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))
     (when ss-tag (phrases/upgrade-song-structure player (.body ss-tag)))
+    (when-let [ss-body (get-in (sim/for-player player) [:track :song-structure])]
+      (phrases/upgrade-song-structure player ss-body))
     (when signature
       (when ss-tag (upgrade-song-structure show ss-tag signature))
       (when-let [track (get-in (latest-show show) [:tracks signature])]
@@ -858,9 +862,13 @@
   after each new track import, and when first creating a show window,
   to get all the tracks aware of the pre-existing state."
   [show]
-  (when (.isRunning signature-finder)
+  (if (.isRunning signature-finder)
     (doseq [[player signature] (.getSignatures signature-finder)]
-      (update-player-item-signature (SignatureUpdate. player signature) show))))
+      (update-player-item-signature (SignatureUpdate. player signature) show))
+    (when (sim/simulating?)
+      (doseq [simulator (vals (sim/simulating?))]
+        (update-player-item-signature (SignatureUpdate. (:player simulator) (get-in simulator [:track :signature]))
+                                      show)))))
 
 (defn- item-label
   "Resolves a SearchableItem label safely, returning `nil` if the item
@@ -2622,5 +2630,4 @@
   (let [loaded-only (seesaw/select (:frame show) [:#loaded-only])]
     (if simulating? (seesaw/show! loaded-only) (seesaw/hide! loaded-only)))
   (su/update-row-visibility show)
-  ;; TODO: Need equivalent to (cues/update-cue-window-online-status show simulating?)
-  )
+  (cues/update-cue-window-online-status show simulating?))

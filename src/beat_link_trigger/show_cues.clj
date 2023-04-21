@@ -7,6 +7,7 @@
                                                         find-cue swap-cue! track? phrase? latest-show-and-context
                                                         phrase-runtime-info latest-phrase
                                                         swap-phrase! swap-phrase-runtime!]]
+            [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.util :as util]
             [clojure.set]
             [clojure.string :as str]
@@ -1336,7 +1337,7 @@
             panels        (get-in runtime-info [:cues-editor :panels])
             contents      (if (phrase? context) context (:contents context))
             text          (get-in contents [:cues :filter])
-            entered-only? (and (util/online?) (get-in contents [:cues :entered-only]))
+            entered-only? (and (or (util/online?) (sim/simulating?)) (get-in contents [:cues :entered-only]))
             entered       (when entered-only? (reduce clojure.set/union (vals (:entered runtime-info))))
             old-visible   (get-in runtime-info [:cues-editor :visible])
             visible-cues  (filter identity
@@ -1381,12 +1382,12 @@
 (defn- set-auto-scroll
   "Update the cues UI so that the waveform or canvas automatically
   tracks the furthest position played if `auto?` is `true` and we are
-  connected to a DJ Link network."
+  connected to a DJ Link network or simulating playback."
   [context wave-or-canvas auto?]
   (if (track? context)
     (let [^WaveformDetailComponent wave wave-or-canvas]
       (swap-track! context assoc-in [:contents :cues :auto-scroll] auto?)
-      (.setAutoScroll wave (and auto? (util/online?))))
+      (.setAutoScroll wave (and auto? (or (util/online?) (sim/simulating?)))))
     ;; Someday actualy implement for phrase trigger cue canvas?
     (swap-phrase! (su/show-from-phrase context) context assoc-in [:cues :auto-scroll] auto?))
   (su/repaint-preview context)
@@ -2337,10 +2338,12 @@
         song-structure (when (track? context) (:song-structure context))
         zoom-slider    (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in contents [:cues :zoom] 4))
         filter-field   (seesaw/text (get-in contents [:cues :filter] ""))
-        entered-only   (seesaw/checkbox :id :entered-only :text "Entered Only" :visible? (util/online?)
+        entered-only   (seesaw/checkbox :id :entered-only :text "Entered Only"
+                                        :visible? (or (util/online?) (sim/simulating?))
                                         :selected? (boolean (get-in contents [:cues :entered-only]))
                                         :listen [:item-state-changed #(set-entered-only context (seesaw/value %))])
-        auto-scroll    (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll" :visible? (and (util/online?) track-root)
+        auto-scroll    (seesaw/checkbox :id :auto-scroll :text "Auto-Scroll"
+                                        :visible? (or (util/online?) (sim/simulating?))
                                         :selected? (boolean (get-in contents [:cues :auto-scroll]))
                                         :listen [:item-state-changed #(set-auto-scroll context wave (seesaw/value %))])
         lib-popup-fn   (fn [] (seesaw/popup :items (build-cue-library-button-menu context)))
@@ -2417,7 +2420,7 @@
                           (stateChanged [_] (su/repaint-preview context))))
     (when track-root
       (.setScale wave (seesaw/value zoom-slider))
-      (.setAutoScroll wave (and (seesaw/value auto-scroll) (util/online?)))
+      (.setAutoScroll wave (and (seesaw/value auto-scroll) (or (util/online?) (sim/simulating?))))
       (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                  (paintOverlay [component graphics]
                                    (paint-cues-and-beat-selection context component graphics))))

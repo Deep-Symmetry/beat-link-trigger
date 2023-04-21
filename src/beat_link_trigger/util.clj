@@ -703,7 +703,9 @@
                                      [file :tracks signature])]
         (merge (select-keys track [:cue-list :grid :metadata :signature :song-structure])
                {:phrases-required? (boolean phrases-required?)}
-               (when include-preview? {:preview ((:preview track))}))))))
+               (when include-preview?
+                 {:preview (WaveformPreviewComponent. (.getWaveformPreview ((:preview track)))
+                                                      (get-in track [:metadata :duration]) (:cue-list track))}))))))
 
 (defn- phrase-beat-range
   "Once `*simulating*` has been set up with track data to be simulated
