@@ -10,8 +10,9 @@
             [taoensso.timbre :as timbre])
   (:import [javax.swing JFrame]))
 
-(def ^:private simulators
-  "The open simulator windows, keyed by their UUID."
+(defonce ^{:private true
+           :doc "The open simulator windows, keyed by their UUID."}
+  simulators
   (atom {}))
 
 (defn simulating?
@@ -86,8 +87,13 @@
   (let [data (util/data-for-simulation :entry (if (instance? SampleChoice choice)
                                                 (:number choice)
                                                 [(:file choice) (:signature choice)])
-                                       :include-preview? true)]
-    (swap! simulators assoc-in [uuid :track] data)))
+                                       :include-preview? true)
+        old (get-in @simulators [uuid :track :preview])]
+    (swap! simulators assoc-in [uuid :track] data)
+    (let [preview (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])]
+      (if old
+        (seesaw/replace! preview old (:preview data))
+        (seesaw/config! preview :center (:preview data))))))
 
 (defn recompute-track-models
   "Updates the track combo-boxes of all open windows to reflect the
@@ -140,7 +146,8 @@
                                         (fn [e]
                                           (let [chosen (seesaw/selection e)]
                                             (set-simulation-data uuid chosen)))])
-              "span 3"]])))
+              "span 3, wrap"]
+             [(seesaw/border-panel :id :preview) "width 640, height 80, spanx, wrap"]])))
 
 (defn- create-simulator
   "Creates a new shallow playback simulator. Takes a reference to the
