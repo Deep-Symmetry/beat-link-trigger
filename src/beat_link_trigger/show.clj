@@ -2612,3 +2612,15 @@
   [show f & args]
   (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
           [(:file show) :contents :user]))
+
+(defn simulation-state-changed
+  "Called when the first shallow playback simulator window is opened, or
+  the last playback simulator window has closed, to enter or exit a
+  pseudo-online state. Must be called with an up-to-date view of the
+  show."
+  [show simulating?]
+  (let [loaded-only (seesaw/select (:frame show) [:#loaded-only])]
+    (if simulating? (seesaw/show! loaded-only) (seesaw/hide! loaded-only)))
+  (su/update-row-visibility show)
+  ;; TODO: Need equivalent to (cues/update-cue-window-online-status show simulating?)
+  )

@@ -20,6 +20,14 @@
   []
   (not-empty @simulators))
 
+(defn track-signatures
+  "Returns a set of the signatures of the tracks being simulated."
+  []
+  (->> (vals @simulators)
+       (map :track)
+       (map :signature)
+       set))
+
 ;; Used to represent one of the sample tracks available for simulation
 (defrecord SampleChoice [number signature]
   Object
@@ -160,29 +168,35 @@
         player       (choose-simulator-player)
         close-fn     (fn []
                        (.dispose root)
-                       (swap! simulators dissoc uuid)
-                       (recompute-player-models)
-                       (seesaw/config! simulate-item :enabled? true)
-                       true)]
-    (swap! simulators assoc uuid
-           {:uuid     uuid
-            :frame    root
-            :player   player
-            :sync     true
-            :master   false
-            :on-air   true
-            :playing  false
-            :pitch    0
-            :time     0
-            :close-fn close-fn})
+                       (let [removed (swap! simulators dissoc uuid)]
+                         (recompute-player-models)
+                         (seesaw/config! simulate-item :enabled? true)
+                         (when (empty? removed)
+                           (doseq [show (vals (su/get-open-shows))]
+                             ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false))))
+                       true)
+        created      (swap! simulators assoc uuid
+                            {:uuid     uuid
+                             :frame    root
+                             :player   player
+                             :sync     true
+                             :master   false
+                             :on-air   true
+                             :playing  false
+                             :pitch    0
+                             :time     0
+                             :close-fn close-fn})]
     (seesaw/config! root :content (build-simulator-panel uuid))
     (recompute-player-models)
     (set-simulation-data uuid (seesaw/selection (seesaw/select root [:#track])))
     (seesaw/listen root :window-closing (fn [_] (close-fn)))
     (seesaw/pack! root)
-    (seesaw/show! root))
-  (when (>= (count @simulators) 6)
-    (seesaw/config! simulate-item :enabled? false)))
+    (seesaw/show! root)
+    (when (= (count created) 1)
+      (doseq [show (vals (su/get-open-shows))]
+        ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show true)))
+    (when (>= (count created) 6)
+      (seesaw/config! simulate-item :enabled? false))))
 
 
 (defn build-simulator-action

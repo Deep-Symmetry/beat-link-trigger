@@ -644,10 +644,10 @@
 (defn update-row-visibility
   "Determines the tracks and phrases that should be visible given the
   filter text (if any) and state of the Only Loaded checkbox if we are
-  online. Updates the show's `:visible` key to hold a vector of the
-  visible track signatures, sorted by title then artist then
-  signature. Then uses that to update the contents of the `tracks`
-  panel appropriately."
+  online or simulating playback. Updates the show's `:visible` key to
+  hold a vector of the visible track signatures, sorted by title then
+  artist then signature. Then uses that to update the contents of the
+  `tracks` panel appropriately."
   [show]
   (let [show            (latest-show show)
         tracks          (seesaw/select (:frame show) [:#tracks])
@@ -656,12 +656,16 @@
         phrases-only?   (str/starts-with? text "phrase:")
         text            (str/replace text #"^(track:\s*)|(phrase:\s*)" "")
         loaded-only?    (get-in show [:contents :loaded-only])
+        relevant?       (or (util/online?) ((requiring-resolve 'beat-link-trigger.simulator/simulating?)))
+        signatures      (if (util/online?)
+                          (set (vals (.getSignatures util/signature-finder)))
+                          (set (->> ((requiring-resolve 'beat-link-trigger.simulator/track-signatures)))))
         visible-tracks  (filter (fn [track]
                                   (and
                                    (not phrases-only?)
                                    (or (str/blank? text) (str/includes? (:filter track) text))
-                                   (or (not loaded-only?) (not (util/online?))
-                                       ((set (vals (.getSignatures util/signature-finder))) (:signature track)))))
+                                   (or (not loaded-only?) (not relevant?)
+                                       (signatures (:signature track)))))
                                 (vals (:tracks show)))
         sorted-tracks   (sort-by (juxt #(str/lower-case (or (get-in % [:metadata :title]) ""))
                                        #(str/lower-case (or (get-in % [:metadata :artist]) ""))
@@ -674,7 +678,7 @@
                                            (not tracks-only?)
                                            (or (str/blank? text)
                                                (str/includes? target text))
-                                           (or (not loaded-only?) (not (util/online?))
+                                           (or (not loaded-only?) (not relevant?)
                                                (get-in show [:phrases uuid :tripped])))
                                       (get-in show [:contents :phrases uuid])))))]
     (swap-show! show assoc :visible (mapv :signature sorted-tracks)
