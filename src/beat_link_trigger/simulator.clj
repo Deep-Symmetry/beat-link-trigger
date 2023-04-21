@@ -8,7 +8,8 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data SignatureUpdate]
+  (:import [org.deepsymmetry.beatlink.data SignatureUpdate WaveformPreviewComponent]
+           [java.awt.event MouseEvent]
            [javax.swing JFrame]))
 
 (defonce ^{:private true
@@ -97,6 +98,18 @@
                                 (concat (sort-by #(.toString %) all-tracks) samples))]
     choices))
 
+(defn- handle-preview-press
+  "Processes a mouse press over the waveform preview in a simulator
+  window. Updates our current position to that point in the track."
+  [uuid ^WaveformPreviewComponent component ^MouseEvent e]
+  (let [simulator   (get @simulators uuid)
+        point       (.getPoint e)
+        target-time (.getTimeForX component (.-x point))]
+    (timbre/info "target-time" target-time)
+    (swap! simulators assoc-in [uuid :time] target-time)
+    ;; TODO: Send fake status update, or just wait until our loop runs?
+    ))
+
 (defn- set-simulation-data
   "Given the track menu choice, finds and records the appropriate data
   for simulation of that track, then lets any open shows know about
@@ -104,14 +117,22 @@
   [uuid choice]
   (let [data (util/data-for-simulation :entry (if (instance? SampleChoice choice)
                                                 (:number choice)
-                                                [(:file choice) (:signature choice)])
-                                       :include-preview? true)
-        old (get-in @simulators [uuid :track :preview])]
-    (swap! simulators assoc-in [uuid :track] data)
-    (let [preview (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])]
+                                                [(:file choice) (:signature choice)]))
+        old  (get-in @simulators [uuid :track :preview])]
+    (swap! simulators update uuid (fn [simulator]
+                                    (-> simulator
+                                        (assoc :track data)
+                                        (assoc :time 0))))
+    (let [preview        (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])
+          component      (WaveformPreviewComponent. (:preview data) (get-in data [:metadata :duration])
+                                                    (:cue-list data))
+          song-structure (:song-structure data)]
+      (when song-structure (.setSongStructure component song-structure))
+      (seesaw/listen component
+                     :mouse-pressed (fn [e] (handle-preview-press uuid component e)))
       (if old
-        (seesaw/replace! preview old (:preview data))
-        (seesaw/config! preview :center (:preview data))))
+        (seesaw/replace! preview old component)
+        (seesaw/config! preview :center component)))
     (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature data))]
       (doseq [show (vals (su/get-open-shows))]
         (try

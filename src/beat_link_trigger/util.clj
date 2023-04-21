@@ -10,7 +10,7 @@
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
-           [org.deepsymmetry.beatlink.data TimeFinder SignatureFinder WaveformPreviewComponent]
+           [org.deepsymmetry.beatlink.data TimeFinder SignatureFinder]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$PhraseLow RekordboxAnlz$PhraseMid RekordboxAnlz$PhraseHigh
             RekordboxAnlz$MoodLowPhrase RekordboxAnlz$MoodMidPhrase RekordboxAnlz$MoodHighPhrase
             RekordboxAnlz$SongStructureEntry RekordboxAnlz$SongStructureTag
@@ -680,32 +680,21 @@
   tracks embedded in BLT, or a tuple of [file signature] identifying a
   track in an open show. If not supplied, a random track will be
   chosen using `tracks-for-simulation` and the value (if any) passed
-  with `:phrases-required?`.
-
-  If `include-preview?` is passed with a truthy value, the track's
-  waveform preview data will be included as well."
-  [& {:keys [entry phrases-required? include-preview?]}]
+  with `:phrases-required?`."
+  [& {:keys [entry phrases-required?]}]
   (let [entry (or entry (rand-nth (tracks-for-simulation phrases-required?)))]
     (if (number? entry)
       (let [sample (get @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) entry)]
-        (merge (select-keys sample [:cue-list :metadata :signature])
+        (merge (select-keys sample [:cue-list :metadata :preview :signature])
                {:song-structure    (:phrases sample)
                 :grid              (:beat-grid sample)
-                :phrases-required? (boolean phrases-required?)}
-               (when include-preview?
-                 (let [component (WaveformPreviewComponent. (:preview sample) (get-in sample [:metadata :duration])
-                                                            (:cue-list sample))
-                       song-structure (:phrases sample)]
-                   (when song-structure (.setSongStructure component song-structure))
-                   {:preview component}))))
+                :phrases-required? (boolean phrases-required?)}))
       (let [[file signature] entry
             track            (get-in @@(requiring-resolve 'beat-link-trigger.show-util/open-shows)
                                      [file :tracks signature])]
-        (merge (select-keys track [:cue-list :grid :metadata :signature :song-structure])
-               {:phrases-required? (boolean phrases-required?)}
-               (when include-preview?
-                 {:preview (WaveformPreviewComponent. (.getWaveformPreview ((:preview track)))
-                                                      (get-in track [:metadata :duration]) (:cue-list track))}))))))
+        (merge (select-keys track [:cue-list :grid :metadata])
+               {:preview           (.getWaveformPreview ((:preview track)))
+                :phrases-required? (boolean phrases-required?)})))))
 
 (defn- phrase-beat-range
   "Once `*simulating*` has been set up with track data to be simulated
