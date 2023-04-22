@@ -38,6 +38,37 @@
        (filter #(= (:player %) player))
        first))
 
+(defn- simulator-tick
+  "Send shallow simulation events when appropriate. Called frequently by
+  `simulator-loop`, below. A separate function so it can be redefined
+  without having to kill and recreate the thread for changes to take
+  effect during development."
+  []
+  (doseq [simulator (vals @simulators)]
+    ;; TODO: Use metronome to update our current time.
+    (let [{:keys [frame player playing :preview time]} simulator]
+      (.setPlaybackState preview player time playing))
+    )
+
+  )
+
+(defn- simulator-loop
+  "The main loop of the daemon thread that sends shallow playback
+  simulation events when appropriate."
+  []
+  (loop []
+    (try
+      (simulator-tick)
+      (catch Throwable t
+        (timbre/error t "Problem during shallow playback simulation.")))
+    (Thread/sleep (if (simulating?) 1 250))
+    (recur)))
+
+(defonce ^{:private true
+           :doc "Holds the thread which generates shallow playback simulation events."}
+  simulator-thread
+  (atom nil))
+
 ;; Used to represent one of the sample tracks available for simulation
 (defrecord SampleChoice [number signature]
   Object
@@ -102,13 +133,9 @@
   "Processes a mouse press over the waveform preview in a simulator
   window. Updates our current position to that point in the track."
   [uuid ^WaveformPreviewComponent component ^MouseEvent e]
-  (let [simulator   (get @simulators uuid)
-        point       (.getPoint e)
+  (let [point       (.getPoint e)
         target-time (.getTimeForX component (.-x point))]
-    (timbre/info "target-time" target-time)
-    (swap! simulators assoc-in [uuid :time] target-time)
-    ;; TODO: Send fake status update, or just wait until our loop runs?
-    ))
+    (swap! simulators assoc-in [uuid :time] target-time)))
 
 (defn- set-simulation-data
   "Given the track menu choice, finds and records the appropriate data
@@ -118,7 +145,7 @@
   (let [data (util/data-for-simulation :entry (if (instance? SampleChoice choice)
                                                 (:number choice)
                                                 [(:file choice) (:signature choice)]))
-        old  (get-in @simulators [uuid :track :preview])]
+        old  (get-in @simulators [uuid :preview])]
     (swap! simulators update uuid (fn [simulator]
                                     (-> simulator
                                         (assoc :track data)
@@ -132,7 +159,8 @@
                      :mouse-pressed (fn [e] (handle-preview-press uuid component e)))
       (if old
         (seesaw/replace! preview old component)
-        (seesaw/config! preview :center component)))
+        (seesaw/config! preview :center component))
+      (swap! simulators assoc-in [uuid :preview] component))
     (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature data))]
       (doseq [show (vals (su/get-open-shows))]
         (try
@@ -183,7 +211,8 @@
                                                       (doseq [simulator (vals @simulators)]
                                                         (when (not= uuid (:uuid simulator))
                                                           (seesaw/value! (seesaw/select (:frame simulator) [:#master])
-                                                                         false))))))])
+                                                                         false))))))])]
+             [(seesaw/toggle :id :play :text "Play")
               "wrap"]
              ["Track:"]
              [(seesaw/combobox :id :track :model (track-menu-model)
@@ -191,7 +220,7 @@
                                         (fn [e]
                                           (let [chosen (seesaw/selection e)]
                                             (set-simulation-data uuid chosen)))])
-              "span 3, wrap"]
+              "spanx, wrap"]
              [(seesaw/border-panel :id :preview) "width 640, height 80, spanx, wrap"]])))
 
 (defn- create-simulator
@@ -237,9 +266,18 @@
     (seesaw/pack! root)
     (seesaw/show! root)
     (when (= (count created) 1)
+      ;; We just opened the first simulator window, so let any shows know that simulation has begun.
       (doseq [show (vals (su/get-open-shows))]
-        ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show true)))
+        ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show true))
+      ;; Also start up our event-sending thread if it doesn't already exist.
+      (swap! simulator-thread (fn [existing]
+                                (or existing
+                                    (let [thread (Thread. #(simulator-loop) "Shallow Playback Simulator")]
+                                      (.setDaemon thread true)
+                                      (.start thread)
+                                      thread)))))
     (when (>= (count created) 6)
+      ;; We have simulators for all six legal player numbers, so disable the menu that crates new ones.
       (seesaw/config! simulate-item :enabled? false))))
 
 

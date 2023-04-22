@@ -356,8 +356,9 @@
                trigger-data  ; Clock is already running, and we have alerted it to tempo changes, so leave it as-is.
                (let [running      (atom true)  ; We need to create a new thread and its metronome and shutdown flag.
                      metro        (Metronome.)
-                     clock-thread (Thread. #(clock-sender trigger metro running))]
+                     clock-thread (Thread. #(clock-sender trigger metro running) "MIDI clock sender")]
                  (.setTempo metro (clock-tempo trigger-data))
+                 (.setDaemon clock-thread true)
                  (.setPriority clock-thread (dec Thread/MAX_PRIORITY))
                  (.start clock-thread)
                  (assoc trigger-data :clock [clock-thread metro running])))))
