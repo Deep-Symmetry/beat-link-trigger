@@ -282,7 +282,8 @@
   (let [[interpolated-time playing?] (if-let [simulator (sim/for-player player)]
                                        [(:time simulator) (:playing simulator)]
                                        (when-let [^TrackPositionUpdate position
-                                                  (.getLatestPositionFor util/time-finder player)]
+                                                  (when (.isRunning util/time-finder)
+                                                    (.getLatestPositionFor util/time-finder player))]
                                          [(.getTimeFor util/time-finder player) (.playing position)]))]
     (when-let [preview-loader (get-in show [:tracks signature :preview])]
         (when-let [^WaveformPreviewComponent preview (preview-loader)]
@@ -613,7 +614,7 @@
 
       (not= (:tripped old-track) (:tripped track))
       (do  ; This is an overall activation/deactivation.
-        (timbre/info "Track changing tripped to " (:tripped track))
+        (timbre/info "Track changing tripped to" (:tripped track))
         (if (:tripped track)
           (do  ; Track is now active.
             (when (seq (util/players-signature-set (:loaded show) signature))
@@ -835,7 +836,6 @@
         ^javax.swing.JMenuItem item         (.getItem import-menu (dec player))
         ^RekordboxAnlz$TaggedSection ss-tag (when (util/online?)
                                               (.getLatestTrackAnalysisFor analysis-finder player ".EXT" "PSSI"))]
-    (timbre/info "update player sig" player signature)
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " player disabled-reason))
     (let [shows (swap-show! show

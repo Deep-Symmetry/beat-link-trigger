@@ -9,6 +9,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink.data SignatureUpdate WaveformPreviewComponent]
+           [org.deepsymmetry.electro Metronome]
            [java.awt.event MouseEvent]
            [javax.swing JFrame]))
 
@@ -67,20 +68,21 @@
   []
   (doseq [simulator (vals @simulators)]
     ;; TODO: Use metronome to update our current time. If we are in a new beat, simulate a beat packet.
-    (let [{:keys [track last-status player playing preview time uuid]} simulator]
-      (.setPlaybackState preview player time playing)
-      (let [now     (System/nanoTime)
-            elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
-        (when (>= elapsed 200)
-          ;; It's time to send another simulated status packet for this player.
-          (binding [util/*simulating* (assoc track :time time)]
-            (let [status (build-cdj-status simulator)]
-              (doseq [show (vals (su/get-open-shows))]
-                (when-let [show-track (get-in show [:tracks (:signature track)])]
-                  ((requiring-resolve 'beat-link-trigger.show/run-custom-enabled) show show-track status)
-                  ((requiring-resolve 'beat-link-trigger.show/update-show-status) show (:signature track)
-                   show-track status)))))
-          (swap! simulators assoc-in [uuid last-status] now))))))
+    (let [{:keys [closing last-status player playing preview time track uuid]} simulator]
+      (when-not closing
+        (.setPlaybackState preview player time playing)
+        (let [now     (System/nanoTime)
+              elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
+          (when (>= elapsed 200)
+            ;; It's time to send another simulated status packet for this player.
+            (binding [util/*simulating* (assoc track :time time)]
+              (let [status (build-cdj-status simulator)]
+                (doseq [show (vals (su/get-open-shows))]
+                  (when-let [show-track (get-in show [:tracks (:signature track)])]
+                    ((requiring-resolve 'beat-link-trigger.show/run-custom-enabled) show show-track status)
+                    ((requiring-resolve 'beat-link-trigger.show/update-show-status) show (:signature track)
+                     show-track status)))))
+            (swap! simulators assoc-in [uuid last-status] now)))))))
 
 (defn- simulator-loop
   "The main loop of the daemon thread that sends shallow playback
@@ -265,8 +267,8 @@
         player       (choose-simulator-player)
         close-fn     (fn []
                        (.dispose root)
-                       (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) nil)
-                             removed (swap! simulators dissoc uuid)]
+                       (swap! simulators assoc-in [uuid :closing] true)
+                       (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) nil)]
                          (recompute-player-models)
                          (seesaw/config! simulate-item :enabled? true)
                          (doseq [show (vals (su/get-open-shows))]
@@ -275,21 +277,24 @@
                              (catch Throwable t
                                (timbre/error t "Problem delivering simulated signature update to show" sig-update
                                              (:file show)))))
-                         (when (empty? removed)
+                         (when (empty? (swap! simulators dissoc uuid))
                            (doseq [show (vals (su/get-open-shows))]
                              ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false))))
                        true)
+        metronome    (Metronome.)
         created      (swap! simulators assoc uuid
-                            {:uuid     uuid
-                             :frame    root
-                             :player   player
-                             :sync     false
-                             :master   false
-                             :on-air   true
-                             :playing  false
-                             :pitch    0
-                             :time     0
-                             :close-fn close-fn})]
+                            {:uuid      uuid
+                             :frame     root
+                             :player    player
+                             :sync      false
+                             :master    false
+                             :on-air    true
+                             :playing   false
+                             :pitch     1.0
+                             :time      0
+                             :metronome metronome
+                             :close-fn  close-fn})]
+    (.setTempo metronome (double (.toMillis java.util.concurrent.TimeUnit/MINUTES 1)))
     (seesaw/config! root :content (build-simulator-panel uuid))
     (recompute-player-models)
     (set-simulation-data uuid (seesaw/selection (seesaw/select root [:#track])))
