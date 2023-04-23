@@ -2129,12 +2129,13 @@
           (let [show (latest-show show)]
             (if (track? context)
               (doseq [^Long player (util/players-signature-set (:playing show) (:signature context))]
-                (when-let [position (.getLatestPositionFor util/time-finder player)]
-                  (.setPlaybackState ^WaveformDetailComponent (:wave editor)
-                                     player (.getTimeFor util/time-finder player) (.playing position))))
+                (when (.isRunning util/time-finder)  ; Won't be during simulation.
+                  (when-let [position (.getLatestPositionFor util/time-finder player)]
+                    (.setPlaybackState ^WaveformDetailComponent (:wave editor)
+                                       player (.getTimeFor util/time-finder player) (.playing position)))))
               (seesaw/repaint! (:wave editor))))  ; We don't have a more efficient phrase paint handler anyway.
           (catch Throwable t
-            (timbre/warn "Problem animating cues editor waveform" t)))
+            (timbre/warn t "Problem animating cues editor waveform")))
         (recur (:cues-editor (if (track? context)
                                (latest-track context)
                                (phrase-runtime-info (latest-show show) context))))))
