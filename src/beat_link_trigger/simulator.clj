@@ -168,7 +168,8 @@
   window. Updates our current position to that point in the track."
   [uuid ^WaveformPreviewComponent component ^MouseEvent e]
   (let [point       (.getPoint e)
-        target-time (.getTimeForX component (.-x point))]
+        target-time (.getTimeForX component (.-x point))        ]
+    (.jumpToBeat (get-in @simulators [uuid :metronome]) target-time)
     (swap! simulators assoc-in [uuid :time] target-time)))
 
 (defn- set-simulation-data
