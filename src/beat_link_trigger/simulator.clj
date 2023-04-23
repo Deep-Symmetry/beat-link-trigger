@@ -38,6 +38,27 @@
        (filter #(= (:player %) player))
        first))
 
+(defn- build-cdj-status
+  "Creates the CDJ status object to represent our current simulation state."
+  [{:keys [master on-air player playing sync time track]}]
+  (let [{:keys [grid]} track
+        chosen-beat    (.findBeatAtTime grid time)]
+    (util/simulate-player-status {:bb            (if (pos? chosen-beat)
+                                                   (.getBeatWithinBar grid chosen-beat)
+                                                   0)
+                                  :beat          (if (pos? chosen-beat) chosen-beat 0)
+                                  :device-number player
+                                  :bpm           (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)) ; TODO: Account for pitch.
+                                  :d-r           player
+                                  :s-r           2
+                                  :t-r           1
+                                  :rekordbox     42
+                                  :f             (unchecked-byte (apply + (filter identity [0x84
+                                                                                            (when playing 0x40)
+                                                                                            (when master 0x20)
+                                                                                            (when sync 0x10)
+                                                                                            (when on-air 0x8)])))})))
+
 (defn- simulator-tick
   "Send shallow simulation events when appropriate. Called frequently by
   `simulator-loop`, below. A separate function so it can be redefined
@@ -45,12 +66,21 @@
   effect during development."
   []
   (doseq [simulator (vals @simulators)]
-    ;; TODO: Use metronome to update our current time.
-    (let [{:keys [frame player playing :preview time]} simulator]
-      (.setPlaybackState preview player time playing))
-    )
-
-  )
+    ;; TODO: Use metronome to update our current time. If we are in a new beat, simulate a beat packet.
+    (let [{:keys [track last-status player playing preview time uuid]} simulator]
+      (.setPlaybackState preview player time playing)
+      (let [now     (System/nanoTime)
+            elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
+        (when (>= elapsed 200)
+          ;; It's time to send another simulated status packet for this player.
+          (binding [util/*simulating* (assoc track :time time)]
+            (let [status (build-cdj-status simulator)]
+              (doseq [show (vals (su/get-open-shows))]
+                (when-let [show-track (get-in show [:tracks (:signature track)])]
+                  ((requiring-resolve 'beat-link-trigger.show/run-custom-enabled) show show-track status)
+                  ((requiring-resolve 'beat-link-trigger.show/update-show-status) show (:signature track)
+                   show-track status)))))
+          (swap! simulators assoc-in [uuid last-status] now))))))
 
 (defn- simulator-loop
   "The main loop of the daemon thread that sends shallow playback
@@ -148,7 +178,7 @@
         old  (get-in @simulators [uuid :preview])]
     (swap! simulators update uuid (fn [simulator]
                                     (-> simulator
-                                        (assoc :track data)
+                                        (assoc :track (merge data (select-keys choice [:signature])))
                                         (assoc :time 0))))
     (let [preview        (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])
           component      (WaveformPreviewComponent. (:preview data) (get-in data [:metadata :duration])
@@ -161,10 +191,11 @@
         (seesaw/replace! preview old component)
         (seesaw/config! preview :center component))
       (swap! simulators assoc-in [uuid :preview] component))
-    (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature data))]
+    (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature choice))]
       (doseq [show (vals (su/get-open-shows))]
         (try
           ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update show)
+          (su/update-row-visibility show)
           (catch Throwable t
             (timbre/error t "Problem delivering simulated signature update to show" sig-update (:file show))))))))
 
@@ -252,7 +283,7 @@
                             {:uuid     uuid
                              :frame    root
                              :player   player
-                             :sync     true
+                             :sync     false
                              :master   false
                              :on-air   true
                              :playing  false

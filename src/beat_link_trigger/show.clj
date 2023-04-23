@@ -835,6 +835,7 @@
         ^javax.swing.JMenuItem item         (.getItem import-menu (dec player))
         ^RekordboxAnlz$TaggedSection ss-tag (when (util/online?)
                                               (.getLatestTrackAnalysisFor analysis-finder player ".EXT" "PSSI"))]
+    (timbre/info "update player sig" player signature)
     (.setEnabled item (nil? disabled-reason))
     (.setText item (str "from Player " player disabled-reason))
     (let [shows (swap-show! show

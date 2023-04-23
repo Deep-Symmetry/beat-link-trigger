@@ -2420,7 +2420,7 @@
                           (stateChanged [_] (su/repaint-preview context))))
     (when track-root
       (.setScale wave (seesaw/value zoom-slider))
-      (.setAutoScroll wave (and (seesaw/value auto-scroll) (or (util/online?) (sim/simulating?))))
+      (.setAutoScroll wave (and (seesaw/value auto-scroll) (boolean (or (util/online?) (sim/simulating?)))))
       (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
                                  (paintOverlay [component graphics]
                                    (paint-cues-and-beat-selection context component graphics))))
