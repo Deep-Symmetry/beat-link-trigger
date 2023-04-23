@@ -8,7 +8,7 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data SignatureUpdate WaveformPreviewComponent]
+  (:import [org.deepsymmetry.beatlink.data SignatureUpdate TrackPositionUpdate WaveformPreviewComponent]
            [org.deepsymmetry.electro Metronome]
            [java.awt.event MouseEvent]
            [javax.swing JFrame]))
@@ -39,6 +39,18 @@
        (filter #(= (:player %) player))
        first))
 
+(defn- build-beat
+  "Creates the CDJ beat object to represent our current simulation state."
+  [{:keys [pitch player time track]}]
+  (let [{:keys [grid]} track
+        chosen-beat    (.findBeatAtTime grid time)]
+    (util/simulate-beat {:beat          (if (pos? chosen-beat)
+                                          (.getBeatWithinBar grid chosen-beat)
+                                          0)
+                         :device-number player
+                         :bpm           (* pitch (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)))
+                         :pitch         (Math/round (* pitch 1048576))})))
+
 (defn- build-cdj-status
   "Creates the CDJ status object to represent our current simulation state."
   [{:keys [master on-air pitch player playing sync time track]}]
@@ -50,6 +62,7 @@
                                   :beat          (if (pos? chosen-beat) chosen-beat 0)
                                   :device-number player
                                   :bpm           (* pitch (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)))
+                                  :pitch         (Math/round (* pitch 1048576))
                                   :d-r           player
                                   :s-r           2
                                   :t-r           1
@@ -73,21 +86,65 @@
                  (get-in simulator [:track :metadata :duration]))
           (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play]))))
         (swap! simulators assoc-in [(:uuid simulator) :time] new-time)))
-    (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))]
+    (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))
+          {:keys [grid]}                                                       track]
       (when-not partial
         (seesaw/invoke-later
          (.setPlaybackState preview player time playing))
         (let [now     (System/nanoTime)
               elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
+          (let [target-beat (.findBeatAtTime grid time)]
+            (when (and playing (pos? target-beat) (not= (:sent-beat simulator) target-beat)
+                       (< (- time (.getTimeWithinTrack grid target-beat)) 10))
+              ;; It is time to send a simulated beat packet for this player.
+              ;; Based on beat-link-trigger.show/add-position-listener and
+              ;; beat-link-trigger.show-phrases/add-position-listener.
+              (binding [util/*simulating* (assoc track :time time :beat target-beat)]
+                (let [beat (build-beat simulator)
+                      tpu  (TrackPositionUpdate. (System/nanoTime) time target-beat true playing
+                                                 (:pitch simulator) false grid)]
+                  (swap! simulators update (:uuid simulator)
+                         (fn [sim] (assoc sim :sent-beat target-beat :latest-beat beat :latest-tpu tpu)))
+                  (doseq [show (vals (su/get-open-shows))]
+                    (when-let [show-track (get-in show [:tracks (:signature track)])]
+                      ((requiring-resolve 'beat-link-trigger.show/update-track-beat) show show-track beat tpu)
+                      (when (su/enabled? show show-track)
+                        (try
+                          ((requiring-resolve 'beat-link-trigger.show/run-track-function) track :beat [beat tpu] false)
+                          (catch Throwable t
+                            (timbre/error t "Problem simulating track beat."))))))
+                  (try
+                    ((requiring-resolve 'beat-link-trigger.show-phrases/update-player-beat) beat tpu)
+                    (catch Throwable t
+                      (timbre/error t "Problem updating status for simulated phrase beat.")))
+                  (try
+                    ((requiring-resolve 'beat-link-trigger.show-phrases/run-beat-functions) beat tpu)
+                    (catch Throwable t
+                      (timbre/error t "Problem reporting simulated phrase beat.")))))))
           (when (>= elapsed 200)
             ;; It's time to send another simulated status packet for this player.
+            ;; Based on beat-link-trigger.show/update-listener and
+            ;; beat.link.trigger.show-phrases/update-listener.
             (binding [util/*simulating* (assoc track :time time)]
-              (let [status (build-cdj-status simulator)]
+              (let [status (build-cdj-status simulator)
+                    tpu    (TrackPositionUpdate. (System/nanoTime) time (.findBeatAtTime grid time)
+                                                 false playing (:pitch simulator) false grid)]
+                (swap! simulators update (:uuid simulator)
+                       (fn [sim]
+                         (assoc sim :latest-status status
+                                :latest-tpu tpu)))
                 (doseq [show (vals (su/get-open-shows))]
                   (when-let [show-track (get-in show [:tracks (:signature track)])]
-                    ((requiring-resolve 'beat-link-trigger.show/run-custom-enabled) show show-track status)
-                    ((requiring-resolve 'beat-link-trigger.show/update-show-status) show (:signature track)
-                     show-track status)))))
+                    (try
+                      ((requiring-resolve 'beat-link-trigger.show/run-custom-enabled) show show-track status)
+                      ((requiring-resolve 'beat-link-trigger.show/update-show-status) show (:signature track)
+                       show-track status)
+                      (catch Throwable t
+                        (timbre/error t "Problem simulating status update for track.")))))
+                (try
+                  ((requiring-resolve 'beat-link-trigger.show-phrases/update-phrase-status) status)
+                    (catch Throwable t
+                      (timbre/error t "Problem simulating status update for phrases.")))))
             (swap! simulators assoc-in [uuid last-status] now)))))))
 
 (defn- simulator-loop

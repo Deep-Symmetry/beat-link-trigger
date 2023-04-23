@@ -3,6 +3,7 @@
   cue editing windows."
   (:require [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
                                                         swap-show! swap-phrase! swap-phrase-runtime!
@@ -85,7 +86,9 @@
   any, which is currently playing on the specified player."
   [player]
   (when-let [phrase (current-phrase player)]
-    (let [grid (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player)]
+    (let [grid (if-let [simulator (sim/for-player player)]
+                 (get-in simulator [:track :grid])
+                 (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))]
       (beat-range player phrase grid))))
 
 (defn- capture-current-state
@@ -333,22 +336,27 @@
 
     ;; Paint the positions of the players that are playing within this phrase trigger.
     (doseq [player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
-      (when-let [time (.getTimeFor util/time-finder player)]
-        (let [position   (.getLatestPositionFor util/time-finder player)
-              track-beat (.findBeatAtTime (.beatGrid position) time)]
-          (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
-            (let [beat         (- track-beat first-beat -1)
-                  tempo        (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
-                  ms-per-beat  (/ 60000.0 tempo)
-                  fraction     (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
-                  [looped-beat
-                   will-loop]  (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
-                  next-section (when will-loop (or (first (first (util/iget (get-in show [:playing-phrases player uuid])
-                                                                            (inc track-beat))))
-                                                   :start))
-                  x            (su/cue-canvas-preview-x-for-beat c runtime-info (long looped-beat) section fraction)]
-              (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
-              (.fillRect g (dec x) 0 2 (.getHeight c)))))))))
+      (let [simulator (sim/for-player player)]
+        (when-let [time (or (:time simulator) (.getTimeFor util/time-finder player))]
+          (let [grid       (or (get-in simulator [:track :grid])
+                               (.beatGrid (.getLatestPositionFor util/time-finder player)))
+                track-beat (.findBeatAtTime grid time)]
+            (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
+              (let [beat         (- track-beat first-beat -1)
+                    tempo        (if simulator
+                                   (* (:pitch simulator) (.getBpm track-beat))
+                                   (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player)))
+                    ms-per-beat  (/ 60000.0 tempo)
+                    fraction     (/ (- time (.getTimeWithinTrack grid track-beat)) ms-per-beat)
+                    [looped-beat
+                     will-loop]  (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                    next-section (when will-loop (or (first (first (util/iget (get-in show
+                                                                                      [:playing-phrases player uuid])
+                                                                              (inc track-beat))))
+                                                     :start))
+                    x            (su/cue-canvas-preview-x-for-beat c runtime-info (long looped-beat) section fraction)]
+                (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
+                (.fillRect g (dec x) 0 2 (.getHeight c))))))))))
 
 (defn- start-animation-thread
   "Creates a background thread that repaints the preview canvas 30 times
@@ -1374,7 +1382,7 @@ specified player in the cue preview canvas for any phrase triggers
 that are active for the specified player, and if they have open Cues
 editor windows, in their cue canvases as well."
   [show ^Long player]
-  (when-let [^TrackPositionUpdate _position (when (util/online?) (.getLatestPositionFor util/time-finder player))]
+  (when (or (sim/for-player player) (when (util/online?) (.getLatestPositionFor util/time-finder player)))
     (doseq [uuid (keys (get-in show [:playing-phrases player]))]
       (let [runtime-info (get-in show [:phrases uuid])]
         (seesaw/repaint! (seesaw/select (:panel runtime-info) [:#preview]))))))
@@ -1581,7 +1589,8 @@ editor windows, in their cue canvases as well."
   interval map that translates track beat numbers to tuples of
   [section starting-beat]"
   [player phrase-trigger ^RekordboxAnlz$SongStructureEntry phrase]
-  (let [grid        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player)
+  (let [grid        (or (get-in (sim/for-player player) [:track :grid])
+                        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))
         [start end] (beat-range player phrase grid)]
     (if (zero? (.fill phrase))
       (align-sections start end phrase-trigger)
@@ -1594,7 +1603,8 @@ editor windows, in their cue canvases as well."
   whether a phrase trigger is eligible to run for a phrase that is
   starting."
   [player ^RekordboxAnlz$SongStructureEntry new-phrase ^CdjStatus status]
-  (let [grid        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player)
+  (let [grid        (or (get-in (sim/for-player player) [:track :grid])
+                        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))
         [start end] (beat-range player new-phrase grid)]
     {:bars        (quot (- end start) 4)
      :tempo       (.getEffectiveTempo status)
@@ -1729,7 +1739,8 @@ editor windows, in their cue canvases as well."
   "Makes sure that any show which contains the track playing on the
   player has marked that track as allowing phrase triggers to run."
   [player]
-  (let [signature (.getLatestSignatureFor util/signature-finder player)]
+  (let [signature (or (get-in (sim/for-player player) [:track :signature])
+                      (.getLatestSignatureFor util/signature-finder player))]
     (not-any? (fn [show]
                 (when-let [track (get-in show [:tracks signature])]
                   (not (get-in track [:contents :phrase-unlocked]))))
@@ -1745,7 +1756,7 @@ editor windows, in their cue canvases as well."
   [state player position]
   (let [old-phrase (get-in state [:last :current-phrase player])
         new-phrase (get-in state [:current-phrase player])
-        status     (.getLatestStatusFor util/virtual-cdj player)
+        status     (or (:latest-status (sim/for-player player)) (.getLatestStatusFor util/virtual-cdj player))
         context    (when new-phrase (trigger-context player new-phrase status))
         unblocked  (track-unblocked? player)
         updated    (swap! @#'su/open-shows
@@ -1913,7 +1924,9 @@ editor windows, in their cue canvases as well."
   packet the Tracked Update Expressions for any active phrase triggers
   for the player will be called with it."
   [state player ^CdjStatus status]
-  (let [updated (update-running-phrase-triggers state player (.getLatestPositionFor util/time-finder player))]
+  (let [updated (update-running-phrase-triggers state player
+                                                (or (:latest-tpu (sim/for-player player))
+                                                    (.getLatestPositionFor util/time-finder player)))]
     (future
       (try
         (doseq [show (vals updated)]
