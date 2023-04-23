@@ -68,7 +68,11 @@
   []
   (doseq [simulator (vals @simulators)]
     (when (:playing simulator)
-      (swap! simulators assoc-in [(:uuid simulator) :time] (.getBeat (:metronome simulator))))
+      (let [new-time (.getBeat (:metronome simulator))]
+        (when (> (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS new-time)
+                 (get-in simulator [:track :metadata :duration]))
+          (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play]))))
+        (swap! simulators assoc-in [(:uuid simulator) :time] new-time)))
     (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))]
       (when-not partial
         (seesaw/invoke-later
