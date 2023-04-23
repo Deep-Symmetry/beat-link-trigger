@@ -6,17 +6,17 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- A "shallow playback simulation" system that allows coordinated sets
+  of show expressions to be tested by pretending that a player is
+  sending events as a track is played.
+
 ### Fixed
 
 - Trying to copy a track with phrase analysis information to a
   different show would result in an exceptiono that prevented the
   copy.
-
-### Added
-
-- Working on a "shallow playback simulation" system that will allow
-  coordinated sets of show expressions to be tested by pretending that
-  a player is sending events as a track is played.
 
 ## [7.1.0] - 2023-04-16
 

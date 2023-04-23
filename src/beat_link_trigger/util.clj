@@ -692,7 +692,7 @@
       (let [[file signature] entry
             track            (get-in @@(requiring-resolve 'beat-link-trigger.show-util/open-shows)
                                      [file :tracks signature])]
-        (merge (select-keys track [:cue-list :grid :metadata])
+        (merge (select-keys track [:cue-list :grid :metadata :song-structure])
                {:preview           (.getWaveformPreview ((:preview track)))
                 :phrases-required? (boolean phrases-required?)})))))
 

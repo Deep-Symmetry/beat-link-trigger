@@ -1387,7 +1387,7 @@
   (if (track? context)
     (let [^WaveformDetailComponent wave wave-or-canvas]
       (swap-track! context assoc-in [:contents :cues :auto-scroll] auto?)
-      (.setAutoScroll wave (and auto? (or (util/online?) (sim/simulating?)))))
+      (.setAutoScroll wave (and auto? (or (util/online?) (boolean (sim/simulating?))))))
     ;; Someday actualy implement for phrase trigger cue canvas?
     (swap-phrase! (su/show-from-phrase context) context assoc-in [:cues :auto-scroll] auto?))
   (su/repaint-preview context)
@@ -2302,23 +2302,29 @@
     ;; Paint the positions of the players that are playing within this phrase trigger.
     (let [uuid (:uuid context)]
       (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
-        (when-let [time (.getTimeFor util/time-finder player)]
-          (let [position   (.getLatestPositionFor util/time-finder player)
-                track-beat (.findBeatAtTime (.beatGrid position) time)]
-            (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
-              (let [beat         (- track-beat first-beat -1)
-                    tempo        (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player))
-                    ms-per-beat  (/ 60000.0 tempo)
-                    fraction     (/ (- time (.getTimeWithinTrack (.beatGrid position) track-beat)) ms-per-beat)
-                    [looped-beat
-                     will-loop]  (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
-                    x            (x-for-beat context c (long looped-beat) section fraction)
-                    next-section (when will-loop (or
-                                                  (first (first (util/iget (get-in show [:playing-phrases player uuid])
-                                                                           (inc track-beat))))
-                                                  :start))]
-                (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
-                (.fillRect g (dec x) 0 2 (.getHeight c))))))))))
+        (let [simulator (sim/for-player player)]
+          (when-let [time (or (:time simulator) (.getTimeFor util/time-finder player))]
+            (let [grid       (or (get-in simulator [:track :grid])
+                                 (.beatGrid (.getLatestPositionFor util/time-finder player)))
+                  track-beat (.findBeatAtTime grid time)]
+              (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
+                                                                track-beat))]
+                (let [beat         (- track-beat first-beat -1)
+                      tempo        (if simulator
+                                     (* (:pitch simulator) (.getBpm grid track-beat) 0.01)
+                                     (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player)))
+                      ms-per-beat  (/ 60000.0 tempo)
+                      fraction     (/ (- time (.getTimeWithinTrack grid track-beat)) ms-per-beat)
+                      [looped-beat
+                       will-loop]  (su/loop-phrase-trigger-beat runtime-info (+ beat fraction) section)
+                      x            (x-for-beat context c (long looped-beat) section fraction)
+                      next-section (when will-loop (or
+                                                    (first (first (util/iget (get-in show
+                                                                                     [:playing-phrases player uuid])
+                                                                             (inc track-beat))))
+                                                    :start))]
+                  (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
+                  (.fillRect g (dec x) 0 2 (.getHeight c)))))))))))
 
 (defn- create-cues-window
   "Create and show a new cues window for the specified track or phrase

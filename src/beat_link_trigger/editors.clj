@@ -4,6 +4,7 @@
   (:require [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.util :as util]
             [clojure.java.browse]
@@ -355,7 +356,9 @@
                     :doc "The MIDI channel on which track load and
   unload messages are sent."}
 
-   'loaded-players {:code '(if util/*simulating*
+   'loaded-players {:code '(if (and util/*simulating*
+                                    (not (when status
+                                           (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                              #{(extract-device-number status)}
                              (util/players-signature-set (:loaded (:show trigger-data))
                                                          (:signature (:track trigger-data))))
@@ -392,7 +395,9 @@
   is configured as \"Default\", the show's Enabled Default value is
   returned.)"}
 
-   'playing-players {:code '(if util/*simulating*
+   'playing-players {:code '(if (and util/*simulating*
+                                     (not (when status
+                                            (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                               #{(extract-device-number status)}
                               (util/players-signature-set (:playing (:show trigger-data))
                                                           (:signature (:track trigger-data))))
@@ -420,13 +425,16 @@
                        (help/user-guide-link "ShowInternals.html#phrase-contents")
                        "\">User Guide</a> for details.")}
 
-   'phrase-type {:code '(if util/*simulating*
+   'phrase-type {:code '(if (and util/*simulating*
+                                 (not (when status (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                           (rand-nth (keys @(requiring-resolve 'beat-link-trigger.show-phrases/phrase-types)))
                           (when status ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase-type)
                                         (.getDeviceNumber (extract-device-update status)))))
                  :doc  "The keyword identifying the type of the phrase that activated this phrase trigger."}
 
-   'phrase-beat-range {:code '(if util/*simulating*
+   'phrase-beat-range {:code '(if (and util/*simulating*
+                                       (not (when status
+                                              (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                                 (let [start (inc (rand 100))]
                                   [start (+ start (* 4 (inc (rand 100))))])
                                 (when status
@@ -435,14 +443,17 @@
                  :doc  "A tuple of the starting and ending beats within the track corresponding to the phrase
   that activated this phrase trigger."}
 
-   'track-bank {:code '(if util/*simulating*
+   'track-bank {:code '(if (and util/*simulating*
+                                (not (when status (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                          (rand-nth (keys @(requiring-resolve 'beat-link-trigger.show-phrases/track-banks)))
                          (when status
                            ((requiring-resolve 'beat-link-trigger.show-phrases/current-track-bank)
                             (.getDeviceNumber (extract-device-update status)))))
                  :doc  "The keyword identifying the track bank assigned to the track playing this phrase trigger."}
 
-   'phrase-structure {:code '(if util/*simulating*
+   'phrase-structure {:code '(if (and util/*simulating*
+                                      (not (when status
+                                             (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                                (rand-nth (.entries (.body (get-in @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) [2 :phrases]))))
                                (when status
                                  ((requiring-resolve 'beat-link-trigger.show-phrases/current-phrase)
@@ -469,13 +480,17 @@
              :doc  "The MIDI channel on which phrase trigger
   playing messages are sent."}
 
-   'playing-players {:code '(if util/*simulating*
+   'playing-players {:code '(if (and util/*simulating*
+                                     (not (when status
+                                            (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                               #{(extract-device-number status)}
                               (util/players-phrase-uuid-set (:playing-phrases (:show trigger-data))
                                                             (:uuid (:phrase trigger-data))))
                      :doc  "The set of player numbers that are currently
   playing a phrase that acivated this phrase trigger, if any."}
-   'section {:code '(if util/*simulating*
+   'section {:code '(if (and util/*simulating*
+                             (not (when status
+                                    (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                       (rand-nth [:start :loop :end :fill])
                       (first (first (util/iget (get-in (:show trigger-data) [:playing-phrases (extract-device-number status) (get-in trigger-data [:phrase :uuid])]) (current-beat status)))))
              :doc  "The section of the phrase that is currently playing, one of <code>:start</code>, <code>:loop</code>, <code>:end</code>, or <code>:fill</code>."}})
@@ -801,7 +816,9 @@
    'started-late-channel {:code '(get-in trigger-data [:cue :events :started-late :channel])
                           :doc  "The MIDI channel on which late cue start and end messages are sent."}
 
-   'players-playing {:code '(if util/*simulating*
+   'players-playing {:code '(if (and util/*simulating*
+                                     (not (when status
+                                            (sim/for-player (.getDeviceNumber (extract-device-update status))))))
                               #{(extract-device-number status)}
                               ((resolve 'beat-link-trigger.show/players-playing-cue)
                                (or (:track trigger-data) (:phrase trigger-data)) (:cue trigger-data)))

@@ -2,9 +2,7 @@
   "Provides shallow playback simulation when BLT is offline."
   (:require [beat-link-trigger.util :as util]
             [beat-link-trigger.show-util :as su :refer [latest-show]]
-            [clojure.java.io :as io]
             [clojure.set :as set]
-            [clojure.string :as str]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
@@ -121,7 +119,7 @@
                     ((requiring-resolve 'beat-link-trigger.show-phrases/run-beat-functions) beat tpu)
                     (catch Throwable t
                       (timbre/error t "Problem reporting simulated phrase beat.")))))))
-          (when (>= elapsed 200)
+          (when (>= elapsed 50)
             ;; It's time to send another simulated status packet for this player.
             ;; Based on beat-link-trigger.show/update-listener and
             ;; beat.link.trigger.show-phrases/update-listener.
@@ -145,7 +143,7 @@
                   ((requiring-resolve 'beat-link-trigger.show-phrases/update-phrase-status) status)
                     (catch Throwable t
                       (timbre/error t "Problem simulating status update for phrases.")))))
-            (swap! simulators assoc-in [uuid last-status] now)))))))
+            (swap! simulators assoc-in [uuid :last-status] now)))))))
 
 (defn- simulator-loop
   "The main loop of the daemon thread that sends shallow playback
@@ -251,6 +249,7 @@
                                                     (:cue-list data))
           song-structure (:song-structure data)]
       (when song-structure (.setSongStructure component song-structure))
+      (.setBeatGrid component (:grid data))
       (seesaw/listen component
                      :mouse-pressed (fn [e] (handle-preview-press uuid component e)))
       (if old
@@ -287,6 +286,7 @@
 (defn handle-play-toggle
   [uuid playing?]
   (let [simulator (get @simulators uuid)]
+    (seesaw/config! (seesaw/select (:frame simulator) [:#track]) :enabled? (not playing?))
     (if playing?
       (do
         (.jumpToBeat (:metronome simulator) (:time simulator))  ; Pick up our metronome at the current time.

@@ -344,7 +344,7 @@
             (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
               (let [beat         (- track-beat first-beat -1)
                     tempo        (if simulator
-                                   (* (:pitch simulator) (.getBpm track-beat))
+                                   (* (:pitch simulator) (.getBpm grid track-beat) 0.01)
                                    (.getEffectiveTempo (.getLatestStatusFor util/virtual-cdj player)))
                     ms-per-beat  (/ 60000.0 tempo)
                     fraction     (/ (- time (.getTimeWithinTrack grid track-beat)) ms-per-beat)
