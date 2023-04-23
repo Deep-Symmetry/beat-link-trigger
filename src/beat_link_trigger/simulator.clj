@@ -41,7 +41,7 @@
 
 (defn- build-cdj-status
   "Creates the CDJ status object to represent our current simulation state."
-  [{:keys [master on-air player playing sync time track]}]
+  [{:keys [master on-air pitch player playing sync time track]}]
   (let [{:keys [grid]} track
         chosen-beat    (.findBeatAtTime grid time)]
     (util/simulate-player-status {:bb            (if (pos? chosen-beat)
@@ -49,7 +49,7 @@
                                                    0)
                                   :beat          (if (pos? chosen-beat) chosen-beat 0)
                                   :device-number player
-                                  :bpm           (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)) ; TODO: Account for pitch.
+                                  :bpm           (* pitch (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)))
                                   :d-r           player
                                   :s-r           2
                                   :t-r           1
@@ -67,10 +67,12 @@
   effect during development."
   []
   (doseq [simulator (vals @simulators)]
-    ;; TODO: Use metronome to update our current time. If we are in a new beat, simulate a beat packet.
-    (let [{:keys [closing last-status player playing preview time track uuid]} simulator]
-      (when-not closing
-        (.setPlaybackState preview player time playing)
+    (when (:playing simulator)
+      (swap! simulators assoc-in [(:uuid simulator) :time] (.getBeat (:metronome simulator))))
+    (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))]
+      (when-not partial
+        (seesaw/invoke-later
+         (.setPlaybackState preview player time playing))
         (let [now     (System/nanoTime)
               elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
           (when (>= elapsed 200)
@@ -192,7 +194,9 @@
       (if old
         (seesaw/replace! preview old component)
         (seesaw/config! preview :center component))
-      (swap! simulators assoc-in [uuid :preview] component))
+      (swap! simulators update uuid (fn [simulator] (-> simulator
+                                                        (assoc :preview component)
+                                                        (dissoc :partial)))))
     (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature choice))]
       (doseq [show (vals (su/get-open-shows))]
         (try
@@ -218,6 +222,24 @@
           (set-simulation-data (:uuid simulator) (first model)))  ; Lost old track.
         (swap! simulators update (:uuid simulator) dissoc :adjusting)))))
 
+(defn handle-play-toggle
+  [uuid playing?]
+  (let [simulator (get @simulators uuid)]
+    (if playing?
+      (do
+        (.jumpToBeat (:metronome simulator) (:time simulator))  ; Pick up our metronome at the current time.
+        ;; If there isn't another tempo master, we are now it.
+        (when (empty? (filter (fn [candidate] (and (:playing candidate) (:master candidate)
+                                                   (not= uuid (:uuid candidate))))
+                              (vals @simulators)))
+          (when-not (:master simulator)
+            (.doClick (seesaw/select (:frame simulator) [:#master])))))
+      (when (:master simulator)  ; See if there is another playing simulator to hand master status over to.
+        (when-let [other (first (filter (fn [candidate] (and (:playing candidate) (not= uuid (:uuid candidate))))
+                                        (vals @simulators)))]
+          (.doClick (seesaw/select (:frame other) [:#master])))))
+    (swap! simulators assoc-in [uuid :playing] playing?)))
+
 (defn build-simulator-panel
   "Creates the UI of the simulator window, once its basic configuration
   has been set up."
@@ -234,19 +256,19 @@
                                             (when-not (get-in @simulators [uuid :adjusting])
                                               (recompute-player-models))))])]
              [(seesaw/checkbox :id :on-air :text "On-Air" :selected? true
-                               :listen [:action (fn [e] (swap! simulators assoc-in [uuid :on-air]
-                                                               (seesaw/value e)))])]
+                               :listen [:action-performed #(swap! simulators assoc-in [uuid :on-air]
+                                                                  (seesaw/value %))])]
              [(seesaw/checkbox :id :master :text "Master"
-                               :listen [:action (fn [e]
+                               :listen [:action-performed (fn [e]
                                                   (let [master? (seesaw/value e)]
                                                     (swap! simulators assoc-in [uuid :master] master?)
                                                     (when master?
                                                       (doseq [simulator (vals @simulators)]
                                                         (when (not= uuid (:uuid simulator))
-                                                          (seesaw/value! (seesaw/select (:frame simulator) [:#master])
-                                                                         false))))))])]
-             [(seesaw/toggle :id :play :text "Play")
-              "wrap"]
+                                                          (.doClick
+                                                           (seesaw/select (:frame simulator) [:#master])))))))])]
+             [(seesaw/toggle :id :play :text "Play"
+                             :listen [:action-performed #(handle-play-toggle uuid (seesaw/value %))]) "wrap"]
              ["Track:"]
              [(seesaw/combobox :id :track :model (track-menu-model)
                                :listen [:item-state-changed
@@ -267,7 +289,7 @@
         player       (choose-simulator-player)
         close-fn     (fn []
                        (.dispose root)
-                       (swap! simulators assoc-in [uuid :closing] true)
+                       (swap! simulators assoc-in [uuid :partial] true)
                        (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) nil)]
                          (recompute-player-models)
                          (seesaw/config! simulate-item :enabled? true)
@@ -285,6 +307,7 @@
         created      (swap! simulators assoc uuid
                             {:uuid      uuid
                              :frame     root
+                             :partial   true
                              :player    player
                              :sync      false
                              :master    false
