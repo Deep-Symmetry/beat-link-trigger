@@ -75,12 +75,12 @@
   "Compute the current effective tempo and display it in the simulator
   window."
   [uuid]
-  (let [simulator                        (get @simulators uuid)
-        {:keys [frame pitch time track]} simulator
-        grid                             (:grid track)
-        beat                             (.findBeatAtTime grid time)
-        tempo                            (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)]
-    (seesaw/text! (seesaw/select frame [:#bpm]) (format "%.1f" (* pitch tempo)))))
+  (when-let [simulator (get @simulators uuid)]  ; Don't crash if the window has been closed.
+    (let [{:keys [frame pitch time track]} simulator
+          grid                             (:grid track)
+          beat                             (.findBeatAtTime grid time)
+          tempo                            (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)]
+      (seesaw/text! (seesaw/select frame [:#bpm]) (format "%.1f" (* pitch tempo))))))
 
 (defn- simulator-tick
   "Send shallow simulation events when appropriate. Called frequently by
@@ -89,7 +89,7 @@
   effect during development."
   []
   (doseq [simulator (vals @simulators)]
-    (when (:playing simulator)
+    (when (and (:playing simulator) (not (:partial simulator)))
       (let [new-time (.getBeat (:metronome simulator))]
         (if (> (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS new-time)
                  (get-in simulator [:track :metadata :duration]))
@@ -98,7 +98,7 @@
     (update-tempo (:uuid simulator))
     (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))
           {:keys [grid]}                                                       track]
-      (when-not partial
+      (when (and player (not partial))
         (seesaw/invoke-later
          (.setPlaybackState preview player time playing))
         (let [now     (System/nanoTime)
@@ -382,17 +382,26 @@
                                    :on-close :nothing)
         player       (choose-simulator-player)
         close-fn     (fn []
+                       (when (get-in @simulators [uuid :playing])
+                         (.doClick (seesaw/select root [:#play]))
+                         (Thread/sleep 100))
                        (.dispose root)
                        (swap! simulators assoc-in [uuid :partial] true)
-                       (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) nil)]
+                       (let [player     (get-in @simulators [uuid :player])
+                             sig-update (SignatureUpdate. player nil)]
                          (recompute-player-models)
                          (seesaw/config! simulate-item :enabled? true)
                          (doseq [show (vals (su/get-open-shows))]
                            (try
-                             ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update show)
+                             ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update
+                              show)
                              (catch Throwable t
                                (timbre/error t "Problem delivering simulated signature update to show" sig-update
                                              (:file show)))))
+                         (try
+                           ((requiring-resolve 'beat-link-trigger.show-phrases/clear-song-structure) player)
+                           (catch Throwable t
+                             (timbre/error t "Problem reporting loss of simulated phrase information.")))
                          (when (empty? (swap! simulators dissoc uuid))
                            (doseq [show (vals (su/get-open-shows))]
                              ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false))))
