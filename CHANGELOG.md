@@ -17,6 +17,10 @@ This change log follows the conventions of
 - Trying to copy a track with phrase analysis information to a
   different show would result in an exceptiono that prevented the
   copy.
+- The positions of players within phrase cues were not drawn correctly
+  when the player pitch was anything other than neutral, they would
+  start out correct at each beat but then either fall behind or leap
+  forward as the beat went on.
 
 ## [7.1.0] - 2023-04-16
 
