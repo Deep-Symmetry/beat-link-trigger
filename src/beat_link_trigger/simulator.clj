@@ -16,6 +16,11 @@
   simulators
   (atom {}))
 
+(def ^:dynamic *closing-all*
+  "Used during the process of closing all simulator windows due to going
+  online to let them know not to worry about handing off Master status."
+  false)
+
 (defn simulating?
   "Checks whether there are currently any simulator windows open."
   []
@@ -25,6 +30,7 @@
   "Returns a set of the signatures of the tracks being simulated."
   []
   (->> (vals @simulators)
+       (remove #(or (:partial %) (:closing %)))
        (map :track)
        (map :signature)
        set))
@@ -71,16 +77,38 @@
                                                                                             (when sync 0x10)
                                                                                             (when on-air 0x8)])))})))
 
+(defn- player-menu-model
+  "Returns the available player numbers this simulator can choose."
+  [uuid]
+  (let [state     @simulators
+        simulator (get state uuid)
+        used      (set (map :player (vals state)))]
+    (sort (set/union (set (remove used (map inc (range 6)))) #{(:player simulator)}))))
+
+(defn- recompute-player-models
+  "Updates the player combo-boxes of all open windows to reflect the
+  current state of the other windows."
+  []
+  (doseq [simulator (vals @simulators)]
+    (let [combo   (seesaw/select (:frame simulator) [:#player])
+          current (seesaw/selection combo)]
+      (swap! simulators assoc-in [(:uuid simulator) :adjusting] true)
+      (seesaw/config! combo :model (player-menu-model (:uuid simulator)))
+      (seesaw/selection! combo current)
+      (swap! simulators update (:uuid simulator) dissoc :adjusting))))
+
 (defn- update-tempo
   "Compute the current effective tempo and display it in the simulator
   window."
   [uuid]
   (when-let [simulator (get @simulators uuid)]  ; Don't crash if the window has been closed.
-    (let [{:keys [frame pitch time track]} simulator
-          grid                             (:grid track)
-          beat                             (.findBeatAtTime grid time)
-          tempo                            (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)]
-      (seesaw/text! (seesaw/select frame [:#bpm]) (format "%.1f" (* pitch tempo))))))
+    (when-not (or (:closing simulator) (:partial simulator))  ; Or if window is in a weird state.
+      (let [{:keys [frame pitch time track]} simulator
+            grid                             (:grid track)
+            beat                             (.findBeatAtTime grid time)
+            tempo                            (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)]
+        (seesaw/invoke-later
+         (seesaw/text! (seesaw/select frame [:#bpm]) (format "%.1f" (* pitch tempo))))))))
 
 (defn- simulator-tick
   "Send shallow simulation events when appropriate. Called frequently by
@@ -93,12 +121,12 @@
       (let [new-time (.getBeat (:metronome simulator))]
         (if (> (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS new-time)
                  (get-in simulator [:track :metadata :duration]))
-          (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play])))
+          (when-not *closing-all* (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play]))))
           (swap! simulators assoc-in [(:uuid simulator) :time] new-time))))
     (update-tempo (:uuid simulator))
-    (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))
-          {:keys [grid]}                                                       track]
-      (when (and player (not partial))
+    (let [{:keys [last-status player playing preview time track uuid]} (get @simulators (:uuid simulator))
+          {:keys [grid]}                                               track]
+      (when (and player (not (:partial simulator)))
         (seesaw/invoke-later
          (.setPlaybackState preview player time playing))
         (let [now     (System/nanoTime)
@@ -131,7 +159,7 @@
                     ((requiring-resolve 'beat-link-trigger.show-phrases/run-beat-functions) beat tpu)
                     (catch Throwable t
                       (timbre/error t "Problem reporting simulated phrase beat.")))))))
-          (when (>= elapsed 50)
+          (when (or (>= elapsed 50) (:closing simulator))
             ;; It's time to send another simulated status packet for this player.
             ;; Based on beat-link-trigger.show/update-listener and
             ;; beat.link.trigger.show-phrases/update-listener.
@@ -155,7 +183,27 @@
                   ((requiring-resolve 'beat-link-trigger.show-phrases/update-phrase-status) status)
                     (catch Throwable t
                       (timbre/error t "Problem simulating status update for phrases.")))))
-            (swap! simulators assoc-in [uuid :last-status] now)))))))
+            (swap! simulators assoc-in [uuid :last-status] now))))
+      (when (:closing simulator)
+        (let [player     (get-in @simulators [uuid :player])
+              sig-update (SignatureUpdate. player nil)]
+          (doseq [show (vals (su/get-open-shows))]
+            (try
+              ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update
+               show)
+              (catch Throwable t
+                (timbre/error t "Problem delivering simulated signature update to show" sig-update
+                              (:file show)))))
+          (try
+            ((requiring-resolve 'beat-link-trigger.show-phrases/clear-song-structure) player)
+            (catch Throwable t
+              (timbre/error t "Problem reporting loss of simulated phrase information."))))
+        (seesaw/invoke-now
+         (when (empty? (swap! simulators dissoc uuid))
+           (doseq [show (vals (su/get-open-shows))]
+             ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false)))
+         (recompute-player-models)
+         (.dispose (:frame simulator)))))))
 
 (defn- simulator-loop
   "The main loop of the daemon thread that sends shallow playback
@@ -194,26 +242,6 @@
   []
   (let [used (set (map :player (vals @simulators)))]
     (first (remove used (map inc (range 6))))))
-
-(defn- player-menu-model
-  "Returns the available player numbers this simulator can choose."
-  [uuid]
-  (let [state     @simulators
-        simulator (get state uuid)
-        used      (set (map :player (vals state)))]
-    (sort (set/union (set (remove used (map inc (range 6)))) #{(:player simulator)}))))
-
-(defn- recompute-player-models
-  "Updates the player combo-boxes of all open windows to reflect the
-  current state of the other windows."
-  []
-  (doseq [simulator (vals @simulators)]
-    (let [combo   (seesaw/select (:frame simulator) [:#player])
-          current (seesaw/selection combo)]
-      (swap! simulators assoc-in [(:uuid simulator) :adjusting] true)
-      (seesaw/config! combo :model (player-menu-model (:uuid simulator)))
-      (seesaw/selection! combo current)
-      (swap! simulators update (:uuid simulator) dissoc :adjusting))))
 
 (defn track-menu-model
   "Returns the available tracks this simulator can choose. First builds a
@@ -304,19 +332,20 @@
   [uuid playing?]
   (let [simulator (get @simulators uuid)]
     (seesaw/config! (seesaw/select (:frame simulator) [:#track]) :enabled? (not playing?))
-    (if playing?
-      (do
-        (.jumpToBeat (:metronome simulator) (:time simulator))  ; Pick up our metronome at the current time.
-        ;; If there isn't another tempo master, we are now it.
-        (when (empty? (filter (fn [candidate] (and (:playing candidate) (:master candidate)
-                                                   (not= uuid (:uuid candidate))))
-                              (vals @simulators)))
-          (when-not (:master simulator)
-            (.doClick (seesaw/select (:frame simulator) [:#master])))))
-      (when (:master simulator)  ; See if there is another playing simulator to hand master status over to.
-        (when-let [other (first (filter (fn [candidate] (and (:playing candidate) (not= uuid (:uuid candidate))))
-                                        (vals @simulators)))]
-          (.doClick (seesaw/select (:frame other) [:#master])))))
+    (when-not *closing-all*
+      (if playing?
+        (do
+          (.jumpToBeat (:metronome simulator) (:time simulator))  ; Pick up our metronome at the current time.
+          ;; If there isn't another tempo master, we are now it.
+          (when (empty? (filter (fn [candidate] (and (:playing candidate) (:master candidate)
+                                                     (not= uuid (:uuid candidate))))
+                                (vals @simulators)))
+            (when-not (:master simulator)
+              (.doClick (seesaw/select (:frame simulator) [:#master])))))
+        (when (:master simulator)  ; See if there is another playing simulator to hand master status over to.
+          (when-let [other (first (filter (fn [candidate] (and (:playing candidate) (not= uuid (:uuid candidate))))
+                                          (vals @simulators)))]
+            (.doClick (seesaw/select (:frame other) [:#master]))))))
     (swap! simulators assoc-in [uuid :playing] playing?)))
 
 (defn build-simulator-panel
@@ -344,7 +373,7 @@
                                             (swap! simulators assoc-in [uuid :master] master?)
                                             (when master?
                                               (doseq [simulator (vals @simulators)]
-                                                (when (not= uuid (:uuid simulator))
+                                                (when (and (:master simulator) (not= uuid (:uuid simulator)))
                                                   (.doClick
                                                    (seesaw/select (:frame simulator) [:#master])))))))])]
              [(seesaw/toggle :id :play :text "Play"
@@ -383,29 +412,10 @@
         player       (choose-simulator-player)
         close-fn     (fn []
                        (when (get-in @simulators [uuid :playing])
-                         (.doClick (seesaw/select root [:#play]))
-                         (Thread/sleep 100))
-                       (.dispose root)
-                       (swap! simulators assoc-in [uuid :partial] true)
-                       (let [player     (get-in @simulators [uuid :player])
-                             sig-update (SignatureUpdate. player nil)]
-                         (recompute-player-models)
-                         (seesaw/config! simulate-item :enabled? true)
-                         (doseq [show (vals (su/get-open-shows))]
-                           (try
-                             ((requiring-resolve 'beat-link-trigger.show/update-player-item-signature) sig-update
-                              show)
-                             (catch Throwable t
-                               (timbre/error t "Problem delivering simulated signature update to show" sig-update
-                                             (:file show)))))
-                         (try
-                           ((requiring-resolve 'beat-link-trigger.show-phrases/clear-song-structure) player)
-                           (catch Throwable t
-                             (timbre/error t "Problem reporting loss of simulated phrase information.")))
-                         (when (empty? (swap! simulators dissoc uuid))
-                           (doseq [show (vals (su/get-open-shows))]
-                             ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false))))
-                       true)
+                         (seesaw/invoke-now (.doClick (seesaw/select root [:#play]))))
+                       (swap! simulators assoc-in [uuid :closing] true)
+                       (seesaw/config! simulate-item :enabled? true)
+                       false)
         metronome    (Metronome.)
         created      (swap! simulators assoc uuid
                             {:uuid      uuid
@@ -458,4 +468,7 @@
   going online."
   []
   (doseq [simulator (vals @simulators)]
-    ((:close-fn simulator))))
+    (try
+      ((:close-fn simulator))
+      (catch Throwable t
+        (timbre/error t "Problem focre closing simulator while going online")))))
