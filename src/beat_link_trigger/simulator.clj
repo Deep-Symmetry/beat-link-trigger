@@ -267,6 +267,9 @@
       (if old
         (seesaw/replace! preview old component)
         (seesaw/config! preview :center component))
+      (when-let [cue-list (:cue-list data)]
+        (when-let [first-cue (first (.-entries cue-list))]
+          (swap! simulators assoc-in [uuid :time] (.-cueTime first-cue))))
       (swap! simulators update uuid (fn [simulator] (-> simulator
                                                         (assoc :preview component)
                                                         (dissoc :partial)))))
