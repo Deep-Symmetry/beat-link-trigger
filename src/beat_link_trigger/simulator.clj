@@ -329,9 +329,11 @@
 
 (defn- handle-play-toggle
   "Respond to someone clicking the Play button."
-  [uuid playing?]
-  (let [simulator (get @simulators uuid)]
+  [uuid]
+  (let [simulator (get @simulators uuid)
+        playing?  (not (:playing simulator))]
     (seesaw/config! (seesaw/select (:frame simulator) [:#track]) :enabled? (not playing?))
+    (seesaw/text! (seesaw/select (:frame simulator) [:#play]) (if playing? "Pause" "Play"))
     (when-not *closing-all*
       (if playing?
         (do
@@ -376,8 +378,8 @@
                                                 (when (and (:master simulator) (not= uuid (:uuid simulator)))
                                                   (.doClick
                                                    (seesaw/select (:frame simulator) [:#master])))))))])]
-             [(seesaw/toggle :id :play :text "Play"
-                             :listen [:action-performed #(handle-play-toggle uuid (seesaw/value %))])]
+             [(seesaw/button :id :play :text "Play"
+                             :listen [:action-performed (fn [_] (handle-play-toggle uuid))])]
              ["Pitch:" "gap 20"]
              [(seesaw/slider :id :pitch :orientation :horizontal :value 0 :min -50 :max 50
                              :listen [:state-changed
