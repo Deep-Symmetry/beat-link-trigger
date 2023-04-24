@@ -71,6 +71,17 @@
                                                                                             (when sync 0x10)
                                                                                             (when on-air 0x8)])))})))
 
+(defn- update-tempo
+  "Compute the current effective tempo and display it in the simulator
+  window."
+  [uuid]
+  (let [simulator                        (get @simulators uuid)
+        {:keys [frame pitch time track]} simulator
+        grid                             (:grid track)
+        beat                             (.findBeatAtTime grid time)
+        tempo                            (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)]
+    (seesaw/text! (seesaw/select frame [:#bpm]) (format "%.1f" (* pitch tempo)))))
+
 (defn- simulator-tick
   "Send shallow simulation events when appropriate. Called frequently by
   `simulator-loop`, below. A separate function so it can be redefined
@@ -80,10 +91,11 @@
   (doseq [simulator (vals @simulators)]
     (when (:playing simulator)
       (let [new-time (.getBeat (:metronome simulator))]
-        (when (> (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS new-time)
+        (if (> (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS new-time)
                  (get-in simulator [:track :metadata :duration]))
-          (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play]))))
-        (swap! simulators assoc-in [(:uuid simulator) :time] new-time)))
+          (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play])))
+          (swap! simulators assoc-in [(:uuid simulator) :time] new-time))))
+    (update-tempo (:uuid simulator))
     (let [{:keys [last-status partial player playing preview time track uuid]} (get @simulators (:uuid simulator))
           {:keys [grid]}                                                       track]
       (when-not partial
@@ -258,6 +270,7 @@
       (swap! simulators update uuid (fn [simulator] (-> simulator
                                                         (assoc :preview component)
                                                         (dissoc :partial)))))
+    (update-tempo uuid)
     (let [sig-update (SignatureUpdate. (get-in @simulators [uuid :player]) (:signature choice))]
       (doseq [show (vals (su/get-open-shows))]
         (try
@@ -283,7 +296,8 @@
           (set-simulation-data (:uuid simulator) (first model)))  ; Lost old track.
         (swap! simulators update (:uuid simulator) dissoc :adjusting)))))
 
-(defn handle-play-toggle
+(defn- handle-play-toggle
+  "Respond to someone clicking the Play button."
   [uuid playing?]
   (let [simulator (get @simulators uuid)]
     (seesaw/config! (seesaw/select (:frame simulator) [:#track]) :enabled? (not playing?))
@@ -321,16 +335,31 @@
                                :listen [:action-performed #(swap! simulators assoc-in [uuid :on-air]
                                                                   (seesaw/value %))])]
              [(seesaw/checkbox :id :master :text "Master"
-                               :listen [:action-performed (fn [e]
-                                                  (let [master? (seesaw/value e)]
-                                                    (swap! simulators assoc-in [uuid :master] master?)
-                                                    (when master?
-                                                      (doseq [simulator (vals @simulators)]
-                                                        (when (not= uuid (:uuid simulator))
-                                                          (.doClick
-                                                           (seesaw/select (:frame simulator) [:#master])))))))])]
+                               :listen [:action-performed
+                                        (fn [e]
+                                          (let [master? (seesaw/value e)]
+                                            (swap! simulators assoc-in [uuid :master] master?)
+                                            (when master?
+                                              (doseq [simulator (vals @simulators)]
+                                                (when (not= uuid (:uuid simulator))
+                                                  (.doClick
+                                                   (seesaw/select (:frame simulator) [:#master])))))))])]
              [(seesaw/toggle :id :play :text "Play"
-                             :listen [:action-performed #(handle-play-toggle uuid (seesaw/value %))]) "wrap"]
+                             :listen [:action-performed #(handle-play-toggle uuid (seesaw/value %))])]
+             ["Pitch:" "gap 20"]
+             [(seesaw/slider :id :pitch :orientation :horizontal :value 0 :min -50 :max 50
+                             :listen [:state-changed
+                                      (fn [e]
+                                        (let [pitch     (+ 1.0 (/ (seesaw/value e) 100.0))
+                                              metronome (get-in @simulators [uuid :metronome])]
+                                          (swap! simulators assoc-in [uuid :pitch] pitch)
+                                          (.setTempo metronome
+                                                     (* pitch (.toMillis java.util.concurrent.TimeUnit/MINUTES 1)))
+                                          (update-tempo uuid)))])
+              "width 150"]
+             ["BPM:"]
+             [(seesaw/label :id :bpm :text "128.0")
+              "wrap"]
              ["Track:"]
              [(seesaw/combobox :id :track :model (track-menu-model)
                                :listen [:item-state-changed
