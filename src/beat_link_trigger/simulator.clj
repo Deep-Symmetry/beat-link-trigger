@@ -256,11 +256,11 @@
                                     (-> simulator
                                         (assoc :track (merge data (select-keys choice [:signature])))
                                         (assoc :time 0))))
-    (let [preview        (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])
-          component      (WaveformPreviewComponent. (:preview data) (get-in data [:metadata :duration])
-                                                    (:cue-list data))
-          song-structure (:song-structure data)]
-      (when song-structure (.setSongStructure component song-structure))
+    (let [preview                  (seesaw/select (get-in @simulators [uuid :frame]) [:#preview])
+          component                (WaveformPreviewComponent. (:preview data) (get-in data [:metadata :duration])
+                                                              (:cue-list data))
+          {:keys [song-structure]} data]
+      (.setSongStructure component song-structure)
       (.setBeatGrid component (:grid data))
       (seesaw/listen component
                      :mouse-pressed (fn [e] (handle-preview-press uuid component e)))

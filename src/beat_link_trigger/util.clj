@@ -688,12 +688,15 @@
         (merge (select-keys sample [:cue-list :metadata :preview :signature])
                {:song-structure    (:phrases sample)
                 :grid              (:beat-grid sample)
+                :coes              (:cue-list sample)
                 :phrases-required? (boolean phrases-required?)}))
       (let [[file signature] entry
-            track            (get-in @@(requiring-resolve 'beat-link-trigger.show-util/open-shows)
-                                     [file :tracks signature])]
-        (merge (select-keys track [:cue-list :grid :metadata :song-structure])
-               {:preview           (.getWaveformPreview ((:preview track)))
+            show             (get @@(requiring-resolve 'beat-link-trigger.show-util/open-shows) file)
+            track            (get-in show [:tracks signature])
+            track-root       ((requiring-resolve 'beat-link-trigger.show-util/build-track-path) show signature)]
+        (merge (select-keys track [:grid :metadata :song-structure])
+               {:cue-list          ((requiring-resolve 'beat-link-trigger.show-util/read-cue-list) track-root)
+                :preview           (.getWaveformPreview ((:preview track)))
                 :phrases-required? (boolean phrases-required?)})))))
 
 (defn- phrase-beat-range
