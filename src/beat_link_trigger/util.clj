@@ -688,7 +688,6 @@
         (merge (select-keys sample [:cue-list :metadata :preview :signature])
                {:song-structure    (:phrases sample)
                 :grid              (:beat-grid sample)
-                :coes              (:cue-list sample)
                 :phrases-required? (boolean phrases-required?)}))
       (let [[file signature] entry
             show             (get @@(requiring-resolve 'beat-link-trigger.show-util/open-shows) file)
