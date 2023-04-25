@@ -164,6 +164,20 @@
     (let [[enabled? _] (run-trigger-function trigger :enabled status false)]
       (swap! (seesaw/user-data trigger) assoc-in [:expression-results :enabled] enabled?))))
 
+(defn- device-present?
+  "Checks whether a device is on the network by number. Works both when
+  online and when simulated playback is happening."
+  [device-number]
+  (boolean (or (sim/for-player device-number)
+               (some? (when (util/online?) (.getLatestAnnouncementFrom device-finder device-number))))))
+
+(defn- latest-status-for
+  "Returns the latest status packet received from a device by number.
+  Works both when online and when simulated playback is happening."
+  [device-number]
+  (or (:latest-status (sim/for-player device-number))
+      (when (util/online?) (when (util/online?) (.getLatestStatusFor virtual-cdj device-number)))))
+
 (defn- is-better-match?
   "Checks whether the current status packet represents a better
   matching device for a trigger to track than the one it is currently
@@ -186,7 +200,7 @@
                        (- this-device))
         [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
         better (or (= existing-device this-device)
-                   (when (some? existing-device) (nil? (.getLatestAnnouncementFrom device-finder existing-device)))
+                   (when (some? existing-device) (not (device-present? existing-device)))
                    (> match-score (or existing-score -256)))]
     (when better
       (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
@@ -518,7 +532,12 @@
   standard description and summary for the track)."
   [^CdjStatus status track-description metadata-summary]
   (let [beat (.getBeatNumber status)
-        metadata (when (.isRunning metadata-finder) (.getLatestMetadataFor metadata-finder status))
+        [metadata metadata-summary] (if (.isRunning metadata-finder)
+                                      [(.getLatestMetadataFor metadata-finder status) metadata-summary]
+                                      (let [sim-data (get-in (sim/for-player (.getDeviceNumber status))
+                                                             [:track :metadata])]
+                                        [nil (or metadata-summary
+                                                 (str (:title sim-data) "&mdash;" (:artist sim-data)))]))
         using-metadata? (or metadata metadata-summary)]
     (str (when using-metadata? "<html>")
          (.getDeviceNumber status) (if (.isPlaying status) " Playing" " Stopped")
@@ -551,19 +570,20 @@
         (do (seesaw/config! status-label :foreground "red")
             (seesaw/value! status-label "No Player selected.")
             (update-player-state trigger false false nil))
-        (let [found  (when (util/online?) (.getLatestAnnouncementFrom device-finder (int (.number selection))))
-              status (when (util/online?) (.getLatestStatusFor virtual-cdj (int (.number selection))))]
-          (if (nil? found)
-            (do (seesaw/config! status-label :foreground "red")
-                (seesaw/value! status-label (if (util/online?) "Player not found." "Offline."))
-                (update-player-state trigger false false nil))
+        (let [device-number (int (.number selection))
+              found         (device-present? device-number)
+              status        (latest-status-for device-number)]
+          (if found
             (if (instance? CdjStatus status)
               (do (seesaw/config! status-label :foreground "cyan")
                   (seesaw/value! status-label (build-status-label status track-description metadata-summary)))
               (do (seesaw/config! status-label :foreground "red")
-                  (seesaw/value! status-label (cond (some? status)  "Non-Player status received."
+                  (seesaw/value! status-label (cond (some? status)       "Non-Player status received."
                                                     (not (util/online?)) "Offline."
-                                                    :else           "No status received."))))))))
+                                                    :else                "No status received."))))
+            (do (seesaw/config! status-label :foreground "red")
+                (seesaw/value! status-label (if (util/online?) "Player not found." "Offline."))
+                (update-player-state trigger false false nil))))))
     (catch Exception e
       (timbre/error e "Problem showing Trigger Player status."))))
 
@@ -1240,6 +1260,12 @@
         (catch Exception e
           (timbre/error e "Problem responding to beat packet."))))))
 
+(def offline-cooldown-ms
+  "The amount of time to wait for things to stabilize after starting the
+  process of going offline, before trying to go back online
+  automatically."
+  500)
+
 (defonce ^{:private true
            :doc "Responds to the arrival or departure of DJ Link
   devices by updating our user interface appropriately. If we were
@@ -1257,7 +1283,7 @@
         (future
           (seesaw/invoke-now  ; Go offline.
            (.setSelected (online-menu-item) false))
-          (Thread/sleep 200)  ; Give things a chance to stabilize.
+          (Thread/sleep offline-cooldown-ms)  ; Give things a chance to stabilize.
           (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
            (.setSelected (online-menu-item) true)))))))
 
@@ -1276,7 +1302,7 @@
         (seesaw/invoke-now
          ;; Update the Online menu state, which calls `go-offline` again but that is a no-op this time.
          (.setSelected (online-menu-item) false))
-        (Thread/sleep 200)  ; Give things a chance to stabilize.
+        (Thread/sleep offline-cooldown-ms)  ; Give things a chance to stabilize.
         (seesaw/invoke-now  ; Finally, start trying to go back online, unless/until the user decides to give up.
          (.setSelected (online-menu-item) true))))))
 

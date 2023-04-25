@@ -143,6 +143,11 @@
                                                  (:pitch simulator) false grid)]
                   (swap! simulators update (:uuid simulator)
                          (fn [sim] (assoc sim :sent-beat target-beat :latest-beat beat :latest-tpu tpu)))
+                  (let [listener @(requiring-resolve 'beat-link-trigger.triggers/beat-listener)]
+                  (try
+                    (.newBeat listener beat)
+                    (catch Throwable t
+                      (timbre/error t "Problem delivering simulated beat to Triggers."))))
                   (doseq [show (vals (su/get-open-shows))]
                     (when-let [show-track (get-in show [:tracks (:signature track)])]
                       ((requiring-resolve 'beat-link-trigger.show/update-track-beat) show show-track beat tpu)
@@ -172,6 +177,11 @@
                        (fn [sim]
                          (assoc sim :latest-status status
                                 :latest-tpu tpu)))
+                (let [listener @(requiring-resolve 'beat-link-trigger.triggers/status-listener)]
+                  (try
+                    (.received listener status)
+                    (catch Throwable t
+                      (timbre/error t "Problem delivering simulated status to Triggers."))))
                 (doseq [show (vals (su/get-open-shows))]
                   (when-let [show-track (get-in show [:tracks (:signature track)])]
                     (try
@@ -204,6 +214,7 @@
            (doseq [show (vals (su/get-open-shows))]
              ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false)))
          (recompute-player-models)
+         ((requiring-resolve 'beat-link-trigger.triggers/rebuild-all-device-status))
          (.dispose (:frame simulator)))))))
 
 (defn- simulator-loop
@@ -440,6 +451,7 @@
     (seesaw/listen root :window-closing (fn [_] (close-fn)))
     (seesaw/pack! root)
     (seesaw/show! root)
+    ((requiring-resolve 'beat-link-trigger.triggers/rebuild-all-device-status))
     (when (= (count created) 1)
       ;; We just opened the first simulator window, so let any shows know that simulation has begun.
       (doseq [show (vals (su/get-open-shows))]
