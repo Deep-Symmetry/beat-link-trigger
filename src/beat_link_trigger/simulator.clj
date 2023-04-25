@@ -470,8 +470,9 @@
   "Close any open simulator windows. Invoked when Beat Link Trigger is
   going online."
   []
-  (doseq [simulator (vals @simulators)]
-    (try
-      ((:close-fn simulator))
-      (catch Throwable t
-        (timbre/error t "Problem focre closing simulator while going online")))))
+  (binding [*closing-all* true]
+    (doseq [simulator (vals @simulators)]
+      (try
+        ((:close-fn simulator))
+        (catch Throwable t
+          (timbre/error t "Problem focre closing simulator while going online"))))))
