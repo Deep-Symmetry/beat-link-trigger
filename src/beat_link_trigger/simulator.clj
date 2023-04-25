@@ -148,7 +148,8 @@
                       ((requiring-resolve 'beat-link-trigger.show/update-track-beat) show show-track beat tpu)
                       (when (su/enabled? show show-track)
                         (try
-                          ((requiring-resolve 'beat-link-trigger.show/run-track-function) track :beat [beat tpu] false)
+                          ((requiring-resolve 'beat-link-trigger.show/run-track-function) show-track :beat
+                           [beat tpu] false)
                           (catch Throwable t
                             (timbre/error t "Problem simulating track beat."))))))
                   (try
