@@ -92,7 +92,7 @@ themselves, which comes <<bb-cue-library,next>>.
   "Given a status value from a show cue's started-on-beat or
   started-late expression, return the player number that started."
   [cue-status]
-  (.getDeviceNumber (extract-raw-cue-update cue-status)))
+  (.getDeviceNumber (extract-device-update cue-status)))
 
 (defn bb-other-player
   "Given a status value from a show cue's started-on-beat or
@@ -101,7 +101,7 @@ themselves, which comes <<bb-cue-library,next>>.
   [cue-status]
   (first (clojure.set/difference
           @bb-players-for-mixing
-          #{(.getDeviceNumber (extract-raw-cue-update cue-status))})))
+          #{(.getDeviceNumber (extract-device-update cue-status))})))
 
 (defn bb-start-player <3>
   "Tells the specified player number to start playing as long as it is
@@ -220,7 +220,7 @@ they enable clever cues to do just that:
   "Called periodically while we are adjusting tempo. Figures out what
   the current tempo should be, and sets the Virtual CD to that tempo."
   [cue-status {:keys [start-time start-tempo tempo-distance time-distance]}]
-  (when-let [current-time (playback-time (extract-raw-cue-update cue-status))]
+  (when-let [current-time (playback-time (extract-device-update cue-status))]
     (let [time-passed (- current-time start-time)
           new-tempo   (+ start-tempo
                          (* tempo-distance (/ time-passed time-distance)))]
