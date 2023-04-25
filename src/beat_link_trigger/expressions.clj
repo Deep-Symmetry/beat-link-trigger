@@ -140,18 +140,12 @@
   "Obtains the current playback time of the player that sent the
   supplied device update, or `nil` if we don't know."
   [^DeviceUpdate device-update]
-  (when (.isRunning time-finder)
-    (let [result (.getTimeFor time-finder device-update)]
-      (when-not (neg? result)
-        result))))
-
-(defn update-from-status
-  "Finds the DevceUpdate object given a `status` binding which could be either a
-  raw DeviceUpdate object or a beat-tpu tuple."
-  [status]
-  (if (instance? DeviceUpdate status)
-    status
-    (first status)))
+  (if-let [data util/*simulating*]
+    (:time data)
+    (when (.isRunning time-finder)
+      (let [result (.getTimeFor time-finder device-update)]
+        (when-not (neg? result)
+          result)))))
 
 (defn current-beat
   "Obtains the current beat number of the player that sent the
@@ -159,11 +153,13 @@
   [status]
   (cond
     (instance? DeviceUpdate status)
-    (when (.isRunning time-finder)
-      (let [^DeviceUpdate device-update status
-            position                    (.getLatestPositionFor time-finder device-update)]
-        (when position
-          (.-beatNumber position))))
+    (if-let [data util/*simulating*]
+      (:beat data)
+      (when (.isRunning time-finder)
+        (let [^DeviceUpdate device-update status
+              position                    (.getLatestPositionFor time-finder device-update)]
+          (when position
+            (.-beatNumber position)))))
 
     (vector? status)  ; A beat-tpu tuple.
     (.beatNumber (second status))))
@@ -173,8 +169,11 @@
   supplied status object, or `nil` if we don't know."
   [status]
   (when-let [beat (current-beat status)]
-    (when-let [grid (.getLatestBeatGridFor beatgrid-finder (update-from-status status))]
-      (.getBarNumber grid beat))))
+    (if-let [data util/*simulating*]
+      (when-let [grid (:grid data)]
+        (.getBarNumber grid beat))
+      (when-let [grid (.getLatestBeatGridFor beatgrid-finder (extract-device-update status))]
+        (.getBarNumber grid beat)))))
 
 (defn extract-device-number
   "Obtains the device number that is responsible for the current
@@ -187,15 +186,14 @@
     (vector? status)
     (.getDeviceNumber (first status))))
 
-(defn extract-raw-cue-update
+(def extract-raw-cue-update
   "Given a status value from a show cue's started-on-beat or
   started-late expression, returns the raw device update object
   associated with it, which will be the first element of a tuple in
-  the case of the started-on-beat expression."
-  [cue-status]
-  (if (instance? DeviceUpdate cue-status)
-    cue-status
-    (first cue-status)))
+  the case of the started-on-beat expression. This is redundant with
+  extract-device-update, but was published in the Break Buddy
+  integration example, so is kept for backwards compatibility."
+  extract-device-update)
 
 (defn set-overlay-background-color
   "Sets the color that will be used to draw the background in the
@@ -252,12 +250,16 @@
                                                             (and (instance? Beat status)
                                                                  (> (.getDeviceNumber status) 32)))
                                                  :doc  "Will be <code>true</code> if this update is reporting the status of a Mixer."}
-                            'next-cue           {:code '(when-let [reached (playback-time status)]
-                                                          (when-let [metadata (.getLatestMetadataFor
-                                                                               (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
-                                                                               status)]
-                                                            (when-let [cue-list (.getCueList metadata)]
-                                                              (.findEntryAfter cue-list reached))))
+                            'next-cue           {:code '(let [device-update (extract-device-update status)]
+                                                          (when-let [reached (playback-time device-update)]
+                                                            (if-let [data util/*simulating*]
+                                                              (when-let [cue-list (:cue-list data)]
+                                                                (.findEntryAfter cue-list reached))
+                                                              (when-let [metadata (.getLatestMetadataFor
+                                                                                   (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                                   device-update)]
+                                                                (when-let [cue-list (.getCueList metadata)]
+                                                                  (.findEntryAfter cue-list reached))))))
                                                  :doc  "The next rekordbox cue that will be reached in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>previous-cue</code> will be equal to that cue."}
                             'pitch-multiplier   {:code '(Util/pitchToMultiplier (.getPitch status))
                                                  :doc
@@ -265,12 +267,16 @@
                             'pitch-percent      {:code '(Util/pitchToPercentage (.getPitch status))
                                                  :doc
                                                  "Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
-                            'previous-cue       {:code '(when-let [reached (playback-time status)]
-                                                          (when-let [metadata (.getLatestMetadataFor
-                                                                               (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
-                                                                               status)]
-                                                            (when-let [cue-list (.getCueList metadata)]
-                                                              (.findEntryBefore cue-list reached))))
+                            'previous-cue       {:code '(let [device-update (extract-device-update status)]
+                                                          (when-let [reached (playback-time device-update)]
+                                                            (if-let [data util/*simulating*]
+                                                              (when-let [cue-list (:cue-list data)]
+                                                                (.findEntryBefore cue-list reached))
+                                                              (when-let [metadata (.getLatestMetadataFor
+                                                                                   (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                                   device-update)]
+                                                                (when-let [cue-list (.getCueList metadata)]
+                                                                  (.findEntryBefore cue-list reached))))))
                                                  :doc  "The rekordbox cue that was most recently passed in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>next-cue</code> will be equal to that cue."}
                             'raw-bpm            {:code '(.getBpm status)
                                                  :doc
@@ -325,7 +331,7 @@
                          'track-metadata {:code '(when-not util/*simulating*
                                                    (.getLatestMetadataFor
                                                     (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
-                                                    (update-from-status status)))
+                                                    (extract-device-update status)))
                                           :doc  "The metadata object for the loaded track, if one is available."}
                          'track-title    {:code '(if-let [data util/*simulating*]
                                                    (get-in data [:metadata :title])
@@ -342,9 +348,9 @@
                      'beat-number {:code '(or (current-beat status) -1)
                                    :doc  "Identifies the beat of the track that is currently being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
 
-                     'on-air?       {:code '(.isOnAir (.getLatestUpdateFor (VirtualCdj/getInstance (update-from-status status))))
+                     'on-air?       {:code '(.isOnAir (.getLatestUpdateFor (VirtualCdj/getInstance (extract-device-update status))))
                                      :doc  "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers and later seem to support this capability."}
-                     'tempo-master? {:code '(.isTempoMaster (update-from-status status))
+                     'tempo-master? {:code '(.isTempoMaster (extract-device-update status))
                                      :doc  "Was this beat sent by the current tempo master?"}}}
 
    Beat {:inherit  [DeviceUpdate :beat :metadata]
@@ -405,9 +411,9 @@
 
    ;; A tuple of [Beat TrackPositionUpdate]
    :beat-tpu {:inherit  [:beat :metadata]
-              :bindings {'address         {:code '(.getAddress (update-from-status status))
+              :bindings {'address         {:code '(.getAddress (extract-device-update status))
                                            :doc  "The address of the device from which this beat was received."}
-                         'bar-meaningful? {:code '(.isBeatWithinBarMeaningful (update-from-status status))
+                         'bar-meaningful? {:code '(.isBeatWithinBarMeaningful (extract-device-update status))
                                            :doc
                                            "Will be <code>true</code> if this beat is coming from a device where <code>beat-within-bar</code> can reasonably be expected to have musical significance, because it respects the way a track was configured within rekordbox."}
 
@@ -417,42 +423,50 @@
                                               :doc  "Will be <code>true</code> as this update is announcing a new beat."}
                          'beat-within-bar    {:code '(.getBeatWithinBar (first status))
                                               :doc  "The position within a measure of music at which the beat fell (a value from 1 to 4, where 1 represents the down beat). This value will be accurate for players when the track was properly configured within rekordbox (and if the music follows a standard House 4/4 time signature). The mixer makes no effort to synchronize down beats with players, however, so this value is meaningless when coming from the mixer. The usefulness of this value can be checked with <code>bar-meaningful?</code>"}
-                         'cdj?               {:code '(< (.getDeviceNumber (update-from-status status) 17))
+                         'cdj?               {:code '(< (.getDeviceNumber (extract-device-update status) 17))
                                               :doc  "Will be <code>true</code> if this beat is reporting the status of a CDJ."}
-                         'device-name        {:code '(.getDeviceName (update-from-status status))
+                         'device-name        {:code '(.getDeviceName (extract-device-update status))
                                               :doc  "The name reported by the device sending the beat."}
-                         'device-number      {:code '(.getDeviceNumber (update-from-status status))
+                         'device-number      {:code '(.getDeviceNumber (extract-device-update status))
                                               :doc  "The player/device number sending the beat."}
-                         'effective-tempo    {:code '(.getEffectiveTempo (update-from-status status))
+                         'effective-tempo    {:code '(.getEffectiveTempo (extract-device-update status))
                                               :doc  "The effective tempo reflected by this beat, which reflects both its track BPM and pitch as needed."}
-                         'mixer?             {:code '(> (.getDeviceNumber (update-from-status status)) 32)
+                         'mixer?             {:code '(> (.getDeviceNumber (extract-device-update status)) 32)
                                               :doc  "Will be <code>true</code> if this beat came from a Mixer."}
-                         'next-cue           {:code '(when-let [reached (playback-time (update-from-status status))]
-                                                       (when-let [metadata (.getLatestMetadataFor
-                                                                            (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
-                                                                            (update-from-status status))]
-                                                         (when-let [cue-list (.getCueList metadata)]
-                                                           (.findEntryAfter cue-list reached))))
+                         'next-cue           {:code '(let [device-update (extract-device-update status)]
+                                                          (when-let [reached (playback-time device-update)]
+                                                            (if-let [data util/*simulating*]
+                                                              (when-let [cue-list (:cue-list data)]
+                                                                (.findEntryAfter cue-list reached))
+                                                              (when-let [metadata (.getLatestMetadataFor
+                                                                                   (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                                   device-update)]
+                                                                (when-let [cue-list (.getCueList metadata)]
+                                                                  (.findEntryAfter cue-list reached))))))
                                               :doc  "The next rekordbox cue that will be reached in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>previous-cue</code> will be equal to that cue."}
-                         'pitch-multiplier   {:code '(Util/pitchToMultiplier (.getPitch (update-from-status status)))
+                         'pitch-multiplier   {:code '(Util/pitchToMultiplier (.getPitch (extract-device-update status)))
                                               :doc  "Represents the current device pitch (playback speed) as a multiplier ranging from 0.0 to 2.0, where normal, unadjusted pitch has the multiplier 1.0, and zero means stopped."}
-                         'pitch-percent      {:code '(Util/pitchToPercentage (.getPitch (update-from-status status)))
+                         'pitch-percent      {:code '(Util/pitchToPercentage (.getPitch (extract-device-update status)))
                                               :doc  "Represents the current device pitch (playback speed) as a percentage ranging from -100% to +100%, where normal, unadjusted pitch has the value 0%."}
-                         'previous-cue       {:code '(when-let [reached (playback-time (update-from-status status))]
-                                                       (when-let [metadata (.getLatestMetadataFor
-                                                                            (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
-                                                                            (update-from-status status))]
-                                                         (when-let [cue-list (.getCueList metadata)]
-                                                           (.findEntryBefore cue-list reached))))
+                         'previous-cue       {:code '(let [device-update (extract-device-update status)]
+                                                          (when-let [reached (playback-time device-update)]
+                                                            (if-let [data util/*simulating*]
+                                                              (when-let [cue-list (:cue-list data)]
+                                                                (.findEntryBefore cue-list reached))
+                                                              (when-let [metadata (.getLatestMetadataFor
+                                                                                   (org.deepsymmetry.beatlink.data.MetadataFinder/getInstance)
+                                                                                   device-update)]
+                                                                (when-let [cue-list (.getCueList metadata)]
+                                                                  (.findEntryBefore cue-list reached))))))
                                               :doc  "The rekordbox cue that was most recently passed in the track being played, if any. This will be <code>nil</code> unless the <code>TimeFinder</code> is running or if the question doesn't make sense for the device that sent the status update. The easiest way to make sure the <code>TimeFinder</code> is running is to open the Player Status window. If the player is sitting right on a cue, both this and <code>next-cue</code> will be equal to that cue."}
-                         'raw-bpm            {:code '(.getBpm (update-from-status status))
+                         'raw-bpm            {:code '(.getBpm (extract-device-update status))
                                               :doc  "Get the raw track BPM at the time of the beat. This is an integer representing the BPM times 100, so a track running at 120.5 BPM would be represented by the value 12050."}
-                         'raw-pitch          {:code '(.getPitch (update-from-status status))
+                         'raw-pitch          {:code '(.getPitch (extract-device-update status))
                                               :doc  "Get the raw device pitch at the time of the beat. This is an integer ranging from 0 to 2,097,152, which corresponds to a range between completely stopping playback to playing at twice normal tempo.
 <p>See <code>pitch-multiplier</code> and <code>pitch-percent</code> for more useful forms of this information."}
-                         'timestamp          {:code '(.getTimestamp (update-from-status status))
+                         'timestamp          {:code '(.getTimestamp (extract-device-update status))
                                               :doc  "Records the nanosecond at which we received this beat."}
-                         'track-bpm          {:code '(/ (.getBpm (update-from-status status)) 100.0)
+                         'track-bpm          {:code '(/ (.getBpm (extract-device-update status)) 100.0)
                                               :doc
                                               "Get the track BPM at the time of the beat. This is a floating point value ranging from 0.0 to 65,535. See <code>effective-tempo</code> for the speed at which it is currently playing."}
                          'track-position     {:code '(second status)

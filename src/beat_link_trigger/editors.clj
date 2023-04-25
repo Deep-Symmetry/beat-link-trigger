@@ -4,7 +4,6 @@
   (:require [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
-            [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.util :as util]
             [clojure.java.browse]
