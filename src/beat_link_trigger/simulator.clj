@@ -450,6 +450,9 @@
     (set-simulation-data uuid (seesaw/selection (seesaw/select root [:#track])))
     (seesaw/listen root :window-closing (fn [_] (close-fn)))
     (seesaw/pack! root)
+    (.setLocationRelativeTo root @@(requiring-resolve 'beat-link-trigger.triggers/trigger-frame))
+    (let [offset (* 10 (- (count created) 3))]
+      (seesaw/move-by! root offset offset))
     (seesaw/show! root)
     ((requiring-resolve 'beat-link-trigger.triggers/rebuild-all-device-status))
     (when (= (count created) 1)
