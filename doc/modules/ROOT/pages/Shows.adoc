@@ -115,7 +115,8 @@ your focus to watch what is going on with tracks the DJ is currently
 playing.
 
 TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
-is Online, because otherwise there is no way tracks could be
+is Online (or you are <<SimulatingPlayback.adoc#,simulating
+playback>>), because otherwise there is no way tracks could be
 identified as loaded.
 
 [[show-menu-bar]]

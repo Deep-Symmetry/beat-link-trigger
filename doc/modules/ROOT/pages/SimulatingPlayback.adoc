@@ -1,0 +1,87 @@
+= Simulating Playback
+include::partial$PagePreamble.adoc[]
+
+Although you can simulate many individual events using the Simulate
+menu options in <<Shows_Cues.adoc#cue-simulate,Cue editors>>,
+<<Shows_Tracks.adoc#track-simulate,Track editors>>,
+<<Shows_PhraseTriggers.adoc#simulate,Phrase Trigger editors>>, and
+<<Triggers.adoc#trigger-simulate,Trigger editors>>, and simulate
+running most Expressions within their
+<<Expressions.adoc#editor-menus,Expressions Editor>> or from the
+<<Expressions_Report.adoc#,Expresions Report>>, all of these
+approaches use randomly selected data to simulate a single, isolated
+event. You need something more powerful in order to test what will
+happen with a related set of triggers, cues, or expressions when they
+are reacting to an actual track being played.
+
+The most meaningful and reliable way to do this, of course, is to
+connect some actual player hardware, take Beat Link Trigger online,
+load up a track, and play it. This lets your expressions access all
+the data available through the Beat Link library, and lets you see how
+your cues and triggers line up with the audio of the track itself.
+
+But sometimes it is useful to be able to test approximately how things
+are going to work when a track is played, even if you can't hear it
+playing. Many triggers, cues, and expressions only need information
+that can be simulated. In that case, you can still get a sense of how
+your related cues and triggers will work with each other even when you
+don’t have player hardware available, using BLT’s Shallow Playback
+Simulator, which is available in the Triggers window menu:Network[]
+menu when you are not online:
+
+image:NewPlaybackSimulator.png[New Playback Simulator,360,220]
+
+This opens a Shallow Playback Simulator window:
+
+image:PlaybackSimulator.png[Shallow Playback Simulator,760,300]
+
+The simulator allows you to pick which Player Number it is using, in
+the range 1 through 6 (as with CDJ-3000s). You can open up to six of
+these Simulator windows at the same time, each using a different
+Player Number, so you can simulate a full complement of hardware
+playing different (or the same) tracks at the same time.
+
+The On-Air and Master check boxes allow you to configure whether the
+simulated player is reporting itself as On-Air or as the Master player
+(which may affect aspects of your triggers, cues, and expressions that
+you want to test).
+
+The Track menu allows you to configure the track that will seem to be
+loaded and playing in the simulator. If you have no Show files open
+(or if those shows have no tracks imported in them), then there will
+be two tracks to choose from, the same two tracks which are simulated
+in the <<ObsOverlay.adoc#,OBS Streaming Overlay>> when you are
+offline. But any tracks that you have imported into open Shows will
+also be available to choose.
+
+The Play button allows you to toggle the simulated player between
+playing and paused, and the Pitch slider allows you to adjust the
+playback speed between -50% and +50%. The current effective tempo at
+the point of the track being played is displayed on the right.
+
+TIP: You can quickly “needle jump” to any point in the track by
+clicking in the waveform preview that makes up the bottom half of the
+Simulator window.
+
+Just as when a real track is playing, you will see its effects in the
+<<Triggers.adoc#,Triggers window>>, any <<Shows_Tracks.adoc#,Track
+rows>> and <<Shows_Cues.adoc#,Cues Editor windows>> for the chosen
+track, and any <<Shows_PhraseTriggers.adoc#,Phrase Triggers>> that
+have been activated by the playing track, as well as their Cues Editor
+Windows if they are open.
+
+If you have configured your Cues Editor window to
+<<Shows_Cues.adoc#cues-window-header-elements,Auto-Scroll>>, it will
+scroll along with simulators that are playing the seme track, just as
+it will for real player hardware. This is handy for watching your cues
+activate and deactivate.
+
+When you close a Simulator window, it is as if the corresponding
+player has been turned off or disconnected from the network; its
+effects will disappear from all the windows that were responding to
+it.
+
+As soon as you start the process of actually
+<<README.adoc#connecting-later,going online>>, all of the Simulator
+windows will be closed automatically, because they cannot coexist with
+real players.

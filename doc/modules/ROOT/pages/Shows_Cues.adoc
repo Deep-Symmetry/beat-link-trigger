@@ -46,8 +46,10 @@ narrow down your focus to watch what is going on with cues the DJ is
 currently playing.
 
 TIP: The `Entered Only` and `Auto-Scroll` checkboxes are only visible
-when Beat Link Trigger is Online, because they only make sense in the
-context of being able to detect that a player has loaded the track.
+when Beat Link Trigger is Online (or you are
+<<SimulatingPlayback.adoc#,simulating playback>>), because they only
+make sense in the context of being able to detect that a player has
+loaded the track.
 
 [[adding-cues]]
 == Adding Cues to a Track

@@ -95,13 +95,14 @@ Triggers window opens, in the same configuration that you left it the
 last time you used the program, and any Show files you had open will
 be reopened as well.
 
+[[connecting-later]]
 === Connecting Later
 
 If you connect to a DJ Link network after a period of working on your
 shows and triggers in offline mode, you can take Beat Link Trigger
 online by checking menu:Network[Online?]
 
-image:GoingOnline.png[Going Online,360,200]
+image:GoingOnline.png[Going Online,360,220]
 
 You can also go offline at any time by un-checking the menu option.
 

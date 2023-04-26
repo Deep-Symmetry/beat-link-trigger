@@ -9,8 +9,8 @@ This change log follows the conventions of
 ### Added
 
 - A "shallow playback simulation" system that allows coordinated sets
-  of show expressions to be tested by pretending that a player is
-  sending events as a track is played.
+  of triggers, cues, and expressions to be tested by pretending that
+  one or more players are sending events as a track is played.
 
 ### Fixed
 
