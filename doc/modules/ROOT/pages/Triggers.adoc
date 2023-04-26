@@ -389,3 +389,8 @@ currently have access to your CDJs.
 
 The corresponding option will be disabled if there is no MIDI message
 or Expression configured for that event.
+
+If you need to make sure a set of related cues work properly together
+when a track plays, and you don’t have any actual player hardware
+handy to go online with, you can <<SimulatingPlayback.adoc#,simulate
+playback>>.
