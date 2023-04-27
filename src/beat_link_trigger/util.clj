@@ -343,18 +343,20 @@
 (defn restore-window-position
   "Tries to put a window back where in the position where it was saved
   (under the specified keyword). If no saved position is found, or if
-  the saved position is within 100 pixels of going off the bottom
-  right of the screen, the window is instead positioned centered on
-  the supplied parent window; if `parent` is nil, `window` is centered
-  on the screen."
+  the saved position has the top left or midpoint of the window
+  off-screen, the window is instead positioned centered on the
+  supplied parent window; if `parent` is nil, `window` is centered on
+  the screen."
   [^JFrame window k parent]
   (let [[x y width height] (get @window-positions k)
-        dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
+        mid-x              (Math/round (+ x (/ (or width (.getWidth window)) 2.0)))
+        mid-y              (Math/round (+ y (/ (or height (.getHeight window)) 2.0)))]
     (if (or (nil? x)
-            (> x (- (.getWidth dm) 100))
-            (and (neg? x) (< (+ x (.getWidth window)) 100))
-            (> y (- (.getHeight dm) 100))
-            (neg? y))
+            (empty? (filter (fn [device]
+                              (let [bounds (.. device getDefaultConfiguration getBounds)]
+                                (and (.contains bounds x y)
+                                     (.contains bounds mid-x mid-y))))
+                            (.. java.awt.GraphicsEnvironment getLocalGraphicsEnvironment getScreenDevices))))
       (.setLocationRelativeTo window parent)
       (if (nil? width)
         (.setLocation window x y)
