@@ -352,7 +352,9 @@
         dm (.getDisplayMode (.getDefaultScreenDevice (java.awt.GraphicsEnvironment/getLocalGraphicsEnvironment)))]
     (if (or (nil? x)
             (> x (- (.getWidth dm) 100))
-            (> y (- (.getHeight dm) 100)))
+            (and (neg? x) (< (+ x (.getWidth window)) 100))
+            (> y (- (.getHeight dm) 100))
+            (neg? y))
       (.setLocationRelativeTo window parent)
       (if (nil? width)
         (.setLocation window x y)
