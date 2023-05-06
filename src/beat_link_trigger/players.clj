@@ -2,6 +2,7 @@
   "Provides the user interface for seeing the status of active
   players, as well as telling players to load tracks."
   (:require [beat-link-trigger.track-loader :as track-loader]
+            [beat-link-trigger.simulator :as simulator]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
             [clojure.java.io]
@@ -122,7 +123,9 @@
   "If possible, returns the number of milliseconds of track the
   specified player has played."
   [^Long n]
-  (and (.isRunning time-finder) (.getTimeFor time-finder n)))
+  (if-let [simulator (simulator/for-player n)]
+    (:time simulator)
+    (and (.isRunning time-finder) (.getTimeFor time-finder n))))
 
 (defn- playing?
   "Returns `true` if the specified player can be determined to be
@@ -215,7 +218,8 @@
   "Figure out the number of milliseconds left to play for a given
   player, given the player number and time played so far."
   [^Long n played]
-  (when-let [detail (.getLatestDetailFor waveform-finder n)]
+  (when-let [detail (or (get-in (simulator/for-player n) [:track :detail])
+                        (.getLatestDetailFor waveform-finder n))]
     (max 0 (- (.getTotalTime detail) played))))
 
 (defn- format-time
@@ -233,16 +237,17 @@
   "Checks whether the specified player number seems to be an older,
   pre-nexus player, for which we cannot obtain time information."
   [^Long n]
-  (when-let [^CdjStatus u (try
-                            (.getLatestStatusFor virtual-cdj n)
-                            (catch Exception _))]  ; Absorb when virtual-cdj shuts down because we went offline.
-    (.isPreNexusCdj u)))
+  (when-not (simulator/simulating?)
+    (when-let [^CdjStatus u (try
+                              (.getLatestStatusFor virtual-cdj n)
+                              (catch Exception _))]  ; Absorb when virtual-cdj shuts down because we went offline.
+      (.isPreNexusCdj u))))
 
 (defn- paint-time
   "Draws time information for a player. Arguments are player number, a
   boolean flag indicating we are drawing remaining time, the component
   being drawn, and the graphics context in which drawing is taking
-  place."
+  place. Used both by this window and by playback simulators."
   [n remain _ ^Graphics2D g]
   (let [played     (time-played n)
         ms         (when (and played (>= played 0)) (if remain (time-left n played) played))

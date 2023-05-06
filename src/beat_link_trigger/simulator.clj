@@ -128,7 +128,8 @@
           {:keys [grid]}                                               track]
       (when (and player (not (:partial simulator)))
         (seesaw/invoke-later
-         (.setPlaybackState preview player time playing))
+         (.setPlaybackState preview player time playing)
+         (seesaw/repaint! (:time-canvases simulator)))
         (let [now     (System/nanoTime)
               elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
           (let [target-beat (.findBeatAtTime grid time)]
@@ -362,10 +363,19 @@
             (.doClick (seesaw/select (:frame other) [:#master]))))))
     (swap! simulators assoc-in [uuid :playing] playing?)))
 
+(defn- paint-time
+  "Draws time information for a simulator. Arguments are the simulator
+  uuid, a boolean flag indicating we are drawing remaining time, the
+  component being drawn, and the graphics context in which drawing is
+  taking place."
+  [uuid remain c g]
+  (when-let [player (get-in @simulators [uuid :player])]
+    ((requiring-resolve 'beat-link-trigger.players/paint-time) player remain c g)))
+
 (defn build-simulator-panel
   "Creates the UI of the simulator window, once its basic configuration
   has been set up."
-  [uuid]
+  [uuid time-canvas remain-canvas]
   (let [simulator (get @simulators uuid)]
     (mig/mig-panel
      :items [["Player:"]
@@ -406,6 +416,7 @@
              ["BPM:"]
              [(seesaw/label :id :bpm :text "128.0")
               "wrap"]
+
              ["Track:"]
              [(seesaw/combobox :id :track :model (track-menu-model)
                                :listen [:item-state-changed
@@ -413,6 +424,11 @@
                                           (let [chosen (seesaw/selection e)]
                                             (set-simulation-data uuid chosen)))])
               "spanx, wrap"]
+
+             [time-canvas "spanx, split 3"]
+             [" " "growx"]
+             [remain-canvas "wrap"]
+
              [(seesaw/border-panel :id :preview) "width 640, height 80, spanx, wrap"]])))
 
 (defn- create-simulator
@@ -420,32 +436,37 @@
   menu item which invokes this, so it can be disabled when all
   possible device numbers already have simulators created for them."
   [simulate-item]
-  (let [uuid         (java.util.UUID/randomUUID)
-        ^JFrame root (seesaw/frame :title "Shallow Playback Simulator"
-                                   :on-close :nothing)
-        player       (choose-simulator-player)
-        close-fn     (fn []
-                       (when (get-in @simulators [uuid :playing])
-                         (seesaw/invoke-now (.doClick (seesaw/select root [:#play]))))
-                       (swap! simulators assoc-in [uuid :closing] true)
-                       (seesaw/config! simulate-item :enabled? true)
-                       false)
-        metronome    (Metronome.)
-        created      (swap! simulators assoc uuid
-                            {:uuid      uuid
-                             :frame     root
-                             :partial   true
-                             :player    player
-                             :sync      false
-                             :master    false
-                             :on-air    true
-                             :playing   false
-                             :pitch     1.0
-                             :time      0
-                             :metronome metronome
-                             :close-fn  close-fn})]
+  (let [uuid          (java.util.UUID/randomUUID)
+        ^JFrame root  (seesaw/frame :title "Shallow Playback Simulator"
+                                    :on-close :nothing)
+        player        (choose-simulator-player)
+        close-fn      (fn []
+                        (when (get-in @simulators [uuid :playing])
+                          (seesaw/invoke-now (.doClick (seesaw/select root [:#play]))))
+                        (swap! simulators assoc-in [uuid :closing] true)
+                        (seesaw/config! simulate-item :enabled? true)
+                        false)
+        metronome     (Metronome.)
+        time-canvas   (seesaw/canvas :id :time :size [140 :by 40] :opaque? false
+                                     :paint (partial paint-time uuid false))
+        remain-canvas (seesaw/canvas :id :remain :size [140 :by 40] :opaque? false
+                                     :paint (partial paint-time uuid true))
+        created       (swap! simulators assoc uuid
+                             {:uuid          uuid
+                              :frame         root
+                              :partial       true
+                              :player        player
+                              :sync          false
+                              :master        false
+                              :on-air        true
+                              :playing       false
+                              :pitch         1.0
+                              :time          0
+                              :time-canvases [time-canvas remain-canvas]
+                              :metronome     metronome
+                              :close-fn      close-fn})]
     (.setTempo metronome (double (.toMillis java.util.concurrent.TimeUnit/MINUTES 1)))
-    (seesaw/config! root :content (build-simulator-panel uuid))
+    (seesaw/config! root :content (build-simulator-panel uuid time-canvas remain-canvas))
     (recompute-player-models)
     (set-simulation-data uuid (seesaw/selection (seesaw/select root [:#track])))
     (seesaw/listen root :window-closing (fn [_] (close-fn)))
@@ -453,6 +474,7 @@
     (.setLocationRelativeTo root @@(requiring-resolve 'beat-link-trigger.triggers/trigger-frame))
     (let [offset (* 10 (- (count created) 3))]
       (seesaw/move-by! root offset offset))
+    (.setResizable root false)
     (seesaw/show! root)
     ((requiring-resolve 'beat-link-trigger.triggers/rebuild-all-device-status))
     (when (= (count created) 1)

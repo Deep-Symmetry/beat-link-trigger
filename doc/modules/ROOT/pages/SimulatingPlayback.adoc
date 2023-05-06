@@ -33,7 +33,7 @@ image:NewPlaybackSimulator.png[New Playback Simulator,360,220]
 
 This opens a Shallow Playback Simulator window:
 
-image:PlaybackSimulator.png[Shallow Playback Simulator,760,300]
+image:PlaybackSimulator.png[Shallow Playback Simulator,775,350]
 
 The simulator allows you to pick which Player Number it is using, in
 the range 1 through 6 (as with CDJ-3000s). You can open up to six of
@@ -60,7 +60,7 @@ playback speed between -50% and +50%. The current effective tempo at
 the point of the track being played is displayed on the right.
 
 TIP: You can quickly “needle jump” to any point in the track by
-clicking in the waveform preview that makes up the bottom half of the
+clicking in the waveform preview that makes up the bottom part of the
 Simulator window.
 
 Just as when a real track is playing, you will see its effects in the

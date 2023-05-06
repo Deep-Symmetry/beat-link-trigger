@@ -689,7 +689,7 @@
   (let [entry (or entry (rand-nth (tracks-for-simulation phrases-required?)))]
     (if (number? entry)
       (let [sample (get @@(requiring-resolve 'beat-link-trigger.overlay/sample-track-data) entry)]
-        (merge (select-keys sample [:cue-list :metadata :preview :signature])
+        (merge (select-keys sample [:cue-list :metadata :preview :detail :signature])
                {:song-structure    (:phrases sample)
                 :grid              (:beat-grid sample)
                 :phrases-required? (boolean phrases-required?)}))
@@ -700,6 +700,7 @@
         (merge (select-keys track [:grid :metadata :song-structure])
                {:cue-list          ((requiring-resolve 'beat-link-trigger.show-util/read-cue-list) track-root)
                 :preview           (.getWaveformPreview ((:preview track)))
+                :detail            ((requiring-resolve 'beat-link-trigger.show-util/read-detail) track-root)
                 :phrases-required? (boolean phrases-required?)})))))
 
 (defn- phrase-beat-range
