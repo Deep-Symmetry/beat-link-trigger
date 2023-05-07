@@ -11,6 +11,11 @@ This change log follows the conventions of
 - A "shallow playback simulation" system that allows coordinated sets
   of triggers, cues, and expressions to be tested by pretending that
   one or more players are sending events as a track is played.
+- Tooltips for cues and selections in show tracks and phrase triggers
+  now display bar numbers (and track times when applicable) to help
+  position them correctly. There are also tooltips for the beat number
+  spinners in the Cues Editor window that provide the same new
+  information.
 
 ### Fixed
 
