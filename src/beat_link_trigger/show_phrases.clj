@@ -978,7 +978,7 @@
         phrase (latest-phrase phrase)
         cue    (first (filter (fn [cue] (.contains (cues/cue-preview-rectangle phrase cue preview) point))
                               (vals (get-in phrase [:cues :cues]))))]
-    (.setToolTipText preview (when cue (or (:comment cue) "Unnamed Cue")))))
+    (.setToolTipText preview (when cue (cues/build-tooltip cue phrase nil nil nil)))))
 
 (defn- handle-preview-press
   "Processes a mouse press over the cue canvas preview component. If

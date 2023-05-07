@@ -1167,6 +1167,34 @@
           (let [end-model (seesaw/config (seesaw/select panel [:#end]) :model)]
             (.setMaximum end-model (beat-count phrase (:section cue)))))))))
 
+(defn describe-beat-for-tooltip
+  "Formats a beat as a bar and beat number appropriately for display in a
+  cue waveform or canvas tooltip."
+  [beat context]
+  (if (phrase? context)
+    (str (inc (quot (dec beat) 4)) "." (inc (mod (dec beat) 4)))
+    (let [^BeatGrid grid (:grid context)]
+      (str (.getBarNumber grid beat) "." (.getBeatWithinBar grid beat)))))
+
+(defn describe-time-for-tooltip
+  "Formats a beat as a time within its track for display in a cue
+  waveform tooltip."
+  [beat track]
+  (let [^BeatGrid grid (:grid track)
+        time (.getTimeWithinTrack grid beat)
+        minutes (.toMinutes java.util.concurrent.TimeUnit/MILLISECONDS time)
+        seconds (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS
+                            (- time (.toMillis java.util.concurrent.TimeUnit/MINUTES minutes)))]
+    (str minutes ":" (format "%02d" seconds))))
+
+(defn- build-spinner-tooltip
+  "Describes the beat number in a cue spinner in terms of its bar and (if
+  part of a track), its time."
+  [beat context]
+  (str "bar: " (describe-beat-for-tooltip beat context)
+       (when-not (phrase? context)
+         (str ", time: " (describe-time-for-tooltip beat context)))))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -1191,18 +1219,24 @@
 
         start  (seesaw/spinner :id :start
                                :model start-model
+                               :tip (build-spinner-tooltip (:start cue) context)
                                :listen [:state-changed
                                         (fn [e]
                                           (let [new-start (seesaw/selection e)]
                                             (swap-cue! context cue assoc :start new-start)
-                                            (update-cue-spinner-models context cue start-model end-model)))])
+                                            (update-cue-spinner-models context cue start-model end-model)
+                                            (seesaw/config! (seesaw/to-widget e) :tip
+                                                            (build-spinner-tooltip new-start context))))])
         end    (seesaw/spinner :id :end
                                :model end-model
+                               :tip (build-spinner-tooltip (:end cue) context)
                                :listen [:state-changed
                                         (fn [e]
                                           (let [new-end (seesaw/selection e)]
                                             (swap-cue! context cue assoc :end new-end)
-                                            (update-cue-spinner-models context cue start-model end-model)))])
+                                            (update-cue-spinner-models context cue start-model end-model)
+                                            (seesaw/config! (seesaw/to-widget e) :tip
+                                                            (build-spinner-tooltip new-end context))))])
         swatch (seesaw/canvas :size [18 :by 18]
                               :paint (fn [^JComponent component ^Graphics2D graphics]
                                        (let [cue (find-cue context cue)]
@@ -1810,6 +1844,26 @@
                              (build-cue-library-popup-items context build-library-cue-action))]
     (util/show-popup-from-button wave-or-canvas (seesaw/popup :items popup-items) e)))
 
+(defn beat-range-for-tooltip
+  "Describes the beat range of a cue or selection being hovered over in a
+  cue waveform or canvas."
+  [start end context]
+  (str " (beats " start "–" end ", bars "
+       (describe-beat-for-tooltip start context) "–" (describe-beat-for-tooltip end context)
+       (when-not (phrase? context)
+         (str ", time " (describe-time-for-tooltip start context) "–" (describe-time-for-tooltip end context)))
+       ")"))
+
+(defn build-tooltip
+  "Determines the text that should be displayed as a tooltip as the mouse
+  moves over a cue waveform or canvas."
+  [cue context beat [selection-start selection-end selection-section] section]
+  (if cue
+    (str (or (:comment cue) "Unnamed Cue") (beat-range-for-tooltip (:start cue) (:end cue) context))
+    (if (and selection-start (<= selection-start beat (dec selection-end)) (= section selection-section ))
+      (str "Selection" (beat-range-for-tooltip selection-start selection-end context))
+      "Click and drag to select a beat range for the New Cue button.")))
+
 (defn- handle-wave-move
   "Processes a mouse move over the wave detail component (or cue canvas
   if this is a phrase trigger), setting the tooltip and mouse pointer
@@ -1818,16 +1872,14 @@
   (let [[cue context]         (find-cue-under-mouse context wave-or-canvas e)
         [show _ runtime-info] (latest-show-and-context context)
         x                     (.getX e)
-        [beat _section]       (beat-for-x context wave-or-canvas x)
+        [beat section]        (beat-for-x context wave-or-canvas x)
         selection             (get-in runtime-info [:cues-editor :selection])
         [_ edge]              (find-click-edge-target context wave-or-canvas e selection cue)
         default-cursor        (case edge
                                 :start @move-w-cursor
                                 :end   @move-e-cursor
                                 (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
-    (.setToolTipText wave-or-canvas (if cue
-                                      (or (:comment cue) "Unnamed Cue")
-                                      "Click and drag to select a beat range for the New Cue button."))
+    (.setToolTipText wave-or-canvas (build-tooltip cue context beat selection section))
     (if selection
       (if (= selection [beat (inc beat)])
         (let [shifted   @delete-cursor ; We are hovering over a single-beat selection, and can delete it.
@@ -1849,7 +1901,7 @@
   [context start end section beat]
   (let [[show context runtime-info] (latest-show-and-context context)]
     (or (get-in runtime-info [:cues-editor :drag-target])
-        (when (and start end) (not= start (dec end) beat)
+        (when (and start end (not= start (dec end) beat))
               (let [start-distance (Math/abs (long (- beat start)))
                     end-distance   (Math/abs (long (- beat (dec end))))
                     target         [nil (if (< beat start) :start (if (< start-distance end-distance) :start :end))
@@ -1867,7 +1919,8 @@
         [beat section]              (beat-for-x context wave-or-canvas x)
         [start end sel-section]     (get-in runtime-info [:cues-editor :selection])
         [cue edge drag-section]     (find-selection-drag-target context start end (or sel-section section) beat)
-        beat                        (if (= section drag-section)
+        beat                        (if (or (nil? drag-section)  ; Selection is just being created, don't crash.
+                                            (= section drag-section))
                                       beat
                                       (if (> (su/phrase-section-positions section)
                                              (su/phrase-section-positions drag-section))

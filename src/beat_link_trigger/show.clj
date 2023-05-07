@@ -221,7 +221,7 @@
                                                                       point))
                                                          (vals (get-in track [:contents :cues :cues]))))]
     (.setToolTipText ^JComponent soft-preview
-                     (or (when cue (or (:comment cue) "Unnamed Cue"))
+                     (or (when cue (cues/build-tooltip cue track nil nil nil))
                          (.toolTipText preview point)))))
 
 (defn- handle-preview-press
