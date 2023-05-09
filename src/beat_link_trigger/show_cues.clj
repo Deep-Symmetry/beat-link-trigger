@@ -1848,7 +1848,7 @@
   "Describes the beat range of a cue or selection being hovered over in a
   cue waveform or canvas."
   [start end context]
-  (str " (beats " start "–" end ", bars "
+  (str "(beats " start "–" end ", bars "
        (describe-beat-for-tooltip start context) "–" (describe-beat-for-tooltip end context)
        (when-not (phrase? context)
          (str ", time " (describe-time-for-tooltip start context) "–" (describe-time-for-tooltip end context)))
@@ -1859,9 +1859,9 @@
   moves over a cue waveform or canvas."
   [cue context beat [selection-start selection-end selection-section] section]
   (if cue
-    (str (or (:comment cue) "Unnamed Cue") (beat-range-for-tooltip (:start cue) (:end cue) context))
+    (str (or (:comment cue) "Unnamed Cue") " " (beat-range-for-tooltip (:start cue) (:end cue) context))
     (if (and selection-start (<= selection-start beat (dec selection-end)) (= section selection-section ))
-      (str "Selection" (beat-range-for-tooltip selection-start selection-end context))
+      (str "Selection " (beat-range-for-tooltip selection-start selection-end context))
       "Click and drag to select a beat range for the New Cue button.")))
 
 (defn- handle-wave-move

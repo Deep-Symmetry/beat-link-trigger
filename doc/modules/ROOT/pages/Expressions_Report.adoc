@@ -18,7 +18,7 @@ within that track that has expressions. Then any phrase triggers with
 expressions are listed, followed by any cues within the phrase
 triggers which have their own expressions.
 
-image:ExpressionsReport.png[alt=Expressions Report,width=1200,height-828]
+image:ExpressionsReport.png[alt=Expressions Report,width=1200,height=880]
 
 Each expression in the report shows the expression type (if you hover
 the mouse pointer over the title, a description of the purpose of that

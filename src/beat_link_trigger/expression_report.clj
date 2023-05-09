@@ -344,21 +344,26 @@
     (show-not-found)))
 
 (defn- expression-section
-  "Builds a section of the expressions report of `body` is not empty."
+  "Builds a section of the expressions report if `expressions` is not
+  empty. If a subtitle is desired, `title` can be passed as a vector
+  of `[title subtitle]`."
   [title id button-code button-title expressions]
-  (when (seq expressions)
-    [:div
-     [:h2.title.is-4.mt-2.mb-0 {:id id} title
-      (when button-code
-        [:a.button.is-small.is-link.ml-5 {:href  (str "javascript:" button-code)
-                                          :title button-title}
-             [:img {:src   "/resources/cog.svg"
-                    :width 15}]])]
-     [:table.table
-      [:thead
-       [:tr [:td "Expression"] [:td {:colspan 2} "Actions"] [:td "Value"]]]
-      [:tbody
-       expressions]]]))
+  (let [[title subtitle] (if (vector? title) title [title])]
+    (when (seq expressions)
+      [:div
+       [:h2.title.is-4.mt-2.mb-0 {:id id} title
+        (when button-code
+          [:a.button.is-small.is-link.ml-5 {:href  (str "javascript:" button-code)
+                                            :title button-title}
+           [:img {:src   "/resources/cog.svg"
+                  :width 15}]])]
+       (when subtitle
+         [:h3.subtitle.is-6.mt-0.mb-0 subtitle])
+       [:table.table
+        [:thead
+         [:tr [:td "Expression"] [:td {:colspan 2} "Actions"] [:td "Value"]]]
+        [:tbody
+         expressions]]])))
 
 (defn describe-show-global-expression
   "When a global expression of a particular kind is not empty, builds a
@@ -452,8 +457,9 @@
   [signature track cue]
   (let [editors @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)]
     (expression-section
-     (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Track &ldquo;"
-          (get-in track [:metadata :title]) "&rdquo;")
+     [(str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Track &ldquo;"
+           (get-in track [:metadata :title]) "&rdquo;")
+      (cues/beat-range-for-tooltip (:start cue) (:end cue) track)]
      (str "track-" signature "-cue-" (:uuid cue))
      (str "editTrackCueExpression('" signature "','" (:uuid cue) "');") "Scroll Cues Editor to this Cue"
      (filter identity (map (partial describe-track-cue-expression signature cue editors)
@@ -541,8 +547,9 @@
   [uuid phrase cue]
   (let [editors   @@(requiring-resolve 'beat-link-trigger.editors/show-cue-editors)]
     (expression-section
-     (str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Phrase Trigger &ldquo;"
-          (comment-or-untitled (:comment phrase)) "&rdquo;")
+     [(str "Cue &ldquo;" (comment-or-untitled (:comment cue)) "&rdquo; in Phrase Trigger &ldquo;"
+           (comment-or-untitled (:comment phrase)) "&rdquo;")
+      (cues/beat-range-for-tooltip (:start cue) (:end cue) phrase)]
      (str "phrase-" uuid "-cue-" (:uuid cue))
      (str "editPhraseCueExpression('" uuid "','" (:uuid cue) "');") "Scroll Cues Editor to this Cue"
      (filter identity (map (partial describe-phrase-cue-expression uuid cue editors)
