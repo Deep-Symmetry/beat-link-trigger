@@ -329,9 +329,9 @@ though, and the device numbers you mention do need to be on the
 network, or an exception will be thrown, terminating your expression.)
 
 To check the Sync status of a Pioneer device, call `sync-device` and
-pass in the player number. If you have a Nexus mixer, it will use
-player number 33. This is how you would check the Sync status of
-player 2:
+pass in the player number. If you have a Nexus (or later) mixer, it
+will use player number 33. This is how you would check the Sync status
+of player 2:
 
 ```clojure
 (carabiner/sync-device 2)

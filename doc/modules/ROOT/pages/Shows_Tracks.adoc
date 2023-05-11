@@ -286,10 +286,11 @@ to `Default`.
 Never:: With this setting, the Track is disabled until you re-enable
 it.
 
-On-Air:: With this setting, the Track is enabled whenever it is
-loaded by at least one player that reports that it is On the Air. (For
-that to work, the player must be connected to a Nexus mixer, and must
-have the feature turned on.)
+On-Air:: With this setting, the Track is enabled whenever it is loaded
+by at least one player that reports that it is On the Air. (For that
+to work, the player must be connected via Ethernet to a Pioneer mixer
+that is from the Nexus generation or later, and must have the feature
+turned on.)
 +
 TIP: If you work with a DJ who likes to fade out his tracks to coax
 the audience into singing along, you might be interested in using the
