@@ -23,6 +23,11 @@ This change log follows the conventions of
   not properly figuring out which was the best player to track. This
   problem has been present for many years, but nobody reported it
   until now.
+- Phrase analysis information was not reliably obtained for tracks
+  that were already loaded in players when BLT was taken online,
+  especially when configured to use a real player number, because of
+  an [issue in Beat
+  Link](https://github.com/Deep-Symmetry/beat-link/issues/60).
 - Trying to copy a track with phrase analysis information to a
   different show would result in an exception that prevented the copy.
 - The positions of players within phrase cues were not drawn correctly
