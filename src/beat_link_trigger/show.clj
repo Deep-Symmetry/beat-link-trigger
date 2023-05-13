@@ -849,12 +849,15 @@
           show  (get shows (:file show))
           track (when signature (get-in show [:tracks signature]))]
       (deliver-change-events show signature track player nil))
-    ;; This version updates phrase tracking for actual online players.
-    (when ss-tag (phrases/upgrade-song-structure player (.body ss-tag)))
-    ;; This version updates phrase tracking for simulation
-    (if-let [ss-body (get-in (sim/for-player player) [:track :song-structure])]
-      (phrases/upgrade-song-structure player ss-body)
-      (phrases/clear-song-structure player))
+    (if (util/online?)
+      ;; This version updates phrase tracking for actual online players.
+      (if ss-tag
+        (phrases/upgrade-song-structure player (.body ss-tag))
+        (phrases/clear-song-structure player))
+      ;; This version updates phrase tracking for simulation
+      (if-let [ss-body (get-in (sim/for-player player) [:track :song-structure])]
+        (phrases/upgrade-song-structure player ss-body)
+        (phrases/clear-song-structure player)))
     ;; This updates the import menus (and, perhaps redundantly, phrase tracking) for actual online players.
     (when signature
       (when ss-tag (upgrade-song-structure show ss-tag signature))

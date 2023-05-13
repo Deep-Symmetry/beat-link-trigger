@@ -1521,7 +1521,7 @@ editor windows, in their cue canvases as well."
                            {:total     0
                             :intervals util/empty-interval-map}
                            contenders)]
-    (timbre/debug "lottery:" lottery "candidates:" (count candidates))
+    #_(timbre/info "lottery:" lottery "candidates:" (count candidates) "contenders:" (count contenders))
     (first (util/iget (:intervals lottery) (rand-int (:total lottery))))))
 
 (defn- run-global-lottery
