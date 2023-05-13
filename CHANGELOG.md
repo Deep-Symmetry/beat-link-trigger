@@ -19,9 +19,12 @@ This change log follows the conventions of
 
 ### Fixed
 
+- Triggers that were configured to be enabled by On-Air players were
+  not properly figuring out which was the best player to track. This
+  problem has been present for many years, but nobody reported it
+  until now.
 - Trying to copy a track with phrase analysis information to a
-  different show would result in an exceptiono that prevented the
-  copy.
+  different show would result in an exception that prevented the copy.
 - The positions of players within phrase cues were not drawn correctly
   when the player pitch was anything other than neutral, they would
   start out correct at each beat but then either fall behind or leap
