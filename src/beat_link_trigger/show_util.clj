@@ -569,7 +569,7 @@
   track or phrase trigger, opening it if this is the first time we are
   using it, or reusing it if we already opened it. Returns `nil` if
   the output can not currently be found (it was disconnected, or
-  present in a loaded file but not on this system). to be reloaded."
+  present in a loaded file but not on this system)."
   [context]
   (if (track? context)
     (when-let [^MidiChoice selection (get-in (latest-track context) [:contents :midi-device])]

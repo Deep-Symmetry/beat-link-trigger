@@ -186,24 +186,31 @@
   favor of the player with the lowest number.
 
   In order to determine the enabled state, we need to run the custom
-  enabled function if there is one, so that will be called for all
-  incoming packets.
-
-  We always match if we are the same device as the last match, even if
-  it is a downgrade, to make sure we update the match score and
-  relinquish control on the next packet from a better match."
+  enabled function if it is in use, so that will be called for all
+  incoming packets for such triggers."
   [^CdjStatus status trigger]
-  (run-custom-enabled status trigger)
-  (let [this-device (.getDeviceNumber status)
-        match-score (+ (if (enabled? trigger) 1024 0)
-                       (if (.isPlaying status) 512 0)
-                       (- this-device))
-        [existing-score existing-device] (:last-match @(seesaw/user-data trigger))
-        better (or (= existing-device this-device)
-                   (when (some? existing-device) (not (device-present? existing-device)))
-                   (> match-score (or existing-score -256)))]
-    (when better
-      (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))))
+  (let [data                             @(seesaw/user-data trigger)
+        enable-mode                      (get-in data [:value :enabled])
+        custom-enable                    (= enable-mode "Custom")
+        custom-result                    (when custom-enable
+                                           (first (run-trigger-function trigger :enabled status false)))
+        would-enable?                    (case enable-mode
+                                           "Always" true
+                                           "On-Air" (.isOnAir status)
+                                           "Custom" custom-result
+                                           false)
+        this-device                      (.getDeviceNumber status)
+        match-score                      (+ (if would-enable? 1024 0)
+                                            (if (.isPlaying status) 512 0)
+                                            (- this-device))
+        [existing-score existing-device] (:last-match data)
+        best                             (or (when (some? existing-device) (not (device-present? existing-device)))
+                                             (>= match-score (or existing-score -256)))]
+    (when (or best (= this-device existing-device))
+      (swap! (seesaw/user-data trigger) assoc :last-match [match-score this-device]))
+    (when (and best custom-enable)
+      (swap! (seesaw/user-data trigger) assoc-in [:expression-results :enabled] custom-result))
+    best))
 
 (defn- matching-player-number?
   "Checks whether a CDJ status update matches a trigger, handling the
