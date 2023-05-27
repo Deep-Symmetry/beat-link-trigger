@@ -16,6 +16,11 @@ This change log follows the conventions of
   position them correctly. There are also tooltips for the beat number
   spinners in the Cues Editor window that provide the same new
   information.
+- There is now a configuration interface for library cues, which
+  allows them to start out unlinked as soon as they are placed for
+  cues that are always going to be unique.
+- The library cue configuration interface also allows you to assign a
+  fixed hue to be used when creating cues from it.
 
 ### Fixed
 
@@ -34,6 +39,8 @@ This change log follows the conventions of
   when the player pitch was anything other than neutral, they would
   start out correct at each beat but then either fall behind or leap
   forward as the beat went on.
+- The code that was supposed to ensure a unique name/comment for cues
+  created from the cue library was broken.
 
 ## [7.1.0] - 2023-04-16
 

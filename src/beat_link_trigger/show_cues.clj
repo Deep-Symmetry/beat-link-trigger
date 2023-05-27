@@ -1669,6 +1669,7 @@
                                                                     :hue     (assign-cue-hue context)
                                                                     :comment new-name}
                                                                (when-not (:unlink settings) {:linked cue-name})
+                                                               (when (:fixed-hue settings) {:hue (:hue settings)})
                                                                (when section {:section section}))]
                                 (if (track? context)
                                   (do
@@ -1852,18 +1853,58 @@
   (let [[show _ runtime-info] (latest-show-and-context context)
         parent                (get-in runtime-info [:cues-editor :frame])
         title                 (str "Configure ”" cue-name "“")
+        settings              (get-in show [:contents :cue-library-settings cue-name])
+        hue-label             (seesaw/label :text "Hue:" :visible? (:fixed-hue settings))
+        swatch                (seesaw/canvas :size [18 :by 18]
+                                             :visible? (:fixed-hue settings)
+                                             :paint (fn [^JComponent component ^Graphics2D graphics]
+                                                      (let [show (latest-show show)]
+                                                        (.setPaint graphics (su/hue-to-color
+                                                                             (get-in show
+                                                                                     [:contents :cue-library-settings
+                                                                                      cue-name :hue]
+                                                                                     0)))
+                                                        (.fill graphics (java.awt.geom.Rectangle2D$Double.
+                                                                         0.0 0.0 (double (.getWidth component))
+                                                                         (double (.getHeight component)))))))
         panel                 (mig/mig-panel
                                :constraints ["hidemode 3"]
-                               :items [[(seesaw/checkbox :text "Unlink Cues created from this Library Cue?"
-                                                         :selected? (get-in show [:contents :cue-library-settings
-                                                                                  cue-name :unlink])
+                               :items [[(seesaw/checkbox :text "Unlink Cues when creating from this Library Cue"
+                                                         :selected? (:unlink settings)
                                                          :listen [:action (fn [e]
                                                                             (swap-show! show assoc-in
                                                                                         [:contents :cue-library-settings
                                                                                          cue-name :unlink]
                                                                                         (seesaw/value e)))])
-                                        "spanx, wrap"]])
+                                        "spanx, wrap"]
+                                       [(seesaw/checkbox :text "Create Cues with a specific hue"
+                                                         :selected? (:fixed-hue settings)
+                                                         :listen [:action
+                                                                  (fn [e]
+                                                                    (let [fixed (seesaw/value e)]
+                                                                      (swap-show! show assoc-in
+                                                                             [:contents :cue-library-settings
+                                                                              cue-name :fixed-hue]
+                                                                             fixed)
+                                                                      (when fixed
+                                                                        (swap-show! show assoc-in
+                                                                               [:contents :cue-library-settings
+                                                                                cue-name :hue]
+                                                                               (or (:hue settings) 0)))
+                                                                      (seesaw/config! [hue-label swatch]
+                                                                                      :visible? fixed)))])]
+                                       [hue-label "gap unrelated"]
+                                       [swatch "wrap"]])
         dialog                (seesaw/dialog :title title :content panel :modal? true)]
+    (seesaw/listen swatch
+                   :mouse-pressed (fn [_]
+                                    (let [hue (get-in (latest-show show) [:contents :cue-library-settings
+                                                                          cue-name :hue])]
+                                      (when-let [color (chooser/choose-color panel :color (su/hue-to-color hue)
+                                                                             :title "Choose Hue for Created Cues")]
+                                        (swap-show! show assoc-in [:contents :cue-library-settings cue-name :hue]
+                                                    (su/color-to-hue color))
+                                        (seesaw/repaint! [swatch])))))
     (seesaw/action :name title
                    :handler (fn [_]
                               (seesaw/pack! dialog)
