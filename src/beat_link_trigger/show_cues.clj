@@ -1662,12 +1662,13 @@
                                     new-name            (if (some #(= cue-name %) all-names)
                                                           (util/assign-unique-name all-names cue-name)
                                                           cue-name)
+                                    settings            (get-in show [:contents :cue-library-settings cue-name])
                                     new-cue             (merge cue {:uuid    uuid
                                                                     :start   start
                                                                     :end     end
                                                                     :hue     (assign-cue-hue context)
-                                                                    :comment new-name
-                                                                    :linked  cue-name}
+                                                                    :comment new-name}
+                                                               (when-not (:unlink settings) {:linked cue-name})
                                                                (when section {:section section}))]
                                 (if (track? context)
                                   (do
@@ -1719,6 +1720,16 @@
                                                                    (-> library
                                                                        (dissoc cue-name)
                                                                        (assoc new-name updated-cue)))))))
+                                      ;; Move the cue's library settings
+                                      (swap-show! show
+                                                  (fn [current]
+                                                    (let [settings (get-in current [:contents :cue-library-settings
+                                                                                    cue-name])]
+                                                      (update-in current [:contents :cue-library-settings]
+                                                                 (fn [all-settings]
+                                                                   (cond-> all-settings
+                                                                     true           (dissoc cue-name)
+                                                                     (seq settings) (assoc new-name settings)))))))
                                       ;; Update the name in any folder to which the cue belongs.
                                       (doseq [[folder-name folder] (get-in show [:contents :cue-library-folders])]
                                         (when (folder cue-name)
@@ -1727,13 +1738,13 @@
                                                                          (disj cue-name)
                                                                          (conj new-name))))))
                                       ;; Update any linked cues to link to the new name.
-                                      (doseq [track (vals (:tracks show))
-                                              other-cue   (vals (get-in track [:contents :cues :cues]))]
+                                      (doseq [track     (vals (:tracks show))
+                                              other-cue (vals (get-in track [:contents :cues :cues]))]
                                         (when (= cue-name (:linked other-cue))
                                           (swap-track! track update-in [:contents :cues :cues (:uuid other-cue)]
                                                        assoc :linked new-name)))
-                                      (doseq [phrase (vals (get-in show [:contents :phrases]))
-                                              other-cue   (vals (get-in phrase [:cues :cues]))]
+                                      (doseq [phrase    (vals (get-in show [:contents :phrases]))
+                                              other-cue (vals (get-in phrase [:cues :cues]))]
                                         (when (= cue-name (:linked other-cue))
                                           (swap-phrase! show phrase update-in [:cues :cues (:uuid other-cue)]
                                                         assoc :linked new-name)))))))))))
@@ -1804,6 +1815,8 @@
                                                               (full-library-cue-name show cue-name) "?"))
                                 ;; Remove the cue from the library itself.
                                 (swap-show! show update-in [:contents :cue-library] dissoc cue-name)
+                                ;; Remove its settings
+                                (swap-show! show update-in [:contents :cue-library-settings] dissoc cue-name)
                                 ;; Remove it from any folder to which it belonged.
                                 (doseq [[folder-name folder] (get-in show [:contents :cue-library-folders])]
                                   (when (folder cue-name)
@@ -1831,6 +1844,31 @@
                                       (update-cue-link-icon phrase other-cue (seesaw/select panel [:#link])))))
                                 ;; Finally, if we deleted the last library cue, make all the library buttons vanish.
                                 (update-library-button-visibility show))))))
+
+(defn- configure-library-cue-action
+  "Creates an action that opens a dialog to configure the settings of a
+  cue in the library."
+  [cue-name _cue context]
+  (let [[show _ runtime-info] (latest-show-and-context context)
+        parent                (get-in runtime-info [:cues-editor :frame])
+        title                 (str "Configure ”" cue-name "“")
+        panel                 (mig/mig-panel
+                               :constraints ["hidemode 3"]
+                               :items [[(seesaw/checkbox :text "Unlink Cues created from this Library Cue?"
+                                                         :selected? (get-in show [:contents :cue-library-settings
+                                                                                  cue-name :unlink])
+                                                         :listen [:action (fn [e]
+                                                                            (swap-show! show assoc-in
+                                                                                        [:contents :cue-library-settings
+                                                                                         cue-name :unlink]
+                                                                                        (seesaw/value e)))])
+                                        "spanx, wrap"]])
+        dialog                (seesaw/dialog :title title :content panel :modal? true)]
+    (seesaw/action :name title
+                   :handler (fn [_]
+                              (seesaw/pack! dialog)
+                              (.setLocationRelativeTo dialog parent)
+                              (seesaw/show! dialog)))))
 
 (defn- show-cue-library-popup
   "Displays the popup menu allowing you to add a cue from the library to
@@ -2252,7 +2290,9 @@
                              [(seesaw/menu :text "Move"
                                            :items (build-cue-library-popup-items context
                                                                                  build-library-cue-move-submenu))])
-                           [(seesaw/menu :text "Rename"
+                           [(seesaw/menu :text "Configure"
+                                         :items (build-cue-library-popup-items context configure-library-cue-action))
+                            (seesaw/menu :text "Rename"
                                          :items (build-cue-library-popup-items context rename-library-cue-action))
                             (seesaw/menu :text "Delete"
                                          :items (build-cue-library-popup-items context delete-library-cue-action))]))
