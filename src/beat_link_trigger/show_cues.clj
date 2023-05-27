@@ -1657,7 +1657,8 @@
                                     [show context
                                      runtime-info]      (latest-show-and-context context)
                                     [start end section] (get-in runtime-info [:cues-editor :selection] [1 2 nil])
-                                    all-names           (map :comment (vals (get-in runtime-info [:cues :cues])))
+                                    all-names           (map :comment
+                                                             (vals (get-in runtime-info [:contents :cues :cues])))
                                     new-name            (if (some #(= cue-name %) all-names)
                                                           (util/assign-unique-name all-names cue-name)
                                                           cue-name)
