@@ -169,7 +169,7 @@
   (binding [util/*simulating* (util/data-for-simulation)]
     (binding [util/*simulating* (update-binding)]
       (compiled (simulate-status) @(seesaw/user-data trigger)
-                (requiring-resolve 'beat-link-trigger.expressions/globals)))))
+                (requiring-resolve 'beat-link-trigger.triggers/expression-globals)))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
