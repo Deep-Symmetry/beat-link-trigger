@@ -1915,6 +1915,7 @@
                                                                                         [:contents :cue-library-settings
                                                                                          cue-name :unlink]
                                                                                         (seesaw/value e))
+                                                                            (seesaw/value! builder "")
                                                                             (seesaw/config! [builder-label builder]
                                                                                             :visible?
                                                                                             (and (seesaw/value e)
