@@ -2375,13 +2375,13 @@
      (build-cue-library-popup-items context build-library-cue-action)
      [(seesaw/menu :text "Manage Cues"
                    :items (concat
+                           [(seesaw/menu :text "Configure"
+                                         :items (build-cue-library-popup-items context configure-library-cue-action))]
                            (when (seq (get-in show [:contents :cue-library-folders]))
                              [(seesaw/menu :text "Move"
                                            :items (build-cue-library-popup-items context
                                                                                  build-library-cue-move-submenu))])
-                           [(seesaw/menu :text "Configure"
-                                         :items (build-cue-library-popup-items context configure-library-cue-action))
-                            (seesaw/menu :text "Rename"
+                           [(seesaw/menu :text "Rename"
                                          :items (build-cue-library-popup-items context rename-library-cue-action))
                             (seesaw/menu :text "Delete"
                                          :items (build-cue-library-popup-items context delete-library-cue-action))]))
