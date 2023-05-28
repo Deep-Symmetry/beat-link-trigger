@@ -10,6 +10,7 @@
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [clojure.walk]
+            [beat-link-trigger.show-util :as su]
             [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.util :as util]
             [cemerick.pomegranate :as pomegranate]
@@ -215,6 +216,29 @@
   server, can be changed to support different template designs."
   [color]
   ((requiring-resolve 'beat-link-trigger.overlay/set-wave-emphasis-color) color))
+
+(defn register-cue-builder
+  "Registers a function that can be selected to customize cues when they
+  are being added from a show's cue library. Must be passed the show,
+  a non-empty name by which the function can be chosen, and the
+  function itself.
+
+  The cue bilder will be called with the show, the context (track or
+  phrase trigger) in which the cue is being placed, the runtime-info
+  for that context, and the raw cue as it came out of the library. It
+  should return an appropriately modified version of the cue, or `nil`
+  to cancel the placement of the library cue."
+  [show builder-name builder]
+  (when (str/blank? builder-name)
+    (throw (Exception. "builder-name cannot be empty")))
+  (su/swap-show! show assoc-in [:cue-builders (str/trim builder-name)] builder))
+
+(defn unregister-cue-builder
+  "Removes the function, if any, registered in the show as a cue builder
+  under the specified name."
+  [show builder-name]
+  (when-not (str/blank? builder-name)
+    (su/swap-show! show update :cue-builders dissoc (str/trim builder-name))))
 
 ;;; The remainder of the functions in this namespace are used by the
 ;;; expression compiler, and are not intended for users to interact

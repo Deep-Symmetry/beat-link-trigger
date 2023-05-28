@@ -21,6 +21,11 @@ This change log follows the conventions of
   cues that are always going to be unique.
 - The library cue configuration interface also allows you to assign a
   fixed hue to be used when creating cues from it.
+- Cue Builder functions can be registered with a show, and then can be
+  attached to cues within the new configuration interface, provided
+  they are set to start out unlinked. These functions can tweak the
+  cue as it is placed from the library, including by offering a user
+  interface.
 
 ### Fixed
 

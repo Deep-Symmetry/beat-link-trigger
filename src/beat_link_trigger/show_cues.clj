@@ -1663,29 +1663,44 @@
                                                           (util/assign-unique-name all-names cue-name)
                                                           cue-name)
                                     settings            (get-in show [:contents :cue-library-settings cue-name])
-                                    new-cue             (merge cue {:uuid    uuid
+                                    raw-cue             (merge cue {:uuid    uuid
                                                                     :start   start
                                                                     :end     end
-                                                                    :hue     (assign-cue-hue context)
+                                                                    :hue     (if (:fixed-hue settings)
+                                                                               (:hue settings)
+                                                                               (assign-cue-hue context))
                                                                     :comment new-name}
                                                                (when-not (:unlink settings) {:linked cue-name})
-                                                               (when (:fixed-hue settings) {:hue (:hue settings)})
-                                                               (when section {:section section}))]
-                                (if (track? context)
-                                  (do
-                                    (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)
-                                    (swap-track! context update :cues-editor dissoc :selection))
-                                  (do
-                                    (swap-phrase! show context assoc-in [:cues :cues uuid] new-cue)
-                                    (swap-phrase! show context update-in [:cues :sections section]
-                                                  (fnil conj #{}) uuid)
-                                    (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
-                                (su/update-gear-icon context)
-                                (update-new-cue-state context)
-                                (build-cues context)
-                                (compile-cue-expressions context new-cue)
-                                (scroll-wave-to-cue context new-cue)
-                                (scroll-to-cue context new-cue true))
+                                                               (when section {:section section}))
+                                    builder             (when-let [builder-name (:builder settings)]
+                                                          (if-let [result (get-in show [:cue-builders builder-name])]
+                                                            result
+                                                            (throw (Exception. (str "No cue builder named ”"
+                                                                                    builder-name "“ in show.")))))
+                                    new-cue             (if builder
+                                                          (let [cue (builder show context runtime-info raw-cue)]
+                                                            (when cue
+                                                              (if (some #(= (:name cue) %) all-names)
+                                                                (assoc cue :name (util/assign-unique-name
+                                                                                  all-names (:name cue)))
+                                                                cue)))
+                                                          raw-cue)]
+                                (when new-cue  ; Only proceed if builder has not canceled by returning nil.
+                                  (if (track? context)
+                                    (do
+                                      (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)
+                                      (swap-track! context update :cues-editor dissoc :selection))
+                                    (do
+                                      (swap-phrase! show context assoc-in [:cues :cues uuid] new-cue)
+                                      (swap-phrase! show context update-in [:cues :sections section]
+                                                    (fnil conj #{}) uuid)
+                                      (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
+                                  (su/update-gear-icon context)
+                                  (update-new-cue-state context)
+                                  (build-cues context)
+                                  (compile-cue-expressions context new-cue)
+                                  (scroll-wave-to-cue context new-cue)
+                                  (scroll-to-cue context new-cue true)))
                               (catch Exception e
                                 (timbre/error e "Problem adding Library Cue")
                                 (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))
@@ -1854,6 +1869,22 @@
         parent                (get-in runtime-info [:cues-editor :frame])
         title                 (str "Configure ”" cue-name "“")
         settings              (get-in show [:contents :cue-library-settings cue-name])
+        any-builders?         (not-empty (:cue-builders show))
+        show-builders?        (and (:unlink settings) any-builders?)
+        builder-label         (seesaw/label :text "Cue Builder:" :visible? show-builders?)
+        builder               (seesaw/combobox :model (concat [""] (keys (:cue-builders show)))
+                                               :selected-item (:builder settings "")
+                                               :visible? show-builders?
+                                               :listen [:action
+                                                        (fn [e]
+                                                          (let [builder-name (seesaw/text e)]
+                                                            (if (str/blank? builder-name)
+                                                              (swap-show! show update-in
+                                                                          [:contents :cue-library-settings cue-name]
+                                                                          dissoc :builder)
+                                                              (swap-show! show assoc-in [:contents :cue-library-settings
+                                                                                         cue-name :builder]
+                                                                          builder-name))))])
         hue-label             (seesaw/label :text "Hue:" :visible? (:fixed-hue settings))
         swatch                (seesaw/canvas :size [18 :by 18]
                                              :visible? (:fixed-hue settings)
@@ -1868,14 +1899,19 @@
                                                                          0.0 0.0 (double (.getWidth component))
                                                                          (double (.getHeight component)))))))
         panel                 (mig/mig-panel
-                               :constraints ["hidemode 3"]
+                               :constraints ["hidemode 2"]
                                :items [[(seesaw/checkbox :text "Unlink Cues when creating from this Library Cue"
                                                          :selected? (:unlink settings)
                                                          :listen [:action (fn [e]
                                                                             (swap-show! show assoc-in
                                                                                         [:contents :cue-library-settings
                                                                                          cue-name :unlink]
-                                                                                        (seesaw/value e)))])
+                                                                                        (seesaw/value e))
+                                                                            (seesaw/config! [builder-label builder]
+                                                                                            :visible?
+                                                                                            (and (seesaw/value e)
+                                                                                                 any-builders?))
+                                                                            (seesaw/pack! e))])
                                         "spanx, wrap"]
                                        [(seesaw/checkbox :text "Create Cues with a specific hue"
                                                          :selected? (:fixed-hue settings)
@@ -1892,9 +1928,12 @@
                                                                                 cue-name :hue]
                                                                                (or (:hue settings) 0)))
                                                                       (seesaw/config! [hue-label swatch]
-                                                                                      :visible? fixed)))])]
+                                                                                      :visible? fixed))
+                                                                    (seesaw/pack! e))])]
                                        [hue-label "gap unrelated"]
-                                       [swatch "wrap"]])
+                                       [swatch "wrap"]
+                                       [builder-label "split"]
+                                       [builder "spanx, wrap"]])
         dialog                (seesaw/dialog :title title :content panel :modal? true)]
     (seesaw/listen swatch
                    :mouse-pressed (fn [_]
