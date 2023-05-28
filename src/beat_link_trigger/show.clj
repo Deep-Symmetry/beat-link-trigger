@@ -2136,6 +2136,7 @@
       (run-global-function show :offline nil true))
     (run-global-function show :shutdown nil true)
     (reset! (:expression-globals show) {})
+    (swap-show! show dissoc :cue-builders)
     (run-global-function show :setup nil true)
     (when (util/online?)
       (run-global-function show :online nil true)))

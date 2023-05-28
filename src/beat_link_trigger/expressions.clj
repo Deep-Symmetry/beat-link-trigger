@@ -235,7 +235,9 @@
 
 (defn unregister-cue-builder
   "Removes the function, if any, registered in the show as a cue builder
-  under the specified name."
+  under the specified name. This function is probably unnecessary,
+  because editing the Global Setup Expression, where cue builders are
+  registers, starts out with a clean slate each time."
   [show builder-name]
   (when-not (str/blank? builder-name)
     (su/swap-show! show update :cue-builders dissoc (str/trim builder-name))))
