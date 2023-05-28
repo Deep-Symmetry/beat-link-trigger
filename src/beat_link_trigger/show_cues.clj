@@ -1675,8 +1675,16 @@
                                     builder             (when-let [builder-name (:builder settings)]
                                                           (if-let [result (get-in show [:cue-builders builder-name])]
                                                             result
-                                                            (throw (Exception. (str "No cue builder named ”"
-                                                                                    builder-name "“ in show.")))))
+                                                            (seesaw/invoke-now
+                                                             (seesaw/alert (str "No cue builder named ”" builder-name
+                                                                                "“ in show."
+                                                                                (System/getProperty "line.separator")
+                                                                                "Removing from library cue ”"
+                                                                                cue-name "“."))
+                                                             (swap-show! show update-in
+                                                                         [:contents :cue-library-settings cue-name]
+                                                                         dissoc :builder)
+                                                             nil)))
                                     new-cue             (if builder
                                                           (let [cue (builder show context runtime-info raw-cue)]
                                                             (when cue
