@@ -56,8 +56,8 @@ library.
 [[linked-cues]]
 == Linked Cues
 
-The linked chain in the new link button towards the bottom left of the
-cue row indicates that this new cue is linked to the library cue from
+The linked chain in the Link button towards the bottom left of the cue
+row indicates that this new cue is linked to the library cue from
 which it was created. Any changes you make to this cue (apart from the
 location, name, and display hue of this copy) will instantly be
 applied to the library cue, and to any other cues that are linked to
@@ -98,6 +98,173 @@ to confirm that you want the linking process to proceed.
 image:LinkConfirm.png[Confirming a Link,500,210]
 
 ====
+
+If you create a library cue that is more like a template whose details
+will be adjusted every time you use it, then it does not make sense
+for each cue that you make from that library cue to start out linked.
+You can change that by adjusting the library cue configuration, as we
+explore next. If you are ambitious, you can even write some code to
+build a user interface to <<cue-builders,automate the process>> of
+building new cues from your library cue.
+
+[[configuring-cues]]
+== Configuring Library Cues
+
+The normal behavior when placing a new cue based on a library cue is
+to assign it a new color and leave it <<linked-cues,linked>> to all
+other cues created from the same library cue. If you want to change
+either of those characteristics, you can configure the cue. For
+example, maybe you want all your ”Strobe All“ cues to have the same
+yellow hue to easily recognize them at a glance on all your tracks. To
+start, use the menu:Library[Manage Cues>Configure] menu to open the
+Configuration window for the cue:
+
+image:ConfigureLibraryCue.png[Library Configure Menu,900,425]
+
+To stop assigning new hues to each cue placed from this library cue,
+check *Create Cues with a specific hue*. This displayes a hue swatch
+which you can click to choose a different hue, just as on an
+individual cue row, and the hue that you choose will be used for each
+subsequent cue you create from the library cue. A yellow hue might
+nicely suggest a strobe cue:
+
+image:ConfigureSpecificHue.png[Configure a Specific Hue,480,260]
+
+On the other hand, perhaps every ”Red Wash“ cue is a little bit
+different, because you adjust the code used by its expressions to vary
+the group of lights it affects, and how brightly they are lit. In a
+case like that, you would not want these cues to be linked to each
+other, so they can each have different expressions. To save having to
+remember to manually unlink them as soon as they are created, you can
+change the library cue configuration by checking *Unlink Cues when
+creating from this Library Cue*:
+
+image:ConfigureUnlink.png[Configure Unlink,480,260]
+
+Read on to see how you can get even fancier about using a library cue
+as a factory for building individualized cues.
+
+[[cue-builders]]
+=== Cue Builders
+
+Continuing the previous example, suppose our ”Red Wash“ cue uses a
+shared function we created to send an OSC message to our lighting
+software containing the name of a light group, and a DMX level. To
+save a lot of editing different expressions and comments to adjust
+that code for each cue we place, we can register a cue builder that
+pops open a window where we fill in the necessary information, which
+it can then use to adjust the cue during the creation process. Here's
+what that code would look like for our example (we would place this in
+the Show's
+<<Expressions_ShowGlobal.adoc#show-global-setup-expression,Global
+Setup Expression>>):
+
+```clojure
+(register-cue-builder show "Red Wash"
+  (fn [show context runtime-info cue]
+    ;; Configures a cue that starts a red wash for the specified
+    ;; fixtures at a chosen level, then ends it.
+    (let [parent (get-in runtime-info [:cues-editor :frame])  ;; <1>
+          title  (str "Configure ”" (:comment cue) "“")
+          levels {"Full"   255  ;; <2>
+                  "Bright" 200
+                  "Half"   128
+                  "Dim"    80}
+          panel  (seesaw.mig/mig-panel  ;; <3>
+                  :items [[(seesaw/label :text "Lights:") "align right"]
+                          [(seesaw/text :id :lights :columns 25) "wrap"]
+                          [(seesaw/label :text "Level:") "align right"]
+                          [(seesaw/combobox :id :level
+                                            :model (keys levels))
+                           "wrap"]])
+          dialog (seesaw/dialog :title title :content panel :modal? true
+                                :option-type :ok-cancel)]
+    (seesaw/pack! dialog)  ;; <4>
+    (.setLocationRelativeTo dialog parent)
+    (when (seesaw/show! dialog)  ; Cancel creation of cue if dialog canceled.
+      (let [lights (seesaw/text (seesaw/select dialog [:#lights]))
+            level  (seesaw/text (seesaw/select dialog [:#level]))]
+        (-> cue  <5>
+            (assoc :comment (str "Red Wash on \"" lights "\" at " level))
+            (assoc-in [:expressions :started-on-beat]
+                      (str "(run-red-wash \"" lights "\" "
+                           (get levels level) ")"))
+            (assoc-in [:expressions :ended]
+                      (str "(end-red-wash \"" lights "\")"))))))))
+```
+
+<1> This finds the Cues Editor window within the runtime information
+being managed for the Track or Phrase Trigger in which the new cue is
+being placed. We will use it later to position our dialog over that
+window, so it is easy to spot when it appears.
+
+<2> This map makes it easy for us to build a dropdown menu of
+brightness levels that we will translate to DMX values when writing
+the cue expressions.
+
+<3> These lines build a layout arrangement for our dialog with a text
+area for typing in the name of the light group, and a menu for
+choosing the level. We then create the dialog itself.
+
+<4> This line sizes the dialog window to just fit the user interface
+elements we have laid out inside it, and the next line positions it on
+the screen centered over the cues editor where we are placing a cue,
+using the `parent` value we captured in step 1. Then we show the
+window, and if we get back a truthy result from that, we know the user
+has not clicked the *Cancel* button.
+
+<5> The last step is to take the incoming cue that is about to be
+placed in the Cues Editor window and modify it to the user's
+specifications. We update the comment to describe the specific wash
+that was requeste, then generate appropriate Started On Beat and Ended
+expressions for the cue. The modified value we return gets inserted
+into the Cues Editor.
+
+After saving the updated Show Global Setup Expression, this cue
+builder is registered.
+
+If we open the ”Red Wash“ configuration window again, because the cue
+is configured to be unlinked and at least one cue builder has been
+registered, there is a new menu that allows us to attach this cue
+builder to the library cue:
+
+image:ConfigureCueBuilder.png[Configure Unlink,480,290]
+
+Once we have applied this configuration to the ”Red Wash“ library cue,
+the next time we create a cue using it, instead of having the cue
+simply appear, we see our new builder dialog for choosing its details:
+
+image:BuildRedWash.png[Configure Unlink,500,260]
+
+If we click *Cancel* here, no cue is created, and the selection we had
+made in the Cues Editor window remains in place. If we type a fixture
+group name, choose a level, and click *OK*, the customized cue is
+created, and as usual its description is selected for editing in case
+we want to make any further tweaks:
+
+image:CueBuilt.png[Red Wash Cue Built,900,425]
+
+If we inspect the new cue's expressions, we will see that the Started
+On-Beat expression corresponds to what we entered, and contains:
+
+```clojure
+(run-red-wash "Pars" 255)
+```
+
+And similarly the Ended expression contains:
+```clojure
+(end-red-wash "Pars")
+```
+
+As you can imagine, especially for complex cues with several
+parameters and related expressions, this kind of automation can save a
+lot of time.
+
+TIP: This is more advanced coding than a lot of what BLT requires, so
+if you are interested in exploring it, don't hesitate to reach out in
+the
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+community] for help.
 
 [[renaming-cues]]
 == Renaming Library Cues
