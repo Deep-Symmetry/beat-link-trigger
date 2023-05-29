@@ -382,8 +382,10 @@ and the keywords under which each can be found.
 This shows up as a tooltip to help identify the cue on the track
 waveforms, and can also be used to filter visible cues.
 
-`:end`:: An integer that specifies the beat number within the
-track's beat grid at which the cue ends.
+`:end`:: An integer that specifies the beat number within the track's
+beat grid, or phrase trigger section, at which the cue ends. Must
+always be at least one greater than `:start`, and can be no greater
+than the largest beat number within the track or section.
 
 `:events`:: A map containing the cue's event configuration. It has
 three keys, `:entered`, `:started-on-beat`, and `started-late`, and
@@ -420,8 +422,10 @@ around the color wheel that is used when drawing this cue.
 identifies the section of the phrase trigger in which the cue exists
 (will be one of `:start`, `:loop`, `:end`, or `:fill`).
 
-`:start`:: An integer that specifies the beat number within the
-track beat grid, or phrase trigger section, at which the cue begins.
+`:start`:: An integer that specifies the beat number within the track
+beat grid, or phrase trigger section, at which the cue begins. Must be
+positive (non-zero: in the DJ Link protocol, beat numbers start with
+1) and less than `:end`.
 
 [[cue-uuid]]
 `:uuid`:: The unique identifier (a Java

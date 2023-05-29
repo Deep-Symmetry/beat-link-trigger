@@ -148,29 +148,29 @@ as a factory for building individualized cues.
 === Cue Builders
 
 Continuing the previous example, suppose our ”Red Wash“ cue uses a
-shared function we created to send an OSC message to our lighting
-software containing the name of a light group, and a DMX level. To
-save a lot of editing different expressions and comments to adjust
-that code for each cue we place, we can register a cue builder that
-pops open a window where we fill in the necessary information, which
-it can then use to adjust the cue during the creation process. Here's
-what that code would look like for our example (we would place this in
-the Show's
+<<Expressions_ShowShared.adoc#,shared function>> we created to send an
+OSC message to our lighting software containing the name of a light
+group, and a DMX level. To save a lot of editing different expressions
+and comments to adjust that code for each cue we place, we can
+register a cue builder that pops open a window where we fill in the
+necessary information, which it can then use to adjust the cue during
+the creation process. Here's what that code would look like for our
+example (we would place this in the Show's
 <<Expressions_ShowGlobal.adoc#show-global-setup-expression,Global
 Setup Expression>>):
 
 ```clojure
-(register-cue-builder show "Red Wash"
+(register-cue-builder show "Red Wash Builder"  <1>
   (fn [show context runtime-info cue]
     ;; Configures a cue that starts a red wash for the specified
     ;; fixtures at a chosen level, then ends it.
-    (let [parent (get-in runtime-info [:cues-editor :frame])  ;; <1>
-          title  (str "Configure ”" (:comment cue) "“")
-          levels {"Full"   255  ;; <2>
+    (let [parent (get-in runtime-info [:cues-editor :frame])  ;; <2>
+          title  (str "Build ”" (:comment cue) "“")
+          levels {"Full"   255  ;; <3>
                   "Bright" 200
                   "Half"   128
                   "Dim"    80}
-          panel  (seesaw.mig/mig-panel  ;; <3>
+          panel  (seesaw.mig/mig-panel  ;; <4>
                   :items [[(seesaw/label :text "Lights:") "align right"]
                           [(seesaw/text :id :lights :columns 25) "wrap"]
                           [(seesaw/label :text "Level:") "align right"]
@@ -179,12 +179,12 @@ Setup Expression>>):
                            "wrap"]])
           dialog (seesaw/dialog :title title :content panel :modal? true
                                 :option-type :ok-cancel)]
-    (seesaw/pack! dialog)  ;; <4>
+    (seesaw/pack! dialog)  ;; <5>
     (.setLocationRelativeTo dialog parent)
     (when (seesaw/show! dialog)  ; Cancel creation of cue if dialog canceled.
       (let [lights (seesaw/text (seesaw/select dialog [:#lights]))
             level  (seesaw/text (seesaw/select dialog [:#level]))]
-        (-> cue  <5>
+        (-> cue  <6>
             (assoc :comment (str "Red Wash on \"" lights "\" at " level))
             (assoc-in [:expressions :started-on-beat]
                       (str "(run-red-wash \"" lights "\" "
@@ -193,32 +193,39 @@ Setup Expression>>):
                       (str "(end-red-wash \"" lights "\")"))))))))
 ```
 
-<1> This finds the Cues Editor window within the runtime information
-being managed for the Track or Phrase Trigger in which the new cue is
-being placed. We will use it later to position our dialog over that
-window, so it is easy to spot when it appears.
+<1> This registers our builder function with the show, so it will be
+available in the Builder menu under the name “Red Wash Builder” when
+configuring any library cue that is set to be unlinked upon placement.
 
-<2> This map makes it easy for us to build a dropdown menu of
+<2> This finds the Cues Editor window within the runtime information
+being managed for the <<ShowInternals.adoc#track,Track>> or
+<<ShowInternals.adoc#phrase-triggers,Phrase Trigger>> in which the new
+cue is being placed. We will use it later to position our dialog over
+that window, so it is easy to spot when it appears.
+
+<3> This map makes it easy for us to build a dropdown menu of
 brightness levels that we will translate to DMX values when writing
 the cue expressions.
 
-<3> These lines build a layout arrangement for our dialog with a text
+<4> These lines build a layout arrangement for our dialog with a text
 area for typing in the name of the light group, and a menu for
 choosing the level. We then create the dialog itself.
 
-<4> This line sizes the dialog window to just fit the user interface
+<5> This line sizes the dialog window to just fit the user interface
 elements we have laid out inside it, and the next line positions it on
 the screen centered over the cues editor where we are placing a cue,
 using the `parent` value we captured in step 1. Then we show the
 window, and if we get back a truthy result from that, we know the user
 has not clicked the *Cancel* button.
 
-<5> The last step is to take the incoming cue that is about to be
-placed in the Cues Editor window and modify it to the user's
-specifications. We update the comment to describe the specific wash
-that was requeste, then generate appropriate Started On Beat and Ended
-expressions for the cue. The modified value we return gets inserted
-into the Cues Editor.
+<6> The last step is to take the incoming <<ShowInternals.adoc#cue,cue
+map>> that is about to be placed in the Cues Editor window, and modify
+it to the user's specifications. We update the comment to describe the
+specific wash that was requeste, then generate appropriate Started On
+Beat and Ended expressions for the cue. The modified value we return
+gets inserted into the Cues Editor. (For this example, we are assuming
+we have already created <<Expressions_ShowShared#,shared functions>>
+named `run-red-wash` and `end-red-wash` for these expressions to use.)
 
 WARNING: When you manipulate cues being created with code in this way,
 it is entirely your responsibility to make sure that you don't put
