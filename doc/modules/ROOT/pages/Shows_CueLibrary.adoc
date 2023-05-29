@@ -220,6 +220,15 @@ that was requeste, then generate appropriate Started On Beat and Ended
 expressions for the cue. The modified value we return gets inserted
 into the Cues Editor.
 
+WARNING: When you manipulate cues being created with code in this way,
+it is entirely your responsibility to make sure that you don't put
+unsupported or inconsistent values in them. There are no guard rails
+to protect you from that, like there are when you use the normal user
+interface to adjust cues. If such a broken cue ends up in your show
+file, it could prevent the show from opening successfully. So you
+should keep frequent backups of your show file when you are
+experimenting with writing cue builder functions.
+
 After saving the updated Show Global Setup Expression, this cue
 builder is registered.
 
