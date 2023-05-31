@@ -1548,6 +1548,13 @@
                               (java.awt.Point. 7 7)
                               "Move Right Edge")))
 
+(def play-cursor
+  "A custom cursor that indicates a cue will be simulated."
+  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Play-cursor.png"))
+                              (java.awt.Point. 10 7)
+                              "Simulate")))
+
 (defn- shift-down?
   "Checks whether the shift key was pressed when an event occured."
   [^InputEvent e]
@@ -2003,10 +2010,12 @@
         [beat section]        (beat-for-x context wave-or-canvas x)
         selection             (get-in runtime-info [:cues-editor :selection])
         [_ edge]              (find-click-edge-target context wave-or-canvas e selection cue)
-        default-cursor        (case edge
-                                :start @move-w-cursor
-                                :end   @move-e-cursor
-                                (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))]
+        default-cursor        (if (and (.isAltDown e) cue)
+                                @play-cursor
+                                (case edge
+                                  :start @move-w-cursor
+                                  :end   @move-e-cursor
+                                  (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))]
     (.setToolTipText wave-or-canvas (build-tooltip cue context beat selection section))
     (if selection
       (if (= selection [beat (inc beat)])
@@ -2079,8 +2088,9 @@
 (defn- handle-wave-click
   "Processes a mouse click in the wave detail component, used for
   setting up beat ranges for creating cues, and scrolling the lower
-  pane to cues. Ignores right-clicks and control-clicks so those can
-  pull up the context menu."
+  pane to cues. Right-clicks and control-clicks pull up the context
+  menu, while Alt/Option-clicks simulate a started-on-beat event (and
+  the corresponding mouse-up event simulated an ended event."
   [context ^JPanel wave-or-canvas ^MouseEvent e]
   (if (context-click? e)
     (show-cue-library-popup context wave-or-canvas e)
@@ -2089,23 +2099,34 @@
           x                     (.getX e)
           [beat section]        (beat-for-x context wave-or-canvas x)
           selection             (get-in runtime-info [:cues-editor :selection])]
-      (if (and (shift-down? e) selection)
-        (if (= (take 2 selection) [beat (inc beat)])
-          (do  ; Shift-click on single-beat selection clears it.
-            (su/swap-context-runtime! show context update :cues-editor dissoc :selection :cursors)
-            (.setCursor wave-or-canvas (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
-          (handle-wave-drag context wave-or-canvas e))  ; Adjusting an existing selection; we can handle it as a drag.
-        (if-let [target (find-click-edge-target context wave-or-canvas e selection cue)]
-          (do ; We are dragging the edge of the selection or a cue.
-            (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
-            (handle-wave-drag context wave-or-canvas e))
-          ;; We are starting a new selection.
-          (if (< 0 beat (beat-count context section))  ; Was the click in a valid place to make a selection?
-            (do  ; Yes, set new selection.
-              (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] [beat (inc beat) section])
-              (handle-wave-move context wave-or-canvas e))  ; Update the cursors.
+      (if (and (.isAltDown e) cue)
+        ;; This is a request to simulate the cue.
+        (let [[show context runtime-info] (latest-show-and-context context)
+              data (if (su/track? context)
+                     (util/data-for-simulation :entry [(:file show) (:signature context)])
+                     (util/data-for-simulation :phrases-required? true))]
+          (binding [util/*simulating* data]
+            (let [[update-binding create-status] (random-status-for-simulation :started-on-beat)]
+              (binding [util/*simulating* (update-binding)]
+                (send-cue-messages context runtime-info cue :started-on-beat (create-status))))))
+        ;; Not simulating.
+        (if (and (shift-down? e) selection)
+          (if (= (take 2 selection) [beat (inc beat)])
+            (do  ; Shift-click on single-beat selection clears it.
+              (su/swap-context-runtime! show context update :cues-editor dissoc :selection :cursors)
+              (.setCursor wave-or-canvas (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR)))
+            (handle-wave-drag context wave-or-canvas e))  ; Adjusting an existing selection; we can handle it as a drag.
+          (if-let [target (find-click-edge-target context wave-or-canvas e selection cue)]
+            (do ; We are dragging the edge of the selection or a cue.
+              (su/swap-context-runtime! show context assoc-in [:cues-editor :drag-target] target)
+              (handle-wave-drag context wave-or-canvas e))
+            ;; We are starting a new selection.
+            (if (< 0 beat (beat-count context section))  ; Was the click in a valid place to make a selection?
+              (do  ; Yes, set new selection.
+                (su/swap-context-runtime! show context assoc-in [:cues-editor :selection] [beat (inc beat) section])
+                (handle-wave-move context wave-or-canvas e))  ; Update the cursors.
 
-            (su/swap-context-runtime! show context update :cues-editor dissoc :selection))))  ; No, clear selection.
+              (su/swap-context-runtime! show context update :cues-editor dissoc :selection)))))  ; No, clear selection.
       (.repaint wave-or-canvas)
       (update-new-cue-state context)
       (when cue (scroll-to-cue context cue false true)))))
@@ -2113,10 +2134,22 @@
 (defn- handle-wave-release
   "Processes a mouse-released event in the wave detail component
   (or cue canvas if this is a phrase trigger), cleaning up any
-  drag-tracking structures and cursors that were in effect."
+  drag-tracking structures and cursors that were in effect. If Alt or
+  Option is beign heled down and we are over a cue, simulate that
+  cue's ended event."
   [context ^JPanel wave-or-canvas ^MouseEvent e]
   (let [[show context runtime-info] (latest-show-and-context context)
         [cue-dragged] (get-in runtime-info [:cues-editor :drag-target])]
+    (when (.isAltDown e)  ; Simulate a cue ending.
+      (when-let [[cue] (find-cue-under-mouse context wave-or-canvas e)]
+        (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event] :started-on-beat)
+        (let [data (if (su/track? context)
+                     (util/data-for-simulation :entry [(:file show) (:signature context)])
+                     (util/data-for-simulation :phrases-required? true))]
+          (binding [util/*simulating* data]
+            (let [[update-binding create-status] (random-status-for-simulation :ended)]
+              (binding [util/*simulating* (update-binding)]
+                (send-cue-messages context runtime-info cue :ended (create-status))))))))
     (when cue-dragged
       (let [cue (find-cue context cue-dragged)
             panel (get-in runtime-info [:cues-editor :panels (:uuid cue)])]
