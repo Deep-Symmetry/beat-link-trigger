@@ -26,6 +26,9 @@ This change log follows the conventions of
   they are set to start out unlinked. These functions can tweak the
   cue as it is placed from the library, including by offering a user
   interface.
+- Clicking a cue in the waveform at the top of a cues editor window
+  with the Alt or Option key held down is now a quick way to simulate
+  its Started On-Beat and Ended events.
 
 ### Fixed
 

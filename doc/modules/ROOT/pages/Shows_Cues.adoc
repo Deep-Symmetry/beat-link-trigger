@@ -35,6 +35,17 @@ check the `Auto-Scroll` checkbox. Although you won’t want to do that
 when you are editing cues, it can be nice when running a show, as it
 makes it easy to follow along as Cues approach and run.
 
+You can also interact with cues in this window. Hovering the mouse
+pointer over a cue displays information about it. Clicking on one with
+your mouse will scroll its configuration row into view in the lower
+section of the window if it was not already visible. Dragging an edge
+left or right will adjust the beat on which the cue begins or ends.
+Right-clicking or control-clicking a cue brings up the
+<<cue-context-menu,cue context menu>> which gives you many other
+options, and clicking on a cue with the Option or Alt key held down is
+a quick way to <<cue-simulate,simulate>> its Started On-Beat and Ended
+events.
+
 The kbd:[New Cue] button creates a new cue on the first beat of the
 Track, unless you have selected a beat range first as described below.
 
@@ -537,6 +548,11 @@ currently have access to your CDJs.
 
 The corresponding option will be disabled if there is no MIDI message
 or Expression configured for that event.
+
+As a shortcut to simulating the most common pair of cue events
+(Started On-Beat and Ended), you can hold down the Option (or Alt) key
+while clicking and releasing the mouse over the cue rectangle in the
+track waveform at the top of the window.
 
 If you need to make sure a set of related cues work properly together
 when a track plays, and you don’t have any actual player hardware
