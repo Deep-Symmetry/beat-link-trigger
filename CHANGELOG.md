@@ -29,6 +29,9 @@ This change log follows the conventions of
 - Clicking a cue in the waveform at the top of a cues editor window
   with the Alt or Option key held down is now a quick way to simulate
   its Started On-Beat and Ended events.
+- Clicking on the message labels in the cues editor row for a cue with
+  the Alt or Option key held down is another new shortcut for
+  simulating the six main cue events.
 
 ### Fixed
 

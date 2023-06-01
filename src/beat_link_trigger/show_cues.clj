@@ -308,6 +308,71 @@
     (:started-late :tracked)  [util/time-for-simulation su/random-cdj-status]
     nil))
 
+(defn- simulate-entered
+  "Simulates a cue entered event."
+  [context cue]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        data                        (if (su/track? context)
+                                      (util/data-for-simulation
+                                       :entry [(:file show) (:signature context)])
+                                      (util/data-for-simulation :phrases-required? true))]
+    (binding [util/*simulating* data]
+      (let [[update-binding create-status] (random-status-for-simulation :entered)]
+        (binding [util/*simulating* (update-binding)]
+          (send-cue-messages context runtime-info cue :entered (create-status)))))))
+
+(defn- simulate-started-on-beat
+  "Simulates a started on-beat event."
+  [context cue]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        data                        (if (su/track? context)
+                                      (util/data-for-simulation :entry [(:file show) (:signature context)])
+                                      (util/data-for-simulation :phrases-required? true))]
+    (binding [util/*simulating* data]
+      (let [[update-binding create-status] (random-status-for-simulation :started-on-beat)]
+        (binding [util/*simulating* (update-binding)]
+          (send-cue-messages context runtime-info cue :started-on-beat (create-status)))))))
+
+(defn- simulate-started-late
+  "Simulates a started-late event."
+  [context cue]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        data                        (if (su/track? context)
+                                      (util/data-for-simulation
+                                       :entry [(:file show) (:signature context)])
+                                      (util/data-for-simulation :phrases-required? true))]
+    (binding [util/*simulating* data]
+      (let [[update-binding create-status] (random-status-for-simulation :started-late)]
+        (binding [util/*simulating* (update-binding)]
+          (send-cue-messages context runtime-info cue :started-late (create-status)))))))
+
+(defn- simulate-ended
+  "Simulates an ended event."
+  [context cue started-event]
+  (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event] started-event)
+  (let [[show context runtime-info] (latest-show-and-context context)
+        data                        (if (su/track? context)
+                                      (util/data-for-simulation
+                                       :entry [(:file show) (:signature context)])
+                                      (util/data-for-simulation :phrases-required? true))]
+    (binding [util/*simulating* data]
+      (let [[update-binding create-status] (random-status-for-simulation :ended)]
+        (binding [util/*simulating* (update-binding)]
+          (send-cue-messages context runtime-info cue :ended (create-status)))))))
+
+(defn- simulate-exited
+  "Simulates an exited event."
+  [context cue]
+  (let [[show context runtime-info] (latest-show-and-context context)
+        data                        (if (su/track? context)
+                                      (util/data-for-simulation
+                                       :entry [(:file show) (:signature context)])
+                                      (util/data-for-simulation :phrases-required? true))]
+    (binding [util/*simulating* data]
+      (let [[update-binding create-status] (random-status-for-simulation :exited)]
+        (binding [util/*simulating* (update-binding)]
+          (send-cue-messages context runtime-info cue :exited (create-status)))))))
+
 (defn- cue-simulate-actions
   "Creates the actions that simulate events happening to the cue, for
   testing expressions or creating and testing MIDI mappings in other
@@ -315,40 +380,13 @@
   [context cue]
   [(seesaw/action :name "Entered"
                   :enabled? (cue-event-enabled? context cue :entered)
-                  :handler (fn [_]
-                             (let [[show context runtime-info] (latest-show-and-context context)
-                                   data                        (if (su/track? context)
-                                                                 (util/data-for-simulation
-                                                                  :entry [(:file show) (:signature context)])
-                                                                 (util/data-for-simulation :phrases-required? true))]
-                               (binding [util/*simulating* data]
-                                 (let [[update-binding create-status] (random-status-for-simulation :entered)]
-                                   (binding [util/*simulating* (update-binding)]
-                                     (send-cue-messages context runtime-info cue :entered (create-status))))))))
+                  :handler (fn [_] (simulate-entered context cue)))
    (seesaw/action :name "Started On-Beat"
                   :enabled? (cue-event-enabled? context cue :started-on-beat)
-                  :handler (fn [_]
-                             (let [[show context runtime-info] (latest-show-and-context context)
-                                   data                        (if (su/track? context)
-                                                                 (util/data-for-simulation
-                                                                  :entry [(:file show) (:signature context)])
-                                                                 (util/data-for-simulation :phrases-required? true))]
-                               (binding [util/*simulating* data]
-                                 (let [[update-binding create-status] (random-status-for-simulation :started-on-beat)]
-                                   (binding [util/*simulating* (update-binding)]
-                                     (send-cue-messages context runtime-info cue :started-on-beat (create-status))))))))
+                  :handler (fn [_] (simulate-started-on-beat context cue)))
    (seesaw/action :name "Started Late"
                   :enabled? (cue-event-enabled? context cue :started-late)
-                  :handler (fn [_]
-                             (let [[show context runtime-info] (latest-show-and-context context)
-                                   data                        (if (su/track? context)
-                                                                 (util/data-for-simulation
-                                                                  :entry [(:file show) (:signature context)])
-                                                                 (util/data-for-simulation :phrases-required? true))]
-                               (binding [util/*simulating* data]
-                                 (let [[update-binding create-status] (random-status-for-simulation :started-late)]
-                                   (binding [util/*simulating* (update-binding)]
-                                     (send-cue-messages context runtime-info cue :started-late (create-status))))))))
+                  :handler (fn [_] (simulate-started-late context cue)))
    (seesaw/action :name "Beat"
                   :enabled? (not (cue-missing-expression? context cue :beat))
                   :handler (fn [_]
@@ -376,30 +414,10 @@
    (let [enabled-events (filterv (partial cue-event-enabled? context cue) [:started-on-beat :started-late])]
      (seesaw/action :name "Ended"
                     :enabled? (seq enabled-events)
-                    :handler (fn [_]
-                               (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event]
-                                                         (rand-nth enabled-events))
-                               (let [[show context runtime-info] (latest-show-and-context context)
-                                     data                        (if (su/track? context)
-                                                                   (util/data-for-simulation
-                                                                    :entry [(:file show) (:signature context)])
-                                                                   (util/data-for-simulation :phrases-required? true))]
-                                 (binding [util/*simulating* data]
-                                   (let [[update-binding create-status] (random-status-for-simulation :ended)]
-                                     (binding [util/*simulating* (update-binding)]
-                                       (send-cue-messages context runtime-info cue :ended (create-status)))))))))
+                    :handler (fn [_] (simulate-ended context cue (rand-nth enabled-events)))))
    (seesaw/action :name "Exited"
                   :enabled? (cue-event-enabled? context cue :entered)
-                  :handler (fn [_]
-                             (let [[show context runtime-info] (latest-show-and-context context)
-                                   data                        (if (su/track? context)
-                                                                 (util/data-for-simulation
-                                                                  :entry [(:file show) (:signature context)])
-                                                                 (util/data-for-simulation :phrases-required? true))]
-                               (binding [util/*simulating* data]
-                                 (let [[update-binding create-status] (random-status-for-simulation :exited)]
-                                   (binding [util/*simulating* (update-binding)]
-                                     (send-cue-messages context runtime-info cue :exited (create-status))))))))])
+                  :handler (fn [_] (simulate-exited context cue)))])
 
 (defn- cue-simulate-menu
   "Creates the submenu containing actions that simulate events happening
@@ -1195,6 +1213,20 @@
        (when-not (phrase? context)
          (str ", time: " (describe-time-for-tooltip beat context)))))
 
+(def play-cursor
+  "A custom cursor that indicates a cue will be simulated."
+  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
+                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Play-cursor.png"))
+                              (java.awt.Point. 10 7)
+                              "Simulate")))
+
+(defn- simulate-from-label-cursor
+  "A mouse movement handler for the labels that can be used to simulate
+  cue events by option-clicking. Sets the cursor to a play icon when
+  the option key is down."
+  [e]
+  (.setCursor (seesaw/to-widget e) (if (.isAltDown e) @play-cursor nil)))
+
 (defn- create-cue-panel
   "Called the first time a cue is being worked with in the context of
   a cues editor window. Creates the UI panel that is used to configure
@@ -1265,7 +1297,13 @@
                                        :tip "Outer ring shows track enabled, inner light when player(s) positioned inside cue."
                                        :paint (partial paint-cue-state context cue entered?))
                         "spanx, split"]
-                       [(seesaw/label :text "Message:" :halign :right) "gap unrelated, sizegroup first-message"]
+                       [(seesaw/label :text "Message:" :halign :right
+                                      :listen [:mouse-moved simulate-from-label-cursor
+                                               :mouse-pressed (fn [e] (when (.isAltDown e)
+                                                                        (simulate-entered context cue)))
+                                               :mouse-released (fn [e] (when (.isAltDown e)
+                                                                         (simulate-exited context cue)))])
+                        "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:entered :message])]
                        [(get-in event-components [:entered :note]) "hidemode 3"]
                        [(get-in event-components [:entered :channel-label]) "gap unrelated, hidemode 3"]
@@ -1279,13 +1317,27 @@
                                                  ", inner light when player(s) playing inside cue.")
                                        :paint (partial paint-cue-state context cue started?))
                         "spanx, split"]
-                       ["On-Beat Message:" "gap unrelated, sizegroup first-message"]
+                       [(seesaw/label :text "On-Beat Message:"
+                                      :listen [:mouse-moved simulate-from-label-cursor
+                                               :mouse-pressed (fn [e] (when (.isAltDown e)
+                                                                        (simulate-started-on-beat context cue)))
+                                               :mouse-released (fn [e]
+                                                                 (when (.isAltDown e)
+                                                                   (simulate-ended context cue :started-on-beat)))])
+                        "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:started-on-beat :message])]
                        [(get-in event-components [:started-on-beat :note]) "hidemode 3"]
                        [(get-in event-components [:started-on-beat :channel-label]) "gap unrelated, hidemode 3"]
                        [(get-in event-components [:started-on-beat :channel]) "hidemode 3"]
 
-                       ["Late Message:" "gap 30"]
+                       [(seesaw/label :text "Late Message:"
+                                      :listen [:mouse-moved simulate-from-label-cursor
+                                               :mouse-pressed (fn [e] (when (.isAltDown e)
+                                                                        (simulate-started-late context cue)))
+                                               :mouse-released (fn [e]
+                                                                 (when (.isAltDown e)
+                                                                   (simulate-ended context cue :started-late)))])
+                        "gap 30"]
                        [(get-in event-components [:started-late :message])]
                        [(get-in event-components [:started-late :note]) "hidemode 3"]
                        [(get-in event-components [:started-late :channel-label]) "gap unrelated, hidemode 3"]
@@ -1547,13 +1599,6 @@
                               (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Move-E-cursor.png"))
                               (java.awt.Point. 7 7)
                               "Move Right Edge")))
-
-(def play-cursor
-  "A custom cursor that indicates a cue will be simulated."
-  (delay (.createCustomCursor (java.awt.Toolkit/getDefaultToolkit)
-                              (.getImage ^javax.swing.ImageIcon (seesaw/icon "images/Play-cursor.png"))
-                              (java.awt.Point. 10 7)
-                              "Simulate")))
 
 (defn- shift-down?
   "Checks whether the shift key was pressed when an event occured."
@@ -2099,17 +2144,8 @@
           x                     (.getX e)
           [beat section]        (beat-for-x context wave-or-canvas x)
           selection             (get-in runtime-info [:cues-editor :selection])]
-      (if (and (.isAltDown e) cue)
-        ;; This is a request to simulate the cue.
-        (let [[show context runtime-info] (latest-show-and-context context)
-              data (if (su/track? context)
-                     (util/data-for-simulation :entry [(:file show) (:signature context)])
-                     (util/data-for-simulation :phrases-required? true))]
-          (binding [util/*simulating* data]
-            (let [[update-binding create-status] (random-status-for-simulation :started-on-beat)]
-              (binding [util/*simulating* (update-binding)]
-                (send-cue-messages context runtime-info cue :started-on-beat (create-status))))))
-        ;; Not simulating.
+      (if (and (.isAltDown e) cue)  ; Simulate a cue starting.
+        (simulate-started-on-beat context cue)
         (if (and (shift-down? e) selection)
           (if (= (take 2 selection) [beat (inc beat)])
             (do  ; Shift-click on single-beat selection clears it.
@@ -2142,14 +2178,7 @@
         [cue-dragged] (get-in runtime-info [:cues-editor :drag-target])]
     (when (.isAltDown e)  ; Simulate a cue ending.
       (when-let [[cue] (find-cue-under-mouse context wave-or-canvas e)]
-        (su/swap-context-runtime! nil context assoc-in [:cues (:uuid cue) :last-entry-event] :started-on-beat)
-        (let [data (if (su/track? context)
-                     (util/data-for-simulation :entry [(:file show) (:signature context)])
-                     (util/data-for-simulation :phrases-required? true))]
-          (binding [util/*simulating* data]
-            (let [[update-binding create-status] (random-status-for-simulation :ended)]
-              (binding [util/*simulating* (update-binding)]
-                (send-cue-messages context runtime-info cue :ended (create-status))))))))
+        (simulate-ended context cue :started-on-beat)))
     (when cue-dragged
       (let [cue (find-cue context cue-dragged)
             panel (get-in runtime-info [:cues-editor :panels (:uuid cue)])]

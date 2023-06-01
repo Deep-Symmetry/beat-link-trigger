@@ -42,9 +42,9 @@ section of the window if it was not already visible. Dragging an edge
 left or right will adjust the beat on which the cue begins or ends.
 Right-clicking or control-clicking a cue brings up the
 <<cue-context-menu,cue context menu>> which gives you many other
-options, and clicking on a cue with the Option or Alt key held down is
-a quick way to <<cue-simulate,simulate>> its Started On-Beat and Ended
-events.
+options, and clicking on a cue with the kbd:[Option] or kbd:[Alt] key
+held down is a quick way to <<cue-simulate,simulate>> its Started
+On-Beat and Ended events.
 
 The kbd:[New Cue] button creates a new cue on the first beat of the
 Track, unless you have selected a beat range first as described below.
@@ -199,6 +199,11 @@ is sent when the first player moves into the cue (as long as the Cue’s
 Track is Enabled), or when the last player that had been positioned
 inside the cue moves out of it.
 
+As a shortcut for testing your Entered Message configuration, clicking
+on the *Message* label with the kbd:[Option] or kbd:[Alt] key held
+down is a quick way to <<cue-simulate,simulate>> the Entered and
+Exited events.
+
 [NOTE]
 ====
 The player does not need to actually be playing for
@@ -307,6 +312,12 @@ Cue’s Track is enabled), or when the last player that had been playing
 inside the cue moves out of it or the Track becomes disabled, if it
 was started on its first beat.
 
+TIP: As a shortcut for testing your Started On-Beat Message
+configuration, clicking on the *On-Beat Message* label with the
+kbd:[Option] or kbd:[Alt] key held down is a quick way to
+<<cue-simulate,simulate>> the Started On-Beat and corresponding Ended
+events.
+
 image:StartedOnBeatMenu.png[Started On-Beat Message Menu,912,554]
 
 None:: With this setting, which is the default, nothing is sent when
@@ -373,6 +384,12 @@ as it missed playing the very first beat of the Cue (and as long as the
 Cue’s Track is enabled), or when the last player that had been playing
 inside the cue moves out of it or the Track becomes disabled, if it
 was started somewhere after its first beat.
+
+TIP: As a shortcut for testing your Started Late Message
+configuration, clicking on the *Late Message* label with the
+kbd:[Option] or kbd:[Alt] key held down is a quick way to
+<<cue-simulate,simulate>> the Started Late and corresponding Ended
+events.
 
 image:StartedLateMenu.png[Started Late Message Menu,912,554]
 
@@ -550,9 +567,18 @@ The corresponding option will be disabled if there is no MIDI message
 or Expression configured for that event.
 
 As a shortcut to simulating the most common pair of cue events
-(Started On-Beat and Ended), you can hold down the Option (or Alt) key
-while clicking and releasing the mouse over the cue rectangle in the
-track waveform at the top of the window.
+(Started On-Beat and Ended), you can hold down the kbd:[Option] (or
+kbd:[Alt]) key while clicking and releasing the mouse over the cue
+rectangle in the track waveform at the top of the window.
+
+You also can use the kbd:[Option]/kbd:[Alt]-click shortcut to simulate
+events from a cue's editor row using the message labels.
+Option/Alt-clicking and releasing on the *Message* label in the
+*Entered* row simulates Entered/Exited events.
+kbd:[Option]/kbd:[Alt]-clicking on the *On-Beat Message* label in the
+*Started* row simulates Started On-Beat and corresponding Ended
+events, and kbd:[Option]/kbd:[Alt]-clicking on the *Late Message*
+label simulates Started Late and corresponding Ended events.
 
 If you need to make sure a set of related cues work properly together
 when a track plays, and you don’t have any actual player hardware
