@@ -649,6 +649,19 @@
            (send-cue-messages context runtime-info cue :exited nil))))
      true)))
 
+(defn- delete-cue
+  "Performs the work of deleting a cue once confirmed if necessary."
+  [context cue]
+  (try
+    (cleanup-cue true context cue)
+    (su/swap-context! nil context expunge-deleted-cue cue)
+    (su/swap-context-runtime! nil context expunge-deleted-cue-runtime cue)
+    (su/update-gear-icon context)
+    (build-cues context)
+    (catch Exception e
+      (timbre/error e "Problem deleting cue")
+      (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))
+
 (defn- delete-cue-action
   "Creates the menu action which deletes a cue, after confirmation if
   it's not linked to a library cue."
@@ -660,16 +673,85 @@
                                                       (str "This will irreversibly remove the cue, losing any\r\n"
                                                            "configuration and expressions created for it.")
                                                       :title (str "Delete Cue “" (:comment cue) "”?")))
-                                (try
-                                  (cleanup-cue true context cue)
-                                  (su/swap-context! nil context expunge-deleted-cue cue)
-                                  (su/swap-context-runtime! nil context expunge-deleted-cue-runtime cue)
-                                  (su/update-gear-icon context)
-                                  (build-cues context)
-                                  (catch Exception e
-                                    (timbre/error e "Problem deleting cue")
-                                    (seesaw/alert (str e) :title "Problem Deleting Cue" :type :error))))))
+                                (delete-cue context cue))))
                  :name "Delete Cue"))
+
+(defn- get-current-selection
+  "Returns the starting and ending beat of the current selection in the
+  track or phrase trigger, ignoring selections that have been dragged
+  to zero size. Phrase trigger selections will have a third element,
+  the keyword identifying the section of the phrase in which the
+  selection exists."
+  [context]
+  (let [[_show _context runtime-info] (latest-show-and-context context)]
+    (when-let [selection (get-in runtime-info [:cues-editor :selection])]
+      (when (> (second selection) (first selection))
+        selection))))
+
+(defn- update-new-cue-state
+  "When the selection has changed in a phrase trigger cue canvas, update
+  the enabled state of the New Cue button appropriately."
+  [context]
+  (when (phrase? context)
+    (let [[_ context runtime-info] (su/latest-show-and-context context)
+          enabled?                 (some? (get-current-selection context))]
+         (seesaw/config! (seesaw/select (get-in runtime-info [:cues-editor :panel]) [:#new-cue])
+                         :enabled? enabled?
+                         :tip (if enabled?
+                                "Create a new cue on the selected beats."
+                                "Disabled because no beat range is selected.")))))
+
+(defn- finish-building-cue
+  "Completes the process of building a library cue once it is ready to
+  install in its context. Shared by `build-library-cue-action` and
+  `rebuild-cue`."
+  [show context new-cue]
+  (let [{:keys [uuid section]} new-cue]
+    (if (track? context)
+      (do
+        (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)
+        (swap-track! context update :cues-editor dissoc :selection))
+      (do
+        (swap-phrase! show context assoc-in [:cues :cues uuid] new-cue)
+        (swap-phrase! show context update-in [:cues :sections section]
+                      (fnil conj #{}) uuid)
+        (swap-phrase-runtime! show context update :cues-editor dissoc :selection))))
+  (su/update-gear-icon context)
+  (update-new-cue-state context)
+  (build-cues context)
+  (compile-cue-expressions context new-cue)
+  (scroll-wave-to-cue context new-cue)
+  (scroll-to-cue context new-cue true))
+
+(defn- all-cue-names
+  "Returns a list of the names of all cues in a track or phrase trigger."
+  [context]
+  (let [cue-map (if (track? context)
+                  (get-in context [:contents :cues :cues])
+                  (get-in context [:cues :cues]))]
+    (map :comment (vals cue-map))))
+
+(defn- rebuild-cue-action
+  "Creates the menu action which re-runs a builder to allow a library cue
+  that was created using that builder to be recreated with different
+  builder parameters. Must only be invoked if the cue has already been
+  validates as unlinked and created by a builder that currently exists
+  in the show."
+  [context cue]
+  (seesaw/action :handler (fn [_]
+                            (let [cue                         (find-cue context cue)
+                                  [show context runtime-info] (latest-show-and-context context)
+                                  builder                     (get-in show [:cue-builders (:builder cue)])]
+                              (when-let [new-cue (builder show context runtime-info (:raw-cue cue))]
+                                (delete-cue context cue)
+                                (let [all-names (all-cue-names context)
+                                      rebuilt   (cond-> (merge new-cue
+                                                             (select-keys cue [:builder :raw-cue]))
+                                                  (some #(= (:comment new-cue) %) all-names)
+                                                  (assoc :comment (util/assign-unique-name
+                                                                   all-names (:comment new-cue))))]
+                                  (finish-building-cue show context rebuilt)))))
+                 :name "Rebuild Cue"))
 
 (defn- sanitize-cue-for-library
   "Removes the elements of a cue that will not be stored in the library.
@@ -837,18 +919,6 @@
                 width      (- (.millisecondsToX preview end-time) x)]
             (.draw g2 (java.awt.geom.Rectangle2D$Double. (double x) 0.0
                                                          (double width) (double (dec (.getHeight preview)))))))))))
-
-(defn- get-current-selection
-  "Returns the starting and ending beat of the current selection in the
-  track or phrase trigger, ignoring selections that have been dragged
-  to zero size. Phrase trigger selections will have a third element,
-  the keyword identifying the section of the phrase in which the
-  selection exists."
-  [context]
-  (let [[_show _context runtime-info] (latest-show-and-context context)]
-    (when-let [selection (get-in runtime-info [:cues-editor :selection])]
-      (when (> (second selection) (first selection))
-        selection))))
 
 (defn- paint-cues-and-beat-selection
   "Draws the cues and the selected beat range, if any, on top of the
@@ -1349,8 +1419,16 @@
                                  (cue-editor-actions context cue panel gear)
                                  [(seesaw/separator) (cue-simulate-menu context cue) (su/inspect-action context)
                                   (seesaw/separator) (scroll-wave-to-cue-action context cue) (seesaw/separator)
-                                  (duplicate-cue-action context cue) (cue-library-action context cue)
-                                  (delete-cue-action context cue panel)]))]
+                                  (duplicate-cue-action context cue) (cue-library-action context cue)]
+                                 (let [cue     (find-cue context cue)
+                                       show    (latest-show show)
+                                       builder (:builder cue)]
+                                   (when (and (not (:linked cue))
+                                              (:raw-cue cue)
+                                              builder
+                                              (get-in show [:cue-builders builder]))
+                                     [(rebuild-cue-action context cue)]))
+                                 [(delete-cue-action context cue panel)]))]
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance. Add the popup builder to
@@ -1684,19 +1762,6 @@
                                   [(seesaw/action :name "Top Level"
                                                   :handler (fn [_] (move-cue-to-folder show cue-name nil)))])))))
 
-(defn- update-new-cue-state
-  "When the selection has changed in a phrase trigger cue canvas, update
-  the enabled state of the New Cue button appropriately."
-  [context]
-  (when (phrase? context)
-    (let [[_ context runtime-info] (su/latest-show-and-context context)
-          enabled?                 (some? (get-current-selection context))]
-         (seesaw/config! (seesaw/select (get-in runtime-info [:cues-editor :panel]) [:#new-cue])
-                         :enabled? enabled?
-                         :tip (if enabled?
-                                "Create a new cue on the selected beats."
-                                "Disabled because no beat range is selected.")))))
-
 (defn- build-library-cue-action
   "Creates an action that adds a cue from the library to the track
   or phrase trigger."
@@ -1709,8 +1774,7 @@
                                     [show context
                                      runtime-info]      (latest-show-and-context context)
                                     [start end section] (get-in runtime-info [:cues-editor :selection] [1 2 nil])
-                                    all-names           (map :comment
-                                                             (vals (get-in runtime-info [:contents :cues :cues])))
+                                    all-names           (all-cue-names context)
                                     new-name            (if (some #(= cue-name %) all-names)
                                                           (util/assign-unique-name all-names cue-name)
                                                           cue-name)
@@ -1740,27 +1804,15 @@
                                     new-cue             (if builder
                                                           (let [cue (builder show context runtime-info raw-cue)]
                                                             (when cue
-                                                              (if (some #(= (:name cue) %) all-names)
-                                                                (assoc cue :name (util/assign-unique-name
-                                                                                  all-names (:name cue)))
-                                                                cue)))
+                                                              (cond-> (merge cue
+                                                                             (select-keys settings [:builder])
+                                                                             {:raw-cue raw-cue})
+                                                                (some #(= (:comment cue) %) all-names)
+                                                                (assoc :comment (util/assign-unique-name
+                                                                                 all-names (:comment cue))))))
                                                           raw-cue)]
                                 (when new-cue  ; Only proceed if builder has not canceled by returning nil.
-                                  (if (track? context)
-                                    (do
-                                      (swap-track! context assoc-in [:contents :cues :cues uuid] new-cue)
-                                      (swap-track! context update :cues-editor dissoc :selection))
-                                    (do
-                                      (swap-phrase! show context assoc-in [:cues :cues uuid] new-cue)
-                                      (swap-phrase! show context update-in [:cues :sections section]
-                                                    (fnil conj #{}) uuid)
-                                      (swap-phrase-runtime! show context update :cues-editor dissoc :selection)))
-                                  (su/update-gear-icon context)
-                                  (update-new-cue-state context)
-                                  (build-cues context)
-                                  (compile-cue-expressions context new-cue)
-                                  (scroll-wave-to-cue context new-cue)
-                                  (scroll-to-cue context new-cue true)))
+                                  (finish-building-cue show context new-cue)))
                               (catch Exception e
                                 (timbre/error e "Problem adding Library Cue")
                                 (seesaw/alert (str e) :title "Problem adding Library Cue" :type :error))))))

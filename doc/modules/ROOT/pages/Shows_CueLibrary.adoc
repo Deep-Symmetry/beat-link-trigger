@@ -282,6 +282,14 @@ the
 https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 community] for help.
 
+For cues created by cue builders in this way, as long as the cue
+remains unlinked and the builder function is still registered under
+the same name, you will see a menu:Rebuild Cue[] option in the cue
+context menu. Choosing this will re-run the builder using the original
+selection that was used to place the cue, and unless you cancel it,
+will replace the cue definition with the results of the choices you
+made in the builder this time.
+
 [[renaming-cues]]
 == Renaming Library Cues
 
