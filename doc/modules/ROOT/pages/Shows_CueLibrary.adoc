@@ -288,7 +288,8 @@ the same name, you will see a menu:Rebuild Cue[] option in the cue
 context menu. Choosing this will re-run the builder using the original
 selection that was used to place the cue, and unless you cancel it,
 will replace the cue definition with the results of the choices you
-made in the builder this time.
+made in the builder this time. The start and end positions of the cue
+being rebuilt are preserved in case you have fine-tuned them manually.
 
 [[renaming-cues]]
 == Renaming Library Cues

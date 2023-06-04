@@ -704,7 +704,7 @@
 (defn- finish-building-cue
   "Completes the process of building a library cue once it is ready to
   install in its context. Shared by `build-library-cue-action` and
-  `rebuild-cue`."
+  `rebuild-cue-action`."
   [show context new-cue]
   (let [{:keys [uuid section]} new-cue]
     (if (track? context)
@@ -736,7 +736,8 @@
   that was created using that builder to be recreated with different
   builder parameters. Must only be invoked if the cue has already been
   validates as unlinked and created by a builder that currently exists
-  in the show."
+  in the show. Ignores the cue start and end assigned by the builder,
+  preserving those of the cue that was rebuilt."
   [context cue]
   (seesaw/action :handler (fn [_]
                             (let [cue                         (find-cue context cue)
@@ -746,7 +747,7 @@
                                 (delete-cue context cue)
                                 (let [all-names (all-cue-names context)
                                       rebuilt   (cond-> (merge new-cue
-                                                             (select-keys cue [:builder :raw-cue]))
+                                                             (select-keys cue [:builder :raw-cue :start :end]))
                                                   (some #(= (:comment new-cue) %) all-names)
                                                   (assoc :comment (util/assign-unique-name
                                                                    all-names (:comment new-cue))))]
