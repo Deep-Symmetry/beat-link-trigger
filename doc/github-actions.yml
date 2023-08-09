@@ -2,7 +2,12 @@ site:
   title: Beat Link Trigger User Guide
   url: https://blt-guide.deepsymmetry.org/
   start_page: beat-link-trigger::README.adoc
-  robots: allow
+  robots: |
+    User-agent: GPTBot
+    Disallow: /
+
+    User-agent: *
+    Allow: /
   keys:
     google_analytics: G-EKPJVHDXKV
 urls:
