@@ -25,6 +25,14 @@ below>>, into your Shared Functions and Expressions.
 [[trigger-window]]
 image:rbMidiTrigger.png[Cue-driven trigger,900,270]
 
+TIP: The first version of this integration sends a MIDI Note Off
+message immediately after the Note On message. If the system you’re
+working with works better if you delay the Note Off message until the
+next beat, check out the <<delayed-note-off,second version>> at the
+end (but do still read the first version, which explains how the
+fundamental integration works).
+
+
 == Overview
 
 Once you have the functions, expressions, and trigger set up, using it
@@ -90,7 +98,7 @@ end of your Triggers window Shared Functions:
   player changes."}
   midi-cue-times (atom {}))
 
-(defn valid-midi-notes <2>
+(defn valid-midi-notes ;; <2>
   "Given a string containing a comma-delimited series of numbers,
   returns a set consisting of all the numbers which correspond to
   valid MIDI note numbers. Logs warnings for any which do not,
@@ -106,7 +114,7 @@ end of your Triggers window Shared Functions:
           #{}
           (map #(Long/valueOf %) (clojure.string/split note-string #","))))
 
-(defn find-midi-cues <3>
+(defn find-midi-cues ;; <3>
   "Scans all the cues and loops found in the supplied track metadata
   looking for any that contain the string MIDI: followed immediately
   by a number. Returns a map whose keys are the track time at which
@@ -125,7 +133,7 @@ end of your Triggers window Shared Functions:
                   result))
               {} (.-entries cue-list)))))
 
-(def midi-cue-indexer <4>
+(def midi-cue-indexer ;; <4>
   "Responds to the coming and going of track metadata, and updates our
   list of cue-defined beats on which MIDI messages need to be sent."
   (reify org.deepsymmetry.beatlink.data.TrackMetadataListener
@@ -133,7 +141,7 @@ end of your Triggers window Shared Functions:
       (swap! midi-cue-times assoc (.player md-update)
                                   (find-midi-cues (.metadata md-update))))))
 
-(defn send-midi-cues-near-time <5>
+(defn send-midi-cues-near-time ;; <5>
   "Finds all MIDI cues close enough to the specified time for the
   specified device and sends the corresponding MIDI notes on the
   specified MIDI output and channel."
@@ -141,7 +149,7 @@ end of your Triggers window Shared Functions:
   (doseq [[_ notes] (filter (fn [[cue-time]]
                              (> 50 (Math/abs (- time cue-time))))
                             (get @midi-cue-times device-number))]
-        ;; Send note-on messages for each note specified by a cues we reached.
+        ;; Send note-on messages for each note specified by a cue we reached.
         (doseq [note notes]
           (midi/midi-note-on midi-output note 127 (dec midi-channel)))
         ;; And then immediately send the corresponding note-off messages too.
@@ -296,3 +304,78 @@ If you have any questions about using this, or ideas about new
 directions to take it, please raise them on the
 https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 stream].
+
+[[delayed-note-off]]
+== Delaying the Note-Off Messages
+
+The integration described so far sends MIDI Note Off messages
+immediately after the corresponding Note On messages. We heard from a
+performer who was working with TouchDesigner and who was not even
+seeing the effects of the Note On messages in that situation, so he
+wanted a way to have the Note Off messages come a beat later than the
+Note On messages. That requires slightly more sophisticated code, but
+is easy enough to accomplish.
+
+As before, if you have no other triggers and functions you are worried
+about preserving, you can start by loading a fully-implemented
+link:{attachmentsdir}/cueMidiSender2.blt[configuration file].
+Otherwise, follow the instructions above to set up the trigger
+expressions and shared functions for the first version of this
+integration, and then make the following changes:
+
+[[revised-shared-functions]]
+=== Shared Functions
+
+Replace the `send-midi-cues-near-time` function in your Global Setup
+Expression with this new version that handles delayed Note Off
+messages:
+
+```clojure
+(defn send-midi-cues-near-time
+  "Finds all MIDI cues close enough to the specified time for the
+  specified device and sends the corresponding MIDI notes on the
+  specified MIDI output and channel, while recording that they were
+  started. Ends any notes that were started the last time this was
+  run."
+  [time device-number midi-output midi-channel]
+  ;; Send note-off messages for notes that were started last time.  ;; <1>
+  (doseq [note (get @midi-cue-times :playing)]
+    (midi/midi-note-off midi-output note (dec midi-channel)))
+  (swap! midi-cue-times dissoc :playing)  ; No playing notes now.
+
+  ;; Find any cues that are close enough.
+  (doseq [[_ notes] (filter (fn [[cue-time]]
+                             (> 50 (Math/abs (- time cue-time))))
+                            (get @midi-cue-times device-number))]
+    ;; Send note-on messages for each note specified by a cue we reached.
+    (doseq [note notes]
+      (midi/midi-note-on midi-output note 127 (dec midi-channel)))
+    ;; Record the notes we just started so they can be ended on next call.  ;; <2>
+    (swap! midi-cue-times update :playing clojure.set/union (set notes))))
+```
+
+<1> This code handles the delayed sending of Note Off messages that
+the upcoming code will tell us about.
+
+<2> We replaced the sending of a Note Off message with code that
+records the fact that we want to send one for a particular note and
+MIDI channel on the next beat.
+
+[[revised-deactivation-expression]]
+=== Deactivation Expression
+
+For completeness, we should also stop any notes we started that happen
+to still be playing if we detect that a CDJ stops, so add this to your
+trigger’s Deactivation Expression (it can go at the end, ideally after
+a blank line for readability):
+
+```clojure
+;; Send note-off messages for any notes that we started:
+(doseq [note (get @midi-cue-times :playing)]
+  (midi/midi-note-off trigger-output note (dec trigger-channel)))
+(swap! midi-cue-times dissoc :playing)  ; No playing notes now.
+```
+
+With these changes in place, you should see Note Off messages
+following a beat after each Note On message that is sent by a
+MIDI-labeled rekordbox cue.
