@@ -43,7 +43,7 @@ show was closed and reopened after getting QLC+ running in the right
 state.
 
 TIP: To have QLC+ start its
-https://www.qlcplus.org/docs/html_en_EN/webinterface.html[web API],
+https://docs.qlcplus.org/v4/advanced/web-interface[web API],
 you need to run it with the `-w` or `--web` option.
 
 === Shared Functions
