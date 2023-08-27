@@ -7,3 +7,5 @@ IgnoreDirs:
   - "0.6.3"
 IgnoreURLs:
   - "//opensource.org/licenses/"
+  - "//liberapay.com/"
+  - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"
