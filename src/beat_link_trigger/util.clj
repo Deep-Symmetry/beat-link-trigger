@@ -349,8 +349,8 @@
   the screen."
   [^JFrame window k parent]
   (let [[x y width height] (get @window-positions k)
-        mid-x              (Math/round (+ x (/ (or width (.getWidth window)) 2.0)))
-        mid-y              (Math/round (+ y (/ (or height (.getHeight window)) 2.0)))]
+        mid-x              (when x (Math/round (+ x (/ (or width (.getWidth window)) 2.0))))
+        mid-y              (when y (Math/round (+ y (/ (or height (.getHeight window)) 2.0))))]
     (if (or (nil? x)
             (empty? (filter (fn [device]
                               (let [bounds (.. device getDefaultConfiguration getBounds)]

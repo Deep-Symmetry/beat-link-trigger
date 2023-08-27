@@ -6,7 +6,13 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- People who tried to open a window (such as the Player Status or
+  Carabiner Connection windows) for the first time using preview or
+  release versions of 7.2.0 would find that the window would not open
+  and a stack trace would be logged, involving a null pointer
+  exception inside `beat-link-trigger.util/restore-window-position`.
 
 ## [7.2.0] - 2023-08-13
 
