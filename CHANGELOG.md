@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [7.2.1] - 2023-08-28
+
 ### Fixed
 
 - People who tried to open a window (such as the Player Status or
@@ -1426,7 +1430,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.0...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...HEAD
+[7.2.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.0...v7.2.1
 [7.2.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.1.0...v7.2.0
 [7.1.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.1...v7.1.0
 [7.0.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.0...v7.0.1
