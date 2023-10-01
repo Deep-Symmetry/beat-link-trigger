@@ -11,7 +11,7 @@
                  [org.clojure/tools.cli "1.0.219"]
                  [beat-carabiner "1.0.0"]
                  [cheshire "5.11.0"]
-                 [cider/cider-nrepl "0.30.0"]
+                 [cider/cider-nrepl "0.38.1"]
                  [clj-commons/pomegranate "1.2.23"]
                  [com.cemerick/url "0.1.1"]
                  [com.fifesoft/rstaui "3.3.1"]

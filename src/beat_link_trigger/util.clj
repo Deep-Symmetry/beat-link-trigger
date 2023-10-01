@@ -94,7 +94,8 @@
   "Given a file, return the keyword identifying it as one of the types
   of files we work with, or, `nil` if we don't recognize it."
   [file]
-  (file-type-for-extension (fs/extension (clojure.java.io/file file))))
+  (when-let [extension (fs/extension (clojure.java.io/file file))]
+    (file-type-for-extension (subs extension 1))))
 
 (defn trim-extension
   "Removes a file extension from the end of a string."

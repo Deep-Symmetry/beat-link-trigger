@@ -14,6 +14,7 @@
 (def cli-options
   "The command-line options supported by Beat Link Trigger."
   [["-o" "--offline" "Start in offline mode"]
+   [nil "--reset FILE" "Write saved configuration to file and clear it"]
    ["-h" "--help" "Display help information and exit"]])
 
 (defn- println-err
@@ -73,5 +74,4 @@
                                    (usage summary))))
 
     ;; We have a recent enough Java version that it is safe to load the user interface.
-    (require '[beat-link-trigger.core])
-    ((resolve 'beat-link-trigger.core/start) (:offline options))))
+    ((requiring-resolve 'beat-link-trigger.core/start) options)))

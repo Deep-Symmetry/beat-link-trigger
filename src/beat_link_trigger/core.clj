@@ -2,7 +2,7 @@
   "Top level organization for starting up the interface, logging, and
   managing online presence."
   (:require [beat-link-trigger.about :as about]
-            [beat-link-trigger.expressions]
+            [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
@@ -10,7 +10,8 @@
             [beat-link-trigger.show :as show]
             [beat-link-trigger.triggers :as triggers]
             [beat-link-trigger.util :as util]
-            [clojure.string]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
   (:import [java.awt GraphicsEnvironment]
@@ -50,10 +51,10 @@
   []
   (let [network (help/list-network-interfaces)]
     #_(timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
-                 (clojure.string/join "; " network))
+                 (str/join "; " network))
     (str "<html><br>No DJ Link devices were seen on any network, still looking.<br><br>"
          "The following network interfaces were found:<br>"
-         (clojure.string/join "<br>" network) "<br>&nbsp;")))
+         (str/join "<br>" network) "<br>&nbsp;")))
 
 (defn- build-troubleshooting-window
   "Creates and displays a frame that shows we are having trouble finding
@@ -122,7 +123,7 @@
 
         (zero? tries-before-troubleshooting) ; It is time to show or update the troubleshooting interface.
         (do
-          (if (clojure.string/blank? (seesaw/config network-label :text))
+          (if (str/blank? (seesaw/config network-label :text))
             ;; This is the first time we are displaying troubleshooting information.
             (seesaw/invoke-now
              (seesaw/dispose! @searching)
@@ -150,7 +151,7 @@
                 (seesaw/invoke-now
                  (seesaw/alert (str "<html>Found multiple network interfaces on the DJ Link network.<br>"
                                     "This can lead to duplicate packets and unreliable results:<br><br>"
-                                    (clojure.string/join "<br>" interfaces))
+                                    (str/join "<br>" interfaces))
                                :title "Network Configuration Problem" :type :warning)))
 
               (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
@@ -161,7 +162,7 @@
                    (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
                                       "We will not be able to communicate with the following device"
                                       (when (> (count unreachables) 1) "s") ":<br><br>"
-                                      (clojure.string/join "<br>" (sort descriptions)))
+                                      (str/join "<br>" (sort descriptions)))
                                  :title "Network Configuration Problem" :type :error)))))
             (do  ; We could not go online even though we see devices.
               (timbre/warn "Unable to create Virtual CDJ")
@@ -175,10 +176,11 @@
   "Set up logging, set up our user interface look-and-feel, then make
   sure we can start the [[virtual-cdj]]. If all went well, present the
   Triggers interface. Called when jar startup has detected a
-  recent-enough Java version to succcessfully load this namespace."
+  recent-enough Java version to succcessfully load this namespace, and
+  that passes the parsed command-line options."
   ([]
-   (start false))
-  ([offline]
+   (start {}))
+  ([{:keys [offline show suppress reset]}]
    (logs/init-logging)
    (timbre/info "Beat Link Trigger starting.")
 
@@ -222,7 +224,23 @@
      (menus/install-mac-quit-handler)
 
      ;; Add convenience aliases to the expressions namespace for easier authoring.
-     (beat-link-trigger.expressions/alias-other-namespaces)
+     (expressions/alias-other-namespaces)
+
+     ;; If we were given instructions to reset our preferences, try to do so.
+     (when-not (str/blank? reset)
+       (let [file (io/file reset)]
+         (if (= (util/file-type file) :configuration)
+           (try
+             (prefs/save-to-file file)
+             (prefs/put-preferences {})  ; Wipe out the preferences we just backed up.
+             (catch Throwable t
+               (println "--reset: problem writing existing configuration to file" reset)
+               (println "  cause:" t)
+               (System/exit 1)))
+           (do
+             (println "--reset: file" reset "does not have required extension:"
+                      (str "." (util/extension-for-file-type :configuration)))
+             (System/exit 1)))))
 
      ;; Restore saved window positions if they exist
      (when-let [saved (:window-positions (prefs/get-preferences))]
