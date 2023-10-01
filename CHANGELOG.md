@@ -22,6 +22,8 @@ Nothing so far.
   actually needs Java 1.9 or later. The fact that nobody has run into
   this issue suggests nobody is using such ancient versions anyway, so
   this could perhaps be removed.
+- Removed some libraries that were not actually used any more, saving
+  some file size.
 
 ## [7.2.0] - 2023-08-13
 

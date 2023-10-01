@@ -9,7 +9,7 @@
                                                         swap-show! swap-phrase! swap-phrase-runtime!
                                                         phrase-runtime-info get-chosen-output no-output-chosen]]
             [beat-link-trigger.util :as util]
-            [clojure.math.numeric-tower :as math]
+            [clojure.math :as math]
             [clojure.set :as set]
             [clojure.string :as str]
             [overtone.midi :as midi]
@@ -1475,7 +1475,7 @@ editor windows, in their cue canvases as well."
     "Custom"
     (let [result (run-phrase-function show phrase-trigger :custom-enabled status false)]
       (if (number? result)
-        (let [weight (long (min (math/round result) 1000))]
+        (let [weight (min (math/round result) 1000)]
           (when (pos? weight) weight))
         (when result 1)))
 
