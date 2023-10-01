@@ -17,7 +17,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
 
     # Put the base-64 encoded signing certificicate into a text file, decode it to binary form.
     echo "$IDENTITY_P12_B64" > DS_ID_App.p12.txt
-    openssl base64 -d -in DS_ID_App.p12.txt -out DS_ID_App.p12
+    base64 --decode -i DS_ID_App.p12.txt -o DS_ID_App.p12
 
     # Install the decoded signing certificate into our unlocked build keychain.
     security import DS_ID_App.p12 -A -P "$IDENTITY_PASSPHRASE"
