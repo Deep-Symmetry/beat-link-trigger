@@ -180,7 +180,7 @@
   that passes the parsed command-line options."
   ([]
    (start {}))
-  ([{:keys [offline show suppress reset]}]
+  ([{:keys [offline show suppress reset config]}]
    (logs/init-logging)
    (timbre/info "Beat Link Trigger starting.")
 
@@ -239,6 +239,17 @@
                (System/exit 1)))
            (do
              (println "--reset: file" reset "does not have required extension:"
+                      (str "." (util/extension-for-file-type :configuration)))
+             (System/exit 1)))))
+
+     ;; If we were told to use a specific configuration file, try to do so.
+     (when-not (str/blank? config)
+       (let [file (io/file config)]
+         (if (= (util/file-type file) :configuration)
+           (seesaw/invoke-now
+             (prefs/load-from-file file))
+           (do
+             (println "--config: file" reset "does not have required extension:"
                       (str "." (util/extension-for-file-type :configuration)))
              (System/exit 1)))))
 

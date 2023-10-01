@@ -19,6 +19,13 @@ This change log follows the conventions of
 - Removed some libraries that were not actually used any more, saving
   some file size.
 
+### Added
+
+- New command-line options allowing you to reset the configuration to
+  a default value if you are having problems, launch with a saved
+  configuration, open additional show files on startup, or suppress
+  the automatic reopening of shows that were in use on the last run.
+
 
 ## [7.2.1] - 2023-08-28
 

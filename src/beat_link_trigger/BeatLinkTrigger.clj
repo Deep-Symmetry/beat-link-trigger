@@ -14,7 +14,14 @@
 (def cli-options
   "The command-line options supported by Beat Link Trigger."
   [["-o" "--offline" "Start in offline mode"]
+   ["-s" "--show FILE" "Open addtitional show after startup"
+    :multi true
+    :default []
+    :default-desc ""
+    :update-fn conj]
+   ["-S" "--suppress" "Do not reopen shows from previous run"]
    [nil "--reset FILE" "Write saved configuration to file and clear it"]
+   ["-c" "--config FILE" "Use specified configuration file"]
    ["-h" "--help" "Display help information and exit"]])
 
 (defn- println-err
