@@ -17,6 +17,11 @@ Nothing so far.
   release versions of 7.2.0 would find that the window would not open
   and a stack trace would be logged, involving a null pointer
   exception inside `beat-link-trigger.util/restore-window-position`.
+- The code that checks for the minimum Java version required at
+  startup has been updated to reflect the fact that the Show interface
+  actually needs Java 1.9 or later. The fact that nobody has run into
+  this issue suggests nobody is using such ancient versions anyway, so
+  this could perhaps be removed.
 
 ## [7.2.0] - 2023-08-13
 

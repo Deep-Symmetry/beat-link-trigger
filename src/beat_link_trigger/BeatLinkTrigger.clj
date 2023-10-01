@@ -51,12 +51,12 @@
 (defn -main
   "Check the Java version and either proceed or offer to download a newer one."
   [& args]
-  (when (< (Float/valueOf (System/getProperty "java.specification.version")) 1.7)
+  (when (< (Float/valueOf (System/getProperty "java.specification.version")) 1.8)
     (let [options (to-array ["Download" "Cancel"])
           choice  (JOptionPane/showOptionDialog
                    nil
                    (str "To run BeatLinkTrigger you will need to install a current\n"
-                        "Java Runtime Environment, or at least Java 1.7.")
+                        "Java Runtime Environment, or at least Java 1.8.")
                    "Newer Java Version Required"
                    JOptionPane/YES_NO_OPTION JOptionPane/ERROR_MESSAGE nil
                    options (aget options 0))]
