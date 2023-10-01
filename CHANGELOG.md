@@ -6,17 +6,8 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
-
-## [7.2.1] - 2023-08-28
-
 ### Fixed
 
-- People who tried to open a window (such as the Player Status or
-  Carabiner Connection windows) for the first time using preview or
-  release versions of 7.2.0 would find that the window would not open
-  and a stack trace would be logged, involving a null pointer
-  exception inside `beat-link-trigger.util/restore-window-position`.
 - The code that checks for the minimum Java version required at
   startup has been updated to reflect the fact that the Show interface
   actually needs Java 1.9 or later. The fact that nobody has run into
@@ -27,6 +18,17 @@ Nothing so far.
   in those situations.
 - Removed some libraries that were not actually used any more, saving
   some file size.
+
+
+## [7.2.1] - 2023-08-28
+
+### Fixed
+
+- People who tried to open a window (such as the Player Status or
+  Carabiner Connection windows) for the first time using preview or
+  release versions of 7.2.0 would find that the window would not open
+  and a stack trace would be logged, involving a null pointer
+  exception inside `beat-link-trigger.util/restore-window-position`.
 
 ## [7.2.0] - 2023-08-13
 
