@@ -352,7 +352,7 @@
         mid-x              (when x (Math/round (+ x (/ (or width (.getWidth window)) 2.0))))
         mid-y              (when y (Math/round (+ y (/ (or height (.getHeight window)) 2.0))))]
     (if (or (nil? x)
-            (empty? (filter (fn [device]
+            (empty? (filter (fn [^java.awt.GraphicsDevice device]
                               (let [bounds (.. device getDefaultConfiguration getBounds)]
                                 (and (.contains bounds x y)
                                      (.contains bounds mid-x mid-y))))

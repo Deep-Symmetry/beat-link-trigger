@@ -22,6 +22,9 @@ Nothing so far.
   actually needs Java 1.9 or later. The fact that nobody has run into
   this issue suggests nobody is using such ancient versions anyway, so
   this could perhaps be removed.
+- Several warnings about illegal reflective access have been fixed by
+  giving type hints to the Clojure compiler so it can avoid reflection
+  in those situations.
 - Removed some libraries that were not actually used any more, saving
   some file size.
 

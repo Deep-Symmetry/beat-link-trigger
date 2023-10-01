@@ -56,7 +56,7 @@
       (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
         (eval '(.setQuitHandler (com.apple.eawt.Application/getApplication) ; Use old, Mac-specific approach.
                                 (proxy [com.apple.eawt.QuitHandler] []
-                                  (handleQuitRequestWith [e response]
+                                  (handleQuitRequestWith [e ^com.apple.eawt.QuitResponse response]
                                     (reset! quit-response-fn
                                             (fn [proceed?]
                                               (if proceed?
@@ -65,7 +65,7 @@
                                     ((resolve 'beat-link-trigger.triggers/quit))))))
         (eval '(.setQuitHandler (java.awt.Desktop/getDesktop) ; Java 9 or later has a cross-platform way to do it.
                                 (proxy [java.awt.desktop.QuitHandler] []
-                                  (handleQuitRequestWith [e response]
+                                  (handleQuitRequestWith [e ^java.awt.desktop.QuitResponse response]
                                     (reset! quit-response-fn
                                             (fn [proceed?]
                                               (if proceed?
