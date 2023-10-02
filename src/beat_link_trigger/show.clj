@@ -2478,6 +2478,18 @@
       (when-not (open-internal nil (io/file (subs window 5)))
         (swap! util/window-positions dissoc window)))))  ; Remove saved position if show is no longer available.
 
+(defn reopen-specified-shows
+  "Tries to open any shows that were specified as command-line arguments."
+  [shows]
+  (doseq [show shows]
+    (let [file (io/file show)]
+      (if (= (util/file-type file) :show)
+        (open-internal nil file)
+        (seesaw/invoke-now
+          (seesaw/alert nil (str "File " show " does not have requried extension: ."
+                                 (util/extension-for-file-type :show))
+                        :title "Unable to Open Requested Show" :type :error))))))
+
 (defn new
   "Creates a new show file and opens a window on it. If a non-`nil`
   `parent` window is supplied, the new show's window will be centered

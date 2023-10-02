@@ -95,6 +95,84 @@ Triggers window opens, in the same configuration that you left it the
 last time you used the program, and any Show files you had open will
 be reopened as well.
 
+[[command-line-arguments]]
+=== Command-Line Arguments
+
+If you launch BLT from a shell (either because you are using the Jar
+file with your own Java installation, or by running the launcher
+embedded in the application) you can control what it does at startup.
+Giving it the argument `-h` or `--help` causes it to print out all the
+available options and quit:
+
+----
+java -jar beat-link-trigger.jar --help
+Beat Link Trigger 7.2.2 Sun Oct 01 18:39:28 CDT 2023
+
+Options:
+  -o, --offline        Start in offline mode
+  -s, --show FILE      Open addtitional show after startup
+  -S, --suppress       Do not reopen shows from previous run
+      --reset FILE     Write saved configuration to file and clear it
+  -c, --config FILE    Use specified configuration file
+  -h, --help           Display help information and exit
+
+Please see https://github.com/Deep-Symmetry/beat-link-trigger for user guide.
+----
+
+The `-o` or `--offline` option allows you to skip the attempt to find
+a DJ Link network, and go right into offline editing mode. You can
+connect later as described <<#connecting-later,below>> if desired.
+
+The `-s` or `--show` option can be combined with the path to a show
+file to tell BLT to open that show as well as any of the shows that
+were open when you last used it. You can use this option as many times
+as you like to open multiple new shows.
+
+If you don't want the shows that were open during the last session to
+be reopened, you can prevent that by supplying the `-S` or
+`&#8209;&#8209;suppress` option. (This works whether or not you are
+listing shows that you do want opened.)
+
+If there is a problem with your saved configuration that is preventing
+BLT from starting properly, you can use the `&#8209;&#8209;reset`
+option along with a file path to tell BLT to write that configuration
+to the specified file (whose name must end with `.blt`), and then
+start up with an blank configuration. You can either try to manually
+edit the exported configuration file to fix the problem (it is saved
+as https://github.com/edn-format/edn[EDN], a text format), extract
+expressions and elements you want to save, or reopen it unchanged
+later if there is a fix to BLT itself that solves the problem.
+
+Finally, if you want to start with a different configuration (which
+includes all your triggers, global expressions and shared functions,
+as well as window positions and set of open shows), you can use the
+`-c` or `&#8209;&#8209;config` option to specify the path to the
+exported configuration file you want to use. This will replace the
+current configuration, so if there is anything you want to preserve in
+that, be sure to do that with the `&#8209;&#8209;reset` option, unless
+you have already <<Debugging.adoc#saving-and-loading,saved it from
+within BLT>>.
+
+[TIP]
+====
+If you are using the Mac application version of Beat Link
+Trigger, you can still give it command line arguments by opening a
+Terminal window and executing commands like:
+
+    Beat\ Link\ Trigger.app/Contents/MacOS/Beat\ Link\ Trigger --offline
+
+You can also use the macOS `open` command to achieve this without
+having to specify the path to and through the `.app` bundle, but this
+approach prevents any of the application's text output from appearing
+in the terminal:
+
+    open -a "Beat Link Trigger" --args --offline
+
+There is probably a way to do the same thing with the Windows
+launcher, and I will add instructions here as soon as I hear from
+someone how to do it.
+====
+
 [[connecting-later]]
 === Connecting Later
 
