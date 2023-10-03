@@ -168,9 +168,11 @@ in the terminal:
 
     open -a "Beat Link Trigger" --args --offline
 
-There is probably a way to do the same thing with the Windows
-launcher, and I will add instructions here as soon as I hear from
-someone how to do it.
+In Windows you can pass command-line arguments by using the Command
+Prompt window to invoke `Beat Link Trigger.exe` as the command, adding
+any arguments you'd like after that. As with the macOS `open` command,
+however, you will not be able to see any output that BLT writes back
+to you.
 ====
 
 [[connecting-later]]
