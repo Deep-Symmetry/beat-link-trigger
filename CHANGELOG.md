@@ -26,6 +26,10 @@ This change log follows the conventions of
   configuration, open additional show files on startup, or suppress
   the automatic reopening of shows that were in use on the last run.
 
+### Changed
+
+- Updated several dependencies that had been lagging behind because of
+  breaking changes in their APIs.
 
 ## [7.2.1] - 2023-08-28
 

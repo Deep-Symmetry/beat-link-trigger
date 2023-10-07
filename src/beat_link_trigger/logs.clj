@@ -5,7 +5,7 @@
             [me.raynes.fs :as fs]
             [seesaw.core :as seesaw]
             [seesaw.util]
-            [taoensso.timbre.appenders.3rd-party.rotor :as rotor]
+            [taoensso.timbre.appenders.community.rotor :as rotor]
             [taoensso.timbre :as timbre]))
 
 (defonce ^{:private true
