@@ -28,23 +28,6 @@
                                               :max-size max-size
                                               :backlog backlog})}}))
 
-(defn output-fn
-  "Log format `(fn [data])` -> string output fn.
-  You can modify default options with `(partial default-output-fn <opts-map>)`.
-  This is based on timbre's default, but removes the hostname."
-  ([data] (output-fn nil data))
-  ([{:keys [no-stacktrace?] :as opts} data]
-   (let [{:keys [level ?err_ msg_ ?ns-str
-                 timestamp_ ?line]} data]
-     (str
-             @timestamp_       " "
-       (clojure.string/upper-case (name level))  " "
-       "[" (or ?ns-str "?") ":" (or ?line "?") "] - "
-       (force msg_)
-       (when-not no-stacktrace?
-         (when-let [err (force ?err_)]
-           (str "\n" (timbre/stacktrace err (assoc opts :stacktrace-fonts {})))))))))
-
 (defn- init-logging-internal
   "Performs the actual initialization of the logging environment,
   protected by the delay below to insure it happens only once."
@@ -55,7 +38,6 @@
        (timbre/error e "Uncaught exception on" (.getName thread)))))
   (timbre/set-config!
    {:min-level :info #_ [["taoensso.*" :error] ["*" :debug]]
-    :enabled?  true
 
     ;; Control log filtering by namespaces/patterns. Useful for turning off
     ;; logging in noisy libraries, etc.:
@@ -63,11 +45,12 @@
 
     :middleware [] ; (fns [data]) -> ?data, applied left->right
 
-    :timestamp-opts {:pattern  "yyyy-MMM-dd HH:mm:ss"
+    :timestamp-opts {:pattern  "yyyy-MMM-dd HH:mm:ss.SSS"
                      :locale   :jvm-default
                      :timezone (java.util.TimeZone/getDefault)}
 
-    :output-fn output-fn ; (fn [data]) -> string
+    :output-fn   timbre/default-output-fn ; (fn [data]) -> string
+    :output-opts {:stacktrace-fonts {}}
     })
 
   ;; Install the desired log appenders
