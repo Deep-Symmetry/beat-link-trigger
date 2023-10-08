@@ -18,8 +18,8 @@
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate
             LifecycleListener MediaDetailsListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener AnalysisTagFinder AnalysisTagListener
-            ArtFinder MetadataFinder MountListener SearchableItem SlotReference TimeFinder
-            TrackMetadata TrackMetadataListener WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
+            ArtFinder MetadataFinder MountListener SearchableItem SlotReference TimeFinder TrackMetadata
+            TrackMetadataListener TrackPositionUpdate WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
            [jiconfont.icons.font_awesome FontAwesome]
            [jiconfont.swing IconFontSwing]))
 
@@ -205,7 +205,7 @@
   the specified player is playing or paused on."
   [n]
   (let [result (and (.isRunning time-finder)
-                    (when-let [^DeviceUpdate update (.getLatestUpdateFor time-finder (int n))]
+                    (when-let [^TrackPositionUpdate update (.getLatestPositionFor time-finder (int n))]
                       (.getBeatWithinBar update)))]
     (when (and result (<= 1 result 4))
       result)))
