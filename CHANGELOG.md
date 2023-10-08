@@ -6,8 +6,24 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- Precise position packets from CDJ-3000s are used to be able to track
+  movement inside beats, and much more tightly than was possible using
+  the interpolation methods required for older players.
+- New command-line options allowing you to reset the configuration to
+  a default value if you are having problems, launch with a saved
+  configuration, open additional show files on startup, or suppress
+  the automatic reopening of shows that were in use on the last run.
+
 ### Fixed
 
+- The unpredictable order in which beat and status update packets
+  arrive led to a visual glitch in which the beat phase indicators in
+  the Player Status window (under the player on-air indicators) could
+  flicker back and forth occasionally. We can take advantage of the
+  smooth tracking offered by the `TimeFinder` to solve this,
+  especially when CDJ-3000s are in use.
 - The code that checks for the minimum Java version required at
   startup has been updated to reflect the fact that the Show interface
   actually needs Java 1.9 or later. The fact that nobody has run into
@@ -18,16 +34,6 @@ This change log follows the conventions of
   in those situations.
 - Removed some libraries that were not actually used any more, saving
   some file size.
-
-### Added
-
-- Precise position packets from CDJ-3000s are used to be able to track
-  movement inside beats, and much more tightly than was possible using
-  the interpolation methods required for older players.
-- New command-line options allowing you to reset the configuration to
-  a default value if you are having problems, launch with a saved
-  configuration, open additional show files on startup, or suppress
-  the automatic reopening of shows that were in use on the last run.
 
 ### Changed
 

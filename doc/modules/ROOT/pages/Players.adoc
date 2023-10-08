@@ -30,22 +30,42 @@ in both the full track preview and--if you have it showing--the
 scrolling wave detail view, will also be white when playing and red
 when stopped.)
 
+== Playback Position
+
+Beginning with the nexus series of players, enough information is sent
+over the network to get a rough idea of where a playing player is
+positioned in the track, and BLT will do the best it can to infer and
+display that.
+
 In addition to the current track time (position) and remaining time,
 the current playback pitch (speed, shown as a percentage change from
 normal speed, `+` meaning faster and `-` meaning slower), the current
 effective tempo (combining the track tempo with the playback pitch)
 and master/sync status are displayed above the track waveform preview.
 
+=== Precise Position
+
+The CDJ-3000 sends
+https://djl-analysis.deepsymmetry.org/djl-analysis/beats.html#absolute-position-packets[additional
+information], much more frequently, which allows BLT 7.3.0 or later to
+track its location much more accurately, even when the DJ is moving
+around but not playing, or jumping or looping inside individual beats.
+When this information is available, the time display will read
+**Precise Time**:
+
+image:PreciseTime.png[Precise Time Tracking,496,340]
+
+
 [WARNING]
 ====
 Although Beat Link can do a good job of tracking the playback location
-for tracks that are being played normally, the only information it has
-available are the beat packets which tell it when the player has
-reached a particular beat, and which can be translated to a time using
-the track’s beat grid. It can combine these with the playback speed
-information which comes more frequently (in status packets sent
-several times per second), to interpolate the current playback
-position in between beats.
+on players other than the CDJ-3000 for tracks that are being played
+normally, the only information it has available are the beat packets
+which tell it when the player has reached a particular beat, and which
+can be translated to a time using the track’s beat grid. It can
+combine these with the playback speed information which comes more
+frequently (in status packets sent several times per second), to
+interpolate the current playback position in between beats.
 
 However, if the DJ is playing a track backwards, no beat packets are
 sent. And if the track is looping, the correct position can not be
@@ -61,6 +81,9 @@ beginning of the beat that was landed on. But after that (or once the
 DJ changes back to playing forward without a loop), as soon as the
 player reaches the next beat marker, the time will resynchronize, and
 stay tracked well as long as normal playback continues.
+
+None of these situations are a problem with the CDJ-3000, however. And
+on pre-Nexus players, no position tracking is possible at all.
 ====
 
 The current beat playing is shown above the player number, and
