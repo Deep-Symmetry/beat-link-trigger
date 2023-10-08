@@ -127,6 +127,15 @@
     (:time simulator)
     (and (.isRunning time-finder) (.getTimeFor time-finder n))))
 
+(defn precise?
+  "Checks whether we are receving precise position packets for the
+  specified player."
+  [^Long n]
+  (when-not (simulator/for-player n)
+    (when (.isRunning time-finder)
+      (when-let [position (.getLatestPositionFor time-finder n)]
+        (.-precise position)))))
+
 (defn- playing?
   "Returns `true` if the specified player can be determined to be
   playing right now."
@@ -259,7 +268,7 @@
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
     (.setPaint g (if remain (Color. 255 200 200) (Color/WHITE)))
     (.setFont g (util/get-display-font :teko Font/PLAIN 16))
-    (.drawString g (if remain "Remain" "Time") (int 4) (int 16))
+    (.drawString g (if remain "Remain" (if (precise? n) "Precise Time" "Time")) (int 4) (int 16))
     (if (and (not ms) (pre-nexus n))
         (do  ; Report that we can't display time information, as this is a pre-nexus device.
           (.setFont g (util/get-display-font :teko Font/PLAIN 19))

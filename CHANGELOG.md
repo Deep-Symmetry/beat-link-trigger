@@ -21,6 +21,9 @@ This change log follows the conventions of
 
 ### Added
 
+- Precise position packets from CDJ-3000s are used to be able to track
+  movement inside beats, and much more tightly than was possible using
+  the interpolation methods required for older players.
 - New command-line options allowing you to reset the configuration to
   a default value if you are having problems, launch with a saved
   configuration, open additional show files on startup, or suppress
