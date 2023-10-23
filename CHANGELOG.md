@@ -11,6 +11,10 @@ This change log follows the conventions of
 - Precise position packets from CDJ-3000s are used to be able to track
   movement inside beats, and much more tightly than was possible using
   the interpolation methods required for older players.
+- Active loop information from CDJ-3000s allows loops to be displayed
+  on the waveform detail even when they did not exist within the track
+  data; we can now display dynamic loops the DJ has set up during live
+  performance.
 - New command-line options allowing you to reset the configuration to
   a default value if you are having problems, launch with a saved
   configuration, open additional show files on startup, or suppress
