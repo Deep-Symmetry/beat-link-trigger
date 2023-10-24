@@ -36,6 +36,9 @@ This change log follows the conventions of
 - Several warnings about illegal reflective access have been fixed by
   giving type hints to the Clojure compiler so it can avoid reflection
   in those situations.
+- Other warnings about replacing standard functions (that did not
+  exist in previous versions of Clojure) were fixed by updating the
+  library that had been doing that with a newly-available release.
 - Removed some libraries that were not actually used any more, saving
   some file size.
 

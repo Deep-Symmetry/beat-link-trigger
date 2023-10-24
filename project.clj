@@ -40,7 +40,7 @@
                  [ring/ring-defaults "0.4.0"]
                  [seesaw "1.5.0"]
                  [selmer "1.12.59"]
-                 [thi.ng/color "1.5.0"]
+                 [thi.ng/color "1.5.1"]
                  [uk.co.xfactory-librarians/coremidi4j "1.6"]]
   :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
 
