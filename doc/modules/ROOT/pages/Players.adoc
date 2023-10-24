@@ -67,23 +67,27 @@ combine these with the playback speed information which comes more
 frequently (in status packets sent several times per second), to
 interpolate the current playback position in between beats.
 
-However, if the DJ is playing a track backwards, no beat packets are
-sent. And if the track is looping, the correct position can not be
-detected except if and when the loop happens to cross a beat boundary,
-causing a beat packet to be sent. So you can not assume time
-information is accurate during reverse or loop playback, especially
-for small loops that start or end in the middle of beats.
+However, on older players, if the DJ is playing a track backwards, no
+beat packets are sent. And if the track is looping, the correct
+position can not be detected except if and when the loop happens to
+cross a beat boundary, causing a beat packet to be sent. So you can
+not assume time information is accurate during reverse or loop
+playback, especially for small loops that start or end in the middle
+of beats.
 
 This also means that if the DJ uses the touch strip to &ldquo;needle
-jump&rdquo; to an arbitrary point in the track, the time may start
-out slighly wrong, since we can only assume playback started at the
-beginning of the beat that was landed on. But after that (or once the
-DJ changes back to playing forward without a loop), as soon as the
-player reaches the next beat marker, the time will resynchronize, and
-stay tracked well as long as normal playback continues.
+jump&rdquo; to an arbitrary point in the track on an older player, the
+time may start out slighly wrong, since we can only assume playback
+started at the beginning of the beat that was landed on. But after
+that (or once the DJ changes back to playing forward without a loop),
+as soon as the player reaches the next beat marker, the time will
+resynchronize, and stay tracked well as long as normal playback
+continues.
 
-None of these situations are a problem with the CDJ-3000, however. And
-on pre-Nexus players, no position tracking is possible at all.
+None of these situations are a problem with the CDJ-3000, however,
+where we can track their position wonderfully using the precise
+position packets they send with great frequency. And on pre-Nexus
+players, no position tracking is possible at all.
 ====
 
 The current beat playing is shown above the player number, and
@@ -99,9 +103,15 @@ Hot cues are shown above the waveform as green triangles (or, if the
 DJ has assigned them a specific color, that color will be used instead
 of green). Memory points as shown as red triangles, and loops as
 orange triangles. The loop body is shown in the scrolling waveform
-detail section. Only loops that are stored in the track can be
-displayed; loops and memory points created on-the-fly by the DJ are
-not visible over the network.
+detail section.
+
+For players older than the CDJ-3000, only loops that are stored in the
+track can be displayed; loops and memory points created on-the-fly by
+the DJ are not visible over the network. On CDJ-3000s, we can display
+loops that are created on-the-fly, and we distinguish those from the
+loops stored in the track by drawing inactive stored loops in gray
+rather than orange, the same way the CDJ-3000 draws them on its own
+display.
 
 If the DJ has assigned a label (text comment) to a memory point, loop,
 or hot cue, that will also be shown in the scrolling waveform detail
