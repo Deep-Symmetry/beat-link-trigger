@@ -57,9 +57,11 @@ is using port 17000 on your system.
 The `Latency` value is the number of milliseconds it takes from when a
 beat is actually playing on the players in your DJ Link Pro network to
 when the corresponding beat packet is received by Beat Link Trigger.
-The default value of 1 ms seems to work well, but if your Ableton
-Link session seems to be running audibly behind beats from your
-Pioneer gear, you can increase this value until things sound right.
+The default value of 1 ms seems to work well, but if your Ableton Link
+session seems to be running audibly behind beats from your Pioneer
+gear, you can increase this value until things sound right. You can
+also use negative latency values if you are receiving beat packets
+before the beats themselves are heard.
 
 Once your port value is correct, you can click the Connect check box
 to establish a connection with Carabiner:
