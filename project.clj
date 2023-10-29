@@ -13,7 +13,7 @@
                  [org.deepsymmetry/beat-link "7.3.0-SNAPSHOT"]
                  [beat-carabiner "7.3.0-SNAPSHOT"]
                  [cheshire "5.12.0"]
-                 [cider/cider-nrepl "0.40.0"]
+                 [cider/cider-nrepl "0.41.0"]
                  [clj-commons/pomegranate "1.2.23"]
                  [com.cemerick/url "0.1.1"]
                  [com.fifesoft/rstaui "3.3.1"]

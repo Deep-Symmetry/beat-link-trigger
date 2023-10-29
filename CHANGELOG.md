@@ -28,6 +28,9 @@ This change log follows the conventions of
   flicker back and forth occasionally. We can take advantage of the
   smooth tracking offered by the `TimeFinder` to solve this,
   especially when CDJ-3000s are in use.
+- We now allow negative latencies in the Carabiner Connection window
+  because of user reports that beat packets can be received before the
+  actual beats are heard.
 - The code that checks for the minimum Java version required at
   startup has been updated to reflect the fact that the Show interface
   actually needs Java 1.9 or later. The fact that nobody has run into

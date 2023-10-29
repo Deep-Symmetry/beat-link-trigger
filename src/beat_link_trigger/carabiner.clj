@@ -516,7 +516,7 @@
                                  [(seesaw/label :text "Latency (ms):") "align right"]
                                  [(seesaw/spinner :id :latency
                                                   :model (seesaw/spinner-model (:latency (beat-carabiner/state))
-                                                                               :from 0 :to 1000)
+                                                                               :from -1000 :to 1000)
                                                   :listen [:selection (fn [e]
                                                                         (let [latency (seesaw/selection e)]
                                                                           (beat-carabiner/set-latency latency)
