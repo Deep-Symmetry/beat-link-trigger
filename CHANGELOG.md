@@ -15,6 +15,12 @@ This change log follows the conventions of
   on the waveform detail even when they did not exist within the track
   data; we can now display dynamic loops the DJ has set up during live
   performance.
+- Shows can now own “raw triggers”, which appear in the Triggers
+  window and are active while the show is open. This allows
+  integration examples which require low-level triggers to be packaged
+  up as self-contained show files, including simple UIs to configure
+  them, making it easier for new users to achieve goals for which such
+  shows have been built and shared.
 - New command-line options allowing you to reset the configuration to
   a default value if you are having problems, launch with a saved
   configuration, open additional show files on startup, or suppress
