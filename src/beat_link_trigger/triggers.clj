@@ -26,7 +26,8 @@
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [thi.ng.color.core :as color])
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt Color Graphics2D RenderingHints]
            [java.awt.event WindowEvent]
@@ -618,24 +619,55 @@
       (timbre/error e "Problem showing Trigger MIDI status."))))
 
 (defn- get-triggers
-  "Returns the list of triggers that currently exist."
-  []
-  (when-let [frame @trigger-frame]
-    (seesaw/config (seesaw/select frame [:#triggers]) :items)))
+  "Returns the list of triggers that currently exist. If `show` is
+  supplied, returns the triggers that belong to that show (if `show`
+  is supplied but `nil`, returns the triggers that exist independently
+  of any show)."
+  ([]
+   (when-let [frame @trigger-frame]
+     (seesaw/config (seesaw/select frame [:#triggers]) :items)))
+  ([show]
+   (filter #(= (:file show) (:show-file @(seesaw/user-data %))) (get-triggers))))
+
+(defn- trigger-color
+  "Calculates the color that should be used as the background color for a
+  trigger row, given the trigger index and show index."
+  [trigger-index show-index]
+  (let [base-color (if (odd? trigger-index) "#eee" "#ddd")]
+    (if (zero? show-index)
+      base-color
+      (let [luminance (-> base-color color/css color/luminance)
+            hue       (mod (* show-index 62.5) 360.0)
+            color     (color/hsla (/ hue 360.0) 0.95 luminance)]
+        (Color. @(color/as-int24 color))))))
 
 (defn- adjust-triggers
   "Called when a trigger is added or removed to restore the proper
-  alternation of background colors, expand the window if it still fits
-  the screen, and update any other user interface elements that might
-  be affected."
+  alternation of background colors and identification of source shows.
+  Also resize the window if it still fits the screen, and update any
+  other user interface elements that might be affected."
   []
-  (doall (map (fn [trigger color index]
-                (seesaw/config! trigger :background color)
-                (seesaw/config! (seesaw/select trigger [:#index])
-                                :text (str (inc index) "."))
-                (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
-                  (editors/retitle editor)))
-              (get-triggers) (cycle ["#eee" "#ddd"]) (range)))
+  (loop [triggers       (get-triggers)
+         trigger-index  1
+         show-index     0
+         last-show-file nil]
+    (let [trigger    (first triggers)
+          remaining  (rest triggers)
+          show-file  (:show-file @(seesaw/user-data trigger))
+          show-index (if (= show-file last-show-file) show-index (inc show-index))]
+      (seesaw/config! trigger :background (trigger-color trigger-index show-index))
+      (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
+      (if (= show-file last-show-file)
+        (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)
+        (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? true
+                        :text (str "Triggers from Show " (util/trim-extension (.getPath show-file)) ":")))
+      (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
+        (editors/retitle editor))
+      (when (seq remaining)
+        (recur remaining
+               (inc trigger-index)
+               show-index
+               show-file))))
   (let [^JFrame frame @trigger-frame]
     (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration frame)))
                     (.height (.getBounds frame))))
@@ -687,7 +719,7 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
-(defn- close-trigger-editors?
+(defn close-trigger-editors?
   "Tries closing all open expression editors for the trigger. If
   `force?` is true, simply closes them even if they have unsaved
   changes. Othewise checks whether the user wants to save any unsaved
@@ -708,7 +740,7 @@
     (seesaw/selection! (seesaw/select trigger [:#enabled]) "Never")  ; Ensures any clock thread stops.
     true))
 
-(defn- delete-trigger
+(defn delete-trigger
   "Removes a trigger row from the window, running its shutdown function
   if needed, closing any editor windows associated with it, and
   readjusting any triggers that remain. If `force?` is true, editor
@@ -730,16 +762,16 @@
 (declare update-global-expression-icons)
 
 (defn- delete-all-triggers
-  "Closes any global expression editors, then removes all triggers,
-  running their own shutdown functions, and finally runs the global
-  offline (if we were online) and shutdown functions. If `force?` is
-  true, editor windows will be closed even if they have unsaved
-  changes, otherwise the user will be given a chance to cancel the
-  operation. Returns truthy if the trigger was actually deleted."
+  "Closes any global expression editors, then removes all non-show
+  triggers, running their own shutdown functions, and finally runs the
+  global offline (if we were online) and shutdown functions. If
+  `force?` is true, editor windows will be closed even if they have
+  unsaved changes, otherwise the user will be given a chance to cancel
+  the operation. Returns truthy if the trigger was actually deleted."
   [force?]
-  (when (and (every? (partial close-trigger-editors? force?) (get-triggers))
+  (when (and (every? (partial close-trigger-editors? force?) (get-triggers nil))
              (every? (partial editors/close-editor? force?) (vals (:expression-editors @trigger-prefs))))
-    (doseq [trigger (get-triggers)]
+    (doseq [trigger (get-triggers nil)]
       (delete-trigger true trigger))
     (when (util/online?) (run-global-function :offline))
     (run-global-function :shutdown)
@@ -824,7 +856,8 @@
   supplied, it is a map containing values to recreate the row from a
   saved version. If `index` is supplied, it is the initial index to
   assign the trigger (so exceptions logged during load can be
-  meaningful), otherwise 1 is assumed."
+  meaningful), otherwise 1 is assumed (and will get renumbered by
+  `adjust-triggers`)."
   ([]
    (create-trigger-row nil 1))
   ([m index]
@@ -832,7 +865,9 @@
          gear    (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
          panel   (mig/mig-panel
                   :id :panel
-                  :items [[(seesaw/label :id :index :text (str index ".")) "align right"]
+                  :items [[(seesaw/label :id :from-show :text "Triggers from no Show." :visible? false :halign :center)
+                           "hidemode 3, span, grow, wrap unrelated"]
+                          [(seesaw/label :id :index :text (str index ".")) "align right"]
                           [(seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment"))
                            "span, grow, wrap"]
 
@@ -937,7 +972,9 @@
          popup-fn       (fn [_] (concat (editor-actions)
                                         [(seesaw/separator) (seesaw/menu :text "Simulate" :items (sim-actions))
                                          inspect-action (seesaw/separator) import-action export-action]
-                                        (when (> (count (get-triggers)) 1) [delete-action])))]
+                                        (when (or (:show-file @(seesaw/user-data panel))
+                                                  (> (count (get-triggers nil)) 1))
+                                          [delete-action])))]
 
      ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
      ;; or right click on the gear button.
@@ -1015,15 +1052,35 @@
      panel)))
 
 (defonce ^{:private true
-           :doc     "The menu action which adds a new Trigger to the end of the list."}
+           :doc     "The menu action which adds a new Trigger to the end of the list of non-show triggers."}
   new-trigger-action
   (delay
    (seesaw/action :handler (fn [_]
                              (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                             :items (concat (get-triggers) [(create-trigger-row)]))
+                                             :items (concat (get-triggers nil) [(create-trigger-row)]
+                                                            (filter #(some? (:show-file @(seesaw/user-data %)))
+                                                                    (get-triggers))))
                              (adjust-triggers))
                   :name "New Trigger"
                   :key "menu T")))
+
+(defn create-trigger-for-show
+  "Creates a new trigger that belongs to the show that was opened from
+  the specified file. If `m` is supplied, it is a map containing the
+  contents with which the trigger should be recreated."
+  ([show]
+   (create-trigger-for-show show {}))
+  ([show m]
+   (let [triggers        (get-triggers)
+         triggers-before (take-while #(not= (:file show) (:show-file @(seesaw/user-data %))) triggers)
+         show-triggers   (get-triggers show)
+         trigger-index   (+ (count triggers-before) (count show-triggers) 1)
+         new-trigger     (create-trigger-row m trigger-index)
+         triggers-after  (drop (dec trigger-index) triggers)]
+     (swap! (seesaw/user-data new-trigger) assoc :show-file (:file show))
+     (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
+                     :items (concat triggers-before show-triggers [new-trigger] triggers-after))
+     (adjust-triggers))))
 
 (defonce ^{:private true
            :doc "The menu action which opens the Carabiner configuration window."}
@@ -1064,7 +1121,7 @@
                                  (when (= :success (seesaw/show! confirm))
                                    (delete-all-triggers true)
                                    (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                   :items [(create-trigger-row)])
+                                                   :items (concat [(create-trigger-row)] (get-triggers)))
                                    (adjust-triggers))
                                  (seesaw/dispose! confirm))
                                (catch Exception e
@@ -1075,7 +1132,7 @@
   "Organizes the portions of a trigger which are saved or exported."
   [trigger]
   (-> (seesaw/value trigger)
-             (dissoc :status :channel-label :enabled-label :index)
+             (dissoc :status :channel-label :enabled-label :index :from-show)
              (merge (when-let [exprs (:expressions @(seesaw/user-data trigger))]
                       {:expressions exprs}))))
 
@@ -1095,12 +1152,19 @@
             (seesaw/alert (str "<html>Unable to Export.<br><br>" e)
                           :title "Problem Writing File" :type :error)))))))
 
+(defn trigger-configuration-for-show
+  "Returns the list of trigger configurations for all triggers belonging
+  to the specified show, so they can be saved along with the show when
+  that is being saved."
+  [show]
+  (vec (for [trigger (get-triggers show)]
+         (format-trigger trigger))))
+
 (defn- trigger-configuration
   "Returns the current Trigger window configuration, so it can be
   saved and recreated."
   []
-  (vec (for [trigger (get-triggers)]
-         (format-trigger trigger))))
+  (trigger-configuration-for-show nil))
 
 (defn- save-triggers-to-preferences
   "Saves the current Trigger window configuration to the application
@@ -1146,7 +1210,7 @@
   see if there were problems parsing any of the custom expressions. If
   so, reports that to the user and clears the warning flags."
   []
-  (let [failed (filter identity (for [trigger (get-triggers)]
+  (let [failed (filter identity (for [trigger (get-triggers nil)]
                                   (when (:expression-load-error @(seesaw/user-data trigger))
                                     (swap! (seesaw/user-data trigger) dissoc :expression-load-error)
                                     (editors/trigger-index trigger))))]
@@ -1171,7 +1235,7 @@
                                    (when (delete-all-triggers false)
                                      (prefs/load-from-file file)
                                      (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
-                                                     :items (recreate-trigger-rows))
+                                                     :items (concat (recreate-trigger-rows) (get-triggers)))
                                      (adjust-triggers)
                                      (when (util/online?) (run-global-function :online)))
                                    (catch Exception e

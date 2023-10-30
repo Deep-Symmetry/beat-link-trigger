@@ -1985,10 +1985,13 @@
   (let [^JFrame window (:frame show)]
     (swap-show! show assoc-in [:contents :window]
                 [(.getX window) (.getY window) (.getWidth window) (.getHeight window)]))
-  (let [show                               (latest-show show)
-        {:keys [contents file ^FileSystem filesystem]} show]
+  (let [show                                           (latest-show show)
+        {:keys [contents file ^FileSystem filesystem]} show
+        triggers                                       ((requiring-resolve
+                                                         'beat-link-trigger.triggers/trigger-configuration-for-show)
+                                                        show)]
     (try
-      (su/write-edn-path contents (su/build-filesystem-path filesystem "contents.edn"))
+      (su/write-edn-path (assoc contents :triggers triggers) (su/build-filesystem-path filesystem "contents.edn"))
       (save-track-contents show)
       (.close filesystem)
       (catch Throwable t
@@ -2020,6 +2023,20 @@
       (finally
         (let [[reopened-filesystem] (su/open-show-filesystem file)]
           (swap-show! show assoc :filesystem reopened-filesystem))))))
+
+(defn build-raw-trigger-action
+  "Creates the menu action to add a raw trigger to the Triggers window
+  that is managed by this show."
+  [show]
+  (seesaw/action :handler (fn [_]
+                            (try
+                              ((requiring-resolve 'beat-link-trigger.triggers/create-trigger-for-show) show)
+                              (catch Throwable t
+                                (timbre/error t "Problem Creating Raw Trigger")
+                                (seesaw/alert (:frame show) (str "<html>Unable to Create Raw Trigger.<br><br>" t)
+                                              :title "Problem Creating Raw Trigger" :type :error))))
+                 :name "New Raw Trigger"
+                 :key "menu R"))
 
 (defn- build-save-action
   "Creates the menu action to save a show window, making sure the file
@@ -2179,7 +2196,8 @@
                    (fn [^ItemEvent e]
                      (swap-show! show assoc :actions-enabled (= (.getStateChange e) ItemEvent/SELECTED))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
-                                         :items [(build-save-action show) (build-save-as-action show)
+                                         :items [(build-raw-trigger-action show) (seesaw/separator)
+                                                 (build-save-action show) (build-save-as-action show)
                                                  (seesaw/separator) ex-report-action actions-item
                                                  (seesaw/separator) (build-close-action show)])
                             (seesaw/menu :text "Tracks"
@@ -2259,21 +2277,21 @@
       (let [^JFrame root    (seesaw/frame :title (str "Beat Link Show: " (util/trim-extension (.getPath file)))
                                           :on-close :nothing)
             import-menu     (seesaw/menu :text "Import Track")
-            show            {:creating    true
-                             :frame       root
+            show            {:creating           true
+                             :frame              root
                              :expression-globals (atom {})
-                             :import-menu import-menu
-                             :file        file
-                             :filesystem  filesystem
-                             :contents    contents
-                             :tracks      {}  ; Lots of info about each track, including loaded metadata.
-                             :phrases     {}  ; Non-saved runtime state about each phrase trigger.
-                             :panels      {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.
-                             :loaded      {}  ; Map from player number to signature that has been reported loaded.
-                             :playing     {}  ; Map from player number to signature that has been reported playing.
-                             :playing-phrases {} ; Map from player # to map of phrase UUID to beat fit information.
-                             :visible     []  ; The visible (through filters) track signatures in sorted order.
-                             :visible-phrases []}  ; Visible (through filters) phrase trigger UUIDs, in sorted order.
+                             :import-menu        import-menu
+                             :file               file
+                             :filesystem         filesystem
+                             :contents           contents
+                             :tracks             {}  ; Lots of info about each track, including loaded metadata.
+                             :phrases            {}  ; Non-saved runtime state about each phrase trigger.
+                             :panels             {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.
+                             :loaded             {}  ; Map from player number to signature that has been reported loaded.
+                             :playing            {}  ; Map from player number to signature that has been reported playing.
+                             :playing-phrases    {} ; Map from player # to map of phrase UUID to beat fit information.
+                             :visible            []  ; The visible (through filters) track signatures in sorted order.
+                             :visible-phrases    []}  ; Visible (through filters) phrase trigger UUIDs, in sorted order.
             tracks          (seesaw/vertical-panel :id :tracks)
             tracks-scroll   (seesaw/scrollable tracks)
             enabled-default (seesaw/combobox :id :default-enabled :model ["Never" "On-Air" "Master" "Custom" "Always"]
@@ -2301,18 +2319,18 @@
                                 (.start util/time-finder)  ; We need this too, and it doesn't auto-restart.
                                 (.start signature-finder)  ; In case we started out offline.
                                 (seesaw/invoke-later
-                                 (seesaw/show! loaded-only)
-                                 (doseq [announcement (.getCurrentDevices device-finder)]
-                                   (update-player-item-visibility announcement show true))
-                                 (su/update-row-visibility show)
-                                 (cues/update-cue-window-online-status show true)))
+                                  (seesaw/show! loaded-only)
+                                  (doseq [announcement (.getCurrentDevices device-finder)]
+                                    (update-player-item-visibility announcement show true))
+                                  (su/update-row-visibility show)
+                                  (cues/update-cue-window-online-status show true)))
                               (stopped [_this _sender]
                                 (seesaw/invoke-later
-                                 (seesaw/hide! loaded-only)
-                                 (doseq [announcement (.getCurrentDevices device-finder)]
-                                   (update-player-item-visibility announcement show false))
-                                 (su/update-row-visibility show)
-                                 (cues/update-cue-window-online-status show false))))
+                                  (seesaw/hide! loaded-only)
+                                  (doseq [announcement (.getCurrentDevices device-finder)]
+                                    (update-player-item-visibility announcement show false))
+                                  (su/update-row-visibility show)
+                                  (cues/update-cue-window-online-status show false))))
             sig-listener    (reify SignatureListener  ; Update the import submenu as tracks come and go.
                               (signatureChanged [_this sig-update]
                                 (update-player-item-signature sig-update show)
@@ -2345,10 +2363,15 @@
                               ;; will do so even in the presence of windows with unsaved user changes. Otherwise
                               ;; prompts the user about all unsaved changes, giving them a chance to veto the
                               ;; closure. Returns truthy if the show was closed.
-                              (let [show (latest-show show)]
+                              (let [show     (latest-show show)
+                                    triggers ((requiring-resolve 'beat-link-trigger.triggers/get-triggers) show)]
                                 (when (and (every? (partial close-track-editors? force?) (vals (:tracks show)))
                                            (every? (partial editors/close-editor? force?)
-                                                   (vals (:expression-editors show))))
+                                                   (vals (:expression-editors show)))
+                                           (every? (partial (requiring-resolve
+                                                             'beat-link-trigger.triggers/close-trigger-editors?)
+                                                            force?)
+                                                   triggers))
                                   (.removeUpdateListener virtual-cdj update-listener)
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
                                   (.removeLifecycleListener metadata-finder mf-listener)
@@ -2362,6 +2385,10 @@
                                   (run-global-function show :shutdown nil (not force?))
                                   (try
                                     (save-show show false)
+                                    ;; This has to come after the show is saved, because `save-show` needs to
+                                    ;; save the triggers too.
+                                    (doseq [trigger triggers]
+                                      ((requiring-resolve 'beat-link-trigger.triggers/delete-trigger) true trigger))
                                     (catch Throwable t
                                       (timbre/error t "Problem closing Show file.")
                                       (seesaw/alert root (str "<html>Problem Closing Show.<br><br>" t)
@@ -2369,9 +2396,9 @@
                                   (when-let [^Database database (:import-database show)]
                                     (.close database))
                                   (seesaw/invoke-later
-                                   ;; Gives windows time to close first, so they don't recreate a broken show.
-                                   (su/remove-file-from-open-shows! file)
-                                   (sim/recompute-track-models))
+                                    ;; Gives windows time to close first, so they don't recreate a broken show.
+                                    (su/remove-file-from-open-shows! file)
+                                    (sim/recompute-track-models))
                                   ;; Remove the instruction to reopen this window the next time the program runs,
                                   ;; unless we are closing it because the application is quitting.
                                   (when-not quitting? (swap! util/window-positions dissoc window-name))
@@ -2386,7 +2413,8 @@
         (seesaw/config! import-menu :items (build-import-submenu-items show))
         (seesaw/config! root :menubar (build-show-menubar show) :content layout)
 
-        ;; Need to compile the show expressions before building the tracks, so shared functions are available.
+        ;; Need to compile the show expressions before building the tracks and triggers,
+        ;; so shared functions are available.
         (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
           (let [editor-info (get @editors/global-show-editors kind)]
             (try
@@ -2430,6 +2458,8 @@
         (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
         (seesaw/show! root)
+        (doseq [trigger-map (:triggers contents)]
+          ((requiring-resolve 'beat-link-trigger.triggers/create-trigger-for-show) show trigger-map))
         (sim/recompute-track-models))
       (catch Throwable t
         (su/remove-file-from-open-shows! file)
