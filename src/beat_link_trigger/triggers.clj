@@ -647,27 +647,28 @@
   Also resize the window if it still fits the screen, and update any
   other user interface elements that might be affected."
   []
-  (loop [triggers       (get-triggers)
-         trigger-index  1
-         show-index     0
-         last-show-file nil]
-    (let [trigger    (first triggers)
-          remaining  (rest triggers)
-          show-file  (:show-file @(seesaw/user-data trigger))
-          show-index (if (= show-file last-show-file) show-index (inc show-index))]
-      (seesaw/config! trigger :background (trigger-color trigger-index show-index))
-      (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
-      (if (= show-file last-show-file)
-        (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)
-        (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? true
-                        :text (str "Triggers from Show " (util/trim-extension (.getPath show-file)) ":")))
-      (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
-        (editors/retitle editor))
-      (when (seq remaining)
-        (recur remaining
-               (inc trigger-index)
-               show-index
-               show-file))))
+  (when (seq (get-triggers))
+    (loop [triggers       (get-triggers)
+           trigger-index  1
+           show-index     0
+           last-show-file nil]
+      (let [trigger    (first triggers)
+            remaining  (rest triggers)
+            show-file  (:show-file @(seesaw/user-data trigger))
+            show-index (if (= show-file last-show-file) show-index (inc show-index))]
+        (seesaw/config! trigger :background (trigger-color trigger-index show-index))
+        (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
+        (if (= show-file last-show-file)
+          (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)
+          (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? true
+                          :text (str "Triggers from Show " (util/trim-extension (.getPath show-file)) ":")))
+        (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
+          (editors/retitle editor))
+        (when (seq remaining)
+          (recur remaining
+                 (inc trigger-index)
+                 show-index
+                 show-file)))))
   (let [^JFrame frame @trigger-frame]
     (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration frame)))
                     (.height (.getBounds frame))))
