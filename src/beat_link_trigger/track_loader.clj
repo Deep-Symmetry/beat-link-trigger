@@ -1773,10 +1773,11 @@
   (let [^Long number      (when-let [^PlayerChoice selection (seesaw/selection e)]
                             (.number selection))
         ^CdjStatus status (when number (.getLatestStatusFor virtual-cdj number))]
-    (reset! selected-player {:number  number
-                             :playing (and status (.isPlaying status))
-                             :cued    (and status (.isCued status))
-                             :xdj-xz  (str/starts-with? (.getDeviceName status) "XDJ-XZ")})))
+    (reset! selected-player {:number   number
+                             :playing  (and status (.isPlaying status))
+                             :cued     (and status (.isCued status))
+                             :xdj-xz   (str/starts-with? (.getDeviceName status) "XDJ-XZ")
+                             :cdj-3000 (str/starts-with? (.getDeviceName status) "CDJ-3000")})))
 
 (defn- configure-partial-search-ui
   "Show (with appropriate content) or hide the label and buttons
@@ -1926,7 +1927,7 @@
      (if (seq valid-slots)
        (try
          (let [selected-track     (atom nil)
-               selected-player    (atom {:number nil :playing false :cued false :xdj-xz false})
+               selected-player    (atom {:number nil :playing false :cued false :xdj-xz false :cdj-3000 false})
                searches           (atom {})
                ^JFrame root       (seesaw/frame :title "Load Track on a Player"
                                                 :on-close :dispose :resizable? true)
@@ -1943,13 +1944,15 @@
                                           problem (cond (nil? @selected-track) "No track chosen."
                                                         playing                "Can't load while playing."
                                                         xdj-xz                 (xdj-xz-load-problem)
-                                                        :else                  "")]
+                                                        :else                  "")
+                                          no-play (when (or xdj-xz (:cdj-3000 @selected-player))
+                                                    (str (if xdj-xz "XDJ-XZ" "CDJ-3000") " can't "))]
                                       (seesaw/value! problem-label problem)
                                       (seesaw/config! load-button :enabled? (empty? problem))
                                       (seesaw/config! play-button :text
                                                       (if playing
-                                                        (if xdj-xz "XDJ-XZ can't Stop" "Stop and Cue")
-                                                        (if xdj-xz "XDJ-XZ can't Play" "Play if Cued")))
+                                                        (if no-play (str no-play "Stop") "Stop and Cue")
+                                                        (if no-play (str no-play "Play") "Play if Cued")))
                                       (seesaw/config! play-button :enabled? (and (not xdj-xz) (or playing cued)))))
                player-changed     (fn [e]
                                     (update-selected-player selected-player e)

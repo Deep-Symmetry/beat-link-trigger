@@ -187,6 +187,9 @@ to load tracks, and it does not support Fader Start (which is needed
 to remotely start/stop tracks), so this section won't be useful to you
 if you have an XDJ-XZ, unless you also have some other CDJs linked to
 it, in which case you will be able to control those.
+
+The CDJ-3000 will let you load tracks, but it does not support Fader
+Start either, so you won't be able to start or stop them playing.
 ====
 
 During pre-show and after-show situations, when there is no DJ on

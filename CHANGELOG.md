@@ -53,6 +53,9 @@ This change log follows the conventions of
 
 ### Changed
 
+- Noted in both the User Guide and Load Track windows that the
+  CDJ-3000 doesn't support Fader Start, so you can't start or stop
+  tracks remotely.
 - Updated several dependencies that had been lagging behind because of
   breaking changes in their APIs.
 
