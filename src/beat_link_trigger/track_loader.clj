@@ -1953,7 +1953,7 @@
                                                       (if playing
                                                         (if no-play (str no-play "Stop") "Stop and Cue")
                                                         (if no-play (str no-play "Play") "Play if Cued")))
-                                      (seesaw/config! play-button :enabled? (and (not xdj-xz) (or playing cued)))))
+                                      (seesaw/config! play-button :enabled? (and (not no-play) (or playing cued)))))
                player-changed     (fn [e]
                                     (update-selected-player selected-player e)
                                     (update-load-ui))
