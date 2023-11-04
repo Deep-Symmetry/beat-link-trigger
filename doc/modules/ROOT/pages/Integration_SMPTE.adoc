@@ -49,7 +49,7 @@ are, or have access to, a Max/MSP expert.
 Also please keep in mind the warning in the
 <<Players.adoc#,Player Status Window section>>
 about how time information can only be reliable when tracks are being
-played forwards, without loops.
+played forwards, without loops, unless the DJ is using CDJ-3000s.
 ====
 
 === Generating a Single SMPTE Stream
@@ -212,13 +212,14 @@ so the amount of help and support I am going to be able to offer are
 very limited. You can look for help on Orange Pi forums and from the
 author of the firmware described below, and Clint may be able to help
 (he is `@drummerclint` on the
-https://gitter.im/brunchboy/beat-link-trigger[Gitter channel]).
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+chat stream]).
 
 
 Also please keep in mind the warning in the
 <<Players.adoc#,Player Status Window section>>
 about how time information can only be reliable when tracks are being
-played forwards, without loops.
+played forwards, without loops, unless the DJ is using CDJ-3000s.
 ====
 
 The first thing you will need is an Orange Pi Zero board, an enclosure
