@@ -1400,7 +1400,8 @@
 
 (defn- import-trigger
   "Replaces the content of a single trigger with a previously exported
-  version."
+  version, preserving the trigger's relationship to its parent show,
+  if it has one."
   [trigger]
   (let [extension (util/extension-for-file-type :trigger-export)]
     (when-let [file (chooser/choose-file
@@ -1410,8 +1411,10 @@
                                (chooser/file-filter "All files" (constantly true))])]
       (try
         (cleanup-trigger true trigger)
-        (let [m (prefs/read-file :beat-link-trigger-export file)]
-          (load-trigger-from-map trigger (translate-custom-enabled (:item m))))
+        (let [m    (prefs/read-file :beat-link-trigger-export file)
+              show (:show-file @(seesaw/user-data trigger))]
+          (load-trigger-from-map trigger (translate-custom-enabled (:item m)))
+          (when show (swap! (seesaw/user-data trigger) assoc :show-file show)))
         (catch Exception e
           (timbre/error e "Problem importing" file)
           (seesaw/alert (str "<html>Unable to Import.<br><br>" e)
