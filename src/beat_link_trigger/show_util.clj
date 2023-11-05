@@ -33,6 +33,10 @@
   describing them."}
   open-shows (atom {}))
 
+(def show-file-version
+  "Holds the version of show files we create and are capable of reading."
+  2)
+
 (defn get-open-shows
   "Get the current map of open shows; keys are the file, values are a
   map containing the root of the window, the file (for ease of
@@ -139,8 +143,8 @@
           contents   (read-edn-path (build-filesystem-path filesystem "contents.edn"))]
       (when-not (= (:type contents) :beat-link-trigger.show/show)
         (throw (java.io.IOException. "Chosen file does not contain a Beat Link Trigger Show.")))
-      (when-not (= (:version contents) 1)
-        (throw (java.io.IOException. "Chosen Show is not supported by this version of Beat Link Trigger.")))
+      (when-not (<= (:version contents) show-file-version)
+        (throw (java.io.IOException. "Chosen Show requires a newer version of Beat Link Trigger.")))
       [filesystem contents])
     (catch java.nio.file.ProviderNotFoundException e
       (throw (java.io.IOException. "Chosen file is not readable as a Show" e)))))

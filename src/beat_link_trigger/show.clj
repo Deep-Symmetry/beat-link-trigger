@@ -1902,7 +1902,7 @@
     (try
       (WaveformPreview. data-ref ext)
       (catch IllegalStateException _
-        (timbre/info "No color preview waveform found, chcking for blue version.")
+        (timbre/info "No color preview waveform found, checking for blue version.")
         (find-waveform-preview data-ref anlz nil)))
     (when anlz (WaveformPreview. data-ref anlz))))
 
@@ -1991,7 +1991,8 @@
                                                          'beat-link-trigger.triggers/trigger-configuration-for-show)
                                                         show)]
     (try
-      (su/write-edn-path (assoc contents :triggers triggers) (su/build-filesystem-path filesystem "contents.edn"))
+      (su/write-edn-path (assoc contents :triggers triggers :version su/show-file-version)
+                         (su/build-filesystem-path filesystem "contents.edn"))
       (save-track-contents show)
       (.close filesystem)
       (catch Throwable t
@@ -2548,7 +2549,8 @@
                 (with-open [filesystem (FileSystems/newFileSystem (java.net.URI. (str "jar:" (.getScheme file-uri))
                                                                                  (.getPath file-uri) nil)
                                                                   {"create" "true"})]
-                  (su/write-edn-path {:type ::show :version 1} (su/build-filesystem-path filesystem "contents.edn"))))
+                  (su/write-edn-path {:type ::show :version su/show-file-version}
+                                     (su/build-filesystem-path filesystem "contents.edn"))))
               (create-show-window file)
               (catch Throwable t
                 (timbre/error t "Problem creating show")
