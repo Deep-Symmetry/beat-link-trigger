@@ -2170,6 +2170,21 @@
                                       "images/Gear-outline.png"
                                       "images/Gear-icon.png"))))
 
+(defn- build-phrase-menu
+  "Creates the Phrases menu. Pulled out as a function so that menu can be
+  re-created when the show is taken out of block-tracks mode."
+  [show]
+  (seesaw/menu :text "Phrases"
+               :id :phrases-menu
+               :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))
+                                      :name "New Phrase Trigger"
+                                      :key "menu T"
+                                      :tip "Adds a new phrase trigger row")
+                       (seesaw/action :handler (fn [_] (phrases/sort-phrases show))
+                                      :name "Sort by Comments"
+                                      :tip "Sorts all phrase trigger rows by their comment text")]))
+
+
 (defn- build-show-menubar
   "Creates the menu bar for a show window, given the show map."
   [show]
@@ -2206,15 +2221,7 @@
                                                         (map (partial build-global-editor-action show)
                                                              (keys @editors/global-show-editors))
                                                         [(seesaw/separator) inspect-action]))
-                            (seesaw/menu :text "Phrases"
-                                         :id :phrases-menu
-                                         :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))
-                                                                :name "New Phrase Trigger"
-                                                                :key "menu T"
-                                                                :tip "Adds a new phrase trigger row")
-                                                 (seesaw/action :handler (fn [_] (phrases/sort-phrases show))
-                                                                :name "Sort by Comments"
-                                                                :tip "Sorts all phrase trigger rows by their comment text")])
+                            (build-phrase-menu show)
                             (menus/build-help-menu)])))
 
 (defn- update-player-item-visibility
@@ -2647,12 +2654,19 @@
    (let [blocked? (boolean blocked?)]  ; Normalize to `true` or `false`.
      (swap-show! show update :block-tracks?
                  (fn [were-blocked?]
-                   (when (not= blocked? were-blocked?)
-                     (let [^JMenu menu (.getMenu ^JMenuBar (seesaw/config (:frame show) :menubar) 1)]
+                   (when (not= blocked? (boolean were-blocked?))
+                     (let [^JMenuBar menu-bar (seesaw/config (:frame show) :menubar)
+                           ^JMenu menu        (.getMenu menu-bar 1)]
                        (.setLabel menu (if blocked? "Expressions" "Tracks"))
                        (if blocked?
-                         (.remove menu 0)  ; Remove the Import menu.
-                         (.insert menu ^JMenu (:import-menu show) 0))))  ; Restore the Import menu.
+                         (do (.remove menu 0)       ; Remove the Import menu item from the Tracks/Expressions menu.
+                             (.remove menu-bar 2))  ; Remove the entire Phrases menu.
+                         (do (.insert menu ^JMenu (:import-menu show) 0)        ; Restore the Import menu item.
+                             ;; Restore the Phrases menu. To get it in the right place we need to remove the
+                             ;; Help menu first, then restore that last.
+                             (.remove menu-bar 2)
+                             (.add menu-bar (build-phrase-menu show) 2)
+                             (.add menu-bar (menus/build-help-menu))))))
                    blocked?)))))  ; Record the current state.
 
 (defn user-data
