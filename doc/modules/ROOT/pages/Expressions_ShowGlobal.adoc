@@ -30,6 +30,16 @@ you had it open the last time you used the program. You can use it to
 open network connections or set up other values for your Track and Cue
 expressions to use.
 
+One very powerful use of this expression is to create a custom user
+interface for special integration shows that don't use tracks and
+phrase triggers, by calling `show/block-tracks` as described in the
+<<Debugging.adoc#wireshark,Wireshark debugging section>> and the
+<<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> and
+<<Integration_QLC.adoc#,QLC+ Lighting Cues>> integration examples. The
+last one also shows how to use `socket-picker/show` to present a
+user-friendly interface for configuring a host and port for an
+integration to communicate with.
+
 [[show-came-online-expression]]
 == Came Online Expression
 

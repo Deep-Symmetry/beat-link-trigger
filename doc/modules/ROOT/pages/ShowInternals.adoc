@@ -35,8 +35,8 @@ your show expressions have called `show/block-tracks` to suppress the
 normal display of tracks that makes up the user interface of the Show
 window, or set up your own custom UI as described in the
 <<Debugging.adoc#wireshark,Wireshark debugging section>> and the
-<<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air integration
-example>>.
+<<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> and
+<<Integration_QLC.adoc#,QLC+ Lighting Cues>> integration examples.
 
 `:contents`:: The basic configuration information for the show,
 described <<show-contents,below>>.

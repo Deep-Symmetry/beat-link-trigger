@@ -177,7 +177,7 @@ To make it easier to understand how the capture relates to an issue
 you are seeing, it is even better if you can include a movie of your
 screen showing when the problem happens, and also include the precise
 timestamp in that video. The easiest way to have timestamps appear in
-your video is to download and open the
+your video is to download and <<Shows.adoc#opening-shows,open>> the
 link:{attachmentsdir}/Timestamp.bls[Timestamp show] that is embedded
 in this guide, and position its window near the part of your screen
 where you are capturing the issue. The Timestamp show looks like this:
