@@ -15,7 +15,7 @@ TIP: This example was rebuilt to take advantage of a new feature in
 BLT version 7.3 that allows a package of low-level triggers and code
 to be distributed in a standalone, easy-to-use way. If all you're
 looking to do is work with QLC+, you can just download the
-link:{attachmentsdir}/QLC-cues.bls[integration show], then
+link:{attachmentsdir}/QLC-Cues.bls[integration show], then
 <<Shows.adoc#opening-shows,open>> and use it as described next, and
 ignore the rest of the explanation of how it works until you are
 curious about that.
