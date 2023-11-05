@@ -10,6 +10,7 @@
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [clojure.walk]
+            [beat-link-trigger.socket-picker :as socket-picker]
             [beat-link-trigger.show-util :as su]
             [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.util :as util]

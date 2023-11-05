@@ -124,7 +124,7 @@
                         :background "#ccc"
                         :items [[(seesaw/label :text "nREPL Port:") "align right"]
                                 [(seesaw/spinner :id :port
-                                                 :model (seesaw/spinner-model port :from 1 :to 32767)
+                                                 :model (seesaw/spinner-model port :from 1 :to 65535)
                                                  :listen [:selection (fn [e]
                                                                        (prefs/put-preferences
                                                                         (assoc-in (prefs/get-preferences) [:nrepl :port]

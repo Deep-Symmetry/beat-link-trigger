@@ -25,6 +25,10 @@ This change log follows the conventions of
   a default value if you are having problems, launch with a saved
   configuration, open additional show files on startup, or suppress
   the automatic reopening of shows that were in use on the last run.
+- A socket picker dialog that can be used in shows that want to
+  integrate with software running on a particular address and port,
+  making it easy to provide a user interface for configuring that
+  connection.
 
 ### Fixed
 
@@ -37,6 +41,12 @@ This change log follows the conventions of
 - We now allow negative latencies in the Carabiner Connection window
   because of user reports that beat packets can be received before the
   actual beats are heard.
+- The function show/block-tracks for use in building special shows
+  that have no use for tracks was overlooked when the Phrase Triggers
+  feature was implemented, so it neglected to properly manage the
+  Phrases menu. This has been fixed, as has an issue that would cause
+  the show menu bar to be corrupted if the function was called with a
+  `false` value before tracks had ever been hidden.
 - The code that checks for the minimum Java version required at
   startup has been updated to reflect the fact that the Show interface
   actually needs Java 1.9 or later. The fact that nobody has run into
@@ -50,6 +60,8 @@ This change log follows the conventions of
   library that had been doing that with a newly-available release.
 - Removed some libraries that were not actually used any more, saving
   some file size.
+- Fixed the range of ports on which the nREPL server can be started,
+  it had been unnecessarily restricted.
 
 ### Changed
 
