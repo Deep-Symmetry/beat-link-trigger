@@ -29,15 +29,18 @@ guide](https://blt-guide.deepsymmetry.org/).
 
 [![License](https://img.shields.io/badge/License-Eclipse%20Public%20License%202.0-blue.svg)](#licenses)
 
-> :construction: **New Hardware Support In Progress**: While we seem
-> to have this working with CDJ-3000s and more than four players, we
-> still do not own any ourselves so we are not able to test directly,
-> and we don't know what else might be needed. This also means we have
-> not yet been able to take advantage of the more detailed position
-> updates these new players send. If you can do any testing with this
-> new hardware, please share status reports and (even more important)
-> open issues with log files, packet captures, and track analysis
-> files if you run into problems!
+> :construction: **New Hardware Support In Progress**: We have finally
+> been able to obtain a pair of CDJ-3000s, so version 7.3 and later
+> can work productively with them without warnings or issues, even
+> when they are configured as player 5 and 6, and we can now take
+> advantage of the high-precision position updates they send, to have
+> rock-solid tracking of their playback position even when jumping or
+> looping inside beats or playing backwards.
+>
+> If you can do any testing with this new hardware, please help us
+> confirm this and let us know on the Zulip stream, or open issues
+> with log files, packet captures, and track analysis files if you run
+> into problems!
 
 ## Getting Help
 
