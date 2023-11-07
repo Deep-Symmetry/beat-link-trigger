@@ -32,6 +32,11 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The Beat Link library now formats its startup device-assignment
+  packets and its keep-alive packets in a way that is compatible with
+  CDJ-3000s even when they are using player number 5 or 6: they no
+  longer display warning dialogs when it is on the network with them,
+  nor do they drop off the network.
 - The unpredictable order in which beat and status update packets
   arrive led to a visual glitch in which the beat phase indicators in
   the Player Status window (under the player on-air indicators) could
