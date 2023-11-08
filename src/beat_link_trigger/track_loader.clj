@@ -1533,6 +1533,19 @@
      (loadChildren [_]))
    false))
 
+;; Creates a menu item node for a rekordbox track with the album name.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_ALBUM track-title-and-album-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [album (menu-item-label-2 item)] (str "—" album))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
 ;; Creates a menu item node for a rekordbox track with the artist name.
 (defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_ARTIST track-title-and-artist-node
   [^Message item ^SlotReference slot-reference]
@@ -1540,6 +1553,30 @@
    (proxy [Object IMenuEntry] []
      (toString [] (str (menu-item-label item)
                        (when-let [artist (menu-item-label-2 item)] (str "—" artist))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track with BPM (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_BPM track-title-and-bpm-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track with color (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_LIST_ENTRY_BY_COLOR track-title-and-color-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
      (getId [] (menu-item-id item))
      (getSlot [] slot-reference)
      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
@@ -1559,8 +1596,21 @@
      (loadChildren [_]))
    false))
 
-;; Creates a menu item node for a rekordbox track with BPM (which we ignore).
-(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_BPM track-title-and-bpm-node
+;; Creates a menu item node for a rekordbox track and date added.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_DATE_ADDED track-title-and-date-added-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [date (menu-item-label-2 item)] (str "—" date))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track with DJ play count (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_DJ_PLAY_COUNT track-title-and-play-count-node
   [^Message item ^SlotReference slot-reference]
   (DefaultMutableTreeNode.
    (proxy [Object IMenuEntry] []
@@ -1570,6 +1620,109 @@
      (getTrackType [] CdjStatus$TrackType/REKORDBOX)
      (loadChildren [_]))
    false))
+;; Creates a menu item node for a rekordbox track and genre.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_GENRE track-title-and-genre-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [genre (menu-item-label-2 item)] (str "—" genre))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track and key.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_KEY track-title-and-key-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [k (menu-item-label-2 item)] (str "—" k))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track and label.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_LABEL track-title-and-label-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [label (menu-item-label-2 item)] (str "—" label))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track and original artist.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_ORIGINAL_ARTIST track-title-and-original-artist-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [artist (menu-item-label-2 item)] (str "—" artist))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track with bit rate (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_RATE track-title-and-rate-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track with rating (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_RATING track-title-and-rating-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track and remixer.
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_REMIXER track-title-and-remixer-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (str (menu-item-label item)
+                       (when-let [remixer (menu-item-label-2 item)] (str "—" remixer))))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+;; Creates a menu item node for a rekordbox track with time (which we ignore).
+(defmethod menu-item-node Message$MenuItemType/TRACK_TITLE_AND_TIME track-title-and-time-node
+  [^Message item ^SlotReference slot-reference]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] (menu-item-label item))
+     (getId [] (menu-item-id item))
+     (getSlot [] slot-reference)
+     (getTrackType [] CdjStatus$TrackType/REKORDBOX)
+     (loadChildren [_]))
+   false))
+
+
+
 
 ;; Creates a menu item node for the search interface. This special node is also a search entry,
 ;; and returns nil for getDatabase to indicate dbserver queries should be used to perform the search.

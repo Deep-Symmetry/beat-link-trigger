@@ -29,6 +29,9 @@ This change log follows the conventions of
   integrate with software running on a particular address and port,
   making it easy to provide a user interface for configuring that
   connection.
+- Support for some rare kinds of menu item types that could be
+  encountered when loading playlists over the `dbserver` protocol,
+  thanks to reports mailed in by users.
 
 ### Fixed
 
