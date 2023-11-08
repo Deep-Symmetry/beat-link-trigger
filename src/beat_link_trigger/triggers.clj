@@ -631,15 +631,14 @@
 
 (defn- trigger-color
   "Calculates the color that should be used as the background color for a
-  trigger row, given the trigger index and show index."
-  [trigger-index show-index]
+  trigger row, given the trigger index and show hue (if any)."
+  [trigger-index show-hue]
   (let [base-color (if (odd? trigger-index) "#eee" "#ddd")]
-    (if (zero? show-index)
-      base-color
+    (if show-hue
       (let [luminance (-> base-color color/css color/luminance)
-            hue       (mod (* show-index 62.5) 360.0)
-            color     (color/hsla (/ hue 360.0) 0.95 luminance)]
-        (Color. @(color/as-int24 color))))))
+            color     (color/hsla (/ show-hue 360.0) 0.95 luminance)]
+        (Color. @(color/as-int24 color)))
+      base-color)))
 
 (defn- adjust-triggers
   "Called when a trigger is added or removed to restore the proper
@@ -650,13 +649,15 @@
   (when (seq (get-triggers))
     (loop [triggers       (get-triggers)
            trigger-index  1
-           show-index     0
+           show-hue       nil
            last-show-file nil]
       (let [trigger    (first triggers)
             remaining  (rest triggers)
             show-file  (:show-file @(seesaw/user-data trigger))
-            show-index (if (= show-file last-show-file) show-index (inc show-index))]
-        (seesaw/config! trigger :background (trigger-color trigger-index show-index))
+            show-hue   (if (= show-file last-show-file)
+                         show-hue  ; Either let show explicitly set hue, or rotate through color wheel
+                         (or (:show-hue @(seesaw/user-data trigger)) (mod (+ (or show-hue 0.0) 62.5) 360.0)))]
+        (seesaw/config! trigger :background (trigger-color trigger-index show-hue))
         (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
         (if (= show-file last-show-file)
           (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)
@@ -667,7 +668,7 @@
         (when (seq remaining)
           (recur remaining
                  (inc trigger-index)
-                 show-index
+                 show-hue
                  show-file)))))
   (let [^JFrame frame @trigger-frame]
     (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration frame)))
@@ -1068,7 +1069,9 @@
 (defn create-trigger-for-show
   "Creates a new trigger that belongs to the show that was opened from
   the specified file. If `m` is supplied, it is a map containing the
-  contents with which the trigger should be recreated."
+  contents with which the trigger should be recreated. If the show's
+  user data reports that it has a custom hue, the trigger is marked to
+  use that hue as well."
   ([show]
    (create-trigger-for-show show {}))
   ([show m]
@@ -1079,6 +1082,8 @@
          new-trigger     (create-trigger-row m trigger-index)
          triggers-after  (drop (dec trigger-index) triggers)]
      (swap! (seesaw/user-data new-trigger) assoc :show-file (:file show))
+     (when-let [show-hue (:show-hue (show/user-data show))]
+       (swap! (seesaw/user-data new-trigger) assoc :show-hue show-hue))
      (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                      :items (concat triggers-before show-triggers [new-trigger] triggers-after))
      (adjust-triggers))))

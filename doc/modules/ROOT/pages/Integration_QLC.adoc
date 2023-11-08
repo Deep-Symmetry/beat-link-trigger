@@ -691,13 +691,19 @@ is its full final content, reflecting all three stages of development:
 (.addTrackMetadataListener metadata-finder qlc-cue-indexer)
 (swap! globals assoc :http (http/create-client))
 (show/block-tracks show #_false (build-qlc-config-ui show globals))  ;; <1>
-(configure-qlc-ws-url show globals)  ;; <2>
+(show/swap-user-data! show assoc :show-hue 60.0)  ;; <2>
+(configure-qlc-ws-url show globals)  ;; <3>
 ----
 
 <1> This is the first new line, which tells the show to hide its
 normal Tracks interface, and replace it with the one we build.
 
-<2> We also configure the web socket URL the other functions need,
+<2> This tell Beat Link Trigger about the color we have chosen for the
+background of the show UI, so that the trigger row can be drawn in a
+matching hue, to make it easier to visually associate the show's
+trigger with the show window.
+
+<3> We also configure the web socket URL the other functions need,
 which will try to open a connection and update the user interface to
 let the user know if that connection succeeded.
 
