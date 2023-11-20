@@ -73,6 +73,9 @@ This change log follows the conventions of
 
 ### Changed
 
+- We can now handle menu item responses from CDJ-3000s that contain
+  additional (as-yet unrecognized) information in the two high-order
+  bytes of the menu item type field in menu responses.
 - Noted in both the User Guide and Load Track windows that the
   CDJ-3000 doesn't support Fader Start, so you can't start or stop
   tracks remotely.
