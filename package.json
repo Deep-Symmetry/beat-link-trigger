@@ -3,8 +3,8 @@
   "description": "Used to build the documentation site, not the project itself.",
   "dependencies": {},
   "devDependencies": {
-    "@antora/cli": "3.1.2",
-    "@antora/site-generator": "3.1.2",
+    "@antora/cli": "3.1.5",
+    "@antora/site-generator": "3.1.5",
     "@antora/lunr-extension": "^1.0.0-alpha.8"
   },
   "scripts": {
