@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [7.3.0] - 2023-11-24
+
 ### Added
 
 - Precise position packets from CDJ-3000s are used to be able to track
@@ -1504,7 +1508,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...HEAD
+[7.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...v7.3.0
 [7.2.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.0...v7.2.1
 [7.2.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.1.0...v7.2.0
 [7.1.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.0.1...v7.1.0
