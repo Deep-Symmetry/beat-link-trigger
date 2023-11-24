@@ -187,13 +187,13 @@ releases of hardware or even firmware updates from Pioneer.
 > Link. You can see what tracks are loaded, and whether the player is
 > playing, but little more.
 
-> [!TIP] :white_check_mark: Beat Link Trigger seems to work great with
-> Nexus gear and DJ-Link hardware released after that. It has been
-> reported to work well with XDJ-1000 gear, and (starting with version
-> 0.6.0) with the XDJ-XZ as well. Version 7.3 (currently in preview
-> release) adds complete support for CDJ-3000 features. If you can try
-> it with anything else, *please* let us know what you learn in the
-> [Zulip
+> [!TIP]
+> :white_check_mark: Beat Link Trigger seems to work great with Nexus
+> gear and DJ-Link hardware released after that. It has been reported
+> to work well with XDJ-1000 gear, and (starting with version 0.6.0)
+> with the XDJ-XZ as well. Version 7.3 (currently in preview release)
+> adds complete support for CDJ-3000 features. If you can try it with
+> anything else, *please* let us know what you learn in the [Zulip
 > stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger),
 > or if you have worked out actionable details about something that
 > could be improved, [open an
