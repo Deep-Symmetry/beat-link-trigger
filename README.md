@@ -153,7 +153,8 @@ efforts, tools, toys, and time to explore.
 
 This is in no way a sanctioned implementation of the protocols. It should be clear, but:
 
-> :warning: Use at your own risk! For example, there are reports that
+> [!WARNING]
+> Use at your own risk! For example, there are reports that
 > the XDJ-RX (and XDJ-RX2) crash when BLT starts, so don&rsquo;t use
 > it with one on your network. As Pioneer themselves
 > [explain](https://forums.pioneerdj.com/hc/en-us/community/posts/203113059-xdj-rx-as-single-deck-on-pro-dj-link-),
@@ -167,34 +168,37 @@ While these techniques appear to work for us so far, there are many
 gaps in our knowledge, and things could change at any time with new
 releases of hardware or even firmware updates from Pioneer.
 
-:x: You should also not expect to be able to run Beat Link Trigger, or
-any project like it, on the same machine that you are running
-rekordbox, because they will compete over access to network ports.
-Also, as noted above, the XDJ-RX and XDJ-RX2 do not support the full
-DJ Link protocol, and so will not work with software like this. And,
-of course, controllers which don't even have Link (Ethernet) jacks
-can't work either.
+> [!CAUTION]
+> You should also not expect to be able to run Beat Link Trigger, or
+> any project like it, on the same machine that you are running
+> rekordbox, because they will compete over access to network ports.
+> Also, as noted above, the XDJ-RX and XDJ-RX2 do not support the full
+> DJ Link protocol, and so will not work with software like this. And,
+> of course, controllers which don't even have Link (Ethernet) jacks
+> can't work either.
 
-:unamused: Pre-Nexus gear (hardware older than the CDJ-900 nexus) is
-missing many important features, so BLT's capabilities are very
-degraded when working with such gear: much less information is
-available, we can't infer playback position/time code, and the
-hardware completely lacks tempo Sync or Master capabilities, so
-beat-based triggers are impossible, as is synchronization with Ableton
-Link. You can see what tracks are loaded, and whether the player is
-playing, but little more.
+> [!IMPORTANT]
+> :unamused: Pre-Nexus gear (hardware older than the CDJ-900 nexus) is
+> missing many important features, so BLT's capabilities are very
+> degraded when working with such gear: much less information is
+> available, we can't infer playback position/time code, and the
+> hardware completely lacks tempo Sync or Master capabilities, so
+> beat-based triggers are impossible, as is synchronization with Ableton
+> Link. You can see what tracks are loaded, and whether the player is
+> playing, but little more.
 
-:white_check_mark: Beat Link Trigger seems to work great with Nexus
-gear and DJ-Link hardware released after that. It has been reported to
-work well with XDJ-1000 gear, and (starting with version 0.6.0) with
-the XDJ-XZ as well. If you can try it with anything else, *please* let
-us know what you learn in the [Zulip
-stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger),
-or if you have worked out actionable details about something that
-could be improved, [open an
-Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or
-submit a pull request so we can all improve our understanding
-together.
+> [!TIP]
+> :white_check_mark: Beat Link Trigger seems to work great with Nexus
+> gear and DJ-Link hardware released after that. It has been reported to
+> work well with XDJ-1000 gear, and (starting with version 0.6.0) with
+> the XDJ-XZ as well. If you can try it with anything else, *please* let
+> us know what you learn in the [Zulip
+> stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger),
+> or if you have worked out actionable details about something that
+> could be improved, [open an
+> Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or
+> submit a pull request so we can all improve our understanding
+> together.
 
 If something isn&rsquo;t working with your hardware and you don&rsquo;t yet know
 the details why, but are willing to learn a little and help figure it
