@@ -151,7 +151,7 @@
                                   :phrase phrase} (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/show-editor-title kind show phrase) ":\n"
-                               (get-in phrase [:contents :expressions kind])))
+                               (get-in phrase [:expressions kind])))
           (when alert? (seesaw/alert (str "<html>Problem running phrase trigger " (name kind) " expression.<br><br>" t)
                                      :title "Exception in Show Phrase Trigger Expression" :type :error))
           [nil t])))))

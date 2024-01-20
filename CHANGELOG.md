@@ -6,7 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- When exceptions occurred in phrase trigger expressions, the source
+  of the expression was supposed to be logged, but it was not.
 
 ## [7.3.0] - 2023-11-24
 
