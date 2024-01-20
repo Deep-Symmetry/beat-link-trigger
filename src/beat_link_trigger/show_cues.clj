@@ -596,7 +596,7 @@
   looked up. If it has been deleted, nothing is sent. `event` is the
   key identifying how look up the appropriate MIDI message or custom
   expression in the cue, and `status-or-beat` is the protocol message,
-  if any, which caused the state change, if any."
+  if any, which caused the state change."
   [context runtime-info cue event status-or-beat]
   #_(timbre/info "sending cue messages" event (.getTimestamp status-or-beat)
                  (if (instance? Beat status-or-beat)
