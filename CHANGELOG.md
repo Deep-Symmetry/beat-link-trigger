@@ -8,6 +8,11 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The phrase trigger Started expression now has basic information
+  about the player causing the trigger to start much more of the time,
+  but no longer assumes this is due to a `CdjStatus` packet, because
+  it is usually driven by a `Beat` packet. (This does mean there are
+  fewer convenience variables available to the expression.)
 - When exceptions occurred in phrase trigger expressions, the source
   of the expression was supposed to be logged, but it was not.
 
