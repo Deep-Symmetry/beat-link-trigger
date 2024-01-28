@@ -4,9 +4,13 @@
  <img align="right" width="275" height="250" alt="Beat Link Trigger"
       src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
 
-An application to trigger MIDI events when CDJs start playing tracks,
-play certain kinds of phrases, reach particular beats, or whatever
-else you can think of. Built using
+An integration environment for DJ performances focused on bridging
+Pioneer DJ professional equipment to lighting, video, laser, and
+digital audio workstation software. Created as a way to trigger MIDI
+events when CDJs start playing tracks, play certain kinds of phrase,
+reach particular beats, etc., it has grown in many interesting
+directions thanks to requests from touring artists who wanted to do
+new and interesting things in their shows. Built using
 [beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
 
 > ”It's a shame Pioneer doesn't support this project, even
