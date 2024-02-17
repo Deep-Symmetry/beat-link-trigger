@@ -32,6 +32,9 @@ jpackage --name "$env:blt_name" --input .\Input --add-modules "$env:blt_java_mod
  --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
 
+#Restore old PowerShell parsing behavior
+$PSNativeCommandArgumentPassing = 'Legacy'
+
 #Get the Wix-Toolset file for Beat Link Trigger
 copy ".\.github\resources\MSI Template.wxs" ".\"
 
@@ -43,12 +46,4 @@ copy ".\.github\resources\MSI Template.wxs" ".\"
 & $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -ext WixFirewallExtension -arch x64
 
 #Compile MSI
-Write-Output "Light Command: $Light -b Beat Link Trigger -nologo *.wixobj -out ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension"
-
-Try {
-  & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension
-}
-Catch {
-  Write-Output "Light threw an error, will try something different"
-  & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out $env:artifact_name -ext WixUIExtension -ext WixFirewallExtension
-}
+& $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension
