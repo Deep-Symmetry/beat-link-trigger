@@ -43,4 +43,5 @@ copy ".\.github\resources\MSI Template.wxs" ".\"
 & $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -ext WixFirewallExtension -arch x64
 
 #Compile MSI
+Write-Output "Compile MSI: -out" ""$env:artifact_name""
 & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension
