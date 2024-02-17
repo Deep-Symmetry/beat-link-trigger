@@ -32,7 +32,7 @@ jobs:
 
     steps:
     - name: Check out main branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install SSH Key
       uses: shimataro/ssh-key-action@v2
@@ -41,7 +41,7 @@ jobs:
         known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMKq8T1IXQHNYLgO715YbxTXoVxEsJcha9h1lxyOXpa'
 
     - name: Prepare Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'corretto'
@@ -62,7 +62,7 @@ jobs:
         fi
 
     - name: Cache Leiningen dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
@@ -93,7 +93,7 @@ jobs:
         initial_mrkdwn: ${{ env.initial_description }}
 
     - name: Cache htmltest results
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: tmp/.htmltest
         key: ${{ runner.os }}-htmltest
@@ -112,7 +112,7 @@ jobs:
       build_uberjar
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: Deep-Symmetry/github-version-action@v1
       with:
@@ -134,7 +134,7 @@ jobs:
           echo "release_snapshot=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         }
 
-    - uses: actions/setup-java@v3
+    - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'corretto'
@@ -172,7 +172,7 @@ jobs:
       build_uberjar
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: Deep-Symmetry/github-version-action@v1
       with:
@@ -196,7 +196,7 @@ jobs:
           echo "release_snapshot=false" >>$GITHUB_ENV
         fi
 
-    - uses: actions/setup-java@v3
+    - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'corretto'
