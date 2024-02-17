@@ -32,7 +32,7 @@ jpackage --name "$env:blt_name" --input .\Input --add-modules "$env:blt_java_mod
  --description "$env:blt_description" --copyright "$env:blt_copyright" --vendor "$env:blt_vendor" `
  --app-version "$env:build_version"
 
-#Restore old PowerShell parsing behavior
+#Restore old PowerShell parsing behavior since we rely on its buggy glory
 $PSNativeCommandArgumentPassing = 'Legacy'
 
 #Get the Wix-Toolset file for Beat Link Trigger

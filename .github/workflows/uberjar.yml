@@ -25,91 +25,91 @@ env:
     :calendar: **Ignore the “release date” above!** Because this is a snapshot release, the executables below (you may need to click to expand the Assets) will change frequently—whenever new code is pushed to the project—so you will want to _download the latest version every time you work with one_. The date you see _on each asset row_ shows you when it was last updated. Source code archive assets are not useful for snapshot releases, they will always reflect the state of the project when the snapshots began. And you can always determine the exact and definitive build date, version, and the version of Java being used by opening the “About” window within BLT.
 
 jobs:
-  # build_uberjar:
-  #   name: Build cross-platform überjar
-  #   runs-on: ubuntu-latest
-  #   if: "!contains(github.event.head_commit.message, '[skip ci]')"
+  build_uberjar:
+    name: Build cross-platform überjar
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
-  #   steps:
-  #   - name: Check out main branch
-  #     uses: actions/checkout@v3
+    steps:
+    - name: Check out main branch
+      uses: actions/checkout@v3
 
-  #   - name: Install SSH Key
-  #     uses: shimataro/ssh-key-action@v2
-  #     with:
-  #       key: ${{ secrets.GUIDE_SSH_KEY }}
-  #       known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMKq8T1IXQHNYLgO715YbxTXoVxEsJcha9h1lxyOXpa'
+    - name: Install SSH Key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.GUIDE_SSH_KEY }}
+        known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMKq8T1IXQHNYLgO715YbxTXoVxEsJcha9h1lxyOXpa'
 
-  #   - name: Prepare Java
-  #     uses: actions/setup-java@v3
-  #     with:
-  #       java-version: '17'
-  #       distribution: 'corretto'
+    - name: Prepare Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
 
-  #   - name: Determine version being built
-  #     uses: Deep-Symmetry/github-version-action@v1
-  #     with:
-  #       tag-var-name: release_tag
+    - name: Determine version being built
+      uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
 
-  #   - name: Determine überjar name from git version, and snapshot status
-  #     run: |
-  #       echo "uberjar_name=beat-link-trigger-$git_version.jar" >> $GITHUB_ENV
-  #       if [[ $release_tag =~ .*-SNAPSHOT ]]
-  #       then
-  #         echo "release_snapshot=true" >> $GITHUB_ENV
-  #       else
-  #         echo "release_snapshot=false" >> $GITHUB_ENV
-  #       fi
+    - name: Determine überjar name from git version, and snapshot status
+      run: |
+        echo "uberjar_name=beat-link-trigger-$git_version.jar" >> $GITHUB_ENV
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >> $GITHUB_ENV
+        else
+          echo "release_snapshot=false" >> $GITHUB_ENV
+        fi
 
-  #   - name: Cache Leiningen dependencies
-  #     uses: actions/cache@v3
-  #     with:
-  #       path: ~/.m2/repository
-  #       key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
-  #       restore-keys: |
-  #         ${{ runner.os }}-lein-
+    - name: Cache Leiningen dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
+        restore-keys: |
+          ${{ runner.os }}-lein-
 
-  #   - name: Install dependencies, forcing updates of snapshots
-  #     run: lein -U deps
+    - name: Install dependencies, forcing updates of snapshots
+      run: lein -U deps
 
-  #   - name: Install antora for building user guide
-  #     run: npm install
+    - name: Install antora for building user guide
+      run: npm install
 
-  #   - name: Build überjar
-  #     run: |
-  #       lein uberjar
-  #       mv target/beat-link-trigger.jar "./$uberjar_name"
+    - name: Build überjar
+      run: |
+        lein uberjar
+        mv target/beat-link-trigger.jar "./$uberjar_name"
 
-  #   - name: Upload überjar
-  #     if: success()
-  #     uses: Xotl/cool-github-releases@v1
-  #     with:
-  #       mode: update
-  #       tag_name: ${{ env.release_tag }}
-  #       isPrerelease: ${{ env.release_snapshot }}
-  #       replace_assets: ${{ env.release_snapshot }}
-  #       assets: ${{ env.uberjar_name }}
-  #       github_token: ${{ github.token }}
-  #       initial_mrkdwn: ${{ env.initial_description }}
+    - name: Upload überjar
+      if: success()
+      uses: Xotl/cool-github-releases@v1
+      with:
+        mode: update
+        tag_name: ${{ env.release_tag }}
+        isPrerelease: ${{ env.release_snapshot }}
+        replace_assets: ${{ env.release_snapshot }}
+        assets: ${{ env.uberjar_name }}
+        github_token: ${{ github.token }}
+        initial_mrkdwn: ${{ env.initial_description }}
 
-  #   - name: Cache htmltest results
-  #     uses: actions/cache@v3
-  #     with:
-  #       path: tmp/.htmltest
-  #       key: ${{ runner.os }}-htmltest
+    - name: Cache htmltest results
+      uses: actions/cache@v3
+      with:
+        path: tmp/.htmltest
+        key: ${{ runner.os }}-htmltest
 
-  #   - name: Build and publish user guide
-  #     env:
-  #       GUIDE_SSH_KEY: ${{ secrets.GUIDE_SSH_KEY }}
-  #     run: bash .github/scripts/build_guide.sh
+    - name: Build and publish user guide
+      env:
+        GUIDE_SSH_KEY: ${{ secrets.GUIDE_SSH_KEY }}
+      run: bash .github/scripts/build_guide.sh
 
 
   build_msi:
     name: Build Windows native installer
     runs-on: windows-latest
 
-    # needs:
-    #   build_uberjar
+    needs:
+      build_uberjar
 
     steps:
     - uses: actions/checkout@v3
@@ -164,67 +164,67 @@ jobs:
         initial_mrkdwn: ${{ env.initial_description }}
 
 
-  # build_dmg:
-  #   name: Build macOS Disk Image
-  #   runs-on: macos-latest
+  build_dmg:
+    name: Build macOS Disk Image
+    runs-on: macos-latest
 
-  #   needs:
-  #     build_uberjar
+    needs:
+      build_uberjar
 
-  #   steps:
-  #   - uses: actions/checkout@v3
+    steps:
+    - uses: actions/checkout@v3
 
-  #   - uses: Deep-Symmetry/github-version-action@v1
-  #     with:
-  #       tag-var-name: release_tag
+    - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
 
-  #   - name: Determine überjar name, build version, disk image name, artifact name, and snapshot status
-  #     run: |
-  #       uberjarName="beat-link-trigger-$git_version.jar"
-  #       echo "uberjar_name=$uberjarName" >>$GITHUB_ENV
-  #       buildVersion=${release_tag%-SNAPSHOT}
-  #       buildVersion=${buildVersion#v}
-  #       echo "build_version=$buildVersion" >>$GITHUB_ENV
-  #       dmgName="Beat Link Trigger-$buildVersion.dmg"
-  #       echo "dmg_name=$dmgName" >>$GITHUB_ENV
-  #       artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
-  #       echo "artifact_name=$artifactName" >>$GITHUB_ENV
-  #       if [[ $release_tag =~ .*-SNAPSHOT ]]
-  #       then
-  #         echo "release_snapshot=true" >>$GITHUB_ENV
-  #       else
-  #         echo "release_snapshot=false" >>$GITHUB_ENV
-  #       fi
+    - name: Determine überjar name, build version, disk image name, artifact name, and snapshot status
+      run: |
+        uberjarName="beat-link-trigger-$git_version.jar"
+        echo "uberjar_name=$uberjarName" >>$GITHUB_ENV
+        buildVersion=${release_tag%-SNAPSHOT}
+        buildVersion=${buildVersion#v}
+        echo "build_version=$buildVersion" >>$GITHUB_ENV
+        dmgName="Beat Link Trigger-$buildVersion.dmg"
+        echo "dmg_name=$dmgName" >>$GITHUB_ENV
+        artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
+        echo "artifact_name=$artifactName" >>$GITHUB_ENV
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >>$GITHUB_ENV
+        else
+          echo "release_snapshot=false" >>$GITHUB_ENV
+        fi
 
-  #   - uses: actions/setup-java@v3
-  #     with:
-  #       java-version: '17'
-  #       distribution: 'corretto'
+    - uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
 
-  #   - name: Download überjar
-  #     uses: Xotl/cool-github-releases@v1
-  #     with:
-  #       mode: download
-  #       tag_name: ${{ env.release_tag }}
-  #       replace_assets: ${{ env.release_snapshot }}
-  #       assets: ${{ env.uberjar_name }}
-  #       github_token: ${{ github.token }}
-  #       initial_mrkdwn: ${{ env.initial_description }}
+    - name: Download überjar
+      uses: Xotl/cool-github-releases@v1
+      with:
+        mode: download
+        tag_name: ${{ env.release_tag }}
+        replace_assets: ${{ env.release_snapshot }}
+        assets: ${{ env.uberjar_name }}
+        github_token: ${{ github.token }}
+        initial_mrkdwn: ${{ env.initial_description }}
 
-  #   - name: Build macOS disk image
-  #     env:
-  #       IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
-  #       IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
-  #       NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
-  #     run: zsh .github/scripts/build_dmg.zsh
+    - name: Build macOS disk image
+      env:
+        IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
+        IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
+        NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
+      run: zsh .github/scripts/build_dmg.zsh
 
-  #   - name: Upload macOS disk image
-  #     if: success()
-  #     uses: Xotl/cool-github-releases@v1
-  #     with:
-  #       mode: update
-  #       tag_name: ${{ env.release_tag }}
-  #       replace_assets: ${{ env.release_snapshot }}
-  #       assets: ${{ env.artifact_name }}
-  #       github_token: ${{ github.token }}
-  #       initial_mrkdwn: ${{ env.initial_description }}
+    - name: Upload macOS disk image
+      if: success()
+      uses: Xotl/cool-github-releases@v1
+      with:
+        mode: update
+        tag_name: ${{ env.release_tag }}
+        replace_assets: ${{ env.release_snapshot }}
+        assets: ${{ env.artifact_name }}
+        github_token: ${{ github.token }}
+        initial_mrkdwn: ${{ env.initial_description }}
