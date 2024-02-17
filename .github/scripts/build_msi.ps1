@@ -43,7 +43,28 @@ copy ".\.github\resources\MSI Template.wxs" ".\"
 & $Candle -dAppName=""$env:blt_name"" -dAppVersion=""$env:build_version"" -dAppVendor=""$env:blt_vendor"" -dAppUpgradeCode=""$env:blt_upgradecode"" -dAppDescription=""$env:blt_description"" -dAppVendorFolder=""$env:blt_vendor_folder"" -dAppIcon=""$env:blt_icon"" -nologo *.wxs -ext WixUIExtension -ext WixFirewallExtension -arch x64
 
 #Compile MSI
+
+function Printable([string] $s) {
+    $Matcher =
+    {
+      param($m)
+
+      $x = $m.Groups[0].Value
+      $c = [int]($x.ToCharArray())[0]
+      switch ($c)
+      {
+          9 { '\t' }
+          13 { '\r' }
+          10 { '\n' }
+          92 { '\\' }
+          Default { "\$c" }
+      }
+    }
+    return ([regex]'[^ -~\\]').Replace($s, $Matcher)
+}
+
 $CurrentWorkingDir = (Get-Location).Path
 $LightOutFile = $CurrentWorkingDir+"\"+$env:artifact_name
+Write-Output (Printable $LightOutFile)
 Write-Output "Compile MSI: -out $LightOutFile"
 & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out ""$LightOutFile"" -ext WixUIExtension -ext WixFirewallExtension
