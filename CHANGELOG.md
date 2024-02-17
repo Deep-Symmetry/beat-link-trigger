@@ -15,6 +15,13 @@ This change log follows the conventions of
   fewer convenience variables available to the expression.)
 - When exceptions occurred in phrase trigger expressions, the source
   of the expression was supposed to be logged, but it was not.
+- It turns out there is a long-standing
+  [bug](https://bugs.java.com/bugdatabase/view_bug?bug_id=8023649) in
+  Java under Windows that can sometimes return `null` values in the
+  list of network addresses associated with an interface. The embedded
+  Beat Link library now has defensive code to protect itself against
+  this and avoid crashing when the `VirtualCdj` is trying to find the
+  right network interface to use to talk to the DJ link network.
 
 ## [7.3.0] - 2023-11-24
 
