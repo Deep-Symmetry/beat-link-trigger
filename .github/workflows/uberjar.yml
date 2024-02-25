@@ -184,8 +184,8 @@ jobs:
     runs-on: ubuntu-latest
 
     needs:
-      build_dmg
-      build_msi
+      - build_dmg
+      - build_msi
 
     steps:
       - name: Update release title, description, and status
