@@ -189,5 +189,20 @@ jobs:
       - build_msi
 
     steps:
+    - uses: actions/checkout@v4
+
+    - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
+
+    - name: Determine snapshot status
+      run: |
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >>$GITHUB_ENV
+        else
+          echo "release_snapshot=false" >>$GITHUB_ENV
+        fi
+
       - name: Update release title, description, and status
         run: bash .github/scripts/finish_release.sh
