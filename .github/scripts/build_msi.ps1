@@ -18,10 +18,16 @@ if (!(Test-Path $Light)) {
   Write-Warning "Light location not found, please check if Wix-Toolset is installed correctly"
 }
 
-# Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
-# native app bundle.
+# Download the executable jar into an Input folder to be used in building the native app bundle
 mkdir Input
-copy "$env:uberjar_name" Input/beat-link-trigger.jar
+if ( $env:release_snapshot )
+{
+    gh release download latest-preview --pattern "*.jar" --output Input/beat-link-trigger.jar
+}
+else
+{
+    gh release download $env:release_tag --pattern "*.jar" --output Input/beat-link-trigger.jar
+}
 
 # Build the native application bundle and installer.
 jpackage --name "$env:blt_name" --input .\Input --add-modules "$env:blt_java_modules" `
@@ -47,3 +53,13 @@ copy ".\.github\resources\MSI Template.wxs" ".\"
 
 #Compile MSI
 & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension
+
+# Upload the MSI as a release artifact
+if ( $env:release_snapshot )
+{
+    gh release upload latest-preview "$($env:artifact_name)#Windows installer"
+}
+else
+{
+    gh release upload $env:release_tag "$($env:artifact_name)#Windows installer"
+}

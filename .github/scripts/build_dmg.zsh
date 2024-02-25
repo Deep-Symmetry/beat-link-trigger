@@ -1,10 +1,13 @@
 # Fail if any step fails
 set -e
 
-# Move the downloaded cross-platform executable Jar into an Input folder to be used in building the
-# native app bundle.
+# Download the executable jar into an Input folder to be used in building the native app bundle
 mkdir Input
-mv $uberjar_name Input/beat-link-trigger.jar
+if [ "$release_snapshot" = true ] ; then
+    gh release download latest-preview --pattern "*.jar" --output Input/beat-link-trigger.jar
+else
+    gh release download "$release_tag" --pattern "*.jar" --output Input/beat-link-trigger.jar
+fi
 
 # See if the secrets needed to code-sign the native application are present.
 if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
@@ -53,3 +56,10 @@ fi
 
 # Rename the disk image to the name we like to use for the release artifact.
 mv "$dmg_name" "$artifact_name"
+
+# Upload the disk image as a release artifact
+if [ "$release_snapshot" = true ] ; then
+    gh release upload latest-preview "$artifact_name#macOS disk image"
+else
+    gh release upload $release_tag "$artifact_name#macOS disk image"
+fi
