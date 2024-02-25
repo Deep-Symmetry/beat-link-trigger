@@ -190,4 +190,4 @@ jobs:
 
     steps:
       - name: Update release title, description, and status
-        run: bash .github/scripts/rinish_release.sh
+        run: bash .github/scripts/finish_release.sh
