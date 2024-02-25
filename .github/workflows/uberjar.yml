@@ -204,5 +204,5 @@ jobs:
           echo "release_snapshot=false" >>$GITHUB_ENV
         fi
 
-      - name: Update release title, description, and status
-        run: bash .github/scripts/finish_release.sh
+    - name: Update release title, description, and status
+      run: bash .github/scripts/finish_release.sh
