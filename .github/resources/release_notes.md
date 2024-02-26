@@ -9,4 +9,4 @@
 
 ## What’s in the Release
 
-✨Summary to be added once James has a moment! Please see the [Change Log](https://github.com/Deep-Symmetry/beat-link-trigger/blob/main/CHANGELOG.md#730---2023-11-24) for all the details.
+✨Summary to be added once James has a moment! Please see the [Change Log](https://github.com/Deep-Symmetry/beat-link-trigger/blob/main/CHANGELOG.md#LINK-GOES-HERE) for all the details.
