@@ -22,6 +22,9 @@ This change log follows the conventions of
   Beat Link library now has defensive code to protect itself against
   this and avoid crashing when the `VirtualCdj` is trying to find the
   right network interface to use to talk to the DJ link network.
+- Eliminated a source of exceptions that could lead to stack traces
+  when Carabiner is being un-synchronized because BLT is going
+  offline.
 
 ## [7.3.0] - 2023-11-24
 
