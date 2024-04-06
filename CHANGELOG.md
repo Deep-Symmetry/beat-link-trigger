@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Changed
+
+- Works with the backwards-incompatible 8.x version of Beat Link, to
+  offer support for the Opus Quad.
+
 ### Fixed
 
 - The phrase trigger Started expression now has basic information
