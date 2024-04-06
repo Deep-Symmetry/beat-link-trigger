@@ -8,7 +8,7 @@ asciidoc:
   attributes:
     icons: font
     experimental: ''
-    page-copyright: 2016–2023
+    page-copyright: 2016–2024
     page-pagination: ''
 nav:
 - modules/ROOT/nav.adoc
