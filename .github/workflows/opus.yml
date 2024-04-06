@@ -1,0 +1,209 @@
+name: Create opus-branch überjar and native installers
+
+on:
+  push:
+    branches:
+      - opus
+
+env:
+  blt_name: Beat Link Trigger
+  blt_copyright: © 2016-2024 Deep Symmetry, LLC
+  blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
+  blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
+  blt_mac_notarization_user: "james@deepsymmetry.org"
+  blt_mac_team_id: "9M6LKU948Y"
+  blt_java_modules: java.base,java.desktop,java.management,java.naming,java.prefs,java.sql,jdk.javadoc,jdk.zipfs,jdk.unsupported
+  blt_vendor: Deep Symmetry, LLC
+  blt_vendor_folder: Deep Symmetry
+  blt_icon: BeatLink.ico
+  blt_upgradecode: 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  build_uberjar:
+    name: Build cross-platform überjar
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+    - name: Check out opus branch
+      uses: actions/checkout@v4
+
+    - name: Install SSH Key
+      env:
+        found_ssh_key: ${{ secrets.GUIDE_SSH_KEY }}
+      if: ${{ env.found_ssh_key != '' }}
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.GUIDE_SSH_KEY }}
+        known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMKq8T1IXQHNYLgO715YbxTXoVxEsJcha9h1lxyOXpa'
+
+    - name: Prepare Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+
+    - name: Determine version being built
+      uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
+
+    - name: Determine überjar name from git version, and snapshot status
+      run: |
+        echo "uberjar_name=beat-link-trigger-$git_version.jar" >> $GITHUB_ENV
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >> $GITHUB_ENV
+        else
+          echo "release_snapshot=false" >> $GITHUB_ENV
+        fi
+
+    - name: Cache Leiningen dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
+        restore-keys: |
+          ${{ runner.os }}-lein-
+
+    - name: Install dependencies, forcing updates of snapshots
+      run: lein -U deps
+
+    - name: Install antora for building user guide
+      run: npm install
+
+    - name: Build überjar
+      run: |
+        lein uberjar
+        mv target/beat-link-trigger.jar "./$uberjar_name"
+
+    - name: Delete any pre-existing preview release
+      if: success()
+      run: bash .github/scripts/delete_opus_preview.sh
+
+    - name: Create release and upload überjar
+      if: success()
+      run: bash .github/scripts/create_opus_release.sh
+
+    # We don't (yet?) publish online user guides for the opus branch.
+    # - name: Cache htmltest results
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: tmp/.htmltest
+    #     key: ${{ runner.os }}-htmltest
+
+    # - name: Build and publish user guide
+    #   env:
+    #     GUIDE_SSH_KEY: ${{ secrets.GUIDE_SSH_KEY }}
+    #   run: bash .github/scripts/build_guide.sh
+
+
+  build_msi:
+    name: Build Windows native installer
+    runs-on: windows-latest
+
+    needs:
+      build_uberjar
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
+
+    - name: Determine überjar name, build version, MSI name, artifact name, and snapshot status
+      run: |
+        $uberjarName = "beat-link-trigger-$env:git_version.jar"
+        echo "uberjar_name=$uberjarName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        $buildVersion = ($env:release_tag).replace("-SNAPSHOT","").replace("v","")
+        echo "build_version=$buildVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        $msiName = "Beat Link Trigger-$buildVersion.msi"
+        echo "msi_name=$msiName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        $artifactName = "Beat-Link-Trigger-$env:git_version-Win64.msi"
+        echo "artifact_name=$artifactName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        If ($env:release_tag -like '*-SNAPSHOT') {
+          echo "release_snapshot=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        } Else {
+          echo "release_snapshot=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        }
+
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+
+    - name: Build Windows Installer
+      run: .\.github\scripts\build_msi.ps1
+
+  build_dmg:
+    name: Build macOS Disk Image
+    runs-on: macos-latest
+
+    needs:
+      build_uberjar
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
+
+    - name: Determine überjar name, build version, disk image name, artifact name, and snapshot status
+      run: |
+        uberjarName="beat-link-trigger-$git_version.jar"
+        echo "uberjar_name=$uberjarName" >>$GITHUB_ENV
+        buildVersion=${release_tag%-SNAPSHOT}
+        buildVersion=${buildVersion#v}
+        echo "build_version=$buildVersion" >>$GITHUB_ENV
+        dmgName="Beat Link Trigger-$buildVersion.dmg"
+        echo "dmg_name=$dmgName" >>$GITHUB_ENV
+        artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
+        echo "artifact_name=$artifactName" >>$GITHUB_ENV
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >>$GITHUB_ENV
+        else
+          echo "release_snapshot=false" >>$GITHUB_ENV
+        fi
+
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+
+    - name: Build macOS disk image
+      env:
+        IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
+        IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
+        NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
+      run: zsh .github/scripts/build_dmg.zsh
+
+  finish_release:
+    name: Finish the release
+    runs-on: ubuntu-latest
+
+    needs:
+      - build_dmg
+      - build_msi
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
+
+    - name: Determine snapshot status
+      run: |
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >>$GITHUB_ENV
+        else
+          echo "release_snapshot=false" >>$GITHUB_ENV
+        fi
+
+    - name: Update release title, description, and status
+      run: bash .github/scripts/finish_opus_release.sh
