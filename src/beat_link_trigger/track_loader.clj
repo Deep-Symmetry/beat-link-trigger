@@ -2426,6 +2426,36 @@
                          "<br><br>See the log file for more details.")
                     :title "Problem Choosing Track" :type :error))))
 
+(defn choose-media-export
+  "Presents a modal dialog allowing the selection of a locally mounted
+  rekordbox media export filesystem. If one is successfully chosen,
+  returns the parsed database export. If `parent` is supplied, the
+  dialog will be centered on it, rather than in the middle of the
+  screen."
+  ([]
+   (choose-media-export nil))
+  ([parent]
+   (seesaw/invoke-now
+     (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
+                                     :filters [rekordbox-export-filter])]
+       (when root
+         (let [candidates (find-pdb-recursive root 3)]
+           (cond
+             (empty? candidates)
+             (seesaw/alert "No rekordbox export found in the chosen directory."
+                           :title "Unable to Locate Database" :type :error)
+
+             (> (count candidates) 1)
+             (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
+                                       "Please pick a specific media export:\n"
+                                       (str/join "\n" (map describe-pdb-media candidates)))
+                           :title "Ambiguous Database Choice" :type :error)
+
+             :else
+             (or (Database. (first candidates))
+                 (seesaw/alert parent "Could not find exported rekordbox database."
+                               :title "Nowhere to Load Tracks From" :type :error)))))))))
+
 (defn choose-local-track
   "Presents a modal dialog allowing the selection of a track from a
   locally mounted media filesystem. If `parent` is supplied, the
@@ -2445,23 +2475,7 @@
    (seesaw/invoke-now
     (if (and database (.. database sourceFile canRead))  ; Trying to reuse a database, make sure file is still there.
       (create-chooser-dialog parent database extra-labels)
-      (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
-                                      :filters [rekordbox-export-filter])]
-        (when root
-          (let [candidates (find-pdb-recursive root 3)]
-            (cond
-              (empty? candidates)
-              (seesaw/alert "No rekordbox export found in the chosen directory."
-                            :title "Unable to Locate Database" :type :error)
-
-              (> (count candidates) 1)
-              (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
-                                        "Please pick a specific media export:\n"
-                                        (str/join "\n" (map describe-pdb-media candidates)))
-                            :title "Ambiguous Database Choice" :type :error)
-
-              :else
-              (if-let [pdb (Database. (first candidates))]
-                (create-chooser-dialog parent pdb extra-labels)
-                (seesaw/alert parent "Could not find exported rekordbox database."
-                              :title "Nowhere to Load Tracks From" :type :error))))))))))
+      (if-let [pdb (choose-media-export parent)]
+        (create-chooser-dialog parent pdb extra-labels)
+        (seesaw/alert parent "Could not find exported rekordbox database."
+                      :title "Nowhere to Load Tracks From" :type :error))))))
