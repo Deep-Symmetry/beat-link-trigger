@@ -27,7 +27,7 @@
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType NumberField StringField]
-           [org.deepsymmetry.cratedigger Database Database$PlaylistFolderEntry]
+           [org.deepsymmetry.cratedigger Archivist Archivist$ArchiveListener Database Database$PlaylistFolderEntry]
            [org.deepsymmetry.cratedigger.pdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
             RekordboxPdb$ArtistRow RekordboxPdb$GenreRow]))
 
@@ -2436,8 +2436,10 @@
    (choose-media-export nil))
   ([parent]
    (seesaw/invoke-now
-     (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
-                                     :filters [rekordbox-export-filter])]
+     (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type
+                                     "Choose Rekordbox Media"
+                                     :filters [rekordbox-export-filter]
+                                     :remember-directory? false)]
        (when root
          (let [candidates (find-pdb-recursive root 3)]
            (cond
@@ -2479,3 +2481,62 @@
         (create-chooser-dialog parent pdb extra-labels)
         (seesaw/alert parent "Could not find exported rekordbox database."
                       :title "Nowhere to Load Tracks From" :type :error))))))
+
+(defn create-metadata-archive
+  "Prompt the user to select some mounted rekordbox media, then for a
+  file in which to archive its metadata for use with the Opus Quad.
+  `parent` is the window over which the UI should be centered, if any."
+  [parent]
+  (when-let [^Database database (choose-media-export parent)]
+    (let [extension (util/extension-for-file-type :metadata-archive)]
+      (try
+        (when-let [^File file (chooser/choose-file parent :type "Create Metadata Archive"
+                                                   :all-files? false
+                                                   :filters [["Beat Link Metadata Archives" [extension]]])]
+          (let [continue?    (atom true)
+                progress     (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
+                panel        (mig/mig-panel
+                              :items [[(seesaw/label :text
+                                                     (str "<html>Creating metadata archive, in file <strong>"
+                                                          (.getName file) "</strong>:</html>"))
+                                       "span, wrap 20"]
+                                      [progress "grow, span, wrap 16"]
+                                      [(seesaw/button :text "Cancel"
+                                                      :listen [:action-performed
+                                                               (fn [e]
+                                                                 (reset! continue? false)
+                                                                 (seesaw/config! e :enabled? false
+                                                                                 :text "Canceling…"))])
+                                       "span, align center"]])
+                ^JFrame root (seesaw/frame :title "Archiving Metadata" :on-close :dispose :content panel)
+                listener (reify Archivist$ArchiveListener
+                           (continueCreating [_this finished-count total-count]
+                             (seesaw/invoke-later
+                               (seesaw/config! progress :max total-count :indeterminate? false)
+                               (seesaw/value! progress finished-count)
+                               (when (or (not @continue?) (>= finished-count total-count))
+                                 (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
+                             @continue?))]
+            (when-let [^File file (util/confirm-overwrite-file file extension parent)]
+              (seesaw/listen root :window-closed (fn [_] (reset! continue? false)))
+              (seesaw/pack! root)
+              (.setLocationRelativeTo root parent)
+              (seesaw/show! root)
+              (future
+                (try
+                  (.createArchive (Archivist/getInstance) database file listener)
+                  (catch Exception e
+                    (timbre/error e "Problem Creating Metadata Archive")
+                    (seesaw/invoke-later
+                      (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
+                                         "<br><br>See the log file for more details.")
+                                    :title "Problem Creating Cache" :type :error)
+                      (.dispose root))))))))
+        (catch Exception e
+          (timbre/error e "Problem Setting Up Metadata Archive")
+          (seesaw/invoke-later
+            (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
+                               "<br><br>See the log file for more details.")
+                          :title "Problem Creating Cache" :type :error)))
+        (finally
+          (.close database))))))

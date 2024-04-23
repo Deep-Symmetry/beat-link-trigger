@@ -2536,7 +2536,7 @@
   (let [extension (util/extension-for-file-type :show)]
     (when-let [^File file (chooser/choose-file parent :type :save
                                                :all-files? false
-                                               :filters [["BeatLinkTrigger Show files"
+                                               :filters [["Beat Link Trigger Show files"
                                                           [extension]]])]
       (let [file (.getCanonicalFile file)]
         (if (latest-show file)

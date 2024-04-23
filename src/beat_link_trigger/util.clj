@@ -66,11 +66,11 @@
   "A map from keywords identifying the kinds of files we work with to
   the filename extensions we create them with and require them to
   have."
-  {:configuration  "blt"
-   :trigger-export "bltx"
-   :metadata       "bltm"
-   :playlist       "csv"
-   :show           "bls"})
+  {:configuration    "blt"
+   :trigger-export   "bltx"
+   :metadata-archive "blm"
+   :playlist         "csv"
+   :show             "bls"})
 
 (def ^:private file-extensions
   "A map from filename extensions we use to the corresponding keyword

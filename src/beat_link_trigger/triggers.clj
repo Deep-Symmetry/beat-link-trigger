@@ -1517,6 +1517,12 @@
                         :name "Write Playlist" :enabled? false)))
 
 (defonce ^{:private true
+           :doc "The menu action which allows creation of a metadata archive from rekordbox media."}
+  archive-metadata-action
+  (delay (seesaw/action :handler (fn [_] (track-loader/create-metadata-archive @trigger-frame))
+                        :name "Archive Metadata" :enabled? true)))
+
+(defonce ^{:private true
            :doc "The action which opens the OBS overlay web server window."}
   overlay-server-action
   (delay (seesaw/action :handler (fn [_]
@@ -1625,7 +1631,8 @@
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [@save-action @save-as-action @load-action
                                                          (seesaw/separator) new-show-action open-show-action
-                                                         (seesaw/separator) @playlist-writer-action]
+                                                         (seesaw/separator) @playlist-writer-action
+                                                         (seesaw/separator) @archive-metadata-action]
                                                         (menus/non-mac-file-actions quit)))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [@new-trigger-action (seesaw/separator)]
