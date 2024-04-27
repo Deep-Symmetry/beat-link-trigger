@@ -145,7 +145,7 @@ To have the speed set to zero when playback stops, set the trigger’s
 Deactivation Expression to:
 
 ```clojure
-(set-gm-tempo 0)
+(set-gm-tempo 0.0)
 ```
 
 If you have other things that you want to happen when particular
