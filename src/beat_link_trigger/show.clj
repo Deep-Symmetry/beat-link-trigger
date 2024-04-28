@@ -2061,7 +2061,7 @@
                             (let [extension (util/extension-for-file-type :show)]
                               (when-let [file (chooser/choose-file (:frame show) :type :save
                                                                    :all-files? false
-                                                                   :filters [["BeatLinkTrigger Show files"
+                                                                   :filters [["Beat Link Trigger Show files"
                                                                               [extension]]])]
                                 (if (get (su/get-open-shows) file)
                                   (seesaw/alert (:frame show) "Cannot Replace an Open Show."
@@ -2504,7 +2504,8 @@
   [parent]
 (when-let [file (chooser/choose-file parent :type :open
                                      :all-files? false
-                                     :filters [["BeatLinkTrigger Show files" [(util/extension-for-file-type :show)]]])]
+                                     :filters [["Beat Link Trigger Show files"
+                                                [(util/extension-for-file-type :show)]]])]
   (open-internal parent file)))
 
 (defn reopen-previous-shows

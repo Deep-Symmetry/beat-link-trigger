@@ -73,7 +73,7 @@
   `content-fn` will be called with the function that should be used to
   paint the backdrop; it should assign that as the `:paint` option of
   the container it creates."
-  [content-fn & {:keys [title] :or {title "About BeatLinkTrigger"}}]
+  [content-fn & {:keys [title] :or {title "About Beat Link Trigger"}}]
   (let [backdrop     (ImageIO/read (clojure.java.io/resource "images/Backdrop.png"))
         start        (System/currentTimeMillis)
         paint-fn     (fn [c g] (paint-backdrop c g backdrop start))

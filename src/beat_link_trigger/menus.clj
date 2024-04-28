@@ -194,7 +194,7 @@
                                                              (about/show)
                                                              (catch Exception e
                                                                (timbre/error e "Problem showing About window."))))
-                                                :name "About BeatLinkTrigger")
+                                                :name "About Beat Link Trigger")
                                  (seesaw/separator)])
                               [(seesaw/action :handler (fn [_] (help/show-user-guide))
                                               :name "User Guide (local)")
