@@ -1,9 +1,8 @@
 (ns beat-link-trigger.BeatLinkTrigger
   "This is configured as the main class which is run when the jar is
-  executed. Its task is to check whether the Java version is high
-  enough to support running beat-link-trigger, and if so, proceed to
-  initializing it. Otherwise, display a dialog explaining the issue
-  and offering to take the user to the download page."
+  executed. Its task is to parse command-line arguments and provide
+  help about them if requested, before passing the parsed results to
+  `beat-link-trigger.core/start`."
   (:require [clojure.java.browse :as browse]
             [clojure.string]
             [clojure.tools.cli :as cli]
@@ -20,7 +19,7 @@
     :default-desc ""
     :update-fn conj]
    ["-S" "--suppress" "Do not reopen shows from previous run"]
-   [nil "--reset FILE" "Write saved configuration to file and clear it"]
+   [nil "--reset FILE" "Write saved configuration to file and forget it"]
    ["-c" "--config FILE" "Use specified configuration file"]
    ["-h" "--help" "Display help information and exit"]])
 
@@ -57,20 +56,9 @@
   (System/exit status))
 
 (defn -main
-  "Check the Java version and either proceed or offer to download a newer one."
+  "Parse and handle any command-line arguments, then proceed with startup
+  if appropriate."
   [& args]
-  (when (< (Float/valueOf (System/getProperty "java.specification.version")) 1.8)
-    (let [options (to-array ["Download" "Cancel"])
-          choice  (JOptionPane/showOptionDialog
-                   nil
-                   (str "To run BeatLinkTrigger you will need to install a current\n"
-                        "Java Runtime Environment, or at least Java 1.8.")
-                   "Newer Java Version Required"
-                   JOptionPane/YES_NO_OPTION JOptionPane/ERROR_MESSAGE nil
-                   options (aget options 0))]
-      (when (zero? choice) (browse/browse-url "https://openjdk.java.net")))
-    (System/exit 1))
-
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-options)]
 
     ;; Handle help and error conditions
@@ -80,5 +68,5 @@
       (seq arguments) (exit 1 (str "Unexpected arguments: " (clojure.string/join ", " arguments) "\n\n"
                                    (usage summary))))
 
-    ;; We have a recent enough Java version that it is safe to load the user interface.
+    ;; Proceed to load the user interface and continue startup.
     ((requiring-resolve 'beat-link-trigger.core/start) options)))

@@ -259,7 +259,7 @@
            (seesaw/invoke-now
              (prefs/load-from-file file))
            (do
-             (println "--config: file" reset "does not have required extension:"
+             (println "--config: file" config "does not have required extension:"
                       (str "." (util/extension-for-file-type :configuration)))
              (System/exit 1)))))
 
