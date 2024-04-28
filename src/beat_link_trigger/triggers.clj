@@ -1199,7 +1199,7 @@
                                (let [extension (util/extension-for-file-type :configuration)]
                                  (when-let [file (chooser/choose-file @trigger-frame :type :save
                                                                       :all-files? false
-                                                                      :filters [["BeatLinkTrigger configuration files"
+                                                                      :filters [["Beat Link Trigger configuration files"
                                                                                  [extension]]])]
                                    (when-let [file (util/confirm-overwrite-file file extension @trigger-frame)]
                                      (try
@@ -1235,7 +1235,7 @@
                                (when-let [file (chooser/choose-file
                                                 @trigger-frame
                                                 :all-files? false
-                                                :filters [["BeatLinkTrigger configuration files" [extension]]
+                                                :filters [["Beat Link Trigger configuration files" [extension]]
                                                           (chooser/file-filter "All files" (constantly true))])]
                                  (try
                                    (when (delete-all-triggers false)
