@@ -3,11 +3,9 @@
   executed. Its task is to parse command-line arguments and provide
   help about them if requested, before passing the parsed results to
   `beat-link-trigger.core/start`."
-  (:require [clojure.java.browse :as browse]
-            [clojure.string]
+  (:require [clojure.string]
             [clojure.tools.cli :as cli]
             [beat-link-trigger.util :as util])
-  (:import [javax.swing JOptionPane])
   (:gen-class))
 
 (def cli-options

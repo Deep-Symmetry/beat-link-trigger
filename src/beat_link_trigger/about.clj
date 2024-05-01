@@ -128,10 +128,12 @@
   "Create and show a frame that explains we are looking for devices.
   `continue-offline` and `quit` are atoms that we should set to `true`
   if the user clicks the corresponding button."
-  [continue-offline quit]
+  [opus-mode? continue-offline quit]
   (seesaw/invoke-now
    (let [searching (create-frame (partial create-searching-panel continue-offline quit)
-                                 :title "Looking for DJ Link devices…")]
+                                 :title (if opus-mode?
+                                          "Looking for Opus Quad…"
+                                          "Looking for DJ Link devices…"))]
      (seesaw/config! searching :resizable? false :on-close :nothing)
      (seesaw/show! searching)
      searching)))
