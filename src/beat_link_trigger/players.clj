@@ -105,7 +105,7 @@
   "Checks whether we are operating in Opus Quad compatiblity
   mode rather than Pro DJ Link mode."
   []
-  ((resolve 'beat-link-trigger.triggers/opus-quad?)))
+  (.isRunning (org.deepsymmetry.beatlink.VirtualRekordbox/getInstance)))
 
 (def magnify-cursor
   "A custom cursor that indicates something can be magnified."

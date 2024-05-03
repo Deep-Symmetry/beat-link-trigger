@@ -97,8 +97,7 @@
   ([options]
    (let [continue-offline (atom false)
          quit             (atom false)
-         opus-quad?       (triggers/opus-quad?)
-         searching        (atom (about/create-searching-frame opus-quad? continue-offline quit))
+         searching        (atom (about/create-searching-frame continue-offline quit))
          real-player?     (triggers/real-player?)
          network-label    (seesaw/invoke-now (seesaw/label))]
      (try
@@ -118,7 +117,7 @@
                          :title "Problem Trying to Go Online" :type :error)
            (seesaw/dispose! @searching)
            (reset! quit true))))
-     (timbre/info "Trying to go online, Opus Quad mode? " opus-quad? ", Use Real Player Number?" real-player?)
+     (timbre/info "Trying to go online, Use Real Player Number?" real-player?)
      (loop [tries-before-troubleshooting 200]  ; Try for twenty seconds before switching to the troubleshooting window.
        (cond
          (not (or @continue-offline @quit (zero? tries-before-troubleshooting)
@@ -154,50 +153,40 @@
          :else ; We saw a DJ-Link device, and so can go online.
          (do
            (seesaw/invoke-soon (seesaw/dispose! @searching))
-           (let [opus-ok (or (not opus-quad?)  ; If we are in Opus Quad mode we need to start VirtualRekordbox
-                             (try (.start virtual-rekordbox)
-                                  (catch Exception e
-                                    (timbre/warn e "Unable to create virtual rekordbox")
-                                    (seesaw/invoke-now
-                                      (seesaw/alert (str "<html>Unable to create Virtual rekordbox, "
-                                                         "check log for details.<br><br>" e)
-                                                    :title "Opus Quad Connection Failed" :type :error)))))]
-             (.setUseStandardPlayerNumber virtual-cdj real-player?)
-             (if (and opus-ok
-                      (try (.start virtual-cdj) ; Make sure we can start the VirtualCdj
-                           (catch Exception e
-                             (timbre/warn e "Unable to create Virtual CDJ")
-                             (seesaw/invoke-now
-                               (seesaw/alert (str "<html>Unable to create Virtual CDJ, "
-                                                  "check log for details.<br><br>" e)
-                                             :title "DJ Link Connection Failed" :type :error)))))
-               (do  ; We succeeded in finding a DJ Link or Opus Quad network
-                 (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj)
-                              "and Opus Quad mode is " opus-quad?)
+           (.setUseStandardPlayerNumber virtual-cdj real-player?)
+           (if (try (.start virtual-cdj) ; Make sure we can start the VirtualCdj
+                    (catch Exception e
+                      (timbre/warn e "Unable to create Virtual CDJ")
+                      (seesaw/invoke-now
+                        (seesaw/alert (str "<html>Unable to create Virtual CDJ, "
+                                           "check log for details.<br><br>" e)
+                                      :title "DJ Link Connection Failed" :type :error))))
+             (do  ; We succeeded in finding a DJ Link network.
+               (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj))
 
-                 ;; Provide warnings about network topology problems
-                 (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
-                   (seesaw/invoke-now
-                     (seesaw/alert (str "<html>Found multiple network interfaces on the DJ Link network.<br>"
-                                        "This can lead to duplicate packets and unreliable results:<br><br>"
-                                        (str/join "<br>" interfaces))
-                                   :title "Network Configuration Problem" :type :warning)))
-
-                 (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
-                   (let [descriptions (map (fn [^DeviceAnnouncement device]
-                                             (str (.getDeviceName device) " (" (.getHostAddress (.getAddress device)) ")"))
-                                           unreachables)]
-                     (seesaw/invoke-now
-                       (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
-                                          "We will not be able to communicate with the following device"
-                                          (when (> (count unreachables) 1) "s") ":<br><br>"
-                                          (str/join "<br>" (sort descriptions)))
-                                     :title "Network Configuration Problem" :type :error)))))
-               (do  ; We could not go online even though we see devices.
-                 (timbre/warn "Unable to create Virtual CDJ")
+               ;; Provide warnings about network topology problems
+               (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
                  (seesaw/invoke-now
-                   (seesaw/alert "Unable to create Virtual CDJ, check the log for details."
-                                 :title "DJ Link Connection Failed" :type :error)))))))))
+                   (seesaw/alert (str "<html>Found multiple network interfaces on the DJ Link network.<br>"
+                                      "This can lead to duplicate packets and unreliable results:<br><br>"
+                                      (str/join "<br>" interfaces))
+                                 :title "Network Configuration Problem" :type :warning)))
+
+               (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
+                 (let [descriptions (map (fn [^DeviceAnnouncement device]
+                                           (str (.getDeviceName device) " (" (.getHostAddress (.getAddress device)) ")"))
+                                         unreachables)]
+                   (seesaw/invoke-now
+                     (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
+                                        "We will not be able to communicate with the following device"
+                                        (when (> (count unreachables) 1) "s") ":<br><br>"
+                                        (str/join "<br>" (sort descriptions)))
+                                   :title "Network Configuration Problem" :type :error)))))
+             (do  ; We could not go online even though we see devices.
+               (timbre/warn "Unable to create Virtual CDJ")
+               (seesaw/invoke-now
+                 (seesaw/alert "Unable to create Virtual CDJ, check the log for details."
+                               :title "DJ Link Connection Failed" :type :error))))))))
 
    (finish-startup options)))
 
