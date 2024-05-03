@@ -57,12 +57,6 @@
   ^JCheckBoxMenuItem []
   (seesaw/select @trigger-frame [:#online]))
 
-(defn- opus-menu-item
-  "Helper function to find the Opus Quad menu item, which is disabled
-  when online."
-  ^JCheckBoxMenuItem []
-  (seesaw/select @trigger-frame [:#opus-quad]))
-
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
   `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
@@ -101,7 +95,7 @@
   "Create the values to assign the trigger preferences map."
   []
   (merge {:global true}
-         (select-keys (prefs/get-preferences) [:send-status? :opus-quad? :tracks-using-playlists?])))
+         (select-keys (prefs/get-preferences) [:send-status? :tracks-using-playlists?])))
 
 (defonce ^{:private true
            :doc "Global trigger configuration and expressions."}
@@ -125,13 +119,6 @@
   unanalyzed media."
   []
   (boolean (:send-status? @trigger-prefs)))
-
-(defn opus-quad?
-  "Checks whether the user wants to operate in a mode that is compatible
-  with the Opus Quad standalone hardware instead of a real Pro DJ Link
-  network."
-  []
-  (boolean (:opus-quad? @trigger-prefs)))
 
 (defn- enabled?
   "Check whether a trigger is enabled."
@@ -1190,7 +1177,7 @@
                                  :window-positions @util/window-positions}
                                 (when-let [exprs (:expressions @trigger-prefs)]
                                   {:expressions exprs})
-                                (select-keys @trigger-prefs [:tracks-using-playlists? :send-status? :opus-quad?]))))
+                                (select-keys @trigger-prefs [:tracks-using-playlists? :send-status?]))))
 
 (defonce ^{:private true
            :doc "The menu action which saves the configuration to the preferences."}
@@ -1445,7 +1432,6 @@
     (.doClick ^JRadioButtonMenuItem (seesaw/select @trigger-frame [(if (:tracks-using-playlists? m)
                                                                      :#track-position :#track-id)]))
     (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#send-status]) (true? (:send-status? m)))
-    (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#opus-quad]) (true? (:opus-quad? m)))
     (when-let [exprs (:expressions m)]
       (swap! trigger-prefs assoc :expressions exprs)
       (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
@@ -1614,7 +1600,6 @@
         online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (util/online?))
         real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status
                                                     :selected? (real-player?))
-        opus-item        (seesaw/checkbox-menu-item :text "Opus Quad Mode?" :id :opus-quad :selected? (opus-quad?))
         bg               (seesaw/button-group)
         track-submenu    (seesaw/menu :text "Default Track Description"
                                       :items [(seesaw/radio-menu-item :text "recordbox id [player:slot]" :id :track-id
@@ -1639,12 +1624,6 @@
                        (do
                          (carabiner/cancel-full-sync)
                          (.setSendingStatus virtual-cdj false)))))
-    (seesaw/listen opus-item :item-state-changed
-                   (fn [^java.awt.event.ItemEvent e]
-                     (let [opus-mode (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)]
-                       (when opus-mode (seesaw/config! real-item :selected? false))
-                       (seesaw/config! real-item :enabled? (not opus-mode))
-                       (swap! trigger-prefs assoc :opus-quad? opus-mode))))
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [@save-action @save-as-action @load-action
                                                          (seesaw/separator) new-show-action open-show-action
@@ -1660,7 +1639,7 @@
                                          :id :triggers-menu)
 
                             (seesaw/menu :text "Network"
-                                         :items [online-item real-item opus-item
+                                         :items [online-item real-item
                                                  (seesaw/separator)
                                                  @open-simulator-item
                                                  @player-status-action @load-track-action @load-settings-action
@@ -1734,7 +1713,6 @@
      (seesaw/config! [@playlist-writer-action @load-track-action @load-settings-action @player-status-action]
                      :enabled? (util/online?))
      (.setText (online-menu-item) (online-menu-name))
-     (seesaw/config! (opus-menu-item) :enabled? (not (util/online?)))
      (if (util/online?)
        (seesaw/hide! @open-simulator-item)
        (seesaw/show! @open-simulator-item))
