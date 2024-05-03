@@ -13,6 +13,9 @@ This change log follows the conventions of
 
 ### Fixed
 
+- The ability to access trigger globals from trigger expressions had
+  been broken for some time, probably since the show interface was
+  added.
 - The phrase trigger Started expression now has basic information
   about the player causing the trigger to start much more of the time,
   but no longer assumes this is due to a `CdjStatus` packet, because
