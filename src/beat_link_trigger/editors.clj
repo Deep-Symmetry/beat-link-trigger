@@ -168,8 +168,7 @@
   [update-binding simulate-status trigger compiled]
   (binding [util/*simulating* (util/data-for-simulation)]
     (binding [util/*simulating* (update-binding)]
-      (compiled (simulate-status) @(seesaw/user-data trigger)
-                (requiring-resolve 'beat-link-trigger.triggers/expression-globals)))))
+      (compiled (simulate-status) @(seesaw/user-data trigger) expressions/globals))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -308,7 +307,7 @@
                     (help/user-guide-link "ShowInternals.html#show")
                     "\">User Guide</a> for details.")}
 
-   'trigger-globals {:code '@(resolve 'beat-link-trigger.triggers/expression-globals)
+   'trigger-globals {:code 'expressions/globals
                      :doc  "The expression globals in the Triggers
   window, in case you want to share values with
   them."}})
