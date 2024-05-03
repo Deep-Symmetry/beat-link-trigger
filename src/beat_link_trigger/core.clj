@@ -162,7 +162,9 @@
                                            "check log for details.<br><br>" e)
                                       :title "DJ Link Connection Failed" :type :error))))
              (do  ; We succeeded in finding a DJ Link network.
-               (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj))
+               (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj)
+                            "and Opus Quad compatibility mode is"
+                            (.isRunning (org.deepsymmetry.beatlink.VirtualRekordbox/getInstance)))
 
                ;; Provide warnings about network topology problems
                (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
