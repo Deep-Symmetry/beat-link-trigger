@@ -34,6 +34,12 @@ This change log follows the conventions of
   when Carabiner is being un-synchronized because BLT is going
   offline.
 
+### Added
+
+- A new integration example showing how to provide some of the Player
+  Status interface on a TouchOSC control surface.
+
+
 ## [7.3.0] - 2023-11-24
 
 ### Added
@@ -55,8 +61,6 @@ This change log follows the conventions of
   a default value if you are having problems, launch with a saved
   configuration, open additional show files on startup, or suppress
   the automatic reopening of shows that were in use on the last run.
-- A new integration example showing how to provide some of the Player
-  Status interface on a TouchOSC control surface.
 - A socket picker dialog that can be used in shows that want to
   integrate with software running on a particular address and port,
   making it easy to provide a user interface for configuring that
