@@ -55,6 +55,8 @@ This change log follows the conventions of
   a default value if you are having problems, launch with a saved
   configuration, open additional show files on startup, or suppress
   the automatic reopening of shows that were in use on the last run.
+- A new integration example showing how to provide some of the Player
+  Status interface on a TouchOSC control surface.
 - A socket picker dialog that can be used in shows that want to
   integrate with software running on a particular address and port,
   making it easy to provide a user interface for configuring that
@@ -91,12 +93,12 @@ This change log follows the conventions of
   this issue suggests nobody is using such ancient versions anyway, so
   this could perhaps be removed.
 - Several warnings about illegal reflective access have been fixed by
-  giving type hints to the Clojure compiler so it can avoid reflection
+  giving type hints to the Clojure compiler so that it can avoid reflection
   in those situations.
 - Other warnings about replacing standard functions (that did not
   exist in previous versions of Clojure) were fixed by updating the
   library that had been doing that with a newly-available release.
-- Removed some libraries that were not actually used any more, saving
+- Removed some libraries that were not actually used anymore, saving
   some file size.
 - Fixed the range of ports on which the nREPL server can be started,
   it had been unnecessarily restricted.
@@ -257,7 +259,7 @@ This change log follows the conventions of
 ### Changed
 
 - The Continuous Integration pipeline which builds Beat Link Trigger
-  releases on Github was updated to accommodate a variety of
+  releases on GitHub was updated to accommodate a variety of
   deprecations in the actions that it relies on.
 - The macOS build has been greatly simplified because the underlying
   Java package creation tools have caught up to the requirements for
@@ -335,7 +337,7 @@ This change log follows the conventions of
   if all players have been idle for that long. This facilitates
   automatically creating separate playlist files for different
   activities even if Beat Link Trigger is running unattended.
-- The the variable `bar-number` is available inside beat and status
+- The variable `bar-number` is available inside beat and status
   expressions, and holds the number of the current measure being
   played if that can be determined (starting with 1, and properly
   accounting for the potential of a partial bar if the track does not
@@ -519,7 +521,7 @@ This change log follows the conventions of
 
 ### Changed
 
-- The macOS build process now creates HFS+ (MacOS Extended) disk
+- The macOS build process now creates HFS+ (macOS Extended) disk
   images rather than the default APFS filesystem that it was
   previously using. This allows them to be opened on High Sierra
   (10.12) and earlier.
@@ -653,7 +655,7 @@ This change log follows the conventions of
 
 - Changes in the Java 13 API were inadvertently backwards incompatible
   with the way that BLT opens Show files, causing shows to be
-  unusuable in Java 13 (attempting to open them crashed with a
+  unusable in Java 13 (attempting to open them crashed with a
   `NullPointerException` inside the bowels of the Java JDK).
 - Adding cues from the library was not compiling their custom
   expressions, so the expressions would not work until the show was
@@ -696,7 +698,7 @@ This change log follows the conventions of
 ### Fixed
 
 - MIDI devices names were sometimes unavailable, making the devices
-  unusable, when running in MacOS (especially in the standalone
+  unusable, when running in macOS (especially in the standalone
   application bundle) due to a problem in the embedded MIDI library.
 - Media names were not being displayed in the Player Status window if
   the media was mounted after the window was already open, because we
@@ -796,8 +798,8 @@ This change log follows the conventions of
   `Same`, which means to send the same message as if the cue had
   started on its first beat.
 - A new `Simulate` submenu in the Trigger, Show Track, and Show Cue
-  context menus which allows you to pretend that an event has occured
-  so you can set up and test MIDI mappings in other software (or your
+  context menus which allows you to pretend that an event has occurred
+  so that you can set up and test MIDI mappings in other software (or your
   custom expression code), even when you are offline and don't have a
   CDJ available. Thanks again to
   [Minnesota](https://www.minnmusic.com/) for the suggestion.
@@ -809,7 +811,7 @@ This change log follows the conventions of
 
 - The User Guide is now created using [Antora](https://antora.org),
   which produces much nicer output and formatting.
-- The MacOS version is now bundled with Amazon's Coretto 11, a free,
+- The macOS version is now bundled with Amazon's Corretto 11, a free,
   long-term-support distribution of the Java OpenJDK, instead of
   Oracle's short-term version.
 
@@ -937,7 +939,7 @@ This change log follows the conventions of
   infinite loop which would be wasting a core of a CPU until the
   program was quit and restarted. This was finally tracked down thanks
   to some thread dumps supplied by @Kevinnns.
-- When a track is loaded, even if it has no artwork and we are
+- When a track is loaded, even if it has no artwork, and we are
   transitioning from no track or another track with no artwork, update
   the generic image to better reflect that there is a track and where
   it came from.
@@ -1001,7 +1003,7 @@ when four CDJs are active on the network.
 
 ### Fixed
 
-- Triggers will no longer be tripped by a CDJ that is pre-loading hot
+- Triggers will no longer be tripped by a CDJ that is preloading hot
   cues but not actually playing a track. (You can still see it moving
   around the hot cues in the Player Window as it does this, but Beat
   Link no longer reports it as Playing in this state.)
@@ -1082,7 +1084,7 @@ will enable a ton of very compelling new use cases!
   across more than one network packet. The Beat Link library  now
   takes pains to prevent them from being split.
 - The SD slots were showing up as mounted in the Player Status window
-  even when they were emtpy.
+  even when they were empty.
 - If we had trouble communicating with a player's database server when
   first trying to get metadata from it, we would not ever try again,
   even if taken offline and back online. Now when we go offline, we
@@ -1112,10 +1114,10 @@ will enable a ton of very compelling new use cases!
 ### Changed
 
 - On Windows, the `About` window is now accessed through the new
-  `Help` menu (which is more consistent with Windows applicaton
+  `Help` menu (which is more consistent with Windows application
   standards), instead of the `File` menu.
 - The `Open Logs Folder` option has moved from the `File` menu to the
-  new `Help` menu so it is right next to the options where you might
+  new `Help` menu so that it is right next to the options where you might
   need it.
 
 ## [0.3.8] - 2018-06-17
@@ -1198,7 +1200,7 @@ will enable a ton of very compelling new use cases!
 ### Fixed
 
 - The embedded CoreMidi4J library which is used to communicate with
-  MIDI devices on the Mac has been upgraded to improve stablity and to
+  MIDI devices on the Mac has been upgraded to improve stability and to
   better handle working with multiple devices of the same type.
 
   > :warning: Unfortunately, this causes most devices to show up with
@@ -1215,7 +1217,7 @@ will enable a ton of very compelling new use cases!
   > found.&rdquo; in red, just as you would see if the device was
   > unplugged:
   >
-  > <image src="doc/assets/MissingDevice.png" alt="Missing Device" width="800">
+  > <image src="doc/modules/ROOT/assets/images/MissingDevice.png" alt="Missing Device" width="800">
 
 - The embedded Beat Link library which communicates with the Pioneer
   network has been updated to handle creating metadata caches from
@@ -1476,7 +1478,7 @@ support.
 
 ### Fixed
 
-- The About box and the Searching for Devices box would appear in the
+- The **About** box and the **Searching for Devices** box would appear in the
   top left corner of the screen momentarily before jumping to where
   they belonged.
 - Newly created trigger rows had a blank choice at the bottom of the
@@ -1505,7 +1507,7 @@ support.
 
 ### Changed
 
-- The MIDI Output menu now reformats names so you don't need to see
+- The MIDI Output menu now reformats names, so you don't need to see
   the CoreMIDI4J prefix even when it is in use.
 - The Player menu stores its choices in a format that is more
   efficient for comparing with the incoming player packets.
