@@ -73,7 +73,7 @@ Then we need to create a Phrase Trigger that is enabled for the Master
 player, for all Phrase Types and Track Banks. I called this one Beats
 to TouchDesigner:
 
-image:BeatsToTouchDesigner.png[Beats to TouchDesigner Phrase Trigger,1236,198]
+image::BeatsToTouchDesigner.png[Beats to TouchDesigner Phrase Trigger,1236,198]
 
 The final piece is to set up a Beat Expression in the Phrase Trigger
 to send information on each beat. (This is why I call this an “inside
