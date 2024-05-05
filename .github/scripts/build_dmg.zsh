@@ -59,7 +59,7 @@ mv "$dmg_name" "$artifact_name"
 
 # Upload the disk image as a release artifact
 if [ "$release_snapshot" = true ] ; then
-    gh release upload latest-preview "$artifact_name#macOS disk image"
+    gh release upload latest-preview "$artifact_name#$artifact_description"
 else
-    gh release upload $release_tag "$artifact_name#macOS disk image"
+    gh release upload $release_tag "$artifact_name#$artifact_description"
 fi
