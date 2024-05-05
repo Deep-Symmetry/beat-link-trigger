@@ -2288,8 +2288,11 @@
   pathname of such a file."
   ^File [media-root]
   (let [pdb (io/file media-root "PIONEER" "rekordbox" "export.pdb")]
-    (when (.canRead pdb)
-      pdb)))
+    (if (.canRead pdb)
+      pdb
+      (let [pdb (io/file media-root ".PIONEER" "rekordbox" "export.pdb")]
+        (when (.can-read pdb)
+          pdb)))))
 
 (defn find-pdb-recursive
   "Searches recursively through a set of subdirectories for rekordbox
