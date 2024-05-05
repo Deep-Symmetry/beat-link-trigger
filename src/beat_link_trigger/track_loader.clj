@@ -2291,7 +2291,7 @@
     (if (.canRead pdb)
       pdb
       (let [pdb (io/file media-root ".PIONEER" "rekordbox" "export.pdb")]
-        (when (.can-read pdb)
+        (when (.canRead pdb)
           pdb)))))
 
 (defn find-pdb-recursive
