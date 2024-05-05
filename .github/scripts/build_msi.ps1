@@ -22,12 +22,10 @@ if (!(Test-Path $Light)) {
 mkdir Input
 if ( $env:release_snapshot -eq "true" )
 {
-    Write-Warning "Trying to download file from latest-preview release"
     gh release download latest-preview --pattern "*.jar" --output Input/beat-link-trigger.jar
 }
 else
 {
-    Write-Warning "Trying to download file from release with tag $env:release_tag"
     gh release download $env:release_tag --pattern "*.jar" --output Input/beat-link-trigger.jar
 }
 
