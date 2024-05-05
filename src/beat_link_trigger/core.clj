@@ -16,7 +16,7 @@
             [taoensso.timbre :as timbre])
   (:import [java.awt GraphicsEnvironment]
            [javax.swing JFrame UIManager]
-           [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj VirtualRekordbox]))
+           [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj]))
 
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
@@ -29,12 +29,6 @@
   `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
   singleton."
   (VirtualCdj/getInstance))
-
-(def ^VirtualRekordbox virtual-rekordbox
-  "A convenient reference to the [Beat Link
-  `VirtualRekordbox`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualRekordbox.html)
-  singleton."
-  (VirtualRekordbox/getInstance))
 
 (def dynamic-class-loader
   "The class loader that supports dynamic additions, for users to be

@@ -33,8 +33,7 @@
            [java.awt.event WindowEvent]
            [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj
-            VirtualRekordbox]
+            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AnalysisTagFinder ArtFinder BeatGridFinder CrateDigger MetadataFinder
             SearchableItem SignatureFinder TimeFinder TrackMetadata WaveformFinder]
            [beat_link_trigger.util MidiChoice]
@@ -68,12 +67,6 @@
   `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
   singleton."
   (VirtualCdj/getInstance))
-
-(def ^VirtualRekordbox virtual-rekordbox
-  "A convenient reference to the [Beat Link
-  `VirtualRekordbox`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualRekordbox.html)
-  singleton."
-  (VirtualRekordbox/getInstance))
 
 (def ^MetadataFinder metadata-finder
   "A convenient reference to the [Beat Link
@@ -1816,7 +1809,6 @@
      (.stop (BeatFinder/getInstance))
      (.stop (org.deepsymmetry.beatlink.dbserver.ConnectionManager/getInstance))
      (.stop virtual-cdj)
-     (.stop virtual-rekordbox)
      (Thread/sleep 200))  ; Wait for straggling update packets
    (reflect-online-state)
    (rebuild-all-device-status)))
