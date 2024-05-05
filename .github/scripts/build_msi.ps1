@@ -26,7 +26,7 @@ if ( $env:release_snapshot )
 }
 else
 {
-    gh release download $env:release_tag --pattern "*.jar" --output Input/beat-link-trigger.jar
+    gh release download "$env:release_tag" --pattern "*.jar" --output Input/beat-link-trigger.jar
 }
 
 # Build the native application bundle and installer.
