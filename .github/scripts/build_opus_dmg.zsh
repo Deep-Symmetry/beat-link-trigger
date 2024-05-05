@@ -60,7 +60,7 @@ mv "$dmg_name" "$artifact_name"
 
 # Upload the disk image as a release artifact
 if [ "$release_snapshot" = true ] ; then
-    gh release upload latest-opus-preview "$artifact_name#macOS disk image"
+    gh release upload latest-opus-preview "$artifact_name#$artifact_description"
 else
     echo "Should not get here: the opus branch should only build snapshots!"
     exit 1
