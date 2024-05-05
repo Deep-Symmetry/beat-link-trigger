@@ -137,7 +137,7 @@ jobs:
       run: .\.github\scripts\build_msi.ps1
 
   build_dmg:
-    name: Build macOS Disk Image
+    name: Build macOS Apple Silicon Disk Image
     runs-on: macos-latest
 
     needs:
@@ -161,6 +161,55 @@ jobs:
         echo "dmg_name=$dmgName" >>$GITHUB_ENV
         artifactName="Beat-Link-Trigger-$git_version-MacOS.dmg"
         echo "artifact_name=$artifactName" >>$GITHUB_ENV
+        artifactDescription="macOS (Apple Silicon) disk image"
+        echo "artifact_description=$artifactDescription" >>$GITHUB_ENV
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >>$GITHUB_ENV
+        else
+          echo "release_snapshot=false" >>$GITHUB_ENV
+        fi
+
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+
+    - name: Build macOS disk image
+      env:
+        IDENTITY_PASSPHRASE: ${{ secrets.IDENTITY_PASSPHRASE }}
+        IDENTITY_P12_B64: ${{ secrets.IDENTITY_P12_B64 }}
+        NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
+      run: zsh .github/scripts/build_dmg.zsh
+
+  build_intel_dmg:
+    name: Build macOS Intel Disk Image
+    runs-on: macos-13
+
+    needs:
+      build_uberjar
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: Deep-Symmetry/github-version-action@v1
+      with:
+        tag-var-name: release_tag
+
+    - name: Determine überjar name, build version, disk image name, artifact name, and snapshot status
+      run: |
+        uberjarName="beat-link-trigger-$git_version.jar"
+        echo "uberjar_name=$uberjarName" >>$GITHUB_ENV
+        buildVersion=${release_tag%-SNAPSHOT}
+        buildVersion=${buildVersion#v}
+        echo "build_version=$buildVersion" >>$GITHUB_ENV
+        dmgName="Beat Link Trigger-$buildVersion.dmg"
+        echo "dmg_name=$dmgName" >>$GITHUB_ENV
+        artifactName="Beat-Link-Trigger-$git_version-MacOS-Intel.dmg"
+        echo "artifact_name=$artifactName" >>$GITHUB_ENV
+        artifactDescription="macOS (Intel) disk image"
+        echo "artifact_description=$artifactDescription" >>$GITHUB_ENV
+
         if [[ $release_tag =~ .*-SNAPSHOT ]]
         then
           echo "release_snapshot=true" >>$GITHUB_ENV
