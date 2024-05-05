@@ -6,6 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+## [7.4.0] - 2024-05-04
+
+May the Fourth be with you!
+
 ### Fixed
 
 - The ability to access trigger globals from trigger expressions had
@@ -1535,7 +1541,8 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.0...HEAD
+[7.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...v7.3.0
 [7.2.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.0...v7.2.1
 [7.2.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.1.0...v7.2.0
