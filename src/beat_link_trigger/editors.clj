@@ -168,8 +168,7 @@
   [update-binding simulate-status trigger compiled]
   (binding [util/*simulating* (util/data-for-simulation)]
     (binding [util/*simulating* (update-binding)]
-      (compiled (simulate-status) @(seesaw/user-data trigger)
-                (requiring-resolve 'beat-link-trigger.triggers/expression-globals)))))
+      (compiled (simulate-status) @(seesaw/user-data trigger) expressions/globals))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -308,7 +307,7 @@
                     (help/user-guide-link "ShowInternals.html#show")
                     "\">User Guide</a> for details.")}
 
-   'trigger-globals {:code '@(resolve 'beat-link-trigger.triggers/expression-globals)
+   'trigger-globals {:code 'expressions/globals
                      :doc  "The expression globals in the Triggers
   window, in case you want to share values with
   them."}})
@@ -841,8 +840,8 @@
   expressions they edit. Created as an explicit array map to keep the
   keys in the order they are found here."
   (delay (array-map
-          :setup {:title "Setup Expression"
-                  :tip "Called once to set up any state your other expressions may need."
+          :setup {:title    "Setup Expression"
+                  :tip      "Called once to set up any state your other expressions may need."
                   :description
                   "Called once when the show is loaded, or when you update the
   expression. Set up any state (such as counters, flags, or network
@@ -851,8 +850,8 @@
   show is shutting down."
                   :bindings (show-bindings-for-phrase-and-class nil)}
 
-          :enabled {:title "Enabled Filter Expression"
-                    :tip "Called to see if phrase trigger should be enabled, and what to use when picking it."
+          :enabled {:title       "Enabled Filter Expression"
+                    :tip         "Called to see if phrase trigger should be enabled, and what to use when picking it."
                     :description "Called whenever a new phrase starts playing on a
   player if the phrase trigger's Enabled mode has been set to
   Custom. Return a <code>true</code> value as the last expression to
@@ -864,10 +863,10 @@
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    :bindings (show-bindings-for-phrase-and-class CdjStatus)}
+                    :bindings    (show-bindings-for-phrase-and-class CdjStatus)}
 
           :playing {:title "Playing Expression"
-                    :tip "Called when a player starts playing a phrase matching this trigger, if it was chosen."
+                    :tip   "Called when a player starts playing a phrase matching this trigger, if it was chosen."
                     :description
                     "Called when the phrase trigger is enabled by a phrase
   that has just started to play, and this trigger was selected
@@ -875,21 +874,22 @@
   not respond to MIDI, or to send more detailed information than MIDI
   allows.<p>
 
-  The status update object which reported the phrase starting to play, a
-  beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  The device update object (if any) which reported the phrase starting
+  to play, a beat-link <a
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceUpdate.html\"><code>DeviceUpdate</code></a>
   object, is available as <code>status</code>, and you can use normal
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described below."
-                    :bindings (show-bindings-for-phrase-and-class CdjStatus)
-                    :simulate (fn [_kind context compiled]
-                                (simulate-phrase-event util/time-for-simulation
-                                                       show-util/random-cdj-status
-                                                       context compiled))}
+                    :bindings    (show-bindings-for-phrase-and-class DeviceUpdate)
+                    :simulate    (fn [_kind context compiled]
+                                   (simulate-phrase-event util/time-for-simulation
+                                                          show-util/random-cdj-status
+                                                          context compiled))
+                    :nil-status? true}
 
-          :beat {:title "Beat Expression"
-                 :tip "Called on each beat from devices playing the matched phrase."
+          :beat {:title       "Beat Expression"
+                 :tip         "Called on each beat from devices playing the matched phrase."
                  :description "Called whenever a beat packet is received from
   a player that is playing the phrase that activated this trigger. You can use this for
   beat-driven integrations with other systems.<p>
@@ -905,13 +905,13 @@
                  :bindings (show-bindings-for-phrase-and-class :beat-tpu)
                  :simulate (fn [_kind context compiled]
                              (simulate-phrase-event util/beat-for-simulation
-                                                   (fn []
-                                                     (let [beat-object (show-util/random-beat)]
-                                                       [beat-object (show-util/position-from-random-beat beat-object)]))
-                                                   context compiled))}
+                                                    (fn []
+                                                      (let [beat-object (show-util/random-beat)]
+                                                        [beat-object (show-util/position-from-random-beat beat-object)]))
+                                                    context compiled))}
 
-          :tracked {:title "Tracked Update Expression"
-                    :tip "Called for each update from a player playing the matched phrase."
+          :tracked {:title    "Tracked Update Expression"
+                    :tip      "Called for each update from a player playing the matched phrase."
                     :description
                     "Called whenever a status update packet is received from
   a player that is playing the phrase that activated this phrase trigger, after the Enabled Filter
@@ -928,16 +928,16 @@
                                 (simulate-phrase-event util/time-for-simulation show-util/random-cdj-status
                                                        context compiled))}
 
-          :stopped {:title "Stopped Expression"
-                    :tip "Called when all players stop playing the matched phrase."
+          :stopped {:title       "Stopped Expression"
+                    :tip         "Called when all players stop playing the matched phrase."
                     :description "Called when the last player stops
   playing the matched phrase, if any had been. You can use this
   to deactivate systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows.<p>
 
-  The status update object (if any) that reported the end of the phrase, a
+  The device update object (if any) that reported the end of the phrase, a
   beat-link <a
-  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/CdjStatus.html\"><code>CdjStatus</code></a>
+  href=\"http://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceUpdate.html\"><code>DeviceUpdate</code></a>
   object, is available as <code>status</code>, and you can use normal
   Clojure <a href=\"http://clojure.org/reference/java_interop\">Java
   interop syntax</a> to access its fields and methods, but it is
@@ -949,15 +949,15 @@
   has disappeared or the phrase settings have been changed, so your
   expression must be able to cope with <code>nil</code> values for all
   the convenience variables that it uses."
-                    :bindings (show-bindings-for-phrase-and-class CdjStatus)
-                    :simulate (fn [_kind context compiled]
+                    :bindings    (show-bindings-for-phrase-and-class DeviceUpdate)
+                    :simulate    (fn [_kind context compiled]
                                 (simulate-phrase-event util/time-for-simulation
-                                                      (fn [] (show-util/random-cdj-status {:f 0}))
-                                                      context compiled))
+                                                       (fn [] (show-util/random-cdj-status {:f 0}))
+                                                       context compiled))
                     :nil-status? true}
 
-          :shutdown {:title "Shutdown Expression"
-                     :tip "Called once to release resources your phrase trigger had been using."
+          :shutdown {:title    "Shutdown Expression"
+                     :tip      "Called once to release resources your phrase trigger had been using."
                      :description
                      "Called when when the phrase trigger is shutting down, either
   because it was deleted or the show was closed. Close and release any
@@ -1069,7 +1069,7 @@
   interop syntax</a> to access its fields and methods, but it is
   generally easier to use the convenience variables described
   below."
-                         :bindings (show-bindings-for-track-or-phrase-cue-and-class DeviceUpdate)
+                         :bindings (show-bindings-for-track-or-phrase-cue-and-class CdjStatus)
                          :simulate (fn [_kind context cue compiled]
                                      (simulate-cue-event util/time-for-simulation show-util/random-cdj-status
                                                          context cue compiled))}

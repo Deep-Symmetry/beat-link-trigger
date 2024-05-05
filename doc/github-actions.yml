@@ -15,7 +15,7 @@ urls:
 content:
   sources:
   - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
-    branches: [main, guide-*]
+    branches: [main, opus, guide-*]
     start_path: doc
 antora:
   extensions:

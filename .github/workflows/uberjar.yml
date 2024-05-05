@@ -7,7 +7,7 @@ on:
 
 env:
   blt_name: Beat Link Trigger
-  blt_copyright: © 2016-2023 Deep Symmetry, LLC
+  blt_copyright: © 2016-2024 Deep Symmetry, LLC
   blt_description: Trigger events and automate shows in response to events on Pioneer CDJs
   blt_mac_signing_name: "Deep Symmetry, LLC (9M6LKU948Y)"
   blt_mac_notarization_user: "james@deepsymmetry.org"
@@ -17,12 +17,7 @@ env:
   blt_vendor_folder: Deep Symmetry
   blt_icon: BeatLink.ico
   blt_upgradecode: 6D58C8D7-6163-43C6-93DC-A4C8CC1F81B6
-  initial_description: |
-    :construction: This is pre-release code for people who want to help test [what is going into the next release](https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/CHANGELOG.md).
-
-    > Don’t download this if you aren’t comfortable testing code while it is under active development! Instead, look at the [latest release](https:///github.com/Deep-Symmetry/beat-link-trigger/releases/latest).
-
-    :calendar: **Ignore the “release date” above!** Because this is a snapshot release, the executables below (you may need to click to expand the Assets) will change frequently—whenever new code is pushed to the project—so you will want to _download the latest version every time you work with one_. The date you see _on each asset row_ shows you when it was last updated. Source code archive assets are not useful for snapshot releases, they will always reflect the state of the project when the snapshots began. And you can always determine the exact and definitive build date, version, and the version of Java being used by opening the “About” window within BLT.
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   build_uberjar:
@@ -32,16 +27,19 @@ jobs:
 
     steps:
     - name: Check out main branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install SSH Key
+      env:
+        found_ssh_key: ${{ secrets.GUIDE_SSH_KEY }}
+      if: ${{ env.found_ssh_key != '' }}
       uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.GUIDE_SSH_KEY }}
         known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMKq8T1IXQHNYLgO715YbxTXoVxEsJcha9h1lxyOXpa'
 
     - name: Prepare Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'corretto'
@@ -62,7 +60,7 @@ jobs:
         fi
 
     - name: Cache Leiningen dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-lein-${{ hashFiles('**/project.clj') }}
@@ -80,20 +78,16 @@ jobs:
         lein uberjar
         mv target/beat-link-trigger.jar "./$uberjar_name"
 
-    - name: Upload überjar
+    - name: Delete any pre-existing preview release
       if: success()
-      uses: Xotl/cool-github-releases@v1
-      with:
-        mode: update
-        tag_name: ${{ env.release_tag }}
-        isPrerelease: ${{ env.release_snapshot }}
-        replace_assets: ${{ env.release_snapshot }}
-        assets: ${{ env.uberjar_name }}
-        github_token: ${{ github.token }}
-        initial_mrkdwn: ${{ env.initial_description }}
+      run: bash .github/scripts/delete_preview.sh
+
+    - name: Create release and upload überjar
+      if: success()
+      run: bash .github/scripts/create_release.sh
 
     - name: Cache htmltest results
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: tmp/.htmltest
         key: ${{ runner.os }}-htmltest
@@ -112,7 +106,7 @@ jobs:
       build_uberjar
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: Deep-Symmetry/github-version-action@v1
       with:
@@ -134,35 +128,13 @@ jobs:
           echo "release_snapshot=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         }
 
-    - uses: actions/setup-java@v3
+    - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'corretto'
 
-    - name: Download überjar
-      uses: Xotl/cool-github-releases@v1
-      with:
-        mode: download
-        tag_name: ${{ env.release_tag }}
-        assets: ${{ env.uberjar_name }}
-        github_token: ${{ github.token }}
-
     - name: Build Windows Installer
       run: .\.github\scripts\build_msi.ps1
-
-    - name: Upload Windows MSI
-      if: success()
-      uses: Xotl/cool-github-releases@v1
-      with:
-        mode: update
-        tag_name: ${{ env.release_tag }}
-        release_name: "${{ env.release_tag }} builds"
-        isPrerelease: ${{ env.release_snapshot }}
-        replace_assets: ${{ env.release_snapshot }}
-        assets: ${{ env.artifact_name }}
-        github_token: ${{ github.token }}
-        initial_mrkdwn: ${{ env.initial_description }}
-
 
   build_dmg:
     name: Build macOS Disk Image
@@ -172,7 +144,7 @@ jobs:
       build_uberjar
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: Deep-Symmetry/github-version-action@v1
       with:
@@ -196,20 +168,10 @@ jobs:
           echo "release_snapshot=false" >>$GITHUB_ENV
         fi
 
-    - uses: actions/setup-java@v3
+    - uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'corretto'
-
-    - name: Download überjar
-      uses: Xotl/cool-github-releases@v1
-      with:
-        mode: download
-        tag_name: ${{ env.release_tag }}
-        replace_assets: ${{ env.release_snapshot }}
-        assets: ${{ env.uberjar_name }}
-        github_token: ${{ github.token }}
-        initial_mrkdwn: ${{ env.initial_description }}
 
     - name: Build macOS disk image
       env:
@@ -218,13 +180,29 @@ jobs:
         NOTARIZATION_PW: ${{ secrets.NOTARIZATION_PW }}
       run: zsh .github/scripts/build_dmg.zsh
 
-    - name: Upload macOS disk image
-      if: success()
-      uses: Xotl/cool-github-releases@v1
+  finish_release:
+    name: Finish the release
+    runs-on: ubuntu-latest
+
+    needs:
+      - build_dmg
+      - build_msi
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: Deep-Symmetry/github-version-action@v1
       with:
-        mode: update
-        tag_name: ${{ env.release_tag }}
-        replace_assets: ${{ env.release_snapshot }}
-        assets: ${{ env.artifact_name }}
-        github_token: ${{ github.token }}
-        initial_mrkdwn: ${{ env.initial_description }}
+        tag-var-name: release_tag
+
+    - name: Determine snapshot status
+      run: |
+        if [[ $release_tag =~ .*-SNAPSHOT ]]
+        then
+          echo "release_snapshot=true" >>$GITHUB_ENV
+        else
+          echo "release_snapshot=false" >>$GITHUB_ENV
+        fi
+
+    - name: Update release title, description, and status
+      run: bash .github/scripts/finish_release.sh

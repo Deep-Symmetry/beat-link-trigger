@@ -8,4 +8,5 @@ IgnoreDirs:
 IgnoreURLs:
   - "//opensource.org/licenses/"
   - "//liberapay.com/"
+  - "//unix.stackexchange.com/questions/405229/"
   - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"

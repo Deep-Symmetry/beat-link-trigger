@@ -380,3 +380,24 @@ There is more GUI code in the Shared Functions which you can look at
 if you download the show and poke around in the expression editors.
 Hopefully this discussion provides enough of an introduction and
 framework to help understand how it works.
+
+
+== A Version for DJM Owners
+
+Given that the concept of channels-on-air lights originated with DJM
+mixers, it might seem surprising to think about creating a version of
+this integration example for them. But not all DJMs support the
+feature. A user joined the Zulip chat community to request a way to
+use this integration with his DJM-750MK2, so I put together a tweaked
+version for him.
+
+The MIDI messages used are very similar, just using
+different CC numbers. But I also changed the UI to reflect the fact
+that DJMs use A-B to describe their cross faders, rather than X-Y, and
+have their cross-fader assignment switches below the channel faders
+rather than above them. A few other changes to properly recognize the
+mixer MIDI device, and remove Xone references from the code, resulted
+in something worth sharing here too.
+
+Save the link:{attachmentsdir}/DJMOnAir.bls[DJM version] where you
+keep your shows and you can use it whenever you need to.

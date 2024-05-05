@@ -33,6 +33,11 @@
 
 ;;; These first definitions are intended for use by user expressions and shared functions:
 
+(defonce ^{:doc "Provides a space for trigger expressions to store
+  values they want to share across triggers. Visible to other
+  namespaces so that, for example, Show expressions can access them."}
+  globals (atom {}))
+
 (def default-repositories
   "Have our add-dependencies function default to searching Clojars as
   well as Maven Central."

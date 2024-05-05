@@ -151,7 +151,7 @@
                                   :phrase phrase} (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/show-editor-title kind show phrase) ":\n"
-                               (get-in phrase [:contents :expressions kind])))
+                               (get-in phrase [:expressions kind])))
           (when alert? (seesaw/alert (str "<html>Problem running phrase trigger " (name kind) " expression.<br><br>" t)
                                      :title "Exception in Show Phrase Trigger Expression" :type :error))
           [nil t])))))
@@ -395,7 +395,7 @@
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a phrase trigger has been chosen and is now playing.
   `show` and `phrase` must be current."
-  [show phrase status]
+  [show phrase status-or-beat]
   (try
     (let [{:keys [message note channel]} phrase]
       (when (#{"Note" "CC"} message)
@@ -403,7 +403,7 @@
           (case message
             "Note" (midi/midi-note-on output note 127 (dec channel))
             "CC"   (midi/midi-control output note 127 (dec channel)))))
-      (when (= "Custom" message) (run-phrase-function show phrase :playing status false)))
+      (when (= "Custom" message) (run-phrase-function show phrase :playing status-or-beat false)))
     (catch Exception e
       (timbre/error e "Problem reporting playing phrase trigger."))))
 
@@ -411,7 +411,7 @@
   "Sends the appropriate MIDI messages and runs the custom expression to
   indicate that a phrase trigger is no longer playing. `show` and
   `phrase` must be current."
-  [show phrase status]
+  [show phrase status-or-beat]
   (try
     (let [{:keys [message note channel]} phrase]
       (when (#{"Note" "CC"} message)
@@ -419,7 +419,7 @@
           (case message
             "Note" (midi/midi-note-off output note (dec channel))
             "CC"   (midi/midi-control output note 0 (dec channel)))))
-      (when (= "Custom" message) (run-phrase-function show phrase :stopped status false)))
+      (when (= "Custom" message) (run-phrase-function show phrase :stopped status-or-beat false)))
     (catch Exception e
       (timbre/error e "Problem reporting stopped phrase trigger."))))
 
@@ -1413,7 +1413,7 @@ editor windows, in their cue canvases as well."
   about the stoppage from a status update, it will be in `status`. If
   `phrase-changed` is true, this is a new instance of the trigger even
   if the set of players playing it would not suggest that."
-  [show player old-playing status phrase-changed]
+  [show player old-playing status-or-beat phrase-changed]
   (doseq [uuid old-playing]
     (when (or phrase-changed (empty? (util/players-phrase-uuid-set (:playing-phrases show) uuid)))
       ;; No other player is still playing the phrase trigger.
@@ -1421,11 +1421,11 @@ editor windows, in their cue canvases as well."
             old-runtime-info (get-in show [:last :phrases uuid])]
         (doseq [cue-uuid (reduce set/union (vals (:entered old-runtime-info)))]
           ;; All cues we had been playing are now ended.
-          (cues/send-cue-messages phrase old-runtime-info cue-uuid :ended status)
-          (cues/send-cue-messages phrase old-runtime-info cue-uuid :exited status)
+          (cues/send-cue-messages phrase old-runtime-info cue-uuid :ended status-or-beat)
+          (cues/send-cue-messages phrase old-runtime-info cue-uuid :exited status-or-beat)
           (cues/repaint-cue phrase cue-uuid)
           (cues/repaint-cue-states phrase cue-uuid))
-        (send-stopped-messages show phrase status)
+        (send-stopped-messages show phrase status-or-beat)
         (repaint-phrase-state show phrase)
         (seesaw/invoke-later (su/update-row-visibility show)))))
   (update-playback-position show player))
@@ -1442,21 +1442,21 @@ editor windows, in their cue canvases as well."
 (defn now-playing
   "Reacts to the fact that the specified player is now playing a phrase.
   Must be passed a current view of the show and the now-playing phrase
-  trigger uuids. If we learned about the playback from a status
-  update, it will be in `status`. If `phrase-changed` is true, this is
-  a new instance of the trigger even if the set of players playing it
-  would not suggest that. `on-beat` indicates whether this is in
-  response to a beat."
-  [show player playing status phrase-changed on-beat?]
+  trigger uuids. `status-or-beat` holds the device update that tipped
+  us off to the new phrase. If `phrase-changed` is true, this is a new
+  instance of the trigger even if the set of players playing it would
+  not suggest that. `on-beat` indicates whether this is in response to
+  a beat."
+  [show player playing status-or-beat phrase-changed on-beat?]
   (doseq [uuid playing]
     (when (or phrase-changed (= #{player} (util/players-phrase-uuid-set (:playing-phrases show) uuid)))
       ;; This is the first player playing the phrase trigger.
       (let [phrase (get-in (latest-show show) [:contents :phrases uuid])
             runtime-info (su/phrase-runtime-info show phrase)]
         (start-animation-thread show uuid)
-        (send-playing-messages show phrase status)
+        (send-playing-messages show phrase status-or-beat)
         (doseq [uuid (reduce set/union (vals (:entered runtime-info)))]  ; Report start for any cues we are on.
-          (cues/send-cue-messages phrase runtime-info uuid (if on-beat? :started-on-beat :started-late) status)
+          (cues/send-cue-messages phrase runtime-info uuid (if on-beat? :started-on-beat :started-late) status-or-beat)
           (cues/repaint-cue phrase uuid)
           (cues/repaint-cue-states phrase uuid))
         (repaint-phrase-state show phrase)
@@ -1837,11 +1837,11 @@ editor windows, in their cue canvases as well."
       (do
         #_(timbre/info "Player" player "phrase changed" (if beat "on-beat" "off-beat") "from" old-phrase "to" phrase)
         (no-longer-playing show player (keys (get-in show [:last :playing-phrases player])) status true)
-        (now-playing show player (keys (get-in show [:playing-phrases player])) status true (some? beat)))
+        (now-playing show player (keys (get-in show [:playing-phrases player])) (or status beat) true (some? beat)))
       (let [was-playing (set (keys (get-in show [:last :playing-phrases player])))
             playing     (set (keys (get-in show [:playing-phrases player])))]
         (no-longer-playing show player (set/difference was-playing playing) status false)
-        (now-playing show player (set/difference playing was-playing) status false (some? beat)))))
+        (now-playing show player (set/difference playing was-playing) (or status beat) false (some? beat)))))
 
   (doseq [[uuid _sections] (get-in show [:playing-phrases player])]
     (let [runtime-info     (get-in show [:phrases uuid])

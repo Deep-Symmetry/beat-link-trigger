@@ -40,20 +40,9 @@
            [org.deepsymmetry.electro Metronome]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider]))
 
-(defonce ^{:doc "Provides a space for trigger expressions to store
-  values they want to share across triggers. Visible to other
-  namespaces so that, for example, Show expressions can access them."}
-  expression-globals (atom {}))
-
-;; Make the expression globals conveniently available when compiling
-;; shared functions too.
-(in-ns 'beat-link-trigger.expressions)
-
-#_{:clj-kondo/ignore [:unresolved-namespace]}
-(def globals
-  "The Beat Link Trigger expression globals"
-  beat-link-trigger.triggers/expression-globals)
-(in-ns 'beat-link-trigger.triggers)
+;; This used to be where this was defined, but for compilation order reasons, it has been swapped
+;; into the expressions namespace.
+(refer 'beat-link-trigger.expressions :only '[globals] :rename '{globals expression-globals})
 
 (defonce ^{:private true
            :doc "Holds the trigger window, through which we can access and
@@ -1199,7 +1188,7 @@
                                (let [extension (util/extension-for-file-type :configuration)]
                                  (when-let [file (chooser/choose-file @trigger-frame :type :save
                                                                       :all-files? false
-                                                                      :filters [["BeatLinkTrigger configuration files"
+                                                                      :filters [["Beat Link Trigger configuration files"
                                                                                  [extension]]])]
                                    (when-let [file (util/confirm-overwrite-file file extension @trigger-frame)]
                                      (try
@@ -1235,7 +1224,7 @@
                                (when-let [file (chooser/choose-file
                                                 @trigger-frame
                                                 :all-files? false
-                                                :filters [["BeatLinkTrigger configuration files" [extension]]
+                                                :filters [["Beat Link Trigger configuration files" [extension]]
                                                           (chooser/file-filter "All files" (constantly true))])]
                                  (try
                                    (when (delete-all-triggers false)

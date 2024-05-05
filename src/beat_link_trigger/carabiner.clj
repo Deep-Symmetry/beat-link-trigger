@@ -285,10 +285,12 @@
   disable the sync and master buttons appropriately."
   (reify LifecycleListener
     (started [_this _sender]
-      (enable-pioneer-sync-controls true))
+      (seesaw/invoke-later
+        (enable-pioneer-sync-controls true)))
     (stopped [_this _sender]
-      (enable-pioneer-sync-controls false)
-      (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off"))))
+      (seesaw/invoke-later
+        (enable-pioneer-sync-controls false)
+        (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off")))))
 
 (defn- update-device-visibility
   "Shows or hides the sync control row corresponding to a device, given its number."

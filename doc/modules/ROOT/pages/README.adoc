@@ -247,6 +247,17 @@ BLT. Connect all the DJ gear and that network adapter to that one
 switch. Make sure that switch isn’t connected to other
 switches/routers, this can make the Pro-DJ Link traffic go bananas.
 
+WARNING: Do not use WiFi for any of your network segments. I thought
+everyone would know this, but I end up spending a lot of time helping
+people in the
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[discussion
+community] who are trying to figure out why nothing is working well,
+and who turn out to be using WiFi. You just can't do that with DJ
+Link. WiFi has latency and collision issues that destroy the ability
+to reliably interact with DJ gear. Don't try, especially not if you
+are performing with an audience. Use a good gigabit network switch and
+quality Ethernet cables.
+
 If you still want to be able to access the Internet from the computer
 running Beat Link Trigger, you can do so by connecting its primary
 network adapter to another switch or router that is connected to the

@@ -448,8 +448,8 @@ The phrase information is split into two parts, both of which are
 indexed by the phrase <<phrase-uuid,UUID>>. This part, found under the
 key `:phrases` in the show map is computed at runtime for rapid and
 efficient display and processing but is not stored in the show file.
-The <<phrase-contents,saved part>> is found in the show `:content` map,
-also under the key `:phrases` there.
+The <<phrase-contents,saved part>> is found in the show `:contents`
+map, also under the key `:phrases` there.
 
 `:cues`:: Holds working information about the current state of the
 cues in the phrase trigger, for convenient and efficient display and
