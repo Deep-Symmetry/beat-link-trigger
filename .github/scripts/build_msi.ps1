@@ -26,7 +26,7 @@ if ( $env:release_snapshot )
 }
 else
 {
-    Write-Output "Trying to download file from release with tag $env:release_tag"
+    Write-Warning "Trying to download file from release with tag $env:release_tag"
     gh release download "$env:release_tag" --pattern "*.jar" --output Input/beat-link-trigger.jar
 }
 
