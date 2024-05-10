@@ -477,12 +477,16 @@
        (seesaw/config! bank-label :visible? true :text (util/track-bank-name tag)))
      (seesaw/config! [mood-label bank-label] :visible? false))))
 
+(def num-opus-usb-slots
+  "The number of USB slots present on the Opus Quad."
+  3)
+
 (defn opus-slot-state
   "Describes the metadata archive mounted for an Opus Quad slot, if any."
   [slot-number]
-  (if (> slot-number 3)
+  (if (> slot-number num-opus-usb-slots)
     ""
-    (if-let [archive (.findArhive opus-provider slot-number)]
+    (if-let [archive (.findArchive opus-provider slot-number)]
       (str (.getFileSystem archive))
       "No metadata archive.")))
 
@@ -562,16 +566,16 @@
         usb-name       (seesaw/label :id :usb-name :text (if (opus-quad?)
                                                            (opus-slot-state n)
                                                            "Empty"))
-        usb-gear (if (and (opus-quad?) (> n 3))
-                   (seesaw/label :id :usb-gear :text "")
-                   (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? (opus-quad?)
-                                  :popup (partial slot-popup n :usb usb-name)))
-        usb-label      (seesaw/label :id :usb-label :text (if (and (opus-quad?) (> n 3)) "" "USB:"))
+        usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? (opus-quad?)
+                                      :popup (partial slot-popup n :usb usb-name)
+                                      :visible? (or (not opus-quad?) (<= n num-opus-usb-slots)))
+        usb-label      (seesaw/label :id :usb-label :text (if (opus-quad?)
+                                                            (if (> n num-opus-usb-slots) "" (str "USB " n ":"))
+                                                            "USB:"))
         sd-name        (seesaw/label :id :sd-name :text (if (opus-quad?) "" "Empty"))
-        sd-gear        (if (opus-quad?)
-                         (seesaw/label :id :sd-gear :text "")
-                         (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
-                                        :popup (partial slot-popup n :sd sd-name)))
+        sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
+                                      :popup (partial slot-popup n :sd sd-name)
+                                      :visible? (not (opus-quad?)))
         sd-label       (seesaw/label :id :sd-label :text (if (opus-quad?) "" "SD:"))
         detail         (when @should-show-details (WaveformDetailComponent. (int n)))
         zoom-slider    (when @should-show-details
@@ -598,10 +602,10 @@
                                        (when @should-show-details
                                          [[zoom-slider "span 4, grow, split 2"] [zoom-label "wrap"]
                                           [detail "span, grow, wrap, hidemode 3"]])
-                                        [[on-air "flowy, split 2, bottom"]
-                                         [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
-                                         [player "left, bottom"]
-                                         [preview "width 408!, height 56!, right, bottom, span"]]))
+                                       [[on-air "flowy, split 2, bottom"]
+                                        [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
+                                        [player "left, bottom"]
+                                        [preview "width 408!, height 56!, right, bottom, span"]]))
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [_this md-update]
                            (when (= n (.player md-update))
@@ -629,22 +633,22 @@
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-later
-                                (seesaw/config! label :text (media-description slot-reference))
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
+                                 (seesaw/config! label :text (media-description slot-reference))
+                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
                          (mediaUnmounted [_this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-soon
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
-                                (seesaw/config! label :text "Empty")))))
+                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
+                                 (seesaw/config! label :text "Empty")))))
 
                          MediaDetailsListener
                          (detailsAvailable [_this details]
                            (let [slot-reference (.-slotReference details)
-                                 [_ label] (slot-elems slot-reference)]
+                                 [_ label]      (slot-elems slot-reference)]
                              (when label
                                (seesaw/invoke-later
-                                (seesaw/config! label :text (media-description slot-reference)))))))]
+                                 (seesaw/config! label :text (media-description slot-reference)))))))]
 
     ;; Display the magnify cursor over the waveform detail component,
     ;; and open a standalone window on the waveform when it is clicked.
@@ -654,11 +658,11 @@
     ;; Show the slot track loading menus on ordinary mouse presses on the buttons too.
     (seesaw/listen usb-gear
                    :mouse-pressed (fn [e]
-                                    (let [popup (seesaw/popup :items (slot-popup n :usb e))]
+                                    (let [popup (seesaw/popup :items (slot-popup n :usb usb-name e))]
                                       (util/show-popup-from-button usb-gear popup e))))
     (seesaw/listen sd-gear
                    :mouse-pressed (fn [e]
-                                    (let [popup (seesaw/popup :items (slot-popup n :sd e))]
+                                    (let [popup (seesaw/popup :items (slot-popup n :sd sd-name e))]
                                       (util/show-popup-from-button sd-gear popup e))))
 
     ;; Show tooltips for cue/loop markers in the track preview.
@@ -746,10 +750,10 @@
 
 (defn- update-slot-labels
   "Updates the USB/SD labels of a player cell in case the device is an
-  XDJ-XZ or Opus Quad, which has two USB slots instead."
+  XDJ-XZ, which has two USB slots instead."
   [cell ^DeviceAnnouncement device]
   (seesaw/invoke-soon
-   (if (#{"XDJ-XZ" "OPUS-QUAD"} (.getDeviceName device))
+   (if (= "XDJ-XZ" (.getDeviceName device))
      (do
        (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
@@ -814,11 +818,12 @@
   `:player-status-columns` in the trigger globals.
 
   Also updates the USB/SD labels in case the device is an XDJ-XZ,
-  which has two USB slots instead."
+  which has two USB slots instead. If we are in Opus Quad mode, the
+  labels will already be in the right state."
   [_ players no-players]
   (let [visible-players (keep-indexed (fn [index player]
                                         (when-let [device (.getLatestAnnouncementFrom device-finder (inc index))]
-                                          (update-slot-labels player device)
+                                          (when-not (opus-quad?) (update-slot-labels player device))
                                           player))
                                       players)
         grid (seesaw/grid-panel :id :players :columns (player-columns visible-players))]
