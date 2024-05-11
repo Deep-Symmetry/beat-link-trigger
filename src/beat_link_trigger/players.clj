@@ -647,8 +647,8 @@
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-later
-                                 (seesaw/config! label :text (media-description slot-reference))
-                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
+                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
+                                 (seesaw/config! label :text (media-description slot-reference))))))
                          (mediaUnmounted [_this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
@@ -660,7 +660,7 @@
                          (detailsAvailable [_this details]
                            (let [slot-reference (.-slotReference details)
                                  [_ label]      (slot-elems slot-reference)]
-                             (when (and label (not opus-quad?))
+                             (when label
                                (seesaw/invoke-later
                                  (seesaw/config! label :text (media-description slot-reference)))))))]
 
@@ -689,7 +689,7 @@
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
     (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")  ; React to song structure changes.
     (.addAlbumArtListener art-finder art-listener)  ; React to artwork changes.
-    (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
+    (when-not (opus-quad?) (.addMountListener metadata-finder mount-listener))  ; React to media mounts and ejection.
 
     ;; Set the initial state of the interface.
     (when detail (.setScale detail (seesaw/value zoom-slider)))
