@@ -8,8 +8,7 @@ This change log follows the conventions of
 
 ### Changed
 
-- Works with the backwards-incompatible 8.x version of Beat Link, to
-  offer support for the Opus Quad.
+- Works with the 8.x version of Beat Link, to offer support for the Opus Quad, as long as you build and attach metadata archives for the USBs you are using.
 - Added separate builds for macOS, Intel and Apple Silicon, since GitHub changed their default macOS runners to build for Apple Silicon, and that yields applications that can not run at all on Intel macs, even though they run more efficiently on Apple Silicon macs.
 
 ## [7.4.0] - 2024-05-04
