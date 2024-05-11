@@ -6,7 +6,7 @@
             [beat-link-trigger.simulator :as simulator]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
-            [clojure.java.io]
+            [clojure.java.io :as io]
             [clojure.string]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
@@ -231,7 +231,7 @@
   graphics context in which drawing is taking place."
   [n _ ^Graphics2D g]
   (try
-    (let [image-data (clojure.java.io/resource (str "images/BeatMini-" (or (current-beat n) "blank") ".png"))
+    (let [image-data (io/resource (str "images/BeatMini-" (or (current-beat n) "blank") ".png"))
           image (javax.imageio.ImageIO/read image-data)]
       (.drawImage g image 0 0 nil))
     (catch Exception e
@@ -384,7 +384,7 @@
   type of media being played in the specified player number."
   [^Long n]
   (let [resource (util/generic-media-resource n)]
-    (ImageIO/read (clojure.java.io/resource resource))))
+    (ImageIO/read (io/resource resource))))
 
 (defn- paint-art
   "Draws the album art for a player. Arguments are player number, the
@@ -482,13 +482,27 @@
   3)
 
 (defn opus-slot-state
-  "Describes the metadata archive mounted for an Opus Quad slot, if any."
+  "Returns a tuple of the label text and tooltip, if any, to describe
+  the state of an Opus USB slot. Reclects whether there is even such a
+  slot, and if so, whether it is empty, or if we have a metadata
+  archive mounted for it."
   [slot-number]
   (if (> slot-number num-opus-usb-slots)
-    ""
-    (if-let [archive (.findArchive opus-provider slot-number)]
-      (str (.getFileSystem archive))
-      "No metadata archive.")))
+                         ["" nil]
+                         (if-let [archive (.findArchive opus-provider slot-number)]
+                           (let [path (str (.getFileSystem archive))
+                                 file (io/file path)]
+                             [(.getName file) path])
+                           ["No metadata archive." nil])))
+
+(defn update-opus-slot-label
+  "Updates a JLabel to describes the metadata archive mounted for an Opus Quad slot, if any.
+  If we have a pathname for a mounted archive, sets the label text to
+  the filename part and the tooltip to the full path."
+  [slot-number label]
+  (let [[text tooltip] (opus-slot-state slot-number)]
+    (seesaw/text! label text)
+    (seesaw/config! label :tip tooltip)))
 
 (defn- mount-media
   "Has the user choose a metadata archive, then attaches it for the
@@ -499,7 +513,7 @@
                                        :filters [["Beat Link Metadata Archive"
                                                   [(util/extension-for-file-type :metadata-archive)]]])]
     (.attachMetadataArchive opus-provider file slot-number)
-    (seesaw/text! label (opus-slot-state slot-number))))
+    (update-opus-slot-label slot-number label)))
 
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
@@ -518,7 +532,7 @@
                  (when (.findArchive opus-provider n)
                    (seesaw/action :handler (fn [_]
                                              (.attachMetadataArchive opus-provider nil n)
-                                             (seesaw/text! label (opus-slot-state n)))
+                                             (update-opus-slot-label n label))
                                   :name "Remove Metadata Archive"))])
         [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
                         :name "Load Track from Here on a Player")]))))
@@ -564,7 +578,7 @@
                                      :font (Font. "serif" Font/ITALIC 14) :foreground :yellow)
         artist-label   (seesaw/label :text "" :font (Font. "serif" Font/BOLD 12) :foreground :green)
         usb-name       (seesaw/label :id :usb-name :text (if (opus-quad?)
-                                                           (opus-slot-state n)
+                                                           (first (opus-slot-state n))
                                                            "Empty"))
         usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? (opus-quad?)
                                       :popup (partial slot-popup n :usb usb-name)
@@ -646,7 +660,7 @@
                          (detailsAvailable [_this details]
                            (let [slot-reference (.-slotReference details)
                                  [_ label]      (slot-elems slot-reference)]
-                             (when label
+                             (when (and label (not opus-quad?))
                                (seesaw/invoke-later
                                  (seesaw/config! label :text (media-description slot-reference)))))))]
 
@@ -664,6 +678,9 @@
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (slot-popup n :sd sd-name e))]
                                       (util/show-popup-from-button sd-gear popup e))))
+
+    ;; Add the tooltip if needed for the metadata archive mounted in our USB slot.
+    (when (opus-quad?) (update-opus-slot-label n usb-name))
 
     ;; Show tooltips for cue/loop markers in the track preview.
     (seesaw/listen preview :mouse-moved (fn [e] (handle-preview-move preview e)))
