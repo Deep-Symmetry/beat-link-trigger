@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 This change log follows the conventions of
 [keepachangelog.com](http://keepachangelog.com/).
 
-## [Unreleased][unreleased]
+## [Unreleased (opus branch)][unreleased-opus]
 
 ### Changed
 
 - Works with the 8.x version of Beat Link, to offer support for the Opus Quad, as long as you build and attach metadata archives for the USBs you are using.
+
+
+## [Unreleased (main branch)][unreleased]
+
+### Changed
+
 - Added separate builds for macOS, Intel and Apple Silicon, since GitHub changed their default macOS runners to build for Apple Silicon, and that yields applications that can not run at all on Intel macs, even though they run more efficiently on Apple Silicon macs.
 
 ## [7.4.0] - 2024-05-04
@@ -1544,6 +1550,7 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
+[unreleased-opus]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/opus...main
 [unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.0...HEAD
 [7.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...v7.3.0
