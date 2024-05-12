@@ -1550,7 +1550,7 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased-opus]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/opus...main
+[unreleased-opus]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/main...opus
 [unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.0...HEAD
 [7.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...v7.3.0
