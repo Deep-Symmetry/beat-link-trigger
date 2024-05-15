@@ -2081,22 +2081,39 @@
   the show map."
   [show]
   (seesaw/action :handler (fn [_]
-                            (loop [show (latest-show show)]
+                            (loop [show      (latest-show show)
+                                   playlist? false]
                               (let [^Database database (:import-database show)
-                                    result             (loader/choose-local-track (:frame show) database
-                                                                                  "Change Media")]
-                                (if (string? result) ; User wants to change media
+                                    result             (if playlist?
+                                                         (loader/choose-local-playlist (:frame show) database
+                                                                                       "Change Media" "Import Track")
+                                                         (loader/choose-local-track (:frame show) database
+                                                                                    "Change Media" "Import Playlist"))]
+                                (cond
+                                  (= "Change Media" result)  ; User wants to change media.
                                   (do
                                     (try
                                       (.close database)
                                       (catch Throwable t
                                         (timbre/error t "Problem closing offline media database.")))
                                     (swap-show! show dissoc :import-database)
-                                    (recur (latest-show show)))
-                                  (when-let [[database track-row] result]
+                                    (recur (latest-show show) playlist?))
+
+                                  (= "Import Track" result)  ; User wants to switch to importing a single track.
+                                  (recur show false)
+
+                                  (= "Import Playlist" result)  ; User wants to switch to importing a playlist.
+                                  (recur show true)
+
+                                  :else
+                                  (when-let [[database chosen] result]
                                     (swap-show! show assoc :import-database database)
                                     (try
-                                      (import-from-media (latest-show show) database track-row)
+                                      (if (instance? RekordboxPdb$TrackRow chosen)
+                                        (import-from-media (latest-show show) database chosen)
+                                        (doseq [id chosen]
+                                          (when-let [track (.. database trackIndex (get (long id)))]
+                                            (import-from-media (latest-show show) database track))))
                                       (catch Throwable t
                                         (timbre/error t "Problem importing from offline media.")
                                         (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" t)
