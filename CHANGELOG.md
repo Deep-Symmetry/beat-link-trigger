@@ -6,6 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Fixed
+
+- The ability to access trigger globals specifically from show expressions was not properly addressed in 7.4.0. They will now work there too.
+
 ### Changed
 
 - Added separate builds for macOS, Intel and Apple Silicon, since GitHub changed their default macOS runners to build for Apple Silicon, and that yields applications that can not run at all on Intel macs, even though they run more efficiently on Apple Silicon macs.

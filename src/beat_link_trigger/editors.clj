@@ -307,7 +307,7 @@
                     (help/user-guide-link "ShowInternals.html#show")
                     "\">User Guide</a> for details.")}
 
-   'trigger-globals {:code 'expressions/globals
+   'trigger-globals {:code 'beat-link-trigger.expressions/globals
                      :doc  "The expression globals in the Triggers
   window, in case you want to share values with
   them."}})
