@@ -2466,7 +2466,7 @@
       (seesaw/listen cancel-button :action-performed (fn [_] (seesaw/return-from-dialog dialog nil)))
       (doseq [button extra-buttons]
         (let [text (seesaw/text button)]
-          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog text)))))
+          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog [pdb text])))))
       (seesaw/listen search-field #{:remove-update :insert-update :changed-update}
                      (fn [e]
                        (when (:current @searches)
@@ -2536,7 +2536,7 @@
       (seesaw/listen cancel-button :action-performed (fn [_] (seesaw/return-from-dialog dialog nil)))
       (doseq [button extra-buttons]
         (let [text (seesaw/text button)]
-          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog text)))))
+          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog [pdb text])))))
       (.expandPath file-tree (.getPathForRow file-tree 1))
       (seesaw/show! dialog))
     (catch Exception e

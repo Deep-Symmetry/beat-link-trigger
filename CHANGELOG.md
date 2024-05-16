@@ -10,6 +10,10 @@ This change log follows the conventions of
 
 - Works with the 8.x version of Beat Link, to offer support for the Opus Quad, as long as you build and attach metadata archives for the USBs you are using, or are loading them from rekordbox or rekordbox mobile on a different computer than where BLT is running.
 
+### Added
+
+- You can now import entire playlists of tracks into shows from offline media.
+
 
 ## [Unreleased (main branch)][unreleased]
 

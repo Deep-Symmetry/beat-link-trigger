@@ -1931,51 +1931,58 @@
 (defn- import-from-media
   "Imports a track that has been parsed from a local media export, being
   very careful to close the underlying track analysis files no matter
-  how we exit."
-  [show database ^RekordboxPdb$TrackRow track-row]
-  (let [anlz-file (find-anlz-file database track-row false)
-        ext-file  (find-anlz-file database track-row true)
-        anlz-atom (atom nil)
-        ext-atom  (atom nil)]
-    (try
-      (let [^RekordboxAnlz anlz (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
+  how we exit. If `silent?` is true, will return the names of tracks
+  that are skipped because they are already in the show rather than
+  displaying an error dialog about them."
+  ([show database track-row]
+   (import-from-media show database track-row false))
+  ([show database ^RekordboxPdb$TrackRow track-row silent?]
+   (let [anlz-file (find-anlz-file database track-row false)
+         ext-file  (find-anlz-file database track-row true)
+         anlz-atom (atom nil)
+         ext-atom  (atom nil)]
+     (try
+       (let [^RekordboxAnlz anlz (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
+                                                     (RekordboxAnlz.
+                                                      (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
+             ^RekordboxAnlz ext  (reset! ext-atom (when (and ext-file (.canRead ext-file))
                                                     (RekordboxAnlz.
-                                                     (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
-            ^RekordboxAnlz ext  (reset! ext-atom (when (and ext-file (.canRead ext-file))
-                                                   (RekordboxAnlz.
-                                                    (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
-            cue-tags            (or ext anlz)
-            cue-list            (when cue-tags (CueList. cue-tags))
-            data-ref            (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
-            metadata            (TrackMetadata. data-ref database cue-list)
-            beat-grid           (when anlz (BeatGrid. data-ref anlz))
-            preview             (find-waveform-preview data-ref anlz ext)
-            detail              (when ext (WaveformDetail. data-ref ext))
-            art                 (find-art database track-row)
-            song-structure      (when ext (find-song-structure ext))
-            signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
-                                                        (.getDuration metadata) detail beat-grid)]
-        (if (and signature (track-present? show signature))
-          (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
-                        :title "Can’t Re-import Track" :type :error)
-          (import-track show {:signature      signature
-                              :metadata       (extract-metadata metadata)
-                              :cue-list       cue-list
-                              :beat-grid      beat-grid
-                              :preview        preview
-                              :detail         detail
-                              :art            art
-                              :song-structure song-structure}))
-        (refresh-signatures show))
-      (finally
-        (try
-          (when @anlz-atom (.. ^RekordboxAnlz @anlz-atom _io close))
-          (catch Throwable t
-            (timbre/error t "Problem closing parsed rekordbox file" anlz-file)))
-        (try
-          (when @ext-atom (.. ^RekordboxAnlz @ext-atom _io close))
-          (catch Throwable t
-            (timbre/error t "Problem closing parsed rekordbox file" ext-file)))))))
+                                                     (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
+             cue-tags            (or ext anlz)
+             cue-list            (when cue-tags (CueList. cue-tags))
+             data-ref            (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
+             metadata            (TrackMetadata. data-ref database cue-list)
+             beat-grid           (when anlz (BeatGrid. data-ref anlz))
+             preview             (find-waveform-preview data-ref anlz ext)
+             detail              (when ext (WaveformDetail. data-ref ext))
+             art                 (find-art database track-row)
+             song-structure      (when ext (find-song-structure ext))
+             signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
+                                                         (.getDuration metadata) detail beat-grid)]
+         (if (and signature (track-present? show signature))
+           (if silent?
+             (.getTitle metadata)  ; Just return the track name rather than displaying an error about it.
+             (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
+                           :title "Can’t Re-import Track" :type :error))
+           (do (import-track show {:signature      signature
+                                   :metadata       (extract-metadata metadata)
+                                   :cue-list       cue-list
+                                   :beat-grid      beat-grid
+                                   :preview        preview
+                                   :detail         detail
+                                   :art            art
+                                   :song-structure song-structure})
+               (refresh-signatures show)
+               nil)))  ; Inform silent mode callers we succeeded.
+       (finally
+         (try
+           (when @anlz-atom (.. ^RekordboxAnlz @anlz-atom _io close))
+           (catch Throwable t
+             (timbre/error t "Problem closing parsed rekordbox file" anlz-file)))
+         (try
+           (when @ext-atom (.. ^RekordboxAnlz @ext-atom _io close))
+           (catch Throwable t
+             (timbre/error t "Problem closing parsed rekordbox file" ext-file))))))))
 
 (defn- save-show
   "Saves the show to its file, making sure the latest changes are safely
@@ -2076,48 +2083,106 @@
                                                       :title "Problem Saving Show Copy" :type :error))))))))
                  :name "Save a Copy"))
 
+(defn- import-playlist-tracks
+  "Imports all the track IDs from a playlist into a show from offline
+  media, presenting a progress bar which allows the process to be
+  stopped, and showing a list of all skipped tracks at the end rather
+  than popping up an error dialog for each."
+  [show database track-ids]
+  (let [continue?    (atom true)
+        skipped      (atom [])
+        progress     (seesaw/progress-bar :min 0 :max (count track-ids))
+        panel        (mig/mig-panel
+                      :items [[(seesaw/label :text "Importing Playlist Tracks.")
+                               "span, wrap 20"]
+                              [progress "grow, span, wrap 16"]
+                              [(seesaw/button :text "Stop"
+                                              :listen [:action-performed
+                                                       (fn [e]
+                                                         (reset! continue? false)
+                                                         (seesaw/config! e :enabled? false
+                                                                         :text "Stopping…"))])
+                               "span, align center"]])
+        ^JFrame root (seesaw/frame :title "Offline Media Import" :on-close :dispose :content panel)]
+    (when (seq track-ids)
+      (seesaw/listen root :window-closed (fn [_] (reset! continue? false)))
+      (seesaw/pack! root)
+      (.setLocationRelativeTo root (:frame show))
+      (.setAlwaysOnTop root true)
+      (seesaw/show! root)
+      (future
+        (try
+          (loop [id   (first track-ids)
+                 left (rest track-ids)
+                 done 1]
+            (when-let [track (.. database trackIndex (get (long id)))]
+              (seesaw/invoke-later
+                (when-let [skipped-name (import-from-media (latest-show show) database track true)]
+                  (swap! skipped conj skipped-name))))
+            (seesaw/invoke-now
+              (seesaw/value! progress done))
+            (when (and @continue? (seq left))
+              (recur (first left)
+                     (rest left)
+                     (inc done))))
+          (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))
+          (when (seq @skipped)
+            (seesaw/invoke-later
+              (seesaw/alert (:frame show)
+                            [(seesaw/scrollable
+                              (seesaw/label :text (str "<html><p>The following tracks were not imported because "
+                                                       "they were already in the show:</p><ul><li>"
+                                                       (str/join "</li><li>" (sort @skipped)) "</li></ul>"))
+                              :size [640 :by 480])]
+                            :type :info)))
+          (catch Exception e
+            (timbre/error e "Problem Importing Playlist Tracks")
+            (seesaw/invoke-later
+              (seesaw/alert (str "<html>Unable to Import Playlist Tracks:<br><br>" (.getMessage e)
+                                 "<br><br>See the log file for more details.")
+                            :title "Problem Importing Playlist Tracks" :type :error)
+              (.dispose root))))))))
+
 (defn- build-import-offline-action
   "Creates the menu action to import a track from offline media, given
   the show map."
   [show]
   (seesaw/action :handler (fn [_]
-                            (loop [show      (latest-show show)
-                                   playlist? false]
-                              (let [^Database database (:import-database show)
-                                    result             (if playlist?
-                                                         (loader/choose-local-playlist (:frame show) database
-                                                                                       "Change Media" "Import Track")
-                                                         (loader/choose-local-track (:frame show) database
-                                                                                    "Change Media" "Import Playlist"))]
+                            (loop [show               (latest-show show)
+                                   ^Database database (:import-database show)
+                                   playlist?          false]
+                              (let [[database chosen] (if playlist?
+                                                        (loader/choose-local-playlist (:frame show) database
+                                                                                      "Change Media"
+                                                                                      "Import Single Track")
+                                                        (loader/choose-local-track (:frame show) database
+                                                                                   "Change Media" "Import Playlist"))]
+                                (when database (swap-show! show assoc :import-database database))
                                 (cond
-                                  (= "Change Media" result)  ; User wants to change media.
+                                  (= "Change Media" chosen) ; User wants to change media.
                                   (do
                                     (try
-                                      (.close database)
+                                      (when database (.close database))
                                       (catch Throwable t
                                         (timbre/error t "Problem closing offline media database.")))
                                     (swap-show! show dissoc :import-database)
-                                    (recur (latest-show show) playlist?))
+                                    (recur (latest-show show) nil playlist?))
 
-                                  (= "Import Track" result)  ; User wants to switch to importing a single track.
-                                  (recur show false)
+                                  (= "Import Single Track" chosen) ; User wants to switch to importing a single track.
+                                  (recur show database false)
 
-                                  (= "Import Playlist" result)  ; User wants to switch to importing a playlist.
-                                  (recur show true)
+                                  (= "Import Playlist" chosen) ; User wants to switch to importing a playlist.
+                                  (recur show database true)
 
-                                  :else
-                                  (when-let [[database chosen] result]
-                                    (swap-show! show assoc :import-database database)
-                                    (try
-                                      (if (instance? RekordboxPdb$TrackRow chosen)
-                                        (import-from-media (latest-show show) database chosen)
-                                        (doseq [id chosen]
-                                          (when-let [track (.. database trackIndex (get (long id)))]
-                                            (import-from-media (latest-show show) database track))))
-                                      (catch Throwable t
-                                        (timbre/error t "Problem importing from offline media.")
-                                        (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" t)
-                                                      :title "Problem Finding Track Metadata" :type :error))))))))
+                                  (some? chosen)
+                                  (try
+                                    (if (instance? RekordboxPdb$TrackRow chosen)
+                                      (import-from-media (latest-show show) database chosen)
+                                      (import-playlist-tracks show database chosen))
+                                    (catch Throwable t
+                                      (timbre/error t "Problem importing from offline media.")
+                                      (seesaw/alert (:frame show) (str "<html>Unable to Import.<br><br>" t)
+                                                    :title "Problem Finding Track Metadata" :type :error)))))))
                  :name "from Offline Media"
                  :key "menu M"))
 
