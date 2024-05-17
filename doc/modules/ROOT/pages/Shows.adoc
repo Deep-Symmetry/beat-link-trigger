@@ -279,7 +279,9 @@ Track] to add it to the Show.
 
 image:SecondTrackLoaded.png[Second track loaded into Show,1005,589]
 
-TIP: To save time, once you have chosen media to load tracks from
+[TIP]
+====
+To save time, once you have chosen media to load tracks from
 during a Beat Link Trigger session, your media choice is remembered
 (and the parsed database export is kept open), so the next time you
 choose to import from offline media, the media selection window is
@@ -291,6 +293,16 @@ open; if you do need to eject it without quitting BLT, choose
 menu:Tracks[Import Track>from Offline Media], click kbd:[Change
 Media], and it will be closed so you can eject it. At that point you
 can click kbd:[Cancel] if you did not actually want to import a Track.
+
+If you have an entire playlist of tracks that you want to import into
+a show, you can use the kbd:[Import Playlist] button to switch to an
+interface which shows only playlists and allows you to choose one. If
+you do so, a progress bar will provide feedback as the tracks from
+that playlist are imported, and allow you to stop the process. If you
+decide you only want to import a single track after all, prior to
+choosing a playlist you can click kbd:[Import Single Track] to return
+to the normal track selection interface.
+====
 
 === Copying Tracks between Shows
 
