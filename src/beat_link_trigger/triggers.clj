@@ -1509,7 +1509,8 @@
            :doc "The menu action which allows creation of a metadata archive from rekordbox media."}
   archive-metadata-action
   (delay (seesaw/action :handler (fn [_] (track-loader/create-metadata-archive @trigger-frame))
-                        :name "Archive Metadata" :enabled? true)))
+                        :name "Archive Metadata" :enabled? true
+                        :tip "Summarize a rekordbox usb to a file for working with an Opus Quad.")))
 
 (defonce ^{:private true
            :doc "The action which opens the OBS overlay web server window."}

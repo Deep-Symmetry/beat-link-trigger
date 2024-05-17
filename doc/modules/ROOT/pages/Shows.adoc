@@ -54,7 +54,7 @@ something even easier than creating a show. Check out how to
 To use the Show interface, you start by choosing menu:File[New Show]
 in the Beat Link Triggers window.
 
-image:NewShow.png[New Show option,189,156]
+image:NewShow.png[New Show option,204,173]
 
 This opens a Save dialog where you choose the location and name of
 your new Show file. Navigate to where you would like to keep it, type
