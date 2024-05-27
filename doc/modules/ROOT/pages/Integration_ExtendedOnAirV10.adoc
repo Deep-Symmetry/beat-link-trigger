@@ -1,7 +1,7 @@
 = Extended On-Air for DJM-V10
 include::partial$PagePreamble.adoc[]
 
-An https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger/topic/Question.20about.20Mixer.20Data[interesting question] from https://www.twitch.tv/drfrankenspine[DrFrankenspine] in the project Zulip discussion community led to some cool developments.
+An https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger/topic/Question.20about.20Mixer.20Data[interesting question] from https://linktr.ee/DrFrankenspine[DrFrankenspine] in the project Zulip discussion community led to some cool developments.
 He has a custom studio setup for his mixing live streams, and wanted to automate highlighting which gear was currently audible in the mix, by sending MIDI or OSC commands to his lighting controller.
 This is already easy to support for CDJs, because of the Channels On-Air feature supported by DJM mixers. But he has channels connected to turntables and Eurorack gear, for which there is no On-Air support.
 
