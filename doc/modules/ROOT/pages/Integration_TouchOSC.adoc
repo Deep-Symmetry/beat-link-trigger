@@ -1,4 +1,5 @@
 = Track Information to TouchOSC
+include::partial$PagePreamble.adoc[]
 
 An https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger/topic/Sending.20track.20information.20to.20TouchOSC.20via.20Midi.20or.20OSC/near/436482289[interesting inquiry] from Toby Leo in the project Zulip discussion community requested some help sending messages to TouchOSC to replicate some of the Player Status interface on phones and tablets.
 That actually turned out to be a great idea for an integration example, because it is fairly simple and focused, so it offers an easy starting point that can be understood and tweaked and extended in a variety of directions.
@@ -104,4 +105,10 @@ image::TouchOSCTriggers.png[TouchOSC Track Info Triggers,916,417]
 ## Next Steps
 
 My normal instincts would be to create some shared functions to reduce duplication of code between the triggers, and make it easier to add new ones, changing a single parameter.
-But that would not save all that much here, and would add to the complexity that people need to understand. As I noted in the instructions above, it should be clear how you could add more triggers to work with more players and more rows in your TouchOSC layout. Please https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[let us know on Zulip] if you explore that, and about other interesting directions you might take this!
+It would also be possible to package this up in a show file, using the new mechanism that allows shows to contribute raw triggers to the Triggers window while they are open, and add a simple GUI for configuring the TouchOSC hostname and port number.
+This would also allow people to make use of this integration without interfering with other things they have configured in the Triggers window.
+
+But that would not save all that much here, and would add to the complexity that people need to understand.
+As I noted in the instructions above, it should be clear how you could add more triggers to work with more players and more rows in your TouchOSC layout. Please https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[let us know on Zulip] if you explore that, and about other interesting directions you might take this!
+
+And if anyone would be interested in help packaging this up as a standalone show file as described above, with support for up to six players, definitely get in touch, and we can work on it.

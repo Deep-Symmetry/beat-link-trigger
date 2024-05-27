@@ -1,4 +1,5 @@
 = TouchDesigner Phrase Information
+include::partial$PagePreamble.adoc[]
 
 I received an interesting query from a lighting designer who uses
 https://derivative.ca[TouchDesigner] to generate dynamic lighting
