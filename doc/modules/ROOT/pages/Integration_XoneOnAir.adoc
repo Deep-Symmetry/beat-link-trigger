@@ -1,4 +1,3 @@
-[#xone96-channels-on-air-support]
 = Xone:96 Channels On Air Support
 include::partial$PagePreamble.adoc[]
 
