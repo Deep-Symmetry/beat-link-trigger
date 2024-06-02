@@ -27,7 +27,7 @@
             LifecycleListener VirtualCdj]
            [org.deepsymmetry.beatlink.data MenuLoader MetadataFinder MountListener SlotReference]
            [org.deepsymmetry.beatlink.dbserver Message Message$MenuItemType NumberField StringField]
-           [org.deepsymmetry.cratedigger Database Database$PlaylistFolderEntry]
+           [org.deepsymmetry.cratedigger Archivist Archivist$ArchiveListener Database Database$PlaylistFolderEntry]
            [org.deepsymmetry.cratedigger.pdb RekordboxPdb$TrackRow RekordboxPdb$AlbumRow
             RekordboxPdb$ArtistRow RekordboxPdb$GenreRow]))
 
@@ -2288,8 +2288,11 @@
   pathname of such a file."
   ^File [media-root]
   (let [pdb (io/file media-root "PIONEER" "rekordbox" "export.pdb")]
-    (when (.canRead pdb)
-      pdb)))
+    (if (.canRead pdb)
+      pdb
+      (let [pdb (io/file media-root ".PIONEER" "rekordbox" "export.pdb")]
+        (when (.canRead pdb)
+          pdb)))))
 
 (defn find-pdb-recursive
   "Searches recursively through a set of subdirectories for rekordbox
@@ -2318,9 +2321,9 @@
   [^File pdb-file]
   (.. pdb-file getParentFile getParentFile getParentFile getAbsolutePath))
 
-(defn offline-file-node
+(defn- offline-file-track-node
   "Creates the root node for working with an offline rekordbox exported
-  database file."
+  database file and choosing tracks."
   [^Database database]
   (let [node (DefaultMutableTreeNode.
               (proxy [Object IMenuEntry] []
@@ -2332,7 +2335,56 @@
     (add-file-node-children database node nil)
     node))
 
-(defn- create-chooser-dialog
+(defn offline-playlist-only-node
+  "Creates a node that represents a playlist available in an exported
+  rekordbox database file when the only thing that can be loaded is
+  playlists themselves."
+  [^Database _database id playlist-name]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] playlist-name)
+     (getId [] (int id))
+     (getSlot [] nil)
+     (getTrackType [] nil)
+     (loadChildren [_]))
+   false))
+
+(defn- offline-playlist-only-folder-node
+  "Creates a node that represents a playlist folder available in an
+  exported rekordbox database file when the only thing that can be
+  chosen is playlists themselves."
+  [^Database database id folder-name]
+  (DefaultMutableTreeNode.
+   (proxy [Object IMenuEntry] []
+     (toString [] folder-name)
+     (getId [] (int id))
+     (getSlot [] nil)
+     (getTrackType [] nil)
+     (loadChildren [^DefaultMutableTreeNode node]
+       (when (unloaded? node)
+         (doseq [^Database$PlaylistFolderEntry entry (.. database playlistFolderIndex (get id))]
+           (when entry
+             (if (.isFolder entry)
+               (.add node (offline-playlist-only-folder-node database (.id entry) (.name entry)))
+               (.add node (offline-playlist-only-node database (.id entry) (.name entry))))))
+         (mark-if-still-empty node))))
+   true))
+
+(defn- offline-file-playlist-node
+  "Creates the root node for working with an offline rekordbox exported
+  database file and choosing playlists."
+  [^Database database]
+  (let [node (DefaultMutableTreeNode.
+              (proxy [Object IMenuEntry] []
+                (toString [] (str "Choose Playlist from:"))
+                (getId [] (int 0))
+                (getSlot [] nil)
+                (getTrackType [] nil)
+                (loadChildren [_])))]
+    (.add node (offline-playlist-only-folder-node database 0 "Playlists"))
+    node))
+
+(defn- create-local-track-chooser-dialog
   "Builds an interface in which the user can choose a track from a
   locally mounted media filesystem for offline inclusion into a show.
   Returns the frame if creation succeeded. If `parent` is not nil, the
@@ -2344,11 +2396,11 @@
   the usual [database track] tuple.
 
   This function must be invoked on the Swing Event Dispatch thread."
-   [^JFrame parent ^Database pdb extra-labels]
+  [^JFrame parent ^Database pdb extra-labels]
   (try
     (let [selected-track   (atom nil)
           searches         (atom {})
-          file-model       (DefaultTreeModel. (offline-file-node pdb) true)
+          file-model       (DefaultTreeModel. (offline-file-track-node pdb) true)
           ^JTree file-tree (seesaw/tree :model file-model :id :tree)
           file-scroll      (seesaw/scrollable file-tree)
           choose-button    (seesaw/button :text "Choose Track" :enabled? false)
@@ -2358,7 +2410,7 @@
                              (seesaw/config! choose-button :enabled? (some? @selected-track)))
           search-label     (seesaw/label :text "Search:")
           search-field     (seesaw/text "")
-          search-partial   (seesaw/label "")                ; Not used in this dialog variant, expected by search UI.
+          search-partial   (seesaw/label "") ; Not used in this dialog variant, expected by search UI.
           search-button    (seesaw/button :text "Load All") ; Also not used but expected by search UI.
           search-panel     (mig/mig-panel :background "#eee"
                                           :items [[search-label] [search-field "pushx, growx"]])
@@ -2396,7 +2448,7 @@
                                ^IMenuEntry selected-entry          (when search-node (.. search-node getUserObject))
                                selected-search                     (when selected-entry (.getSlot selected-entry))]
                            (when (not= selected-search (:current @searches))
-                             (swap! searches dissoc :current)  ; Suppress UI responses during switch to new search.
+                             (swap! searches dissoc :current) ; Suppress UI responses during switch to new search.
                              (if selected-search
                                (do
                                  (swap! searches assoc-in [selected-search :path] search-path)
@@ -2414,7 +2466,7 @@
       (seesaw/listen cancel-button :action-performed (fn [_] (seesaw/return-from-dialog dialog nil)))
       (doseq [button extra-buttons]
         (let [text (seesaw/text button)]
-          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog text)))))
+          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog [pdb text])))))
       (seesaw/listen search-field #{:remove-update :insert-update :changed-update}
                      (fn [e]
                        (when (:current @searches)
@@ -2425,6 +2477,105 @@
       (seesaw/alert (str "<html>Unable to Choose Track from Media Export:<br><br>" (.getMessage e)
                          "<br><br>See the log file for more details.")
                     :title "Problem Choosing Track" :type :error))))
+
+(defn- create-local-playlist-chooser-dialog
+  "Builds an interface in which the user can choose a playlist from a
+  locally mounted media filesystem for offline inclusion into a show.
+  Returns the frame if creation succeeded. If `parent` is not nil, the
+  dialog will be centered on it rather than in the middle of the
+  screen. `pdb` must be a Database object that contains a parsed
+  rekordbox `export.pdb` database. If `extra-labels` are provided,
+  they are used to create additional buttons at the bottom of the
+  dialog which, when clicked, return the text of the label rather than
+  the usual [database playlist] tuple.
+
+  This function must be invoked on the Swing Event Dispatch thread."
+   [^JFrame parent ^Database pdb extra-labels]
+  (try
+    (let [selected-playlist (atom nil)
+          file-model        (DefaultTreeModel. (offline-file-playlist-node pdb) true)
+          ^JTree file-tree  (seesaw/tree :model file-model :id :tree)
+          file-scroll       (seesaw/scrollable file-tree)
+          choose-button     (seesaw/button :text "Choose Playlist" :enabled? false)
+          cancel-button     (seesaw/button :text "Cancel")
+          extra-buttons     (map (fn [text] (seesaw/button :text text)) extra-labels)
+          update-choose-ui  (fn []
+                             (seesaw/config! choose-button :enabled? (some? @selected-playlist)))
+          layout            (seesaw/border-panel :center file-scroll)
+          ^JDialog dialog   (seesaw/dialog :content layout :options (concat [choose-button cancel-button] extra-buttons)
+                                          :title (str "Choose Playlist from " (describe-pdb-media (.sourceFile pdb)))
+                                          :default-option choose-button :modal? true)
+          mouse-listener    (proxy [java.awt.event.MouseAdapter] []
+                             (mousePressed [^java.awt.event.MouseEvent e]
+                               (when (and @selected-playlist (= 2 (.getClickCount e)))
+                                 (.doClick ^JButton choose-button))))]
+      (.setSelectionMode (.getSelectionModel file-tree) javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION)
+      (.setSize dialog 800 600)
+      (.setLocationRelativeTo dialog parent)
+      (seesaw/listen file-tree
+                     :tree-will-expand
+                     (fn [^javax.swing.event.TreeExpansionEvent e]
+                       (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                             ^IMenuEntry entry            (.getUserObject node)]
+                         (.loadChildren entry node)))
+                     :selection
+                     (fn [^javax.swing.event.TreeSelectionEvent e]
+                       (try
+                         (reset! selected-playlist
+                                 (when (.isAddedPath e)
+                                   (let [^DefaultMutableTreeNode node (.. e (getPath) (getLastPathComponent))
+                                         ^IMenuEntry entry            (.getUserObject node)]
+                                     (when-not (.getAllowsChildren node) (.getId entry)))))
+                         (update-choose-ui)
+                         (catch Throwable t
+                           (timbre/error t "Problem responding to file tree click.")))))
+      (.addMouseListener file-tree mouse-listener)
+      (seesaw/listen choose-button :action-performed
+                     (fn [_]
+                       (seesaw/return-from-dialog dialog [pdb (.. pdb playlistIndex (get (long @selected-playlist)))])))
+      (seesaw/listen cancel-button :action-performed (fn [_] (seesaw/return-from-dialog dialog nil)))
+      (doseq [button extra-buttons]
+        (let [text (seesaw/text button)]
+          (seesaw/listen button :action-performed (fn [_] (seesaw/return-from-dialog dialog [pdb text])))))
+      (.expandPath file-tree (.getPathForRow file-tree 1))
+      (seesaw/show! dialog))
+    (catch Exception e
+      (timbre/error e "Problem Choosing Playlist")
+      (seesaw/alert (str "<html>Unable to Choose Playlist from Media Export:<br><br>" (.getMessage e)
+                         "<br><br>See the log file for more details.")
+                    :title "Problem Choosing Playlist" :type :error))))
+
+(defn choose-media-export
+  "Presents a modal dialog allowing the selection of a locally mounted
+  rekordbox media export filesystem. If one is successfully chosen,
+  returns the parsed database export. If `parent` is supplied, the
+  dialog will be centered on it, rather than in the middle of the
+  screen."
+  ([]
+   (choose-media-export nil))
+  ([parent]
+   (seesaw/invoke-now
+     (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type
+                                     "Choose Rekordbox Media"
+                                     :filters [rekordbox-export-filter]
+                                     :remember-directory? false)]
+       (when root
+         (let [candidates (find-pdb-recursive root 3)]
+           (cond
+             (empty? candidates)
+             (seesaw/alert "No rekordbox export found in the chosen directory."
+                           :title "Unable to Locate Database" :type :error)
+
+             (> (count candidates) 1)
+             (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
+                                       "Please pick a specific media export:\n"
+                                       (str/join "\n" (map describe-pdb-media candidates)))
+                           :title "Ambiguous Database Choice" :type :error)
+
+             :else
+             (or (Database. (first candidates))
+                 (seesaw/alert parent "Could not find exported rekordbox database."
+                               :title "Nowhere to Load Tracks From" :type :error)))))))))
 
 (defn choose-local-track
   "Presents a modal dialog allowing the selection of a track from a
@@ -2444,24 +2595,91 @@
   ([parent ^Database database & extra-labels]
    (seesaw/invoke-now
     (if (and database (.. database sourceFile canRead))  ; Trying to reuse a database, make sure file is still there.
-      (create-chooser-dialog parent database extra-labels)
-      (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type "Choose Media"
-                                      :filters [rekordbox-export-filter])]
-        (when root
-          (let [candidates (find-pdb-recursive root 3)]
-            (cond
-              (empty? candidates)
-              (seesaw/alert "No rekordbox export found in the chosen directory."
-                            :title "Unable to Locate Database" :type :error)
+      (create-local-track-chooser-dialog parent database extra-labels)
+      (if-let [pdb (choose-media-export parent)]
+        (create-local-track-chooser-dialog parent pdb extra-labels)
+        (seesaw/alert parent "Could not find exported rekordbox database."
+                      :title "Nowhere to Load Tracks From" :type :error))))))
 
-              (> (count candidates) 1)
-              (seesaw/alert parent (str "Multiple recordbox exports found in the chosen directory.\n"
-                                        "Please pick a specific media export:\n"
-                                        (str/join "\n" (map describe-pdb-media candidates)))
-                            :title "Ambiguous Database Choice" :type :error)
+(defn choose-local-playlist
+  "Presents a modal dialog allowing the selection of a playlist from a
+  locally mounted media filesystem. If `parent` is supplied, the
+  dialogs will be centered on it rather than in the middle of the
+  screen. If `database` is supplied, uses that already-parsed
+  rekordbox export file; otherwise starts by prompting the user to
+  choose a media volume to parse. Returns a tuple of the database and
+  the chosen playlist object, or `nil` if the user canceled. If
+  `extra-labels` are provided, they are used to create additional
+  buttons at the bottom of the dialog which, when clicked, return the
+  text of the label rather than the usual [database playlist] tuple."
+  ([]
+   (choose-local-playlist nil))
+  ([parent]
+   (choose-local-playlist parent nil))
+  ([parent ^Database database & extra-labels]
+   (seesaw/invoke-now
+    (if (and database (.. database sourceFile canRead))  ; Trying to reuse a database, make sure file is still there.
+      (create-local-playlist-chooser-dialog parent database extra-labels)
+      (if-let [pdb (choose-media-export parent)]
+        (create-local-playlist-chooser-dialog parent pdb extra-labels)
+        (seesaw/alert parent "Could not find exported rekordbox database."
+                      :title "Nowhere to Load Playlists From" :type :error))))))
 
-              :else
-              (if-let [pdb (Database. (first candidates))]
-                (create-chooser-dialog parent pdb extra-labels)
-                (seesaw/alert parent "Could not find exported rekordbox database."
-                              :title "Nowhere to Load Tracks From" :type :error))))))))))
+(defn create-metadata-archive
+  "Prompt the user to select some mounted rekordbox media, then for a
+  file in which to archive its metadata for use with the Opus Quad.
+  `parent` is the window over which the UI should be centered, if any."
+  [parent]
+  (when-let [^Database database (choose-media-export parent)]
+    (let [extension (util/extension-for-file-type :metadata-archive)]
+      (try
+        (when-let [^File file (chooser/choose-file parent :type "Create Metadata Archive"
+                                                   :all-files? false
+                                                   :filters [["Beat Link Metadata Archives" [extension]]])]
+          (let [continue?    (atom true)
+                progress     (seesaw/progress-bar :indeterminate? true :min 0 :max 1000)
+                panel        (mig/mig-panel
+                              :items [[(seesaw/label :text
+                                                     (str "<html>Creating metadata archive, in file <strong>"
+                                                          (.getName file) "</strong>:</html>"))
+                                       "span, wrap 20"]
+                                      [progress "grow, span, wrap 16"]
+                                      [(seesaw/button :text "Cancel"
+                                                      :listen [:action-performed
+                                                               (fn [e]
+                                                                 (reset! continue? false)
+                                                                 (seesaw/config! e :enabled? false
+                                                                                 :text "Canceling…"))])
+                                       "span, align center"]])
+                ^JFrame root (seesaw/frame :title "Archiving Metadata" :on-close :dispose :content panel)
+                listener (reify Archivist$ArchiveListener
+                           (continueCreating [_this finished-count total-count]
+                             (seesaw/invoke-later
+                               (seesaw/config! progress :max total-count :indeterminate? false)
+                               (seesaw/value! progress finished-count)
+                               (when (or (not @continue?) (>= finished-count total-count))
+                                 (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
+                             @continue?))]
+            (when-let [^File file (util/confirm-overwrite-file file extension parent)]
+              (seesaw/listen root :window-closed (fn [_] (reset! continue? false)))
+              (seesaw/pack! root)
+              (.setLocationRelativeTo root parent)
+              (seesaw/show! root)
+              (future
+                (try
+                  (.createArchive (Archivist/getInstance) database file listener)
+                  (catch Exception e
+                    (timbre/error e "Problem Creating Metadata Archive")
+                    (seesaw/invoke-later
+                      (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
+                                         "<br><br>See the log file for more details.")
+                                    :title "Problem Creating Cache" :type :error)
+                      (.dispose root))))))))
+        (catch Exception e
+          (timbre/error e "Problem Setting Up Metadata Archive")
+          (seesaw/invoke-later
+            (seesaw/alert (str "<html>Unable to Create Metadata Cache:<br><br>" (.getMessage e)
+                               "<br><br>See the log file for more details.")
+                          :title "Problem Creating Cache" :type :error)))
+        (finally
+          (.close database))))))

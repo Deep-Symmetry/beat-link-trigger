@@ -6,8 +6,9 @@
             [beat-link-trigger.simulator :as simulator]
             [beat-link-trigger.util :as util]
             [clojure.core.async :as async :refer [<! >!!]]
-            [clojure.java.io]
+            [clojure.java.io :as io]
             [clojure.string]
+            [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
@@ -19,7 +20,7 @@
             DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdate
             LifecycleListener MediaDetailsListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener AnalysisTagFinder AnalysisTagListener
-            ArtFinder MetadataFinder MountListener SearchableItem SlotReference TimeFinder TrackMetadata
+            ArtFinder MetadataFinder MountListener OpusProvider SearchableItem SlotReference TimeFinder TrackMetadata
             TrackMetadataListener TrackPositionUpdate WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
            [jiconfont.icons.font_awesome FontAwesome]
            [jiconfont.swing IconFontSwing]))
@@ -88,11 +89,23 @@
   singleton."
   (ArtFinder/getInstance))
 
+(def ^OpusProvider opus-provider
+  "A convenient reference to the [Beat Link
+  `OpusProvider`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/OpusProvider.html)
+  singleton."
+  (OpusProvider/getInstance))
+
 (defn- sending-status?
   "Checks whether we are currently sending status packets, which is
   required to reliably obtain metadata for non-rekordbox tracks."
   []
   ((resolve 'beat-link-trigger.triggers/real-player?)))
+
+(defn- opus-quad?
+  "Checks whether we are operating in Opus Quad compatiblity
+  mode rather than Pro DJ Link mode."
+  []
+  (.inOpusQuadCompatibilityMode virtual-cdj))
 
 (def magnify-cursor
   "A custom cursor that indicates something can be magnified."
@@ -218,7 +231,7 @@
   graphics context in which drawing is taking place."
   [n _ ^Graphics2D g]
   (try
-    (let [image-data (clojure.java.io/resource (str "images/BeatMini-" (or (current-beat n) "blank") ".png"))
+    (let [image-data (io/resource (str "images/BeatMini-" (or (current-beat n) "blank") ".png"))
           image (javax.imageio.ImageIO/read image-data)]
       (.drawImage g image 0 0 nil))
     (catch Exception e
@@ -371,7 +384,7 @@
   type of media being played in the specified player number."
   [^Long n]
   (let [resource (util/generic-media-resource n)]
-    (ImageIO/read (clojure.java.io/resource resource))))
+    (ImageIO/read (io/resource resource))))
 
 (defn- paint-art
   "Draws the album art for a player. Arguments are player number, the
@@ -464,19 +477,65 @@
        (seesaw/config! bank-label :visible? true :text (util/track-bank-name tag)))
      (seesaw/config! [mood-label bank-label] :visible? false))))
 
+(def num-opus-usb-slots
+  "The number of USB slots present on the Opus Quad."
+  3)
+
+(defn opus-slot-state
+  "Returns a tuple of the label text and tooltip, if any, to describe
+  the state of an Opus USB slot. Reclects whether there is even such a
+  slot, and if so, whether it is empty, or if we have a metadata
+  archive mounted for it."
+  [slot-number]
+  (if (> slot-number num-opus-usb-slots)
+                         ["" nil]
+                         (if-let [archive (.findArchive opus-provider slot-number)]
+                           (let [path (str (.getFileSystem archive))
+                                 file (io/file path)]
+                             [(.getName file) path])
+                           ["No metadata archive." nil])))
+
+(defn update-opus-slot-label
+  "Updates a JLabel to describes the metadata archive mounted for an Opus Quad slot, if any.
+  If we have a pathname for a mounted archive, sets the label text to
+  the filename part and the tooltip to the full path."
+  [slot-number label]
+  (let [[text tooltip] (opus-slot-state slot-number)]
+    (seesaw/text! label text)
+    (seesaw/config! label :tip tooltip)))
+
+(defn- mount-media
+  "Has the user choose a metadata archive, then attaches it for the
+  specified Opus Quad slot."
+  [slot-number label]
+  (when-let [file (chooser/choose-file @player-window :type "Attach Metadata Archive"
+                                       :all-files? false
+                                       :filters [["Beat Link Metadata Archive"
+                                                  [(util/extension-for-file-type :metadata-archive)]]])]
+    (.attachMetadataArchive opus-provider file slot-number)
+    (update-opus-slot-label slot-number label)))
+
 (defn- slot-popup
   "Returns the actions that should be in a popup menu for a particular
   player media slot. Arguments are the player number, slot
   keyword (`:usb` or `:sd`), and the event triggering the popup."
-  [n slot e]
+  [n slot label e]
   (when (seesaw/config e :enabled?)
     (let [slot           (case slot
-                           :usb CdjStatus$TrackSourceSlot/USB_SLOT
-                           :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
+                             :usb CdjStatus$TrackSourceSlot/USB_SLOT
+                             :sd  CdjStatus$TrackSourceSlot/SD_SLOT)
           slot-reference (SlotReference/getSlotReference (int n) slot)]
-      (filter identity
-              [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
-                              :name "Load Track from Here on a Player")]))))
+      (if (opus-quad?)
+        (filter identity
+                [(seesaw/action :handler (fn [_] (mount-media n label))
+                                :name "Attach Metadata Archive")
+                 (when (.findArchive opus-provider n)
+                   (seesaw/action :handler (fn [_]
+                                             (.attachMetadataArchive opus-provider nil n)
+                                             (update-opus-slot-label n label))
+                                  :name "Remove Metadata Archive"))])
+        [(seesaw/action :handler (fn [_] (track-loader/show-dialog slot-reference))
+                        :name "Load Track from Here on a Player")]))))
 
 (defn- handle-preview-move
   "Mouse movement listener for a wave preview component; shows a tool
@@ -518,14 +577,20 @@
         title-label    (seesaw/label :text "[track metadata not available]"
                                      :font (Font. "serif" Font/ITALIC 14) :foreground :yellow)
         artist-label   (seesaw/label :text "" :font (Font. "serif" Font/BOLD 12) :foreground :green)
-        usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
-                                      :popup (partial slot-popup n :usb))
-        usb-label      (seesaw/label :id :usb-label :text "USB:")
-        usb-name       (seesaw/label :id :usb-name :text "Empty")
+        usb-name       (seesaw/label :id :usb-name :text (if (opus-quad?)
+                                                           (first (opus-slot-state n))
+                                                           "Empty"))
+        usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? (opus-quad?)
+                                      :popup (partial slot-popup n :usb usb-name)
+                                      :visible? (or (not opus-quad?) (<= n num-opus-usb-slots)))
+        usb-label      (seesaw/label :id :usb-label :text (if (opus-quad?)
+                                                            (if (> n num-opus-usb-slots) "" (str "USB " n ":"))
+                                                            "USB:"))
+        sd-name        (seesaw/label :id :sd-name :text (if (opus-quad?) "" "Empty"))
         sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
-                                      :popup (partial slot-popup n :sd))
-        sd-label       (seesaw/label :id :sd-label :text "SD:")
-        sd-name        (seesaw/label :id :sd-name :text "Empty")
+                                      :popup (partial slot-popup n :sd sd-name)
+                                      :visible? (not (opus-quad?)))
+        sd-label       (seesaw/label :id :sd-label :text (if (opus-quad?) "" "SD:"))
         detail         (when @should-show-details (WaveformDetailComponent. (int n)))
         zoom-slider    (when @should-show-details
                          (seesaw/slider :id :zoom :min 1 :max 32 :value 4
@@ -551,10 +616,10 @@
                                        (when @should-show-details
                                          [[zoom-slider "span 4, grow, split 2"] [zoom-label "wrap"]
                                           [detail "span, grow, wrap, hidemode 3"]])
-                                        [[on-air "flowy, split 2, bottom"]
-                                         [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
-                                         [player "left, bottom"]
-                                         [preview "width 408!, height 56!, right, bottom, span"]]))
+                                       [[on-air "flowy, split 2, bottom"]
+                                        [beat "bottom"] [time ""] [remain ""] [tempo "wrap"]
+                                        [player "left, bottom"]
+                                        [preview "width 408!, height 56!, right, bottom, span"]]))
         md-listener    (reify TrackMetadataListener
                          (metadataChanged [_this md-update]
                            (when (= n (.player md-update))
@@ -582,22 +647,22 @@
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-later
-                                (seesaw/config! label :text (media-description slot-reference))
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)))))
+                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
+                                 (seesaw/config! label :text (media-description slot-reference))))))
                          (mediaUnmounted [_this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-soon
-                                (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
-                                (seesaw/config! label :text "Empty")))))
+                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
+                                 (seesaw/config! label :text "Empty")))))
 
                          MediaDetailsListener
                          (detailsAvailable [_this details]
                            (let [slot-reference (.-slotReference details)
-                                 [_ label] (slot-elems slot-reference)]
+                                 [_ label]      (slot-elems slot-reference)]
                              (when label
                                (seesaw/invoke-later
-                                (seesaw/config! label :text (media-description slot-reference)))))))]
+                                 (seesaw/config! label :text (media-description slot-reference)))))))]
 
     ;; Display the magnify cursor over the waveform detail component,
     ;; and open a standalone window on the waveform when it is clicked.
@@ -607,12 +672,15 @@
     ;; Show the slot track loading menus on ordinary mouse presses on the buttons too.
     (seesaw/listen usb-gear
                    :mouse-pressed (fn [e]
-                                    (let [popup (seesaw/popup :items (slot-popup n :usb e))]
+                                    (let [popup (seesaw/popup :items (slot-popup n :usb usb-name e))]
                                       (util/show-popup-from-button usb-gear popup e))))
     (seesaw/listen sd-gear
                    :mouse-pressed (fn [e]
-                                    (let [popup (seesaw/popup :items (slot-popup n :sd e))]
+                                    (let [popup (seesaw/popup :items (slot-popup n :sd sd-name e))]
                                       (util/show-popup-from-button sd-gear popup e))))
+
+    ;; Add the tooltip if needed for the metadata archive mounted in our USB slot.
+    (when (opus-quad?) (update-opus-slot-label n usb-name))
 
     ;; Show tooltips for cue/loop markers in the track preview.
     (seesaw/listen preview :mouse-moved (fn [e] (handle-preview-move preview e)))
@@ -621,7 +689,7 @@
     (.addTrackMetadataListener metadata-finder md-listener)  ; React to metadata changes.
     (.addAnalysisTagListener analysis-finder ss-listener ".EXT" "PSSI")  ; React to song structure changes.
     (.addAlbumArtListener art-finder art-listener)  ; React to artwork changes.
-    (.addMountListener metadata-finder mount-listener)  ; React to media mounts and ejection.
+    (when-not (opus-quad?) (.addMountListener metadata-finder mount-listener))  ; React to media mounts and ejection.
 
     ;; Set the initial state of the interface.
     (when detail (.setScale detail (seesaw/value zoom-slider)))
@@ -702,7 +770,7 @@
   XDJ-XZ, which has two USB slots instead."
   [cell ^DeviceAnnouncement device]
   (seesaw/invoke-soon
-   (if (= (.getDeviceName device) "XDJ-XZ")
+   (if (= "XDJ-XZ" (.getDeviceName device))
      (do
        (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
@@ -767,14 +835,15 @@
   `:player-status-columns` in the trigger globals.
 
   Also updates the USB/SD labels in case the device is an XDJ-XZ,
-  which has two USB slots instead."
+  which has two USB slots instead. If we are in Opus Quad mode, the
+  labels will already be in the right state."
   [_ players no-players]
   (let [visible-players (keep-indexed (fn [index player]
                                         (when-let [device (.getLatestAnnouncementFrom device-finder (inc index))]
-                                          (update-slot-labels player device)
+                                          (when-not (opus-quad?) (update-slot-labels player device))
                                           player))
                                       players)
-        grid (seesaw/grid-panel :id players :columns (player-columns visible-players))]
+        grid (seesaw/grid-panel :id :players :columns (player-columns visible-players))]
 
     (seesaw/config! grid :items (or (seq visible-players) [no-players]))
     grid))

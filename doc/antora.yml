@@ -1,7 +1,7 @@
 name: beat-link-trigger
 title: Beat Link Trigger
 version: ~
-display_version: 'main'
+display_version: 'opus'
 prerelease: true
 start_page: ROOT:README.adoc
 asciidoc:

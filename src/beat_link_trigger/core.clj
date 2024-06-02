@@ -92,7 +92,7 @@
    (let [continue-offline (atom false)
          quit             (atom false)
          searching        (atom (about/create-searching-frame continue-offline quit))
-         real-player      (triggers/real-player?)
+         real-player?     (triggers/real-player?)
          network-label    (seesaw/invoke-now (seesaw/label))]
      (try
        (.start device-finder)  ; We are going to look for devices ourselves, so the user can interrupt us.
@@ -111,10 +111,11 @@
                          :title "Problem Trying to Go Online" :type :error)
            (seesaw/dispose! @searching)
            (reset! quit true))))
-     (timbre/info "Trying to go online, Use Real Player Number?" real-player)
+     (timbre/info "Trying to go online, Use Real Player Number?" real-player?)
      (loop [tries-before-troubleshooting 200]  ; Try for twenty seconds before switching to the troubleshooting window.
        (cond
-         (not (or @continue-offline @quit (zero? tries-before-troubleshooting) (seq (.getCurrentDevices device-finder))))
+         (not (or @continue-offline @quit (zero? tries-before-troubleshooting)
+                  (seq (.getCurrentDevices device-finder))))
          (do  ; Keep looping and looking until something of interest happens.
            (Thread/sleep 100)
            (recur (dec tries-before-troubleshooting)))
@@ -146,15 +147,17 @@
          :else ; We saw a DJ-Link device, and so can go online.
          (do
            (seesaw/invoke-soon (seesaw/dispose! @searching))
-           (.setUseStandardPlayerNumber virtual-cdj real-player)
+           (.setUseStandardPlayerNumber virtual-cdj real-player?)
            (if (try (.start virtual-cdj) ; Make sure we can start the VirtualCdj
                     (catch Exception e
                       (timbre/warn e "Unable to create Virtual CDJ")
                       (seesaw/invoke-now
-                        (seesaw/alert (str "<html>Unable to create Virtual CDJ, check log for details.<br><br>" e)
+                        (seesaw/alert (str "<html>Unable to create Virtual CDJ, "
+                                           "check log for details.<br><br>" e)
                                       :title "DJ Link Connection Failed" :type :error))))
-             (do  ; We succeeded in finding a DJ Link network
-               (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj))
+             (do  ; We succeeded in finding a DJ Link network.
+               (timbre/info "Went online, using player number" (.getDeviceNumber virtual-cdj)
+                            "and Opus Quad compatibility mode is" (.inOpusQuadCompatibilityMode virtual-cdj))
 
                ;; Provide warnings about network topology problems
                (when-let [interfaces (seq (help/list-conflicting-network-interfaces))]
@@ -259,7 +262,7 @@
            (seesaw/invoke-now
              (prefs/load-from-file file))
            (do
-             (println "--config: file" reset "does not have required extension:"
+             (println "--config: file" config "does not have required extension:"
                       (str "." (util/extension-for-file-type :configuration)))
              (System/exit 1)))))
 
