@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 This change log follows the conventions of
 [keepachangelog.com](http://keepachangelog.com/).
 
-## [Unreleased (opus branch)][unreleased-opus]
+## [Unreleased][unreleased]
 
 ### Changed
 
@@ -13,11 +13,6 @@ This change log follows the conventions of
 ### Added
 
 - You can now import entire playlists of tracks into shows from offline media.
-
-
-## [Unreleased (main branch)][unreleased]
-
-Nothing so far.
 
 
 ## [7.4.1] - 2024-06-01

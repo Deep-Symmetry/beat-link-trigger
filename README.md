@@ -204,6 +204,9 @@ releases of hardware or even firmware updates from Pioneer.
 > Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or
 > submit a pull request so we can all improve our understanding
 > together.
+> 
+> :construction: We have added experimental support for the Opus Quad, which, despite not supporting a DJ-Link network, seems to communicate with rekordbox to support lighting in a way that will allow us to offer good support in Beat Link once we reorganize the code to support working that way.
+Thanks to [@cprepos](https://github.com/cprepos) for doing most of this work!
 
 If something isn&rsquo;t working with your hardware and you don&rsquo;t yet know
 the details why, but are willing to learn a little and help figure it
