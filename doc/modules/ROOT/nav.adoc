@@ -20,6 +20,7 @@
 ** xref:Shows_PhraseTriggers.adoc[Phrase Triggers]
 ** xref:Shows_RawTriggers.adoc[Raw Triggers]
 * xref:Link.adoc[Working with Ableton Link]
+* xref:OpusQuad.adoc[Working with the Opus Quad]
 * xref:ObsOverlay.adoc[OBS Streaming Overlays]
 * xref:Debugging.adoc[Debugging and Sharing]
 * xref:Integration.adoc[Integration Examples]

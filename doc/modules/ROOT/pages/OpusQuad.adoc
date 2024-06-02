@@ -1,0 +1,14 @@
+= Working with the Opus Quad
+include::partial$PagePreamble.adoc[]
+
+Even though the Opus Quad does not attempt to truly implement the Pro DJ Link protocol, it is now possible to use many Beat Link Trigger features with that hardware thanks to a lot of work by https://github.com/cprepos[@cprepos] and https://github.com/kyleawayan[Kyle Awayan].
+
+The key to getting useful results with the Opus Quad, since it is unable to send most of the metadata that BLT needs, is to create metadata archive files for any USBs that you want to use, and attach them to the appropriate USB slots in the <<Players.adoc#,Player Status window>>.
+
+## Creating Metadata Archives
+
+TODO: Explain
+
+## Attaching Metadata Archives
+
+TODO: Explain

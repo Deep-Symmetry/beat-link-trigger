@@ -190,6 +190,8 @@ it, in which case you will be able to control those.
 
 The CDJ-3000 will let you load tracks, but it does not support Fader
 Start either, so you won't be able to start or stop them playing.
+
+The Opus Quad is even more limited, but when you working with one this menu is instead used to <<OpusQuad.adoc#attaching-metadata-archives,attach metadata archives>> so that BLT can work with that hardware despite its lack of support for the actual Pro DJ Link protocol.
 ====
 
 During pre-show and after-show situations, when there is no DJ on
