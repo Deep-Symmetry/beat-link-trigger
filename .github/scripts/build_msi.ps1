@@ -20,7 +20,7 @@ if (!(Test-Path $Light)) {
 
 # Download the executable jar into an Input folder to be used in building the native app bundle
 mkdir Input
-if ( $env:release_snapshot )
+if ( $env:release_snapshot -eq "true" )
 {
     gh release download latest-preview --pattern "*.jar" --output Input/beat-link-trigger.jar
 }
@@ -55,7 +55,7 @@ copy ".\.github\resources\MSI Template.wxs" ".\"
 & $Light -b "Beat Link Trigger" -nologo "*.wixobj" -out ""$env:artifact_name"" -ext WixUIExtension -ext WixFirewallExtension
 
 # Upload the MSI as a release artifact
-if ( $env:release_snapshot )
+if ( $env:release_snapshot -eq "true" )
 {
     gh release upload latest-preview "$($env:artifact_name)#Windows installer"
 }

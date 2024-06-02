@@ -8,6 +8,22 @@ This change log follows the conventions of
 
 Nothing so far.
 
+
+## [7.4.1] - 2024-06-01
+
+### Fixed
+
+- The ability to access trigger globals specifically from show expressions was not properly addressed in 7.4.0. They will now work there too.
+
+### Added
+
+- An integration example showing how to extend the Channels On-Air feature of the DJM-V10 mixer beyond CDJs.
+
+### Changed
+
+- Added separate builds for macOS, Intel and Apple Silicon, since GitHub changed their default macOS runners to build for Apple Silicon, and that yields applications that can not run at all on Intel macs, even though they run more efficiently on Apple Silicon macs.
+
+
 ## [7.4.0] - 2024-05-04
 
 May the Fourth be with you!
@@ -1541,7 +1557,9 @@ support.
 - Set up initial project structure.
 - Selector to choose MIDI output as trigger destination.
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.0...HEAD
+
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.1...HEAD
+[7.4.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.0...v7.4.1
 [7.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...v7.3.0
 [7.2.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.0...v7.2.1

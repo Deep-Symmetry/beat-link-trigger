@@ -182,7 +182,7 @@ Max, you can link:{attachmentsdir}/XoneSimulator.maxpat[save it] and
 play with it too. It has four simulated channel faders and a cross
 fader:
 
-image:XoneSimulator.png[Xone:96 Simulator,674,659]
+image::XoneSimulator.png[Xone:96 Simulator,674,659]
 
 I set my environment up so that MIDI output port `c` in Max had a name
 that matched what the Global Setup Expression was looking for, and I
@@ -211,7 +211,7 @@ so I added them!
 
 Here is what the final result looks like in action:
 
-image:XoneShowUI.png[Xone:96 Show UI,574,504]
+image::XoneShowUI.png[Xone:96 Show UI,574,504]
 
 The top row shows the mixer channels that are currently calculated as
 being on the air by lighting them up in red. Immediately below that is
