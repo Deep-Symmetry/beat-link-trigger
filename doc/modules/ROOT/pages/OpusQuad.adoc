@@ -5,10 +5,47 @@ Even though the Opus Quad does not attempt to truly implement the Pro DJ Link pr
 
 The key to getting useful results with the Opus Quad, since it is unable to send most of the metadata that BLT needs, is to create metadata archive files for any USBs that you want to use, and attach them to the appropriate USB slots in the <<Players.adoc#,Player Status window>>.
 
+NOTE: Since rekordbox is able to respond to metadata queries, if you are playing tracks from a rekordbox collection on a laptop, even on an Opus Quad, you don’t need to worry about creating metadata archives. It is only USBs mounted directly in the Opus Quad that need this extra help.
+
 ## Creating Metadata Archives
 
-TODO: Explain
+To create a metadata archive of a USB that you want to use with the Opus Quad and Beat Link Trigger, start by mounting that USB on the computer running BLT.
+Then choose menu:File[Archive Metadata] in the Triggers window.
+
+image:ArchiveMetadata.png[Archive Metadata,204,173]
+
+This brings up a window where you can navigate to the mounted USB drive:
+
+image::ArchiveChooseMedia.png[Choose media to archive,644,452]
+
+Once you have selected the mounted media, click kbd:[Choose Rekordbox Media].
+That opens a new window where you can choose where to save the archive:
+
+image::ArchiveCreate.png[Create metadata archive,630,466]
+
+Navigate to where you would like to save it, choose a name for it, and click kbd:[Create Metadata Archive].
+The archive will be created, which may take a while, depending on how many tracks are in the USB.
+A progress bar will allow you to see how the export is going, and cancel it if you change your mind:
+
+image::ArchiveProgress.png[Archive creation progress,412,252]
+
+Once you have archives created for all the USBs you want to use with your Opus Quad, you can proceed to the next step.
+
+TIP: You will need to update your metadata archives whenever you add or remove tracks on the USB. To do that, follow the same steps above, choose the existing archive that you want to update at the step where you are specifying where it should be saved, and respond **Yes** to the dialog that asks you if you want to replace the existijng file.
+
 
 ## Attaching Metadata Archives
 
-TODO: Explain
+Whenever you insert a USB into the Opus Quad, you need to attach the corresponding metadata archive for that slot number. To do that, use the gear popup menu corresponding to that slot in the <<Players.adoc#,Player Status window>> (this uses the same user interface elements that would be used to tell players to <<Players.adoc#loading-playing,load or play tracks>> with other hardware):
+
+image:ArchiveAttach.png[Attach metadata archive,498,338]
+
+Navigate to where you saved your metadata archives, choose the correct one, and click kbd:[Attach Metadata Archive]:
+
+image::ArchiveAttach2.png[Choose metadata archive to attach,640,466]
+
+This will enable Beat Link Trigger features to operate when you play tracks from that USB.
+If you ever swap the USB in the slot, you will need to go through this process to switch to the correct archive for the new USB that you have inserted.
+If you have removed a USB and do not plan to insert a new one, choose menu:Remove Metadata Archive[] in the gear menu for that slot.
+
+TIP: Make sure you are using the gear menu for the correct slot that you are inserting or removing USBs in the Opus Quad, and that you choose correct and up-to-date metadata archives for those USBs, or track matching will not work correctly!
