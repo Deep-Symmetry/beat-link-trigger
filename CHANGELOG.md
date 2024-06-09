@@ -14,6 +14,10 @@ This change log follows the conventions of
 
 - You can now import entire playlists of tracks into shows from offline media.
 
+### Fixed
+
+- An error in interpreting database export file format by the Crate Digger library could lead to some rows that were actually present in tables not being found.
+
 
 ## [7.4.1] - 2024-06-01
 
