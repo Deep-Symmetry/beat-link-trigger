@@ -3,11 +3,9 @@ include::partial$PagePreamble.adoc[]
 
 Even though the Opus Quad does not attempt to truly implement the Pro DJ Link protocol, it is now possible to use many Beat Link Trigger features with that hardware thanks to a lot of work by https://github.com/cprepos[@cprepos] and https://github.com/kyleawayan[Kyle Awayan].
 
-WARNING: The Opus Quad does not send Channels On-Air information, so no triggers or expressions can rely on this feature. If you need something like that, look into building an integration like was done for the <<Integration_XoneOnAir#,Xone:96>>.
-
 The key to getting useful results with the Opus Quad, since it is unable to send most of the metadata that BLT needs, is to create metadata archive files for any USBs that you want to use, and attach them to the appropriate USB slots in the <<Players.adoc#,Player Status window>>.
 
-NOTE: Since rekordbox is able to respond to metadata queries, if you are playing tracks from a rekordbox collection on a laptop, even on an Opus Quad, you don’t need to worry about creating metadata archives. It is only USBs mounted directly in the Opus Quad that need this extra help.
+NOTE: For the time being, we don't support running BLT with the Opus-Quad when using Rekordbox or Rekordbox Mobile as the track source.
 
 == Creating Metadata Archives
 
