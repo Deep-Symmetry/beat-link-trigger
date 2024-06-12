@@ -5,7 +5,8 @@ Even though the Opus Quad does not attempt to truly implement the Pro DJ Link pr
 
 The key to getting useful results with the Opus Quad, since it is unable to send most of the metadata that BLT needs, is to create metadata archive files for any USBs that you want to use, and attach them to the appropriate USB slots in the <<Players.adoc#,Player Status window>>.
 
-NOTE: For the time being, we don't support running BLT with the Opus-Quad when using Rekordbox or Rekordbox Mobile as the track source.
+NOTE: We don't yet support running BLT and an Opus Quad with tracks loaded over Link from Rekordbox or Rekordbox Mobile.
+We hope this can be solved before the formal release of 8.0, but are not yet sure how practical it will be.
 
 == Creating Metadata Archives
 
