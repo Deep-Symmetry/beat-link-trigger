@@ -13,11 +13,12 @@ This change log follows the conventions of
 ### Added
 
 - You can now import entire playlists of tracks into shows from offline media.
+- A link to Ineffable's great video tutorial for synchronizing videos in Resolume.
 
 ### Fixed
 
 - An error in interpreting database export file format by the Crate Digger library could lead to some rows that were actually present in tables not being found.
-
+- Some variables were incorrect in the phrase trigger expression examples in the user guide.
 
 ## [7.4.1] - 2024-06-01
 

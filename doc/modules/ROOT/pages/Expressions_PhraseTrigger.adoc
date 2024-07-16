@@ -129,7 +129,7 @@ to `Note`:
 [source,clojure]
 ----
 (when midi-output
-  (midi/midi-note-on midi-output playing-note 127 (dec playing-channel)))
+  (midi/midi-note-on midi-output note 127 (dec channel)))
 ----
 
 The `(when midi-output …)` clause that wraps the `midi-note-on` call
@@ -142,10 +142,10 @@ phrase trigger, and will be `nil` if that device is not currently
 connected.
 
 This uses the embedded MIDI library to send a Note On message to the
-phrase trigger's chosen output device. The variable `playing-note` is
+phrase trigger's chosen output device. The variable `note` is
 set to the note number chosen for the phrase trigger's Playing
 Message, `127` is the maximum MIDI note velocity, and
-`playing-channel` is set to the channel chosen for the phrase trigger,
+`channel` is set to the channel chosen for the phrase trigger,
 but since the user interface displays MIDI channel numbers in the
 traditional user-centric range from 1 to 16, and the actual protocol
 requires them to be sent in the 4-bit range 0-15, we need to subtract
@@ -153,7 +153,7 @@ requires them to be sent in the 4-bit range 0-15, we need to subtract
 (decrement) function does.
 
 You can tweak this to send different notes (by substituting your own
-value or variable for `playing-note`) at different velocities (by
+value or variable for `note`) at different velocities (by
 replacing the `127`) on different channels, or of course do something
 else completely. The Stopped discussion <<stopped-expression,below>>
 shows what you would need to set up to emulate the other half of the
@@ -206,7 +206,7 @@ the menu:Playing Message[] menu to `Note`:
 [source,clojure]
 ----
 (when midi-output
-  (midi/midi-note-off midi-output playing-note (dec playing-channel)))
+  (midi/midi-note-off midi-output note (dec channel)))
 ----
 
 As described in the initial example <<playing-expression,above>>, this
