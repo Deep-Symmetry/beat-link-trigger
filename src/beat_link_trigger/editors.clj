@@ -357,7 +357,7 @@
    'loaded-players {:code '(if (and util/*simulating*
                                     (not (when status
                                            (sim/for-player (.getDeviceNumber (extract-device-update status))))))
-                             #{(extract-device-number status)}
+                             #{(or (extract-device-number status) (inc (rand-int 4)))}
                              (util/players-signature-set (:loaded (:show trigger-data))
                                                          (:signature (:track trigger-data))))
                     :doc "The set of player numbers that currently
