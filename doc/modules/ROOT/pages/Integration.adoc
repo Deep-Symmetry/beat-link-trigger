@@ -19,3 +19,10 @@ users.
   will likely be of interest to the same people who like BLT. It
   allows you to use the Touch Preview and Link Cue audio features of
   the newer Pioneer players with any mixer.
+
+== Outside Integrations
+
+Here are some links to integrations people have shared with me that
+exist as their own projects:
+
+* https://github.com/hfanieng/ProDJLink-to-SQL[Write Playlists to a SQL database]
