@@ -13,9 +13,16 @@ integration with something new. If you do try that, please share your
 progress! We can help, and then we can share your results with other
 users.
 
-> And, even though it doesn't use Beat Link Trigger, I need to call
+== Outside Integrations
+
+Here are some links to integrations people have shared with me that
+exist as their own projects:
+
+* https://github.com/hfanieng/ProDJLink-to-SQL[Write Playlists to a SQL database]
+
+> And, even though it doesn't use Beat Link Trigger, I'd like to call
   your attention to a really cool
-  https://nudge.id.au/cardinia-mini/index.html[hardware project] that
-  will likely be of interest to the same people who like BLT. It
-  allows you to use the Touch Preview and Link Cue audio features of
-  the newer Pioneer players with any mixer.
+  https://cardinia.net/products/pro/[hardware project] that will
+  likely be of interest to the same people who like BLT. It allows you
+  to use the Touch Preview and Link Cue audio features of the newer
+  Pioneer players with any mixer.

@@ -3,9 +3,9 @@ include::partial$PagePreamble.adoc[]
 
 Version 0.5 of Beat Link Trigger introduced a major new set of user
 interface features called the Show interface, developed in
-collaboration with https://www.minnmusic.com[Minnesota], which make it
-far easier to match tracks, and cause things to happen when particular
-beat ranges in those tracks are played.
+collaboration with the former bass music producer Minnesota, which
+make it far easier to match tracks, and cause things to happen when
+particular beat ranges in those tracks are played.
 
 All of these things could be done before the Show interface (and
 several people put together quite sophisticated shows) using basic
