@@ -106,9 +106,12 @@
       (let [{:keys [frame pitch time track]} simulator
             grid                             (:grid track)
             beat                             (.findBeatAtTime grid time)
-            tempo                            (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)]
-        (seesaw/invoke-later
-         (seesaw/text! (seesaw/select frame [:#bpm]) (format "%.1f" (* pitch tempo))))))))
+            track-tempo                      (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)
+            display-tempo                    (format "%.1f" (* pitch track-tempo))]
+        (when (not= display-tempo (:last-tempo-displayed simulator))
+          (swap! simulators assoc-in [uuid :last-tempo-displayed] display-tempo)
+          (seesaw/invoke-later
+            (seesaw/text! (seesaw/select frame [:#bpm]) display-tempo)))))))
 
 (defn- simulator-tick
   "Send shallow simulation events when appropriate. Called frequently by
@@ -124,14 +127,18 @@
           (when-not *closing-all* (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play]))))
           (swap! simulators assoc-in [(:uuid simulator) :time] new-time))))
     (update-tempo (:uuid simulator))
-    (let [{:keys [last-status player playing preview time track uuid]} (get @simulators (:uuid simulator))
-          {:keys [grid]}                                               track]
+    (let [{:keys [last-status last-repaint player
+                  playing preview time track uuid]} (get @simulators (:uuid simulator))
+          {:keys [grid]}                            track
+          now                                       (System/nanoTime)]
       (when (and player (not (:partial simulator)))
-        (seesaw/invoke-later
-         (.setPlaybackState preview player time playing)
-         (seesaw/repaint! (:time-canvases simulator)))
-        (let [now     (System/nanoTime)
-              elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
+        (let [elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-repaint 0)))]
+          (when (>= elapsed 33)  ; Update the time displays thirty times per second, like player windows.
+            (swap! simulators assoc-in [uuid :last-repaint] now)
+            (seesaw/invoke-later
+              (.setPlaybackState preview player time playing)
+              (seesaw/repaint! (:time-canvases simulator)))))
+        (let [elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-status 0)))]
           (let [target-beat (.findBeatAtTime grid time)]
             (when (and playing (pos? target-beat) (not= (:sent-beat simulator) target-beat)
                        (< (- time (.getTimeWithinTrack grid target-beat)) 10))
