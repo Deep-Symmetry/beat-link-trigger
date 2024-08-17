@@ -40,6 +40,11 @@ guide](https://blt-guide.deepsymmetry.org/).
 > advantage of the high-precision position updates they send, to have
 > rock-solid tracking of their playback position even when jumping or
 > looping inside beats or playing backwards.
+
+> Also, people who own the Opus Quad have contributed significant
+> research and code in order to allow us to work with those in version
+> 8.0 and later, with the help of metadata archives created from the
+> USBs being used.
 >
 > If you can do any testing with this new hardware, please help us
 > confirm this and let us know on the Zulip stream, or open issues
