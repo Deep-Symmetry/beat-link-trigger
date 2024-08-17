@@ -116,9 +116,7 @@
   #_(timbre/info "Reading from" path "in filesystem" (.getFileSystem path))
   (edn/read-string {:readers @prefs/prefs-readers} (String. (Files/readAllBytes path) "UTF-8")))
 
-(def ^{:private true
-       :tag     "[Ljava.nio.file.StandardOpenOption;"}
-  write-edn-options
+(def ^:private ^StandardOpenOption/1 write-edn-options
   "The Filesystem options used when writing EDN data into a show file path."
   (into-array [StandardOpenOption/CREATE StandardOpenOption/TRUNCATE_EXISTING StandardOpenOption/WRITE]))
 
@@ -263,8 +261,7 @@
     (apply swap-track! context f args)
     (apply swap-phrase-runtime! (or show (show-from-phrase context)) context f args)))
 
-(def ^{:tag "[Ljava.nio.file.OpenOption;"}
-  empty-open-options
+(def ^OpenOption/1 empty-open-options
   "The Filesystem options used for default behavior."
   (make-array OpenOption 0))
 

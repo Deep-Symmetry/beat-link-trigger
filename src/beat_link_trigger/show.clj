@@ -2010,9 +2010,7 @@
           (let [[reopened-filesystem] (su/open-show-filesystem file)]
             (swap-show! show assoc :filesystem reopened-filesystem)))))))
 
-(def ^{:private true
-       :tag     "[Ljava.nio.file.StandardCopyOption;"}
-  save-show-as-options
+(def ^:private ^StandardCopyOption/1 save-show-as-options
   "The Filesystem options used when saving a show to a new file."
   (into-array [StandardCopyOption/REPLACE_EXISTING]))
 

@@ -5,7 +5,7 @@
   :license {:name "Eclipse Public License 2.0"
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
   :aot [beat-link-trigger.BeatLinkTrigger beat-link-trigger.TexturedRaven]
-  :dependencies [[org.clojure/clojure "1.11.3"]
+  :dependencies [[org.clojure/clojure "1.12.0-rc1"]
                  [org.clojure/core.async "1.6.681"]
                  [org.clojure/data.csv "1.1.0"]
                  [org.clojure/tools.cli "1.1.230"]

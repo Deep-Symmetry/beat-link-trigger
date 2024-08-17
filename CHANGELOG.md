@@ -9,6 +9,7 @@ This change log follows the conventions of
 ### Changed
 
 - Works with the 8.x version of Beat Link, to offer support for the Opus Quad, as long as you build and attach metadata archives for the USBs you are using, or are loading them from rekordbox or rekordbox mobile on a different computer than where BLT is running.
+- Updated to Clojure 1.12, which enabled a great many simplifications and improvements in Java interop syntax.
 
 ### Added
 
