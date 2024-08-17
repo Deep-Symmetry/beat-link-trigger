@@ -40,7 +40,7 @@ guide](https://blt-guide.deepsymmetry.org/).
 > advantage of the high-precision position updates they send, to have
 > rock-solid tracking of their playback position even when jumping or
 > looping inside beats or playing backwards.
-
+>
 > Also, people who own the Opus Quad have contributed significant
 > research and code in order to allow us to work with those in version
 > 8.0 and later, with the help of metadata archives created from the
@@ -209,7 +209,7 @@ releases of hardware or even firmware updates from Pioneer.
 > Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) or
 > submit a pull request so we can all improve our understanding
 > together.
-> 
+>
 > :construction: We have added experimental support for the Opus Quad, which, despite not supporting a DJ-Link network, seems to communicate with rekordbox to support lighting in a way that will allow us to offer good support in Beat Link once we reorganize the code to support working that way.
 Thanks to [@cprepos](https://github.com/cprepos) for doing most of this work!
 
