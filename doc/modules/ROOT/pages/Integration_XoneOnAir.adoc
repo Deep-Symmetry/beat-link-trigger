@@ -176,7 +176,7 @@ port gracefully if it was open.
 
 I don't actually have a Xone:96, so to develop this code I had to make
 a "fake one" based on its
-https://www.allen-heath.com/media/X96_MIDI-Control-Overview.pdf[MIDI
+https://www.allen-heath.com/content/uploads/2023/06/X96_MIDI-Control-Overview.pdf[MIDI
 mapping manual], which I did in the form of a Max patch. If you have
 Max, you can link:{attachmentsdir}/XoneSimulator.maxpat[save it] and
 play with it too. It has four simulated channel faders and a cross
