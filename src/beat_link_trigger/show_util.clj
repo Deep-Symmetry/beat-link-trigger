@@ -15,7 +15,7 @@
             [thi.ng.color.core :as color]
             [thi.ng.math.core :as thing-math])
   (:import [beat_link_trigger.util MidiChoice]
-           [org.deepsymmetry.beatlink CdjStatus$PlayState1 CdjStatus$TrackSourceSlot Util]
+           [org.deepsymmetry.beatlink Beat CdjStatus$PlayState1 CdjStatus$TrackSourceSlot Util]
            [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference TrackPositionUpdate
             WaveformDetail WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
@@ -470,7 +470,7 @@
   "Finds the actual track tempo at the specified beat, for use when
   simulating with actual track data."
   [beat]
-  (let [from-grid (.getBpm (:grid util/*simulating*) beat)]
+  (let [from-grid (.getBpm ^BeatGrid (:grid util/*simulating*) beat)]
     (if (zero? from-grid)
       (long (* (get-in util/*simulating* [:metadata :starting-tempo]) 100))
       from-grid)))
@@ -487,7 +487,7 @@
   ([options]
    (let [chosen-beat (:beat util/*simulating*)
          beat        (if chosen-beat
-                       (.getBeatWithinBar (:grid util/*simulating*) chosen-beat)
+                       (.getBeatWithinBar ^BeatGrid (:grid util/*simulating*) chosen-beat)
                        (inc (rand-int 4)))
          bpm         (if chosen-beat
                        (bpm-at-beat chosen-beat)
@@ -501,7 +501,7 @@
 (defn position-from-random-beat
   "When simulating a beat-TPU tuple, creates the `TrackPositionUpdate`
   consistent with the simulation context and chosen `Beat`."
-  [beat-object]
+  [^Beat beat-object]
   (let [{:keys [beat grid time]} util/*simulating*]
     (TrackPositionUpdate. (System/nanoTime) time beat true true (Util/pitchToMultiplier (.getPitch beat-object))
                           false grid)))
@@ -516,11 +516,12 @@
   ([]
    (random-cdj-status {}))
   ([options]
-   (let [device      (inc (rand-int 6))
-         chosen-time (:time util/*simulating*)
-         chosen-beat (when chosen-time (.findBeatAtTime (:grid util/*simulating*) chosen-time))]
+   (let [device         (inc (rand-int 6))
+         chosen-time    (:time util/*simulating*)
+         ^BeatGrid grid (:grid util/*simulating*)
+         chosen-beat    (when chosen-time (.findBeatAtTime grid chosen-time))]
      (util/simulate-player-status (merge {:bb            (if chosen-beat
-                                                           (.getBeatWithinBar (:grid util/*simulating*) chosen-beat)
+                                                           (.getBeatWithinBar grid chosen-beat)
                                                            (inc (rand-int 4)))
                                           :beat          (or chosen-beat (rand-int 2000))
                                           :device-number device
@@ -553,7 +554,7 @@
   "Finishes the task of `get-chosen-output` (see below) after the track
   or phrase trigger specific work of finding the selection value is
   done."
-  [selection]
+  [^MidiChoice selection]
   (let [device-name (.full_name selection)]
       (or (get @util/opened-outputs device-name)
           (try
@@ -702,9 +703,9 @@
   0.0 to 360.0). If `lightness` is not specified, 0.5 is used, giving
   the purest, most intense version of the hue. The color is fully
   opaque."
-  ([hue]
+  (^Color [hue]
    (hue-to-color hue 0.5))
-  ([hue lightness]
+  (^Color [hue lightness]
    (let [color (color/hsla (/ hue 360.0) 1.0 lightness)]
      (Color. @(color/as-int24 color)))))
 
@@ -728,7 +729,7 @@
    :end   (hue-to-color 0.0 0.8)
    :fill  (hue-to-color 280.0 0.75)})
 
-(def playback-marker-color
+(def ^Color playback-marker-color
   "The color used for drawing standard playback markers."
   (Color. 255 0 0 235))
 
@@ -750,8 +751,8 @@
               scaled (int (* alpha (- 1.0 fraction)))]
           (Util/buildColor (phrase-section-colors section) (Color. 255 255 255 scaled)))
         ;; We are moving to another section, interpolate between the colors over the beat.
-        (let [current (color/as-rgba (color/int32 (.getRGB (phrase-section-colors section))))
-              next    (color/as-rgba (color/int32 (.getRGB (phrase-section-colors next-section))))
+        (let [current (color/as-rgba (color/int32 (Color/.getRGB (phrase-section-colors section))))
+              next    (color/as-rgba (color/int32 (Color/.getRGB (phrase-section-colors next-section))))
               blended (Color. @(color/as-int24 (thing-math/mix current next fraction)))]
           (Util/buildColor blended playback-marker-color)))
       ;; We are not ending a section, the color is simply that of the current section.
@@ -868,9 +869,9 @@
 
 
 (defn expression-report-link
-  ([file]
+  ([^File file]
    (expression-report-link file nil))
-  ([file anchor]
+  ([^File file anchor]
    (let [port           (help/help-server)
          anchor-segment (when anchor (str "#" anchor))]
      (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))

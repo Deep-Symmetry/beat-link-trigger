@@ -4,7 +4,8 @@
   plug-and-play integration example shows."
   (:require [clojure.string :as str]
             [seesaw.core :as seesaw]
-            [seesaw.mig :as mig]))
+            [seesaw.mig :as mig])
+  (:import (javax.swing JDialog)))
 
 (defn show
   "Creates and displays the socket picker modal dialog. Defaults to a
@@ -28,18 +29,18 @@
       :or   {host         "localhost"
              title        "Configure Socket"
              accept-label "Configure"}}]
-  (let [panel         (mig/mig-panel
-                       :items (concat
-                               [["Hostname or Address:" "align right"]
-                                [(seesaw/text :id :host :text (str/trim host) :columns 30) "wrap"]]
-                               (when port
-                                 [["Port Number:" "align right"]
-                                  [(seesaw/spinner :id :port
-                                                   :model (seesaw/spinner-model port :from 0 :to 65535))]])))
-        accept-button (seesaw/button :text accept-label)
-        cancel-button (seesaw/button :text "Cancel")
-        dialog        (seesaw/dialog :content panel :options [accept-button cancel-button]
-                                     :title title :default-option accept-button :modal? true)]
+  (let [panel           (mig/mig-panel
+                         :items (concat
+                                 [["Hostname or Address:" "align right"]
+                                  [(seesaw/text :id :host :text (str/trim host) :columns 30) "wrap"]]
+                                 (when port
+                                   [["Port Number:" "align right"]
+                                    [(seesaw/spinner :id :port
+                                                     :model (seesaw/spinner-model port :from 0 :to 65535))]])))
+        accept-button   (seesaw/button :text accept-label)
+        cancel-button   (seesaw/button :text "Cancel")
+        ^JDialog dialog (seesaw/dialog :content panel :options [accept-button cancel-button]
+                                       :title title :default-option accept-button :modal? true)]
     (.pack dialog)
     (.setLocationRelativeTo dialog parent)
     (seesaw/listen accept-button :action-performed

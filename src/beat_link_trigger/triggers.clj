@@ -1302,7 +1302,7 @@
           (timbre/error e "Problem responding to Player status packet."))))))
 
 (defonce ^{:private true
-           :doc "Responds to beat packets and runs any registered beat
+           :doc     "Responds to beat packets and runs any registered beat
   expressions, and performs beat alignment for any tripped triggers
   that are assigned to Ableton Link."}
   beat-listener
@@ -1310,8 +1310,8 @@
     (newBeat [_this beat]
       (try
         (doseq [trigger (get-triggers)]
-          (let [data @(seesaw/user-data trigger)
-                value (:value data)
+          (let [data      @(seesaw/user-data trigger)
+                value     (:value data)
                 selection (:players value)]
             (when (and (some? selection)
                        (or (= (:number selection) (.getDeviceNumber beat))

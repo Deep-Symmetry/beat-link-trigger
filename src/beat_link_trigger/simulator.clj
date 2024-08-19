@@ -6,10 +6,12 @@
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
-  (:import [org.deepsymmetry.beatlink.data SignatureUpdate TrackPositionUpdate WaveformPreviewComponent]
+  (:import [org.deepsymmetry.beatlink BeatListener DeviceUpdateListener]
+           [org.deepsymmetry.beatlink.data BeatGrid CueList CueList$Entry SignatureUpdate TrackPositionUpdate
+            WaveformPreviewComponent]
            [org.deepsymmetry.electro Metronome]
            [java.awt.event MouseEvent]
-           [javax.swing JFrame]))
+           [javax.swing JButton JCheckBox JFrame]))
 
 (defonce ^{:private true
            :doc "The open simulator windows, keyed by their UUID."}
@@ -46,27 +48,27 @@
 (defn- build-beat
   "Creates the CDJ beat object to represent our current simulation state."
   [{:keys [pitch player time track]}]
-  (let [{:keys [grid]} track
-        chosen-beat    (.findBeatAtTime grid time)]
+  (let [{:keys [^BeatGrid grid]} track
+        chosen-beat              (.findBeatAtTime grid time)]
     (util/simulate-beat {:beat          (if (pos? chosen-beat)
                                           (.getBeatWithinBar grid chosen-beat)
                                           0)
                          :device-number player
                          :bpm           (* pitch (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)))
-                         :pitch         (Math/round (* pitch 1048576))})))
+                         :pitch         (Math/round (* pitch 1048576.0))})))
 
 (defn- build-cdj-status
   "Creates the CDJ status object to represent our current simulation state."
   [{:keys [master on-air pitch player playing sync time track]}]
-  (let [{:keys [grid]} track
-        chosen-beat    (.findBeatAtTime grid time)]
+  (let [{:keys [^BeatGrid grid]} track
+        chosen-beat              (.findBeatAtTime grid time)]
     (util/simulate-player-status {:bb            (if (pos? chosen-beat)
                                                    (.getBeatWithinBar grid chosen-beat)
                                                    0)
                                   :beat          (if (pos? chosen-beat) chosen-beat 0)
                                   :device-number player
                                   :bpm           (* pitch (.getBpm grid (if (pos? chosen-beat) chosen-beat 1)))
-                                  :pitch         (Math/round (* pitch 1048576))
+                                  :pitch         (Math/round (* pitch 1048576.0))
                                   :d-r           player
                                   :s-r           2
                                   :t-r           1
@@ -104,7 +106,7 @@
   (when-let [simulator (get @simulators uuid)]  ; Don't crash if the window has been closed.
     (when-not (or (:closing simulator) (:partial simulator))  ; Or if window is in a weird state.
       (let [{:keys [frame pitch time track]} simulator
-            grid                             (:grid track)
+            ^BeatGrid grid                   (:grid track)
             beat                             (.findBeatAtTime grid time)
             track-tempo                      (/ (.getBpm grid (if (pos? beat) beat 1)) 100.0)
             display-tempo                    (format "%.1f" (* pitch track-tempo))]
@@ -121,16 +123,17 @@
   []
   (doseq [simulator (vals @simulators)]
     (when (and (:playing simulator) (not (:partial simulator)))
-      (let [new-time (.getBeat (:metronome simulator))]
+      (let [new-time (Metronome/.getBeat (:metronome simulator))]
         (if (> (.toSeconds java.util.concurrent.TimeUnit/MILLISECONDS new-time)
                  (get-in simulator [:track :metadata :duration]))
-          (when-not *closing-all* (seesaw/invoke-now (.doClick (seesaw/select (:frame simulator) [:#play]))))
+          (when-not *closing-all* (seesaw/invoke-now (JButton/.doClick (seesaw/select (:frame simulator) [:#play]))))
           (swap! simulators assoc-in [(:uuid simulator) :time] new-time))))
     (update-tempo (:uuid simulator))
-    (let [{:keys [last-status last-repaint player
-                  playing preview time track uuid]} (get @simulators (:uuid simulator))
-          {:keys [grid]}                            track
-          now                                       (System/nanoTime)]
+    (let [{:keys [last-status last-repaint player playing
+                  ^WaveformPreviewComponent preview time
+                  track uuid]}     (get @simulators (:uuid simulator))
+          {:keys [^BeatGrid grid]} track
+          now                      (System/nanoTime)]
       (when (and player (not (:partial simulator)))
         (let [elapsed (.toMillis java.util.concurrent.TimeUnit/NANOSECONDS (- now (or last-repaint 0)))]
           (when (>= elapsed 33)  ; Update the time displays thirty times per second, like player windows.
@@ -151,7 +154,7 @@
                                                  (:pitch simulator) false grid)]
                   (swap! simulators update (:uuid simulator)
                          (fn [sim] (assoc sim :sent-beat target-beat :latest-beat beat :latest-tpu tpu)))
-                  (let [listener @(requiring-resolve 'beat-link-trigger.triggers/beat-listener)]
+                  (let [^BeatListener listener @(requiring-resolve 'beat-link-trigger.triggers/beat-listener)]
                   (try
                     (.newBeat listener beat)
                     (catch Throwable t
@@ -185,7 +188,7 @@
                        (fn [sim]
                          (assoc sim :latest-status status
                                 :latest-tpu tpu)))
-                (let [listener @(requiring-resolve 'beat-link-trigger.triggers/status-listener)]
+                (let [^DeviceUpdateListener listener @(requiring-resolve 'beat-link-trigger.triggers/status-listener)]
                   (try
                     (.received listener status)
                     (catch Throwable t
@@ -223,7 +226,7 @@
              ((requiring-resolve 'beat-link-trigger.show/simulation-state-changed) show false)))
          (recompute-player-models)
          ((requiring-resolve 'beat-link-trigger.triggers/rebuild-all-device-status))
-         (.dispose (:frame simulator)))))))
+         (JFrame/.dispose (:frame simulator)))))))
 
 (defn- simulator-loop
   "The main loop of the daemon thread that sends shallow playback
@@ -279,7 +282,7 @@
                                     [tracks signatures]
                                     [(conj tracks track) (conj signatures (:signature track))]))
                                 [[] #{}]
-                                (concat (sort-by #(.toString %) all-tracks) samples))]
+                                (concat (sort-by str all-tracks) samples))]
     choices))
 
 (defn- handle-preview-press
@@ -288,7 +291,7 @@
   [uuid ^WaveformPreviewComponent component ^MouseEvent e]
   (let [point       (.getPoint e)
         target-time (.getTimeForX component (.-x point))        ]
-    (.jumpToBeat (get-in @simulators [uuid :metronome]) target-time)
+    (Metronome/.jumpToBeat (get-in @simulators [uuid :metronome]) target-time)
     (swap! simulators assoc-in [uuid :time] target-time)))
 
 (defn- set-simulation-data
@@ -315,8 +318,8 @@
       (if old
         (seesaw/replace! preview old component)
         (seesaw/config! preview :center component))
-      (when-let [cue-list (:cue-list data)]
-        (when-let [first-cue (first (.-entries cue-list))]
+      (when-let [^CueList cue-list (:cue-list data)]
+        (when-let [^CueList$Entry first-cue (first (.-entries cue-list))]
           (swap! simulators assoc-in [uuid :time] (.-cueTime first-cue))))
       (swap! simulators update uuid (fn [simulator] (-> simulator
                                                         (assoc :preview component)
@@ -357,17 +360,17 @@
     (when-not *closing-all*
       (if playing?
         (do
-          (.jumpToBeat (:metronome simulator) (:time simulator))  ; Pick up our metronome at the current time.
+          (Metronome/.jumpToBeat (:metronome simulator) (:time simulator))  ; Pick up our metronome at the current time.
           ;; If there isn't another tempo master, we are now it.
           (when (empty? (filter (fn [candidate] (and (:playing candidate) (:master candidate)
                                                      (not= uuid (:uuid candidate))))
                                 (vals @simulators)))
             (when-not (:master simulator)
-              (.doClick (seesaw/select (:frame simulator) [:#master])))))
+              (JCheckBox/.doClick (seesaw/select (:frame simulator) [:#master])))))
         (when (:master simulator)  ; See if there is another playing simulator to hand master status over to.
           (when-let [other (first (filter (fn [candidate] (and (:playing candidate) (not= uuid (:uuid candidate))))
                                           (vals @simulators)))]
-            (.doClick (seesaw/select (:frame other) [:#master]))))))
+            (JCheckBox/.doClick (seesaw/select (:frame other) [:#master]))))))
     (swap! simulators assoc-in [uuid :playing] playing?)))
 
 (defn- paint-time
@@ -405,7 +408,7 @@
                                             (when master?
                                               (doseq [simulator (vals @simulators)]
                                                 (when (and (:master simulator) (not= uuid (:uuid simulator)))
-                                                  (.doClick
+                                                  (JCheckBox/.doClick
                                                    (seesaw/select (:frame simulator) [:#master])))))))])]
              [(seesaw/button :id :play :text "Play"
                              :listen [:action-performed (fn [_] (handle-play-toggle uuid))])]
@@ -413,8 +416,8 @@
              [(seesaw/slider :id :pitch :orientation :horizontal :value 0 :min -50 :max 50
                              :listen [:state-changed
                                       (fn [e]
-                                        (let [pitch     (+ 1.0 (/ (seesaw/value e) 100.0))
-                                              metronome (get-in @simulators [uuid :metronome])]
+                                        (let [pitch                (+ 1.0 (/ (seesaw/value e) 100.0))
+                                              ^Metronome metronome (get-in @simulators [uuid :metronome])]
                                           (swap! simulators assoc-in [uuid :pitch] pitch)
                                           (.setTempo metronome
                                                      (* pitch (.toMillis java.util.concurrent.TimeUnit/MINUTES 1)))
@@ -449,7 +452,7 @@
         player        (choose-simulator-player)
         close-fn      (fn []
                         (when (get-in @simulators [uuid :playing])
-                          (seesaw/invoke-now (.doClick (seesaw/select root [:#play]))))
+                          (seesaw/invoke-now (JButton/.doClick (seesaw/select root [:#play]))))
                         (swap! simulators assoc-in [uuid :closing] true)
                         (seesaw/config! simulate-item :enabled? true)
                         false)
