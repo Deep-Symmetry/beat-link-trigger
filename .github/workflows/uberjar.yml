@@ -172,7 +172,7 @@ jobs:
 
     - uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '22'
         distribution: 'corretto'
 
     - name: Build macOS disk image
@@ -219,7 +219,7 @@ jobs:
 
     - uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '22'
         distribution: 'corretto'
 
     - name: Build macOS disk image
