@@ -237,8 +237,13 @@ jobs:
 
     needs:
       - build_dmg
-      - build_msi
       - build_intel_dmg
+      - build_msi
+    if: |
+      always() &&
+      (needs.build_msi.result == 'success') &&
+      (needs.build_dmg.result == 'success' || needs.build_dmg.result == 'skipped') &&
+      (needs.build_intel_dmg.result == 'success' || needs.build_intel_dmg.result == 'skipped')
 
     steps:
     - uses: actions/checkout@v4
