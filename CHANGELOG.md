@@ -25,6 +25,7 @@ This change log follows the conventions of
   often](https://github.com/Deep-Symmetry/beat-link-trigger/issues/185).
   Thanks to [Deniz Gencer, @Firedude1](https://github.com/Firedude1)
   who noticed it was thrashing his GPU and reported this.
+- An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
 
 ## [7.4.1] - 2024-06-01
 
