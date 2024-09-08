@@ -28,6 +28,22 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     # Set the keychain to allow use of the certificate without user interaction (we are headless!)
     security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
+    # Explode the jar so we can fix code signatures on the problematic executables we embed.
+    mkdir jar_tmp
+    cd jar_tmp
+    jar xf ../"$dmg_name"
+    rm "$dmg_name"
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" libnrepl-macos-universal.so
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" META-INF/native/libnetty_transport_native_kqueue_x86_64.jnilib
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" --force uk/co/xfactorylibrarians/coremidi4j/libCoreMidi4J.dylib
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" com/sun/jna/darwin/libjnidispatch.jnilib
+
+    # Replace the jar with one containing the executables with corrected signatures.
+    rm -f ../"$dmg_name"
+    jar cf ../"$dmg_name" .
+    cd ..
+    rm -rf jar_tmp
+
     # Run jpackage to build the native application as a code signed disk image
     jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \

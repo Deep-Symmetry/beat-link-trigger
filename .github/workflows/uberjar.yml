@@ -139,7 +139,6 @@ jobs:
   build_dmg:
     name: Build macOS Apple Silicon Disk Image
     runs-on: macos-latest
-    if: false  # Disable until notarization of jpackage DMGs can work again
 
     needs:
       build_uberjar
@@ -186,7 +185,6 @@ jobs:
   build_intel_dmg:
     name: Build macOS Intel Disk Image
     runs-on: macos-13
-    if: false  # Disable until notarization of jpackage DMGs can work again
 
     needs:
       build_uberjar
@@ -239,11 +237,6 @@ jobs:
       - build_dmg
       - build_intel_dmg
       - build_msi
-    if: |
-      always() &&
-      (needs.build_msi.result == 'success') &&
-      (needs.build_dmg.result == 'success' || needs.build_dmg.result == 'skipped') &&
-      (needs.build_intel_dmg.result == 'success' || needs.build_intel_dmg.result == 'skipped')
 
     steps:
     - uses: actions/checkout@v4
