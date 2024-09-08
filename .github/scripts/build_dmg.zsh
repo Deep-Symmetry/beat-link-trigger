@@ -39,9 +39,11 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
 
     # Replace the jar with one containing the executables with corrected signatures.
     rm -f ../Input/beat-link-trigger.jar
-    jar cfm ../Input/beat-link-trigger.jar . META-INF/MANIFEST.MF
+    cp META-INF/MANIFEST.MF ..
+    jar cfm ../Input/beat-link-trigger.jar . ../MANIFEST.MF
     cd ..
     rm -rf jar_tmp
+    rm MANIFEST.MF
 
     # Run jpackage to build the native application as a code signed disk image
     jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
