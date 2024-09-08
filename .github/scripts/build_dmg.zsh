@@ -31,15 +31,15 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     # Explode the jar so we can fix code signatures on the problematic executables we embed.
     mkdir jar_tmp
     cd jar_tmp
-    jar xf ../beat-link-trigger.jar
+    jar xf ../Input/beat-link-trigger.jar
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" libnrepl-macos-universal.so
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" META-INF/native/libnetty_transport_native_kqueue_x86_64.jnilib
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" --force uk/co/xfactorylibrarians/coremidi4j/libCoreMidi4J.dylib
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" com/sun/jna/darwin/libjnidispatch.jnilib
 
     # Replace the jar with one containing the executables with corrected signatures.
-    rm -f ../beat-link-trigger.jar
-    jar cf ../beat-link-trigger.jar .
+    rm -f ../Input/beat-link-trigger.jar
+    jar cf ../Input/beat-link-trigger.jar .
     cd ..
     rm -rf jar_tmp
 
