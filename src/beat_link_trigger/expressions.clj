@@ -358,7 +358,7 @@
                                           :doc  "The label of the loaded track, if metadata is available."}
                          'track-length   {:code '(if-let [data util/*simulating*]
                                                    (get-in data [:metadata :duration])
-                                                   (when (some? track-metadata) (.getLength track-metadata)))
+                                                   (when (some? track-metadata) (.getDuration track-metadata)))
                                           :doc  "The length in seconds of the loaded track, if metadata is available."}
                          'track-metadata {:code '(when-not util/*simulating*
                                                    (.getLatestMetadataFor
