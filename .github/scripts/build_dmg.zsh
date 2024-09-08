@@ -39,7 +39,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
 
     # Replace the jar with one containing the executables with corrected signatures.
     rm -f ../Input/beat-link-trigger.jar
-    jar cf ../Input/beat-link-trigger.jar .
+    jar cfm ../Input/beat-link-trigger.jar . META-INF/MANIFEST.MF
     cd ..
     rm -rf jar_tmp
 
