@@ -37,6 +37,9 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --mac-signing-key-user-name  "Deep Symmetry, LLC (9M6LKU948Y)" \
              --mac-entitlements  .github/resources/Clojure.entitlements
 
+    # Code sign the outer package itself
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" "$dmg_name"
+
     # Try to verify the code signature of the package
     codesign -vvvv "$dmg_name"
 
