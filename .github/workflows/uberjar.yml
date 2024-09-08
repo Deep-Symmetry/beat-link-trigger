@@ -235,8 +235,8 @@ jobs:
 
     needs:
       - build_dmg
-      - build_msi
       - build_intel_dmg
+      - build_msi
 
     steps:
     - uses: actions/checkout@v4

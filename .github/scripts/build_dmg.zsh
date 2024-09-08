@@ -28,6 +28,21 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     # Set the keychain to allow use of the certificate without user interaction (we are headless!)
     security set-key-partition-list -S apple-tool:,apple: -s -k "$IDENTITY_PASSPHRASE" build.keychain
 
+    # Explode the jar so we can fix code signatures on the problematic executables we embed.
+    mkdir jar_tmp
+    cd jar_tmp
+    jar xf ../Input/beat-link-trigger.jar
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" libnrepl-macos-universal.so
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" META-INF/native/libnetty_transport_native_kqueue_x86_64.jnilib
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" --force uk/co/xfactorylibrarians/coremidi4j/libCoreMidi4J.dylib
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" com/sun/jna/darwin/libjnidispatch.jnilib
+
+    # Replace the jar with one containing the executables with corrected signatures.
+    rm -f ../Input/beat-link-trigger.jar
+    jar cfm ../Input/beat-link-trigger.jar META-INF/MANIFEST.MF .
+    cd ..
+    rm -rf jar_tmp
+
     # Run jpackage to build the native application as a code signed disk image
     jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
@@ -36,6 +51,12 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --mac-sign --mac-package-signing-prefix "org.deepsymmetry.beat-link-trigger." \
              --mac-signing-key-user-name  "Deep Symmetry, LLC (9M6LKU948Y)" \
              --mac-entitlements  .github/resources/Clojure.entitlements
+
+    # Code sign the outer package itself
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" "$dmg_name"
+
+    # Try to verify the code signature of the package
+    codesign -vvvv "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
     echo "Sumbitting the disk image to Apple for notarization..."
