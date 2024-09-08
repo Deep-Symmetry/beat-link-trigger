@@ -37,6 +37,9 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
              --mac-signing-key-user-name  "Deep Symmetry, LLC (9M6LKU948Y)" \
              --mac-entitlements  .github/resources/Clojure.entitlements
 
+    # Try to verify the code signature of the package
+    codesign -vvvv "$dmg_name"
+
     # Submit the disk image to Apple for notarization.
     echo "Sumbitting the disk image to Apple for notarization..."
     xcrun notarytool submit --apple-id "$blt_mac_notarization_user" --password "$NOTARIZATION_PW" \
