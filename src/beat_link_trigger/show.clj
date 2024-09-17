@@ -963,8 +963,8 @@
   "Writes the song structure (phrase analysis information) for a track
   being imported to the show filesystem, given the bytes from which
   the song structure was parsed."
-  [^Path track-root bytes]
-  (Files/write (.resolve track-root "song-structure.kaitai") bytes su/empty-open-options))
+  [^Path track-root ^byte/1 ss-bytes]
+  (Files/write (.resolve track-root "song-structure.kaitai") ss-bytes su/empty-open-options))
 
 (defn- show-midi-status
   "Set the visibility of the Enabled checkbox and the text and color

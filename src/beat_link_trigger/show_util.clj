@@ -365,7 +365,7 @@
   "Loads song structure (phrase analysis information) for an imported
   track. Returns `nil` if none is found. Otherwise, the raw bytes from
   which it can be recreated."
-  [^Path track-root]
+  ^byte/1 [^Path track-root]
   (let [path (.resolve track-root "song-structure.kaitai")]
     (when (Files/isReadable path)
       (Files/readAllBytes path))))

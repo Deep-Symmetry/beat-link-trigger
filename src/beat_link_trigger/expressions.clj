@@ -25,7 +25,7 @@
   (:import [org.deepsymmetry.beatlink DeviceFinder VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data TimeFinder MetadataFinder SignatureFinder
+           [org.deepsymmetry.beatlink.data BeatGrid MetadataFinder SignatureFinder TimeFinder
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt]
            [java.awt Color]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
@@ -95,7 +95,7 @@
 (defn extract-device-update
   "Allow expressions which might receive either a simple device update
   or a beat-tpu vector to find the device update in either."
-  [status]
+  ^DeviceUpdate [status]
   (if (instance? DeviceUpdate status)
     status
     (first status)))
@@ -169,7 +169,7 @@
             (.-beatNumber position)))))
 
     (vector? status)  ; A beat-tpu tuple.
-    (.beatNumber (second status))))
+    (.beatNumber ^TrackPositionUpdate (second status))))
 
 (defn current-bar
   "Obtains the current bar number of the player that sent the
@@ -177,7 +177,7 @@
   [status]
   (when-let [beat (current-beat status)]
     (if-let [data util/*simulating*]
-      (when-let [grid (:grid data)]
+      (when-let [^BeatGrid grid (:grid data)]
         (.getBarNumber grid beat))
       (when-let [grid (.getLatestBeatGridFor beatgrid-finder (extract-device-update status))]
         (.getBarNumber grid beat)))))
@@ -188,10 +188,10 @@
   [status]
   (cond
     (instance? DeviceUpdate status)
-    (.getDeviceNumber status)
+    (DeviceUpdate/.getDeviceNumber status)
 
-    (vector? status)
-    (.getDeviceNumber (first status))))
+    (vector? status)  ; A beat-tpu tuple
+    (Beat/.getDeviceNumber (first status))))
 
 (def extract-raw-cue-update
   "Given a status value from a show cue's started-on-beat or

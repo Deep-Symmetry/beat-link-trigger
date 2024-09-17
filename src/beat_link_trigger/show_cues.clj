@@ -1254,7 +1254,7 @@
       (doseq [cue (vals (get-in phrase [:cues :cues]))]
         (when-let [panel (get-in editor [:panels (:uuid cue)])]
           (let [end-model (seesaw/config (seesaw/select panel [:#end]) :model)]
-            (.setMaximum end-model (beat-count phrase (:section cue)))))))))
+            (javax.swing.SpinnerNumberModel/.setMaximum end-model (beat-count phrase (:section cue)))))))))
 
 (defn describe-beat-for-tooltip
   "Formats a beat as a bar and beat number appropriately for display in a
@@ -1295,7 +1295,7 @@
   "A mouse movement handler for the labels that can be used to simulate
   cue events by option-clicking. Sets the cursor to a play icon when
   the option key is down."
-  [e]
+  [^MouseEvent e]
   (.setCursor (seesaw/to-widget e) (if (.isAltDown e) @play-cursor nil)))
 
 (defn- create-cue-panel
@@ -1370,10 +1370,10 @@
                         "spanx, split"]
                        [(seesaw/label :text "Message:" :halign :right
                                       :listen [:mouse-moved simulate-from-label-cursor
-                                               :mouse-pressed (fn [e] (when (.isAltDown e)
-                                                                        (simulate-entered context cue)))
-                                               :mouse-released (fn [e] (when (.isAltDown e)
-                                                                         (simulate-exited context cue)))])
+                                               :mouse-pressed (fn [^MouseEvent e] (when (.isAltDown e)
+                                                                                    (simulate-entered context cue)))
+                                               :mouse-released (fn [^MouseEvent e] (when (.isAltDown e)
+                                                                                     (simulate-exited context cue)))])
                         "gap unrelated, sizegroup first-message"]
                        [(get-in event-components [:entered :message])]
                        [(get-in event-components [:entered :note]) "hidemode 3"]
@@ -1390,9 +1390,10 @@
                         "spanx, split"]
                        [(seesaw/label :text "On-Beat Message:"
                                       :listen [:mouse-moved simulate-from-label-cursor
-                                               :mouse-pressed (fn [e] (when (.isAltDown e)
-                                                                        (simulate-started-on-beat context cue)))
-                                               :mouse-released (fn [e]
+                                               :mouse-pressed (fn [^MouseEvent e]
+                                                                (when (.isAltDown e)
+                                                                  (simulate-started-on-beat context cue)))
+                                               :mouse-released (fn [^MouseEvent e]
                                                                  (when (.isAltDown e)
                                                                    (simulate-ended context cue :started-on-beat)))])
                         "gap unrelated, sizegroup first-message"]
@@ -1403,9 +1404,10 @@
 
                        [(seesaw/label :text "Late Message:"
                                       :listen [:mouse-moved simulate-from-label-cursor
-                                               :mouse-pressed (fn [e] (when (.isAltDown e)
-                                                                        (simulate-started-late context cue)))
-                                               :mouse-released (fn [e]
+                                               :mouse-pressed (fn [^MouseEvent e]
+                                                                (when (.isAltDown e)
+                                                                  (simulate-started-late context cue)))
+                                               :mouse-released (fn [^MouseEvent e]
                                                                  (when (.isAltDown e)
                                                                    (simulate-ended context cue :started-late)))])
                         "gap 30"]
@@ -1723,10 +1725,12 @@
   supplied."
   [context ^JPanel wave-or-canvas ^MouseEvent e [start end section] cue]
   (cond
-    (and start (<= (Math/abs (- (.getX e) (x-for-beat context wave-or-canvas start section))) click-edge-tolerance))
+    (and start (<= (Math/abs (long (- (.getX e) (x-for-beat context wave-or-canvas start section))))
+                   click-edge-tolerance))
     [nil :start section]
 
-    (and end (<= (Math/abs (- (.getX e) (x-for-beat context wave-or-canvas end section))) click-edge-tolerance))
+    (and end (<= (Math/abs (long (- (.getX e) (x-for-beat context wave-or-canvas end section))))
+                 click-edge-tolerance))
     [nil :end section]
 
     cue
@@ -1978,77 +1982,81 @@
   "Creates an action that opens a dialog to configure the settings of a
   cue in the library."
   [cue-name _cue context]
-  (let [[show _ runtime-info] (latest-show-and-context context)
-        parent                (get-in runtime-info [:cues-editor :frame])
-        title                 (str "Configure ”" cue-name "“")
-        settings              (get-in show [:contents :cue-library-settings cue-name])
-        any-builders?         (not-empty (:cue-builders show))
-        show-builders?        (and (:unlink settings) any-builders?)
-        builder-label         (seesaw/label :text "Cue Builder:" :visible? show-builders?)
-        builder               (seesaw/combobox :model (concat [""] (keys (:cue-builders show)))
-                                               :selected-item (:builder settings "")
-                                               :visible? show-builders?
-                                               :listen [:action
-                                                        (fn [e]
-                                                          (let [builder-name (seesaw/text e)]
-                                                            (if (str/blank? builder-name)
-                                                              (swap-show! show update-in
-                                                                          [:contents :cue-library-settings cue-name]
-                                                                          dissoc :builder)
-                                                              (swap-show! show assoc-in [:contents :cue-library-settings
-                                                                                         cue-name :builder]
-                                                                          builder-name))))])
-        hue-label             (seesaw/label :text "Hue:" :visible? (:fixed-hue settings))
-        swatch                (seesaw/canvas :size [18 :by 18]
-                                             :visible? (:fixed-hue settings)
-                                             :paint (fn [^JComponent component ^Graphics2D graphics]
-                                                      (let [show (latest-show show)]
-                                                        (.setPaint graphics (su/hue-to-color
-                                                                             (get-in show
-                                                                                     [:contents :cue-library-settings
-                                                                                      cue-name :hue]
-                                                                                     0)))
-                                                        (.fill graphics (java.awt.geom.Rectangle2D$Double.
-                                                                         0.0 0.0 (double (.getWidth component))
-                                                                         (double (.getHeight component)))))))
-        panel                 (mig/mig-panel
-                               :constraints ["hidemode 2"]
-                               :items [[(seesaw/checkbox :text "Unlink Cues when creating from this Library Cue"
-                                                         :selected? (:unlink settings)
-                                                         :listen [:action (fn [e]
+  (let [[show _
+         runtime-info] (latest-show-and-context context)
+        parent         (get-in runtime-info [:cues-editor :frame])
+        title          (str "Configure ”" cue-name "“")
+        settings       (get-in show [:contents :cue-library-settings cue-name])
+        any-builders?  (not-empty (:cue-builders show))
+        show-builders? (and (:unlink settings) any-builders?)
+        builder-label  (seesaw/label :text "Cue Builder:" :visible? show-builders?)
+        builder        (seesaw/combobox :model (concat [""] (keys (:cue-builders show)))
+                                        :selected-item (:builder settings "")
+                                        :visible? show-builders?
+                                        :listen [:action
+                                                 (fn [e]
+                                                   (let [builder-name (seesaw/text e)]
+                                                     (if (str/blank? builder-name)
+                                                       (swap-show! show update-in
+                                                                   [:contents :cue-library-settings cue-name]
+                                                                   dissoc :builder)
+                                                       (swap-show! show assoc-in [:contents :cue-library-settings
+                                                                                  cue-name :builder]
+                                                                   builder-name))))])
+        hue-label      (seesaw/label :text "Hue:" :visible? (:fixed-hue settings))
+        swatch         (seesaw/canvas :size [18 :by 18]
+                                      :visible? (:fixed-hue settings)
+                                      :paint (fn [^JComponent component ^Graphics2D graphics]
+                                               (let [show (latest-show show)]
+                                                 (.setPaint graphics (su/hue-to-color
+                                                                      (get-in show
+                                                                              [:contents :cue-library-settings
+                                                                               cue-name :hue]
+                                                                              0)))
+                                                 (.fill graphics (java.awt.geom.Rectangle2D$Double.
+                                                                  0.0 0.0 (double (.getWidth component))
+                                                                  (double (.getHeight component)))))))
+
+        panel                       (mig/mig-panel
+                                     :constraints ["hidemode 2"]
+                                     :items [[(seesaw/checkbox :text "Unlink Cues when creating from this Library Cue"
+                                                               :selected? (:unlink settings)
+                                                               :listen [:action
+                                                                        (fn [e]
+                                                                          (swap-show! show assoc-in
+                                                                                      [:contents :cue-library-settings
+                                                                                       cue-name :unlink]
+                                                                                      (seesaw/value e))
+                                                                          (seesaw/value! builder "")
+                                                                          (seesaw/config! [builder-label builder]
+                                                                                          :visible?
+                                                                                          (and (seesaw/value e)
+                                                                                               any-builders?))
+                                                                          (seesaw/pack! e))])
+                                              "spanx, wrap"]
+                                             [(seesaw/checkbox :text "Create Cues with a specific hue"
+                                                               :selected? (:fixed-hue settings)
+                                                               :listen [:action
+                                                                        (fn [e]
+                                                                          (let [fixed (seesaw/value e)]
                                                                             (swap-show! show assoc-in
                                                                                         [:contents :cue-library-settings
-                                                                                         cue-name :unlink]
-                                                                                        (seesaw/value e))
-                                                                            (seesaw/value! builder "")
-                                                                            (seesaw/config! [builder-label builder]
-                                                                                            :visible?
-                                                                                            (and (seesaw/value e)
-                                                                                                 any-builders?))
-                                                                            (seesaw/pack! e))])
-                                        "spanx, wrap"]
-                                       [(seesaw/checkbox :text "Create Cues with a specific hue"
-                                                         :selected? (:fixed-hue settings)
-                                                         :listen [:action
-                                                                  (fn [e]
-                                                                    (let [fixed (seesaw/value e)]
-                                                                      (swap-show! show assoc-in
-                                                                             [:contents :cue-library-settings
-                                                                              cue-name :fixed-hue]
-                                                                             fixed)
-                                                                      (when fixed
-                                                                        (swap-show! show assoc-in
+                                                                                         cue-name :fixed-hue]
+                                                                                        fixed)
+                                                                            (when fixed
+                                                                              (swap-show!
+                                                                               show assoc-in
                                                                                [:contents :cue-library-settings
                                                                                 cue-name :hue]
                                                                                (or (:hue settings) 0)))
-                                                                      (seesaw/config! [hue-label swatch]
-                                                                                      :visible? fixed))
-                                                                    (seesaw/pack! e))])]
-                                       [hue-label "gap unrelated"]
-                                       [swatch "wrap"]
-                                       [builder-label "split"]
-                                       [builder "spanx, wrap"]])
-        dialog                (seesaw/dialog :title title :content panel :modal? true)]
+                                                                            (seesaw/config! [hue-label swatch]
+                                                                                            :visible? fixed))
+                                                                          (seesaw/pack! e))])]
+                                             [hue-label "gap unrelated"]
+                                             [swatch "wrap"]
+                                             [builder-label "split"]
+                                             [builder "spanx, wrap"]])
+        ^javax.swing.JDialog dialog (seesaw/dialog :title title :content panel :modal? true)]
     (seesaw/listen swatch
                    :mouse-pressed (fn [_]
                                     (let [hue (get-in (latest-show show) [:contents :cue-library-settings
@@ -2329,7 +2337,7 @@
                                            (vals (get-in phrase [:cues :cues])))]
     (doseq [[section min-bars] min-sizes]
       (let [model (seesaw/config (seesaw/select panel [(keyword (str "#" (name section)))]) :model)]
-        (.setMinimum model min-bars)))))
+        (javax.swing.SpinnerNumberModel/.setMinimum model min-bars)))))
 
 (defn build-cues
   "Updates the track or phrase trigger structures to reflect the cues
@@ -2520,7 +2528,7 @@
 (defn- paint-cue-canvas
   "Draws the zommable scrolling view of the phrase trigger on which cues
   can be placed."
-  [context c ^Graphics2D g]
+  [context ^java.awt.Canvas c ^Graphics2D g]
   (let [h              (double (seesaw/height c))
         [show phrase
          runtime-info] (latest-show-and-context context)
@@ -2602,9 +2610,9 @@
       (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
         (let [simulator (sim/for-player player)]
           (when-let [time (or (:time simulator) (.getTimeFor util/time-finder player))]
-            (let [grid       (or (get-in simulator [:track :grid])
-                                 (.beatGrid (.getLatestPositionFor util/time-finder player)))
-                  track-beat (.findBeatAtTime grid time)]
+            (let [^BeatGrid grid (or (get-in simulator [:track :grid])
+                                           (.beatGrid (.getLatestPositionFor util/time-finder player)))
+                  track-beat     (.findBeatAtTime grid time)]
               (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
                                                                 track-beat))]
                 (let [beat         (- track-beat first-beat -1)
@@ -2653,7 +2661,7 @@
         zoom-anchor    (atom nil) ; The x coordinate we want to keep the wave anchored at when zooming.
         wave-scale     (fn []  ; Determine the current scale of the waveform or cue canvas.
                          (if track-root
-                           (.getScale wave)
+                           (WaveformDetailComponent/.getScale wave)
                            (get-in (latest-phrase show context) [:cues :zoom] 4)))
         wave-scroll    (proxy [javax.swing.JScrollPane] [wave]
                          (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
@@ -2722,13 +2730,14 @@
                         (proxy [javax.swing.event.ChangeListener] []
                           (stateChanged [_] (su/repaint-preview context))))
     (when track-root
-      (.setScale wave (seesaw/value zoom-slider))
-      (.setAutoScroll wave (and (seesaw/value auto-scroll) (boolean (or (util/online?) (sim/simulating?)))))
-      (.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
-                                 (paintOverlay [component graphics]
-                                   (paint-cues-and-beat-selection context component graphics))))
-      (.setSongStructure wave song-structure))
-    (.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
+      (WaveformDetailComponent/.setScale wave (seesaw/value zoom-slider))
+      (WaveformDetailComponent/.setAutoScroll wave (and (seesaw/value auto-scroll)
+                                                        (boolean (or (util/online?) (sim/simulating?)))))
+      (WaveformDetailComponent/.setOverlayPainter wave (proxy [org.deepsymmetry.beatlink.data.OverlayPainter] []
+                                                         (paintOverlay [component graphics]
+                                                           (paint-cues-and-beat-selection context component graphics))))
+      (WaveformDetailComponent/.setSongStructure wave song-structure))
+    (JComponent/.setCursor wave (Cursor/getPredefinedCursor Cursor/CROSSHAIR_CURSOR))
     (seesaw/listen wave
                    :mouse-moved (fn [e] (handle-wave-move context wave e))
                    :mouse-pressed (fn [e] (handle-wave-click context wave e))

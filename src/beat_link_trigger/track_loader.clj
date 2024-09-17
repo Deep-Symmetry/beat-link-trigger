@@ -2057,7 +2057,7 @@
   mobile is on the network. This checks for that, and reports the
   problem if it is not true."
   []
-  (if (empty? (filter (fn [device]
+  (if (empty? (filter (fn [^DeviceAnnouncement device]
                         (let [number (.getDeviceNumber device)]
                           (or (< 0x10 number 0x20)
                               (< 0x28 number 0x30))))

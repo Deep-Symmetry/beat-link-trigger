@@ -17,7 +17,7 @@
             [seesaw.mig :as mig]
             [taoensso.timbre :as timbre])
   (:import [org.deepsymmetry.beatlink Beat CdjStatus DeviceAnnouncementListener DeviceUpdateListener]
-           [org.deepsymmetry.beatlink.data BeatGrid TrackPositionUpdate]
+           [org.deepsymmetry.beatlink.data BeatGridFinder BeatGrid TrackPositionUpdate]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$SongStructureTag RekordboxAnlz$SongStructureEntry]
            [java.awt BasicStroke Color Graphics2D RenderingHints]
            [java.awt.event MouseEvent]
@@ -68,7 +68,7 @@
   analysis, if any, available for the track playing on the specified
   player."
   [player]
-  (when-let [phrase (current-phrase player)]
+  (when-let [^RekordboxAnlz$SongStructureEntry phrase (current-phrase player)]
     (util/track-bank-keyword (.. phrase _parent _parent))))
 
 (defn beat-range
@@ -86,9 +86,9 @@
   any, which is currently playing on the specified player."
   [player]
   (when-let [phrase (current-phrase player)]
-    (let [grid (if-let [simulator (sim/for-player player)]
-                 (get-in simulator [:track :grid])
-                 (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))]
+    (let [^BeatGrid grid (if-let [simulator (sim/for-player player)]
+                           (get-in simulator [:track :grid])
+                           (BeatGridFinder/.getLatestBeatGridFor (BeatGridFinder/getInstance) (long player)))]
       (beat-range player phrase grid))))
 
 (defn- capture-current-state
@@ -248,7 +248,7 @@
   "Draws the compact view of the phrase shown within the Show window
   row, identifying the relative sizes of the sections, and positions
   of cues within them."
-  [show uuid c ^Graphics2D g]
+  [show uuid ^JPanel c ^Graphics2D g]
   (let [w            (double (seesaw/width c))
         h            (double (seesaw/height c))
         show         (latest-show show)
@@ -335,12 +335,12 @@
       (.dispose g2))
 
     ;; Paint the positions of the players that are playing within this phrase trigger.
-    (doseq [player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
+    (doseq [^Long player (util/players-phrase-uuid-set (:playing-phrases show) uuid)]
       (let [simulator (sim/for-player player)]
         (when-let [time (or (:time simulator) (.getTimeFor util/time-finder player))]
-          (let [grid       (or (get-in simulator [:track :grid])
-                               (.beatGrid (.getLatestPositionFor util/time-finder player)))
-                track-beat (.findBeatAtTime grid time)]
+          (let [^BeatGrid grid (or (get-in simulator [:track :grid])
+                                         (.beatGrid (.getLatestPositionFor util/time-finder player)))
+                track-beat     (.findBeatAtTime grid time)]
             (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid]) track-beat))]
               (let [beat         (- track-beat first-beat -1)
                     tempo        (/ (.getBpm grid track-beat) 100.0)
@@ -568,8 +568,8 @@
                        (every? (partial editors/close-editor? force?) (vals (:expression-editors runtime-info)))
                        (or (not (:cues-editor runtime-info)) ((get-in runtime-info [:cues-editor :close-fn]) force?)))]
     (when closed
-      (when-let [picker (:phrase-type-picker runtime-info)] (.dispose picker))
-      (when-let [picker (:track-bank-picker runtime-info)] (.dispose picker)))
+      (when-let [^JFrame picker (:phrase-type-picker runtime-info)] (.dispose picker))
+      (when-let [^JFrame picker (:track-bank-picker runtime-info)] (.dispose picker)))
     closed))
 
 (defn cleanup-phrase
@@ -782,7 +782,7 @@
 (defn- show-phrase-type-picker
   "Opens (or brings to the front, if it is already open) a window for
   selecting which phrase types a phrase trigger will activate for."
-  [show uuid types-label]
+  [show uuid ^javax.swing.JLabel types-label]
   (if-let [^JFrame frame (:phrase-type-picker (phrase-runtime-info (latest-show show) uuid))]
     (.toFront frame)
     (let [low-intro   (build-phrase-type-checkbox show uuid types-label :low-intro)
@@ -926,7 +926,7 @@
 (defn- show-track-bank-picker
   "Opens (or brings to the front, if it is already open) a window for
   selecting which track banks a trigger will activate for."
-  [show uuid banks-label]
+  [show uuid ^javax.swing.JLabel banks-label]
   (if-let [^JFrame frame (:track-bank-picker (phrase-runtime-info (latest-show show) uuid))]
     (.toFront frame)
     (let [cool    (build-track-bank-checkbox show uuid banks-label :cool)
@@ -1191,9 +1191,9 @@
                                                                  (let [show         (latest-show show)
                                                                        runtime-info (phrase-runtime-info show uuid)]
                                                                    (when-let [picker (:phrase-type-picker runtime-info)]
-                                                                     (.dispose picker))
+                                                                     (JFrame/.dispose picker))
                                                                    (when-let [picker (:track-bank-picker runtime-info)]
-                                                                     (.dispose picker))))))])
+                                                                     (JFrame/.dispose picker))))))])
                                  "hidemode 3"]
                                 [players-label "gap 15"]
                                 [players "hidemode 2, wrap unrelated"]
@@ -1469,7 +1469,7 @@ editor windows, in their cue canvases as well."
   be assigned when randomly choosing between solo triggers. This is
   called in the context of a `swap!` operation with the most current
   values of `show` and `phrase-trigger`."
-  [show status context phrase-trigger]
+  [show ^CdjStatus status context phrase-trigger]
   (case (:enabled phrase-trigger)
 
     "Custom"
@@ -1586,9 +1586,9 @@ editor windows, in their cue canvases as well."
   the sections of the actual phrase that it has matched. Returns an
   interval map that translates track beat numbers to tuples of
   [section starting-beat]"
-  [player phrase-trigger ^RekordboxAnlz$SongStructureEntry phrase]
+  [^Long player phrase-trigger ^RekordboxAnlz$SongStructureEntry phrase]
   (let [grid        (or (get-in (sim/for-player player) [:track :grid])
-                        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))
+                 (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))
         [start end] (beat-range player phrase grid)]
     (if (zero? (.fill phrase))
       (align-sections start end phrase-trigger)
@@ -1600,9 +1600,9 @@ editor windows, in their cue canvases as well."
   "Returns a map holding the information that can be used to check
   whether a phrase trigger is eligible to run for a phrase that is
   starting."
-  [player ^RekordboxAnlz$SongStructureEntry new-phrase ^CdjStatus status]
+  [^Long player ^RekordboxAnlz$SongStructureEntry new-phrase ^CdjStatus status]
   (let [grid        (or (get-in (sim/for-player player) [:track :grid])
-                        (.getLatestBeatGridFor (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance) player))
+                        (BeatGridFinder/.getLatestBeatGridFor (BeatGridFinder/getInstance) player))
         [start end] (beat-range player new-phrase grid)]
     {:bars        (quot (- end start) 4)
      :tempo       (.getEffectiveTempo status)
@@ -1701,7 +1701,7 @@ editor windows, in their cue canvases as well."
   runtime-info map, a player number, and the current playback position
   of that player, return the set of that phrase trigger's cues which
   the player is positioned within."
-  [show uuid runtime-info player position]
+  [show uuid runtime-info player ^TrackPositionUpdate position]
   (or
    (when position
      (when-let [[section first-beat] (first (util/iget (get-in show [:playing-phrases player uuid])
@@ -1736,7 +1736,7 @@ editor windows, in their cue canvases as well."
 (defn- track-unblocked?
   "Makes sure that any show which contains the track playing on the
   player has marked that track as allowing phrase triggers to run."
-  [player]
+  [^Long player]
   (let [signature (or (get-in (sim/for-player player) [:track :signature])
                       (.getLatestSignatureFor util/signature-finder player))]
     (not-any? (fn [show]
@@ -1751,7 +1751,7 @@ editor windows, in their cue canvases as well."
   triggers, but if that doesn't leave a solo trigger running, perform
   a new lottery using their weights to add one, both at the global
   level and in each show."
-  [state player position]
+  [state ^Long player ^TrackPositionUpdate position]
   (let [old-phrase (get-in state [:last :current-phrase player])
         new-phrase (get-in state [:current-phrase player])
         status     (or (:latest-status (sim/for-player player)) (.getLatestStatusFor util/virtual-cdj player))
@@ -1921,7 +1921,7 @@ editor windows, in their cue canvases as well."
   packet. Finally, even if nothing has changed, if there is a status
   packet the Tracked Update Expressions for any active phrase triggers
   for the player will be called with it."
-  [state player ^CdjStatus status]
+  [state ^Long player ^CdjStatus status]
   (let [updated (update-running-phrase-triggers state player
                                                 (or (:latest-tpu (sim/for-player player))
                                                     (.getLatestPositionFor util/time-finder player)))]
