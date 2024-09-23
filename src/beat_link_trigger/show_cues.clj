@@ -2665,7 +2665,11 @@
                            (get-in (latest-phrase show context) [:cues :zoom] 4)))
         wave-scroll    (proxy [javax.swing.JScrollPane] [wave]
                          (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
-                           (if (.isShiftDown e)
+                           (if (.isShiftDown e)  ; This is how AWT represents horizontal scrolling.
+                             ;; I haven't been able to find a way to avoid reflection here, since this is a
+                             ;; protected superclass method. But this will only happen once per scroll event,
+                             ;; so the cost of reflection is not tragic. See also:
+                             ;; https://ask.clojure.org/index.php/2424/proxy-super-calls-generally-use-reflection
                              (proxy-super processMouseWheelEvent e)
                              (let [zoom (min max-zoom (max 1 (+ (wave-scale) (.getWheelRotation e))))]
                                (reset! zoom-anchor (.getX e))

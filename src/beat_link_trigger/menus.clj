@@ -186,7 +186,7 @@
   "Creates the help menu, which will also include the actions which are
   automatically available in the Application menu on the Mac, but must
   be added to the Help menu on other platforms."
-  []
+  ^javax.swing.JMenu []
   (seesaw/menu :text "Help"
                :items (concat (when-not (on-mac?)
                                 [(seesaw/action :handler (fn [_]

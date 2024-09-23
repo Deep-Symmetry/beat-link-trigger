@@ -21,7 +21,8 @@
             LifecycleListener MediaDetailsListener VirtualCdj]
            [org.deepsymmetry.beatlink.data AlbumArt AlbumArtListener AnalysisTagFinder AnalysisTagListener
             ArtFinder MetadataFinder MountListener OpusProvider SearchableItem SlotReference TimeFinder TrackMetadata
-            TrackMetadataListener TrackPositionUpdate WaveformDetailComponent WaveformFinder WaveformPreviewComponent]
+            TrackMetadataListener TrackPositionUpdate WaveformDetail WaveformDetailComponent WaveformFinder
+            WaveformPreviewComponent]
            [jiconfont.icons.font_awesome FontAwesome]
            [jiconfont.swing IconFontSwing]))
 
@@ -241,8 +242,8 @@
   "Figure out the number of milliseconds left to play for a given
   player, given the player number and time played so far."
   [^Long n played]
-  (when-let [detail (or (get-in (simulator/for-player n) [:track :detail])
-                        (.getLatestDetailFor waveform-finder n))]
+  (when-let [^WaveformDetail detail (or (get-in (simulator/for-player n) [:track :detail])
+                                        (.getLatestDetailFor waveform-finder n))]
     (max 0 (- (.getTotalTime detail) played))))
 
 (defn- format-time

@@ -31,6 +31,7 @@
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt Color Graphics2D RenderingHints]
            [java.awt.event WindowEvent]
+           [java.io File]
            [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
@@ -164,7 +165,7 @@
 (defn- latest-status-for
   "Returns the latest status packet received from a device by number.
   Works both when online and when simulated playback is happening."
-  [device-number]
+  [^Long device-number]
   (or (:latest-status (sim/for-player device-number))
       (when (util/online?) (when (util/online?) (.getLatestStatusFor virtual-cdj device-number)))))
 
@@ -640,12 +641,12 @@
            trigger-index  1
            show-hue       nil
            last-show-file nil]
-      (let [trigger    (first triggers)
-            remaining  (rest triggers)
-            show-file  (:show-file @(seesaw/user-data trigger))
-            show-hue   (if (= show-file last-show-file)
-                         show-hue  ; Either let show explicitly set hue, or rotate through color wheel
-                         (or (:show-hue @(seesaw/user-data trigger)) (mod (+ (or show-hue 0.0) 62.5) 360.0)))]
+      (let [trigger         (first triggers)
+            remaining       (rest triggers)
+            ^File show-file (:show-file @(seesaw/user-data trigger))
+            show-hue        (if (= show-file last-show-file)
+                              show-hue  ; Either let show explicitly set hue, or rotate through color wheel
+                              (or (:show-hue @(seesaw/user-data trigger)) (mod (+ (or show-hue 0.0) 62.5) 360.0)))]
         (seesaw/config! trigger :background (trigger-color trigger-index show-hue))
         (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
         (if (= show-file last-show-file)
@@ -1248,7 +1249,7 @@
   (seesaw/invoke-later  ; Need to move to the AWT event thread, since we interact with GUI objects
    (try
      (let [new-outputs (util/get-midi-outputs)
-           output-set  (set (map #(.full_name %) new-outputs))]
+           output-set  (set (map (fn [^MidiChoice choice] (.full_name choice)) new-outputs))]
        ;; Remove any opened outputs that are no longer available in the MIDI environment
        (swap! util/opened-outputs  #(apply dissoc % (clojure.set/difference (set (keys %)) output-set)))
 
@@ -1326,7 +1327,7 @@
         (catch Exception e
           (timbre/error e "Problem responding to beat packet."))))))
 
-(def offline-cooldown-ms
+(def ^Long offline-cooldown-ms
   "The amount of time to wait for things to stabilize after starting the
   process of going offline, before trying to go back online
   automatically."

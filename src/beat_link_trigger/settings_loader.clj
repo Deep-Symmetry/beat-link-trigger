@@ -9,6 +9,7 @@
             [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt.event WindowEvent]
+           [javax.swing JComboBox JFrame]
            [org.deepsymmetry.beatlink CdjStatus DeviceAnnouncementListener DeviceFinder
             DeviceUpdateListener LifecycleListener PlayerSettings PlayerSettings$AutoCueLevel
             PlayerSettings$AutoLoadMode PlayerSettings$Illumination
@@ -40,7 +41,9 @@
   enums used by `PlayerSettings`, and handles initializing it based on
   the current preferences, as well as updating the settings object and
   preferences appropriately when the user chooses a different value."
-  [enum settings defaults field-name]
+
+  ;; This function unavoidably uses reflection, but it is not in a performance critical path.
+  [enum ^PlayerSettings settings defaults field-name]
   (let [field         (.. settings getClass (getDeclaredField field-name))
         value-of      (.. enum (getDeclaredMethod "valueOf" (into-array Class [String])))
         display-value (.. enum (getDeclaredField "displayValue"))]
@@ -53,19 +56,20 @@
     ;; and a custom cell renderer which draws the displayValue, rather than the persistence-oriented
     ;; toString() value, and install a state change handler which updates both the settings
     ;; object and the stored preferences values to reflect the user's wish.
-    (let [box  (seesaw/combobox :model (.getEnumConstants enum)
-                                :selected-item (. field (get settings))
-                                :listen [:item-state-changed
-                                         (fn [e]
-                                           (when-let [selection (seesaw/selection e)]
-                                             (. field (set settings selection))
-                                             (prefs/put-preferences (update-in (prefs/get-preferences) [:my-settings]
-                                                                               assoc field-name (str selection)))))])
-          orig (.getRenderer box)
-          draw (proxy [javax.swing.DefaultListCellRenderer] []
-                 (getListCellRendererComponent [the-list value index is-selected has-focus]
-                   (let [display (. display-value (get value))]
-                     (.getListCellRendererComponent orig the-list display index is-selected has-focus))))]
+    (let [^JComboBox box (seesaw/combobox
+                          :model (.getEnumConstants enum)
+                          :selected-item (. field (get settings))
+                          :listen [:item-state-changed
+                                   (fn [e]
+                                     (when-let [selection (seesaw/selection e)]
+                                       (. field (set settings selection))
+                                       (prefs/put-preferences (update-in (prefs/get-preferences) [:my-settings]
+                                                                         assoc field-name (str selection)))))])
+          orig           (.getRenderer box)
+          draw           (proxy [javax.swing.DefaultListCellRenderer] []
+                           (getListCellRendererComponent [the-list value index is-selected has-focus]
+                             (let [display (. display-value (get value))]
+                               (.getListCellRendererComponent orig the-list display index is-selected has-focus))))]
       (.setRenderer box draw)
       box)))
 
@@ -75,127 +79,127 @@
   []
   (seesaw/invoke-later
    (try
-     (let [selected-player  (atom {:number nil :playing false})
-           root             (seesaw/frame :title "My Settings" :on-close :dispose :resizable? true)
-           load-button      (seesaw/button :text "Load" :enabled? false)
-           problem-label    (seesaw/label :text "" :foreground "red")
-           update-load-ui   (fn []
-                              (let [playing (:playing @selected-player)
-                                    problem (if playing "Playing." "")]
-                                (seesaw/value! problem-label problem)
-                                (seesaw/config! load-button :enabled? (str/blank? problem))))
-           player-changed   (fn [e]
-                              (let [^Long number      (when-let [^PlayerChoice selection (seesaw/selection e)]
-                                                        (.number selection))
-                                    ^CdjStatus status (when number (.getLatestStatusFor virtual-cdj number))]
-                                (reset! selected-player {:number number :playing (and status (.isPlaying status))})
-                                (update-load-ui)))
-           players          (seesaw/combobox :id :players
-                                             :listen [:item-state-changed player-changed])
-           player-panel     (mig/mig-panel :background "#ddd"
-                                           :items [[(seesaw/label :text "Load on:")]
-                                                   [players "gap unrelated"]
-                                                   [problem-label "push, gap unrelated"]
-                                                   [load-button]])
-           settings         (PlayerSettings.)
-           defaults         (:my-settings (prefs/get-preferences))
-           settings-panel   (mig/mig-panel  ; Starts with DJ Settings
-                             :items [[(seesaw/label :text "Play Mode:") "align right"]
-                                     [(enum-picker PlayerSettings$PlayMode settings defaults "autoPlayMode") "wrap"]
+     (let [selected-player    (atom {:number nil :playing false})
+           ^JFrame root       (seesaw/frame :title "My Settings" :on-close :dispose :resizable? true)
+           load-button        (seesaw/button :text "Load" :enabled? false)
+           problem-label      (seesaw/label :text "" :foreground "red")
+           update-load-ui     (fn []
+                                (let [playing (:playing @selected-player)
+                                      problem (if playing "Playing." "")]
+                               (seesaw/value! problem-label problem)
+                               (seesaw/config! load-button :enabled? (str/blank? problem))))
+           player-changed     (fn [e]
+                                (let [^Long number      (when-let [^PlayerChoice selection (seesaw/selection e)]
+                                                          (.number selection))
+                                      ^CdjStatus status (when number (.getLatestStatusFor virtual-cdj number))]
+                                  (reset! selected-player {:number number :playing (and status (.isPlaying status))})
+                               (update-load-ui)))
+           ^JComboBox players (seesaw/combobox :id :players
+                                                       :listen [:item-state-changed player-changed])
+           player-panel       (mig/mig-panel :background "#ddd"
+                                          :items [[(seesaw/label :text "Load on:")]
+                                                  [players "gap unrelated"]
+                                                  [problem-label "push, gap unrelated"]
+                                                  [load-button]])
+           settings           (PlayerSettings.)
+           defaults           (:my-settings (prefs/get-preferences))
+           settings-panel     (mig/mig-panel  ; Starts with DJ Settings
+                            :items [[(seesaw/label :text "Play Mode:") "align right"]
+                                    [(enum-picker PlayerSettings$PlayMode settings defaults "autoPlayMode") "wrap"]
 
-                                     [(seesaw/label :text "Eject/Load Lock:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "ejectLoadLock") "wrap"]
+                                    [(seesaw/label :text "Eject/Load Lock:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "ejectLoadLock") "wrap"]
 
-                                     [(seesaw/label :text "Needle Lock:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "needleLock") "wrap"]
+                                    [(seesaw/label :text "Needle Lock:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "needleLock") "wrap"]
 
-                                     [(seesaw/label :text "Quantize Beat Value:") "align right"]
-                                     [(enum-picker PlayerSettings$QuantizeMode settings defaults "quantizeBeatValue")
-                                      "wrap"]
+                                    [(seesaw/label :text "Quantize Beat Value:") "align right"]
+                                    [(enum-picker PlayerSettings$QuantizeMode settings defaults "quantizeBeatValue")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Hot Cue Auto Load:") "align right"]
-                                     [(enum-picker PlayerSettings$AutoLoadMode settings defaults "autoLoadMode")
-                                      "wrap"]
+                                    [(seesaw/label :text "Hot Cue Auto Load:") "align right"]
+                                    [(enum-picker PlayerSettings$AutoLoadMode settings defaults "autoLoadMode")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Hot Cue Color:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "hotCueColor") "wrap"]
+                                    [(seesaw/label :text "Hot Cue Color:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "hotCueColor") "wrap"]
 
-                                     [(seesaw/label :text "Auto Cue Level:") "align right"]
-                                     [(enum-picker PlayerSettings$AutoCueLevel settings defaults "autoCueLevel") "wrap"]
+                                    [(seesaw/label :text "Auto Cue Level:") "align right"]
+                                    [(enum-picker PlayerSettings$AutoCueLevel settings defaults "autoCueLevel") "wrap"]
 
-                                     [(seesaw/label :text "Time Display Mode:") "align right"]
-                                     [(enum-picker PlayerSettings$TimeDisplayMode settings defaults "timeDisplayMode")
-                                      "wrap"]
+                                    [(seesaw/label :text "Time Display Mode:") "align right"]
+                                    [(enum-picker PlayerSettings$TimeDisplayMode settings defaults "timeDisplayMode")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Auto Cue:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "autoCue") "wrap"]
+                                    [(seesaw/label :text "Auto Cue:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "autoCue") "wrap"]
 
-                                     [(seesaw/label :text "Jog Mode:") "align right"]
-                                     [(enum-picker PlayerSettings$JogMode settings defaults "jogMode") "wrap"]
+                                    [(seesaw/label :text "Jog Mode:") "align right"]
+                                    [(enum-picker PlayerSettings$JogMode settings defaults "jogMode") "wrap"]
 
-                                     [(seesaw/label :text "Tempo Range:") "align right"]
-                                     [(enum-picker PlayerSettings$TempoRange settings defaults "tempoRange") "wrap"]
+                                    [(seesaw/label :text "Tempo Range:") "align right"]
+                                    [(enum-picker PlayerSettings$TempoRange settings defaults "tempoRange") "wrap"]
 
-                                     [(seesaw/label :text "Master Tempo:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "masterTempo") "wrap"]
+                                    [(seesaw/label :text "Master Tempo:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "masterTempo") "wrap"]
 
-                                     [(seesaw/label :text "Quantize:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "quantize") "wrap"]
+                                    [(seesaw/label :text "Quantize:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "quantize") "wrap"]
 
-                                     [(seesaw/label :text "Sync:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "sync") "wrap"]
+                                    [(seesaw/label :text "Sync:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "sync") "wrap"]
 
-                                     [(seesaw/label :text "Phase Meter:") "align right"]
-                                     [(enum-picker PlayerSettings$PhaseMeterType settings defaults "phaseMeterType")
-                                      "wrap"]
+                                    [(seesaw/label :text "Phase Meter:") "align right"]
+                                    [(enum-picker PlayerSettings$PhaseMeterType settings defaults "phaseMeterType")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Vinyl Speed Adjust:") "align right"]
-                                     [(enum-picker PlayerSettings$VinylSpeedAdjust settings defaults "vinylSpeedAdjust")
-                                      "wrap unrelated"]
+                                    [(seesaw/label :text "Vinyl Speed Adjust:") "align right"]
+                                    [(enum-picker PlayerSettings$VinylSpeedAdjust settings defaults "vinylSpeedAdjust")
+                                     "wrap unrelated"]
 
-                                     ;; Display (LCD) settings
-                                     [(seesaw/label :text "Language:") "align right"]
-                                     [(enum-picker PlayerSettings$Language settings defaults "language") "wrap"]
+                                    ;; Display (LCD) settings
+                                    [(seesaw/label :text "Language:") "align right"]
+                                    [(enum-picker PlayerSettings$Language settings defaults "language") "wrap"]
 
-                                     [(seesaw/label :text "LCD Brightness:") "align right"]
-                                     [(enum-picker PlayerSettings$LcdBrightness settings defaults "lcdBrightness")
-                                      "wrap"]
+                                    [(seesaw/label :text "LCD Brightness:") "align right"]
+                                    [(enum-picker PlayerSettings$LcdBrightness settings defaults "lcdBrightness")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Jog Wheel LCD Brightness:") "align right"]
-                                     [(enum-picker PlayerSettings$LcdBrightness settings defaults
-                                                   "jogWheelLcdBrightness") "wrap"]
+                                    [(seesaw/label :text "Jog Wheel LCD Brightness:") "align right"]
+                                    [(enum-picker PlayerSettings$LcdBrightness settings defaults
+                                                  "jogWheelLcdBrightness") "wrap"]
 
-                                     [(seesaw/label :text "Jog Wheel Display Mode:") "align right"]
-                                     [(enum-picker PlayerSettings$JogWheelDisplay settings defaults "jogWheelDisplay")
-                                      "wrap unrelated"]
+                                    [(seesaw/label :text "Jog Wheel Display Mode:") "align right"]
+                                    [(enum-picker PlayerSettings$JogWheelDisplay settings defaults "jogWheelDisplay")
+                                     "wrap unrelated"]
 
-                                     ;; Display (Indicator) settings
-                                     [(seesaw/label :text "Slip Flashing:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "slipFlashing") "wrap"]
+                                    ;; Display (Indicator) settings
+                                    [(seesaw/label :text "Slip Flashing:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "slipFlashing") "wrap"]
 
-                                     [(seesaw/label :text "On Air Display:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "onAirDisplay") "wrap"]
+                                    [(seesaw/label :text "On Air Display:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "onAirDisplay") "wrap"]
 
-                                     [(seesaw/label :text "Jog Ring Brightness:") "align right"]
-                                     [(enum-picker PlayerSettings$Illumination settings defaults "jogRingIllumination")
-                                      "wrap"]
+                                    [(seesaw/label :text "Jog Ring Brightness:") "align right"]
+                                    [(enum-picker PlayerSettings$Illumination settings defaults "jogRingIllumination")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Jog Ring Indicator:") "align right"]
-                                     [(enum-picker PlayerSettings$Toggle settings defaults "jogRingIndicator") "wrap"]
+                                    [(seesaw/label :text "Jog Ring Indicator:") "align right"]
+                                    [(enum-picker PlayerSettings$Toggle settings defaults "jogRingIndicator") "wrap"]
 
-                                     [(seesaw/label :text "Disc Slot Illumination:") "align right"]
-                                     [(enum-picker PlayerSettings$Illumination settings defaults "discSlotIllumination")
-                                      "wrap"]
+                                    [(seesaw/label :text "Disc Slot Illumination:") "align right"]
+                                    [(enum-picker PlayerSettings$Illumination settings defaults "discSlotIllumination")
+                                     "wrap"]
 
-                                     [(seesaw/label :text "Pad/Button Brightness:") "align right"]
-                                     [(enum-picker PlayerSettings$PadButtonBrightness settings defaults
-                                                   "padButtonBrightness") "wrap"]])
+                                    [(seesaw/label :text "Pad/Button Brightness:") "align right"]
+                                    [(enum-picker PlayerSettings$PadButtonBrightness settings defaults
+                                                  "padButtonBrightness") "wrap"]])
            layout           (seesaw/border-panel :center (seesaw/scrollable settings-panel) :south player-panel)
            stop-listener    (reify LifecycleListener
                               (started [_this _]) ; Nothing to do, we exited as soon as a stop happened anyway.
                               (stopped [_this _]  ; Close our window if VirtualCdj stops (we need it).
                                 (seesaw/invoke-later
-                                 (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
+                                  (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))
            dev-listener     (reify DeviceAnnouncementListener
                               (deviceFound [_this announcement]
                                 (seesaw/invoke-later (track-loader/add-device players (.getDeviceNumber announcement))))
@@ -252,6 +256,6 @@
    (locking loader-window
      (when-not @loader-window (create-window))
      (seesaw/invoke-later
-      (when-let [window @loader-window]
+      (when-let [^JFrame window @loader-window]
         (seesaw/show! window)
         (.toFront window))))))

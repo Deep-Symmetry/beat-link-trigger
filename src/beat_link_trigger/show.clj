@@ -1922,9 +1922,10 @@
 (defn- find-song-structure
   "Helper function to find the raw bytes of the song structure tag, if
   one is present in the extended track analysis file."
-  [ext]
+  [^RekordboxAnlz ext]
   (when-let [^RekordboxAnlz$TaggedSection tag (->> (.sections ext)
-                                                   (filter #(instance? RekordboxAnlz$SongStructureTag (.body %)))
+                                                   (filter (fn [^RekordboxAnlz$TaggedSection sec]
+                                                             (instance? RekordboxAnlz$SongStructureTag (.body sec))))
                                                    first)]
     (._raw_body tag)))
 
@@ -2086,7 +2087,7 @@
   media, presenting a progress bar which allows the process to be
   stopped, and showing a list of all skipped tracks at the end rather
   than popping up an error dialog for each."
-  [show database track-ids]
+  [show ^Database database track-ids]
   (let [continue?    (atom true)
         skipped      (atom [])
         progress     (seesaw/progress-bar :min 0 :max (count track-ids))
@@ -2146,15 +2147,16 @@
   the show map."
   [show]
   (seesaw/action :handler (fn [_]
-                            (loop [show               (latest-show show)
-                                   ^Database database (:import-database show)
-                                   playlist?          false]
-                              (let [[database chosen] (if playlist?
-                                                        (loader/choose-local-playlist (:frame show) database
-                                                                                      "Change Media"
-                                                                                      "Import Single Track")
-                                                        (loader/choose-local-track (:frame show) database
-                                                                                   "Change Media" "Import Playlist"))]
+                            (loop [show      (latest-show show)
+                                   database (:import-database show)
+                                   playlist? false]
+                              (let [[^Database database chosen] (if playlist?
+                                                                  (loader/choose-local-playlist (:frame show) database
+                                                                                                "Change Media"
+                                                                                                "Import Single Track")
+                                                                  (loader/choose-local-track (:frame show) database
+                                                                                             "Change Media"
+                                                                                             "Import Playlist"))]
                                 (when database (swap-show! show assoc :import-database database))
                                 (cond
                                   (= "Change Media" chosen) ; User wants to change media.
@@ -2254,7 +2256,7 @@
 (defn- build-phrase-menu
   "Creates the Phrases menu. Pulled out as a function so that menu can be
   re-created when the show is taken out of block-tracks mode."
-  [show]
+  ^JMenu [show]
   (seesaw/menu :text "Phrases"
                :id :phrases-menu
                :items [(seesaw/action :handler (fn [_] (phrases/new-phrase show))

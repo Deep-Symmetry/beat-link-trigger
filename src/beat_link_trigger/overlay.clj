@@ -33,9 +33,9 @@
            [org.deepsymmetry.beatlink LifecycleListener VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
-           [org.deepsymmetry.beatlink.data DataReference TimeFinder MetadataFinder SignatureFinder
+           [org.deepsymmetry.beatlink.data BeatGrid CueList DataReference TimeFinder MetadataFinder SignatureFinder
             PlaybackState TrackPositionUpdate SlotReference TrackMetadata AlbumArt ColorItem SearchableItem
-            WaveformDetailComponent WaveformPreviewComponent]
+            WaveformDetail WaveformDetailComponent WaveformPreviewComponent]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxAnlz$SongStructureTag]))
 
 (defonce ^{:private true
@@ -138,7 +138,7 @@
 
 (defn- read-edn-file
   "Reads and parses an EDN file that is part of a sample track."
-  [track-root file-name]
+  [^java.nio.file.Path track-root ^String file-name]
   (let [path (.resolve track-root file-name)]
      (when (java.nio.file.Files/isReadable path)
        (show-util/read-edn-path path))))
@@ -167,10 +167,10 @@
   (let [url (.getResource VirtualCdj (str "/beat_link_trigger/sampleTracks/" player))
         uri (.toURI url)]
     (if (= (.getScheme uri) "jar")
-      (let [conn            (.openConnection url) ; Running from a jar, need to open a jar filesystem.
-            jar-file-path   (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
-            ^ClassLoader cl nil
-            entry-name (.getEntryName conn)]
+      (let [^java.net.JarURLConnection conn (.openConnection url) ; Running from a jar, need to open a jar filesystem.
+            jar-file-path                   (java.nio.file.Paths/get (.toURI (.getJarFileURL conn)))
+            ^ClassLoader cl                 nil
+            entry-name                      (.getEntryName conn)]
         (with-open [jar-filesystem (java.nio.file.FileSystems/newFileSystem jar-file-path cl)]
           (read-sample-track-internal player (.getPath jar-filesystem entry-name (into-array String [])))))
       ;; We are not running from a jar, and can build the path to the sample track directly.
@@ -215,8 +215,8 @@
   "Builds a map describing the metadata of the track loaded in the
   specified player, if any, in a format convenient for use in the
   overlay template."
-  [player]
-  (when-let [metadata (.getLatestMetadataFor expr/metadata-finder player)]
+  [^Long player]
+  (when-let [^TrackMetadata metadata (.getLatestMetadataFor expr/metadata-finder player)]
     {:id              (.. metadata trackReference rekordboxId)
      :slot            (format-source-slot (.. metadata trackReference slot))
      :type            (format-track-type (.-trackType metadata))
@@ -239,7 +239,7 @@
 
 (defn format-pitch
   "Formats a pitch as it is displayed on a player."
-  [pitch]
+  [^Double pitch]
   (let [abs-pitch     (Math/abs pitch)
         format-string (if (< abs-pitch 20.0) "%5.2f" "%5.1f")
         formatted     (String/format java.util.Locale/ROOT format-string (to-array [abs-pitch]))
@@ -249,7 +249,7 @@
 (defn describe-status
   "Builds a parameter map with useful information obtained from the
   latest status packet received from the specified device number."
-  [number]
+  [^Long number]
   (when-let [status (.getLatestStatusFor expr/virtual-cdj number)]
     (let [bpm       (.getBpm status)
           bpm-valid (not= bpm 65535)]
@@ -264,27 +264,28 @@
         :is-synced        (.isSynced status)
         :is-tempo-master  (.isTempoMaster status)}
        (when (instance? CdjStatus status)
-         ;; We can add a bunch more stuff that only CDJs provide.
-         {:beat-number           (.getBeatNumber status)
-          :cue-countdown         (.getCueCountdown status)
-          :cue-countdown-display (.formatCueCountdown status)
-          :firmware-version      (.getFirmwareVersion status)
-          :track-number          (.getTrackNumber status)
-          :track-source-player   (.getTrackSourcePlayer status)
-          :is-at-end             (.isAtEnd status)
-          :is-bpm-only-synced    (.isBpmOnlySynced status)
-          :is-busy               (.isBusy status)
-          :is-cued               (.isCued status)
-          :is-looping            (.isLooping status)
-          :is-on-air             (.isOnAir status)
-          :is-paused             (.isPaused status)
-          :is-playing            (.isPlaying status)
-          :is-playing-backwards  (.isPlayingBackwards status)
-          :is-playing-cdj-mode   (.isPlayingCdjMode status)
-          :is-playing-forwards   (.isPlayingForwards status)
-          :is-playing-vinyl-mode (.isPlayingVinylMode status)
-          :is-searching          (.isSearching status)
-          :is-track-loaded       (.isTrackLoaded status)})))))
+         (let [status ^CdjStatus status]
+           ;; We can add a bunch more stuff that only CDJs provide.
+           {:beat-number           (.getBeatNumber status)
+            :cue-countdown         (.getCueCountdown status)
+            :cue-countdown-display (.formatCueCountdown status)
+            :firmware-version      (.getFirmwareVersion status)
+            :track-number          (.getTrackNumber status)
+            :track-source-player   (.getTrackSourcePlayer status)
+            :is-at-end             (.isAtEnd status)
+            :is-bpm-only-synced    (.isBpmOnlySynced status)
+            :is-busy               (.isBusy status)
+            :is-cued               (.isCued status)
+            :is-looping            (.isLooping status)
+            :is-on-air             (.isOnAir status)
+            :is-paused             (.isPaused status)
+            :is-playing            (.isPlaying status)
+            :is-playing-backwards  (.isPlayingBackwards status)
+            :is-playing-cdj-mode   (.isPlayingCdjMode status)
+            :is-playing-forwards   (.isPlayingForwards status)
+            :is-playing-vinyl-mode (.isPlayingVinylMode status)
+            :is-searching          (.isSearching status)
+            :is-track-loaded       (.isTrackLoaded status)}))))))
 
 (defn format-time
   "Given a track time in milliseconds, explodes it into a map that also
@@ -306,7 +307,7 @@
 (defn describe-times
   "Builds a parameter map with information about the playback and
   remaining time for the specified player, when available."
-  [number]
+  [^Long number]
   (when (.isRunning expr/time-finder)
     (let [played (.getTimeFor expr/time-finder number)]
       (when-not (neg? played)
@@ -346,14 +347,14 @@
   `nil`). `master` is the number of the simulated tempo master
   device, so our status will be set accordingly."
   [number track master]
-  (let [position         (when-let [metadata (:metadata track)]
+  (let [position            (when-let [metadata (:metadata track)]
                            (rand-int (* 1000 (dec (:duration metadata)))))
-        beat-grid        (:beat-grid track)
-        beat             (when (and beat-grid position) (.findBeatAtTime beat-grid position))
-        bar-beat         (when beat (.getBeatWithinBar beat-grid beat))
-        pitch            (+ 1048576 (- (rand-int 200000) 100000))
-        pitch-multiplier (Util/pitchToMultiplier pitch)
-        track-bpm        (get-in track [:metadata :starting-tempo])]
+        ^BeatGrid beat-grid (:beat-grid track)
+        beat                (when (and beat-grid position) (.findBeatAtTime beat-grid position))
+        bar-beat            (when beat (.getBeatWithinBar beat-grid beat))
+        pitch               (+ 1048576 (- (rand-int 200000) 100000))
+        pitch-multiplier    (Util/pitchToMultiplier pitch)
+        track-bpm           (get-in track [:metadata :starting-tempo])]
     (merge {:beat-within-bar       (or bar-beat (inc (rand-int 4)))
             :tempo                 (* (or track-bpm 128.0) pitch-multiplier)
             :pitch                 (Util/pitchToPercentage pitch)
@@ -386,7 +387,7 @@
            (when position
              {:time-played (format-time position)})
            (when (and position (:detail track))
-             {:time-remaining (format-time (max 0 (- (.getTotalTime (:detail track)) position)))}))))
+             {:time-remaining (format-time (max 0 (- (WaveformDetail/.getTotalTime (:detail track)) position)))}))))
 
 (defn simulate-player
   "Creates randomized sample data describing a player with the specified
@@ -491,12 +492,12 @@
   parameter `icons` was passed with the value `true`, then instad of a
   simple transparent image, missing track artwork is replaced by an
   icon representing the media type of the track."
-  [player icons]
+  [^String player ^String icons]
   (let [player (Long/valueOf player)
         icons  (Boolean/valueOf icons)]
-    (if-let [art (if (.isRunning expr/art-finder)
-                   (.getLatestArtFor expr/art-finder player)
-                   (get-in @sample-track-data [(get @simulated-players player) :art]))]
+    (if-let [^AlbumArt art (if (.isRunning expr/art-finder)
+                             (.getLatestArtFor expr/art-finder player)
+                             (get-in @sample-track-data [(get @simulated-players player) :art]))]
       (let [baos (ByteArrayOutputStream.)]
         (ImageIO/write (.getImage art) "jpg" baos)
         (-> (ByteArrayInputStream. (.toByteArray baos))
@@ -515,7 +516,7 @@
 (defn- safe-parse-int
   "Tries to parse a value as an integer; if the value is missing or the
   parse fails, returns the supplied default value."
-  [value default]
+  [^String value default]
   (if value
     (try
       (Integer/valueOf value)
@@ -528,7 +529,7 @@
   simulated player when running offline. Renders at the specified
   size, unless it is smaller than the minimum. If omitted, uses
   default size of 408 by 56 pixels."
-  [player width height]
+  [^String player ^String width ^String height]
   (let [player   (Long/valueOf player)
         width    (safe-parse-int width 408)
         height   (safe-parse-int height 56)
@@ -565,7 +566,7 @@
   "Returns the waveform preview image associated with the specified
   player. Renders at the specified size, unless it is smaller than the
   minimum. If omitted, uses default size of 408 by 56 pixels."
-  [player width height]
+  [^String player width height]
   (if (.isRunning expr/metadata-finder)
     (let [player   (Integer/valueOf player)  ; We can return real data.
           width    (safe-parse-int width 408)
@@ -606,17 +607,17 @@
   draws the graphics. If `scale` is provided, sets the amount by which
   the waveform should be zoomed in: 1 means full size, 2 is half size,
   and so on. The default scale is 4."
-  [player width height scale]
-  (let [player    (Integer/valueOf player)
-        width     (safe-parse-int width 0)
-        height    (safe-parse-int height 0)
-        scale     (safe-parse-int scale 4)
-        params    (get-in @server [:simulated-params :players player])
-        position  (get-in params [:time-played :raw-milliseconds])
-        samples   (get @sample-track-data (get @simulated-players player))
-        cue-list  (:cue-list samples)
-        beat-grid (:beat-grid samples)
-        detail    (:detail samples)]
+  [^String player ^String width ^String height ^String scale]
+  (let [player                 (Integer/valueOf player)
+        width                  (safe-parse-int width 0)
+        height                 (safe-parse-int height 0)
+        scale                  (safe-parse-int scale 4)
+        params                 (get-in @server [:simulated-params :players player])
+        position               (get-in params [:time-played :raw-milliseconds])
+        samples                (get @sample-track-data (get @simulated-players player))
+        ^CueList cue-list      (:cue-list samples)
+        ^BeatGrid beat-grid    (:beat-grid samples)
+        ^WaveformDetail detail (:detail samples)]
     (if detail  ; Only try to render when there is a waveform detail available.
       (let [component (WaveformDetailComponent. detail cue-list beat-grid)
             min-size  (.getMinimumSize component)]
@@ -650,7 +651,7 @@
   is provided, sets the amount by which the waveform should be zoomed
   in: 1 means full size, 2 is half size, and so on. The default scale
   is 4."
-  [player width height scale]
+  [^String player ^String width ^String height ^String scale]
   (if (.isRunning expr/metadata-finder)
     (let [player    (Integer/valueOf player)  ; We can return actual data.
           width     (safe-parse-int width 0)
@@ -837,9 +838,9 @@
   "Allows the user to select a template folder, updating the prefs and
   UI."
   []
-  (when-let [folder (chooser/choose-file
-                     @window
-                     :selection-mode :dirs-only)]
+  (when-let [^java.io.File folder (chooser/choose-file
+                                   @window
+                                   :selection-mode :dirs-only)]
     (if (.canRead (clojure.java.io/file folder overlay-template-name))
       (let [path (.getCanonicalPath folder)]
         (prefs/put-preferences
@@ -858,9 +859,9 @@
   "Allows the user to select a folder whose contents will be served,
   updating the prefs and UI."
   []
-  (when-let [folder (chooser/choose-file
-                     @window
-                     :selection-mode :dirs-only)]
+  (when-let [^java.io.File folder (chooser/choose-file
+                                   @window
+                                   :selection-mode :dirs-only)]
     (if (.canRead folder)
       (let [path (.getCanonicalPath folder)]
         (prefs/put-preferences

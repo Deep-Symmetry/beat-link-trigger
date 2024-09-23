@@ -128,7 +128,7 @@
 (defn status-for-file
   "Returns the status string to display given a file being written to,
   which may be `nil` if we are idle."
-  [file]
+  [^java.io.File file]
   (if file
     (str "Writing to " (.getName file))
     "Idle (not currently writing a playlist to any file)"))
@@ -301,7 +301,7 @@
   "Retrieve the preferred minimum time, in seconds, a track must be
   playing in order to get written to the playlist."
   []
-  (or (when-let [pref (min-time-pref-key (prefs/get-preferences))]
+  (or (when-let [^String pref (min-time-pref-key (prefs/get-preferences))]
         (try
           (Long/valueOf pref)
           (catch Exception e
@@ -312,7 +312,7 @@
   "Retrieve the preference setting for filtering out players that are
   not On-Air."
   []
-  (or (when-let [pref (on-air-pref-key (prefs/get-preferences))]
+  (or (when-let [^String pref (on-air-pref-key (prefs/get-preferences))]
         (try
           (Boolean/valueOf pref)
           (catch Exception e
@@ -324,7 +324,7 @@
   playlist file when all players have been stopped for a threshold
   interval."
   []
-  (or (when-let [pref (split-pref-key (prefs/get-preferences))]
+  (or (when-let [^String pref (split-pref-key (prefs/get-preferences))]
         (try
           (Boolean/valueOf pref)
           (catch Exception e
@@ -336,7 +336,7 @@
   before forcing the start of a new playlist when a new track starts
   playing."
   []
-  (or (when-let [pref (new-playlist-threshold-pref-key (prefs/get-preferences))]
+  (or (when-let [^String pref (new-playlist-threshold-pref-key (prefs/get-preferences))]
         (try
           (Long/valueOf pref)
           (catch Exception e
