@@ -108,7 +108,7 @@
   "Produces a compact summary of the IPv4 addresses (if any) attached to
   a network interface."
   [^java.net.NetworkInterface interface]
-  (let [candidates (filter #(.getBroadcast ^java.net.InterfaceAddress %) (.getInterfaceAddresses interface))]
+  (let [candidates (filter java.net.InterfaceAddress/.getBroadcast (.getInterfaceAddresses interface))]
     (if (seq candidates)
       (str/join ", " (map (fn [^java.net.InterfaceAddress addr]
                             (str (.getHostAddress (.getAddress addr)) "/" (.getNetworkPrefixLength addr)))
