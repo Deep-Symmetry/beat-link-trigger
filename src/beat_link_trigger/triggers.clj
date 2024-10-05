@@ -1529,8 +1529,9 @@
 
 (defn- actively-send-status
   "Try to start sending status update packets if we are online and are
-  using a valid player number. If we are not using a valid player
-  number, tell the user why this can't be done.
+  using a valid player number (and are talking to actual CDJs, not an
+  Opus Quad). If we are not using a valid player number, tell the user
+  why this can't be done.
 
   When we are sending status update packets, we are also able to
   actively request metadata of all types from the dbserver instances
@@ -1538,28 +1539,35 @@
   based information that Crate Digger can't obtain."
   []
   (when (util/online?)
-    (if (> (.getDeviceNumber virtual-cdj) 4)
-      (let [players (count (util/visible-player-numbers))
-            options (to-array ["Cancel" "Go Offline"])
-            message (str "Beat Link Trigger is using device number " (.getDeviceNumber virtual-cdj)
-                         ".\nTo act like a real player, it needs to use number 1, 2, 3, or 4.\n\n"
-                         (if (< players 4)
-                           (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
-                                "go offline and then back online, and it will be able to use one of the\n"
-                                "unused device numbers, which will work great.\n\n")
+    (if (.inOpusQuadCompatibilityMode virtual-cdj)
+      (do
+        (seesaw/alert @trigger-frame (str "<html>You requested Beat Link Trigger to use a real player number.<br>"
+                                          "Features which require sending CDJ status packets, like tempo control,<br>"
+                                          "cannot be used with the Opus Quad. This request is being canceled.")
+                       :title "Cannot Pose as CDJ with Opus Quad" :type :error)
+        (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#send-status]) false))
+      (if (> (.getDeviceNumber virtual-cdj) 4)
+        (let [players (count (util/visible-player-numbers))
+              options (to-array ["Cancel" "Go Offline"])
+              message (str "Beat Link Trigger is using device number " (.getDeviceNumber virtual-cdj)
+                           ".\nTo act like a real player, it needs to use number 1, 2, 3, or 4.\n\n"
+                           (if (< players 4)
+                             (str "Since there are fewer than 4 CDJs on the network, all you need to do is\n"
+                                  "go offline and then back online, and it will be able to use one of the\n"
+                                  "unused device numbers, which will work great.\n\n")
 
-                           (str "Please go offline, turn off one of the four CDJs currently on the network,\n"
-                                "then go back online, which will let us use that player's device number.\n\n")))
-            choice (seesaw/invoke-now
-                    (javax.swing.JOptionPane/showOptionDialog
-                     nil message "Need to Change Device Number"
-                     javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
-                     options (aget options (dec (count options)))))]
-        (if (zero? choice)
-          (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#send-status]) false)  ; Cancel.
-          (.setSelected (online-menu-item) false)))     ; Go offline.
-      (do (.setSendingStatus virtual-cdj true)  ; We can do it.
-          (.setPassive metadata-finder false)))))
+                             (str "Please go offline, turn off one of the four CDJs currently on the network,\n"
+                                  "then go back online, which will let us use that player's device number.\n\n")))
+              choice (seesaw/invoke-now
+                       (javax.swing.JOptionPane/showOptionDialog
+                        nil message "Need to Change Device Number"
+                        javax.swing.JOptionPane/YES_NO_OPTION javax.swing.JOptionPane/ERROR_MESSAGE nil
+                        options (aget options (dec (count options)))))]
+          (if (zero? choice)
+            (.setSelected ^JMenuItem (seesaw/select @trigger-frame [:#send-status]) false) ; Cancel.
+            (.setSelected (online-menu-item) false))) ; Go offline.
+        (do (.setSendingStatus virtual-cdj true)      ; We can do it.
+            (.setPassive metadata-finder false))))))
 
 (declare go-online)
 
