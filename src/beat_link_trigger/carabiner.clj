@@ -143,7 +143,8 @@
                                                  "Carabiner unexpectedly closed our connection; is it still running?"
                                                  "Carabiner Connection Closed"
                                                  javax.swing.JOptionPane/WARNING_MESSAGE)))
-                                             (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off")
+                                             (seesaw/invoke-later
+                                              (seesaw/value! (seesaw/select @carabiner-window [:#sync-mode]) "Off"))
                                              (update-connected-status)
                                              (update-link-status (beat-carabiner/state))))
 

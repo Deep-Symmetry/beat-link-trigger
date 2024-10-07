@@ -27,6 +27,7 @@ This change log follows the conventions of
   Thanks to [Deniz Gencer, @Firedude1](https://github.com/Firedude1)
   who noticed it was thrashing his GPU and reported this.
 - An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
+- The code for handling an abrupt disconnection from the Carabiner daemon was trying to update the user interface on the wrong thread.
 
 ## [7.4.1] - 2024-06-01
 
