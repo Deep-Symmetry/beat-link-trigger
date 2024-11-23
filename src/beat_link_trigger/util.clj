@@ -447,17 +447,21 @@
   "Given a song structure tag parsed from a track, returns the bank that
   was assigned to the track as a keyword for matching in code."
   [^RekordboxAnlz$SongStructureTag tag]
-  (case-enum (.bank (.body tag))
-    RekordboxAnlz$TrackBank/CLUB_1  :club-1
-    RekordboxAnlz$TrackBank/CLUB_2  :club-2
-    RekordboxAnlz$TrackBank/COOL    :cool
-    RekordboxAnlz$TrackBank/DEFAULT :cool
-    RekordboxAnlz$TrackBank/HOT     :hot
-    RekordboxAnlz$TrackBank/NATURAL :natural
-    RekordboxAnlz$TrackBank/SUBTLE  :subtle
-    RekordboxAnlz$TrackBank/VIVID   :vivid
-    RekordboxAnlz$TrackBank/WARM    :warm
-    (timbre/error "Unrecognized track bank" (.bank (.body tag)))))
+  (try
+    (case-enum (.bank (.body tag))
+               RekordboxAnlz$TrackBank/CLUB_1  :club-1
+               RekordboxAnlz$TrackBank/CLUB_2  :club-2
+               RekordboxAnlz$TrackBank/COOL    :cool
+               RekordboxAnlz$TrackBank/DEFAULT :cool
+               RekordboxAnlz$TrackBank/HOT     :hot
+               RekordboxAnlz$TrackBank/NATURAL :natural
+               RekordboxAnlz$TrackBank/SUBTLE  :subtle
+               RekordboxAnlz$TrackBank/VIVID   :vivid
+               RekordboxAnlz$TrackBank/WARM    :warm
+               (timbre/error "Unrecognized track bank" (.bank (.body tag))))
+    (catch NullPointerException e
+      (timbre/error e "Unable to determine track bank! tag:" tag "body:" (.body tag)
+                    "bank:" (.bank (.body tag))))))
 
 (defn track-mood-name
   "Given a song structure tag parsed from a track, returns the mood that
