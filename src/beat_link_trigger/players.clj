@@ -407,7 +407,7 @@
   []
   (empty? (filter #(<= 1 (.getDeviceNumber %) 4) (.getCurrentDevices device-finder))))
 
-(defn- extract-label
+(defn extract-label
   "Given a `SearchableItem` from track metadata, extracts the string
   label. If passed `nil` simply returns `nil`."
   [^SearchableItem item]
@@ -445,6 +445,14 @@
       (seesaw/show! root)
       (.toFront root))))
 
+(def artist-label-fn
+  "Holds the function that returns the text to display on the artist
+  line, so this can be customized when people want something else
+  there. Takes two arguments, the track metadata and the player
+  number."
+  (atom (fn [metadata _player]
+          (extract-label (.getArtist metadata)))))
+
 (defn- update-metadata-labels
   "Updates the track title and artist name when the metadata has
   changed. Let the user know if they are not going to be able to get
@@ -454,7 +462,7 @@
   (seesaw/invoke-soon
    (if metadata
      (do (seesaw/config! title-label :text (or (util/remove-blanks (.getTitle metadata)) "[no title]"))
-         (seesaw/config! artist-label :text (or (util/remove-blanks (extract-label (.getArtist metadata)))
+         (seesaw/config! artist-label :text (or (util/remove-blanks (@artist-label-fn metadata player))
                                                 "[no artist]")))
      (let [^CdjStatus status (when (.isRunning virtual-cdj) (.getLatestStatusFor virtual-cdj (int player)))
            title             (if (= CdjStatus$TrackType/NO_TRACK (when status (.getTrackType status)))

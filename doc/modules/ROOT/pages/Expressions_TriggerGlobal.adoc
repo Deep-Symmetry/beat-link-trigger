@@ -19,18 +19,37 @@ share across expressions.
 This is run when Beat Link Trigger starts up, or when you open a new
 Trigger file, so it runs before any of your individual trigger
 expressions. As a simple example of what you might want to do, here is
-an expression opens the <<Players.adoc#,Player Status window>>:
+an expression that reconfigures the <<Players.adoc#,Player Status
+window>> so that the line that normally shows the artist who created a
+track instead shows the track comment (in case that's more useful for
+communicating with your front-of-house staff):
+
+[source,clojure]
+----
+(replace-artist-line (fn [metadata _player] (.getComment metadata)))
+----
+
+NOTE: This won't affect any tracks whose metadata is already displayed
+in the Player Status window, if that was already open when you added
+this to Global Setup. If that happens to you, load a new track to see
+the results.
+
+The `replace-artist-line` function gets passed a function that takes
+the track metadata object and the player number, and returns the
+string you want displayed on the second player status line. In this
+example we are ignoring the player number, but you could use it to
+look up other things if you need to.
+
+We could combine this with another expression that opens the
+<<Players.adoc#,Player Status window>>:
 
 [source,clojure,subs=attributes+]
 ----
 (beat-link-trigger.triggers/show-player-status)
 ----
 
-Setting this as your Global Setup Expression will automatically open
-the Player Status window whenever Beat Link Trigger launches. (This
-also makes sure subsystems like the `TimeFinder` are running, which
-can be helpful if you are writing other expressions that depend on
-knowing the playback position of tracks.)
+Having this in your Global Setup Expression will automatically open
+the Player Status window whenever Beat Link Trigger launches.
 
 If you ever start up BLT in offline mode with this Global Setup
 Expression in place, however, you will be presented with an error

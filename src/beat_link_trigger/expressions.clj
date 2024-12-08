@@ -248,6 +248,14 @@
   (when-not (str/blank? builder-name)
     (su/swap-show! show update :cue-builders dissoc (str/trim builder-name))))
 
+(defn replace-artist-line
+  "Allows customization of what is displayed in the artist line of the
+  player status window. Must be supplied a function that takes two
+  arguments, the track metadata and the player number, and returns the
+  string to be displayed."
+  [f]
+  (reset! @(requiring-resolve 'beat-link-trigger.players/artist-label-fn) f))
+
 ;;; The remainder of the functions in this namespace are used by the
 ;;; expression compiler, and are not intended for users to interact
 ;;; with directly.
