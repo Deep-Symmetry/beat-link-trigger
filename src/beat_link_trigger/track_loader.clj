@@ -2481,13 +2481,15 @@
 (defn- create-local-playlist-chooser-dialog
   "Builds an interface in which the user can choose a playlist from a
   locally mounted media filesystem for offline inclusion into a show.
-  Returns the frame if creation succeeded. If `parent` is not nil, the
-  dialog will be centered on it rather than in the middle of the
-  screen. `pdb` must be a Database object that contains a parsed
-  rekordbox `export.pdb` database. If `extra-labels` are provided,
-  they are used to create additional buttons at the bottom of the
-  dialog which, when clicked, return the text of the label rather than
-  the usual [database playlist] tuple.
+  If a selection is completed, returns a tuple of the database object
+  and the list of track IDs that are present in the chosen playlist.
+  Returns `nil` if canceled. If `parent` is not nil, the dialog will
+  be centered on it rather than in the middle of the screen. `pdb`
+  must be a Database object that contains a parsed rekordbox
+  `export.pdb` database. If `extra-labels` are provided, they are used
+  to create additional buttons at the bottom of the dialog which, when
+  clicked, return the text of the label rather than the
+  usual [database playlist] tuple.
 
   This function must be invoked on the Swing Event Dispatch thread."
    [^JFrame parent ^Database pdb extra-labels]
