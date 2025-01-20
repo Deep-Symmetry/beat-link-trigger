@@ -47,9 +47,11 @@ guide](https://blt-guide.deepsymmetry.org/).
 > USBs being used.
 >
 > If you can do any testing with this new hardware, please help us
-> confirm this and let us know on the Zulip stream, or open issues
-> with log files, packet captures, and track analysis files if you run
-> into problems!
+> confirm this and let us know on the Zulip channel (see the next
+> section below), sharing your discoveries and log files there. Please
+> don't open issues until discussing your discoveries and concerns
+> with the community there, and arriving at consensus that an issue is
+> the appropriate next stop.
 
 ## Getting Help
 
