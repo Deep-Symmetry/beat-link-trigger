@@ -54,7 +54,7 @@ built on throughout the rest of this section.
 Even though we use speed control in Resolume as a running example, and these examples still provide a useful context for understanding how expressions work in Beat Link Trigger, there is a better way to synchronize Resolume with your tracks today.
 It now https://resolume.com/support/en/link[supports Ableton Link], and <<Link.adoc#,so does BLT>>, so you can use that for easier, even more stable synchronization.
 
-And please see Inneffable's https://www.youtube.com/watch?v=wVkOyBQV798[great video] for a full tutorial on the modern approach to synchronizing videos in Resolume with tracks in BLT.
+And please see Ineffable's https://www.youtube.com/watch?v=wVkOyBQV798[great video] for a full tutorial on the modern approach to synchronizing videos in Resolume with tracks in BLT.
 ====
 
 [[shutdown-expression]]
