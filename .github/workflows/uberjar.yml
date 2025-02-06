@@ -44,6 +44,11 @@ jobs:
         java-version: '17'
         distribution: 'corretto'
 
+    - name: Install clojure tools
+      uses: DeLaGuardo/setup-clojure@13.0
+      with:
+        lein: 2.11.2
+
     - name: Determine version being built
       uses: Deep-Symmetry/github-version-action@v1
       with:
