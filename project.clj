@@ -17,7 +17,7 @@
                  [clj-commons/pomegranate "1.2.24"]
                  [com.cemerick/url "0.1.1"]
                  [com.fifesoft/rstaui "3.3.1"]
-                 [com.fifesoft/rsyntaxtextarea "3.5.1"]
+                 [com.fifesoft/rsyntaxtextarea "3.5.4"]
                  [com.fzakaria/slf4j-timbre "0.4.1"]
                  [com.github.jiconfont/jiconfont-font_awesome "4.7.0.1"]
                  [com.github.jiconfont/jiconfont-swing "1.0.1"]
