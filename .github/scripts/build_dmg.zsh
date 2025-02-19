@@ -36,8 +36,8 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" META-INF/native/libnetty_transport_native_kqueue_x86_64.jnilib
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" --force uk/co/xfactorylibrarians/coremidi4j/libCoreMidi4J.dylib
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" com/sun/jna/darwin/libjnidispatch.jnilib
-    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib
-    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" --force org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib
+    codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" --force org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib
 
     # Replace the jar with one containing the executables with corrected signatures.
     rm -f ../Input/beat-link-trigger.jar
