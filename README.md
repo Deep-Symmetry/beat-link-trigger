@@ -42,9 +42,9 @@ guide](https://blt-guide.deepsymmetry.org/).
 > looping inside beats or playing backwards.
 >
 > Also, people who own the Opus Quad have contributed significant
-> research and code in order to allow us to work with those in version
-> 8.0 and later, with the help of metadata archives created from the
-> USBs being used.
+> research and code in order to allow us to try to support this
+> hardware in version 8.0 and later, with the help of metadata
+> archives created from the USBs being used.
 >
 > If you can do any testing with this new hardware, please help us
 > confirm this and let us know on the Zulip channel (see the next
@@ -52,6 +52,9 @@ guide](https://blt-guide.deepsymmetry.org/).
 > don't open issues until discussing your discoveries and concerns
 > with the community there, and arriving at consensus that an issue is
 > the appropriate next stop.
+>
+> We are not sure yet, but this may also be a step towards working
+> with the XDJ-AZ.
 
 ## Getting Help
 
