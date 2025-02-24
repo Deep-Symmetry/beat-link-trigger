@@ -16,6 +16,7 @@ This change log follows the conventions of
 
 - You can now import entire playlists of tracks into shows from offline media.
 - A link to Ineffable's great video tutorial for synchronizing videos in Resolume.
+- When we unexpectedly are unable to route a message to a CDJ, we now log extensive troubleshooting information about the address we are trying to send to and the state of the network interfaces at that moment.
 
 ### Fixed
 
