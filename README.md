@@ -291,7 +291,7 @@ on, you will be able to run that copy by just double-clicking it.
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
  src="doc/modules/ROOT/assets/images/DS-logo-github.png" width="250" height="150"></a>
 
-Copyright © 2016&ndash;2024 [Deep Symmetry, LLC](http://deepsymmetry.org)
+Copyright © 2016&ndash;2025 [Deep Symmetry, LLC](http://deepsymmetry.org)
 
 Distributed under the [Eclipse Public License
 2.0](https://opensource.org/licenses/EPL-2.0). By using this software
