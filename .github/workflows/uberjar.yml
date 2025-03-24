@@ -36,7 +36,7 @@ jobs:
       uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.GUIDE_SSH_KEY }}
-        known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMKq8T1IXQHNYLgO715YbxTXoVxEsJcha9h1lxyOXpa'
+        known_hosts: 'deepsymmetry.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBKQaOiatpadTao+YOiqxhreQCHdipjVr/heYc3hrTRC7Big7aGrGy8j0XnIsFQ5sC3dC3wZbi26ciFqJnBYuyqQ='
 
     - name: Prepare Java
       uses: actions/setup-java@v4
