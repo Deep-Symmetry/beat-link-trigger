@@ -17,7 +17,7 @@
   (:import [beat_link_trigger.util MidiChoice]
            [org.deepsymmetry.beatlink Beat CdjStatus$PlayState1 CdjStatus$TrackSourceSlot Util]
            [org.deepsymmetry.beatlink.data AlbumArt BeatGrid CueList DataReference TrackPositionUpdate
-            WaveformDetail WaveformPreview]
+            WaveformDetail WaveformFinder$WaveformStyle WaveformPreview]
            [org.deepsymmetry.beatlink.dbserver Message]
            [java.awt Color]
            [java.io File]
@@ -338,12 +338,12 @@
   ([^Path track-root]
    (read-detail track-root dummy-reference))
   ([^Path track-root ^DataReference data-reference]
-   (let [[path color?] (if (Files/isReadable (.resolve track-root "detail-color.data"))
-                         [(.resolve track-root "detail-color.data") true]
-                         [(.resolve track-root "detail.data") false])]
+   (let [[path style] (if (Files/isReadable (.resolve track-root "detail-color.data"))
+                        [(.resolve track-root "detail-color.data") WaveformFinder$WaveformStyle/RGB]
+                         [(.resolve track-root "detail.data") WaveformFinder$WaveformStyle/BLUE])]
      (when (Files/isReadable path)
        (let [bytes (Files/readAllBytes path)]
-         (WaveformDetail. data-reference (java.nio.ByteBuffer/wrap bytes) color?))))))
+         (WaveformDetail. data-reference (java.nio.ByteBuffer/wrap bytes) style))))))
 
 (defn read-preview
   "Re-creates a [`WaveformPreview`
@@ -354,12 +354,12 @@
   ([^Path track-root]
    (read-preview track-root dummy-reference))
   ([^Path track-root ^DataReference data-reference]
-   (let [[path color?] (if (Files/isReadable (.resolve track-root "preview-color.data"))
-                         [(.resolve track-root "preview-color.data") true]
-                         [(.resolve track-root "preview.data") false])]
+   (let [[path style] (if (Files/isReadable (.resolve track-root "preview-color.data"))
+                        [(.resolve track-root "preview-color.data") WaveformFinder$WaveformStyle/RGB]
+                        [(.resolve track-root "preview.data") WaveformFinder$WaveformStyle/BLUE])]
      (when (Files/isReadable path)
        (let [bytes (Files/readAllBytes path)]
-         (WaveformPreview. data-reference (java.nio.ByteBuffer/wrap bytes) color?))))))
+         (WaveformPreview. data-reference (java.nio.ByteBuffer/wrap bytes) style))))))
 
 (defn read-song-structure
   "Loads song structure (phrase analysis information) for an imported

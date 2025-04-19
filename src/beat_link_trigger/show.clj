@@ -38,7 +38,8 @@
            [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder AnalysisTagListener
             BeatGrid CueList DataReference MetadataFinder SearchableItem
             SignatureFinder SignatureListener SignatureUpdate TrackMetadata TrackPositionUpdate
-            WaveformDetail WaveformDetailComponent WaveformPreview WaveformPreviewComponent]
+            WaveformDetail WaveformDetailComponent WaveformFinder$WaveformStyle
+            WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz RekordboxPdb$ArtworkRow RekordboxPdb$TrackRow
@@ -1900,11 +1901,11 @@
   [data-ref anlz ext]
   (if ext
     (try
-      (WaveformPreview. data-ref ext)
+      (WaveformPreview. data-ref ext WaveformFinder$WaveformStyle/RGB)
       (catch IllegalStateException _
         (timbre/info "No color preview waveform found, checking for blue version.")
         (find-waveform-preview data-ref anlz nil)))
-    (when anlz (WaveformPreview. data-ref anlz))))
+    (when anlz (WaveformPreview. data-ref anlz WaveformFinder$WaveformStyle/BLUE))))
 
 (defn- find-art
   "Given a database and track object, returns the track's album art, if
@@ -1943,6 +1944,7 @@
          anlz-atom (atom nil)
          ext-atom  (atom nil)]
      (try
+       ;; TODO: This logic needs upgrading if show files are to support 3-band waveforms.
        (let [^RekordboxAnlz anlz (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
                                                      (RekordboxAnlz.
                                                       (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
@@ -1955,14 +1957,14 @@
              metadata            (TrackMetadata. data-ref database cue-list)
              beat-grid           (when anlz (BeatGrid. data-ref anlz))
              preview             (find-waveform-preview data-ref anlz ext)
-             detail              (when ext (WaveformDetail. data-ref ext))
+             detail              (when ext (WaveformDetail. data-ref ext WaveformFinder$WaveformStyle/RGB))
              art                 (find-art database track-row)
              song-structure      (when ext (find-song-structure ext))
              signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
                                                          (.getDuration metadata) detail beat-grid)]
          (if (and signature (track-present? show signature))
            (if silent?
-             (.getTitle metadata)  ; Just return the track name rather than displaying an error about it.
+             (.getTitle metadata) ; Just return the track name rather than displaying an error about it.
              (seesaw/alert (:frame show) (str "Track \"" (.getTitle metadata) "\" is already in the Show.")
                            :title "Can’t Re-import Track" :type :error))
            (do (import-track show {:signature      signature
