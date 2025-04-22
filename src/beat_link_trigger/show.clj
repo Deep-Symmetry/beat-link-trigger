@@ -38,7 +38,7 @@
            [org.deepsymmetry.beatlink.data AlbumArt AnalysisTagFinder AnalysisTagListener
             BeatGrid CueList DataReference MetadataFinder SearchableItem
             SignatureFinder SignatureListener SignatureUpdate TrackMetadata TrackPositionUpdate
-            WaveformDetail WaveformDetailComponent WaveformFinder$WaveformStyle
+            WaveformDetail WaveformDetailComponent WaveformFinder WaveformFinder$WaveformStyle
             WaveformPreview WaveformPreviewComponent]
            [org.deepsymmetry.beatlink.dbserver Message]
            [org.deepsymmetry.cratedigger Database]
@@ -90,11 +90,11 @@
   singleton."
   (AnalysisTagFinder/getInstance))
 
-(def ^org.deepsymmetry.beatlink.data.WaveformFinder waveform-finder
+(def ^WaveformFinder waveform-finder
   "A convenient reference to the [Beat Link
   `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
   singleton."
-  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
+  (WaveformFinder/getInstance))
 
 (defonce ^{:private true
            :doc "Holds copied track content for pasting into other tracks."}
@@ -939,8 +939,8 @@
   "Writes the waveform preview for a track being imported to the show
   filesystem."
   [^Path track-root ^WaveformPreview preview]
-  (let [bytes (byte-array (.. preview getData remaining))
-        file-name (if (.isColor preview) "preview-color.data" "preview.data")]
+  (let [bytes     (byte-array (.. preview getData remaining))
+        file-name (su/waveform-filename "preview" (.style preview))]
     (.. preview getData (get bytes))
     (Files/write (.resolve track-root file-name) bytes su/empty-open-options)))
 
@@ -948,8 +948,8 @@
   "Writes the waveform detail for a track being imported to the show
   filesystem."
   [^Path track-root ^WaveformDetail detail]
-  (let [bytes (byte-array (.. detail getData remaining))
-        file-name (if (.isColor detail) "detail-color.data" "detail.data")]
+  (let [bytes     (byte-array (.. detail getData remaining))
+        file-name (su/waveform-filename "detail" (.style detail))]
     (.. detail getData (get bytes))
     (Files/write (.resolve track-root file-name) bytes su/empty-open-options)))
 
@@ -1886,26 +1886,49 @@
 
 (defn- find-anlz-file
   "Given a database and track object, returns the file in which the
-  track's analysis data can be found. If `ext?` is true, returns the
-  extended analysis path."
+  track's analysis data can be found. If `ext?` is truthy, returns the
+  extended analysis path, but if `ext2` has the value `2`, returns the
+  second extended analysis path."
   ^File [^Database database ^RekordboxPdb$TrackRow track-row ext?]
   (let [volume    (.. database sourceFile getParentFile getParentFile getParentFile)
         raw-path  (Database/getText (.analyzePath track-row))
         subs-path (if ext?
-                    (str/replace raw-path #"DAT$" "EXT")
+                    (str/replace raw-path #"DAT$" (if (= 2 ext?) "2EX" "EXT"))
                     raw-path)]
     (.. volume toPath (resolve (subs subs-path 1)) toFile)))
 
 (defn- find-waveform-preview
   "Helper function to find the best-available waveform preview, if any."
-  [data-ref anlz ext]
-  (if ext
+  [data-ref anlz ext ex2]
+  (if ex2
     (try
-      (WaveformPreview. data-ref ext WaveformFinder$WaveformStyle/RGB)
+      (WaveformPreview. data-ref ex2 WaveformFinder$WaveformStyle/THREE_BAND)
       (catch IllegalStateException _
-        (timbre/info "No color preview waveform found, checking for blue version.")
-        (find-waveform-preview data-ref anlz nil)))
-    (when anlz (WaveformPreview. data-ref anlz WaveformFinder$WaveformStyle/BLUE))))
+        (timbre/info "No 3-band preview waveform found, checking for RGB version.")
+        (find-waveform-preview data-ref anlz ext nil)))
+    (if ext
+      (try
+        (WaveformPreview. data-ref ext WaveformFinder$WaveformStyle/RGB)
+        (catch IllegalStateException _
+          (timbre/info "No RGB preview waveform found, checking for blue version.")
+          (find-waveform-preview data-ref anlz nil nil)))
+      (when anlz (WaveformPreview. data-ref anlz WaveformFinder$WaveformStyle/BLUE)))))
+
+(defn- find-waveform-detail
+  "Helper function to find the best-available waveform detail, if any."
+  [data-ref ext ex2]
+  (if ex2
+    (try
+      (WaveformDetail. data-ref ex2 WaveformFinder$WaveformStyle/THREE_BAND)
+        (catch IllegalStateException _
+          (timbre/info "No 3-band waveform detail found, checking for RGB version.")
+          (find-waveform-detail data-ref ext nil)))
+    (when ext
+      (try
+        (WaveformDetail. data-ref ext WaveformFinder$WaveformStyle/RGB)
+        (catch IllegalStateException _
+          (timbre/info "No RGB waveform detail found, checking for blue version.")
+          (WaveformDetail. data-ref ext WaveformFinder$WaveformStyle/BLUE))))))
 
 (defn- find-art
   "Given a database and track object, returns the track's album art, if
@@ -1941,23 +1964,28 @@
   ([show database ^RekordboxPdb$TrackRow track-row silent?]
    (let [anlz-file (find-anlz-file database track-row false)
          ext-file  (find-anlz-file database track-row true)
+         ex2-file  (when (= WaveformFinder$WaveformStyle/THREE_BAND (.getPreferredStyle waveform-finder))
+                     (find-anlz-file database track-row 2))
          anlz-atom (atom nil)
-         ext-atom  (atom nil)]
+         ext-atom  (atom nil)
+         ex2-atom  (atom nil)]
      (try
-       ;; TODO: This logic needs upgrading if show files are to support 3-band waveforms.
        (let [^RekordboxAnlz anlz (reset! anlz-atom (when (and anlz-file (.canRead anlz-file))
                                                      (RekordboxAnlz.
                                                       (RandomAccessFileKaitaiStream. (.getAbsolutePath anlz-file)))))
              ^RekordboxAnlz ext  (reset! ext-atom (when (and ext-file (.canRead ext-file))
                                                     (RekordboxAnlz.
                                                      (RandomAccessFileKaitaiStream. (.getAbsolutePath ext-file)))))
+             ^RekordboxAnlz ex2  (reset! ex2-atom (when (and ex2-file (.canRead ex2-file))
+                                                    (RekordboxAnlz.
+                                                     (RandomAccessFileKaitaiStream. (.getAbsolutePath ex2-file)))))
              cue-tags            (or ext anlz)
              cue-list            (when cue-tags (CueList. cue-tags))
              data-ref            (DataReference. 0 CdjStatus$TrackSourceSlot/COLLECTION (.id track-row))
              metadata            (TrackMetadata. data-ref database cue-list)
              beat-grid           (when anlz (BeatGrid. data-ref anlz))
-             preview             (find-waveform-preview data-ref anlz ext)
-             detail              (when ext (WaveformDetail. data-ref ext WaveformFinder$WaveformStyle/RGB))
+             preview             (find-waveform-preview data-ref anlz ext ex2)
+             detail              (find-waveform-detail data-ref ext ex2)
              art                 (find-art database track-row)
              song-structure      (when ext (find-song-structure ext))
              signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
@@ -1985,7 +2013,11 @@
          (try
            (when @ext-atom (.. ^RekordboxAnlz @ext-atom _io close))
            (catch Throwable t
-             (timbre/error t "Problem closing parsed rekordbox file" ext-file))))))))
+             (timbre/error t "Problem closing parsed rekordbox file" ext-file)))
+         (try
+           (when @ex2-atom (.. ^RekordboxAnlz @ex2-atom _io close))
+           (catch Throwable t
+             (timbre/error t "Problem closing parsed rekordbox file" ex2-file))))))))
 
 (defn- save-show
   "Saves the show to its file, making sure the latest changes are safely

@@ -329,6 +329,31 @@
           ext-byte-buffers (gather-byte-buffers "cue-extended-" ".kaitai" track-root)]
       (when (seq tag-byte-buffers) (CueList. tag-byte-buffers ext-byte-buffers)))))
 
+(defn waveform-filename
+  "Determines the name under which a waveform should be saved, given its
+  type prefix and the waveform style."
+  [prefix ^WaveformFinder$WaveformStyle style]
+  (str prefix
+       (util/case-enum style
+         WaveformFinder$WaveformStyle/BLUE       ""
+         WaveformFinder$WaveformStyle/RGB        "-color"
+         WaveformFinder$WaveformStyle/THREE_BAND "-3band")
+       ".data"))
+
+(defn find-readable-waveform
+  "Given the root path of a track, and a waveform type prefix, tries all
+  waveform styles until a corresponding readable file is found within
+  the track, and returns a tuple of its path and the style, or `nil`
+  is no readable file was found."
+  [track-root prefix]
+  (loop [styles (WaveformFinder$WaveformStyle/values)]
+    (let [style (first styles)
+          left  (rest styles)
+          path  (.resolve track-root (waveform-filename prefix style))]
+      (if (Files/isReadable path)
+        [path style]
+        (when (seq left) (recur left))))))
+
 (defn read-detail
   "Re-creates a [`WaveformDetail`
   object](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformDetail.html)
@@ -338,10 +363,8 @@
   ([^Path track-root]
    (read-detail track-root dummy-reference))
   ([^Path track-root ^DataReference data-reference]
-   (let [[path style] (if (Files/isReadable (.resolve track-root "detail-color.data"))
-                        [(.resolve track-root "detail-color.data") WaveformFinder$WaveformStyle/RGB]
-                         [(.resolve track-root "detail.data") WaveformFinder$WaveformStyle/BLUE])]
-     (when (Files/isReadable path)
+   (let [[path style] (find-readable-waveform track-root "detail")]
+     (when path
        (let [bytes (Files/readAllBytes path)]
          (WaveformDetail. data-reference (java.nio.ByteBuffer/wrap bytes) style))))))
 
@@ -354,10 +377,8 @@
   ([^Path track-root]
    (read-preview track-root dummy-reference))
   ([^Path track-root ^DataReference data-reference]
-   (let [[path style] (if (Files/isReadable (.resolve track-root "preview-color.data"))
-                        [(.resolve track-root "preview-color.data") WaveformFinder$WaveformStyle/RGB]
-                        [(.resolve track-root "preview.data") WaveformFinder$WaveformStyle/BLUE])]
-     (when (Files/isReadable path)
+   (let [[path style] (find-readable-waveform track-root "preview")]
+     (when path
        (let [bytes (Files/readAllBytes path)]
          (WaveformPreview. data-reference (java.nio.ByteBuffer/wrap bytes) style))))))
 
