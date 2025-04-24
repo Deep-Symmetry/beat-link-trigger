@@ -27,20 +27,25 @@
       clojure.string/lower-case
       (clojure.string/includes? "windows")))
 
+(defn on-java-8?
+  "Are we (incredibly) still stuck back on Java 8?"
+  []
+  (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0))
+
 (defn install-mac-about-handler
   "If we are running on a Mac, install our About handler."
   []
   (when (on-mac?)
     (try
-      (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
+      (if (on-java-8?)
         (eval '(.setAboutHandler (com.apple.eawt.Application/getApplication) ; Use old, Mac-specific approach.
                                  (proxy [com.apple.eawt.AboutHandler] []
                                    (handleAbout [_]
                                      (beat-link-trigger.about/show)))))
         (eval '(.setAboutHandler (java.awt.Desktop/getDesktop) ; Java 9 or later has a cross-platform way to do it.
-                           (proxy [java.awt.desktop.AboutHandler] []
-                             (handleAbout [_]
-                               (beat-link-trigger.about/show))))))
+                                 (proxy [java.awt.desktop.AboutHandler] []
+                                   (handleAbout [_]
+                                     (beat-link-trigger.about/show))))))
       (catch Throwable t
         (timbre/error t "Unable to install Mac \"About\" handler.")))))
 
@@ -53,7 +58,7 @@
   []
   (when (on-mac?)
     (binding [*ns* (the-ns 'beat-link-trigger.menus)]
-      (if (< (Float/valueOf (System/getProperty "java.specification.version")) 9.0)
+      (if (on-java-8?)
         (eval '(.setQuitHandler (com.apple.eawt.Application/getApplication) ; Use old, Mac-specific approach.
                                 (proxy [com.apple.eawt.QuitHandler] []
                                   (handleQuitRequestWith [e ^com.apple.eawt.QuitResponse response]
@@ -84,17 +89,44 @@
                             ;; Remove the handler, if there was one, since it can only be used once.
                             nil)))
 
-(defn non-mac-file-actions
+(defn can-install-mac-settings-handler
+  "Check if we are on a recent enough java and on a Mac and the settings
+  action is supported."
+  []
+  (and (on-mac?)
+       (not (on-java-8?))
+       (Desktop/isDesktopSupported)
+       (eval '(.isSupported (java.awt.Desktop/getDesktop) java.awt.Desktop$Action/APP_PREFERENCES))))
+
+(defn install-mac-settings-handler
+  "If we can, install a settings handler to be accessed through the Mac
+  application menu."
+  []
+  (when (can-install-mac-settings-handler)
+    (eval '(.setPreferencesHandler (java.awt.Desktop/getDesktop)
+                                   (proxy [java.awt.desktop.PreferencesHandler] []
+                                     (handlePreferences [_]
+                                       ((requiring-resolve 'beat-link-trigger.triggers/settings))))))))
+
+(defn extra-file-actions
   "Return the actions which are automatically available in the
   Application menu on the Mac, but must be added to the File menu on
-  other platforms. This value will be empty when running on the Mac.
-  `quit` the function that should be used to gracefully quit the
-  application."
-  [quit]
-  (when-not (on-mac?)
-    [(seesaw/separator)
-     (seesaw/action :handler (fn [_] (quit))
-                    :name "Exit")]))
+  other platforms (or, in the case of the Settings item, even on the
+  Mac if we are stuck on Java 8. This value will be empty when running
+  on the Mac on a reasonably recent Java version. `quit` is the
+  function that should be used to gracefully quit the application, and
+  `settings` is the function that should be used to display the
+  settings UI."
+  [quit settings]
+  (concat
+   (when-not (can-install-mac-settings-handler)
+     [(seesaw/separator)
+      (seesaw/action :handler (fn [_] (settings))
+                     :name "Settings")])
+   (when-not (on-mac?)
+     [(seesaw/separator)
+      (seesaw/action :handler (fn [_] (quit))
+                     :name "Exit")])))
 
 (defn mail-supported?
   "Checks whether the runtime supports opening the default mail client."
@@ -118,10 +150,6 @@
 (def project-home-url
   "The GitHub front page for the project."
   "https://github.com/Deep-Symmetry/beat-link-trigger")
-
-(def project-wiki-url
-  "The community wiki for the project."
-  "https://github.com/Deep-Symmetry/beat-link-trigger/wiki")
 
 (def issues-url
   "The project Issues page on GitHub."
@@ -203,8 +231,6 @@
                                               :name "Discuss on Zulip (web)")
                                (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-home-url))
                                               :name "Project Home (web)")
-                               (seesaw/action :handler (fn [_] (clojure.java.browse/browse-url project-wiki-url))
-                                              :name "Project Wiki (web)")
                                (seesaw/separator)
                                (seesaw/action :handler (fn [_] (report-issue))
                                               :name (str "Report Issue (" (if (mail-supported?) "email" "web") ")"))]

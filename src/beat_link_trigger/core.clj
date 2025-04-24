@@ -231,9 +231,12 @@
           (let [^javax.swing.plaf.FontUIResource fr v]
             (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle fr) (.getSize fr)))))))
 
-     ;; If we are on a Mac, hook up our About handler where users expect to find it, and add a Quit handler
-     ;; that saves the state, and gives users a chance to veto losing unsaved editor windows.
+     ;; If we are on a Mac, hook up our About and Settings handlers
+     ;; where users expect to find them, and add a Quit handler that
+     ;; saves the state, and gives users a chance to veto losing
+     ;; unsaved editor windows.
      (menus/install-mac-about-handler)
+     (menus/install-mac-settings-handler)
      (menus/install-mac-quit-handler)
 
      ;; Add convenience aliases to the expressions namespace for easier authoring.

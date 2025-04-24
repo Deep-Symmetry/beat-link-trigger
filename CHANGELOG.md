@@ -15,6 +15,7 @@ This change log follows the conventions of
 ### Added
 
 - Support for CDJ-3000 style 3-band waveform display.
+- A new settings UI for adjusting some behaviors that previously required adding custom code.
 - You can now import entire playlists of tracks into shows from offline media.
 - A link to Ineffable's great video tutorial for synchronizing videos in Resolume.
 - When we unexpectedly are unable to route a message to a CDJ, we now log extensive troubleshooting information about the address we are trying to send to and the state of the network interfaces at that moment.
@@ -30,6 +31,10 @@ This change log follows the conventions of
   who noticed it was thrashing his GPU and reported this.
 - An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
 - The code for handling an abrupt disconnection from the Carabiner daemon was trying to update the user interface on the wrong thread.
+
+### Removed
+
+- The help menu option to open the project wiki has been removed, since that is not an active community. Zulip is where all the action is now.
 
 ## [7.4.1] - 2024-06-01
 

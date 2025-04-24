@@ -106,6 +106,12 @@
     (.dispatchEvent ^JFrame @trigger-frame (WindowEvent. @trigger-frame WindowEvent/WINDOW_CLOSING))
     (System/exit 0)))
 
+(defn settings
+  "Present a user interface allowing users to adjust behaviors to better
+  fit their goals."
+  []
+  (seesaw/alert "Not yet Implemented" :title "Settings" :type :error))
+
 (defn real-player?
   "Checks whether the user wants to pose as a real player, numbered 1
   through 4, and send status update packets. This is the only way we
@@ -1632,7 +1638,7 @@
                                                          (seesaw/separator) new-show-action open-show-action
                                                          (seesaw/separator) @playlist-writer-action
                                                          (seesaw/separator) @archive-metadata-action]
-                                                        (menus/non-mac-file-actions quit)))
+                                                        (menus/extra-file-actions quit settings)))
                             (seesaw/menu :text "Triggers"
                                          :items (concat [@new-trigger-action (seesaw/separator)]
                                                         (map build-global-editor-action (keys editors/global-trigger-editors))
