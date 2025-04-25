@@ -167,16 +167,19 @@
                                       (str/join "<br>" interfaces))
                                  :title "Network Configuration Problem" :type :warning)))
 
-               (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
-                 (let [descriptions (map (fn [^DeviceAnnouncement device]
-                                           (str (.getDeviceName device) " (" (.getHostAddress (.getAddress device)) ")"))
-                                         unreachables)]
-                   (seesaw/invoke-now
-                     (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
-                                        "We will not be able to communicate with the following device"
-                                        (when (> (count unreachables) 1) "s") ":<br><br>"
-                                        (str/join "<br>" (sort descriptions)))
-                                   :title "Network Configuration Problem" :type :error)))))
+               (try
+                 (when-let [unreachables (seq (.findUnreachablePlayers virtual-cdj))]
+                   (let [descriptions (map (fn [^DeviceAnnouncement device]
+                                             (str (.getDeviceName device) " (" (.getHostAddress (.getAddress device)) ")"))
+                                           unreachables)]
+                     (seesaw/invoke-now
+                       (seesaw/alert (str "<html>Found devices on multiple networks, and DJ Link can only use one.<br>"
+                                          "We will not be able to communicate with the following device"
+                                          (when (> (count unreachables) 1) "s") ":<br><br>"
+                                          (str/join "<br>" (sort descriptions)))
+                                     :title "Network Configuration Problem" :type :error))))
+                 (catch Exception e
+                   (timbre/error e "Problem finding unreachable players, did network change while going online?"))))
              (do  ; We could not go online even though we see devices.
                (timbre/warn "Unable to create Virtual CDJ")
                (seesaw/invoke-now
