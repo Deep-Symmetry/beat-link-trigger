@@ -191,12 +191,13 @@
         (seesaw/value! (seesaw/select @carabiner-window [:#bar]) (some? beat-number))))))
 
 (defn- make-window-visible
-  "Ensures that the Carabiner window is in front, and shown."
+  "Ensures that the Carabiner window is in front, and shown. Returns the window."
   [parent]
   (let [^JFrame our-frame @carabiner-window]
     (util/restore-window-position our-frame :carabiner parent)
     (seesaw/show! our-frame)
-    (.toFront our-frame)))
+    (.toFront our-frame)
+    our-frame))
 
 (defn- connect-choice
   "Respond to the user changing the state of the Connect checkbox."
@@ -238,7 +239,7 @@
       (.clip g outline)
       (.draw g (java.awt.geom.Line2D$Double. 1.0 (- h 1.5) (- w 1.5) 1.0)))))
 
-(defn- sending-status?
+(defn sending-status?
   "Checks whether we are currently sending status packets, which is
   required to set the sync mode to full."
   []
@@ -252,13 +253,18 @@
                             "Please go Online using the Network menu.")
                 :title "Beat Link Trigger isn't Online" :type :error))
 
-(defn- report-status-requirement
+(defn report-status-requirement
   "Displays an error explaining that status updates must be sent in
-  order to enable full sync."
+  order to enable full sync. If `parent` is nil, use the Carabiner
+  window."
   [parent]
-  (seesaw/alert parent (str "Must be Sending Status Packets to set Sync Mode to Full.\n"
-                            "Please select Use Real Player Number in the Network menu,\n"
-                            "then go offline and back online to enable them.")
+  (seesaw/alert (or parent @carabiner-window)
+                (str "Must be Sending Status Packets to set Sync Mode to Full.\n"
+                     "Please select Use Real Player Number in the Network menu"
+                     (if (.isRunning virtual-cdj)
+                       ",\nthen go offline and back online "
+                       "\n")
+                     "to enable them.")
                 :title "Beat Link Trigger isn't sending Status Packets" :type :error))
 
 (def syncable-devices
@@ -629,7 +635,8 @@
   Triggers window is passed in `trigger-frame` so that if this is the
   first time the window is being opened, it can be centered on top of
   it. Otherwise, the window position used last time will be restored,
-  as long as it is on-screen given the current display configuration."
+  as long as it is on-screen given the current display configuration.
+  Returns the window."
   [trigger-frame]
   (if @carabiner-window
     (make-window-visible trigger-frame)
