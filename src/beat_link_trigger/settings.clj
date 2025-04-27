@@ -1,13 +1,13 @@
 (ns beat-link-trigger.settings
   "Provides the user interface for configuring some Beat Link Trigger
   preferences."
-  (:require [beat-link-trigger.prefs :as prefs]
+  (:require [beat-link-trigger.players :as players]
+            [beat-link-trigger.prefs :as prefs]
             [clojure.set :as set]
-            [clojure.string :as str]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig])
   (:import [java.awt.event ItemEvent]
-           [javax.swing JComboBox JFrame]
+           [javax.swing JFrame]
            [org.deepsymmetry.beatlink.data WaveformFinder WaveformFinder$WaveformStyle]))
 
 (defonce ^{:private true
@@ -51,7 +51,16 @@
                                                                     (-> (prefs/get-preferences)
                                                                         (assoc :waveform-style (seesaw/value e))))
                                                                    (.setPreferredStyle waveform-finder style))))])
-                                   "wrap"]])]
+                                   "wrap 30"]
+                                  ["When Going Online:" "wrap"]
+                                  [""]
+                                  [(seesaw/checkbox :id :player-status :text "Show Player Status?"
+                                                    :selected? (:show-player-status defaults)
+                                                    :listen [:action (fn [e]
+                                                                       (prefs/put-preferences
+                                                                        (-> (prefs/get-preferences)
+                                                                            (assoc :show-player-status
+                                                                                   (seesaw/value e)))))])]])]
       (reset! settings-window root)
       (seesaw/listen root :window-closed (fn [_] (reset! settings-window nil)))
       (seesaw/config! root :content settings-panel)
@@ -70,3 +79,11 @@
       (when-let [^JFrame window @settings-window]
         (seesaw/show! window)
         (.toFront window))))))
+
+(defn run-online-actions
+  "Performs the actions the user has specified should happen when BLT
+  goes online."
+  [trigger-frame expression-globals]
+  (let [preferences (prefs/get-preferences)]
+    (when (:show-player-status preferences)
+      (players/show-window trigger-frame expression-globals))))

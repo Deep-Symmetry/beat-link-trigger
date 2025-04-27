@@ -1240,7 +1240,9 @@
                                      (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
                                                      :items (concat (recreate-trigger-rows) (get-triggers)))
                                      (adjust-triggers)
-                                     (when (util/online?) (run-global-function :online)))
+                                     (when (util/online?)
+                                       (run-global-function :online)
+                                       (settings/run-online-actions @trigger-frame expression-globals)))
                                    (catch Exception e
                                      (timbre/error e "Problem loading" file)
                                      (seesaw/alert (str "<html>Unable to Load.<br><br>" e)
@@ -1799,6 +1801,7 @@
     (when (real-player?) (actively-send-status))
     (when (util/online?)
       (run-global-function :online)
+      (settings/run-online-actions @trigger-frame expression-globals)
       (show/run-show-online-expressions))
 
     (not already-created)))  ; Indicate whether this was the first creation of the Triggers window
