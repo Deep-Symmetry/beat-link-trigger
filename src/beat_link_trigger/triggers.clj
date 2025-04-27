@@ -10,6 +10,7 @@
             [beat-link-trigger.playlist-writer :as writer]
             [beat-link-trigger.overlay :as overlay]
             [beat-link-trigger.track-loader :as track-loader]
+            [beat-link-trigger.settings :as settings]
             [beat-link-trigger.settings-loader :as settings-loader]
             [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.show :as show]
@@ -110,7 +111,7 @@
   "Present a user interface allowing users to adjust behaviors to better
   fit their goals."
   []
-  (seesaw/alert "Not yet Implemented" :title "Settings" :type :error))
+  (settings/show-dialog))
 
 (defn real-player?
   "Checks whether the user wants to pose as a real player, numbered 1

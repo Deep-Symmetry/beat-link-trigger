@@ -7,6 +7,7 @@
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.settings :as settings]
             [beat-link-trigger.show :as show]
             [beat-link-trigger.triggers :as triggers]
             [beat-link-trigger.util :as util]
@@ -272,10 +273,18 @@
                       (str "." (util/extension-for-file-type :configuration)))
              (System/exit 1)))))
 
-     ;; Restore saved window positions if they exist
-     (when-let [saved (:window-positions (prefs/get-preferences))]
-       (reset! util/window-positions saved))
+     (let [preferences (prefs/get-preferences)]
+
+       ;; Restore saved window positions if they exist
+       (when-let [saved (:window-positions preferences)]
+         (reset! util/window-positions saved))
+
+       ;; Honor the user's preferred waveform style
+       (let [selected-style (get settings/wave-styles (:waveform-style preferences "RGB"))]
+         (if selected-style
+           (.setPreferredStyle (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance) selected-style)
+           (timbre/error "Unsupported :waveform-style found in preferences:" (:waveform-style preferences)))))
 
      (if offline
-       (finish-startup options)       ; User did not want to go online.
+       (finish-startup options)        ; User did not want to go online.
        (try-going-online options)))))  ; Normal startup, try finding a Pioneer DJ Link network.

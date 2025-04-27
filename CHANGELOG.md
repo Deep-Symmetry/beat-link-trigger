@@ -29,6 +29,7 @@ This change log follows the conventions of
 - An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
 - The code for handling an abrupt disconnection from the Carabiner daemon was trying to update the user interface on the wrong thread.
 - If the network changed while going online in a way that kicked BLT back offline right before checking whether there were any unreachable players (which could happen, for example, if you turned off WiFi while looking at the warning about there being multiple network interfaces that could see the Pro DJ Link network), this would cause an uncaught exception that would prevent the Triggers window from ever opening.
+- Trying to create a metadata archive larger than 4 gigabytes would lock up the archive creation process.
 
 ### Removed
 
