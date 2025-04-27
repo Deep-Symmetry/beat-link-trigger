@@ -2,6 +2,7 @@
   "Provides the user interface for configuring some Beat Link Trigger
   preferences."
   (:require [beat-link-trigger.carabiner :as carabiner]
+            [beat-link-trigger.overlay :as overlay]
             [beat-link-trigger.players :as players]
             [beat-link-trigger.prefs :as prefs]
             [clojure.set :as set]
@@ -108,7 +109,17 @@
                                                                        (-> (prefs/get-preferences)
                                                                            (assoc :carabiner-align-bar
                                                                                   (seesaw/value e)))))])
-                                  "wrap"]])]
+                                  "wrap unrelated"]
+
+                                 [(seesaw/label :text "OBS Overlays:") "align right"]
+                                 [(seesaw/checkbox :id :run :text "Run web server?"
+                                                   :selected? (:run-obs-overlay defaults)
+                                                   :listen [:action (fn [e]
+                                                                      (prefs/put-preferences
+                                                                       (-> (prefs/get-preferences)
+                                                                           (assoc :run-obs-overlay
+                                                                                  (seesaw/value e)))))])
+                                  "wrap unrelated"]])]
       (reset! settings-window root)
       (seesaw/listen root :window-closed (fn [_] (reset! settings-window nil)))
       (seesaw/config! root :content settings-panel)
@@ -146,6 +157,7 @@
   (let [preferences (prefs/get-preferences)]
     (when (:show-player-status preferences)
       (players/show-window trigger-frame expression-globals))
+
     (let [mode (-> (:carabiner-startup-mode preferences "Off")
                    str/lower-case
                    keyword
@@ -162,4 +174,7 @@
               (timbre/error e "Carabiner sync from preferences failed.")
               (seesaw/alert carabiner-frame (str "Unable to enter Carabiner sync mode chosen in Settings.\n"
                                                  "Please see the logs for more details..")
-                            :title "Carabiner Sync Failed" :type :error))))))))
+                            :title "Carabiner Sync Failed" :type :error))))))
+
+    (when (:run-obs-overlay preferences)
+      (overlay/run-server))))
