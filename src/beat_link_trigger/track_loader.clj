@@ -2657,8 +2657,8 @@
                 listener (reify Archivist$ArchiveListener
                            (continueCreating [_this finished-count total-count]
                              (seesaw/invoke-later
-                               (seesaw/config! progress :max total-count :indeterminate? false)
-                               (seesaw/value! progress finished-count)
+                               (seesaw/config! progress :indeterminate? false)
+                               (seesaw/value! progress (* 1000 (/ finished-count total-count)))
                                (when (or (not @continue?) (>= finished-count total-count))
                                  (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING))))
                              @continue?))]
