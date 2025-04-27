@@ -17,6 +17,7 @@
             [beat-link-trigger.expressions :as expr]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show-util :as show-util]
+            [beat-link-trigger.tree-node]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [seesaw.chooser :as chooser]
