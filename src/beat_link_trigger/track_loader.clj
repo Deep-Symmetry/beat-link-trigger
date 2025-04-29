@@ -2557,8 +2557,8 @@
    (choose-media-export nil))
   ([parent]
    (seesaw/invoke-now
-     (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true :type
-                                     "Choose Rekordbox Media"
+     (let [root (chooser/choose-file parent :selection-mode :dirs-only :all-files? true
+                                     :type "Choose Rekordbox Media"
                                      :filters [rekordbox-export-filter]
                                      :remember-directory? false)]
        (when root
