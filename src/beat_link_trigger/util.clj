@@ -299,6 +299,11 @@
         (or (instance? Sequencer raw-device) (instance? Synthesizer raw-device)
             (instance? CoreMidiDestination raw-device) (instance? CoreMidiSource raw-device)))))
 
+(defn get-midi-inputs
+  "Returns all available MIDI input devices as menu choice model objects"
+  []
+  (map #(MidiChoice. (:name %)) (filter usable-midi-device? (sort-by :name (midi/midi-sources)))))
+
 (defn get-midi-outputs
   "Returns all available MIDI output devices as menu choice model objects"
   []

@@ -943,14 +943,14 @@ MIDI mapping GUI, and there are a lot of elements in the window.
                                      (when (and (:inputs data)
                                                 (not ((set inputs)
                                                        (:inputs data)))))
-                                           [(:inputs data)]))
+                                           [(:inputs data)])
                            :listen [:item-state-changed  ;; <4>
                                     (fn [e]
                                       (save e)
                                       (beat-pattern-change-input button
                                                                  show))])]
                          ["Message:" "gap unrelated"]
-                         [(seesaw/combobox :id message
+                         [(seesaw/combobox :id :message
                            :model ["None" "Note" "CC"]
                            :listen [:item-state-changed
                                     (fn [e]
@@ -1215,7 +1215,8 @@ few additions to support MIDI mapping.
                  (midiSystemUpdated [_this]  ;; <7>
                    (refresh-ui)))]
   (swap! globals assoc :listener listener)  ;; <8>
-  (CoreMidiDeviceProvider/addNotificationListener listener)  ;; <9>
+  (uk.co.xfactorylibrarians.coremidi4j.CoreMidiDeviceProvider/addNotificationListener
+   listener)  ;; <9>
   (refresh-ui))
 ----
 
@@ -1271,7 +1272,8 @@ buttons' MIDI connections and install their MIDI event handlers.
 (remove-watch trigger-globals :beat-pattern-watcher)  ;; <1>
 
 ;; Stop reacting to changes to the MIDI environment.
-(CoreMidiDeviceProvider/removeNotificationListener (:listener @globals))  ;; <2>
+(uk.co.xfactorylibrarians.coremidi4j.CoreMidiDeviceProvider/removeNotificationListener
+ (:listener @globals))  ;; <2>
 
 ;; Close any MIDI inputs the buttons were using, and any MIDI mapper
 ;; windows they had open.
