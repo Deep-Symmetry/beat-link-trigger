@@ -2538,6 +2538,7 @@
 
         ;; Need to compile the show expressions before building the tracks and triggers,
         ;; so shared functions are available.
+        (su/load-attachments show)
         (doseq [[kind expr] (editors/sort-setup-to-front (get-in show [:contents :expressions]))]
           (let [editor-info (get @editors/global-show-editors kind)]
             (try

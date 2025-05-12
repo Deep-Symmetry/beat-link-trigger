@@ -979,7 +979,7 @@
                                      (let [result (= :success (seesaw/show! confirm))]
                                        (seesaw/dispose! confirm)
                                        result)))
-                           (when (zero? (.. attachment-list getModel getSize))
+                           (when-not (Files/isDirectory attachments-root (make-array java.nio.file.LinkOption 0))
                              (Files/createDirectory attachments-root
                                                     (make-array java.nio.file.attribute.FileAttribute 0)))
                            (Files/copy (.toPath file) (.resolve attachments-root (.getName file))
@@ -1001,3 +1001,23 @@
       (seesaw/alert (str "<html>Exception while managing attachments:<br><br>" (.getMessage e)
                          "<br><br>See the log file for more details.")
                     :title "Problem Managing Attachmentsq" :type :error))))
+
+(defn load-attachment
+  "Loads the attachment with the specified name from the show. The
+  attachment must be a Clojure source file."
+  [show attachment]
+  (let [^FileSystem filesystem (:filesystem show)
+        ^Path attachments-root (build-filesystem-path filesystem "attachments")]
+    (with-open [reader (Files/newBufferedReader (.resolve attachments-root attachment))
+                reader (clojure.lang.LineNumberingPushbackReader. reader)]
+      (timbre/info "Loading show attachment:" (str attachment))
+      (load-reader reader))))
+
+(defn load-attachments
+  "Loads all attachments found in the show whose names end in .clj"
+  [show]
+  (let [^FileSystem filesystem (:filesystem show)
+        ^Path attachments-root (build-filesystem-path filesystem "attachments")]
+    (doseq [attachment (list-attachments attachments-root)]
+      (when (str/ends-with? (str attachment) ".clj")
+        (load-attachment show attachment)))))
