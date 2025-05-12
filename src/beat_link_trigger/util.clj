@@ -147,6 +147,9 @@
                           :type type :option-type option-type :title title)]
     (.pack confirm)
     (.setLocationRelativeTo confirm parent)
+    (future  ; Sometimes the dialog ends up hidden behind its parent; looks like a seesaw bug.
+      (Thread/sleep 100)
+      (seesaw/invoke-later (.toFront confirm)))
     (let [result (= :success (seesaw/show! confirm))]
       (seesaw/dispose! confirm)
       result)))

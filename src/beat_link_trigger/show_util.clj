@@ -929,6 +929,23 @@
         sort)
     []))
 
+(defn- load-clojure-file-before-attaching
+  "Called whenever the user attaches a Clojure file to a show. Loads the
+  file first, both to get it installed, and to make sure that it
+  contains no errors. Returns truthy if the file loaded smoothly, so
+  it is safe to attach to the show."
+  [parent file]
+  (try
+    (load-file (.getAbsolutePath file))
+    true
+    (catch Throwable t
+      (timbre/error t "Problem loading Clojure attachment")
+      (seesaw/alert parent
+                    (str "<html>Problem loading " (.getName file) ":<br><br>" (.getMessage t)
+                         "<br><br>See the log file for more details.</html>")
+                    :title "Problem Loading Clojure Attachment" :type :error)
+      nil)))
+
 (defn manage-attachments
   "Provides a minimal user interface that allows files to be stored as
   attachments within a show, for the use of the show's expressions,
@@ -952,8 +969,7 @@
           layout                 (seesaw/border-panel :center attachment-scroll)
           ^JDialog dialog        (seesaw/dialog :content layout
                                                 :options [done-button extract-as-button delete-button add-button]
-                                                :title "Manage Show Attachments"
-                                                :modal? true)]
+                                                :title "Manage Show Attachments")]
       (.setSize dialog 600 400)
       (.setLocationRelativeTo dialog (:frame show))
       (.setSelectionMode attachment-list javax.swing.ListSelectionModel/SINGLE_SELECTION)
@@ -968,27 +984,29 @@
                        (when-let [^File file (chooser/choose-file dialog :type "Add Attachment")]
                          (when (or (not (Files/exists (.resolve attachments-root (.getName file))
                                                       (make-array java.nio.file.LinkOption 0)))
-                                   (let [^JDialog confirm (seesaw/dialog
-                                                           :content (str "Replace existing attachment?\n"
-                                                                         "The attachment " (.getName file)
-                                                                         " already exists, and will be "
-                                                                         "overwritten if you proceed.")
-                                                           :type :warning :option-type :yes-no)]
-                                     (.pack confirm)
-                                     (.setLocationRelativeTo confirm dialog)
-                                     (let [result (= :success (seesaw/show! confirm))]
-                                       (seesaw/dispose! confirm)
-                                       result)))
-                           (when-not (Files/isDirectory attachments-root (make-array java.nio.file.LinkOption 0))
-                             (Files/createDirectory attachments-root
-                                                    (make-array java.nio.file.attribute.FileAttribute 0)))
-                           (Files/copy (.toPath file) (.resolve attachments-root (.getName file))
-                                       copy-options-replace-existing)
-                           (seesaw/config! attachment-list :model (list-attachments attachments-root))))))
+                                   (util/confirm dialog
+                                                 (str "The attachment ”" (.getName file)
+                                                      "“ already exists, and will be "
+                                                      "overwritten if you proceed.")
+                                                 :type :warning
+                                                 :title "Replace Existing Attachment?"))
+                           (when (or (not (str/ends-with? (.getName file) ".clj"))
+                                     (load-clojure-file-before-attaching dialog file))
+                             (when-not (Files/isDirectory attachments-root (make-array java.nio.file.LinkOption 0))
+                               (Files/createDirectory attachments-root
+                                                      (make-array java.nio.file.attribute.FileAttribute 0)))
+                             (Files/copy (.toPath file) (.resolve attachments-root (.getName file))
+                                         copy-options-replace-existing)
+                             (seesaw/config! attachment-list :model (list-attachments attachments-root)))))))
       (seesaw/listen delete-button :action-performed
                      (fn [_]
-                       (Files/delete (.resolve attachments-root @selected-attachment))
-                       (seesaw/config! attachment-list :model (list-attachments attachments-root))))
+                       (when (util/confirm dialog
+                                           (str "Deleting this attachment from the show "
+                                                "cannot be undone.")
+                                           :type :warning
+                                           :title (str "Delete Attachment ”" @selected-attachment "“"))
+                         (Files/delete (.resolve attachments-root @selected-attachment))
+                         (seesaw/config! attachment-list :model (list-attachments attachments-root)))))
       (seesaw/listen extract-as-button :action-performed
                      (fn [_]
                        (when-let [file (chooser/choose-file dialog :type "Extract As…")]
@@ -998,9 +1016,10 @@
       (seesaw/show! dialog))
     (catch Exception e
       (timbre/error e "Problem Managing Attachments")
-      (seesaw/alert (str "<html>Exception while managing attachments:<br><br>" (.getMessage e)
+      (seesaw/alert (:frame show)
+                    (str "<html>Exception while managing attachments:<br><br>" (.getMessage e)
                          "<br><br>See the log file for more details.")
-                    :title "Problem Managing Attachmentsq" :type :error))))
+                   :title "Problem Managing Attachments" :type :error))))
 
 (defn load-attachment
   "Loads the attachment with the specified name from the show. The
