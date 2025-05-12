@@ -29,7 +29,7 @@
            [java.awt.event ItemEvent MouseEvent WindowEvent]
            [java.io File]
            [java.lang.ref SoftReference]
-           [java.nio.file Files FileSystem FileSystems Path StandardCopyOption StandardOpenOption]
+           [java.nio.file Files FileSystem FileSystems Path StandardOpenOption]
            [javax.swing JComponent JFrame JMenu JMenuBar JPanel JScrollPane]
            [org.apache.maven.artifact.versioning DefaultArtifactVersion]
            [org.deepsymmetry.beatlink Beat CdjStatus CdjStatus$TrackSourceSlot
@@ -2045,19 +2045,15 @@
           (let [[reopened-filesystem] (su/open-show-filesystem file)]
             (swap-show! show assoc :filesystem reopened-filesystem)))))))
 
-(def ^:private ^StandardCopyOption/1 save-show-as-options
-  "The Filesystem options used when saving a show to a new file."
-  (into-array [StandardCopyOption/REPLACE_EXISTING]))
-
 (defn- save-show-as
   "Closes the show filesystem to flush changes to disk, copies the file
   to the specified destination, then reopens it."
   [show ^File as-file]
-  (let [show           (latest-show show)
+  (let [show                 (latest-show show)
         {:keys [^File file]} show]
     (try
       (save-show show false)
-      (Files/copy (.toPath file) (.toPath as-file) save-show-as-options)
+      (Files/copy (.toPath file) (.toPath as-file) su/copy-options-replace-existing)
       (catch Throwable t
         (timbre/error t "Problem saving" file "as" as-file)
         (throw t))
@@ -2107,7 +2103,6 @@
                                   (seesaw/alert (:frame show) "Cannot Replace an Open Show."
                                                 :title "Destination is Already Open" :type :error)
                                   (when-let [file (util/confirm-overwrite-file file extension (:frame show))]
-
                                     (try
                                       (save-show-as show file)
                                       (catch Throwable t
@@ -2321,9 +2316,12 @@
                                                      (clojure.java.browse/browse-url (su/expression-report-link file))))
                                         :name "Expression Report"
                                         :tip "Open a web page describing all expressions in the show.")
+        attach-action    (seesaw/action :handler (fn [_] (su/manage-attachments show))
+                                        :name "Manage Attachments"
+                                        :tip "Allow files to be attached for use by show expressions.")
         actions-item     (seesaw/checkbox-menu-item :text "Enable Report Actions"
-                                                :tip (str "Allow buttons in reports to affect the show: "
-                                                          "use only on secure networks."))]
+                                                    :tip (str "Allow buttons in reports to affect the show: "
+                                                              "use only on secure networks."))]
     (seesaw/listen actions-item :item-state-changed
                    (fn [^ItemEvent e]
                      (swap-show! show assoc :actions-enabled (= (.getStateChange e) ItemEvent/SELECTED))))
@@ -2331,6 +2329,7 @@
                                          :items [(build-raw-trigger-action show) (seesaw/separator)
                                                  (build-save-action show) (build-save-as-action show)
                                                  (seesaw/separator) ex-report-action actions-item
+                                                 (seesaw/separator) attach-action
                                                  (seesaw/separator) (build-close-action show)])
                             (seesaw/menu :text "Tracks"
                                          :id :tracks-menu

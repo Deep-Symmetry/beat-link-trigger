@@ -10,6 +10,7 @@
             [hiccup.util]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
+            [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre]
             [thi.ng.color.core :as color]
@@ -23,7 +24,7 @@
            [java.io File]
            [java.nio.file Files FileSystem FileSystems OpenOption Path StandardOpenOption]
            [java.util UUID]
-           [javax.swing JComponent JFrame JPanel]))
+           [javax.swing JComponent JDialog JFrame JList JPanel]))
 
 (defonce ^{:private true
            :doc "Holds the map of open shows; keys are the file,
@@ -890,6 +891,7 @@
 
 
 (defn expression-report-link
+  "Returns the URL that can be used to open a show's expression report."
   ([^File file]
    (expression-report-link file nil))
   ([^File file anchor]
@@ -912,3 +914,90 @@
                                    (:file show) ((requiring-resolve 'beat-link-trigger.editors/show-report-tag)
                                                  context cue track?)))))
                     :name "View Expressions in Report"))))
+
+(def ^java.nio.file.StandardCopyOption/1 copy-options-replace-existing
+  "Copy options list that allows an existing file to be replaced."
+  (into-array [java.nio.file.StandardCopyOption/REPLACE_EXISTING]))
+
+(defn- list-attachments
+  "Helper function to list all the attachments in the show attachments
+  folder. Returns just their names."
+  [^Path folder]
+  (if (Files/isDirectory folder (make-array java.nio.file.LinkOption 0))
+    (-> (for [^Path attachment (Files/newDirectoryStream folder)]
+          (.getFileName attachment))
+        sort)
+    []))
+
+(defn manage-attachments
+  "Provides a minimal user interface that allows files to be stored as
+  attachments within a show, for the use of the show's expressions,
+  and for those attachments to be downloaded again or deleted."
+  [show]
+  ;; While someday it would be nice to allow folders to be created,
+  ;; navigated into, and deleted, that will require a custom list cell
+  ;; renderer to visually distinguish between them and simple files,
+  ;; which is more scope than I want to bite off while proving this
+  ;; concept.
+  (try
+    (let [selected-attachment    (atom nil)
+          ^FileSystem filesystem (:filesystem show)
+          ^Path attachments-root (build-filesystem-path filesystem "attachments")
+          ^JList attachment-list (seesaw/listbox :model (list-attachments attachments-root))
+          attachment-scroll      (seesaw/scrollable attachment-list)
+          add-button             (seesaw/button :text "Add Attachment")
+          done-button            (seesaw/button :text "Done")
+          delete-button          (seesaw/button :text "Delete" :enabled? false)
+          extract-as-button      (seesaw/button :text "Extract As…" :enabled? false)
+          layout                 (seesaw/border-panel :center attachment-scroll)
+          ^JDialog dialog        (seesaw/dialog :content layout
+                                                :options [done-button extract-as-button delete-button add-button]
+                                                :title "Manage Show Attachments"
+                                                :modal? true)]
+      (.setSize dialog 600 400)
+      (.setLocationRelativeTo dialog (:frame show))
+      (.setSelectionMode attachment-list javax.swing.ListSelectionModel/SINGLE_SELECTION)
+      (seesaw/listen attachment-list
+                     :selection (fn [_]
+                                  (reset! selected-attachment (.getSelectedValue attachment-list))
+                                  (seesaw/config! [delete-button extract-as-button]
+                                                  :enabled? (boolean @selected-attachment))))
+      (seesaw/listen done-button :action-performed (fn [_] (seesaw/return-from-dialog dialog nil)))
+      (seesaw/listen add-button :action-performed
+                     (fn [_]
+                       (when-let [^File file (chooser/choose-file dialog :type "Add Attachment")]
+                         (when (or (not (Files/exists (.resolve attachments-root (.getName file))
+                                                      (make-array java.nio.file.LinkOption 0)))
+                                   (let [^JDialog confirm (seesaw/dialog
+                                                           :content (str "Replace existing attachment?\n"
+                                                                         "The attachment " (.getName file)
+                                                                         " already exists, and will be "
+                                                                         "overwritten if you proceed.")
+                                                           :type :warning :option-type :yes-no)]
+                                     (.pack confirm)
+                                     (.setLocationRelativeTo confirm dialog)
+                                     (let [result (= :success (seesaw/show! confirm))]
+                                       (seesaw/dispose! confirm)
+                                       result)))
+                           (when (zero? (.. attachment-list getModel getSize))
+                             (Files/createDirectory attachments-root
+                                                    (make-array java.nio.file.attribute.FileAttribute 0)))
+                           (Files/copy (.toPath file) (.resolve attachments-root (.getName file))
+                                       copy-options-replace-existing)
+                           (seesaw/config! attachment-list :model (list-attachments attachments-root))))))
+      (seesaw/listen delete-button :action-performed
+                     (fn [_]
+                       (Files/delete (.resolve attachments-root @selected-attachment))
+                       (seesaw/config! attachment-list :model (list-attachments attachments-root))))
+      (seesaw/listen extract-as-button :action-performed
+                     (fn [_]
+                       (when-let [file (chooser/choose-file dialog :type "Extract As…")]
+                         (when-let [^File file (util/confirm-overwrite-file file nil dialog)]
+                           (Files/copy (.resolve attachments-root @selected-attachment) (.toPath file)
+                                       copy-options-replace-existing)))))
+      (seesaw/show! dialog))
+    (catch Exception e
+      (timbre/error e "Problem Managing Attachments")
+      (seesaw/alert (str "<html>Exception while managing attachments:<br><br>" (.getMessage e)
+                         "<br><br>See the log file for more details.")
+                    :title "Problem Managing Attachmentsq" :type :error))))
