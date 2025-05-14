@@ -131,7 +131,7 @@ avoid the risk of losing data, you can manually save it by choosing
 menu:File[Save]. You can also save a copy to a different file at any
 time using menu:File[Save a Copy].
 
-image:ShowFileMenu.png[Show File Menu,263,155]
+image:ShowFileMenu.png[Show File Menu,264,179]
 
 Choosing menu:File[Expression Report] opens a browser window holding a
 <<Expressions_Report.adoc#,report>> that provides a powerful and

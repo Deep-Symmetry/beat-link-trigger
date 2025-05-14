@@ -15,7 +15,7 @@ To add a raw trigger to a show, chose menu:File[New Raw Trigger] in
 the show menu bar, or type kbd:[⌘+R] (on the Mac) or kbd:[Ctrl+R] (on
 other platforms) while that show has keyboard focus.
 
-image:NewRawTrigger.png[New Raw Trigger,263,155]
+image:NewRawTrigger.png[New Raw Trigger,264,179]
 
 When there are triggers from shows in the Triggers window, they appear
 below all independent triggers. The first trigger from a particular
