@@ -24,6 +24,7 @@ This change log follows the conventions of
 ### Fixed
 
 - An error in interpreting database export file format by the Crate Digger library could lead to some rows that were actually present in tables not being found.
+- Phrase trigger section sizes were not being loaded correctly, the End section was always set to 1 bar and the Fill section to 2 bars when reopening a show.
 - Some variables were incorrect in the phrase trigger expression examples in the user guide.
 - The value for `loaded-players` was not being simulated in a usable way when requesting a standalone simulation of the event.
 - Shallow playback simulator windows were [trying to update far too often](https://github.com/Deep-Symmetry/beat-link-trigger/issues/185). Thanks to [Deniz Gencer, @Firedude1](https://github.com/Firedude1) who noticed it was thrashing his GPU and reported this.
