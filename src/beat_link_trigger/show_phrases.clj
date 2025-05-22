@@ -1092,7 +1092,7 @@
                                 ["Section sizes (bars):" "spany 2"]
                                 ["Start:" "gap unrelated"]
                                 [(seesaw/spinner :id :start
-                                                 :model (seesaw/spinner-model (:start-bars phrase 1)
+                                                 :model (seesaw/spinner-model (or (:start-bars phrase) 1)
                                                                               :from 0 :to 64)
                                                  :listen [:state-changed
                                                           #(do (swap-phrase! show uuid assoc :start-bars
@@ -1110,14 +1110,14 @@
 
                                 ["End:" "gap unrelated"]
                                 [(seesaw/spinner :id :end
-                                                 :model (seesaw/spinner-model (:end-bars phrase 1) :from 0 :to 64)
+                                                 :model (seesaw/spinner-model (or (:end-bars phrase) 1) :from 0 :to 64)
                                                  :listen [:state-changed
                                                           #(do (swap-phrase! show uuid assoc :end-bars
                                                                              (seesaw/value %))
                                                                (update-section-boundaries show uuid preview))])]
                                 ["Fill:" "gap unrelated"]
                                 [(seesaw/spinner :id :fill
-                                                 :model (seesaw/spinner-model (:fill-bars phrase 2) :from 1 :to 64)
+                                                 :model (seesaw/spinner-model (or (:fill-bars phrase) 2) :from 1 :to 64)
                                                  :listen [:state-changed
                                                           #(do (swap-phrase! show uuid assoc :fill-bars
                                                                              (seesaw/value %))

@@ -1314,11 +1314,15 @@
         gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
         link           (seesaw/button :id :link :icon (link-button-icon cue)
                                       :visible? (seq (get-in show [:contents :cue-library])))
-        start-model    (seesaw/spinner-model (:start cue) :from 1 :to (dec (:end cue)))
-        end-model      (seesaw/spinner-model (:end cue) :from (inc (:start cue))
+        max-end        (beat-count context (:section cue))
+        cue-end        (min (:end cue) max-end)     ; Recover from damaged files due to loading bug.
+        max-start      (dec cue-end)
+        cue-start      (min (:start cue) max-start) ; Recover from damaged files due to loading bug.
+        start-model    (seesaw/spinner-model cue-start :from 1 :to max-start)
+        end-model      (seesaw/spinner-model cue-end :from (inc cue-start)
                                              :to (if track?
                                                    (long (.beatCount ^BeatGrid (:grid context)))
-                                                   (beat-count context (:section cue))))
+                                                   max-end))
 
         start  (seesaw/spinner :id :start
                                :model start-model
