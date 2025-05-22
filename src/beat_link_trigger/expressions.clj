@@ -401,7 +401,9 @@
                     'tempo-master? {:code '(.isTempoMaster status)
                                     :doc  "Was this beat sent by the current tempo master?"}
                     'on-air?       {:code '(.isOnAir (.getLatestStatusFor (VirtualCdj/getInstance) status))
-                                    :doc  "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}}}
+                                    :doc  "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers seem to support this capability."}
+                    'looping?      {:code '(.isLooping (.getLatestStatusFor (VirtualCdj/getInstance) status))
+                                    :doc  "Is the player currently playing a loop?"}}}
 
    MixerStatus {:inherit  [DeviceUpdate]
                 :bindings {'tempo-master? {:code '(.isTempoMaster status)

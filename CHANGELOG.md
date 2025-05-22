@@ -18,6 +18,7 @@ This change log follows the conventions of
 - A new settings UI for adjusting some behaviors that previously required adding custom code.
 - You can now import entire playlists of tracks into shows from offline media.
 - A link to Ineffable's great video tutorial for synchronizing videos in Resolume.
+- The `looping?` convenience variable is exposed for Beat expressions as well, even though they don't have direct access to `CdjStatus` objects, because it is likely to be useful there (using the same approach as the `on-air?` variable).
 - When we unexpectedly are unable to route a message to a CDJ, we now log extensive troubleshooting information about the address we are trying to send to and the state of the network interfaces at that moment.
 
 ### Fixed
