@@ -174,6 +174,7 @@ Functions:
   needed."
   [globals message]
   (when-let [ws (find-qlc-web-socket globals)]
+    (timbre/info "sending QLC message" message)
     (http/send ws :text message)))  ;; <8>
 ----
 
@@ -210,8 +211,8 @@ QLC+. It takes `globals` so it can pass it along to
 `find-qlc-web-socket`, which does the work of finding or creating the
 web socket, as needed.
 
-<8> With all the hard work delegated, the actual sending of the
-message is simple once we have a web socket to use.
+<8> With all the hard work delegated, the actual sending of the message is simple once we have a web socket to use.
+(We also add a line to the log file, in the line above, noting the message had been sent, to help with troubleshooting)
 
 Although this last shared function is not strictly necessary, it makes
 the cue code more readable by setting up the message format needed to
@@ -344,10 +345,15 @@ So we now create and store everything in the Triggers window globals, which both
   (swap! trigger-globals assoc  ;; <2>
          :http (http/create-client)
          :qlc-cue-times {}
-         :cue-indexer cue-indexer)
-  (show/swap-user-data! show assoc :show-hue 60.0)  ;; <3>
-  (show/block-tracks show (build-qlc-config-ui show trigger-globals))
-  (configure-qlc-ws-url show trigger-globals))  ;; <4>
+         :qlc-cue-indexer cue-indexer))
+(show/swap-user-data! show assoc :show-hue 60.0)  ;; <3>
+(show/block-tracks show (build-qlc-config-ui show trigger-globals))
+(configure-qlc-ws-url show trigger-globals)  ;; <4>
+
+;; Index cues for any tracks that were loaded when the show opened.
+(doseq [entry (.entrySet (.getLoadedTracks metadata-finder))]
+  (swap! globals assoc-in [:qlc-cue-times (.-player (.getKey entry))]
+         (find-qlc-cues (.getValue entry))))
 ```
 
 <1> When the show is loaded, this line and the next create an the indexer, giving it access to the trigger globals, and arrange for its indexing function to be run as tracks come and go.
@@ -358,6 +364,8 @@ We create and store an HTTP client, an empty cue times index, and store a refere
 <3> This gives the show window a distinctive yellow hue, which is also used in the background of the raw trigger it adds to the Triggers window, to visually associate it with the show.
 
 <4> This and the line above are actually a sneak preview of <<#config-ui,something added later>>.
+
+The last bit of code handles the fact that there might already be some tracks loaded on players when the show first opens, so they need to be indexed as well.
 
 === New in Global Shutdown
 

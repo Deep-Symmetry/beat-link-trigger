@@ -209,6 +209,9 @@
      (.setContextClassLoader (Thread/currentThread) cl)
 
      ;; Set the actual application name for the macOS menu bar.
+     ;; Sadly, this no longer works in current macOS versions, so we
+     ;; need to continue to rely on the bundle descriptor, and lack
+     ;; a valid name when running in development or as a loose jar.
      (System/setProperty "apple.awt.application.name" "Beat Link Trigger")
 
      ;; Switch to the Swing Event Dispatch Thread to configure the user interface.
