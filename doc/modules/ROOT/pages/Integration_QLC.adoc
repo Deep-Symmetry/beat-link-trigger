@@ -11,7 +11,9 @@ virtual button to be controlled by a physical MIDI controller, and to
 provide feedback on that controller to make it visible when Beat Link
 Trigger is activating cues.
 
-TIP: This example was rebuilt to take advantage of a new feature in
+[TIP]
+====
+This example was rebuilt to take advantage of a new feature in
 BLT version 7.3 that allows a package of low-level triggers and code
 to be distributed in a standalone, easy-to-use way. If all you're
 looking to do is work with QLC+, you can just download the
@@ -19,6 +21,9 @@ link:{attachmentsdir}/QLC-Cues.bls[integration show], then
 <<Shows.adoc#opening-shows,open>> and use it as described next, and
 ignore the rest of the explanation of how it works until you are
 curious about that.
+
+https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/QLC.2B.20cues.20WebSocket.20Issue/with/519925934[Ashton via Zulip] kindly let me know that my revisions were actually broken, so I fixed the example for the 8.0 release and cleaned it up the rest of the way.
+====
 
 [[usage]]
 == Using the Standalone Show
@@ -51,6 +56,8 @@ You generally won't need to change the port number field unless you
 are running QLC+ with a non-standard web API port through the `-wp` or
 `--web-port` option. In that case, make sure the port specified here
 matches the one you are using on the command line.
+
+WARNING: The expressions used by this integration tap into the Beat Link library at a deep level, so it is not compatible with the <<SimulatingPlayback.adoc#,Shallow Playback Simulator>>. Trying to use that with this show open will result in many exceptions in the log files.
 
 === Triggering Cues
 
@@ -243,6 +250,7 @@ can do that by adding these lines:
 (when-let [ws (:qlc-ws @globals)]
   (.sendCloseFrame ws))
 (.close (:http @globals))
+(swap! globals dissoc :http :qlc-ws)
 ----
 
 == Stage Two: No Show Cues
@@ -268,16 +276,7 @@ QLC widget markers in their cue lists. This is supported by a set of
 shared functions.
 
 ```clojure
-(defonce  ;; <1>
- ^{:doc "Holds a map from player number to a map of cue times for that player.
-  The cue time maps are indexed by track position (in milliseconds),
-  and their values are sets of QLC+ button IDs to press when we reach
-  a beat that is within 50 milliseconds of that time. This map is
-  built by `find-qlc-cues` below whenever the track metadata for a
-  player changes."}
-  qlc-cue-times (atom {}))
-
-(defn find-qlc-cues  ;; <2>
+(defn find-qlc-cues  ;; <1>
   "Scans all the cues and loops found in the supplied track metadata
   looking for any that contain the string QLC: followed immediately
   by a number. Returns a map whose keys are the track time at which
@@ -297,65 +296,90 @@ shared functions.
                   result))
               {} (.-entries cue-list)))))
 
-(def qlc-cue-indexer  ;; <3>
+(defn build-qlc-cue-indexer  ;; <2>
   "Responds to the coming and going of track metadata, and updates our
   list of cue-defined beats on which QLC+ button presses need to be sent."
+  [globals]
   (reify org.deepsymmetry.beatlink.data.TrackMetadataListener
     (metadataChanged [this md-update]
-      (swap! qlc-cue-times assoc (.player md-update)
+      (swap! globals assoc-in [:qlc-cue-times (.player md-update)]
              (find-qlc-cues (.metadata md-update))))))
 
-(defn send-qlc-cues-near-time  ;; <4>
+
+(defn send-qlc-cues-near-time  ;; <3>
   "Finds all QLC cues close enough to the specified time for the
   specified device and sends the corresponding button press messages
   to the QLC+ web socket, which we can look up through the globals."
   [time device-number globals]
   (doseq [[_ ids] (filter (fn [[cue-time]] (> 50 (Math/abs (- time cue-time))))
-                          (get @qlc-cue-times device-number))]
+                          (get-in @globals [:qlc-cue-times device-number]))]
         (doseq [widget-id ids]
-          ;; Send presses for each id specified by one of the cues we reached.
+          ;; Send button presses for each id specified by
+          ;; one of the cues we reached.
           (set-qlc-widget-value globals widget-id 255))))
 ```
 
-<1> This sets up an atom that will hold an index by player of any cues
-in that player's track whose name match the `QLC:` pattern, their
-position within the track, and the QLC+ widget IDs for which button
-presses should be sent when the beat at that position is reached.
-
-<2> This takes the metadata that describes a track that has been
+<1> This takes the metadata that describes a track that has been
 loaded into a player, and scans through all the hot cues, memory
 points, and loops in that track, looking for the pattern that
 identifies a request for QLC button presses. It builds the index
 structure for that track.
 
-<3> This creates an object that can be registered with the Beat Link
-library to update the QLC cue index whenever there is new information
-about a track loaded in a player by calling the functions above.
+<2> This creates an object that can be registered with the Beat Link library to update the QLC cue index whenever there is new information about a track loaded in a player by calling the functions above.
+The Global Setup Expression uses this function to create and register the indexer.
+The cue index itself is a map indexed by player of any cues in that player's track whose name match the `QLC:` pattern, their position within the track, and the QLC+ widget IDs for which button presses should be sent when the beat at that position is reached.
 
-<4> This is a helper function called by the trigger whenever the track
+<3> This is a helper function called by the trigger whenever the track
 has moved to a new beat. It uses the index to see if it's supposed to
 send any QLC+ button presses, and sends them.
 
 === New in Global Setup
 
-When the configuration file is loaded, this new line arranges for the
-indexing function to be run as tracks come and go, in addition to what
-we were doing before:
+We had to make some fundamental changes here, because we now need to share information between the show and the Beat Link Triggers window, which does not have access to any show globals.
+So we now create and store everything in the Triggers window globals, which both windows have access to:
 
 ```clojure
-(.addTrackMetadataListener metadata-finder qlc-cue-indexer)
-
+(let [cue-indexer (build-qlc-cue-indexer trigger-globals)]  ;; <1>
+  (.addTrackMetadataListener metadata-finder cue-indexer)
+  (swap! trigger-globals assoc  ;; <2>
+         :http (http/create-client)
+         :qlc-cue-times {}
+         :cue-indexer cue-indexer)
+  (show/swap-user-data! show assoc :show-hue 60.0)  ;; <3>
+  (show/block-tracks show (build-qlc-config-ui show trigger-globals))
+  (configure-qlc-ws-url show trigger-globals))  ;; <4>
 ```
+
+<1> When the show is loaded, this line and the next create an the indexer, giving it access to the trigger globals, and arrange for its indexing function to be run as tracks come and go.
+
+<2> As explained above, we need to use the Triggers window globals, rather than the show globals, so the raw trigger can access the information it needs.
+We create and store an HTTP client, an empty cue times index, and store a reference to the cue indexer so we can unregister it when the show closes.
+
+<3> This gives the show window a distinctive yellow hue, which is also used in the background of the raw trigger it adds to the Triggers window, to visually associate it with the show.
+
+<4> This and the line above are actually a sneak preview of <<#config-ui,something added later>>.
 
 === New in Global Shutdown
 
-When the Triggers window is being closed, or a different configuration
-file is being loaded, this new line unregisters our indexer:
+When the show is closed, this cleans up the things it created:
 
 ```clojure
-(.removeTrackMetadataListener metadata-finder qlc-cue-indexer)
-
+(.removeTrackMetadataListener metadata-finder  ;; <1>
+                              (:qlc-cue-indexer @trigger-globals))
+(when-let [ws (:qlc-ws @trigger-globals)]  ;; <2>
+  (.sendCloseFrame ws))
+(.close (:http @trigger-globals))  ;; <3>
+(swap! trigger-globals dissoc :qlc-ws :qlc-ws-url  ;; <4>
+       :qlc-cue-times :qlc-cue-indexer :http)
 ```
+
+<1> This unregisters the indexer object so that track changes no longer call it.
+
+<2> If we had opened a web socket connection to QLC+, this closes it.
+
+<3> This closes the HTTP client we created.
+
+<4> Finally, this removes all the keys we added to the Triggers globals.
 
 == Trigger Code
 
@@ -364,16 +388,14 @@ trigger's <<Triggers.adoc#context-menu,gear or context menu>>:
 
 === Beat Expression
 
-This is run whenever a beat packet is received from the watched
-player, so it is a great place to check if it is time to send any QLC+
-button presses using the helper function we looked at above:
+This is run whenever a beat packet is received from the watched player, so it is a great place to check if it is time to send any QLC+ button presses using the helper function we looked at above (and remember, this is a raw trigger, so in this context, `globals` refers to the Triggers window globals):
 
 ```clojure
 ;; We can only run when the TimeFinder is running.
 (when track-time-reached
-  ;; Record that this beat has been handled, and
-  ;; the Tracked Update expression can ignore it.
-  (swap! qlc-cue-times assoc-in [:sent device-number] beat-number)
+  ;; Record that this beat has been handled, and the Tracked Update
+  ;; expression can ignore it.
+  (swap! globals assoc-in [:qlc-cue-times :sent device-number] beat-number)
   ;; Send the MIDI cues, if any, falling on this beat.
   (send-qlc-cues-near-time track-time-reached device-number globals))
 ```
@@ -401,9 +423,9 @@ a new beat because of a hot cue or memory point.
 ;; We can only run when playing and the TimeFinder is running.
 (when (and playing? track-time-reached)
   ;; Do nothing if the current beat has already been handled.
-  (when (not= beat-number (get-in @qlc-cue-times [:sent device-number]))
-    ;; Note this beat's been handled for next time.
-    (swap! qlc-cue-times assoc-in [:sent device-number] beat-number)
+  (when (not= beat-number (get-in @globals [:qlc-cue-times :sent device-number]))
+    ;; Note that this beat's been handled.
+    (swap! globals assoc-in [:qlc-cue-times :sent device-number] beat-number)
     ;; Press the QLC+ buttons, if any, for the point where playback began.
     ;; We assume playback began at the start of the current beat.
     (let [grid    (.getLatestBeatGridFor beatgrid-finder device-number)
@@ -412,7 +434,7 @@ a new beat because of a hot cue or memory point.
 ```
 
 Both the Beat Expression and this Tracked Update expression make a
-special entry in the index atom to report when they have handled a
+special entry in the cue index map to report when they have handled a
 particular beat, so this code doesn't send that beat's QLC+ button
 presses more than once.
 
@@ -433,7 +455,7 @@ again, cues can get sent for it:
 ```clojure
 ;; Clear record of last beat handled since the player is stopping.
 ;; If we restart in this same location, we should evaluate cues again.
-(swap! qlc-cue-times update :sent dissoc device-number)
+(swap! globals update-in [:qlc-cue-times :sent] dissoc device-number)
 ```
 
 And that was all the code! Although there is a fair bit, considering how
@@ -445,25 +467,16 @@ easier to share self-contained integrations like this, and came up
 with the idea of allowing shows to manage their own set of triggers, I
 realized that this example could be made even more user-friendly.
 
+[[config-ui]]
 == Stage Three: Configuration UI
 
-BLT allows special integration shows like this, which don't need to
-work with tracks or phrase triggers, to create a custom user
-interface. This was first used in the
-<<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> integration
-example, and could be put to good use here to offer a user interface
-for configuring how to connect to QLC+. (If you were looking carefully
-at the definition of `find-qlc-web-socket` in the
-<<shared-functions,Shared Functions>>, you may have noticed it using a
-hardcoded address for QLC+, which didn't fit with the configuration
-interface described <<usage,above>>. Indeed, there is a slightly
-fancier version present now, to take advantage of the new user
-interface.
+BLT allows special integration shows like this, which don't need to work with tracks or phrase triggers, to create a custom user interface.
+This was first used in the <<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> integration example, and could be put to good use here to offer a user interface for configuring how to connect to QLC+.
+(The first version of `find-qlc-web-socket` in the <<shared-functions,Shared Functions>>, you may have noticed it using a hardcoded address for QLC+, which didn't fit with the configuration interface described <<usage,above>>.
+Indeed, there is a slightly fancier version present now, to take advantage of the new user interface.
 
-This allows people to use the QLC+ integration without having to edit
-any Clojure expressions, even if they need to run QLC+ on a different
-machine or port number. So how does it work? Let's look at the new and
-updated shared functions.
+This allows people to use the QLC+ integration without having to edit any Clojure expressions, even if they need to run QLC+ on a different machine or port number.
+So how does it work? Let's look at the new and updated shared functions.
 
 [[ui-shared-functions]]
 === UI Shared Functions
@@ -681,32 +694,6 @@ variable we bound the label to above.
 <9> Finally, the Configure button, which is wired up to call the
 `configure-qlc-socket` function we just saw.
 
-=== Full Global Setup
-
-We need to call this new function in the Global Setup expression. Here
-is its full final content, reflecting all three stages of development:
-
-[source,clojure]
-----
-(.addTrackMetadataListener metadata-finder qlc-cue-indexer)
-(swap! globals assoc :http (http/create-client))
-(show/block-tracks show #_false (build-qlc-config-ui show globals))  ;; <1>
-(show/swap-user-data! show assoc :show-hue 60.0)  ;; <2>
-(configure-qlc-ws-url show globals)  ;; <3>
-----
-
-<1> This is the first new line, which tells the show to hide its
-normal Tracks interface, and replace it with the one we build.
-
-<2> This tell Beat Link Trigger about the color we have chosen for the
-background of the show UI, so that the trigger row can be drawn in a
-matching hue, to make it easier to visually associate the show's
-trigger with the show window.
-
-<3> We also configure the web socket URL the other functions need,
-which will try to open a connection and update the user interface to
-let the user know if that connection succeeded.
-
 So, we needed to add some more code, but we ended up with a system
 that can be used by people who don't want to look at Clojure code or
 edit expressions themselves. This approach is going to help building
@@ -715,6 +702,6 @@ ecosystem. I hope you found it interesting, and might even consider
 contributing such shows yourself!
 
 If you have any questions about using this, or ideas about new
-directions to take it, please raise them on the
+directions to take it, please raise them in the
 https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream].
+channel].
