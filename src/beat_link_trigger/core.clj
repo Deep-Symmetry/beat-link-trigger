@@ -208,32 +208,35 @@
      (reset! dynamic-class-loader cl)
      (.setContextClassLoader (Thread/currentThread) cl)
 
+     ;; Set the actual application name for the macOS menu bar.
+     (System/setProperty "apple.awt.application.name" "Beat Link Trigger")
+
      ;; Switch to the Swing Event Dispatch Thread to configure the user interface.
      (seesaw/invoke-now
-      (seesaw/native!)  ; Adopt as native a look-and-feel as possible.
-      (System/setProperty "apple.laf.useScreenMenuBar" "false")  ; Except put menus in frames.
-      (try  ; Install our custom dark and textured look-and-feel on top of it.
-        (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
-          (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin
-           ^org.pushingpixels.substance.api.SubstanceSkin (.newInstance skin-class)))
-        (catch ClassNotFoundException _
-          (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?")))
+       (seesaw/native!) ; Adopt as native a look-and-feel as possible.
+       (System/setProperty "apple.laf.useScreenMenuBar" "false") ; Except put menus in frames.
+       (try ; Install our custom dark and textured look-and-feel on top of it.
+         (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
+           (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin
+            ^org.pushingpixels.substance.api.SubstanceSkin (.newInstance skin-class)))
+         (catch ClassNotFoundException _
+           (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?")))
 
-      ;; Use our dynamic class loader on the Swing thread too.
-      (.setContextClassLoader (Thread/currentThread) cl)
+       ;; Use our dynamic class loader on the Swing thread too.
+       (.setContextClassLoader (Thread/currentThread) cl)
 
-      ;; If we are running under Java 9 or later on the Mac, and have one of the overly-skinny default system
-      ;; fonts, but can swap back to Lucida Grande, do so now.
-      (when (and (when-let [font-name (.getName ^javax.swing.plaf.FontUIResource (UIManager/get "MenuBar.font"))]
-                   (.startsWith font-name "."))
-                 (some #(= "Lucida Grande" %)
-                       (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
-        (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
-                                         (when (and (instance? javax.swing.plaf.FontUIResource v)
-                                                    (.startsWith (.getName ^javax.swing.plaf.FontUIResource v) "."))
-                                           [k v])))]
-          (let [^javax.swing.plaf.FontUIResource fr v]
-            (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle fr) (.getSize fr)))))))
+       ;; If we are running under Java 9 or later on the Mac, and have one of the overly-skinny default system
+       ;; fonts, but can swap back to Lucida Grande, do so now.
+       (when (and (when-let [font-name (.getName ^javax.swing.plaf.FontUIResource (UIManager/get "MenuBar.font"))]
+                    (.startsWith font-name "."))
+                  (some #(= "Lucida Grande" %)
+                        (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
+         (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
+                                          (when (and (instance? javax.swing.plaf.FontUIResource v)
+                                                     (.startsWith (.getName ^javax.swing.plaf.FontUIResource v) "."))
+                                            [k v])))]
+           (let [^javax.swing.plaf.FontUIResource fr v]
+             (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle fr) (.getSize fr)))))))
 
      ;; If we are on a Mac, hook up our About and Settings handlers
      ;; where users expect to find them, and add a Quit handler that
