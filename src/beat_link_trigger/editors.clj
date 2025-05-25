@@ -4,6 +4,7 @@
   (:require [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.util :as util]
             [clojure.java.browse]
@@ -1802,7 +1803,9 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (swap! (seesaw/user-data trigger) update-in [:expression-editors]
                                                          dissoc kind)
+                                                  (prefs/unregister-ui-frame root)
                                                   (.dispose root))))
+    (prefs/register-ui-frame root)
     (let [result
           (reify IExpressionEditor
             (retitle [_]
@@ -1941,14 +1944,16 @@ a {
         update-action   (build-update-action editor save-fn)
         simulate-action (build-show-simulate-action editor editors-map kind show track-or-phrase)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
-        close-fn        (fn [] (cond (:signature track-or-phrase)
-                                     (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
+        close-fn        (fn []
+                          (cond (:signature track-or-phrase)
+                                (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
 
-                                     (:uuid track-or-phrase)
-                                     (show-util/swap-phrase-runtime! show track-or-phrase
-                                                                     update :expression-editors dissoc kind)
-                                     :else
-                                     (show-util/swap-show! show update :expression-editors dissoc kind)))]
+                                (:uuid track-or-phrase)
+                                (show-util/swap-phrase-runtime! show track-or-phrase
+                                                                update :expression-editors dissoc kind)
+                                :else
+                                (show-util/swap-show! show update :expression-editors dissoc kind))
+                          (prefs/unregister-ui-frame root))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
@@ -1994,6 +1999,7 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
+    (prefs/register-ui-frame root)
     (let [result
           (reify IExpressionEditor
             (retitle [_]
@@ -2111,7 +2117,8 @@ a {
                                                    dissoc kind)
                             (show-util/swap-phrase-runtime! (show-util/show-from-phrase context) context
                                                             update-in [:cues-editor :expression-editors (:uuid cue)]
-                                                            dissoc kind)))]
+                                                            dissoc kind))
+                          (prefs/unregister-ui-frame root))]
     (.add editor-panel scroll-pane)
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
@@ -2157,6 +2164,7 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
+    (prefs/register-ui-frame root)
     (let [result (reify IExpressionEditor
                    (retitle [_] (seesaw/config! root :title (cue-editor-title kind context cue)))
                    (show [_]

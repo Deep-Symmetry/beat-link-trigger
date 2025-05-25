@@ -96,11 +96,10 @@
                                (update-load-ui)))
            ^JComboBox players (seesaw/combobox :id :players
                                                        :listen [:item-state-changed player-changed])
-           player-panel       (mig/mig-panel :background "#ddd"
-                                          :items [[(seesaw/label :text "Load on:")]
-                                                  [players "gap unrelated"]
-                                                  [problem-label "push, gap unrelated"]
-                                                  [load-button]])
+           player-panel       (mig/mig-panel :items [[(seesaw/label :text "Load on:")]
+                                                     [players "gap unrelated"]
+                                                     [problem-label "push, gap unrelated"]
+                                                     [load-button]])
            settings           (PlayerSettings.)
            defaults           (:my-settings (prefs/get-preferences))
            settings-panel     (mig/mig-panel  ; Starts with DJ Settings
@@ -221,9 +220,11 @@
        (.addUpdateListener virtual-cdj status-listener)
        (track-loader/build-device-choices players)
        (reset! loader-window root)
+       (prefs/register-ui-frame root)
        (.addLifecycleListener virtual-cdj stop-listener)
        (seesaw/listen root :window-closed (fn [_]
                                             (reset! loader-window nil)
+                                            (prefs/unregister-ui-frame root)
                                             (remove-listeners)))
        (seesaw/listen load-button
                       :action-performed

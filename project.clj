@@ -18,7 +18,9 @@
                  [com.cemerick/url "0.1.1"]
                  [com.fifesoft/rstaui "3.3.1"]
                  [com.fifesoft/rsyntaxtextarea "3.6.0"]
+                 [com.formdev/flatlaf "3.6"]
                  [com.fzakaria/slf4j-timbre "0.4.1"]
+                 [com.github.Dansoftowner/jSystemThemeDetector "3.9.1"]
                  [com.github.jiconfont/jiconfont-font_awesome "4.7.0.1"]
                  [com.github.jiconfont/jiconfont-swing "1.0.1"]
                  [com.taoensso/timbre "6.5.0"]
@@ -32,8 +34,6 @@
                  [me.raynes/fs "1.4.6"]
                  [nrepl "1.3.1"]
                  [org.apache.maven/maven-artifact "3.9.9"]
-                 [org.pushing-pixels/radiance-substance "1.0.2"]
-                 [org.pushing-pixels/radiance-substance-extras "1.0.2"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]
                  [ring/ring-core "1.12.2"]
@@ -42,7 +42,8 @@
                  [selmer "1.12.62"]
                  [thi.ng/color "1.5.1"]
                  [uk.co.xfactory-librarians/coremidi4j "1.6"]]
-  :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
+  :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"
+                 "jitpack"            "https://jitpack.io"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
                                       :welcome (println "beat-link-trigger loaded.")}

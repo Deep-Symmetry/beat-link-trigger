@@ -1,12 +1,16 @@
 (ns beat-link-trigger.prefs
   "Functions for managing the application preferences."
   (:require [clojure.edn :as edn]
-            [clojure.java.io]
+            [clojure.java.io :as io]
+            [clojure.set :as set]
             [fipp.edn :as fipp]
             [beat-link-trigger.util :as util]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import java.util.prefs.Preferences))
+  (:import [java.lang.ref WeakReference]
+           [java.util.prefs Preferences]
+           [javax.swing JFrame SwingUtilities UIManager]
+           [com.jthemedetecor OsThemeDetector]))
 
 (defonce ^{:doc "The custom readers needed to read in our preferences.
   Also used by the Show file reader."}
@@ -100,7 +104,7 @@
    (valid-file? :beat-link-trigger-version file))
   ([required-key file]
    (try
-     (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
+     (with-open [in (java.io.PushbackReader. (io/reader file))]
        (let [m (edn/read {:readers @prefs-readers} in)]
          (when (some? (get m required-key))
            m)))
@@ -114,7 +118,7 @@
    (read-file :beat-link-trigger-version file))
   ([required-key file]
    (if (valid-file? required-key file)
-     (with-open [in (java.io.PushbackReader. (clojure.java.io/reader file))]
+     (with-open [in (java.io.PushbackReader. (io/reader file))]
        (edn/read {:readers @prefs-readers} in))
      (throw (IllegalArgumentException. (str "Unreadable file: " file))))))
 
@@ -129,3 +133,190 @@
       (timbre/error e "Problem reading preferences.")
       (seesaw/alert (str "<html>Problem reading preferences.<br><br>" e)
                     :title "Unable to Read Preferences" :type :error))))
+
+;;; Support for user-interface themes
+
+(def ui-names
+  "A map from the keywords by which we identify supported user
+  interface themes to their descriptive names."
+  {:flatlaf-default "FlatLaf Default"
+   :flatlaf-darcula "FlatLaf IntelliJ / Darcula"
+   :flatlaf-macos   "FlatLaf macOS"
+   :custom          "Custom"})
+
+(def ui-themes
+  "A map from descriptive name to the keyword by which we identify a
+  supported user interface theme."
+  (set/map-invert ui-names))
+
+(def ^:private ui-frames
+  "Holds the list of weak references to user interface frames that
+  should be updated when the user interface theme changes."
+  (atom '()))
+
+(defn cleared?
+  "Predicate that checks whether a weak reference has been cleared (is
+  now empty)."
+  [^WeakReference r]
+  (nil? (.get r)))
+
+(defn register-ui-frame
+  "This function adds a frame (window) to the list that will be updated
+  whenever the user chooses a different interface theme, or dark mode
+  turns on or off. The list holds weak references, so it does not
+  prevent the frames from being garbage collected, and they will be
+  cleaned out of the list when that happens."
+  [frame]
+  (swap! ui-frames (fn [existing] (conj (remove cleared? existing) (WeakReference. frame)))))
+
+(defn unregister-ui-frame
+  "This function removes a frame (window) from the list that will be
+  updated whenever the user chooses a different interface theme, or
+  dark mode turns on or off."
+  [frame]
+  (doseq [^WeakReference frame-ref @ui-frames]
+    (when (= (.get frame-ref) frame)
+      (.clear frame-ref)))
+  (swap! ui-frames (partial remove cleared?)))
+
+(def ^:private gear-buttons
+  "Holds the list of weak references to gear buttons that should be
+  updated when the user interface theme changes."
+  (atom '()))
+
+(defn- register-internal
+  "Holds the logic common to registering a new entry in one of the lists
+  related to responding to user interface theme changes."
+  [entry list-atom]
+  (swap! list-atom (fn [existing] (conj (remove cleared? existing) (WeakReference. entry)))))
+
+(defn- unregister-internal
+  "Holds the logic common to removing an entry from one of the lists
+  related to responding to user interface theme changes."
+  [entry list-atom]
+  (doseq [^WeakReference existing-ref @list-atom]
+    (when (= (.get existing-ref) entry)
+      (.clear existing-ref)))
+  (swap! list-atom (partial remove cleared?)))
+
+(defn register-gear-button
+  "This function adds a gear button to the list that will be updated
+  whenever the user chooses a different interface theme, or dark mode
+  turns on or off. The list holds weak references, so it does not
+  prevent the buttons from being garbage collected, and they will be
+  cleaned out of the list when that happens."
+  [button]
+  (register-internal button gear-buttons))
+
+(defn unregister-gear-button
+  "This function removes a gear button from the list that will be
+  updated whenever the user chooses a different interface theme, or
+  dark mode turns on or off."
+  [button]
+  (unregister-internal button gear-buttons))
+
+(def ui-change-callbacks
+  "Holds the list of weak references to functions that should be
+  called when the user interface theme changes. Each will be called
+  with the current dark mode state and user preferences values."
+  (atom '()))
+
+(defn register-ui-change-callback
+  "This function adds a function to the list that will be called
+  whenever the user chooses a different interface theme, or dark mode
+  turns on or off. Each function will be called with the current dark
+  mode state and user preferences values. The list holds weak
+  references, so it does not prevent the functions from being garbage
+  collected, and they will be cleaned out of the list when that
+  happens."
+  [f]
+  (register-internal f ui-change-callbacks))
+
+(defn unregister-ui-change-callback
+  "This function removes a function from the list that will be called
+  whenever the user chooses a different interface theme, or dark mode
+  turns on or off."
+  [f]
+  (unregister-internal f ui-change-callbacks))
+
+(def theme-detector
+  "The object that helps us probe system theme information."
+  (OsThemeDetector/getDetector))
+
+(def ^:private custom-themes
+  "The custom light and dark themes registered by user expressions, if any."
+  (atom {}))
+
+(defn dark-mode?
+  "Checks whether we are currently configured to use a dark mode,
+  possibly by way of the operating system. If the preferences have
+  already been loaded, they can be passed in."
+  ([]
+   (dark-mode? (get-preferences)))
+  ([preferences]
+   (case (:ui-mode preferences)
+     :light false
+     :dark  true
+     (.isDark theme-detector))))  ; Using system setting.
+
+
+(defn gear-icon
+  "Returns the appropriate icon to use for a gear button, depending on
+  its fill state, and the user interface darkness mode. If the
+  preferences have already been loaded, they can be passed as a second
+  parameter to save loading them again."
+  ([filled?]
+   (gear-icon filled? (get-preferences)))
+  ([filled? preferences]
+   (seesaw/icon (str "images/Gear-"
+                     (if filled? "icon" "outline")
+                     (when-not (dark-mode? preferences) "-black")
+                     ".png"))))
+
+(defn update-gear-button
+  "Updates the icon of a gear button to reflect a filled state, in a way
+  appropriate to the current user interface darkness mode, and
+  recording the filled state so the button can be updated properly if
+  that darkness mode changes."
+  [gear filled?]
+  (seesaw/config! gear :icon (gear-icon filled?) :user-data filled?))
+
+(defn set-ui-theme
+  "Called at startup to apply the user's chosen interface theme, and
+  whenever that is changed, or when the host operating system goes or
+  out of dark mode. If the dark mode state is already known, and if
+  the preferences have already been loaded, they can be passed in to
+  avoid redundant work."
+  ([]
+   (let [preferences (get-preferences)]
+     (set-ui-theme (dark-mode? preferences) preferences)))
+  ([dark?]
+   (set-ui-theme dark? (get-preferences)))
+  ([dark? preferences]
+   (let [theme (case [(:ui-theme preferences :flatlaf-darcula) dark?]
+                 [:flatlaf-default false] (com.formdev.flatlaf.FlatLightLaf.)
+                 [:flatlaf-default true]  (com.formdev.flatlaf.FlatDarkLaf.)
+                 [:flatlaf-darcula false] (com.formdev.flatlaf.FlatIntelliJLaf.)
+                 [:flatlaf-darcula true]  (com.formdev.flatlaf.FlatDarculaLaf.)
+                 [:flatlaf-macos false]   (com.formdev.flatlaf.themes.FlatMacLightLaf.)
+                 [:flatlaf-macos true]    (com.formdev.flatlaf.themes.FlatMacDarkLaf.)
+                 [:custom false]          (or (:light @custom-themes) (com.formdev.flatlaf.FlatIntelliJLaf.))
+                 [:custom true]           (or (:dark @custom-themes) (com.formdev.flatlaf.FlatDarculaLaf.)))]
+     (seesaw/invoke-later
+       (try
+         (UIManager/setLookAndFeel theme)
+         (let [preferences (get-preferences)]
+           (doseq [^WeakReference button-ref (swap! gear-buttons (partial remove cleared?))]
+             (when-let [button (.get button-ref)]
+               (seesaw/config! button :icon (gear-icon (seesaw/user-data button) preferences)))))
+         (doseq [^WeakReference callback-ref (swap! ui-change-callbacks (partial remove cleared?))]
+           (when-let [f (.get callback-ref)]
+             (try
+               (f dark? preferences)
+               (catch Throwable t
+                 (timbre/error t "Problem in user interface theme change callback")))))
+         (doseq [^WeakReference frame-ref (swap! ui-frames (partial remove cleared?))]
+           (when-let [^JFrame frame (.get frame-ref)]
+             (SwingUtilities/updateComponentTreeUI frame)))
+         (catch Throwable t
+           (timbre/error t "Unable to set UI theme to" theme)))))))

@@ -33,7 +33,7 @@
            [java.awt Color Graphics2D RenderingHints]
            [java.awt.event WindowEvent]
            [java.io File]
-           [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem]
+           [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem UIManager]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AnalysisTagFinder ArtFinder BeatGridFinder CrateDigger MetadataFinder
@@ -51,6 +51,11 @@
   manipulate the triggers themselves."}
   trigger-frame
   (atom nil))
+
+(def ^:private theme-colors
+  "Holds colors used to draw the user interface appropriately for the
+  current user interface theme."
+  (atom {}))
 
 (defn- online-menu-item
   "Helper function to find the Online menu item, which is often toggled
@@ -145,7 +150,7 @@
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
-          [(custom-fn status data expression-globals) nil])
+          [(custom-fn status data #_:clj-kondo/ignore expression-globals) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/triggers-editor-title kind trigger false) ":\n"
                                (get-in data [:expressions kind])))
@@ -580,7 +585,7 @@
               status        (latest-status-for device-number)]
           (if found
             (if (instance? CdjStatus status)
-              (do (seesaw/config! status-label :foreground "cyan")
+              (do (seesaw/config! status-label :foreground (:valid-status-color @theme-colors))
                   (seesaw/value! status-label (build-status-label status track-description metadata-summary)))
               (do (seesaw/config! status-label :foreground "red")
                   (seesaw/value! status-label (cond (some? status)       "Non-Player status received."
@@ -604,7 +609,7 @@
           state         (seesaw/select trigger [:#state])
           output        (get-chosen-output trigger)]
       (if (or output (no-output-chosen trigger))
-        (do (seesaw/config! enabled-label :foreground "white")
+        (do (seesaw/config! enabled-label :foreground (UIManager/getColor "windowText"))
             (seesaw/value! enabled-label "Enabled:")
             (seesaw/config! enabled :visible? true)
             (seesaw/config! state :visible? true))
@@ -627,10 +632,15 @@
    (filter #(= (:file show) (:show-file @(seesaw/user-data %))) (get-triggers))))
 
 (defn- trigger-color
-  "Calculates the color that should be used as the background color for a
-  trigger row, given the trigger index and show hue (if any)."
-  [trigger-index show-hue]
-  (let [base-color (if (odd? trigger-index) "#eee" "#ddd")]
+  "Calculates the color that should be used as the background color for
+  a trigger row, given the trigger index and show hue (if any).
+  `dark?` reflects the current user interface dark mode setting."
+  [trigger-index show-hue dark?]
+  (let [base-color (case [dark? (odd? trigger-index)]
+                     [false false] "#eee"
+                     [false true]  "#ddd"
+                     [true false]  "#222"
+                     [true true]   "#111")]
     (if show-hue
       (let [luminance (-> base-color color/css color/luminance)
             color     (color/hsla (/ show-hue 360.0) 0.95 luminance)]
@@ -641,36 +651,41 @@
   "Called when a trigger is added or removed to restore the proper
   alternation of background colors and identification of source shows.
   Also resize the window if it still fits the screen, and update any
-  other user interface elements that might be affected."
-  []
-  (when (seq (get-triggers))
-    (loop [triggers       (get-triggers)
-           trigger-index  1
-           show-hue       nil
-           last-show-file nil]
-      (let [trigger         (first triggers)
-            remaining       (rest triggers)
-            ^File show-file (:show-file @(seesaw/user-data trigger))
-            show-hue        (if (= show-file last-show-file)
-                              show-hue  ; Either let show explicitly set hue, or rotate through color wheel
-                              (or (:show-hue @(seesaw/user-data trigger)) (mod (+ (or show-hue 0.0) 62.5) 360.0)))]
-        (seesaw/config! trigger :background (trigger-color trigger-index show-hue))
-        (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
-        (if (= show-file last-show-file)
-          (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)
-          (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? true
-                          :text (str "Triggers from Show " (util/trim-extension (.getPath show-file)) ":")))
-        (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
-          (editors/retitle editor))
-        (when (seq remaining)
-          (recur remaining
-                 (inc trigger-index)
-                 show-hue
-                 show-file)))))
-  (let [^JFrame frame @trigger-frame]
-    (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration frame)))
-                    (.height (.getBounds frame))))
-      (.pack frame))))
+  other user interface elements that might be affected. If the current
+  dark mode state is known, it can be passed in to save a redundant
+  lookup of that and the user preferences."
+  ([]
+   (adjust-triggers (prefs/dark-mode?)))
+  ([dark?]
+   (swap! theme-colors assoc :valid-status-color (if dark? Color/CYAN Color/BLUE))
+   (when (seq (get-triggers))
+     (loop [triggers       (get-triggers)
+            trigger-index  1
+            show-hue       nil
+            last-show-file nil]
+       (let [trigger         (first triggers)
+             remaining       (rest triggers)
+             ^File show-file (:show-file @(seesaw/user-data trigger))
+             show-hue        (if (= show-file last-show-file)
+                               show-hue ; Either let show explicitly set hue, or rotate through color wheel
+                               (or (:show-hue @(seesaw/user-data trigger)) (mod (+ (or show-hue 0.0) 62.5) 360.0)))]
+         (seesaw/config! trigger :background (trigger-color trigger-index show-hue dark?))
+         (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
+         (if (= show-file last-show-file)
+           (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)
+           (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? true
+                           :text (str "Triggers from Show " (util/trim-extension (.getPath show-file)) ":")))
+         (doseq [editor (vals (:expression-editors @(seesaw/user-data trigger)))]
+           (editors/retitle editor))
+         (when (seq remaining)
+           (recur remaining
+                  (inc trigger-index)
+                  show-hue
+                  show-file)))))
+   (let [^JFrame frame @trigger-frame]
+     (when (< 100 (- (.height (.getBounds (.getGraphicsConfiguration frame)))
+                     (.height (.getBounds frame))))
+       (.pack frame)))))
 
 (defn- run-global-function
   "Checks whether the trigger frame has a custom function of the
@@ -784,9 +799,7 @@
   or filled in, depending on whether any expressions have been
   assigned to it."
   [trigger gear]
-  (seesaw/config! gear :icon (if (every? empty? (vals (:expressions @(seesaw/user-data trigger))))
-                               (seesaw/icon "images/Gear-outline.png")
-                               (seesaw/icon "images/Gear-icon.png"))))
+  (prefs/update-gear-button gear (not-every? empty? (vals (:expressions @(seesaw/user-data trigger))))))
 
 (declare export-trigger)
 (declare import-trigger)
@@ -861,7 +874,7 @@
    (create-trigger-row nil 1))
   ([m index]
    (let [outputs (util/get-midi-outputs)
-         gear    (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+         gear    (seesaw/button :id :gear :icon (seesaw/icon (prefs/gear-icon false)))
          panel   (mig/mig-panel
                   :id :panel
                   :items [[(seesaw/label :id :from-show :text "Triggers from no Show." :visible? false :halign :center)
@@ -944,9 +957,7 @@
                               (seesaw/action :handler (fn [_] (editors/show-trigger-editor kind panel update-fn))
                                              :name (str "Edit " (:title spec))
                                              :tip (:tip spec)
-                                             :icon (if (missing-expression? panel kind)
-                                                     (seesaw/icon "images/Gear-outline.png")
-                                                     (seesaw/icon "images/Gear-icon.png"))))))
+                                             :icon (prefs/gear-icon (not (missing-expression? panel kind)))))))
          sim-actions    (fn []
                           [(seesaw/action :name "Activation"
                                           :enabled? (simulate-enabled? panel :activation)
@@ -982,6 +993,7 @@
                     :mouse-pressed (fn [e]
                                      (let [popup (seesaw/popup :items (popup-fn e))]
                                        (util/show-popup-from-button gear popup e))))
+     (prefs/register-gear-button gear)
 
      ;; Attach the custom paint function to render the graphical trigger state
      (seesaw/config! (seesaw/select panel [:#state]) :paint (partial paint-state panel))
@@ -1306,7 +1318,7 @@
                  (let [status-label (seesaw/select trigger [:#status])
                        track-description (:track-description @(:locals @(seesaw/user-data trigger)))
                        metadata-summary (:metadata-summary @(:locals @(seesaw/user-data trigger)))]
-                   (seesaw/config! status-label :foreground "cyan")
+                   (seesaw/config! status-label :foreground (:valid-status-color @theme-colors))
                    (seesaw/value! status-label (build-status-label status track-description metadata-summary))))))))
         (catch Exception e
           (timbre/error e "Problem responding to Player status packet."))))))
@@ -1464,18 +1476,17 @@
 (defn build-global-editor-action
   "Creates an action which edits one of the global expressions."
   [kind]
-  (seesaw/action :handler (fn [_] (editors/show-trigger-editor kind (seesaw/config @trigger-frame :content)
-                                                               (fn []
-                                                                 (when (= :setup kind)
-                                                                   (run-global-function :shutdown)
-                                                                   (reset! expression-globals {})
-                                                                   (run-global-function :setup))
-                                                                 (update-global-expression-icons))))
+  (seesaw/action :handler (fn [_] (editors/show-trigger-editor
+                                   kind (seesaw/config @trigger-frame :content)
+                                   (fn []
+                                     (when (= :setup kind)
+                                       (run-global-function :shutdown)
+                                       (reset! expression-globals {})
+                                       (run-global-function :setup))
+                                     (update-global-expression-icons))))
                  :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
                  :tip (get-in editors/global-trigger-editors [kind :tip])
-                 :icon (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions kind]))
-                                       "images/Gear-outline.png"
-                                       "images/Gear-icon.png"))))
+                 :icon (prefs/gear-icon (seq (get-in @trigger-prefs [:expressions kind])))))
 
 (defn- show-player-status-handler
   "Try to show the player status window, giving the user appropriate
@@ -1661,31 +1672,42 @@
                             (menus/build-help-menu)])))
 
 (defn update-global-expression-icons
-  "Updates the icons next to expressions in the Trigger menu to
-  reflect whether they have been assigned a non-empty value."
-  []
-  (let [^JMenu menu (seesaw/select @trigger-frame [:#triggers-menu])
-        exprs       {"Edit Shared Functions"           :shared
-                     "Edit Global Setup Expression"    :setup
-                     "Edit Came Online Expression"     :online
-                     "Edit Going Offline Expression"   :offline
-                     "Edit Global Shutdown Expression" :shutdown}]
-    (doseq [i (range (.getItemCount menu))]
-      (let [^JMenuItem item (.getItem menu i)]
-        (when item
-          (when-let [expr (get exprs (.getText item))]
-            (.setIcon item (seesaw/icon (if (empty? (get-in @trigger-prefs [:expressions expr]))
-                                                                 "images/Gear-outline.png"
-                                                                 "images/Gear-icon.png")))))))))
+  "Updates the icons next to expressions in the Trigger menu to reflect
+  whether they have been assigned a non-empty value. If the user
+  preferences have already been loaded, they can be passed as an
+  argument to prevent redundant work."
+  ([]
+   (update-global-expression-icons (prefs/get-preferences)))
+  ([preferences]
+   (let [^JMenu menu (seesaw/select @trigger-frame [:#triggers-menu])
+         exprs       {"Edit Shared Functions"           :shared
+                      "Edit Global Setup Expression"    :setup
+                      "Edit Came Online Expression"     :online
+                      "Edit Going Offline Expression"   :offline
+                      "Edit Global Shutdown Expression" :shutdown}]
+     (doseq [i (range (.getItemCount menu))]
+       (let [^JMenuItem item (.getItem menu i)]
+         (when item
+           (when-let [expr (get exprs (.getText item))]
+             (.setIcon item (prefs/gear-icon (seq (get-in @trigger-prefs [:expressions expr])) preferences)))))))))
+
+(defn- ui-theme-changed
+  "Called whenever the user interface theme has been changed, or dark
+  mode has been entered or exited. Updates the window's interface to
+  be readable in the new theme."
+  [_root dark? preferences]
+  (adjust-triggers dark?)
+  (update-global-expression-icons preferences))
 
 (defn- create-trigger-window
   "Create and show the trigger window."
   []
   (try
-    (let [root (seesaw/frame :title "Beat Link Triggers" :on-close :nothing
-                             :menubar (build-trigger-menubar))
-          triggers (seesaw/vertical-panel :id :triggers)
-          panel (seesaw/scrollable triggers :user-data trigger-prefs)]
+    (let [root           (seesaw/frame :title "Beat Link Triggers" :on-close :nothing
+                                       :menubar (build-trigger-menubar))
+          triggers       (seesaw/vertical-panel :id :triggers)
+          panel          (seesaw/scrollable triggers :user-data trigger-prefs)
+          theme-callback (partial ui-theme-changed root)]
       (seesaw/config! root :content panel)
       (reset! trigger-frame root)
       (seesaw/config! triggers :items (recreate-trigger-rows))
@@ -1693,6 +1715,8 @@
       (util/restore-window-position root :triggers nil)
       (seesaw/show! root)
       (check-for-parse-error)
+      (prefs/register-ui-frame root)
+      (prefs/register-ui-change-callback theme-callback)
       (seesaw/listen root
                      :window-closing
                      (fn [_]
@@ -1700,16 +1724,19 @@
                        (if (and (show/close-all-shows false)
                                 (delete-all-triggers false))
                          (do
+                           (prefs/unregister-ui-frame root)
+                           (prefs/unregister-ui-change-callback theme-callback)
                            (writer/close-window)
                            (when (beat-carabiner/active?)
                              (beat-carabiner/disconnect)
-                             (Thread/sleep 250))  ; Give any spawned daemon time to exit gracefully.
-                           (menus/respond-to-quit-request true)  ; In case it came from the OS
+                             (Thread/sleep 250)) ; Give any spawned daemon time to exit gracefully.
+                           (menus/respond-to-quit-request true) ; In case it came from the OS
                            (System/exit 0))
                          (menus/respond-to-quit-request false)))
 
                      #{:component-moved :component-resized}
                      (fn [_] (util/save-window-position root :triggers))))
+
     (catch Exception e
       (timbre/error e "Problem creating Trigger window."))))
 
@@ -1768,6 +1795,8 @@
              (midi-environment-changed))))
 
         ;; Open the trigger window
+        (swap! theme-colors assoc :valid-status-color
+               (if (prefs/dark-mode?) Color/CYAN Color/BLUE))
         (create-trigger-window)
 
         ;; Be able to react to players coming and going

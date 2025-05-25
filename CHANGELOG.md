@@ -9,6 +9,7 @@ This change log follows the conventions of
 ### Changed
 
 - Works with the 8.x version of Beat Link, to offer support for the Opus Quad, as long as you build and attach metadata archives for the USBs you are using, or are loading them from rekordbox or rekordbox mobile on a different computer than where BLT is running.
+- The aging (and no-longer-maintained) user interface look-and-feel has been replaced with a newer one, which also supports user choice of light and dark mode (including adopting the system-wide setting for that, if desired), and allows custom look-and-feels to be installed and used.
 - Updated to Clojure 1.12, which enables a great many simplifications and improvements in Java interop syntax.
   In the process, also eliminated any avoidable reflective Java method invocations to improve performance.
 
@@ -26,6 +27,7 @@ This change log follows the conventions of
 - An error in interpreting database export file format by the Crate Digger library could lead to some rows that were actually present in tables not being found.
 - Phrase trigger section sizes were not being loaded correctly, the End section was always set to 1 bar and the Fill section to 2 bars when reopening a show.
 - Shows with phrase cues saved at illegal locations (which may have been caused by the above problem) would prevent the cues editor window from opening, so they could not be fixed.
+- A race condition could result in some menu options disappearing when shows blocked the Tracks interface.
 - The QLC+ Cues integration example was broken, as a result of some enhancements I made that never got tested by actual QLC+ users until much later, sorry!
 - Some variables were incorrect in the phrase trigger expression examples in the user guide.
 - The value for `loaded-players` was not being simulated in a usable way when requesting a standalone simulation of the event.

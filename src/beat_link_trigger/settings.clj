@@ -6,6 +6,7 @@
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as playlist]
             [beat-link-trigger.prefs :as prefs]
+            [beat-link-trigger.util :as util]
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
@@ -76,7 +77,34 @@
           defaults       (prefs/get-preferences)
           syncable       (fn [mode] (#{"Passive" "Full"} mode)) ; Is this mode one the user can sync to Ableton?
           settings-panel (mig/mig-panel
-                          :items [[(seesaw/label :text "Waveform Style:") "align right"]
+                          :items [[(seesaw/label :text "User Interface Theme:") "align right"]
+                                  [(seesaw/combobox :id :theme
+                                                    :model (sort (keys prefs/ui-themes))
+                                                    :selected-item (prefs/ui-names
+                                                                    (:ui-theme defaults :flatlaf-darcula))
+                                                    :listen [:item-state-changed
+                                                             (fn [^ItemEvent e]
+                                                               (when (= (.getStateChange e) ItemEvent/SELECTED)
+                                                                 (prefs/put-preferences
+                                                                  (-> (prefs/get-preferences)
+                                                                      (assoc :ui-theme
+                                                                             (prefs/ui-themes (seesaw/value e)))))
+                                                                 (prefs/set-ui-theme)))])
+                                   "wrap"]
+                                  [(seesaw/label :text "User Interface Mode:") "align right"]
+                                  [(seesaw/combobox :model ["Light" "Dark" "System"]
+                                                    :selected-item (str/capitalize (name (:ui-mode defaults :dark)))
+                                                    :listen [:item-state-changed
+                                                             (fn [^ItemEvent e]
+                                                               (when (= (.getStateChange e) ItemEvent/SELECTED)
+                                                                 (prefs/put-preferences
+                                                                  (-> (prefs/get-preferences)
+                                                                      (assoc :ui-mode
+                                                                             (keyword
+                                                                              (str/lower-case (seesaw/value e))))))
+                                                                 (prefs/set-ui-theme)))])
+                                   "wrap unrelated"]
+                                  [(seesaw/label :text "Waveform Style:") "align right"]
                                   [(seesaw/combobox :id :waveform-style
                                                     :model ["RGB" "3-Band" "Blue"]
                                                     :selected-item (:waveform-style defaults "RGB")
@@ -193,8 +221,11 @@
                                                                             (assoc :run-obs-overlay
                                                                                    (seesaw/value e)))))])
                                    "wrap"]])]
+      (prefs/register-ui-frame root)
       (reset! settings-window root)
-      (seesaw/listen root :window-closed (fn [_] (reset! settings-window nil)))
+      (seesaw/listen root :window-closed (fn [_]
+                                           (reset! settings-window nil)
+                                           (prefs/unregister-ui-frame root)))
       (seesaw/config! root :content settings-panel)
       (seesaw/pack! root)
       (.setResizable root false)

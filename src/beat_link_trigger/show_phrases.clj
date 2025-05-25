@@ -3,6 +3,7 @@
   cue editing windows."
   (:require [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-phrase latest-show-and-phrase
@@ -387,9 +388,7 @@
   (seesaw/action :handler (fn [_] (cues/open-cues phrase panel))
                  :name "Edit Phrase Cues"
                  :tip "Set up cues that react to particular sections of the phrase being played."
-                 :icon (if (every? empty? (vals (get-in (latest-phrase show phrase) [:cues :cues])))
-                         "images/Gear-outline.png"
-                         "images/Gear-icon.png")))
+                 :icon (prefs/gear-icon (not-every? empty? (vals (get-in (latest-phrase show phrase) [:cues :cues]))))))
 
 (defn- send-playing-messages
   "Sends the appropriate MIDI messages and runs the custom expression to
@@ -451,9 +450,7 @@
                                      (partial phrase-editor-update-fn kind show phrase gear)))
                    :name (str "Edit " (:title spec))
                    :tip (:tip spec)
-                   :icon (if (phrase-missing-expression? show phrase kind)
-                           "images/Gear-outline.png"
-                           "images/Gear-icon.png"))))
+                   :icon (prefs/gear-icon (not (phrase-missing-expression? show phrase kind))))))
 
 (defn phrase-event-enabled?
   "Checks whether the Message menu is set to something other than None,
@@ -1030,7 +1027,7 @@
                                     :text (:comment phrase "") :listen [:document update-comment])
         preview        (seesaw/canvas :id :preview :paint (partial paint-phrase-preview show uuid))
         outputs        (util/get-midi-outputs)
-        gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        gear           (seesaw/button :id :gear :icon (prefs/gear-icon false))
         players-label  (seesaw/label :id :players-label :text "Players:")
         players        (seesaw/combobox :id :players
                                         :model ["Master" "On-Air" "Any"]
@@ -1235,8 +1232,9 @@
                  :filter            (build-filter-target (:comment phrase))
                  :panel             panel
                  :preview-canvas    preview})
-        (swap-show! show assoc-in [:panels panel] uuid)  ; Tracks all the rows in the show window.
-        (su/phrase-added show uuid)
+    (swap-show! show assoc-in [:panels panel] uuid)  ; Tracks all the rows in the show window.
+    (prefs/register-gear-button gear)
+    (su/phrase-added show uuid)
 
     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
     ;; or right click on the gear button. Also set the proper initial gear appearance.

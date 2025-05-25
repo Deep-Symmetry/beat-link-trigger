@@ -652,9 +652,7 @@
    (let [[_show context runtime-info] (latest-show-and-context context)]
      (update-gear-icon context (seesaw/select (:panel runtime-info) [:#gear]))))
   ([context gear]
-   (seesaw/config! gear :icon (if (empty? (gear-content context))
-                                (seesaw/icon "images/Gear-outline.png")
-                                (seesaw/icon "images/Gear-icon.png")))))
+   (prefs/update-gear-button gear (seq (gear-content context)))))
 
 (defn repaint-preview
   "Tells the track or phrase trigger's preview component to repaint
@@ -671,54 +669,60 @@
   online or simulating playback. Updates the show's `:visible` key to
   hold a vector of the visible track signatures, sorted by title then
   artist then signature. Then uses that to update the contents of the
-  `tracks` panel appropriately."
-  [show]
-  (let [show            (latest-show show)
-        tracks          (seesaw/select (:frame show) [:#tracks])
-        text            (get-in show [:contents :filter] "")
-        tracks-only?    (str/starts-with? text "track:")
-        phrases-only?   (str/starts-with? text "phrase:")
-        text            (str/replace text #"^(track:\s*)|(phrase:\s*)" "")
-        loaded-only?    (get-in show [:contents :loaded-only])
-        relevant?       (or (util/online?) ((requiring-resolve 'beat-link-trigger.simulator/simulating?)))
-        signatures      (if (util/online?)
-                          (set (vals (.getSignatures util/signature-finder)))
-                          (set (->> ((requiring-resolve 'beat-link-trigger.simulator/track-signatures)))))
-        visible-tracks  (filter (fn [track]
-                                  (and
-                                   (not phrases-only?)
-                                   (or (str/blank? text) (str/includes? (:filter track) text))
-                                   (or (not loaded-only?) (not relevant?)
-                                       (signatures (:signature track)))))
-                                (vals (:tracks show)))
-        sorted-tracks   (sort-by (juxt #(str/lower-case (or (get-in % [:metadata :title]) ""))
-                                       #(str/lower-case (or (get-in % [:metadata :artist]) ""))
-                                       :signature)
-                                 visible-tracks)
-        visible-phrases (filter identity
-                                (for [uuid (get-in show [:contents :phrase-order])]
-                                  (let [target (get-in show [:phrases uuid :filter] "")]
-                                    (when (and
-                                           (not tracks-only?)
-                                           (or (str/blank? text)
-                                               (str/includes? target text))
-                                           (or (not loaded-only?) (not relevant?)
-                                               (get-in show [:phrases uuid :tripped])))
-                                      (get-in show [:contents :phrases uuid])))))]
-    (swap-show! show assoc :visible (mapv :signature sorted-tracks)
-                :visible-phrases (mapv :uuid visible-phrases))
-    (doall (map (fn [row color]
-                  (seesaw/config! (:panel row) :background color))
-                sorted-tracks (cycle ["#eee" "#ddd"])))
-    (doall (map (fn [row color]
-                  (seesaw/config! (get-in show [:phrases (:uuid row) :panel]) :background color))
-                visible-phrases (drop (count sorted-tracks) (cycle ["#eef" "#ddf"]))))
-    (when tracks  ; If the show has a custom user panel installed, this will be nil.
-      (seesaw/config! tracks :items (concat (map :panel sorted-tracks)
-                                            (map (fn [{:keys [uuid]}]
-                                                   (get-in show [:phrases uuid :panel]))
-                                                 visible-phrases)
-                                            [:fill-v])))))
+  `tracks` panel appropriately. If the current dark mode setting is
+  known, it can be passed in to avoid redundant work."
+  ([show]
+   (update-row-visibility show (prefs/dark-mode?)))
+  ([show dark?]
+   (let [show            (latest-show show)
+         tracks          (seesaw/select (:frame show) [:#tracks])
+         text            (get-in show [:contents :filter] "")
+         tracks-only?    (str/starts-with? text "track:")
+         phrases-only?   (str/starts-with? text "phrase:")
+         text            (str/replace text #"^(track:\s*)|(phrase:\s*)" "")
+         loaded-only?    (get-in show [:contents :loaded-only])
+         relevant?       (or (util/online?) ((requiring-resolve 'beat-link-trigger.simulator/simulating?)))
+         signatures      (if (util/online?)
+                           (set (vals (.getSignatures util/signature-finder)))
+                           (set (->> ((requiring-resolve 'beat-link-trigger.simulator/track-signatures)))))
+         visible-tracks  (filter (fn [track]
+                                   (and
+                                    (not phrases-only?)
+                                    (or (str/blank? text) (str/includes? (:filter track) text))
+                                    (or (not loaded-only?) (not relevant?)
+                                        (signatures (:signature track)))))
+                                 (vals (:tracks show)))
+         sorted-tracks   (sort-by (juxt #(str/lower-case (or (get-in % [:metadata :title]) ""))
+                                        #(str/lower-case (or (get-in % [:metadata :artist]) ""))
+                                        :signature)
+                                  visible-tracks)
+         visible-phrases (filter identity
+                                 (for [uuid (get-in show [:contents :phrase-order])]
+                                   (let [target (get-in show [:phrases uuid :filter] "")]
+                                     (when (and
+                                            (not tracks-only?)
+                                            (or (str/blank? text)
+                                                (str/includes? target text))
+                                            (or (not loaded-only?) (not relevant?)
+                                                (get-in show [:phrases uuid :tripped])))
+                                       (get-in show [:contents :phrases uuid])))))]
+     (swap-show! show assoc :visible (mapv :signature sorted-tracks)
+                 :visible-phrases (mapv :uuid visible-phrases))
+     (doall (map (fn [row color]
+                   (let [panel (:panel row)]
+                     (seesaw/config! panel :background color)
+                     (seesaw/config! (seesaw/select panel [:#title]) :foreground (if dark? Color/yellow Color/blue))
+                     (seesaw/config! (seesaw/select panel [:#artist]) :foreground (if dark? Color/green Color/blue))))
+                 sorted-tracks (cycle (if dark? ["#222" "#111"] ["#eee" "#ddd"]))))
+     (doall (map (fn [row color]
+                   (seesaw/config! (get-in show [:phrases (:uuid row) :panel]) :background color))
+                 visible-phrases (drop (count sorted-tracks) (cycle (if dark? ["#224" "#114"] ["#eef" "#ddf"])))))
+     (when tracks ; If the show has a custom user panel installed, this will be nil.
+       (seesaw/config! tracks :items (concat (map :panel sorted-tracks)
+                                             (map (fn [{:keys [uuid]}]
+                                                    (get-in show [:phrases uuid :panel]))
+                                                  visible-phrases)
+                                             [:fill-v]))))))
 
 (defn hue-to-color
   "Returns a `Color` object of the given `hue` (in degrees, ranging from

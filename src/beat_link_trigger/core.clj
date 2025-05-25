@@ -15,8 +15,7 @@
             [clojure.string :as str]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import [java.awt GraphicsEnvironment]
-           [javax.swing JFrame UIManager]
+  (:import [javax.swing JFrame]
            [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj]))
 
 (def ^DeviceFinder device-finder
@@ -214,32 +213,18 @@
      ;; a valid name when running in development or as a loose jar.
      (System/setProperty "apple.awt.application.name" "Beat Link Trigger")
 
+     ;; Allow dark title bars. This is supposed to be back-ported to Java 11.0.8,
+     ;; but it is not yet working either.
+     (System/setProperty "apple.awt.application.appearance" "system")
+
      ;; Switch to the Swing Event Dispatch Thread to configure the user interface.
      (seesaw/invoke-now
        (seesaw/native!) ; Adopt as native a look-and-feel as possible.
        (System/setProperty "apple.laf.useScreenMenuBar" "false") ; Except put menus in frames.
-       (try ; Install our custom dark and textured look-and-feel on top of it.
-         (let [skin-class (Class/forName "beat_link_trigger.TexturedRaven")]
-           (org.pushingpixels.substance.api.SubstanceCortex$GlobalScope/setSkin
-            ^org.pushingpixels.substance.api.SubstanceSkin (.newInstance skin-class)))
-         (catch ClassNotFoundException _
-           (timbre/warn "Unable to find our look and feel class, did you forget to run \"lein compile\"?")))
+       (prefs/set-ui-theme)
 
        ;; Use our dynamic class loader on the Swing thread too.
-       (.setContextClassLoader (Thread/currentThread) cl)
-
-       ;; If we are running under Java 9 or later on the Mac, and have one of the overly-skinny default system
-       ;; fonts, but can swap back to Lucida Grande, do so now.
-       (when (and (when-let [font-name (.getName ^javax.swing.plaf.FontUIResource (UIManager/get "MenuBar.font"))]
-                    (.startsWith font-name "."))
-                  (some #(= "Lucida Grande" %)
-                        (.getAvailableFontFamilyNames (GraphicsEnvironment/getLocalGraphicsEnvironment))))
-         (doseq [[k v] (filter identity (for [[k v] (UIManager/getDefaults)]
-                                          (when (and (instance? javax.swing.plaf.FontUIResource v)
-                                                     (.startsWith (.getName ^javax.swing.plaf.FontUIResource v) "."))
-                                            [k v])))]
-           (let [^javax.swing.plaf.FontUIResource fr v]
-             (UIManager/put k (javax.swing.plaf.FontUIResource. "Lucida Grande" (.getStyle fr) (.getSize fr)))))))
+       (.setContextClassLoader (Thread/currentThread) cl))
 
      ;; If we are on a Mac, hook up our About and Settings handlers
      ;; where users expect to find them, and add a Quit handler that
@@ -284,6 +269,12 @@
        ;; Restore saved window positions if they exist
        (when-let [saved (:window-positions preferences)]
          (reset! util/window-positions saved))
+
+       ;; Set up to update the user interface theme if we should respect system light/dark settings.
+       (.registerListener prefs/theme-detector
+                          (reify java.util.function.Consumer
+                            (accept [_this dark?]
+                              (prefs/set-ui-theme dark?))))
 
        ;; Honor the user's preferred waveform style
        (let [selected-style (get settings/wave-styles (:waveform-style preferences "RGB"))]

@@ -7,6 +7,7 @@
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.track-loader :as loader]
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-phrases :as phrases]
@@ -989,24 +990,26 @@
       (timbre/error e "Problem showing Track MIDI status."))))
 
 (defn update-tracks-global-expression-icons
-  "Updates the icons next to expressions in the Tracks menu to
-  reflect whether they have been assigned a non-empty value."
-  [show]
-  (let [show        (latest-show show)
-        ^JMenu menu (seesaw/select (:frame show) [:#tracks-menu])]
-    (doseq [i (range (.getItemCount menu))]
-      (let [item  (.getItem menu i)
-            exprs {"Edit Shared Functions"                  :shared
-                   "Edit Global Setup Expression"           :setup
-                   "Edit Came Online Expression"            :online
-                   "Edit Default Enabled Filter Expression" :enabled
-                   "Edit Going Offline Expression"          :offline
-                   "Edit Global Shutdown Expression"        :shutdown}]
-        (when item
-          (when-let [expr (get exprs (.getText item))]
-            (.setIcon item (seesaw/icon (if (empty? (get-in show [:contents :expressions expr]))
-                                          "images/Gear-outline.png"
-                                          "images/Gear-icon.png")))))))))
+  "Updates the icons next to expressions in the Tracks menu to reflect
+  whether they have been assigned a non-empty value. If the user
+  preferences have already been loaded, they can be passed in to save
+  redundant work."
+  ([show]
+   (update-tracks-global-expression-icons show (prefs/get-preferences)))
+  ([show preferences]
+   (let [show        (latest-show show)
+         ^JMenu menu (seesaw/select (:frame show) [:#tracks-menu])]
+     (doseq [i (range (.getItemCount menu))]
+       (let [item  (.getItem menu i)
+             exprs {"Edit Shared Functions"                  :shared
+                    "Edit Global Setup Expression"           :setup
+                    "Edit Came Online Expression"            :online
+                    "Edit Default Enabled Filter Expression" :enabled
+                    "Edit Going Offline Expression"          :offline
+                    "Edit Global Shutdown Expression"        :shutdown}]
+         (when item
+           (when-let [expr (get exprs (.getText item))]
+             (.setIcon item (prefs/gear-icon (seq (get-in show [:contents :expressions expr])) preferences)))))))))
 
 (defn- attach-track-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
@@ -1302,9 +1305,7 @@
   (seesaw/action :handler (fn [_] (cues/open-cues track panel))
                  :name "Edit Track Cues"
                  :tip "Set up cues that react to particular sections of the track being played."
-                 :icon (if (empty? (get-in (latest-track track) [:contents :cues :cues]))
-                         "images/Gear-outline.png"
-                         "images/Gear-icon.png")))
+                 :icon (prefs/gear-icon (seq (get-in (latest-track track) [:contents :cues :cues])))))
 
 (defn- track-missing-expression?
   "Checks whether the expression body of the specified kind is empty for
@@ -1332,9 +1333,7 @@
                                                               (partial track-editor-update-fn kind track gear)))
                    :name (str "Edit " (:title spec))
                    :tip (:tip spec)
-                   :icon (if (track-missing-expression? track kind)
-                           "images/Gear-outline.png"
-                           "images/Gear-icon.png"))))
+                   :icon (prefs/gear-icon (not (track-missing-expression? track kind))))))
 
 (defn- track-event-enabled?
   "Checks whether the specified event type is enabled for the given
@@ -1569,237 +1568,242 @@
 
 (defn- create-track-panel
   "Creates a panel that represents a track in the show. Updates tracking
-  indices appropriately."
-  [show ^Path track-root]
-  (let [signature      (first (str/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
-        metadata       (su/read-edn-path (.resolve track-root "metadata.edn"))
-        contents-path  (.resolve track-root "contents.edn")
-        contents       (when (Files/isReadable contents-path) (su/read-edn-path contents-path))
-        comment        (or (:comment contents) (:comment metadata))
-        update-comment (fn [c]
-                         (let [comment (seesaw/text c)]
-                           (swap-signature! show signature assoc-in [:contents :comment] comment)
-                           (swap-signature! show signature assoc :filter
-                                            (build-filter-target metadata comment))))
-        comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
-                                    :text comment :listen [:document update-comment])
-        preview-loader (create-preview-loader show signature metadata)
-        soft-preview   (create-track-preview preview-loader)
-        song-structure (when-let [raw-ss (su/read-song-structure track-root)]
-                         (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss)))
-        outputs        (util/get-midi-outputs)
-        gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
-        lock           (seesaw/button :id :lock :visible? (some? (su/read-song-structure track-root))
-                                      :tip "Toggle Phrase Trigger lockout"
-                                      :listen [:action-performed
-                                               (fn [e]
-                                                 (swap-signature! show signature
-                                                                  update-in [:contents :phrase-unlocked] not)
-                                                 (seesaw/config! e :icon (lock-button-icon-internal show signature)))])
-        panel          (mig/mig-panel
-                        :constraints (track-panel-constraints (.getWidth ^JFrame (:frame show)))
-                        :items [[(create-track-art show signature) "spany 4"]
-                                [(seesaw/label :text (or (:title metadata) "[no title]")
-                                               :font (Font. "serif" Font/ITALIC 14)
-                                               :foreground :yellow)
-                                 "width 60:120"]
-                                [soft-preview "spany 4, wrap"]
+  indices appropriately. If the state of dark mode is known, it can be
+  passed in to avoid redundant work."
+  ([show ^Path track-root]
+   (create-track-panel show track-root (prefs/dark-mode?)))
+  ([show ^Path track-root dark?]
+   (let [signature      (first (str/split (str (.getFileName track-root)), #"/")) ; ZipFS gives trailing '/'!
+         metadata       (su/read-edn-path (.resolve track-root "metadata.edn"))
+         contents-path  (.resolve track-root "contents.edn")
+         contents       (when (Files/isReadable contents-path) (su/read-edn-path contents-path))
+         comment        (or (:comment contents) (:comment metadata))
+         update-comment (fn [c]
+                          (let [comment (seesaw/text c)]
+                            (swap-signature! show signature assoc-in [:contents :comment] comment)
+                            (swap-signature! show signature assoc :filter
+                                             (build-filter-target metadata comment))))
+         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
+                                     :text comment :listen [:document update-comment])
+         preview-loader (create-preview-loader show signature metadata)
+         soft-preview   (create-track-preview preview-loader)
+         song-structure (when-let [raw-ss (su/read-song-structure track-root)]
+                          (RekordboxAnlz$SongStructureTag. (ByteBufferKaitaiStream. raw-ss)))
+         outputs        (util/get-midi-outputs)
+         gear           (seesaw/button :id :gear :icon (prefs/gear-icon false))
+         lock           (seesaw/button :id :lock :visible? (some? (su/read-song-structure track-root))
+                                       :tip "Toggle Phrase Trigger lockout"
+                                       :listen [:action-performed
+                                                (fn [e]
+                                                  (swap-signature! show signature
+                                                                   update-in [:contents :phrase-unlocked] not)
+                                                  (seesaw/config! e :icon (lock-button-icon-internal show signature)))])
+         panel          (mig/mig-panel
+                         :constraints (track-panel-constraints (.getWidth ^JFrame (:frame show)))
+                         :items [[(create-track-art show signature) "spany 4"]
+                                 [(seesaw/label :id :title :text (or (:title metadata) "[no title]")
+                                                :font (Font. "serif" Font/ITALIC 14)
+                                                :foreground (if dark? Color/yellow Color/blue))
+                                  "width 60:120"]
+                                 [soft-preview "spany 4, wrap"]
 
-                                [(seesaw/label :text (format-artist-album metadata)
-                                               :font (Font. "serif" Font/BOLD 13)
-                                               :foreground :green)
-                                 "width 60:120, wrap"]
+                                 [(seesaw/label :id :artist :text (format-artist-album metadata)
+                                                :font (Font. "serif" Font/BOLD 13)
+                                                :foreground (if dark? Color/green Color/blue))
+                                  "width 60:120, wrap"]
 
-                                [comment-field "wrap"]
+                                 [comment-field "wrap"]
 
-                                [(seesaw/label :text "Players:") "split 5, gap unrelated"]
-                                [(seesaw/label :id :players :text "--")]
-                                [(seesaw/label :text "Playing:") "gap unrelated"]
-                                [(seesaw/label :id :playing :text "--") "gapafter push"]
-                                [lock "hidemode 1, wrap unrelated"]
+                                 [(seesaw/label :text "Players:") "split 5, gap unrelated"]
+                                 [(seesaw/label :id :players :text "--")]
+                                 [(seesaw/label :text "Playing:") "gap unrelated"]
+                                 [(seesaw/label :id :playing :text "--") "gapafter push"]
+                                 [lock "hidemode 1, wrap unrelated"]
 
-                                [gear "spanx, split"]
+                                 [gear "spanx, split"]
 
-                                ["MIDI Output:" "gap unrelated"]
-                                [(seesaw/combobox :id :outputs
-                                                  :model (let [chosen (:midi-device contents)]
-                                                           (concat outputs
-                                                                   ;; Preserve existing selection even if now missing.
-                                                                   (when (and chosen (not ((set outputs) chosen)))
-                                                                     [chosen])
-                                                                   ;; Offer escape hatch if no MIDI devices available.
-                                                                   (when (and chosen (empty? outputs))
-                                                                     [nil])))
-                                                  :selected-item nil  ; So update below saves default.
-                                                  :listen [:item-state-changed
+                                 ["MIDI Output:" "gap unrelated"]
+                                 [(seesaw/combobox :id :outputs
+                                                   :model (let [chosen (:midi-device contents)]
+                                                            (concat outputs
+                                                                    ;; Preserve existing selection even if now missing.
+                                                                    (when (and chosen (not ((set outputs) chosen)))
+                                                                      [chosen])
+                                                                    ;; Offer escape hatch if no MIDI devices available.
+                                                                    (when (and chosen (empty? outputs))
+                                                                      [nil])))
+                                                   :selected-item nil ; So update below saves default.
+                                                   :listen [:item-state-changed
+                                                            #(swap-signature! show signature
+                                                                              assoc-in [:contents :midi-device]
+                                                                              (seesaw/selection %))])]
+
+                                 ["Loaded:" "gap unrelated"]
+                                 [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
+                                                 :tip "Outer ring shows track enabled, inner light when loaded."
+                                                 :paint (partial paint-track-state show signature :loaded))]
+                                 ["Message:"]
+                                 [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
+                                                   :selected-item nil ; So update below saves default.
+                                                   :listen [:item-state-changed
+                                                            #(swap-signature! show signature
+                                                                              assoc-in [:contents :loaded-message]
+                                                                              (seesaw/selection %))])]
+                                 [(seesaw/spinner :id :loaded-note
+                                                  :model (seesaw/spinner-model (or (:loaded-note contents) 126)
+                                                                               :from 1 :to 127)
+                                                  :listen [:state-changed
                                                            #(swap-signature! show signature
-                                                                             assoc-in [:contents :midi-device]
-                                                                             (seesaw/selection %))])]
+                                                                             assoc-in [:contents :loaded-note]
+                                                                             (seesaw/value %))])
+                                  "hidemode 3"]
 
-                                ["Loaded:" "gap unrelated"]
-                                [(seesaw/canvas :id :loaded-state :size [18 :by 18] :opaque? false
-                                                :tip "Outer ring shows track enabled, inner light when loaded."
-                                                :paint (partial paint-track-state show signature :loaded))]
-                                ["Message:"]
-                                [(seesaw/combobox :id :loaded-message :model ["None" "Note" "CC" "Custom"]
-                                                  :selected-item nil  ; So update below saves default.
-                                                  :listen [:item-state-changed
+                                 [(seesaw/label :id :loaded-channel-label :text "Channel:")
+                                  "gap unrelated, hidemode 3"]
+                                 [(seesaw/spinner :id :loaded-channel
+                                                  :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
+                                                                               :from 1 :to 16)
+                                                  :listen [:state-changed
                                                            #(swap-signature! show signature
-                                                                             assoc-in [:contents :loaded-message]
-                                                                             (seesaw/selection %))])]
-                                [(seesaw/spinner :id :loaded-note
-                                                 :model (seesaw/spinner-model (or (:loaded-note contents) 126)
-                                                                              :from 1 :to 127)
-                                                 :listen [:state-changed
-                                                          #(swap-signature! show signature
-                                                                            assoc-in [:contents :loaded-note]
-                                                                            (seesaw/value %))])
-                                 "hidemode 3"]
+                                                                             assoc-in [:contents :loaded-channel]
+                                                                             (seesaw/value %))])
+                                  "hidemode 3"]
 
-                                [(seesaw/label :id :loaded-channel-label :text "Channel:")
-                                 "gap unrelated, hidemode 3"]
-                                [(seesaw/spinner :id :loaded-channel
-                                                 :model (seesaw/spinner-model (or (:loaded-channel contents) 1)
-                                                                              :from 1 :to 16)
-                                                 :listen [:state-changed
-                                                          #(swap-signature! show signature
-                                                                            assoc-in [:contents :loaded-channel]
-                                                                            (seesaw/value %))])
-                                 "hidemode 3"]
-
-                                ["Playing:" "gap unrelated"]
-                                [(seesaw/canvas :id :playing-state :size [18 :by 18] :opaque? false
-                                                :tip "Outer ring shows track enabled, inner light when playing."
-                                                :paint (partial paint-track-state show signature :playing))]
-                                ["Message:"]
-                                [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
-                                                  :selected-item nil  ; So update below saves default.
-                                                  :listen [:item-state-changed
+                                 ["Playing:" "gap unrelated"]
+                                 [(seesaw/canvas :id :playing-state :size [18 :by 18] :opaque? false
+                                                 :tip "Outer ring shows track enabled, inner light when playing."
+                                                 :paint (partial paint-track-state show signature :playing))]
+                                 ["Message:"]
+                                 [(seesaw/combobox :id :playing-message :model ["None" "Note" "CC" "Custom"]
+                                                   :selected-item nil ; So update below saves default.
+                                                   :listen [:item-state-changed
+                                                            #(swap-signature! show signature
+                                                                              assoc-in [:contents :playing-message]
+                                                                              (seesaw/selection %))])]
+                                 [(seesaw/spinner :id :playing-note
+                                                  :model (seesaw/spinner-model (or (:playing-note contents) 127)
+                                                                               :from 1 :to 127)
+                                                  :listen [:state-changed
                                                            #(swap-signature! show signature
-                                                                             assoc-in [:contents :playing-message]
-                                                                             (seesaw/selection %))])]
-                                [(seesaw/spinner :id :playing-note
-                                                 :model (seesaw/spinner-model (or (:playing-note contents) 127)
-                                                                              :from 1 :to 127)
-                                                 :listen [:state-changed
-                                                          #(swap-signature! show signature
-                                                                            assoc-in [:contents :playing-note]
-                                                                            (seesaw/value %))])
-                                 "hidemode 3"]
+                                                                             assoc-in [:contents :playing-note]
+                                                                             (seesaw/value %))])
+                                  "hidemode 3"]
 
-                                [(seesaw/label :id :playing-channel-label :text "Channel:")
-                                 "gap unrelated, hidemode 3"]
-                                [(seesaw/spinner :id :playing-channel
-                                                 :model (seesaw/spinner-model (or (:playing-channel contents) 1)
-                                                                              :from 1 :to 16)
-                                                 :listen [:state-changed
-                                                          #(swap-signature! show signature
-                                                                            assoc-in [:contents :playing-channel]
-                                                                            (seesaw/value %))])
-                                 "hidemode 3"]
+                                 [(seesaw/label :id :playing-channel-label :text "Channel:")
+                                  "gap unrelated, hidemode 3"]
+                                 [(seesaw/spinner :id :playing-channel
+                                                  :model (seesaw/spinner-model (or (:playing-channel contents) 1)
+                                                                               :from 1 :to 16)
+                                                  :listen [:state-changed
+                                                           #(swap-signature! show signature
+                                                                             assoc-in [:contents :playing-channel]
+                                                                             (seesaw/value %))])
+                                  "hidemode 3"]
 
-                                [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
-                                [(seesaw/combobox :id :enabled
-                                                  :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
-                                                  :selected-item nil  ; So update below saves default.
-                                                  :listen [:item-state-changed
-                                                           #(do (swap-signature! show signature
-                                                                                 assoc-in [:contents :enabled]
-                                                                                 (seesaw/value %))
-                                                                (repaint-track-states show signature))])
-                                 "hidemode 3"]])
+                                 [(seesaw/label :id :enabled-label :text "Enabled:") "gap unrelated"]
+                                 [(seesaw/combobox :id :enabled
+                                                   :model ["Default" "Never" "On-Air" "Master" "Custom" "Always"]
+                                                   :selected-item nil ; So update below saves default.
+                                                   :listen [:item-state-changed
+                                                            #(do (swap-signature! show signature
+                                                                                  assoc-in [:contents :enabled]
+                                                                                  (seesaw/value %))
+                                                                 (repaint-track-states show signature))])
+                                  "hidemode 3"]])
 
-        track (merge {:file              (:file show)
-                      :signature         signature
-                      :metadata          metadata
-                      :contents          contents
-                      :original-contents contents
-                      :grid              (su/read-beat-grid track-root)
-                      :panel             panel
-                      :filter            (build-filter-target metadata comment)
-                      :preview           preview-loader
-                      :preview-canvas    soft-preview
-                      :expression-locals (atom {})
-                      :creating          true ; Suppress popup expression editors when reopening a show.
-                      :entered           {}}  ; Map from player number to set of UUIDs of cues that have been entered.
-                     (when song-structure
-                       {:song-structure   song-structure}))
+         track (merge {:file              (:file show)
+                       :signature         signature
+                       :metadata          metadata
+                       :contents          contents
+                       :original-contents contents
+                       :grid              (su/read-beat-grid track-root)
+                       :panel             panel
+                       :filter            (build-filter-target metadata comment)
+                       :preview           preview-loader
+                       :preview-canvas    soft-preview
+                       :expression-locals (atom {})
+                       :creating          true ; Suppress popup expression editors when reopening a show.
+                       :entered           {}} ; Map from player number to set of UUIDs of cues that have been entered.
+                      (when song-structure
+                        {:song-structure   song-structure}))
 
-        popup-fn (fn [^MouseEvent e]  ; Creates the popup menu for the gear button or right-clicking in the track.
-                   (if (.isShiftDown e)
-                     [(copy-track-content-action track) ; The special track content copy/paste menu.
-                      (paste-track-content-action track panel)]
-                     (concat [(edit-cues-action track panel) (seesaw/separator)] ; The normal context menu.
-                             (when (seq (su/gear-content track))
-                               [(su/view-expressions-in-report-action show track)])
-                             (track-editor-actions show track panel gear)
-                             [(seesaw/separator) (track-simulate-menu show track) (su/inspect-action track)
-                              (seesaw/separator)]
-                             (track-copy-actions track)
-                             [(seesaw/separator) (delete-track-action show track panel)])))
+         popup-fn (fn [^MouseEvent e] ; Creates the popup menu for the gear button or right-clicking in the track.
+                    (if (.isShiftDown e)
+                      [(copy-track-content-action track) ; The special track content copy/paste menu.
+                       (paste-track-content-action track panel)]
+                      (concat [(edit-cues-action track panel) (seesaw/separator)] ; The normal context menu.
+                              (when (seq (su/gear-content track))
+                                [(su/view-expressions-in-report-action show track)])
+                              (track-editor-actions show track panel gear)
+                              [(seesaw/separator) (track-simulate-menu show track) (su/inspect-action track)
+                               (seesaw/separator)]
+                              (track-copy-actions track)
+                              [(seesaw/separator) (delete-track-action show track panel)])))
 
-        drag-origin (atom nil)]
+         drag-origin (atom nil)]
 
-    (swap-show! show assoc-in [:tracks signature] track)
-    (swap-show! show assoc-in [:panels panel] signature)
+     (swap-show! show assoc-in [:tracks signature] track)
+     (swap-show! show assoc-in [:panels panel] signature)
+     (prefs/register-gear-button gear)
 
-    ;; Now that the track is in the show, set the initial state of the phrase lock button icon.
-    (seesaw/config! lock :icon (lock-button-icon-internal show signature))
+     ;; Now that the track is in the show, set the initial state of the phrase lock button icon.
+     (seesaw/config! lock :icon (lock-button-icon-internal show signature))
 
-    ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
-    ;; or right click on the gear button. Also set the proper initial gear appearance.
-    (seesaw/config! [panel gear] :popup popup-fn)
-    (seesaw/listen gear
-                   :mouse-pressed (fn [e]
-                                    (let [popup (seesaw/popup :items (popup-fn e))]
-                                      (util/show-popup-from-button gear popup e))))
-    (su/update-gear-icon track gear)
+     ;; Create our contextual menu and make it available both as a right click on the whole row, and as a normal
+     ;; or right click on the gear button. Also set the proper initial gear appearance.
+     (seesaw/config! [panel gear] :popup popup-fn)
+     (seesaw/listen gear
+                    :mouse-pressed (fn [e]
+                                     (let [popup (seesaw/popup :items (popup-fn e))]
+                                       (util/show-popup-from-button gear popup e))))
+     (su/update-gear-icon track gear)
 
-    (seesaw/listen soft-preview
-                   :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
-                   :mouse-pressed (fn [^MouseEvent e]
-                                    (reset! drag-origin {:point (.getPoint e)})
-                                    (handle-preview-press track preview-loader e))
-                   :mouse-dragged (fn [e] (handle-preview-drag track preview-loader e drag-origin)))
+     (seesaw/listen soft-preview
+                    :mouse-moved (fn [e] (handle-preview-move track soft-preview preview-loader e))
+                    :mouse-pressed (fn [^MouseEvent e]
+                                     (reset! drag-origin {:point (.getPoint e)})
+                                     (handle-preview-press track preview-loader e))
+                    :mouse-dragged (fn [e] (handle-preview-drag track preview-loader e drag-origin)))
 
-    ;; Update output status when selection changes, giving a chance for the other handlers to run first
-    ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
-    ;; Enabled Filter if "Custom" is chosen.
-    (seesaw/listen (seesaw/select panel [:#outputs])
-                   :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
-    (attach-track-message-visibility-handler show track "loaded" gear)
-    (attach-track-message-visibility-handler show track "playing" gear)
-    (attach-track-custom-editor-opener show track (seesaw/select panel [:#enabled]) :enabled gear)
+     ;; Update output status when selection changes, giving a chance for the other handlers to run first
+     ;; so the data is ready. Also sets them up to automatically open the expression editor for the Custom
+     ;; Enabled Filter if "Custom" is chosen.
+     (seesaw/listen (seesaw/select panel [:#outputs])
+                    :item-state-changed (fn [_] (seesaw/invoke-later (show-midi-status track))))
+     (attach-track-message-visibility-handler show track "loaded" gear)
+     (attach-track-message-visibility-handler show track "playing" gear)
+     (attach-track-custom-editor-opener show track (seesaw/select panel [:#enabled]) :enabled gear)
 
-    ;; Establish the saved or initial settings of the UI elements, which will also record them for the
-    ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
-    (update-track-comboboxes contents panel)
+     ;; Establish the saved or initial settings of the UI elements, which will also record them for the
+     ;; future, and adjust the interface, thanks to the already-configured item changed listeners.
+     (update-track-comboboxes contents panel)
 
-    ;; In case this is the inital creation of the track, record the defaulted values of the numeric inputs too.
-    ;; This will have no effect if they were loaded.
-    (swap-signature! show signature
-                     assoc-in [:contents :loaded-note] (seesaw/value (seesaw/select panel [:#loaded-note])))
-    (swap-signature! show signature
-                     assoc-in [:contents :loaded-channel] (seesaw/value (seesaw/select panel [:#loaded-channel])))
-    (swap-signature! show signature
-                     assoc-in [:contents :playing-note] (seesaw/value (seesaw/select panel [:#playing-note])))
-    (swap-signature! show signature
-                     assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
+     ;; In case this is the inital creation of the track, record the defaulted values of the numeric inputs too.
+     ;; This will have no effect if they were loaded.
+     (swap-signature! show signature
+                      assoc-in [:contents :loaded-note] (seesaw/value (seesaw/select panel [:#loaded-note])))
+     (swap-signature! show signature
+                      assoc-in [:contents :loaded-channel] (seesaw/value (seesaw/select panel [:#loaded-channel])))
+     (swap-signature! show signature
+                      assoc-in [:contents :playing-note] (seesaw/value (seesaw/select panel [:#playing-note])))
+     (swap-signature! show signature
+                      assoc-in [:contents :playing-channel] (seesaw/value (seesaw/select panel [:#playing-channel])))
 
-    (cues/build-cues track)
-    (parse-track-expressions show track)
+     (cues/build-cues track)
+     (parse-track-expressions show track)
 
-    ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
-    ;; the user requests a custom message.
-    (swap-signature! show signature dissoc :creating)))
+     ;; We are done creating the track, so arm the menu listeners to automatically pop up expression editors when
+     ;; the user requests a custom message.
+     (swap-signature! show signature dissoc :creating))))
 
 (defn- create-track-panels
   "Creates all the panels that represent tracks in the show."
   [show]
-  (let [tracks-path (su/build-filesystem-path (:filesystem show) "tracks")]
+  (let [tracks-path (su/build-filesystem-path (:filesystem show) "tracks")
+        dark?       (prefs/dark-mode?)]
     (when (Files/isReadable tracks-path)  ; We have imported at least one track.
       (doseq [track-path (Files/newDirectoryStream tracks-path)]
-        (create-track-panel show track-path)))))
+        (create-track-panel show track-path dark?)))))
 
 (defn scroll-to-track
   "Makes sure the specified track is visible (it has just been imported
@@ -2278,9 +2282,7 @@
                                                             (partial global-editor-update-fn show kind)))
                  :name (str "Edit " (get-in @editors/global-show-editors [kind :title]))
                  :tip (get-in @editors/global-show-editors [kind :tip])
-                 :icon (seesaw/icon (if (str/blank? (get-in show [:contents :expressions kind]))
-                                      "images/Gear-outline.png"
-                                      "images/Gear-icon.png"))))
+                 :icon (seesaw/icon (prefs/gear-icon (not (str/blank? (get-in show [:contents :expressions kind])))))))
 
 (defn- build-phrase-menu
   "Creates the Phrases menu. Pulled out as a function so that menu can be
@@ -2388,6 +2390,14 @@
         (seesaw/config! panel :constraints constraints)
         (.revalidate panel)))))
 
+(defn- ui-theme-changed
+  "Called whenever the user interface theme has been changed, or dark
+  mode has been entered or exited. Updates the window's interface to
+  be readable in the new theme."
+  [show dark? preferences]
+  (su/update-row-visibility show dark?)
+  (update-tracks-global-expression-icons show preferences))
+
 (defn- create-show-window
   "Create and show a new show window on the specified file."
   [^File file]
@@ -2481,6 +2491,7 @@
                                   (catch Exception e
                                     (timbre/error e "Problem responding to Player status packet.")))))
             window-name     (str "show-" (.getPath file))
+            theme-callback  (partial ui-theme-changed show)
             close-fn        (fn [force? quitting?]
                               ;; Closes the show window and performs all necessary cleanup. If `force?` is true,
                               ;; will do so even in the presence of windows with unsaved user changes. Otherwise
@@ -2495,6 +2506,8 @@
                                                              'beat-link-trigger.triggers/close-trigger-editors?)
                                                             force?)
                                                    triggers))
+                                  (prefs/unregister-ui-frame root)
+                                  (prefs/unregister-ui-change-callback theme-callback)
                                   (.removeUpdateListener virtual-cdj update-listener)
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
                                   (.removeLifecycleListener metadata-finder mf-listener)
@@ -2574,6 +2587,8 @@
                            (let [rows (:panels (latest-show show))]
                              (resize-track-panels rows (.getWidth root))
                              (phrases/resize-phrase-panels rows (.getWidth root))))))
+        (prefs/register-ui-frame root)
+        (prefs/register-ui-change-callback theme-callback)
         (let [rows (:panels (latest-show show))]
           (resize-track-panels rows (.getWidth root))
           (phrases/resize-phrase-panels rows (.getWidth root)))
@@ -2770,23 +2785,22 @@
                    (if (instance? javax.swing.JComponent blocked?)
                      blocked?
                      (:default-ui show)))
-   (let [blocked? (boolean blocked?)]  ; Normalize to `true` or `false`.
-     (swap-show! show update :block-tracks?
-                 (fn [were-blocked?]
-                   (when (not= blocked? (boolean were-blocked?))
-                     (let [^JMenuBar menu-bar (seesaw/config (:frame show) :menubar)
-                           ^JMenu menu        (.getMenu menu-bar 1)]
-                       (.setLabel menu (if blocked? "Expressions" "Tracks"))
-                       (if blocked?
-                         (do (.remove menu 0)       ; Remove the Import menu item from the Tracks/Expressions menu.
-                             (.remove menu-bar 2))  ; Remove the entire Phrases menu.
-                         (do (.insert menu ^JMenu (:import-menu show) 0)        ; Restore the Import menu item.
-                             ;; Restore the Phrases menu. To get it in the right place we need to remove the
-                             ;; Help menu first, then restore that last.
-                             (.remove menu-bar 2)
-                             (.add menu-bar (build-phrase-menu show) 2)
-                             (.add menu-bar (menus/build-help-menu))))))
-                   blocked?)))))  ; Record the current state.
+   (let [blocked?      (boolean blocked?)  ; Normalize to `true` or `false`.
+         were-blocked? (boolean (:block-tracks? (latest-show show)))]
+     (swap-show! show assoc :block-tracks? blocked?)
+     (when (not= blocked? were-blocked?)
+       (let [^JMenuBar menu-bar (seesaw/config (:frame show) :menubar)
+             ^JMenu menu        (.getMenu menu-bar 1)]
+         (.setLabel menu (if blocked? "Expressions" "Tracks"))
+         (if blocked?
+           (do (.remove menu 0) ; Remove the Import menu item from the Tracks/Expressions menu.
+               (.remove menu-bar 2)) ; Remove the entire Phrases menu.
+           (do (.insert menu ^JMenu (:import-menu show) 0) ; Restore the Import menu item.
+               ;; Restore the Phrases menu. To get it in the right place we need to remove the
+               ;; Help menu first, then restore that last.
+               (.remove menu-bar 2)
+               (.add menu-bar (build-phrase-menu show) 2)
+               (.add menu-bar (menus/build-help-menu)))))))))
 
 (defn user-data
   "Helper function to return the user data map stored in the show."
