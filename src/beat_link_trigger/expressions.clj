@@ -388,7 +388,11 @@
                      'beat-number {:code '(or (current-beat status) -1)
                                    :doc  "Identifies the beat of the track that is currently being played. This counter starts at beat 1 as the track is played, and increments on each beat. When the player is paused at the start of the track before playback begins, the value reported is 0.<p> When the track being played has not been analyzed by rekordbox, or is being played on a non-nexus player, this information is not available, and the value -1 is reported."}
 
-                     'on-air?       {:code '(.isOnAir (.getLatestUpdateFor (VirtualCdj/getInstance (extract-device-update status))))
+                     'looping?      {:code '(.isLooping (.getLatestStatusFor (VirtualCdj/getInstance)
+                                                                             (extract-device-update status)))
+                                    :doc  "Is the player currently playing a loop?"}
+                     'on-air?       {:code '(.isOnAir (.getLatestStatusFor (VirtualCdj/getInstance)
+                                                                           (extract-device-update status)))
                                      :doc  "Is the CDJ on the air? A player is considered to be on the air when it is connected to a mixer channel that is not faded out. Only Nexus mixers and later seem to support this capability."}
                      'tempo-master? {:code '(.isTempoMaster (extract-device-update status))
                                      :doc  "Was this beat sent by the current tempo master?"}}}
