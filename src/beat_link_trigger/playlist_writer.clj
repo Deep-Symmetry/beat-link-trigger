@@ -364,7 +364,6 @@
            toggle-button     (seesaw/button :id :start :text (if @playlist-state "Stop" "Start"))
            status-label      (seesaw/label :id :status :text (status-for-file (:file @playlist-state)))
            panel             (mig/mig-panel
-                              :background "#ccc"
                               :items [[(seesaw/label :text "Minimum Play Time:") "align right"]
                                       [time-spinner]
                                       [(seesaw/label :text "seconds") "align left, wrap"]
@@ -399,10 +398,12 @@
                                 (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
        (.addUpdateListener virtual-cdj update-listener)
        (.addLifecycleListener virtual-cdj stop-listener)
+       (prefs/register-ui-frame root)
        (seesaw/listen root
                       :window-closing (fn [_]
                                         (.removeUpdateListener virtual-cdj update-listener)
                                         (.removeLifecycleListener virtual-cdj stop-listener)
+                                        (prefs/unregister-ui-frame root)
                                         (close-handler)
                                         (reset! writer-window nil)
                                         (prefs/put-preferences

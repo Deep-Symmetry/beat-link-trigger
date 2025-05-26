@@ -478,19 +478,6 @@
                        false))]
     (.. java.awt.KeyboardFocusManager getCurrentKeyboardFocusManager (addKeyEventDispatcher dispatcher))))
 
-(defn- background-color
-  "Determines the background color to use based on whether dark mode is
-  active."
-  [dark?]
-  (if dark? "#333" "#ccc"))
-
-(defn- ui-theme-changed
-  "Called whenever the user interface theme has been changed, or dark
-  mode has been entered or exited. Updates the window's interface to
-  be readable in the new theme."
-  [panel dark? _preferences]
-  (seesaw/config! panel :background (background-color dark?)))
-
 (defn- create-window
   "Creates the Carabiner window."
   [trigger-frame]
@@ -518,7 +505,6 @@
           _            (seesaw/label :id :bpm :text "---")
           panel        (mig/mig-panel
                         :constraints ["hidemode 3"]
-                        :background (background-color (prefs/dark-mode?))
                         :items (concat
                                 [[(seesaw/label :text "Carabiner Port:") "align right"]
                                  [(seesaw/spinner :id :port
@@ -608,15 +594,10 @@
 
                                  [(seesaw/separator) "growx, span, wrap"]]
 
-                                (build-device-sync-rows group)))
-          ui-callback (partial ui-theme-changed panel)]
+                                (build-device-sync-rows group)))]
 
       ;; Attach the custom paint function to render the graphical trigger state
       (seesaw/config! state :paint paint-state)
-
-      ;; Arrange for the background color to update if dark mode changes.
-      (prefs/register-ui-change-callback ui-callback)
-      (seesaw/config! panel :user-data ui-callback)  ; Prevent the weak reference from being cleared.
 
       ;; Set up the BPM spinner's editor and shift key listener
       (.setEditor ^javax.swing.JSpinner link-bpm (javax.swing.JSpinner$NumberEditor. link-bpm "##0.00"))
