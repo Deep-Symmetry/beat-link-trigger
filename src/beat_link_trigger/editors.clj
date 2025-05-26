@@ -1159,13 +1159,18 @@
                                                       context cue compiled))
                    :nil-status? true})))
 
-(def ^:private editor-theme
-  "The color theme to use in the code editor, so it can match the
-  overall application look."
+(def ^:private editor-themes
+  "The color themes to use in the code editor, indexed by the dark mode
+  flag, so it can match the overall application look."
   (delay (seesaw/invoke-now
-          (with-open [s (clojure.java.io/input-stream
-                         (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
-            (org.fife.ui.rsyntaxtextarea.Theme/load s)))))
+           (let [light (with-open [s (clojure.java.io/input-stream
+                                      (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/vs.xml"))]
+                         (org.fife.ui.rsyntaxtextarea.Theme/load s))
+                 dark  (with-open [s (clojure.java.io/input-stream
+                                      (clojure.java.io/resource "org/fife/ui/rsyntaxtextarea/themes/dark.xml"))]
+                         (org.fife.ui.rsyntaxtextarea.Theme/load s))]
+             {false light
+              true  dark}))))
 
 (defn trigger-index
   "Returns the index number associated with the trigger, for use in
@@ -1408,7 +1413,6 @@
   "The HTML header added to style the help text."
   "<html><head><style type=\"text/css\">
 body {
-  color: white;
   font-family: \"Roboto\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;
   line-height: 1.42857143;
   font-size 16pt;
@@ -1739,6 +1743,13 @@ a {
                    :key "menu shift S"
                    :enabled? false)))
 
+(defn- ui-theme-changed
+  "Called whenever the user interface theme has been changed, or dark
+  mode has been entered or exited. Updates the window's interface to
+  match the new theme."
+  [editor dark? _preferences]
+  (.apply ^org.fife.ui.rsyntaxtextarea.Theme (@editor-themes dark?) editor))
+
 (defn- create-triggers-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Triggers window expression, with an update function to be
@@ -1757,12 +1768,15 @@ a {
         tools           (build-search-tools root editor status-label)
         update-action   (build-update-action editor save-fn)
         simulate-action (build-trigger-simulate-action editor editors-map kind trigger global?)
-        ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)]
+        ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
+        dark?           (prefs/dark-mode?)
+        theme-changed   (partial ui-theme-changed editor)]
     (.add editor-panel scroll-pane)
+    (seesaw/config! scroll-pane :user-data theme-changed)  ; Avoid garbage collection while window is open.
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
     (.setMarkOccurrences editor true)
-    (.apply ^org.fife.ui.rsyntaxtextarea.Theme @editor-theme editor)
+    (.apply ^org.fife.ui.rsyntaxtextarea.Theme (@editor-themes dark?) editor)
     (seesaw/config! help :editable? false)
     (seesaw/config! root :content (mig/mig-panel :items [[editor-panel
                                                           "push 2, span 3, grow 100 100, wrap, sizegroup a"]
@@ -1793,7 +1807,6 @@ a {
     (.setContentType help "text/html")
     (.setText help (build-triggers-help kind global? editors-map))
     (seesaw/scroll! help :to :top)
-    (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
                    (fn [^javax.swing.event.HyperlinkEvent e]
                      (let [type (.getEventType e)
@@ -1804,8 +1817,10 @@ a {
                                                   (swap! (seesaw/user-data trigger) update-in [:expression-editors]
                                                          dissoc kind)
                                                   (prefs/unregister-ui-frame root)
+                                                  (prefs/unregister-ui-change-callback theme-changed)
                                                   (.dispose root))))
     (prefs/register-ui-frame root)
+    (prefs/register-ui-change-callback theme-changed)
     (let [result
           (reify IExpressionEditor
             (retitle [_]
@@ -1926,8 +1941,8 @@ a {
   kind of Show window expression, with an update function to be
   called when the editor successfully updates the expression."
   [kind show track-or-phrase parent-frame update-fn]
-  (let [text            (find-show-expression-text kind show track-or-phrase)
-        track?          (show-util/track? track-or-phrase)
+  (let [text   (find-show-expression-text kind show track-or-phrase)
+        track? (show-util/track? track-or-phrase)
 
         editors-map     (cond (:signature track-or-phrase) @show-track-editors
                               (:uuid track-or-phrase)      @show-phrase-editors
@@ -1944,6 +1959,8 @@ a {
         update-action   (build-update-action editor save-fn)
         simulate-action (build-show-simulate-action editor editors-map kind show track-or-phrase)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
+        dark?           (prefs/dark-mode?)
+        theme-changed   (partial ui-theme-changed editor)
         close-fn        (fn []
                           (cond (:signature track-or-phrase)
                                 (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
@@ -1953,12 +1970,14 @@ a {
                                                                 update :expression-editors dissoc kind)
                                 :else
                                 (show-util/swap-show! show update :expression-editors dissoc kind))
-                          (prefs/unregister-ui-frame root))]
+                          (prefs/unregister-ui-frame root)
+                          (prefs/unregister-ui-change-callback theme-changed))]
     (.add editor-panel scroll-pane)
+    (seesaw/config! scroll-pane :user-data theme-changed)  ; Avoid garbage collection while window is open.
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
     (.setMarkOccurrences editor true)
-    (.apply ^org.fife.ui.rsyntaxtextarea.Theme @editor-theme editor)
+    (.apply ^org.fife.ui.rsyntaxtextarea.Theme (@editor-themes dark?) editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
@@ -1989,7 +2008,6 @@ a {
     (.setContentType help "text/html")
     (.setText help (build-show-help kind (not track-or-phrase) editors-map))
     (seesaw/scroll! help :to :top)
-    (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
                    (fn [^javax.swing.event.HyperlinkEvent e]
                      (let [type (.getEventType e)
@@ -2000,6 +2018,7 @@ a {
                                                   (close-fn)
                                                   (.dispose root))))
     (prefs/register-ui-frame root)
+    (prefs/register-ui-change-callback theme-changed)
     (let [result
           (reify IExpressionEditor
             (retitle [_]
@@ -2111,6 +2130,7 @@ a {
         update-action   (build-update-action editor save-fn)
         simulate-action (build-cue-simulate-action editor kind context cue)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
+        theme-changed   (partial ui-theme-changed editor)
         close-fn        (fn []
                           (if track?
                             (show-util/swap-track! context update-in [:cues-editor :expression-editors (:uuid cue)]
@@ -2118,12 +2138,14 @@ a {
                             (show-util/swap-phrase-runtime! (show-util/show-from-phrase context) context
                                                             update-in [:cues-editor :expression-editors (:uuid cue)]
                                                             dissoc kind))
-                          (prefs/unregister-ui-frame root))]
+                          (prefs/unregister-ui-frame root)
+                          (prefs/unregister-ui-change-callback theme-changed))]
     (.add editor-panel scroll-pane)
+    (seesaw/config! scroll-pane :user-data theme-changed)  ; Avoid garbage collection while window is open.
     (.setSyntaxEditingStyle editor org.fife.ui.rsyntaxtextarea.SyntaxConstants/SYNTAX_STYLE_CLOJURE)
     (.setCodeFoldingEnabled editor true)
     (.setMarkOccurrences editor true)
-    (.apply ^org.fife.ui.rsyntaxtextarea.Theme @editor-theme editor)
+    (.apply ^org.fife.ui.rsyntaxtextarea.Theme (@editor-themes (prefs/dark-mode?)) editor)
     (seesaw/listen editor #{:remove-update :insert-update :changed-update}
                    (fn [e]
                      (seesaw/config! update-action :enabled?
@@ -2154,7 +2176,6 @@ a {
     (.setContentType help "text/html")
     (.setText help (build-show-help kind false @show-cue-editors))
     (seesaw/scroll! help :to :top)
-    (seesaw/config! help :background :black)
     (seesaw/listen help :hyperlink-update
                    (fn [^javax.swing.event.HyperlinkEvent e]
                      (let [type (.getEventType e)
@@ -2165,6 +2186,7 @@ a {
                                                   (close-fn)
                                                   (.dispose root))))
     (prefs/register-ui-frame root)
+    (prefs/register-ui-change-callback theme-changed)
     (let [result (reify IExpressionEditor
                    (retitle [_] (seesaw/config! root :title (cue-editor-title kind context cue)))
                    (show [_]
