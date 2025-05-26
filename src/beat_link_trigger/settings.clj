@@ -6,7 +6,6 @@
             [beat-link-trigger.players :as players]
             [beat-link-trigger.playlist-writer :as playlist]
             [beat-link-trigger.prefs :as prefs]
-            [beat-link-trigger.util :as util]
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
