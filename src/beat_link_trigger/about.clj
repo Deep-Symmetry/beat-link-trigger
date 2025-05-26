@@ -37,7 +37,7 @@
   "Create the panel containing about information, given the function
   which paints the animated backdrop."
   [paint-fn]
-  (let [source-button (seesaw/button :text "Source" :bounds [300 300 70 30] :cursor :default)
+  (let [source-button (seesaw/button :text "Source" :bounds [300 300 80 30] :cursor :default)
         version-label (seesaw/text :text (str "Version: " (util/get-version) "\n" (util/get-build-date))
                                    :multi-line? true :wrap-lines? true
                                    :foreground "white" :cursor :text
@@ -57,7 +57,7 @@
                    :component-resized (fn [_]
                                         (let [w (seesaw/width panel)
                                               h (seesaw/height panel)]
-                                          (seesaw/config! source-button :bounds [(- w 72) (- h 32) :* :*])
+                                          (seesaw/config! source-button :bounds [(- w 83) (- h 33) :* :*])
                                           (seesaw/config! java-label :bounds [:* (- h 55) :* :*])))
                    :mouse-clicked (fn [_]
                                     (clojure.java.browse/browse-url "http://deepsymmetry.org")))
