@@ -320,3 +320,13 @@
              (SwingUtilities/updateComponentTreeUI frame)))
          (catch Throwable t
            (timbre/error t "Unable to set UI theme to" theme)))))))
+
+(defn register-custom-theme
+  "Allows users to specify a non-standard user interface look and feel.
+  The arguments are a boolean indicating whether it is a dark theme,
+  and the custom look and feel class to be used for that mode."
+  [dark? laf]
+  (when-not (instance? javax.swing.LookAndFeel laf)
+    (throw (IllegalArgumentException. "Can only register LookAndFeel subclasses.")))
+  (swap! custom-themes assoc (if dark? :dark :light) laf)
+  (set-ui-theme))
