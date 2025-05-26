@@ -45,7 +45,7 @@ jobs:
         distribution: 'corretto'
 
     - name: Install clojure tools
-      uses: DeLaGuardo/setup-clojure@13.0
+      uses: DeLaGuardo/setup-clojure@13.2
       with:
         lein: 2.11.2
 
