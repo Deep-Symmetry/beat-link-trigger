@@ -160,30 +160,6 @@
   [^WeakReference r]
   (nil? (.get r)))
 
-(defn register-ui-frame
-  "This function adds a frame (window) to the list that will be updated
-  whenever the user chooses a different interface theme, or dark mode
-  turns on or off. The list holds weak references, so it does not
-  prevent the frames from being garbage collected, and they will be
-  cleaned out of the list when that happens."
-  [frame]
-  (swap! ui-frames (fn [existing] (conj (remove cleared? existing) (WeakReference. frame)))))
-
-(defn unregister-ui-frame
-  "This function removes a frame (window) from the list that will be
-  updated whenever the user chooses a different interface theme, or
-  dark mode turns on or off."
-  [frame]
-  (doseq [^WeakReference frame-ref @ui-frames]
-    (when (= (.get frame-ref) frame)
-      (.clear frame-ref)))
-  (swap! ui-frames (partial remove cleared?)))
-
-(def ^:private gear-buttons
-  "Holds the list of weak references to gear buttons that should be
-  updated when the user interface theme changes."
-  (atom '()))
-
 (defn- register-internal
   "Holds the logic common to registering a new entry in one of the lists
   related to responding to user interface theme changes."
@@ -195,9 +171,33 @@
   related to responding to user interface theme changes."
   [entry list-atom]
   (doseq [^WeakReference existing-ref @list-atom]
-    (when (= (.get existing-ref) entry)
+    (when (.refersTo existing-ref entry)
       (.clear existing-ref)))
   (swap! list-atom (partial remove cleared?)))
+
+(defn register-ui-frame
+  "This function adds a frame (window) to the list that will be updated
+  whenever the user chooses a different interface theme, or dark mode
+  turns on or off. The list holds weak references, so it does not
+  prevent the frames from being garbage collected, and they will be
+  cleaned out of the list when that happens."
+  [frame]
+  (register-internal frame ui-frames))
+
+(defn unregister-ui-frame
+  "This function removes a frame (window) from the list that will be
+  updated whenever the user chooses a different interface theme, or
+  dark mode turns on or off."
+  [frame]
+  (doseq [^WeakReference frame-ref @ui-frames]
+    (when (.refersTo frame-ref frame)
+      (.clear frame-ref)))
+  (unregister-internal frame ui-frames))
+
+(def ^:private gear-buttons
+  "Holds the list of weak references to gear buttons that should be
+  updated when the user interface theme changes."
+  (atom '()))
 
 (defn register-gear-button
   "This function adds a gear button to the list that will be updated
