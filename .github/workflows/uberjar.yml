@@ -135,7 +135,7 @@ jobs:
 
     - uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'corretto'
 
     - name: Build Windows Installer
@@ -177,7 +177,7 @@ jobs:
 
     - uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'corretto'
 
     - name: Build macOS disk image
@@ -224,7 +224,7 @@ jobs:
 
     - uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'corretto'
 
     - name: Build macOS disk image
