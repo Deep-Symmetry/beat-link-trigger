@@ -923,6 +923,7 @@
          inspect-action (seesaw/action :handler (fn [_] (try
                                                           (inspector/inspect @(:locals @(seesaw/user-data panel))
                                                                              :window-name "Trigger Expression Locals")
+                                                          (prefs/register-open-inspector-windows)
                                                           (catch StackOverflowError _
                                                             (util/inspect-overflowed))
                                                           (catch Throwable t
@@ -1588,8 +1589,9 @@
   (let [inspect-action   (seesaw/action :handler (fn [_] (try
                                                            (inspector/inspect @expression-globals
                                                                               :window-name "Trigger Expression Globals")
+                                                           (prefs/register-open-inspector-windows)
                                                            (catch StackOverflowError _
-                                                            (util/inspect-overflowed))
+                                                             (util/inspect-overflowed))
                                                           (catch Throwable t
                                                             (util/inspect-failed t))))
                                         :name "Inspect Expression Globals"

@@ -348,9 +348,11 @@ So we now create and store everything in the Triggers window globals, which both
          :qlc-cue-indexer cue-indexer))
 
 ;; Index cues for any tracks that were loaded when the show opened.
-(doseq [entry (.entrySet (.getLoadedTracks metadata-finder))]
-  (swap! globals assoc-in [:qlc-cue-times (.-player (.getKey entry))]
-         (find-qlc-cues (.getValue entry))))
+(when (.isRunning metadata-finder)
+  (doseq [entry (.entrySet (.getLoadedTracks metadata-finder))]
+    (swap! trigger-globals assoc-in
+           [:qlc-cue-times (.-player (.getKey entry))]
+           (find-qlc-cues (.getValue entry)))))
 ```
 
 <1> When the show is loaded, this line and the next create an the indexer, giving it access to the trigger globals, and arrange for its indexing function to be run as tracks come and go.

@@ -3,8 +3,9 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.set :as set]
-            [fipp.edn :as fipp]
             [beat-link-trigger.util :as util]
+            [fipp.edn :as fipp]
+            [inspector-jay.gui.gui :as inspector-gui]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
   (:import [java.lang.ref WeakReference]
@@ -149,9 +150,10 @@
   supported user interface theme."
   (set/map-invert ui-names))
 
-(def ^:private ui-frames
-  "Holds the list of weak references to user interface frames that
-  should be updated when the user interface theme changes."
+(defonce ^{:private true
+           :doc "Holds the list of weak references to user interface frames that
+  should be updated when the user interface theme changes."}
+  ui-frames
   (atom '()))
 
 (defn cleared?
@@ -194,9 +196,19 @@
       (.clear frame-ref)))
   (unregister-internal frame ui-frames))
 
-(def ^:private gear-buttons
-  "Holds the list of weak references to gear buttons that should be
-  updated when the user interface theme changes."
+(defn register-open-inspector-windows
+  "Called after opening an expression inspector, this makes sure all
+  open inspector windows are registered to update themselves when the
+  user interface changes."
+  []
+  (seesaw/invoke-later
+    (doseq [entry @inspector-gui/jay-windows]
+      (register-ui-frame (:window entry)))))
+
+(defonce ^{:private true
+           :doc "Holds the list of weak references to gear buttons
+  that should be updated when the user interface theme changes."}
+  gear-buttons
   (atom '()))
 
 (defn register-gear-button
@@ -215,10 +227,12 @@
   [button]
   (unregister-internal button gear-buttons))
 
-(def ui-change-callbacks
-  "Holds the list of weak references to functions that should be
-  called when the user interface theme changes. Each will be called
-  with the current dark mode state and user preferences values."
+(defonce ^{:private true
+           :doc "Holds the list of weak references to functions that
+  should be called when the user interface theme changes. Each will be
+  called with the current dark mode state and user preferences
+  values."}
+  ui-change-callbacks
   (atom '()))
 
 (defn register-ui-change-callback
@@ -243,8 +257,9 @@
   "The object that helps us probe system theme information."
   (OsThemeDetector/getDetector))
 
-(def ^:private custom-themes
-  "The custom light and dark themes registered by user expressions, if any."
+(defonce ^{:private true
+           :doc "The custom light and dark themes registered by user expressions, if any."}
+  custom-themes
   (atom {}))
 
 (defn dark-mode?

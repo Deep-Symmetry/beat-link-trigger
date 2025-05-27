@@ -2342,6 +2342,7 @@
         inspect-action   (seesaw/action :handler (fn [_] (try
                                                            (inspector/inspect @(:expression-globals show)
                                                                               :window-name title)
+                                                           (prefs/register-open-inspector-windows)
                                                            (catch StackOverflowError _
                                                              (util/inspect-overflowed))
                                                            (catch Throwable t
