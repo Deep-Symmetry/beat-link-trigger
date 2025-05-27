@@ -2,6 +2,7 @@
   "Provides the user interface for seeing the status of active
   players, as well as telling players to load tracks."
   (:require [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.simulator :as simulator]
             [beat-link-trigger.util :as util]
@@ -586,20 +587,23 @@
         title-label    (seesaw/label :text "[track metadata not available]"
                                      :font (Font. "serif" Font/ITALIC 14) :foreground :yellow)
         artist-label   (seesaw/label :text "" :font (Font. "serif" Font/BOLD 12) :foreground :green)
-        usb-name       (seesaw/label :id :usb-name :text (if (opus-quad?)
-                                                           (first (opus-slot-state n))
-                                                           "Empty"))
-        usb-gear       (seesaw/button :id :usb-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? (opus-quad?)
+        usb-name       (seesaw/label :id :usb-name :foreground :white
+                                     :text (if (opus-quad?)
+                                             (first (opus-slot-state n))
+                                             "Empty"))
+        usb-gear       (seesaw/button :id :usb-gear :icon (prefs/gear-icon false) :enabled? (opus-quad?)
                                       :popup (partial slot-popup n :usb usb-name)
                                       :visible? (or (not opus-quad?) (<= n num-opus-usb-slots)))
-        usb-label      (seesaw/label :id :usb-label :text (if (opus-quad?)
-                                                            (if (> n num-opus-usb-slots) "" (str "USB " n ":"))
-                                                            "USB:"))
-        sd-name        (seesaw/label :id :sd-name :text (if (opus-quad?) "" "Empty"))
-        sd-gear        (seesaw/button :id :sd-gear :icon (seesaw/icon "images/Gear-outline.png") :enabled? false
+        usb-label      (seesaw/label :id :usb-label :foreground :white
+                                     :text (if (opus-quad?)
+                                             (if (> n num-opus-usb-slots) "" (str "USB " n ":"))
+                                             "USB:"))
+        sd-name        (seesaw/label :id :sd-name :foreground :white :text (if (opus-quad?) "" "Empty"))
+        sd-gear        (seesaw/button :id :sd-gear :icon (prefs/gear-icon false) :enabled? false
                                       :popup (partial slot-popup n :sd sd-name)
                                       :visible? (not (opus-quad?)))
-        sd-label       (seesaw/label :id :sd-label :text (if (opus-quad?) "" "SD:"))
+        sd-label       (seesaw/label :id :sd-label :foreground :white
+                                     :text (if (opus-quad?) "" "SD:"))
         detail         (when @should-show-details (WaveformDetailComponent. (int n)))
         zoom-slider    (when @should-show-details
                          (seesaw/slider :id :zoom :min 1 :max 32 :value 4
@@ -607,9 +611,11 @@
                                                                   (.setScale detail (seesaw/value e)))]))
         zoom-label     (when @should-show-details (seesaw/label :id :zoom-label :text "Zoom"))
         mood-icon      (IconFontSwing/buildIcon FontAwesome/BOLT 13.0 Color/white)
-        mood-label     (seesaw/label :id :mood-label :text "High" :icon mood-icon :halign :right :visible? false)
+        mood-label     (seesaw/label :id :mood-label :text "High" :foreground :white
+                                     :icon mood-icon :halign :right :visible? false)
         bank-icon      (IconFontSwing/buildIcon FontAwesome/SLIDERS 13.0 Color/white)
-        bank-label     (seesaw/label :id :bank-label :text "Natural 2" :icon bank-icon :halign :right :visible? false)
+        bank-label     (seesaw/label :id :bank-label :text "Natural 2" :foreground :white
+                                     :icon bank-icon :halign :right :visible? false)
         row            (mig/mig-panel
                         :id (keyword (str "player-" n))
                         :background (Color/BLACK)
@@ -656,13 +662,15 @@
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-later
-                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? true)
+                                 (prefs/update-gear-button button true)
+                                 (seesaw/config! button :enabled? true)
                                  (seesaw/config! label :text (media-description slot-reference))))))
                          (mediaUnmounted [_this slot-reference]
                            (let [[button label] (slot-elems slot-reference)]
                              (when button
                                (seesaw/invoke-soon
-                                 (seesaw/config! button :icon (seesaw/icon "images/Gear-outline.png") :enabled? false)
+                                 (prefs/update-gear-button button false)
+                                 (seesaw/config! button :enabled? false)
                                  (seesaw/config! label :text "Empty")))))
 
                          MediaDetailsListener
@@ -683,10 +691,12 @@
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (slot-popup n :usb usb-name e))]
                                       (util/show-popup-from-button usb-gear popup e))))
+    (prefs/register-gear-button usb-gear)
     (seesaw/listen sd-gear
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (slot-popup n :sd sd-name e))]
                                       (util/show-popup-from-button sd-gear popup e))))
+    (prefs/register-gear-button sd-gear)
 
     ;; Add the tooltip if needed for the metadata archive mounted in our USB slot.
     (when (opus-quad?) (update-opus-slot-label n usb-name))
@@ -897,12 +907,14 @@
       (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/listen root :window-closed (fn [_]
                                            (>!! shutdown-chan :done)
+                                           (prefs/unregister-ui-frame root)
                                            (reset! player-window nil)
                                            (.removeDeviceAnnouncementListener device-finder dev-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)
                                            (doseq [^JFrame detail (vals @waveform-windows)]
                                              (.dispose detail))))
       (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :player-status true)))
+      (prefs/register-ui-frame root)
       (seesaw/pack! root)
       (.setResizable root @allow-ugly-resizing)
       (reset! player-window root)
