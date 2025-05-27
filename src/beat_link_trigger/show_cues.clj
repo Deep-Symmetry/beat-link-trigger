@@ -1530,6 +1530,7 @@
              visible-uuids (mapv :uuid visible-cues)]
          (when (not= visible-uuids old-visible)
            (su/swap-context-runtime! show context assoc-in [:cues-editor :visible] visible-uuids)
+           (su/swap-context-runtime! show context assoc-in [:cues-editor :section-headers] '())
            (let [current-section (atom nil)
                  visible-panels  (mapcat (fn [cue]
                                            (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
@@ -1537,24 +1538,33 @@
                                                [panel]
                                                (do
                                                  (reset! current-section (:section cue))
-                                                 [(seesaw/border-panel
-                                                   :maximum-size [Integer/MAX_VALUE :by 40]
-                                                   :border 4
-                                                   :background (su/phrase-section-colors (:section cue))
-                                                   :west (seesaw/label :foreground :black
-                                                          :text (str " " (str/capitalize (name (:section cue))))))
-                                                  panel]))))
+                                                 (let [color      (su/phrase-section-colors (:section cue))
+                                                       new-header (seesaw/border-panel
+                                                                   :maximum-size [Integer/MAX_VALUE :by 40]
+                                                                   :border 4 :background color :user-data color
+                                                                   :west (seesaw/label
+                                                                          :foreground :black
+                                                                          :text (str " " (str/capitalize
+                                                                                          (name (:section cue))))))]
+                                                   (su/swap-context-runtime! show context update-in
+                                                                             [:cues-editor :section-headers]
+                                                                             conj new-header)
+                                                   [new-header panel])))))
                                          visible-cues)]
              (seesaw/config! cues :items (concat visible-panels [:fill-v :fill-v :fill-v :fill-v]))))
 
          ;; Update the row colors even if no visibilty changed, because the UI theme might have.
          (let [[_ _ runtime-info] (latest-show-and-context context)
-               panels                      (get-in runtime-info [:cues-editor :panels])]
+               panels             (get-in runtime-info [:cues-editor :panels])
+               section-headers    (get-in runtime-info [:cues-editor :section-headers])]
            (doall (map (fn [cue color]
                          (let [panel (get panels (:uuid cue))]
                            (seesaw/config! panel :background color)
                            (update-cue-link-icon context cue (seesaw/select panel [:#link]))))
-                       visible-cues (cycle (if dark? ["#222" "#111"] ["#eee" "#ddd"]))))))))))
+                       visible-cues (cycle (if dark? ["#222" "#111"] ["#eee" "#ddd"]))))
+           (doseq [panel section-headers]
+             (let [color (seesaw/user-data panel)]
+               (seesaw/config! panel :background (cond-> color dark? .darker))))))))))
 
 (defn- set-entered-only
   "Update the cues UI so that all cues or only entered cues are
