@@ -300,8 +300,12 @@
                  [:flatlaf-darcula true]  (com.formdev.flatlaf.FlatDarculaLaf.)
                  [:flatlaf-macos false]   (com.formdev.flatlaf.themes.FlatMacLightLaf.)
                  [:flatlaf-macos true]    (com.formdev.flatlaf.themes.FlatMacDarkLaf.)
-                 [:custom false]          (or (:light @custom-themes) (com.formdev.flatlaf.FlatIntelliJLaf.))
-                 [:custom true]           (or (:dark @custom-themes) (com.formdev.flatlaf.FlatDarculaLaf.)))]
+                 [:custom false]          (if-let [custom-class (:light @custom-themes)]
+                                            (.newInstance custom-class)
+                                            (com.formdev.flatlaf.FlatIntelliJLaf.))
+                 [:custom true]           (if-let [custom-class  (:dark @custom-themes)]
+                                            (.newInstance custom-class)
+                                            (com.formdev.flatlaf.FlatDarculaLaf.)))]
      (seesaw/invoke-later
        (try
          (UIManager/setLookAndFeel theme)
@@ -326,7 +330,8 @@
   The arguments are a boolean indicating whether it is a dark theme,
   and the custom look and feel class to be used for that mode."
   [dark? laf]
-  (when-not (instance? javax.swing.LookAndFeel laf)
+  (when (or (not (class? laf))
+            (not (.isAssignableFrom javax.swing.LookAndFeel laf)))
     (throw (IllegalArgumentException. "Can only register LookAndFeel subclasses.")))
   (swap! custom-themes assoc (if dark? :dark :light) laf)
   (set-ui-theme))

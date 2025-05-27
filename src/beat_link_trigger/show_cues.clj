@@ -3,6 +3,7 @@
   (:require [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.menus :as menus]
+            [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show-util :as su :refer [latest-show latest-track swap-show! swap-track!
                                                         find-cue swap-cue! track? phrase? latest-show-and-context
                                                         phrase-runtime-info latest-phrase
@@ -76,17 +77,19 @@
   to it."
   [context cue gear]
   (let [cue (find-cue context cue)]
-    (seesaw/config! gear :icon (if (every? clojure.string/blank? (vals (:expressions cue)))
-                                 (seesaw/icon "images/Gear-outline.png")
-                                 (seesaw/icon "images/Gear-icon.png")))))
+    (prefs/update-gear-button gear (not-every? clojure.string/blank? (vals (:expressions cue))))))
 
 (defn link-button-icon
   "Returns the proper icon to use for a cue's link button, depending on
-  its current link state."
-  [cue]
-  (if (:linked cue)
-    (IconFontSwing/buildIcon FontAwesome/LINK 16.0 Color/white)
-    (IconFontSwing/buildIcon FontAwesome/CHAIN_BROKEN 16.0 Color/white)))
+  its current link state and the user interface dark mode. If that is
+  already known, it can be passed in to save redundant work."
+  ([cue]
+   (link-button-icon cue (prefs/dark-mode?)))
+  ([cue dark?]
+   (let [color (if dark? Color/white Color/black)]
+     (if (:linked cue)
+       (IconFontSwing/buildIcon FontAwesome/LINK 16.0 color)
+       (IconFontSwing/buildIcon FontAwesome/CHAIN_BROKEN 16.0 color)))))
 
 (defn update-cue-link-icon
   "Determines whether the link button for a cue should be connected or
@@ -1065,9 +1068,7 @@
       (seesaw/action :handler (fn [_] (editors/show-cue-editor kind context cue panel update-fn))
                      :name (str "Edit " (:title spec))
                      :tip (:tip spec)
-                     :icon (if (cue-missing-expression? context cue kind)
-                             "images/Gear-outline.png"
-                             "images/Gear-icon.png")))))
+                     :icon (prefs/gear-icon (not (cue-missing-expression? context cue kind)))))))
 
 (defn- attach-cue-custom-editor-opener
   "Sets up an action handler so that when one of the popup menus is set
@@ -1311,7 +1312,7 @@
         track?         (su/track? context)
         comment-field  (seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment")
                                     :text (:comment cue) :listen [:document update-comment])
-        gear           (seesaw/button :id :gear :icon (seesaw/icon "images/Gear-outline.png"))
+        gear           (seesaw/button :id :gear :icon (prefs/gear-icon false))
         link           (seesaw/button :id :link :icon (link-button-icon cue)
                                       :visible? (seq (get-in show [:contents :cue-library])))
         max-end        (beat-count context (:section cue))
@@ -1446,6 +1447,7 @@
                    :mouse-pressed (fn [e]
                                     (let [popup (seesaw/popup :items (popup-fn e))]
                                       (util/show-popup-from-button gear popup e))))
+    (prefs/register-gear-button gear)
     (update-cue-gear-icon context cue gear)
 
     ;; Attach the link menu to the link button, both as a normal and right click.
@@ -1500,48 +1502,59 @@
   the visible cue UUIDs, sorted by their start and end beats followed
   by their comment and UUID. Then uses that to update the contents of
   the `cues` panel appropriately. Safely does nothing if the track or
-  phrase trigger has no cues editor window."
-  [context]
-  (let [[show context runtime-info] (latest-show-and-context context)]
-    (when-let [editor (:cues-editor runtime-info)]
-      (let [cues          (seesaw/select (:frame editor) [:#cues])
-            panels        (get-in runtime-info [:cues-editor :panels])
-            contents      (if (phrase? context) context (:contents context))
-            text          (get-in contents [:cues :filter])
-            entered-only? (and (or (util/online?) (sim/simulating?)) (get-in contents [:cues :entered-only]))
-            entered       (when entered-only? (reduce clojure.set/union (vals (:entered runtime-info))))
-            old-visible   (get-in runtime-info [:cues-editor :visible])
-            visible-cues  (filter identity
-                                  (map (fn [uuid]
-                                         (let [cue (get-in contents [:cues :cues uuid])]
-                                           (when (and
-                                                  (or (clojure.string/blank? text)
-                                                      (clojure.string/includes?
-                                                       (clojure.string/lower-case (:comment cue ""))
-                                                       (clojure.string/lower-case text)))
-                                                  (or (not entered-only?) (entered (:uuid cue))))
-                                             cue)))
-                                       (get-in runtime-info [:cues :sorted])))
-            visible-uuids (mapv :uuid visible-cues)]
-        (when (not= visible-uuids old-visible)
-          (su/swap-context-runtime! show context assoc-in [:cues-editor :visible] visible-uuids)
-          (let [current-section (atom nil)
-                visible-panels  (mapcat (fn [cue color]
-                                          (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
-                                            (seesaw/config! panel :background color)
-                                            (if (= (:section cue) @current-section)
-                                              [panel]
-                                              (do
-                                                (reset! current-section (:section cue))
-                                                [(seesaw/border-panel
-                                                  :maximum-size [Integer/MAX_VALUE :by 40]
-                                                  :border 4
-                                                  :background (su/phrase-section-colors (:section cue))
-                                                  :west (seesaw/label
-                                                         :text (str " " (str/capitalize (name (:section cue))))))
-                                                 panel]))))
-                                        visible-cues (cycle ["#eee" "#ddd"]))]
-            (seesaw/config! cues :items (concat visible-panels [:fill-v :fill-v :fill-v :fill-v]))))))))
+  phrase trigger has no cues editor window. If the current dark mode
+  setting is known, it can be passed in to avoid redundant work."
+  ([context]
+   (update-cue-visibility context (prefs/dark-mode?)))
+  ([context dark?]
+   (let [[show context runtime-info] (latest-show-and-context context)]
+     (when-let [editor (:cues-editor runtime-info)]
+       (let [cues          (seesaw/select (:frame editor) [:#cues])
+             panels        (get-in runtime-info [:cues-editor :panels])
+             contents      (if (phrase? context) context (:contents context))
+             text          (get-in contents [:cues :filter])
+             entered-only? (and (or (util/online?) (sim/simulating?)) (get-in contents [:cues :entered-only]))
+             entered       (when entered-only? (reduce clojure.set/union (vals (:entered runtime-info))))
+             old-visible   (get-in runtime-info [:cues-editor :visible])
+             visible-cues  (filter identity
+                                   (map (fn [uuid]
+                                          (let [cue (get-in contents [:cues :cues uuid])]
+                                            (when (and
+                                                   (or (clojure.string/blank? text)
+                                                       (clojure.string/includes?
+                                                        (clojure.string/lower-case (:comment cue ""))
+                                                        (clojure.string/lower-case text)))
+                                                   (or (not entered-only?) (entered (:uuid cue))))
+                                              cue)))
+                                        (get-in runtime-info [:cues :sorted])))
+             visible-uuids (mapv :uuid visible-cues)]
+         (when (not= visible-uuids old-visible)
+           (su/swap-context-runtime! show context assoc-in [:cues-editor :visible] visible-uuids)
+           (let [current-section (atom nil)
+                 visible-panels  (mapcat (fn [cue]
+                                           (let [panel (or (get panels (:uuid cue)) (create-cue-panel context cue))]
+                                             (if (= (:section cue) @current-section)
+                                               [panel]
+                                               (do
+                                                 (reset! current-section (:section cue))
+                                                 [(seesaw/border-panel
+                                                   :maximum-size [Integer/MAX_VALUE :by 40]
+                                                   :border 4
+                                                   :background (su/phrase-section-colors (:section cue))
+                                                   :west (seesaw/label :foreground :black
+                                                          :text (str " " (str/capitalize (name (:section cue))))))
+                                                  panel]))))
+                                         visible-cues)]
+             (seesaw/config! cues :items (concat visible-panels [:fill-v :fill-v :fill-v :fill-v]))))
+
+         ;; Update the row colors even if no visibilty changed, because the UI theme might have.
+         (let [[_ _ runtime-info] (latest-show-and-context context)
+               panels                      (get-in runtime-info [:cues-editor :panels])]
+           (doall (map (fn [cue color]
+                         (let [panel (get panels (:uuid cue))]
+                           (seesaw/config! panel :background color)
+                           (update-cue-link-icon context cue (seesaw/select panel [:#link]))))
+                       visible-cues (cycle (if dark? ["#222" "#111"] ["#eee" "#ddd"]))))))))))
 
 (defn- set-entered-only
   "Update the cues UI so that all cues or only entered cues are
@@ -2634,6 +2647,13 @@
                   (.setPaint g (su/phrase-playback-marker-color section next-section fraction))
                   (.fillRect g (dec x) 0 2 (.getHeight c)))))))))))
 
+(defn- ui-theme-changed
+  "Called whenever the user interface theme has been changed, or dark
+  mode has been entered or exited. Updates the window's interface to
+  be readable in the new theme."
+  [context dark? _preferences]
+  (update-cue-visibility context dark?))
+
 (defn- create-cues-window
   "Create and show a new cues window for the specified track or phrase
   trigger."
@@ -2649,6 +2669,7 @@
                                                    ^CueList (su/read-cue-list track-root)
                                                    ^BeatGrid (:grid context))
                          (seesaw/canvas :id :wave :paint (partial paint-cue-canvas context)
+                                        :background Color/black
                                         :opaque? true :size [(cue-canvas-width context) :by 92]))
         song-structure (when (track? context) (:song-structure context))
         zoom-slider    (seesaw/slider :id :zoom :min 1 :max max-zoom :value (get-in contents [:cues :zoom] 4))
@@ -2663,13 +2684,13 @@
                                         :listen [:item-state-changed #(set-auto-scroll context wave (seesaw/value %))])
         lib-popup-fn   (fn [] (seesaw/popup :items (build-cue-library-button-menu context)))
         zoom-anchor    (atom nil) ; The x coordinate we want to keep the wave anchored at when zooming.
-        wave-scale     (fn []  ; Determine the current scale of the waveform or cue canvas.
+        wave-scale     (fn [] ; Determine the current scale of the waveform or cue canvas.
                          (if track-root
                            (WaveformDetailComponent/.getScale wave)
                            (get-in (latest-phrase show context) [:cues :zoom] 4)))
         wave-scroll    (proxy [javax.swing.JScrollPane] [wave]
                          (processMouseWheelEvent [^java.awt.event.MouseWheelEvent e]
-                           (if (.isShiftDown e)  ; This is how AWT represents horizontal scrolling.
+                           (if (.isShiftDown e) ; This is how AWT represents horizontal scrolling.
                              ;; I haven't been able to find a way to avoid reflection here, since this is a
                              ;; protected superclass method. But this will only happen once per scroll event,
                              ;; so the cost of reflection is not tragic. See also:
@@ -2681,7 +2702,7 @@
         new-cue        (seesaw/button :id :new-cue :text "New Cue"
                                       :listen [:action-performed (fn ([_] (new-cue context)))]
                                       :enabled? (some? track-root))
-        top-panel      (mig/mig-panel :background "#aaa" :constraints (cue-panel-constraints context)
+        top-panel      (mig/mig-panel :constraints (cue-panel-constraints context)
                                       :items [[new-cue]
                                               [(seesaw/button :id :library
                                                               :text (str "Library "
@@ -2708,6 +2729,7 @@
                          (dispatchKeyEvent [^java.awt.event.KeyEvent e]
                            (handle-wave-key context wave e)
                            false))
+        theme-callback (partial ui-theme-changed context)
         close-fn       (fn [force?]
                          ;; Closes the cues window and performs all necessary cleanup. If `force?` is true,
                          ;; will do so even in the presence of windows with unsaved user changes. Otherwise
@@ -2717,12 +2739,14 @@
                                contents    (if (phrase? context) context (:contents context))
                                cues        (vals (get-in contents [:cues :cues]))]
                            (when (every? (partial close-cue-editors? force? context) cues)
+                             (prefs/unregister-ui-frame root)
+                             (prefs/unregister-ui-change-callback theme-callback)
                              (doseq [cue cues]
                                (cleanup-cue true context cue))
                              (seesaw/invoke-later
-                              ;; Gives windows time to close first, so they don't recreate a broken editor.
-                              (su/swap-context-runtime! show context dissoc :cues-editor)
-                              (su/repaint-preview context))  ; Removes the editor viewport overlay.
+                               ;; Gives windows time to close first, so they don't recreate a broken editor.
+                               (su/swap-context-runtime! show context dissoc :cues-editor)
+                               (su/repaint-preview context)) ; Removes the editor viewport overlay.
                              (.removeKeyEventDispatcher (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)
                                                         key-spy)
                              (.dispose root)
@@ -2765,9 +2789,11 @@
     (seesaw/listen root
                    :window-closing (fn [_] (close-fn false))
                    #{:component-moved :component-resized} (fn [_] (save-cue-window-position context root)))
+    (prefs/register-ui-frame root)
+    (prefs/register-ui-change-callback theme-callback)
     (start-animation-thread show context)
     (update-new-cue-state context)
-    (su/repaint-preview context)  ; Show the editor viewport overlay.
+    (su/repaint-preview context)   ; Show the editor viewport overlay.
     (seesaw/show! root)))
 
 (defn open-cues

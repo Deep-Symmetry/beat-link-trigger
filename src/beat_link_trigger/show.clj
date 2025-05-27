@@ -1744,7 +1744,6 @@
 
      (swap-show! show assoc-in [:tracks signature] track)
      (swap-show! show assoc-in [:panels panel] signature)
-     (prefs/register-gear-button gear)
 
      ;; Now that the track is in the show, set the initial state of the phrase lock button icon.
      (seesaw/config! lock :icon (lock-button-icon-internal show signature))
@@ -1756,6 +1755,7 @@
                     :mouse-pressed (fn [e]
                                      (let [popup (seesaw/popup :items (popup-fn e))]
                                        (util/show-popup-from-button gear popup e))))
+     (prefs/register-gear-button gear)
      (su/update-gear-icon track gear)
 
      (seesaw/listen soft-preview
@@ -2470,8 +2470,7 @@
                                              :selected? (boolean (:loaded-only contents)) :visible? (util/online?)
                                              :listen [:item-state-changed #(set-loaded-only show (seesaw/value %))])
             filter-field    (seesaw/text (:filter contents ""))
-            top-panel       (mig/mig-panel :background "#aaa"
-                                           :items [[(seesaw/label :text "Enabled Default:")]
+            top-panel       (mig/mig-panel :items [[(seesaw/label :text "Enabled Default:")]
                                                    [enabled-default]
                                                    [(seesaw/label :text "") "pushx 1, growx 1"]
                                                    [(seesaw/label :text "Filter:") "gap unrelated"]
