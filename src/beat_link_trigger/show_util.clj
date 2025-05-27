@@ -481,7 +481,6 @@
                                          (inspector/inspect @(:expression-locals runtime-info)
                                                             :window-name (str "Expression Locals for "
                                                                               (display-title context)))
-                                         (prefs/register-open-inspector-windows)
                                          (catch StackOverflowError _
                                            (util/inspect-overflowed))
                                          (catch Throwable t

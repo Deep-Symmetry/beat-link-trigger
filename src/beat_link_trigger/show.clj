@@ -2342,7 +2342,6 @@
         inspect-action   (seesaw/action :handler (fn [_] (try
                                                            (inspector/inspect @(:expression-globals show)
                                                                               :window-name title)
-                                                           (prefs/register-open-inspector-windows)
                                                            (catch StackOverflowError _
                                                              (util/inspect-overflowed))
                                                            (catch Throwable t
@@ -2542,7 +2541,6 @@
                                                              'beat-link-trigger.triggers/close-trigger-editors?)
                                                             force?)
                                                    triggers))
-                                  (prefs/unregister-ui-frame root)
                                   (prefs/unregister-ui-change-callback theme-callback)
                                   (.removeUpdateListener virtual-cdj update-listener)
                                   (.removeDeviceAnnouncementListener device-finder dev-listener)
@@ -2622,7 +2620,6 @@
                            (let [rows (:panels (latest-show show))]
                              (resize-track-panels rows (.getWidth root))
                              (phrases/resize-phrase-panels rows (.getWidth root))))))
-        (prefs/register-ui-frame root)
         (prefs/register-ui-change-callback theme-callback)
         (let [rows (:panels (latest-show show))]
           (resize-track-panels rows (.getWidth root))

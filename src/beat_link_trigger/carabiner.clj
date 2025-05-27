@@ -613,7 +613,6 @@
       (seesaw/pack! root)
       (.setResizable root false)
       (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :carabiner true)))
-      (prefs/register-ui-frame root)
       (reset! carabiner-window root)
       (update-connected-status)
       (update-link-status (beat-carabiner/state))

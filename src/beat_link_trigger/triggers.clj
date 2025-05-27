@@ -923,7 +923,6 @@
          inspect-action (seesaw/action :handler (fn [_] (try
                                                           (inspector/inspect @(:locals @(seesaw/user-data panel))
                                                                              :window-name "Trigger Expression Locals")
-                                                          (prefs/register-open-inspector-windows)
                                                           (catch StackOverflowError _
                                                             (util/inspect-overflowed))
                                                           (catch Throwable t
@@ -1589,7 +1588,6 @@
   (let [inspect-action   (seesaw/action :handler (fn [_] (try
                                                            (inspector/inspect @expression-globals
                                                                               :window-name "Trigger Expression Globals")
-                                                           (prefs/register-open-inspector-windows)
                                                            (catch StackOverflowError _
                                                              (util/inspect-overflowed))
                                                           (catch Throwable t
@@ -1700,7 +1698,6 @@
       (util/restore-window-position root :triggers nil)
       (seesaw/show! root)
       (check-for-parse-error)
-      (prefs/register-ui-frame root)
       (prefs/register-ui-change-callback theme-callback)
       (seesaw/listen root
                      :window-closing
@@ -1709,7 +1706,6 @@
                        (if (and (show/close-all-shows false)
                                 (delete-all-triggers false))
                          (do
-                           (prefs/unregister-ui-frame root)
                            (prefs/unregister-ui-change-callback theme-callback)
                            (writer/close-window)
                            (when (beat-carabiner/active?)

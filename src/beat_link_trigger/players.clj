@@ -907,14 +907,12 @@
       (.addLifecycleListener virtual-cdj stop-listener)
       (seesaw/listen root :window-closed (fn [_]
                                            (>!! shutdown-chan :done)
-                                           (prefs/unregister-ui-frame root)
                                            (reset! player-window nil)
                                            (.removeDeviceAnnouncementListener device-finder dev-listener)
                                            (.removeLifecycleListener virtual-cdj stop-listener)
                                            (doseq [^JFrame detail (vals @waveform-windows)]
                                              (.dispose detail))))
       (seesaw/listen root :component-moved (fn [_] (util/save-window-position root :player-status true)))
-      (prefs/register-ui-frame root)
       (seesaw/pack! root)
       (.setResizable root @allow-ugly-resizing)
       (reset! player-window root)

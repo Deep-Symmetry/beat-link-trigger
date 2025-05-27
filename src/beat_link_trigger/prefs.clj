@@ -8,7 +8,8 @@
             [inspector-jay.gui.gui :as inspector-gui]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import [java.lang.ref WeakReference]
+  (:import [java.awt Window]
+           [java.lang.ref WeakReference]
            [java.util.prefs Preferences]
            [javax.swing JFrame SwingUtilities UIManager]
            [com.jthemedetecor OsThemeDetector]))
@@ -150,12 +151,6 @@
   supported user interface theme."
   (set/map-invert ui-names))
 
-(defonce ^{:private true
-           :doc "Holds the list of weak references to user interface frames that
-  should be updated when the user interface theme changes."}
-  ui-frames
-  (atom '()))
-
 (defn cleared?
   "Predicate that checks whether a weak reference has been cleared (is
   now empty)."
@@ -176,34 +171,6 @@
     (when (.refersTo existing-ref entry)
       (.clear existing-ref)))
   (swap! list-atom (partial remove cleared?)))
-
-(defn register-ui-frame
-  "This function adds a frame (window) to the list that will be updated
-  whenever the user chooses a different interface theme, or dark mode
-  turns on or off. The list holds weak references, so it does not
-  prevent the frames from being garbage collected, and they will be
-  cleaned out of the list when that happens."
-  [frame]
-  (register-internal frame ui-frames))
-
-(defn unregister-ui-frame
-  "This function removes a frame (window) from the list that will be
-  updated whenever the user chooses a different interface theme, or
-  dark mode turns on or off."
-  [frame]
-  (doseq [^WeakReference frame-ref @ui-frames]
-    (when (.refersTo frame-ref frame)
-      (.clear frame-ref)))
-  (unregister-internal frame ui-frames))
-
-(defn register-open-inspector-windows
-  "Called after opening an expression inspector, this makes sure all
-  open inspector windows are registered to update themselves when the
-  user interface changes."
-  []
-  (seesaw/invoke-later
-    (doseq [entry @inspector-gui/jay-windows]
-      (register-ui-frame (:window entry)))))
 
 (defonce ^{:private true
            :doc "Holds the list of weak references to gear buttons
@@ -334,9 +301,8 @@
                (f dark? preferences)
                (catch Throwable t
                  (timbre/error t "Problem in user interface theme change callback")))))
-         (doseq [^WeakReference frame-ref (swap! ui-frames (partial remove cleared?))]
-           (when-let [^JFrame frame (.get frame-ref)]
-             (SwingUtilities/updateComponentTreeUI frame)))
+         (doseq [^Window window (Window/getWindows)]
+           (SwingUtilities/updateComponentTreeUI window))
          (catch Throwable t
            (timbre/error t "Unable to set UI theme to" theme)))))))
 

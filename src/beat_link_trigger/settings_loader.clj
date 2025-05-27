@@ -220,11 +220,9 @@
        (.addUpdateListener virtual-cdj status-listener)
        (track-loader/build-device-choices players)
        (reset! loader-window root)
-       (prefs/register-ui-frame root)
        (.addLifecycleListener virtual-cdj stop-listener)
        (seesaw/listen root :window-closed (fn [_]
                                             (reset! loader-window nil)
-                                            (prefs/unregister-ui-frame root)
                                             (remove-listeners)))
        (seesaw/listen load-button
                       :action-performed

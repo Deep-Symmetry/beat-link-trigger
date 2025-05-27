@@ -220,11 +220,8 @@
                                                                             (assoc :run-obs-overlay
                                                                                    (seesaw/value e)))))])
                                    "wrap"]])]
-      (prefs/register-ui-frame root)
       (reset! settings-window root)
-      (seesaw/listen root :window-closed (fn [_]
-                                           (reset! settings-window nil)
-                                           (prefs/unregister-ui-frame root)))
+      (seesaw/listen root :window-closed (fn [_] (reset! settings-window nil)))
       (seesaw/config! root :content settings-panel)
       (seesaw/pack! root)
       (.setResizable root false)

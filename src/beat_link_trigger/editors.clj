@@ -1816,10 +1816,8 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (swap! (seesaw/user-data trigger) update-in [:expression-editors]
                                                          dissoc kind)
-                                                  (prefs/unregister-ui-frame root)
                                                   (prefs/unregister-ui-change-callback theme-changed)
                                                   (.dispose root))))
-    (prefs/register-ui-frame root)
     (prefs/register-ui-change-callback theme-changed)
     (let [result
           (reify IExpressionEditor
@@ -1970,7 +1968,6 @@ a {
                                                                 update :expression-editors dissoc kind)
                                 :else
                                 (show-util/swap-show! show update :expression-editors dissoc kind))
-                          (prefs/unregister-ui-frame root)
                           (prefs/unregister-ui-change-callback theme-changed))]
     (.add editor-panel scroll-pane)
     (seesaw/config! scroll-pane :user-data theme-changed)  ; Avoid garbage collection while window is open.
@@ -2017,7 +2014,6 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
-    (prefs/register-ui-frame root)
     (prefs/register-ui-change-callback theme-changed)
     (let [result
           (reify IExpressionEditor
@@ -2138,7 +2134,6 @@ a {
                             (show-util/swap-phrase-runtime! (show-util/show-from-phrase context) context
                                                             update-in [:cues-editor :expression-editors (:uuid cue)]
                                                             dissoc kind))
-                          (prefs/unregister-ui-frame root)
                           (prefs/unregister-ui-change-callback theme-changed))]
     (.add editor-panel scroll-pane)
     (seesaw/config! scroll-pane :user-data theme-changed)  ; Avoid garbage collection while window is open.
@@ -2185,7 +2180,6 @@ a {
     (seesaw/listen root :window-closing (fn [_] (when (confirm-close-if-dirty root update-action)
                                                   (close-fn)
                                                   (.dispose root))))
-    (prefs/register-ui-frame root)
     (prefs/register-ui-change-callback theme-changed)
     (let [result (reify IExpressionEditor
                    (retitle [_] (seesaw/config! root :title (cue-editor-title kind context cue)))

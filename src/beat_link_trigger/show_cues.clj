@@ -2749,7 +2749,6 @@
                                contents    (if (phrase? context) context (:contents context))
                                cues        (vals (get-in contents [:cues :cues]))]
                            (when (every? (partial close-cue-editors? force? context) cues)
-                             (prefs/unregister-ui-frame root)
                              (prefs/unregister-ui-change-callback theme-callback)
                              (doseq [cue cues]
                                (cleanup-cue true context cue))
@@ -2799,7 +2798,6 @@
     (seesaw/listen root
                    :window-closing (fn [_] (close-fn false))
                    #{:component-moved :component-resized} (fn [_] (save-cue-window-position context root)))
-    (prefs/register-ui-frame root)
     (prefs/register-ui-change-callback theme-callback)
     (start-animation-thread show context)
     (update-new-cue-state context)

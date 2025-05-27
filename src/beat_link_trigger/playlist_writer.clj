@@ -398,12 +398,10 @@
                                 (.dispatchEvent root (WindowEvent. root WindowEvent/WINDOW_CLOSING)))))]
        (.addUpdateListener virtual-cdj update-listener)
        (.addLifecycleListener virtual-cdj stop-listener)
-       (prefs/register-ui-frame root)
        (seesaw/listen root
                       :window-closing (fn [_]
                                         (.removeUpdateListener virtual-cdj update-listener)
                                         (.removeLifecycleListener virtual-cdj stop-listener)
-                                        (prefs/unregister-ui-frame root)
                                         (close-handler)
                                         (reset! writer-window nil)
                                         (prefs/put-preferences
