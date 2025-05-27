@@ -27,8 +27,7 @@
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
-            [taoensso.timbre :as timbre]
-            [thi.ng.color.core :as color])
+            [taoensso.timbre :as timbre])
   (:import [beat_link_trigger.util PlayerChoice]
            [java.awt Color Graphics2D RenderingHints]
            [java.awt.event WindowEvent]
@@ -631,22 +630,6 @@
   ([show]
    (filter #(= (:file show) (:show-file @(seesaw/user-data %))) (get-triggers))))
 
-(defn- trigger-color
-  "Calculates the color that should be used as the background color for
-  a trigger row, given the trigger index and show hue (if any).
-  `dark?` reflects the current user interface dark mode setting."
-  [trigger-index show-hue dark?]
-  (let [base-color (case [dark? (odd? trigger-index)]
-                     [false false] "#eee"
-                     [false true]  "#ddd"
-                     [true false]  "#222"
-                     [true true]   "#111")]
-    (if show-hue
-      (let [luminance (-> base-color color/css color/luminance)
-            color     (color/hsla (/ show-hue 360.0) 0.95 luminance)]
-        (Color. @(color/as-int24 color)))
-      base-color)))
-
 (defn- adjust-triggers
   "Called when a trigger is added or removed to restore the proper
   alternation of background colors and identification of source shows.
@@ -669,7 +652,7 @@
              show-hue        (if (= show-file last-show-file)
                                show-hue ; Either let show explicitly set hue, or rotate through color wheel
                                (or (:show-hue @(seesaw/user-data trigger)) (mod (+ (or show-hue 0.0) 62.5) 360.0)))]
-         (seesaw/config! trigger :background (trigger-color trigger-index show-hue dark?))
+         (seesaw/config! trigger :background (util/trigger-color trigger-index show-hue dark?))
          (seesaw/config! (seesaw/select trigger [:#index]) :text (str trigger-index "."))
          (if (= show-file last-show-file)
            (seesaw/config! (seesaw/select trigger [:#from-show]) :visible? false)

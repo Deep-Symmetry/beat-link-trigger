@@ -150,6 +150,11 @@ randomly assigned to the phrase triggers when they are created, and
 the values are the phrase trigger contents maps described in the
 <<phrase-contents,Phrase Trigger Contents section>>.
 
+`:user`:: A map for show expressions to store whatever information they need, using the `show/swap-user-data!` function.
+Values are saved along with the show, so persist between runs of Beat Link Trigger, and can be accessed using `show/user-data`.
++
+NOTE: The special key `:show-hue` within the `:user` map can be used to assign a custom hue to a show window (as a color wheel value in the range 0 to 360). This will be used when assigning the background color of its track rows, as well as any raw trigger rows it adds to the Triggers window, and its custom user interface if it applies one using `show/block-tracks`.
+
 `:window`:: The left and right coordinates of the show window on the
 screen, and its height and width, for use in restoring the window when
 the show is opened again.

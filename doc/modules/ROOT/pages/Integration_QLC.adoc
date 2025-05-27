@@ -648,18 +648,17 @@ user interface for the show window:
         status (seesaw/label :id :status :text "No" :foreground :red)]  ;; <2>
     (swap! globals assoc :status-label status)  ;; <3>
     (seesaw.mig/mig-panel  ;; <4>
-     :background (if (prefs/dark-mode?) "#330" "#dda")  ;; <5>
      :items (concat
-             [["Connect to QLC+ Running on Host:" "align right"]  ;; <6>
+             [["Connect to QLC+ Running on Host:" "align right"]  ;; <5>
               [(seesaw/label :id :host :text qlc-host) "wrap"]
 
-              ["Port Number:" "align right"]  ;; <7>
+              ["Port Number:" "align right"]  ;; <6>
               [(seesaw/label :id :port :text (str qlc-port)) "wrap"]
 
-              ["Connected:" "align right"]  ;; <8>
+              ["Connected:" "align right"]  ;; <7>
               [status "wrap"]
 
-              [(seesaw/button :text "Configure"  ;; <9>
+              [(seesaw/button :text "Configure"  ;; <8>
                               :listen [:action (partial configure-qlc-socket
                                                         show globals)])
                "gap unrelated, align right"]]))))
@@ -681,32 +680,16 @@ Functions <<ui-shared-functions,section>>).
 <4> And finally we create the layout panel that will hold the
 interface.
 
-<5> We set a different background color to distinguish it even more
-from a normal show window.
-Because BLT 8 and later allow the user to change whether the user interface is in dark mode, we need to pick a background that will leave the text legible.
-
-<6> This creates the row that displays the currently-configured host
+<5> This creates the row that displays the currently-configured host
 name.
 
-<7> Similarly, a row for the current port number.
+<6> Similarly, a row for the current port number.
 
-<8> And the row that holds our connection status, referencing the
+<7> And the row that holds our connection status, referencing the
 variable we bound the label to above.
 
-<9> Finally, the Configure button, which is wired up to call the
+<8> Finally, the Configure button, which is wired up to call the
 `configure-qlc-socket` function we just saw.
-
-As noted above, starting with BLT version 8, the user can pick light or dark interface modes. We need a function that can react when these changes occur, to adjust the show background to keep the interface legible:
-
-[source,clojure]
-----
-(defn qlc-ui-updater
-  "Called when the user interface theme changes."
-  [ui dark? _preferences]
-  (seesaw/config! ui :background (if dark? "#330" "#dda")))
-----
-
-We will arrange for this function to be called by adding more to the Global Setup Expression, which is also where we get our interface to appear at all.
 
 === Global Setup Additions
 
@@ -715,46 +698,23 @@ Here is how we tell Beat Link Trigger that this show doesn’t use tracks, and h
 [source,clojure]
 ----
 (let [cue-indexer (build-qlc-cue-indexer trigger-globals)
-      ui          (build-qlc-config-ui show trigger-globals)  ;; <1>
-      ui-updater  (partial qlc-ui-updater ui)]  ;; <2>
+      ui          (build-qlc-config-ui show trigger-globals)]  ;; <1>
 
   ;; [Previously discussed lines omitted…]
 
-  (swap! globals assoc :ui-updater ui-updater)  ;; <3>
-  (show/swap-user-data! show assoc :show-hue 60.0)  ;; <4>
-  (show/block-tracks show ui)  ;; <5>
-  (configure-qlc-ws-url show trigger-globals)  ;; <6>
-
-  ;; Arrange for the UI to respond to changes in the UI theme
-  (prefs/register-ui-change-callback ui-updater))  ;; <7>
+  (show/swap-user-data! show assoc :show-hue 60.0)  ;; <2>
+  (show/block-tracks show ui)  ;; <3>
+  (configure-qlc-ws-url show trigger-globals)  ;; <4>
 ----
 
 <1> This calls our new shared function to build the configuration user interface.
 
-<2> This creates a function that will be called whenever we enter or leave dark mode to update the UI background to keep the text legible.
+<2> This gives the show window a distinctive yellow hue, which is also used in the background of the raw trigger it adds to the Triggers window, to visually associate it with the show.
 
-<3> This holds on to a reference to that updater function for as long as the show window is open, to prevent it from being garbage collected.
+<3> This line gets rid of the user interface elements (and menu options) that relate to managing tracks and phrase triggers in the show, and by passing in the user interface we built, arranges for it to replace the show window contents.
 
-<4> This gives the show window a distinctive yellow hue, which is also used in the background of the raw trigger it adds to the Triggers window, to visually associate it with the show.
-
-<5> This line gets rid of the user interface elements (and menu options) that relate to managing tracks and phrase triggers in the show, and by passing in the user interface we built, arranges for it to replace the show window contents.
-
-<6> This sets up a trigger global that holds the URL that should be used to contact QLC+, which is what the configuration interface will manage for the user.
+<4> This sets up a trigger global that holds the URL that should be used to contact QLC+, which is what the configuration interface will manage for the user.
 It starts with a reasonable default, if the user has not already edited it.
-
-<7> This arranges for BLT to call our background-color updater function whenever dark mode might have changed.
-
-=== Global Shutdown Addition
-
-And of course we clean up after our new elements as well.
-
-[source,clojure]
-----
-(prefs/unregister-ui-change-callback (:ui-updater @globals))
-----
-
-This tells BLT it no longer needs to worry about updating the background of the show window when the show closes.
-It would eventually happen anyway, because without the show globals referencing the updater function, it would get garbage collected, which would cause BLT to remove it from its list of things to call, but removing it explicitly like this is clear and immediate.
 
 === Conclusions
 

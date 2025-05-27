@@ -7,7 +7,8 @@
             [me.raynes.fs :as fs]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [thi.ng.color.core :as color])
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
            [org.deepsymmetry.beatlink.data TimeFinder SignatureFinder]
@@ -19,9 +20,9 @@
            [java.io File]
            [javax.sound.midi Sequencer Synthesizer]
            [javax.swing JDialog JFrame]
-           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]
            [jiconfont.icons.font_awesome FontAwesome]
-           [jiconfont.swing IconFontSwing]))
+           [jiconfont.swing IconFontSwing]
+           [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
 
 (def ^:private project-version
   (delay (if-let [version-data-file (clojure.java.io/resource "beat_link_trigger/version.edn")]
@@ -242,6 +243,22 @@
     (.setColor g Color/gray)
     (.drawString g text (.. c (getInsets) left)
                  (+ (.. g (getFontMetrics) (getMaxAscent)) (.. c (getInsets) top)))))
+
+(defn trigger-color
+  "Calculates the color that should be used as the background color for
+  a trigger row, given the trigger index and show hue (if any).
+  `dark?` reflects the current user interface dark mode setting."
+  [trigger-index show-hue dark?]
+  (let [base-color (case [dark? (odd? trigger-index)]
+                     [false false] "#ddd"
+                     [false true]  "#eee"
+                     [true false]  "#333"
+                     [true true]   "#222")]
+    (if show-hue
+      (let [luminance (-> base-color color/css color/luminance)
+            color     (color/hsla (/ show-hue 360.0) 0.95 luminance)]
+        (Color. @(color/as-int24 color)))
+      base-color)))
 
 (defn show-popup-from-button
   "Displays a popup menu when the gear button is clicked as an

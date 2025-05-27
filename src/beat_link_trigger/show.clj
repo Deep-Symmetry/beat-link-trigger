@@ -2260,6 +2260,37 @@
                                (.dispatchEvent frame (WindowEvent. frame WindowEvent/WINDOW_CLOSING)))))
                  :name "Close"))
 
+(defn user-data
+  "Helper function to return the user data map stored in the show."
+  [show]
+  (get-in (latest-show show) [:contents :user]))
+
+(defn swap-user-data!
+  "Atomically updates the custom user data map stored in the show by
+  calling the specified function with the supplied arguments on the
+  current value of the user data map in the specified show. Returns
+  the updated user data map.
+
+  This can be used by shows with custom user interfaces to update
+  their settings in a way that will be saved inside the show file."
+  [show f & args]
+  (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
+          [(:file show) :contents :user]))
+
+(defn- adjust-custom-ui-background
+  "Called when the user interface theme has been changed or the Global
+  Setup expression has been evaluated. Checks if the show is using a
+  custom user interface and has specified a custom hue. If so, sets
+  the background of the user interface panel to a color appropriate
+  for the hue and current dark mode state."
+  [show dark?]
+  (seesaw/invoke-later
+    (let [show (latest-show show)
+          ui   (seesaw/config (:frame show) :content)]
+      (when (and (:block-tracks? show) (not= (:default-ui show) ui))
+        (when-let [show-hue (:show-hue (user-data show))]
+          (seesaw/config! ui :background (util/trigger-color 1 show-hue dark?)))))))
+
 (defn global-editor-update-fn
   "The function called to propagate necessary changes when a show global
   expression has been updated."
@@ -2271,6 +2302,10 @@
     (reset! (:expression-globals show) {})
     (swap-show! show dissoc :cue-builders)
     (run-global-function show :setup nil true)
+    (let [dark? (prefs/dark-mode?)]  ; In case the show hue was changed.
+      (su/update-row-visibility show dark?)
+      ((requiring-resolve 'beat-link-trigger.triggers/adjust-triggers) dark?)
+      (adjust-custom-ui-background show dark?))
     (when (util/online?)
       (run-global-function show :online nil true)))
   (update-tracks-global-expression-icons show))
@@ -2396,7 +2431,8 @@
   be readable in the new theme."
   [show dark? preferences]
   (su/update-row-visibility show dark?)
-  (update-tracks-global-expression-icons show preferences))
+  (update-tracks-global-expression-icons show preferences)
+  (adjust-custom-ui-background show dark?))
 
 (defn- create-show-window
   "Create and show a new show window on the specified file."
@@ -2570,7 +2606,6 @@
 
         (create-track-panels show)
         (phrases/create-phrase-panels show)
-        (su/update-row-visibility show)
         (refresh-signatures show)
         (seesaw/listen filter-field #{:remove-update :insert-update :changed-update}
                        (fn [e] (filter-text-changed show (seesaw/text e))))
@@ -2593,6 +2628,10 @@
           (resize-track-panels rows (.getWidth root))
           (phrases/resize-phrase-panels rows (.getWidth root)))
         (run-global-function show :setup nil true)
+        (let [dark? (prefs/dark-mode?)]
+          (su/update-row-visibility show dark?)  ; Delayed to here in case Global Setup changed the show hue.
+          ((requiring-resolve 'beat-link-trigger.triggers/adjust-triggers) dark?)
+          (adjust-custom-ui-background show dark?))
         (when (util/online?) (run-global-function show :online nil true))
         (swap-show! show dissoc :creating)
         (update-tracks-global-expression-icons show)
@@ -2782,7 +2821,7 @@
   [show blocked?]
   (seesaw/invoke-later
    (seesaw/config! (:frame show) :content
-                   (if (instance? javax.swing.JComponent blocked?)
+                   (if (instance? JComponent blocked?)
                      blocked?
                      (:default-ui show)))
    (let [blocked?      (boolean blocked?)  ; Normalize to `true` or `false`.
@@ -2801,23 +2840,6 @@
                (.remove menu-bar 2)
                (.add menu-bar (build-phrase-menu show) 2)
                (.add menu-bar (menus/build-help-menu)))))))))
-
-(defn user-data
-  "Helper function to return the user data map stored in the show."
-  [show]
-  (get-in (latest-show show) [:contents :user]))
-
-(defn swap-user-data!
-  "Atomically updates the custom user data map stored in the show by
-  calling the specified function with the supplied arguments on the
-  current value of the user data map in the specified show. Returns
-  the updated user data map.
-
-  This can be used by shows with custom user interfaces to update
-  their settings in a way that will be saved inside the show file."
-  [show f & args]
-  (get-in (swap-show! show #(apply update-in % [:contents :user] f args))
-          [(:file show) :contents :user]))
 
 (defn simulation-state-changed
   "Called when the first shallow playback simulator window is opened, or

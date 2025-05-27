@@ -61,7 +61,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     codesign --timestamp -s "Deep Symmetry, LLC (9M6LKU948Y)" "$dmg_name"
 
     # Try to verify the code signature of the package
-    codesign -vvvv "$dmg_name"
+    codesign -vvvv --deep --strict "$dmg_name"
 
     # Submit the disk image to Apple for notarization.
     echo "Sumbitting the disk image to Apple for notarization..."
