@@ -58,29 +58,9 @@
   (let [network (help/list-network-interfaces)]
     #_(timbre/info "Failed going online. Found no DJ Link devices on network interfaces."
                  (str/join "; " network))
-    (str "<html><br>No DJ Link devices were seen on any network, still looking.<br><br>"
+    (str "<html>No DJ Link devices were seen on any network, still looking.<br><br>"
          "The following network interfaces were found:<br>"
          (str/join "<br>" network) "<br>&nbsp;")))
-
-(defn- build-troubleshooting-window
-  "Creates and displays a frame that shows we are having trouble finding
-  DJ Link devices, and information about the current network."
-  [network-label continue-offline quit]
-  (let [continue-button (seesaw/button :text "Continue Offline"
-                                       :listen [:action-performed (fn [_] (reset! continue-offline true))])
-        quit-button     (seesaw/button :text "Quit"
-                                       :listen [:action-performed (fn [_] (reset! quit true))])
-        buttons         (seesaw/grid-panel :columns 3 :items [continue-button (seesaw/label) quit-button])
-        scroll          (seesaw/scrollable network-label)
-        panel           (seesaw/border-panel :border 10 :center scroll :south buttons
-                                             :north (seesaw/progress-bar :indeterminate? true))
-        ^JFrame root    (seesaw/frame :title "No DJ Link Devices Found Yet..."
-                                      :on-close :nothing
-                                      :content panel)]
-    (seesaw/pack! root)
-    (.setLocationRelativeTo root nil)
-    (seesaw/show! root)
-    root))
 
 (defn try-going-online
   "Search for a DJ link network, presenting a UI in the process. If
@@ -139,7 +119,7 @@
              (seesaw/invoke-now
                (seesaw/dispose! @searching)
                (seesaw/config! network-label :text (build-network-description))
-               (reset! searching (build-troubleshooting-window network-label continue-offline quit)))
+               (reset! searching (about/build-troubleshooting-window network-label continue-offline quit)))
              (seesaw/invoke-now  ; We are just updating the content of the troubleshooting window.
                (seesaw/config! network-label :text (build-network-description))))
            (recur 20))  ; Update every two seconds.

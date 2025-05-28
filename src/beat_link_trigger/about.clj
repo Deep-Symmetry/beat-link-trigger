@@ -114,14 +114,9 @@
                                                 :listen [:action-performed (fn [_] (reset! continue-offline true))])
         ^JButton quit-button     (seesaw/button :text "Quit"
                                                 :listen [:action-performed (fn [_] (reset! quit true))])
-        buttons                  (seesaw/grid-panel :columns 3 :opaque? false
-                                                    :items [continue-button (seesaw/label) quit-button])
+        buttons                  (seesaw/border-panel :opaque? false :west continue-button :east quit-button)
         panel                    (seesaw/border-panel :border 10 :background "black" :paint paint-fn
                                                       :south buttons :north (seesaw/progress-bar :indeterminate? true))]
-    (.setSize continue-button (.getPreferredSize continue-button))
-    (.setSize quit-button (.getSize continue-button))
-    (seesaw/move-to! continue-button 10 350)
-    (seesaw/move-to! quit-button (- 390 (.getWidth quit-button)) 350)
     panel))
 
 (defn create-searching-frame
@@ -133,5 +128,26 @@
    (let [searching (create-frame (partial create-searching-panel continue-offline quit)
                                  :title "Looking for DJ Link devices…")]
      (seesaw/config! searching :resizable? false :on-close :nothing)
+     (seesaw/pack! searching)
      (seesaw/show! searching)
      searching)))
+
+(defn build-troubleshooting-window
+  "Creates and displays a frame that shows we are having trouble finding
+  DJ Link devices, and information about the current network."
+  [network-label continue-offline quit]
+  (let [continue-button (seesaw/button :text "Continue Offline"
+                                       :listen [:action-performed (fn [_] (reset! continue-offline true))])
+        quit-button     (seesaw/button :text "Quit"
+                                       :listen [:action-performed (fn [_] (reset! quit true))])
+        buttons         (seesaw/border-panel :opaque? false :west continue-button :east quit-button)
+        scroll          (seesaw/scrollable network-label)
+        panel           (seesaw/border-panel :border 10 :center scroll :south buttons
+                                             :north (seesaw/progress-bar :indeterminate? true))
+        ^JFrame root    (seesaw/frame :title "No DJ Link Devices Found Yet..."
+                                      :on-close :nothing
+                                      :content panel)]
+    (seesaw/pack! root)
+    (.setLocationRelativeTo root nil)
+    (seesaw/show! root)
+    root))
