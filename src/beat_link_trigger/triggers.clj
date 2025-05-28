@@ -1080,6 +1080,18 @@
                      :items (concat triggers-before show-triggers [new-trigger] triggers-after))
      (adjust-triggers))))
 
+(defn recolor-show-triggers
+  "Called when a Global Setup expression has been run for a show. If the
+  show hue has changed, we need to re-color all its triggers."
+  [show dark?]
+  (let [show-hue (:show-hue (show/user-data show))
+        changed? (atom false)]
+    (doseq [trigger (get-triggers show)]
+      (when (not= (:show-hue (seesaw/user-data trigger)) show-hue)
+        (swap! (seesaw/user-data trigger) assoc :show-hue show-hue)
+        (reset! changed? true)))
+    (when @changed? (adjust-triggers dark?))))
+
 (defonce ^{:private true
            :doc "The menu action which opens the Carabiner configuration window."}
   carabiner-action

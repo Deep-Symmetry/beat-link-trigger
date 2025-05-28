@@ -2304,7 +2304,7 @@
     (run-global-function show :setup nil true)
     (let [dark? (prefs/dark-mode?)]  ; In case the show hue was changed.
       (su/update-row-visibility show dark?)
-      ((requiring-resolve 'beat-link-trigger.triggers/adjust-triggers) dark?)
+      ((requiring-resolve 'beat-link-trigger.triggers/recolor-show-triggers) show dark?)
       (adjust-custom-ui-background show dark?))
     (when (util/online?)
       (run-global-function show :online nil true)))
