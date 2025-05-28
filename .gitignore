@@ -1,9 +1,10 @@
-/target
-/classes
+/bin
 /checkouts
-/node_modules
+/classes
 /doc/build
+/node_modules
 /resources/beat_link_trigger/version.edn
+/target
 /tmp/.htmltest
 pom.xml
 pom.xml.asc
@@ -12,6 +13,7 @@ pom.xml.asc
 /.clj-kondo/.cache
 /.lein-*
 /.nrepl-port
+/.op
 .hgignore
 .hg/
 .idea

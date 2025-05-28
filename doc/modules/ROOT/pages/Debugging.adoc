@@ -31,8 +31,9 @@ noted above, this includes full stack traces for compilation problems
 when you try to save an expression that isn’t quite right. If a
 problem occurs while trying to run your expression later, that will
 end up in the log too. So it can be a useful place to look when things
-are not working the way you expect. You can find the log file by choosing
-menu:Help[Open Logs Folder].
+are not working the way you expect.
+
+TIP: You can find the log file for your current run by choosing menu:Help[Open Logs Folder] from most BLT windows, but see <<#finding-older-logs,below>> for how to find them if you can’t do that.
 
 Each time you launch Beat Link Trigger it creates a new log folder in
 a temporary directory, so that they can be cleaned up automatically
@@ -66,26 +67,52 @@ Suddenly your logs will be growing steadily, filling with lines like these:
   track BPM: 126.0, effective BPM: 126.0, beat within bar: 1 master? false
 ```
 
+[finding-older-logs]
+=== Finding Older Logs
+
+If you need to find log files for an older BLT session, you can usually find their log folders right next to the folder for your current session.
+But if they got put in a different parent directory, or the program has locked up so you can’t even ask it to open the logs folder, this Terminal command will list all the folders on a Mac that look like BLT log folders:
+
+[source,shell]
+----
+find /private/var -name "blt_logs*" -exec stat -f "%m %N" {} \; 2>/dev/null | sort
+----
+
+(That says to find anything whose name looks like a BLT log directory, print out its modification time and path name, but throw away all the error messages about files you’re not allowed to read, and sort the results).
+You should see something like this:
+
+[source,shell]
+----
+1748234315 /private/var/folders/fg/1tzg0xt88v5bp20059blypr00000gq/T/blt_logs1748234267017-3084981306
+1748240082 /private/var/folders/fg/1tzg0xt88v5bp20059blypr00000gq/T/blt_logs1748240052148-2500580139
+1748240415 /private/var/folders/fg/1tzg0xt88v5bp20059blypr00000gq/T/blt_logs1748240195085-2441759738
+----
+
+The last line should be from the most recent run of BLT.
+If you type ``open `` and then paste in the path name (starting with `/private/`) and press kbd:[Return], that log folder should open in the Finder.
+
+If you’re not on a Mac, but are on another Unix system, the `find` command may work for you, but you’ll need to know where Java puts temporary files, to choose a starting path for the command.
+(You can find that out by running BLT again and noting the path name of its log folder.)
+On other operating systems, hopefully you can find a similar set of tools.
+
 [[reporting-issues]]
 == Reporting Issues
 
-If you run into trouble and it seems likely the problem is in Beat
-Link Trigger itself rather than one of your own expressions, you can
-use menu:Help[Report Issue (email)] to send an email to Deep Symmetry
-asking for help. The message will start out populated with some
-information about the version of Beat Link Trigger you are running,
-along with the Java version and operating system, but the more details
-you can provide in the initial report (along with relevant logs), the
+If you run into trouble and it seems likely the problem is in Beat Link Trigger itself rather than one of your own expressions (or even if you want help with your expressions), the best place to start is by asking on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+channel].
+The entire (friendly) Beat Link Trigger community there can try to help you out, and people who run into similar problems in the future will be able to benefit by searching for the resulting discussion.
+
+As a last resort, you can use menu:Help[Report Issue (email)] to send an email to Deep Symmetry asking for help.
+The message will start out populated with some information about the version of Beat Link Trigger you are running, along with the Java version and operating system, but the more details you can provide in the initial report (along with relevant logs), the
 more likely we will be able to figure out what is going on.
 
-The program may also offer to compose an issue pre-filled with details
-when it encounters unexpected messages sent by CDJs it is talking to.
+The program may also offer to compose an issue pre-filled with details when it encounters unexpected messages sent by CDJs it is talking to.
 
-If the problem turns out to be trickier than can be understood from
-just logs, follow-up questions and experimentation may be needed. In
-such cases
-https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-options/[thread
+If the problem turns out to be trickier than can be understood from just logs, follow-up questions and experimentation may be needed.
+In such cases https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-options/[thread
 dumps] are often a valuable next step.
+
+And if you contact us directly, we will probably ask you to direct your question to the Zulip channel unless there is some pressing reason why you absolutely can’t.
 
 [TIP]
 ====
@@ -522,4 +549,4 @@ Clojure, troubleshooting, and so on.)
 For more ideas specifically about how to explore Beat Link Trigger
 from a Clojure IDE, mention you are doing it on the
 https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream]!
+channel]!
