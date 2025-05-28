@@ -254,11 +254,12 @@ simpler here:
 ----
 ;; Make sure we are running a new enough version of Beat Link Trigger
 ;; for this show to work correctly.
-(show/require-version show "0.5.5-SNAPSHOT-83")  ;; <1>
+(show/require-version show "0.5.5")  ;; <1>
 
 ;; Make the UI understand that this show does not use tracks, and
 ;; build and install the custom GUI that takes over the window.
-(show/block-tracks show (xone-build-ui show globals))  ;; <2>
+(show/swap-user-data! show assoc :show-hue 240.0)  ;; <2>
+(show/block-tracks show (xone-build-ui show globals))  ;; <3>
 ----
 
 <1> This show needs a newer version of BLT, because it takes advantage
@@ -266,7 +267,10 @@ of new features for drawing the UI and saving settings. But that also
 means the section that set up default values for the fader positions
 is no longer necessary.
 
-<2> In addition to telling BLT this show doesn't import any tracks,
+<2> In earlier versions of the show, the background of the custom UI was colored blue by hardcoding that when creating the window.
+To be compatible with the light/dark user interface mode support introduced in BLT 8, this version tells BLT the hue the show window wants to use, and lets BLT set the actual color appropriate for the overall theme.
+
+<3> In addition to telling BLT this show doesn't import any tracks,
 the `show/block-tracks` function can install a custom user interface
 to be drawn as the content of the window. We achieve that by calling a
 new Shared Function here that creates and returns that custom
