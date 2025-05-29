@@ -431,9 +431,9 @@
           wave         (WaveformDetailComponent. n)
           zoom-slider  (seesaw/slider :id :zoom :min 1 :max 32 :value 2
                                       :listen [:state-changed #(.setScale wave (seesaw/value %))])
-          zoom-panel   (seesaw/border-panel :background "#000"
+          zoom-panel   (seesaw/border-panel :background Color/black
                                             :center zoom-slider :east (seesaw/label :text " Zoom "))
-          panel        (seesaw/border-panel :background "#000" :north zoom-panel :center wave)
+          panel        (seesaw/border-panel :background Color/black :north zoom-panel :center wave)
           ^JFrame root (seesaw/frame :title (str "Player " n " Waveform Detail")
                                      :on-close :dispose
                                      :width 600 :height 200

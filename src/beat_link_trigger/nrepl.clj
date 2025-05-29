@@ -121,7 +121,6 @@
           port         (get-in (prefs/get-preferences) [:nrepl :port] 17001)
           cider        (get-in (prefs/get-preferences) [:nrepl :cider] false)
           panel        (mig/mig-panel
-                        :background "#ccc"
                         :items [[(seesaw/label :text "nREPL Port:") "align right"]
                                 [(seesaw/spinner :id :port
                                                  :model (seesaw/spinner-model port :from 1 :to 65535)

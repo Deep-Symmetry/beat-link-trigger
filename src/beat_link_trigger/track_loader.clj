@@ -2112,16 +2112,14 @@
                                     (update-load-ui))
                ^JComboBox players (seesaw/combobox :id :players
                                                    :listen [:item-state-changed player-changed])
-               player-panel       (mig/mig-panel :background "#ddd"
-                                                 :items [[(seesaw/label :text "Load on:")]
+               player-panel       (mig/mig-panel :items [[(seesaw/label :text "Load on:")]
                                                          [players] [load-button] [problem-label "push"]
                                                          [play-button]])
                search-label       (seesaw/label :text "")
                search-field       (seesaw/text "")
                search-partial     (seesaw/label "Showing 0 of 0.")
                search-button      (seesaw/button :text "Load All")
-               search-panel       (mig/mig-panel :background "#eee"
-                                                 :items [[search-label] [search-field "pushx, growx"]
+               search-panel       (mig/mig-panel :items [[search-label] [search-field "pushx, growx"]
                                                          [search-partial "hidemode 3, gap unrelated"]
                                                          [search-button "hidemode 3"]])
                layout             (seesaw/border-panel
@@ -2412,8 +2410,7 @@
           search-field     (seesaw/text "")
           search-partial   (seesaw/label "") ; Not used in this dialog variant, expected by search UI.
           search-button    (seesaw/button :text "Load All") ; Also not used but expected by search UI.
-          search-panel     (mig/mig-panel :background "#eee"
-                                          :items [[search-label] [search-field "pushx, growx"]])
+          search-panel     (mig/mig-panel :items [[search-label] [search-field "pushx, growx"]])
           layout           (seesaw/border-panel :center file-scroll)
           ^JDialog dialog  (seesaw/dialog :content layout :options (concat [choose-button cancel-button] extra-buttons)
                                           :title (str "Choose Track from " (describe-pdb-media (.sourceFile pdb)))

@@ -973,7 +973,6 @@
           templates    (get-in (prefs/get-preferences) [:overlay :templates])
           public       (get-in (prefs/get-preferences) [:overlay :public])
           panel        (mig/mig-panel
-                        :background "#ccc"
                         :items [[(seesaw/label :text "Server Port:") "align right"]
                                 [(seesaw/spinner :id :port
                                                  :model (seesaw/spinner-model port :from 1 :to 32767)
