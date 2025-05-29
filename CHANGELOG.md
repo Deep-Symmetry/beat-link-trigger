@@ -12,6 +12,7 @@ This change log follows the conventions of
 - The aging (and no-longer-maintained) user interface look-and-feel has been replaced with a newer one, which also supports user choice of light and dark mode (including adopting the system-wide setting for that, if desired), and allows custom look-and-feels to be installed and used.
 - Updated to Clojure 1.12, which enables a great many simplifications and improvements in Java interop syntax.
   In the process, also eliminated any avoidable reflective Java method invocations to improve performance.
+- The Java runtime embedded in the macOS and Windows releases has been updated from Java 17 to Java 21, the current long-term support release.
 
 ### Added
 

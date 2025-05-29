@@ -200,6 +200,12 @@ releases of hardware or even firmware updates from Pioneer.
 > beat-based triggers are impossible, as is synchronization with Ableton
 > Link. You can see what tracks are loaded, and whether the player is
 > playing, but little more.
+>
+> Similarly, if you are using streaming services to obtain and play
+> tracks during your performance, they will be missing some important
+> analysis files that Beat Link Trigger requires to operate, and so
+> many features will not work. Stick to local USBs or rekordbox
+> connections, and fully analyzed tracks.
 
 > [!TIP]
 > :white_check_mark: Beat Link Trigger seems to work great with Nexus

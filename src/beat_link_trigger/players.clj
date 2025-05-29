@@ -585,8 +585,8 @@
         tempo          (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
         last-tempo     (atom nil)
         title-label    (seesaw/label :text "[track metadata not available]"
-                                     :font (Font. "serif" Font/ITALIC 14) :foreground :yellow)
-        artist-label   (seesaw/label :text "" :font (Font. "serif" Font/BOLD 12) :foreground :green)
+                                     :font (Font. "sansserif" Font/ITALIC 14) :foreground Color/yellow)
+        artist-label   (seesaw/label :text "" :font (Font. "sansserif" Font/BOLD 13) :foreground Color/green)
         usb-name       (seesaw/label :id :usb-name :foreground :white
                                      :text (if (opus-quad?)
                                              (first (opus-slot-state n))
