@@ -5,7 +5,8 @@ The Settings window allows you to customize elements of the user
 interface, as well as configuring some windows to open automatically
 when Beat Link Trigger goes online.
 
-image:Settings.png[Settings Window,472,618]
+.Settings Window
+image::Settings.png[Settings Window,472,618]
 
 == Opening Settings
 
@@ -19,14 +20,14 @@ On other platforms, you will find it as menu:File[Settings…]
 The first setting options concern the user interface theme.
 The Look and Feel that had been used since the beginning of Beat Link Trigger has not been maintained for years, and was starting to exhibit visual glitches on high-DPI displays.
 The replacement that was chosen, https://www.formdev.com/flatlaf/[FlatLaf], supports theming options, as well as light/dark variants.
-You can choose the basic theme using the first dropdown, menu:User Interface Theme[].
+You can choose the basic theme using the first menu, menu:User Interface Theme[].
 
 === User Interface Themes
 
 There are four theme choices available, which (combined with light and dark mode) provide access to the six https://www.formdev.com/flatlaf/themes/[FlatLaf Core Themes], and allow you to configure and use your own custom light or dark mode theme.
 The best way to understand them is to try them and see which you like, but here are brief descriptions:
 
-FlatLaf IntelliJ / Darcula:: Darcula (the theme that is used when in dark mode) is closest to the feel of the original Beat Link Trigger interface, so this option is chosen when you first upgrade to version 8.
+FlatLaf IntelliJ / Darcula:: Darcula (the theme that is used when in dark mode) is closest to the feel of the original Beat Link Trigger interface, so this option is chosen when you first start using version 8 of BLT.
 In light mode, the interface is similar to the IntelliJ IDEA development environment, which Deep Symmetry uses for Java code.
 
 FlatLaf Default:: This is what the designers of the FlatLaf package chose as their standard option.
@@ -58,3 +59,31 @@ Once this is in place, if you chose menu:Custom[] as your user interface theme, 
 If you want to configure a custom theme for light mode, pass `false` as the first argument to `prefs/register-custom-theme`, then pass the class you want to register for it.
 
 === User Interface Modes
+
+As noted above, the user interface themes are grouped into light and dark pairs, and you can choose which you want to use with the menu:User Interface Mode[] menu.
+It offers three choices:
+
+Light:: Backgrounds that are close to white, with darker text, like the pages of a book or this user guide.
+
+Dark:: Backgrounds that are close to black, with lighter text.
+When you first start using version 8 of BLT this mode is chosen, because it is similar to the interface offered by earlier versions, and most show production software uses interfaces like this.
+
+System:: Will choose Light or Dark based on the overall setting of your operating system.
+This includes automatically switching between light and dark depending on the time of day, if your OS offers this feature.
+
+=== Waveform Style
+
+The preferred style used to draw track waveforms can be set using the menu:Waveform Style[] menu.
+The default is to draw Nexus 2000 style RGB waveforms, but you can now also choose CDJ-3000 style three-band waveforms.
+
+.Player Status window showing three-band waveforms
+image::PlayerStatus3band.png[Player Status window showing three-band waveforms,600,832]
+
+You can also use the older monochrome blue waveforms (this was previously possible using a Global Setup expression, but it is now exposed in the Settings window).
+
+If your preferred waveform style is not available for a track because rekordbox did not export it, then the best available waveform will be displayed instead.
+When tracks are imported into shows, the waveform style that is in effect at that time will determine how the track looks in the show.
+
+== Actions Going Online
+
+The remainder of the Settings window allows you to configure additional things to happen when Beat Link Trigger goes online.
