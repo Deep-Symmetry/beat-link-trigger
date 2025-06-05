@@ -387,13 +387,11 @@ or close the window, and the file will be closed out.
 === Automatically Starting the Playlist Writer
 
 If you want to be sure that playlsits are always being written, you
-can add a line to your Came Online Expression that starts the playlist
-writer as soon as Beat Link Trigger is connected to a DJ Link network.
-Call the function `playlist-writer/write-playlist` with three
-arguments, `folder` (which determines the directory in which the
-playlist should be written), `prefix` (which specifies the first part
-of the playlist's filename), and `append?` which controls what happens
-if the file already exists.
+can use the <<Settings.adoc#playlists,Settings window>>.
+
+Before that existed, you could add a line to your Came Online Expression that starts the playlist writer as soon as Beat Link Trigger is connected to a DJ Link network.
+It's still worth illustrating how that worked, as an example of coding in BLT.
+You would call the function `playlist-writer/write-playlist` with three arguments, `folder` (which determines the directory in which the playlist should be written), `prefix` (which specifies the first part of the playlist's filename), and `append?` which controls what happens if the file already exists.
 
 The filename will be built by adding ".csv" after `prefix`. If a file
 by that name already exists in the specified `folder`, then if

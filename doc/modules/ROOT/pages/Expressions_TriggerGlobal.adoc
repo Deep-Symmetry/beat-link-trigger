@@ -72,13 +72,13 @@ Link Trigger is online.
 attempt at opening Player Status, is only run when it is safe to do
 so.
 
-But there is an even better way to do this, now that version 0.5.4 has
-added the <<came-online-expression,Came Online Expression>> which runs
+But there is an even better way to do this.
+Version 0.5.4 added the <<came-online-expression,Came Online Expression>> which runs
 once Beat Link Trigger has successfully connected to a DJ Link
 network. Using that expression to show the Player Status window means
-it will always be safe to try, and -- even better -- the window will
+it will always be safe to try, and--even better--the window will
 be reopened every time you go back online, not just when initially
-starting the program.
+starting the program.footnote:[Version 8 made this even easier, thanks to the new <<Settings.adoc#player-status,Settings window>>]
 
 Here is an even more sophisticated example that creates a
 https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
@@ -148,8 +148,10 @@ You have access to the expression globals if you need to use anything
 in them.
 
 This is the perfect place to take actions that can only succeed when
-Beat Link Trigger is online, such as opening the
-<<Players.adoc#,Player Status window>>. The simplest approach
+Beat Link Trigger is online.
+This used to include actions such as opening the
+<<Players.adoc#,Player Status window>>, however the <<Settings.adoc#player-status,Settings window>> can now take care of this for you.
+The old code-based approach
 described <<global-setup-expression,above>> is safe to use in this
 expression, unlike in the Global Setup expression:
 
@@ -161,26 +163,20 @@ expression, unlike in the Global Setup expression:
 With this in place, every time you successfully go online, either at
 startup or using menu:Network[Online?], the Player Status window will
 open for you.
+But again, you can just use the Settings window now.
 
 Similarly, if you want the <<ObsOverlay.adoc#,OBS overlay server>> to
-automatically start once Beat Link Trigger is online, you can add this
-to your Came Online expression:
+automatically start once Beat Link Trigger is online, you can use the <<Settings.adoc#obs-overlays,Settings window>>.
+The old way was to add this to your Came Online expression:
 
 [source,clojure]
 ----
 (overlay/run-server)
 ----
 
-TIP: You can combine both of the above lines, in either order, if you
-want both features to automatically activate for you.
-
 Another example came up in the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[community
-chat room], from a user who wanted to set up a turn-key lighting
-system that automatically started Beat Link Trigger and Carabiner. If
-you are in a situation like that, you can set up a Came Online
-Expression to automatically open the Carabiner window and connect to
-it:
+https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[community chat room], from a user who wanted to set up a turn-key lighting system that automatically started Beat Link Trigger and Carabiner.
+If you are in a situation like that, you can now use the <<Settings.adoc#carabiner,Settings window>> to accomplish your goals, but previously you'd set up a Came Online Expression to automatically open the Carabiner window and connect to it:
 
 [source,clojure,subs=attributes+]
 ----

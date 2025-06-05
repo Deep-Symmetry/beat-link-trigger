@@ -308,15 +308,14 @@ sync when you bring Beat Link Trigger online (this is especially
 useful now that BLT can automatically run Carabiner for you when you
 connect, but you can also do it if you are running your own custom
 build of Carabiner and can guarantee it is running before BLT goes
-online), you can accomplish this using the
-<<Expressions_TriggerGlobal.adoc#came-online-expression,Came Online
-Expression>>, and there is an example of how to do this in the
-description of that expression.
+online), you can accomplish this using the <<Settings.adoc#carabiner,Settings window>>.
+(This used to require editing the <<Expressions_TriggerGlobal.adoc#came-online-expression,Came Online
+Expression>>.)
 
 [[other-automation]]
 == Other Automation
 
-The example shown in the
+The historical example shown in the
 <<Expressions_TriggerGlobal.adoc#came-online-expression,Came Online
 Expression>> illustrates that the Carabiner Connection window is
 designed for convenient use by your custom expression code. Here is a
