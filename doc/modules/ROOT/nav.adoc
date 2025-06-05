@@ -12,6 +12,7 @@
 ** xref:Expressions_Report.adoc[Expressions Report]
 ** xref:ShowInternals.adoc[Show Internal Structures]
 * xref:Players.adoc[The Player Status Window]
+* xref:Settings.adoc[Settings]
 * xref:SimulatingPlayback.adoc[Simulating Playback]
 * xref:Shows.adoc[Shows]
 ** xref:Shows_Tracks.adoc[Editing Show Tracks]

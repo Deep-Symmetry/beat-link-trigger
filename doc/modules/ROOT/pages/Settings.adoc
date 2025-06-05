@@ -1,0 +1,60 @@
+= Settings
+James Elliott <james@deepsymmetry.org>
+
+The Settings window allows you to customize elements of the user
+interface, as well as configuring some windows to open automatically
+when Beat Link Trigger goes online.
+
+image:Settings.png[Settings Window,472,618]
+
+== Opening Settings
+
+On the Mac, the Settings window is accessed through the application menu in the menu bar, or using the standard key combination kbd:[⌘+,].
+On other platforms, you will find it as menu:File[Settings…]
+
+
+[[user-interface]]
+== User Interface
+
+The first setting options concern the user interface theme.
+The Look and Feel that had been used since the beginning of Beat Link Trigger has not been maintained for years, and was starting to exhibit visual glitches on high-DPI displays.
+The replacement that was chosen, https://www.formdev.com/flatlaf/[FlatLaf], supports theming options, as well as light/dark variants.
+You can choose the basic theme using the first dropdown, menu:User Interface Theme[].
+
+=== User Interface Themes
+
+There are four theme choices available, which (combined with light and dark mode) provide access to the six https://www.formdev.com/flatlaf/themes/[FlatLaf Core Themes], and allow you to configure and use your own custom light or dark mode theme.
+The best way to understand them is to try them and see which you like, but here are brief descriptions:
+
+FlatLaf IntelliJ / Darcula:: Darcula (the theme that is used when in dark mode) is closest to the feel of the original Beat Link Trigger interface, so this option is chosen when you first upgrade to version 8.
+In light mode, the interface is similar to the IntelliJ IDEA development environment, which Deep Symmetry uses for Java code.
+
+FlatLaf Default:: This is what the designers of the FlatLaf package chose as their standard option.
+It is more subdued than the other options, so you may find it less distracting, but all are clean.
+
+FlatLaf macOS:: This makes the interface look closer to a standard Mac application.
+
+Custom:: This allows you to install and use other theme definitions, if none of the standard ones appeal to you.
+Until you have installed and configured them, as described next, choosing this is the same as choosing menu:FlatLaf IntelliJ / Darcula[].
+
+==== Configuring Custom Themes
+
+To keep the Beat Link Trigger application from growing any faster than it is, only the standard themes are packaged with it.
+You don't need to be limited by that, however, thanks to BLT's ability to load libraries at runtime.
+For example, to use the IntelliJ Platform Themes shown lower on the https://www.formdev.com/flatlaf/themes/[FlatLaf Themes page], you could put code like this in your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>:
+
+[source,clojure]
+----
+(add-library '[com.formdev/flatlaf-intellij-themes "3.6"])
+(prefs/register-custom-theme true
+  (Class/forName "com.formdev.flatlaf.intellijthemes.FlatMaterialDesignDarkIJTheme"))
+----
+
+The first line adds the theme pack to the libraries available to Beat Link Trigger (the first time you do this, you will need to be connected to the Internet so the file can be downloaded, but after that a cached copy created by Maven in the `.m2` folder in your home directory will be used).
+The second line configures the dark-mode Custom theme to be the Material Design Dark theme, using the class name listed in the https://github.com/JFormDesigner/FlatLaf/tree/main/flatlaf-intellij-themes#themes[theme pack documentation].
+
+Once this is in place, if you chose menu:Custom[] as your user interface theme, and you are in dark mode (further described below), you will see the Material Design Dark theme.
+
+If you want to configure a custom theme for light mode, pass `false` as the first argument to `prefs/register-custom-theme`, then pass the class you want to register for it.
+
+=== User Interface Modes

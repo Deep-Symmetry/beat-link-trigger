@@ -56,6 +56,9 @@ network for them, it displays a window like this:
 
 image:FindingDevices.png[Looking for devices,512,512]
 
+NOTE: Your window may not look exactly like this, for reasons that go beyond host operating system differences.
+Starting with BLT version 8 you can choose different user interface themes in the <<Settings.adoc#,Settings>>, so be ready for variations from the screen shots.
+
 If you just wanted to work on setting up your triggers, expressions,
 or shows, and don’t have any actual players handy, you can click
 kbd:[Continue Offline] to work in an offline mode. Your triggers won’t
