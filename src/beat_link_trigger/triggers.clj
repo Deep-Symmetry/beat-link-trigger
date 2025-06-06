@@ -4,6 +4,7 @@
   (:require [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.editors :as editors]
             [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.help :as help]
             [beat-link-trigger.menus :as menus]
             [beat-link-trigger.nrepl :as nrepl]
             [beat-link-trigger.players :as players]
@@ -18,6 +19,7 @@
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.util :as util]
             [beat-carabiner.core :as beat-carabiner]
+            [clojure.java.browse]
             [clojure.set]
             [clojure.string]
             [fipp.edn :as fipp]
@@ -619,7 +621,7 @@
     (catch Exception e
       (timbre/error e "Problem showing Trigger MIDI status."))))
 
-(defn- get-triggers
+(defn get-triggers
   "Returns the list of triggers that currently exist. If `show` is
   supplied, returns the triggers that belong to that show (if `show`
   is supplied but `nil`, returns the triggers that exist independently
@@ -1468,17 +1470,23 @@
                           triggers))
         [(create-trigger-row)]))))
 
+(defn global-editor-update-fn
+  "Returns the appropriate update function for a global expression
+  editor of the specified kind."
+  [kind]
+  (fn []
+    (when (= :setup kind)
+      (run-global-function :shutdown)
+      (reset! expression-globals {})
+      (run-global-function :setup))
+    (update-global-expression-icons)))
+
 (defn build-global-editor-action
   "Creates an action which edits one of the global expressions."
   [kind]
   (seesaw/action :handler (fn [_] (editors/show-trigger-editor
                                    kind (seesaw/config @trigger-frame :content)
-                                   (fn []
-                                     (when (= :setup kind)
-                                       (run-global-function :shutdown)
-                                       (reset! expression-globals {})
-                                       (run-global-function :setup))
-                                     (update-global-expression-icons))))
+                                   (global-editor-update-fn kind)))
                  :name (str "Edit " (get-in editors/global-trigger-editors [kind :title]))
                  :tip (get-in editors/global-trigger-editors [kind :tip])
                  :icon (prefs/gear-icon (seq (get-in @trigger-prefs [:expressions kind])))))
@@ -1586,6 +1594,15 @@
 
 (declare go-online)
 
+(defn expression-report-link
+  "Returns the URL that can be used to open the triggers expression report."
+  ([]
+   (expression-report-link nil))
+  ([anchor]
+   (let [port           (help/help-server)
+         anchor-segment (when anchor (str "#" anchor))]
+     (str "http://127.0.0.1:" port "/show/reports/expressions" anchor-segment))))
+
 (defn- online-menu-name
   "Expands the content of the Online? menu option to show the current
   player number if we are online."
@@ -1593,6 +1610,11 @@
   (str "Online?"
        (when (util/online?)
          (str "  [We are Player " (.getDeviceNumber virtual-cdj) "]"))))
+
+(def report-actions-enabled?
+  "Controls whether buttons in the expressions report are allowed to
+  affect the Triggers window."
+  (atom false))
 
 (defn- build-trigger-menubar
   "Creates the menu bar for the trigger window."
@@ -1602,8 +1624,8 @@
                                                                               :window-name "Trigger Expression Globals")
                                                            (catch StackOverflowError _
                                                              (util/inspect-overflowed))
-                                                          (catch Throwable t
-                                                            (util/inspect-failed t))))
+                                                           (catch Throwable t
+                                                             (util/inspect-failed t))))
                                         :name "Inspect Expression Globals"
                                         :tip "Examine any values set as globals by any Trigger Expressions.")
         new-show-action  (seesaw/action :handler (fn [_] (show/new @trigger-frame))
@@ -1614,6 +1636,14 @@
                                         :name "Open Show"
                                         :tip "Opens an already-created show interface."
                                         :key "menu O")
+        ex-report-action (seesaw/action :handler (fn [_]
+                                                   (when (help/help-server)
+                                                     (clojure.java.browse/browse-url (expression-report-link))))
+                                        :name "Expression Report"
+                                        :tip "Open a web page describing all expressions in the show.")
+        actions-item     (seesaw/checkbox-menu-item :text "Enable Report Actions"
+                                                    :tip (str "Allow buttons in reports to affect the triggers: "
+                                                              "use only on secure networks."))
         using-playlists? (:tracks-using-playlists? @trigger-prefs)
         online-item      (seesaw/checkbox-menu-item :text (online-menu-name) :id :online :selected? (util/online?))
         real-item        (seesaw/checkbox-menu-item :text "Use Real Player Number?" :id :send-status
@@ -1628,6 +1658,9 @@
                    (fn [_]
                      (when-let [s (seesaw/selection bg)]
                        (swap! trigger-prefs assoc :tracks-using-playlists? (= (seesaw/id-of s) :track-position)))))
+    (seesaw/listen actions-item :item-state-changed
+                   (fn [^java.awt.event.ItemEvent e]
+                     (reset! report-actions-enabled? (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED))))
     (seesaw/listen online-item :item-state-changed
                    (fn [^java.awt.event.ItemEvent e]
                      (if (= (.getStateChange e) java.awt.event.ItemEvent/SELECTED)
@@ -1645,6 +1678,7 @@
     (seesaw/menubar :items [(seesaw/menu :text "File"
                                          :items (concat [@save-action @save-as-action @load-action
                                                          (seesaw/separator) new-show-action open-show-action
+                                                         (seesaw/separator) ex-report-action actions-item
                                                          (seesaw/separator) @playlist-writer-action
                                                          (seesaw/separator) @archive-metadata-action]
                                                         (menus/extra-file-actions quit settings)))
@@ -1666,6 +1700,12 @@
                                          :id :network-menu)
                             (menus/build-help-menu)])))
 
+(defn trigger-global-expressions
+  "Returns the current state of the Triggers window global expressions
+  source code."
+  []
+  (:expressions @trigger-prefs))
+
 (defn update-global-expression-icons
   "Updates the icons next to expressions in the Trigger menu to reflect
   whether they have been assigned a non-empty value. If the user
@@ -1684,7 +1724,7 @@
        (let [^JMenuItem item (.getItem menu i)]
          (when item
            (when-let [expr (get exprs (.getText item))]
-             (.setIcon item (prefs/gear-icon (seq (get-in @trigger-prefs [:expressions expr])) preferences)))))))))
+             (.setIcon item (prefs/gear-icon (seq (get (trigger-global-expressions) expr)) preferences)))))))))
 
 (defn- ui-theme-changed
   "Called whenever the user interface theme has been changed, or dark

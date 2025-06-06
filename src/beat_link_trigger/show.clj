@@ -2353,12 +2353,12 @@
                                                      (clojure.java.browse/browse-url (su/expression-report-link file))))
                                         :name "Expression Report"
                                         :tip "Open a web page describing all expressions in the show.")
-        attach-action    (seesaw/action :handler (fn [_] (su/manage-attachments show))
-                                        :name "Manage Attachments"
-                                        :tip "Allow files to be attached for use by show expressions.")
         actions-item     (seesaw/checkbox-menu-item :text "Enable Report Actions"
                                                     :tip (str "Allow buttons in reports to affect the show: "
-                                                              "use only on secure networks."))]
+                                                              "use only on secure networks."))
+        attach-action    (seesaw/action :handler (fn [_] (su/manage-attachments show))
+                                        :name "Manage Attachments"
+                                        :tip "Allow files to be attached for use by show expressions.")]
     (seesaw/listen actions-item :item-state-changed
                    (fn [^ItemEvent e]
                      (swap-show! show assoc :actions-enabled (= (.getStateChange e) ItemEvent/SELECTED))))

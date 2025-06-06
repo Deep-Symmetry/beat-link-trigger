@@ -12,7 +12,8 @@
             [hiccup.core :as hiccup]
             [hiccup.page :as page]
             [hiccup.util]
-            [seesaw.core :as seesaw])
+            [seesaw.core :as seesaw]
+            [taoensso.timbre :as timbre])
   (:import [java.text SimpleDateFormat]
            [java.util Date UUID]))
 
@@ -40,6 +41,17 @@
   "A message reminding people to only enable report actions on secure networks."
   [:p [:em "Be sure to only do this on secure networks, where you trust any "
                       "device that would be able to connect to Beat Link Trigger."]])
+
+(defn triggers-not-enabled
+  "Helper expression used by request handlers from the expressions report
+   to report that the triggers window has not enabled report actions"
+  []
+  (expression-report-error-response
+   (hiccup/html [:p "You must choose " [:strong  "Enable Report Actions"] " in the Triggers window's "
+                 [:strong "File "] "menu in order for action buttons to work."]
+                [:br]
+                action-security-warning)
+   "Trigger Actions Not Enabled"))
 
 (defn show-not-found
   "Helper expression used by request handlers from the expressions report
@@ -123,25 +135,47 @@
 
 ;; Functions that support the show expressions report action buttions.
 
+(defn edit-trigger-global-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for a Triggers global expression."
+  [kind]
+  (if @@(requiring-resolve 'beat-link-trigger.triggers/report-actions-enabled?)
+    (let [triggers-frame @@(requiring-resolve 'beat-link-trigger.triggers/trigger-frame)]
+      (if (str/blank? kind)
+        (do  ; Just bring the triggers window to the front.
+          (seesaw/invoke-later (seesaw/show! triggers-frame))
+          (window-brought-to-front "Triggers"))
+        (if (contains? @(requiring-resolve 'beat-link-trigger.editors/global-trigger-editors) (keyword kind))
+          (let [kind (keyword kind)]
+            (seesaw/invoke-later
+              ((requiring-resolve 'beat-link-trigger.editors/show-trigger-editor) kind
+               (seesaw/config triggers-frame :content)
+               ((requiring-resolve 'beat-link-trigger.triggers/global-editor-update-fn) kind)))
+            (editor-opened-in-background))
+          (unrecognized-expression))))
+    (triggers-not-enabled)))
+
 (defn edit-show-expression
   "Helper function used by requests from the expressions report
-  requesting an editor window for an global expression."
+  requesting an editor window for a global expression."
   [path kind]
-  (if-let [show (su/latest-show (io/file path))]
-    (if (:actions-enabled show)
-      (if (str/blank? kind)
-        (do  ; Just bring the show window to the front.
-          (seesaw/invoke-later (seesaw/show! (:frame show)))
-          (window-brought-to-front "Show"))
-        (if (contains? @@(requiring-resolve 'beat-link-trigger.editors/global-show-editors) (keyword kind))
-          (do
-            (seesaw/invoke-later
-             ((requiring-resolve 'beat-link-trigger.editors/show-show-editor) (keyword kind) show nil (:frame show)
-              (partial show/global-editor-update-fn show kind)))
-            (editor-opened-in-background))
-          (unrecognized-expression)))
-      (show-not-enabled))
-    (show-not-found)))
+  (if (str/blank? path)
+    (edit-trigger-global-expression kind)
+    (if-let [show (su/latest-show (io/file path))]
+      (if (:actions-enabled show)
+        (if (str/blank? kind)
+          (do             ; Just bring the show window to the front.
+            (seesaw/invoke-later (seesaw/show! (:frame show)))
+            (window-brought-to-front "Show"))
+          (if (contains? @@(requiring-resolve 'beat-link-trigger.editors/global-show-editors) (keyword kind))
+            (do
+              (seesaw/invoke-later
+                ((requiring-resolve 'beat-link-trigger.editors/show-show-editor) (keyword kind) show nil (:frame show)
+                 (partial show/global-editor-update-fn show kind)))
+              (editor-opened-in-background))
+            (unrecognized-expression)))
+        (show-not-enabled))
+      (show-not-found))))
 
 (defn simulate-track-expression
   "Helper function used by requests from the expressions report
@@ -365,6 +399,21 @@
         [:tbody
          expressions]]])))
 
+(defn describe-trigger-global-expression
+  "When a global expression of a particular kind is not empty, builds a
+  table row for it."
+  [exprs editors kind]
+  (let [value (get exprs kind)]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
+       [:td]
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editShowExpression('" (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
+       [:td [:pre.expression [:code.expression.language-clojure value]]]])))
+
 (defn describe-show-global-expression
   "When a global expression of a particular kind is not empty, builds a
   table row for it."
@@ -384,14 +433,23 @@
        [:td [:pre.expression [:code.expression.language-clojure value]]]])))
 
 (defn- global-expressions
-  "Builds the report of show global expressions."
-  [show]
-  (expression-section
-   "Show-Level (Global) Expressions" "global"
-   "editShowExpression();" "Bring this Show window to front"
-   (let [editors @@(requiring-resolve 'beat-link-trigger.editors/global-show-editors)]
-     (filter identity (map (partial describe-show-global-expression show editors)
-                           (keys editors))))))
+  "Builds the report of show or (if no `show` argument is supplied)
+  triggers global expressions."
+  ([]
+   (expression-section
+    "Global Expressions" "global"
+    "editShowExpression();" "Bring this window to front"
+    (let [editors @(requiring-resolve 'beat-link-trigger.editors/global-trigger-editors)
+          exprs   ((requiring-resolve 'beat-link-trigger.triggers/trigger-global-expressions))]
+      (filter identity (map (partial describe-trigger-global-expression exprs editors)
+                            (keys editors))))))
+  ([show]
+   (expression-section
+    "Show-Level (Global) Expressions" "global"
+    "editShowExpression();" "Bring this Show window to front"
+    (let [editors @@(requiring-resolve 'beat-link-trigger.editors/global-show-editors)]
+      (filter identity (map (partial describe-show-global-expression show editors)
+                            (keys editors)))))))
 
 (defn- comment-or-untitled
   "Returns the supplied comment, unless that is blank, in which case
@@ -608,38 +666,75 @@
                                         (vals (get-in phrase [:cues :cues]))))]
     [:div (concat [phrase-level] cue-level)]))
 
-(defn expressions-report
-  "Return an HTML report of all the expressions used in the specified show."
-  [path]
-  (if-let [show (su/latest-show (io/file path))]
-    (let [when (Date.)]
+(def ^:private error-modal
+  "Holds the shared structure for the error modal that is used by both
+  show and triggers report pages."
+  [:div.modal {:id "error-modal"}
+   [:div.modal-background]
+   [:div.modal-card
+    [:header.modal-card-head
+     [:p.modal-card-title {:id "error-modal-title"} "Modal title"]
+     [:button.delete {:aria-label "close"}]]
+    [:section.modal-card-body {:id "error-modal-body"}
+     "Modal content here!"]
+    [:footer.modal-card-foot
+     [:button.button "OK"]]]])
+
+(defn triggers-report
+  "Return an HTML report of all the expressions used in the Triggers window."
+  []
+  (let [when (Date.)]
+    (try
       (page/html5
-       [:head
-        [:meta {:charset "utf-8"}]
-        [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-        [:title (str "Expressions in Show " path)]
-        (page/include-css "/resources/bulma.min.css" "/resources/highlight.min.css" "/resources/report.css")
-        (page/include-js "/resources/highlight.min.js")
-        [:script
-         (str "var showFile='" (hiccup.util/url-encode path) "';\n")
-         "hljs.highlightAll();"]
-        (page/include-js "/resources/expression-report.js")
-        [:body {:onfocus "closeAllModals();"}
-         [:section.section
-          [:div.container
-           [:h1.title "Expressions in Show " [:span.has-text-primary path]]
-           [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
-           (global-expressions show)
-           (filter identity (map track-expressions (:tracks show)))
-           (filter identity (map phrase-expressions (get-in show [:contents :phrases])))]]
-         [:div.modal {:id "error-modal"}
-          [:div.modal-background]
-          [:div.modal-card
-           [:header.modal-card-head
-            [:p.modal-card-title {:id "error-modal-title"} "Modal title"]
-            [:button.delete {:aria-label "close"}]]
-           [:section.modal-card-body {:id "error-modal-body"}
-            "Modal content here!"]
-           [:footer.modal-card-foot
-            [:button.button "OK"]]]]]]))
-    (route/not-found "<p>Show not found.</p>")))
+          [:head
+           [:meta {:charset "utf-8"}]
+           [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+           [:title "Expressions in Triggers"]
+           (page/include-css "/resources/bulma.min.css" "/resources/highlight.min.css" "/resources/report.css")
+           (page/include-js "/resources/highlight.min.js")
+           [:script
+            "var showFile='';\n"
+            "hljs.highlightAll();"]
+           (page/include-js "/resources/expression-report.js")
+           [:body {:onfocus "closeAllModals();"}
+            [:section.section
+             [:div.container
+              [:h1.title "Expressions in " [:span.has-text-primary "Triggers"]]
+              [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
+              (global-expressions)
+              #_(filter identity (map trigger-expressions
+                                      ((requiring-resolve 'beat-link-trigger.triggers/get-triggers) nil)))]]
+            error-modal]])
+      (catch Throwable t
+        (timbre/error t "Problem generating triggers report")
+        "Whoops, check the log file."))))
+
+(defn expressions-report
+  "Return an HTML report of all the expressions used in the specified
+  show. If path is empty, delegate to the triggers report."
+  [path]
+  (if (str/blank? path)
+    (triggers-report)
+    (if-let [show (su/latest-show (io/file path))]
+      (let [when (Date.)]
+        (page/html5
+            [:head
+             [:meta {:charset "utf-8"}]
+             [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+             [:title (str "Expressions in Show " path)]
+             (page/include-css "/resources/bulma.min.css" "/resources/highlight.min.css" "/resources/report.css")
+             (page/include-js "/resources/highlight.min.js")
+             [:script
+              (str "var showFile='" (hiccup.util/url-encode path) "';\n")
+              "hljs.highlightAll();"]
+             (page/include-js "/resources/expression-report.js")
+             [:body {:onfocus "closeAllModals();"}
+              [:section.section
+               [:div.container
+                [:h1.title "Expressions in Show " [:span.has-text-primary path]]
+                [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
+                (global-expressions show)
+                (filter identity (map track-expressions (:tracks show)))
+                (filter identity (map phrase-expressions (get-in show [:contents :phrases])))]]
+              error-modal]]))
+      (route/not-found "<p>Show not found.</p>"))))
