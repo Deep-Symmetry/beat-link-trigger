@@ -21,9 +21,8 @@ set up your environment. Fork and clone the repo and install
 and builds). Both of these rely on having a working Java runtime; if
 the mechanism you used to install them did not automatically include
 one, I recommend installing a current long-term-support version of the
-[OpenJDK](http://openjdk.java.net) which as of this writing is OpenJDK 11.
-Most Beat Link Trigger development uses [Amazon Corretto 11][corretto],
-although the building of notarized macOS disk images relies on OpenJDK 14.
+[OpenJDK](http://openjdk.java.net) which as of this writing is OpenJDK 21.
+Most Beat Link Trigger development uses [Amazon Corretto 21][corretto].
 
 > Starting with version 0.5.3, you also need to have
 > [Antora](https://antora.org) installed because it is used to build
