@@ -666,6 +666,59 @@
                                         (vals (get-in phrase [:cues :cues]))))]
     [:div (concat [phrase-level] cue-level)]))
 
+(defn trigger-expression-disabled-warning
+  "Builds a warning message if the expression is not currently in use by
+  the trigger because of other trigger settings."
+  [trigger kind]
+  ;; TODO: Implement or remove if there's not an appropriate equivalent for triggers.
+  #_(case kind
+      (:playing :stopped)
+      (let [message (:message phrase)]
+        (when (not= message "Custom")
+          [:span.has-text-danger [:br] "Inactive: Playing Message is &ldquo;" message "&rdquo;"]))
+
+      :enabled
+      (let [message (:enabled phrase)]
+        (when (not= message "Custom")
+          [:span.has-text-danger [:br] "Inactive: Enabled Filter is &ldquo;" message "&rdquo;"]))
+
+      nil))
+
+(defn- describe-trigger-expression
+  [uuid trigger editors kind]
+  (let [value (get-in @(seesaw/user-data trigger) [:expressions kind])]
+    (when-not (str/blank? value)
+      [:tr
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
+        (trigger-expression-disabled-warning trigger kind)]
+       [:td (when (get-in editors [kind :simulate])
+              [:a.button.is-small.is-link {:href  (str "javascript:simulateTriggerExpression('" uuid "','"
+                                                       (name kind) "');")
+                                           :title "Simulate"}
+               [:img {:src   "/resources/play-solid.svg"
+                      :width 12}]])]
+       [:td [:a.button.is-small.is-link {:href  (str "javascript:editTriggerExpression('" uuid "','"
+                                                     (name kind) "');")
+                                         :title "Edit"}
+             [:img {:src   "/resources/pen-solid.svg"
+                    :width 12}]]]
+       [:td [:pre.code.expression [:code.expression.language-clojure value]]]])))
+
+(defn- trigger-expressions
+  "Builds the report of expressions for a particular trigger. If
+  `from-show?` is true, this is being generated for a show file, so
+  they should be described as raw triggers."
+  [from-show? trigger]
+  (let [editors @(requiring-resolve 'beat-link-trigger.editors/trigger-editors)
+        index   (seesaw/select trigger [:#index])
+        label   (seesaw/text index)
+        uuid    (seesaw/user-data index)]
+    (expression-section (str (when from-show? "Raw ") "Trigger " (subs label 0 (dec (.length label))))
+                        (str "trigger-" uuid)
+                        (str "editTriggerExpression'" uuid "');") "Scroll Triggers window to this trigger"
+                        (filter identity (map (partial describe-trigger-expression uuid trigger editors)
+                                              (keys editors))))))
+
 (def ^:private error-modal
   "Holds the shared structure for the error modal that is used by both
   show and triggers report pages."
@@ -702,8 +755,8 @@
               [:h1.title "Expressions in " [:span.has-text-primary "Triggers"]]
               [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
               (global-expressions)
-              #_(filter identity (map trigger-expressions
-                                      ((requiring-resolve 'beat-link-trigger.triggers/get-triggers) nil)))]]
+              (filter identity (map (partial trigger-expressions false)
+                                    ((requiring-resolve 'beat-link-trigger.triggers/get-triggers) nil)))]]
             error-modal]])
       (catch Throwable t
         (timbre/error t "Problem generating triggers report")
@@ -735,6 +788,8 @@
                 [:p.subtitle "Report generated at " (.format (SimpleDateFormat. "HH:mm:ss yyyy/dd/MM") when) "."]
                 (global-expressions show)
                 (filter identity (map track-expressions (:tracks show)))
-                (filter identity (map phrase-expressions (get-in show [:contents :phrases])))]]
+                (filter identity (map phrase-expressions (get-in show [:contents :phrases])))
+                (filter identity (map (partial trigger-expressions true)
+                                    ((requiring-resolve 'beat-link-trigger.triggers/get-triggers) show)))]]
               error-modal]]))
       (route/not-found "<p>Show not found.</p>"))))

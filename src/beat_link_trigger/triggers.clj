@@ -864,7 +864,7 @@
                   :id :panel
                   :items [[(seesaw/label :id :from-show :text "Triggers from no Show." :visible? false :halign :center)
                            "hidemode 3, span, grow, wrap unrelated"]
-                          [(seesaw/label :id :index :text (str index ".")) "align right"]
+                          [(seesaw/label :id :index :text (str index ".") :user-data (random-uuid)) "align right"]
                           [(seesaw/text :id :comment :paint (partial util/paint-placeholder "Comment"))
                            "span, grow, wrap"]
 
