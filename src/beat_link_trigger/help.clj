@@ -53,6 +53,10 @@
   (compojure/GET "/show/simulate-phrase-cue-expression" [show phrase cue kind]
                  ((requiring-resolve 'beat-link-trigger.expression-report/simulate-phrase-cue-expression)
                   show phrase cue kind))
+  (compojure/GET "/show/edit-trigger-expression" [uuid kind]
+                 ((requiring-resolve 'beat-link-trigger.expression-report/edit-trigger-expression) uuid kind))
+  (compojure/GET "/show/simulate-trigger-expression" [uuid kind]
+                 ((requiring-resolve 'beat-link-trigger.expression-report/simulate-trigger-expression) uuid kind))
 
   ;; We give up!
   (route/not-found "<p>Page not found.</p>"))

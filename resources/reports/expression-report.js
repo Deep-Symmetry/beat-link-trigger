@@ -26,45 +26,57 @@ function runAction(url) {
   req.send();
 }
 
+function showParam() {
+  return showFile? ("show=" + showFile + "&") : "";
+}
+
 function editShowExpression(kind) {
-  runAction("/show/edit-show-expression?show=" + showFile + (kind? ("&kind=" + kind) : ""));
+  runAction("/show/edit-show-expression?" + showParam() + (kind? ("kind=" + kind) : ""));
 }
 
 function simulateTrackExpression(signature, kind) {
-  runAction("/show/simulate-track-expression?show=" + showFile + "&track=" + signature + "&kind=" + kind);
+  runAction("/show/simulate-track-expression?" + showParam() + "track=" + signature + "&kind=" + kind);
 }
 
 function editTrackExpression(signature, kind) {
-  runAction("/show/edit-track-expression?show=" + showFile + "&track=" + signature + (kind? ("&kind=" + kind) : ""));
+  runAction("/show/edit-track-expression?" + showParam() + "track=" + signature + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulateTrackCueExpression(signature, cue, kind) {
-  runAction("/show/simulate-track-cue-expression?show=" + showFile + "&track=" + signature +
+  runAction("/show/simulate-track-cue-expression?" + showParam() + "track=" + signature +
             "&cue=" + cue + "&kind=" + kind);
 }
 
 function editTrackCueExpression(signature, cue, kind) {
-  runAction("/show/edit-track-cue-expression?show=" + showFile + "&track=" + signature +
+  runAction("/show/edit-track-cue-expression?" + showParam() + "track=" + signature +
             "&cue=" + cue + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulatePhraseExpression(uuid, kind) {
-  runAction("/show/simulate-phrase-expression?show=" + showFile + "&phrase=" + uuid + "&kind=" + kind);
+  runAction("/show/simulate-phrase-expression?" + showParam() + "phrase=" + uuid + "&kind=" + kind);
 }
 
 function editPhraseExpression(uuid, kind) {
-  runAction("/show/edit-phrase-expression?show=" + showFile + "&phrase=" + uuid + (kind? ("&kind=" + kind) : ""));
+  runAction("/show/edit-phrase-expression?" + showParam() + "phrase=" + uuid + (kind? ("&kind=" + kind) : ""));
 }
 
 function simulatePhraseCueExpression(uuid, cue, kind) {
-  runAction("/show/simulate-phrase-cue-expression?show=" + showFile + "&phrase=" + uuid +
+  runAction("/show/simulate-phrase-cue-expression?" + showParam() + "phrase=" + uuid +
             "&cue=" + cue + "&kind=" + kind);
 }
 
 function editPhraseCueExpression(uuid, cue, kind) {
-  runAction("/show/edit-phrase-cue-expression?show=" + showFile + "&phrase=" + uuid +
+  runAction("/show/edit-phrase-cue-expression?" + showParam() + "phrase=" + uuid +
             "&cue=" + cue + (kind? ("&kind=" + kind) : ""));
 }
+
+function simulateTriggerExpression(uuid, kind) {
+  runAction("/show/simulate-trigger-expression?uuid=" + uuid + "&kind=" + kind);
+ }
+
+function editTriggerExpression(uuid, kind) {
+  runAction("/show/edit-trigger-expression?uuid=" + uuid + (kind? ("&kind=" + kind) : ""));
+ }
 
 
 // Functions supporting Bulma modals.

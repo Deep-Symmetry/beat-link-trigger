@@ -53,6 +53,16 @@
                 action-security-warning)
    "Trigger Actions Not Enabled"))
 
+(defn trigger-not-found
+  "Helper expression used by request handlers from the expressions report
+   to report that the specified trigger could not be found."
+  []
+  (expression-report-error-response
+   (hiccup/html [:p "There is no track with the specified UUID in the Triggers window."]
+                [:br]
+                [:p "You may want to refresh the report to view the current state of the application."])
+   "Trigger Not Found"))
+
 (defn show-not-found
   "Helper expression used by request handlers from the expressions report
    to report that the specified show could not be found."
@@ -153,6 +163,59 @@
                ((requiring-resolve 'beat-link-trigger.triggers/global-editor-update-fn) kind)))
             (editor-opened-in-background))
           (unrecognized-expression))))
+    (triggers-not-enabled)))
+
+(defn simulate-trigger-expression
+  "Helper function used by requests from the expressions report
+  requesting simulation of an expression in a classic trigger."
+  [uuid kind]
+  (if @@(requiring-resolve 'beat-link-trigger.triggers/report-actions-enabled?)
+    (if-let [trigger ((requiring-resolve 'beat-link-trigger.triggers/find-trigger) (parse-uuid uuid))]
+      (seesaw/invoke-now
+        (binding [util/*simulating* (util/data-for-simulation)]
+          (case (keyword kind)
+            :activation   (do ((requiring-resolve 'beat-link-trigger.triggers/report-activation)
+                             trigger (su/random-cdj-status) @(seesaw/user-data trigger) false)
+                            (expression-report-success-response))
+            :beat         (do ((requiring-resolve 'beat-link-trigger.triggers/run-trigger-function)
+                             trigger :beat (su/random-beat) true)
+                            (expression-report-success-response))
+            :tracked      (do ((requiring-resolve 'beat-link-trigger.triggers/run-trigger-function)
+                             trigger :tracked (su/random-cdj-status) true)
+                            (expression-report-success-response))
+            :deactivation (do ((requiring-resolve 'beat-link-trigger.triggers/report-deactivation)
+                             trigger (su/random-cdj-status) @(seesaw/user-data trigger) false)
+                            (expression-report-success-response))
+            (unrecognized-expression))))
+      (trigger-not-found))
+    (triggers-not-enabled)))
+
+(defn edit-trigger-expression
+  "Helper function used by requests from the expressions report
+  requesting an editor window for an expression in a classic trigger."
+  [uuid kind]
+  (if @@(requiring-resolve 'beat-link-trigger.triggers/report-actions-enabled?)
+    (if-let [trigger ((requiring-resolve 'beat-link-trigger.triggers/find-trigger) (parse-uuid uuid))]
+      (let [triggers-frame @@(requiring-resolve 'beat-link-trigger.triggers/trigger-frame)]
+        (if (str/blank? kind)
+          (do ; Just bring the triggers window to the front and scroll to the trigger.
+            (seesaw/invoke-now
+              (seesaw/show! triggers-frame)
+              ((requiring-resolve 'beat-link-trigger.triggers/scroll-to-trigger) (parse-uuid uuid)))
+            (window-brought-to-front "Triggers" "trigger"))
+          (let [kind (keyword kind)]
+            (if (contains? @(requiring-resolve 'beat-link-trigger.editors/trigger-editors) kind)
+              (seesaw/invoke-now
+                (try
+                  (let [gear (seesaw/select trigger [:#gear])]
+                    ((requiring-resolve 'beat-link-trigger.editors/show-trigger-editor) kind trigger
+                     (fn [] ((requiring-resolve 'beat-link-trigger.triggers/update-gear-icon) trigger gear)))
+                    (editor-opened-in-background))
+                  (catch Throwable t
+                    (timbre/error t "Problem opening trigger editor")
+                    (throw t))))
+              (unrecognized-expression)))))
+      (trigger-not-found))
     (triggers-not-enabled)))
 
 (defn edit-show-expression
@@ -666,31 +729,12 @@
                                         (vals (get-in phrase [:cues :cues]))))]
     [:div (concat [phrase-level] cue-level)]))
 
-(defn trigger-expression-disabled-warning
-  "Builds a warning message if the expression is not currently in use by
-  the trigger because of other trigger settings."
-  [trigger kind]
-  ;; TODO: Implement or remove if there's not an appropriate equivalent for triggers.
-  #_(case kind
-      (:playing :stopped)
-      (let [message (:message phrase)]
-        (when (not= message "Custom")
-          [:span.has-text-danger [:br] "Inactive: Playing Message is &ldquo;" message "&rdquo;"]))
-
-      :enabled
-      (let [message (:enabled phrase)]
-        (when (not= message "Custom")
-          [:span.has-text-danger [:br] "Inactive: Enabled Filter is &ldquo;" message "&rdquo;"]))
-
-      nil))
-
 (defn- describe-trigger-expression
   [uuid trigger editors kind]
   (let [value (get-in @(seesaw/user-data trigger) [:expressions kind])]
     (when-not (str/blank? value)
       [:tr
-       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]
-        (trigger-expression-disabled-warning trigger kind)]
+       [:td [:div.tooltip (get-in editors [kind :title]) [:span.tooltiptext (get-in editors [kind :tip])]]]
        [:td (when (get-in editors [kind :simulate])
               [:a.button.is-small.is-link {:href  (str "javascript:simulateTriggerExpression('" uuid "','"
                                                        (name kind) "');")
@@ -715,7 +759,7 @@
         uuid    (seesaw/user-data index)]
     (expression-section (str (when from-show? "Raw ") "Trigger " (subs label 0 (dec (.length label))))
                         (str "trigger-" uuid)
-                        (str "editTriggerExpression'" uuid "');") "Scroll Triggers window to this trigger"
+                        (str "editTriggerExpression('" uuid "');") "Scroll Triggers window to this trigger"
                         (filter identity (map (partial describe-trigger-expression uuid trigger editors)
                                               (keys editors))))))
 

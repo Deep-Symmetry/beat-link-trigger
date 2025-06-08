@@ -34,7 +34,7 @@
            [java.awt Color Graphics2D RenderingHints]
            [java.awt.event WindowEvent]
            [java.io File]
-           [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JRadioButtonMenuItem UIManager]
+           [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JPanel JRadioButtonMenuItem UIManager]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
             DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AnalysisTagFinder ArtFinder BeatGridFinder CrateDigger MetadataFinder
@@ -631,6 +631,20 @@
      (seesaw/config (seesaw/select frame [:#triggers]) :items)))
   ([show]
    (filter #(= (:file show) (:show-file @(seesaw/user-data %))) (get-triggers))))
+
+(defn find-trigger
+  "Returns the trigger with the matching UUID, if it exists."
+  [uuid]
+  (some #(when (= uuid (seesaw/user-data (seesaw/select % [:#index]))) %) (get-triggers)))
+
+(defn scroll-to-trigger
+  "Makes sure the specified trigger is visible on behalf of an
+  expression report."
+  [uuid]
+  (when-let [trigger (find-trigger uuid)]
+    (timbre/info "Scroll to" trigger)
+    (seesaw/invoke-later (seesaw/scroll! (seesaw/select @trigger-frame [:#triggers])
+                                         :to (.getBounds ^JPanel trigger)))))
 
 (defn- adjust-triggers
   "Called when a trigger is added or removed to restore the proper
@@ -1613,9 +1627,9 @@
        (when (util/online?)
          (str "  [We are Player " (.getDeviceNumber virtual-cdj) "]"))))
 
-(def report-actions-enabled?
-  "Controls whether buttons in the expressions report are allowed to
-  affect the Triggers window."
+(defonce ^{:doc "Controls whether buttons in the expressions report are allowed to
+  affect the Triggers window."}
+  report-actions-enabled?
   (atom false))
 
 (defn- build-trigger-menubar
