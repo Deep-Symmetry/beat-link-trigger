@@ -41,6 +41,10 @@ these Simulator windows at the same time, each using a different
 Player Number, so you can simulate a full complement of hardware
 playing different (or the same) tracks at the same time.
 
+WARNING: If you are new to Beat Link Trigger and trying to learn how it works, please do not get tempted to use the Shallow Playback Simulator.
+It is designed for people who are already experts in creating integrations, who understand how the software works with actual hardware and have their expressions debugged, but who are briefly without access to their Pro DJ Link hardware and still want to do some quick and rough sanity checks.
+If you are trying to learn how to work with BLT, wait until you have actual Pro DJ Link hardware on hand to do it, or you risk confusion and frustration.
+
 The On-Air and Master check boxes allow you to configure whether the
 simulated player is reporting itself as On-Air or as the Master player
 (which may affect aspects of your triggers, cues, and expressions that

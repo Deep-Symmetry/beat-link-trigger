@@ -380,7 +380,7 @@
   taking place."
   [uuid remain c g]
   (when-let [player (get-in @simulators [uuid :player])]
-    ((requiring-resolve 'beat-link-trigger.players/paint-time) player remain c g)))
+    ((requiring-resolve 'beat-link-trigger.players/paint-time) player remain true c g)))
 
 (defn build-simulator-panel
   "Creates the UI of the simulator window, once its basic configuration

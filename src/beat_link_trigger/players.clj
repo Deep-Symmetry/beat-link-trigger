@@ -268,23 +268,30 @@
                               (catch Exception _))]  ; Absorb when virtual-cdj shuts down because we went offline.
       (.isPreNexusCdj u))))
 
-(defn- paint-time
+(defn paint-time
   "Draws time information for a player. Arguments are player number, a
-  boolean flag indicating we are drawing remaining time, the component
-  being drawn, and the graphics context in which drawing is taking
+  boolean flag indicating we are drawing remaining time, another flag
+  indicating we are drawing in the shallow playback simulator and so
+  need to support a light-mode UI, the component being drawn (which we
+  ignore, but needs to be passed to us because of the context in which
+  we are called), and the graphics context in which drawing is taking
   place. Used both by this window and by playback simulators."
-  [n remain _ ^Graphics2D g]
+  [n remain? simulator? _component ^Graphics2D g]
   (let [played     (time-played n)
-        ms         (when (and played (>= played 0)) (if remain (time-left n played) played))
+        ms         (when (and played (>= played 0)) (if remain? (time-left n played) played))
         min        (format-time (when ms (/ ms 60000)))
         sec        (format-time (when ms (/ (mod ms 60000) 1000)))
         half-frame (when ms (mod (org.deepsymmetry.beatlink.Util/timeToHalfFrame ms) 150))
         frame      (format-time (when half-frame (/ half-frame 2)))
         frac-frame (if half-frame (if (even? half-frame) "0" "5") "-")]
     (.setRenderingHint g RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
-    (.setPaint g (if remain (Color. 255 200 200) (Color/WHITE)))
+    (.setPaint g (case [remain? (and simulator? (not (prefs/dark-mode?)))]
+                   [true false]  (Color. 255 200 200)
+                   [false false] Color/white
+                   [true true]   Color/red
+                   [false true]  Color/black))
     (.setFont g (util/get-display-font :teko Font/PLAIN 16))
-    (.drawString g (if remain "Remain" (if (precise? n) "Precise Time" "Time")) (int 4) (int 16))
+    (.drawString g (if remain? "Remain" (if (precise? n) "Precise Time" "Time")) (int 4) (int 16))
     (if (and (not ms) (pre-nexus n))
         (do  ; Report that we can't display time information, as this is a pre-nexus device.
           (.setFont g (util/get-display-font :teko Font/PLAIN 19))
@@ -578,9 +585,9 @@
         last-beat      (atom nil)
         player         (seesaw/canvas :size [56 :by 56] :opaque? false :paint (partial paint-player-number n))
         last-playing   (atom nil)
-        time           (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false))
+        time           (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n false false))
         last-time      (atom nil)
-        remain         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true))
+        remain         (seesaw/canvas :size [140 :by 40] :opaque? false :paint (partial paint-time n true false))
         last-remain    (atom nil)
         tempo          (seesaw/canvas :size [120 :by 40] :opaque? false :paint (partial paint-tempo n))
         last-tempo     (atom nil)
