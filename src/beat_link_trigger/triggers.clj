@@ -1335,7 +1335,9 @@
             (when (and (some? selection)
                        (or (= (:number selection) (.getDeviceNumber beat))
                            (and (zero? (:number selection))
-                                (.isRunning virtual-cdj) (.isTempoMaster beat))
+                                (or (and (.isRunning virtual-cdj) (.isTempoMaster beat))
+                                    (when-let [simulator (sim/for-player (.getDeviceNumber beat))]
+                                      (:master simulator))))
                            (and (neg? (:number selection))  ; For Any Player, make sure beat's from the tracked player.
                                 (= (get-in data [:last-match 1]) (.getDeviceNumber beat)))))
               (run-trigger-function trigger :beat beat false)
