@@ -11,12 +11,15 @@ triggers. Finding and keeping track of them all using only the editor
 windows accessed through context menus would be a significant
 challenge, which is why the Expressions Report was added.
 
-The report is broken down into sections. At the top the expressions
-which apply to the show as a whole. These are followed by expressions
-at the track level for each track that has them, and then for each cue
-within that track that has expressions. Then any phrase triggers with
-expressions are listed, followed by any cues within the phrase
-triggers which have their own expressions.
+NOTE: Though the expressions report mechanism was created for shows, it was later extended to the <<Triggers.adoc#,Triggers>> window as well.
+You can now create a report about that window's <<Expressions_TriggerGlobal.adoc#,global expressions>> and the expressions belonging to each <<Expressions_Trigger.adoc#,trigger>> through the Triggers window menu:File[] menu.
+It has the same features and capabilities as reports for shows.
+
+The report is broken down into sections.
+At the top the expressions which apply to the show as a whole.
+These are followed by expressions at the track level for each track that has them, and then for each cue within that track that has expressions.
+Then any phrase triggers with expressions are listed, followed by any cues within the phrase triggers which have their own expressions.
+Finally, any expressions belonging to <<Shows_RawTriggers.adoc#,Raw Triggers>> from the show are listed, even though they appear in the Triggers window while the show is open.
 
 image:ExpressionsReport.png[alt=Expressions Report,width=1200,height=880]
 
