@@ -92,10 +92,7 @@ It is fine to use those as an inspiration, or examples of the ways something cou
 Once you have something working you’d like to share, you can open a
 [pull request][pulls].
 
-Or if you simply have an idea, or something that you wish worked
-differently, feel free to open an [issue][issues] if it seems like
-nobody already has.
-
+Or if you simply have an idea, or something that you wish worked differently, feel free to discuss it in the [Zulip channel][zulip], and if directed to do so by the community there, open an [issue][issues].
 ## Maintainers
 
 Beat Link Trigger is primarily maintained by [@brunchboy][brunchboy].
