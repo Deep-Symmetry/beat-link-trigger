@@ -316,7 +316,7 @@ image:PTMessageMenu.png[alt=Message Menu,width=1175,height=222]
 
 None:: With this setting, which is the default, nothing is sent when
 the phrase starts or stops playing.footnote:none[Note that this is
-different from low-level Triggers, which always send something--you
+different from low-level “Raw” Triggers, which always send something--you
 need to remember to pick the kind of message to be sent for any Show
 events that you want to respond to.] When `None` is chosen, there are
 no interface elements visible to configure the event. They will appear
@@ -519,3 +519,17 @@ about to loop back to the start of the section if the playback
 indicator gradually fades into transparency. Otherwise, if it is
 continuing on to a new section, it will instead fade to the color of
 the section that is about to begin.
+
+== Responding to Tracks without Phrase Information
+
+If your show is relying on phrase information, and you would like for something to happen automatically when a track that is missing phrase analysis is played, you can use a <<Shows_RawTriggers.adoc#,Raw Trigger>> to achieve that.
+Set the trigger to watch the master player, set its Enabled filter to Custom, and use this as its custom Enabled Expression:
+
+[source,clojure]
+----
+(empty? (beat-link-trigger.show-phrases/player-phrase-intervals device-number))
+----
+
+Then whatever you configure the trigger to send when it activates will be sent when such a track begins to play, and any configured deactivation message will be sent when a track with phrase analysis information takes over.
+
+See the next section for more information about raw triggers, and you can delve into a https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/.E2.9C.94.20Phrase.20triggers.20for.20tracks.20without.20analysis/with/298617316[Zulip topic] for the details about how this idea came to be.
