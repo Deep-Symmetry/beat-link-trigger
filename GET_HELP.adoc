@@ -1,0 +1,72 @@
+= Get Help
+
+To be successful in working with Beat Link Trigger, we encourage you to maintain a dialogue with the project maintainers and other community members.
+Don't hesitate to ask questions and discuss any aspects of the project using an appropriate communication channel listed below.
+Your feedback helps drive the projects forward by providing use cases, ideas, metrics, and motivation.
+
+[#chat]
+== Project chat
+
+[horizontal]
+Platform:: Zulip
+URL:: https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger
+
+*The project chat is the preferred means of communication for all users of Beat Link Trigger.*
+This policy helps keep the project sustainable.
+If you want to ask for help, share feedback, or exchange ideas with fellow community members in real time, please do so in the project chat.
+
+The chat also serves as the Deep Symmetry forum.
+Like a forum, the chat is partitioned into channels.
+If you find an ongoing discussion that matches the topic you're interested in, feel free to join that discussion.
+Otherwise, please post a new topic in the `#beat-link-trigger` channel.
+Please *do not post* unrelated questions or comments to an existing topic since that disrupts the discussion and makes answers more difficult to find.
+
+TIP: Please use the filter or search feature to find existing topics before starting a new one.
+
+If you're starting a new topic that relates to a specific project other than Beat Link Trigger itself, check if there's a channel for that project and post to that channel instead.
+For example, if you want to ask a question that only applies to dysentery, please create the topic in the `#dysentery & crate digger` channel.
+
+*If you aren't sure where to post, please post in the `#beat-link-trigger` channel and a moderator will relocate the topic if necessary.*
+No action is needed on your part.
+
+The discussions in the project chat are archived and public.
+There's no guarantee those logs will be saved indefinitely, though we plan keep them as long as we're permitted to do so.
+
+Keep in mind that people participate in the project chat voluntarily, so please be respectful of their time and interests.
+The project chat is not 1-on-1 support.
+You're in a public space.
+
+Do not `@` mention someone when writing a message unless a) the subject matter absolutely requires the attention of that person or b) that person has already replied to the topic and is interacting with you.
+Using the `@` mention to draw attention to your question is not courteous to that person or fair to others.
+You're free to post your message to the community at large (no `@` mention).
+If someone has something to share in response, they will do so if and when they have time.
+You can reference someone without notifying them using the `@_` prefix, which is considered acceptable conduct.
+
+== Issue tracker
+
+[horizontal]
+Platform:: GitHub
+URL:: https://github.com/Deep-Symmetry/beat-link-trigger/issues
+
+IMPORTANT: If the issue does not pertain to Beat Link Trigger itself, please file the issue in the issue tracker for the relevant project.
+For example, to file an issue about the Beat Link library, please use the issue tracker at https://github.com/Deep-Symmetry/beat-link/issues
+
+The issue tracker is the preferred channel for reporting verifiable bugs, regressions, and security vulnerabilities, or for making formal, specific, and well-defined change requests.
+*Please do not ask questions about how to use the software in the issue tracker.*
+The issue tracker is not a support portal.
+Instead, you may direct questions about usage to the <<chat,project chat>>.
+Please do not comment on closed issues unless you're adding additional context, such as to report whether the fix worked for you or how you made use of it.
+If you post an unproductive comment on an open issue, such as "`What's the status of this issue after X years?`", your comment will be deleted.
+
+Any significant change or decision about the project's software is recorded in the issue tracker or https:CHANGELOG[change log].
+
+
+== Please be considerate
+
+Please understand that all members of this community are volunteers and support is provided to fellow community members at will and often out of personal interest.
+
+
+When using these communication channels, we expect you to uphold the https:CODE_OF_CONDUCT.md[Code of Conduct].
+
+If you're seeking professional support, you can ask the project maintainers or other community members if they offer any services.
+Otherwise, keep in mind that people participating in this project do not work for you.

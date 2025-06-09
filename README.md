@@ -62,13 +62,10 @@ guide](https://blt-guide.deepsymmetry.org/).
  src="doc/modules/ROOT/assets/images/zulip-icon-circle.svg"
  width="128" height="128"></a>
 
-Deep Symmetry&rsquo;s projects are generously sponsored with hosting
-by <a href="https://zulip.com">Zulip</a>, an open-source modern team
-chat app designed to keep both live and asynchronous conversations
-organized. Thanks to them, you can <a
-href="https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger">chat
-with our community</a>, ask questions, get inspiration, and share your
-own ideas.
+Deep Symmetry&rsquo;s projects are generously sponsored with hosting by [Zulip](https://zulip.com), an open-source modern team chat app designed to keep both live and asynchronous conversations organized.
+Thanks to them, you can [chat with our community](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger">), ask questions, get inspiration, and share your own ideas.
+
+For more details, see [Get Help](GET_HELP.adoc).
 
 ## Usage
 
@@ -126,8 +123,8 @@ Trigger, please add a page or two the Wiki to share them with others!
 
 First of all, we would *love* to hear from you! We have no way of
 knowing who has discovered, explored, downloaded and tried Beat Link
-Trigger. So if you have, please write a quick note on the [Zulip
-stream](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)
+Trigger. So if you have, please write a quick note in the [Zulip
+channel](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)
 to let us know! Even if it is only to explain why it didn&rsquo;t
 quite work for you.
 

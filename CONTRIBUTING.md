@@ -14,14 +14,10 @@ By participating, you are expected to uphold this code.
 
 ## Getting started
 
-Before you can start contributing to Beat Link Trigger, you'll need to
-set up your environment. Fork and clone the repo and install
-[Clojure][clojure] (for compiling and running the code) and
-[Leiningen](https://leiningen.org) (to manage the project dependencies
-and builds). Both of these rely on having a working Java runtime; if
-the mechanism you used to install them did not automatically include
-one, I recommend installing a current long-term-support version of the
-[OpenJDK](http://openjdk.java.net) which as of this writing is OpenJDK 21.
+Before you can start contributing to Beat Link Trigger, you'll need to set up your environment.
+Fork and clone the repo and install [Clojure][clojure] (for compiling and running the code) and [Leiningen][leiningen] (to manage the project dependencies
+and builds).
+Both of these rely on having a working Java runtime; if the mechanism you used to install them did not automatically include one, I recommend installing a current long-term-support version of the [OpenJDK][openjdk] which as of this writing is OpenJDK 21.
 Most Beat Link Trigger development uses [Amazon Corretto 21][corretto].
 
 > Starting with version 0.5.3, you also need to have
@@ -78,6 +74,19 @@ ports, so you can listen in on the traffic players and mixers send
 between themselves. The [Netgear GS105Ev2][switch] has worked great
 for us.
 
+> [!IMPORTANT]
+> Before doing any significant work, we strongly encourage you to discuss your ideas in the [Zulip channel][zulip].
+> This will help make sure you’re on the right track, could save you a lot of effort, and ensure alignment with the overall project philosophy and goals.
+
+### Code from AI / LLM Tools
+
+If you are planning to contribute code, please refrain from copy and pasting it from “AI” code assistants and large language models.
+It is fine to use those as an inspiration, or examples of the ways something could be done, but always write your own code from scratch if you are going to submit it to the project.
+
+> [!WARNING]
+> Code from online coding assistants may be plagiarized from other projects with incompatible licenses (and there is no way to know), and may include subtle bugs.
+> It is not suitable for submission to Deep Symmetry projects.
+
 ## Giving back
 
 Once you have something working you’d like to share, you can open a
@@ -96,7 +105,7 @@ Beat Link Trigger is primarily maintained by [@brunchboy][brunchboy].
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
  src="doc/modules/ROOT/assets/images/DS-logo-github.png" width="250" height="150"></a>
 
-Copyright © 2016&ndash;2024 [Deep Symmetry, LLC](http://deepsymmetry.org)
+Copyright © 2016&ndash;2025 [Deep Symmetry, LLC][deep-symmetry]
 
 Distributed under the [Eclipse Public License
 2.0](https://opensource.org/licenses/EPL-2.0). By using this software
@@ -105,16 +114,19 @@ license. You must not remove this notice, or any other, from this
 software.
 
 
-[contributions-released]: https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license
-[covenant]: http://contributor-covenant.org/
-[clojure]: https://clojure.org
-[corretto]: https://aws.amazon.com/corretto/
-[leiningen]: https://leiningen.org
-[emacs]: https://www.gnu.org/software/emacs/
-[cider]: http://www.cider.mx/en/latest/
-[idea]: https://www.jetbrains.com/idea/
-[cursive]: https://cursive-ide.com
-[switch]: https://smile.amazon.com/gp/product/B00HGLVZLY/
-[pulls]: https://github.com/Deep-Symmetry/beat-link-trigger/pulls
-[issues]: https://github.com/Deep-Symmetry/beat-link-trigger/issues
 [brunchboy]: https://github.com/brunchboy
+[cider]: http://www.cider.mx/en/latest/
+[clojure]: https://clojure.org
+[contributions-released]: https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license
+[corretto]: https://aws.amazon.com/corretto/
+[covenant]: http://contributor-covenant.org/
+[cursive]: https://cursive-ide.com
+[deep-symmetry]: https://deepsymmetry.org
+[emacs]: https://www.gnu.org/software/emacs/
+[idea]: https://www.jetbrains.com/idea/
+[issues]: https://github.com/Deep-Symmetry/beat-link-trigger/issues
+[leiningen]: https://leiningen.org
+[openjdk]: https://openjdk.java.net
+[pulls]: https://github.com/Deep-Symmetry/beat-link-trigger/pulls
+[switch]: https://smile.amazon.com/gp/product/B00HGLVZLY/
+[zulip]: https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger
