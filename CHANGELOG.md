@@ -34,6 +34,7 @@ This change log follows the conventions of
 - Some variables were incorrect in the phrase trigger expression examples in the user guide.
 - The value for `loaded-players` was not being simulated in a usable way when requesting a standalone simulation of the event.
 - Shallow playback simulator windows were [trying to update far too often](https://github.com/Deep-Symmetry/beat-link-trigger/issues/185). Thanks to [Deniz Gencer, @Firedude1](https://github.com/Firedude1) who noticed it was thrashing his GPU and reported this.
+- When using the embedded sample tracks with the shallow playback simulator, the tempo was always reported as zero.
 - An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
 - The code for handling an abrupt disconnection from the Carabiner daemon was trying to update the user interface on the wrong thread.
 - If the network changed while going online in a way that kicked BLT back offline right before checking whether there were any unreachable players (which could happen, for example, if you turned off WiFi while looking at the warning about there being multiple network interfaces that could see the Pro DJ Link network), this would cause an uncaught exception that would prevent the Triggers window from ever opening.
