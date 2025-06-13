@@ -8,7 +8,7 @@ The key to getting useful results with the Opus Quad, since it is unable to send
 NOTE: We can't yet support running BLT and an Opus Quad with tracks loaded over Link from Rekordbox or Rekordbox Mobile.
 We hope this can be solved someday, but it will require some additional technical breakthroughs.
 
-I’m frankly amazed that we can do this at all, but if you want to work with this hardware you need to understand that it is not going to be seamless or automatic the way working with Pro DJ Link hardware is; you have to do some prep work in advance, update that work as you add more tracks that you want to work with, and understand limitations and make choices about which tradeoffs you want to make.
+I’m frankly amazed that we can do this at all, but if you want to work with this hardware you need to understand that it is not going to be seamless or automatic the way working with Pro DJ Link hardware is; you have to do some prep work in advance, update that work as you add more tracks that you want to work with, and understand <<limitations,limitations>> and make choices about which tradeoffs you want to make.
 
 == Creating Metadata Archives
 
@@ -71,6 +71,7 @@ This means that BLT is can be up to 200 milliseconds ahead of or behind the actu
 This is the same problem faced during reverse play with players older than the CDJ-3000, but it is a problem even during normal play on the Opus Quad.
 
 IMPORTANT: This also means that Beat Expressions will never run with an Opus Quad, nor will Started On-Time expressions in show cues, all cues will always be considered to have started late.
+And if you are using Carabiner to sync to Ableton Link, only tempo can be synced, it is not possible to align beats or bars. We are <<potential-workaround,working on this>>.
 
 [[usb-slot-limitations]]
 === USB Slot Limitations
@@ -81,14 +82,25 @@ For this reason, it is safest to only use a single USB in an Opus Quad while wor
 [[id-drift]]
 === ID Drift
 
-The IDs that the Opus Quad reports for tracks are Device Library Plus IDs, but Beat Link can only read the classic Device Library.Generally, those databases start out using the same IDs for the same track, but over time as you edit your collection, they can drift apart.
-This can lead to problems recognizing tracks.
+The IDs that the Opus Quad reports for tracks are Device Library Plus IDs, but Beat Link can only read the classic Device Library.
+Generally, those databases start out using the same IDs for the same track, but over time as you edit your collection, they can drift apart.
+This can lead to problems recognizing tracks even if you are only using a single USB, although we hope that PSSI matching is robust enough to make that a rare occurrence.
+The <<potential-workaround,workaround described below>> will eliminate this problem if we can implement it.
 
-This can be worked around if you are able to tell BLT how to open your Device Library Plus database, as described in the next section.
-
-== Working With Device Library Plus
+[[potential-workaround]]
+== Potential Workaround
 
 As noted <<id-drift,above>>, the Opus Quad works with Device Library Plus, but Beat Link Trigger only knows how to parse classic Device Library databases.
+
+We think that by using the SQLite Device Library Plus database to reliably match track IDs to track metadata will allow us to go back to the normal BLT approach of posing as a CDJ, rather than rekordbox, and obtain high priority position packets from the Opus Quad.
+(Using the newer database is a requirement, because in this mode we no longer receive the rekordbox lighting packets which allow track-matching by PSSI data.)
+This would allow us to follow the player position closely enough that we could fake the beat packets, and enable some important Beat Link Trigger features like beat expressions and beat/bar sync with Ableton Link.
+
+This is an area of active research, but is not far enough along to make it into the 8.0 release.
+
+ifdef::db-passphrase-ready[]
+=== Working With Device Library Plus
+
 Device Library Plus uses SQLite, an open-source database, so we should be able to work with it, but the database is encrypted, which prevents that.
 
 If you know the passphrase needed to decrypt the exported database, you can provide that to Beat Link, allowing it to access the database that the Opus Quad is actually using, and improving its track matching abilities.
@@ -120,12 +132,4 @@ you will instead see this version (note the replacement of DeviceSQL by SQLite):
 Attached SQLite metadata archive /Users/fred/usb.blm for slot 1.
 
 ----
-
-[[potential-workaround]]
-== Potential Workaround
-
-We think that by using the SQLite database to reliably match track IDs to track metadata will allow us to go back to the normal BLT approach of posing as a CDJ, rather than rekordbox, and obtain high priority position packets from the Opus Quad.
-(Using the newer database is a requirement, because in this mode we no longer receive the rekordbox lighting packets which allow track-matching by PSSI data.)
-This would allow us to follow the player position closely enough that we could fake the beat packets, and enable some important Beat Link Trigger features.
-
-This is an area of active research, but is not far enough elong to make it into the 8.0 release.
+endif::[]
