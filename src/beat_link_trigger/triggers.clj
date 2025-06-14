@@ -43,9 +43,10 @@
            [org.deepsymmetry.electro Metronome]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDeviceProvider]))
 
-;; This used to be where this was defined, but for compilation order reasons, it has been swapped
-;; into the expressions namespace.
-(refer 'beat-link-trigger.expressions :only '[globals] :rename '{globals expression-globals})
+;; This used to be where this was defined, but for compilation order reasons, and then also for
+;; better isolation of user code, it has been swapped into the expressions namespace.
+(require 'beat-link-trigger.expressions.triggers)
+(refer 'beat-link-trigger.expressions.triggers :only '[globals] :rename '{globals expression-globals})
 
 (defonce ^{:private true
            :doc "Holds the trigger window, through which we can access and

@@ -169,7 +169,8 @@
   [update-binding simulate-status trigger compiled]
   (binding [util/*simulating* (util/data-for-simulation)]
     (binding [util/*simulating* (update-binding)]
-      (compiled (simulate-status) @(seesaw/user-data trigger) expressions/globals))))
+      (compiled (simulate-status) @(seesaw/user-data trigger)
+                @(requiring-resolve 'beat-link-trigger.expressions.triggers/globals)))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -308,7 +309,7 @@
                     (help/user-guide-link "ShowInternals.html#show")
                     "\">User Guide</a> for details.")}
 
-   'trigger-globals {:code 'beat-link-trigger.expressions/globals
+   'trigger-globals {:code 'beat-link-trigger.expressions.triggers/globals
                      :doc  "The expression globals in the Triggers
   window, in case you want to share values with
   them."}})
@@ -1428,8 +1429,7 @@ a {
 </style></head>")
 
 (defn- triggers-locals-globals
-  "Describes trigger locals and globals bindings when available
-  available."
+  "Describes trigger locals and globals bindings when available."
   [kind global?]
   (when-not (= kind :shared)
     (str/join (concat ["<p>The " (when-not global? "atom

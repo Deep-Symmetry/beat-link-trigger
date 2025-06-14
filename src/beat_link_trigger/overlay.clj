@@ -14,7 +14,6 @@
             [org.httpkit.server :as server]
             [selmer.parser :as parser]
             [cheshire.core :as json]
-            [beat-link-trigger.expressions :as expr]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show-util :as show-util]
             [beat-link-trigger.tree-node]
@@ -31,7 +30,7 @@
            [javax.imageio ImageIO]
            [javax.swing JFrame JTree]
            [javax.swing.tree DefaultMutableTreeNode DefaultTreeModel]
-           [org.deepsymmetry.beatlink LifecycleListener VirtualCdj Util
+           [org.deepsymmetry.beatlink DeviceFinder LifecycleListener VirtualCdj Util
             DeviceAnnouncement DeviceUpdate Beat CdjStatus MixerStatus MediaDetails
             CdjStatus$TrackSourceSlot CdjStatus$TrackType]
            [org.deepsymmetry.beatlink.data BeatGrid CueList DataReference TimeFinder MetadataFinder SignatureFinder
@@ -212,12 +211,18 @@
   (when (and color (not (ColorItem/isNoColor (.color color))))
     (format "#%06x" (bit-and (.. color color getRGB) 0xffffff))))
 
+(def ^MetadataFinder metadata-finder
+  "A convenient reference to the [Beat Link
+  `MetadataFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/MetadataFinder.html)
+  singleton."
+  (MetadataFinder/getInstance))
+
 (defn format-metadata
   "Builds a map describing the metadata of the track loaded in the
   specified player, if any, in a format convenient for use in the
   overlay template."
   [^Long player]
-  (when-let [^TrackMetadata metadata (.getLatestMetadataFor expr/metadata-finder player)]
+  (when-let [^TrackMetadata metadata (.getLatestMetadataFor metadata-finder player)]
     {:id              (.. metadata trackReference rekordboxId)
      :slot            (format-source-slot (.. metadata trackReference slot))
      :type            (format-track-type (.-trackType metadata))
@@ -247,11 +252,17 @@
         sign          (if (= formatted " 0.00") " " (if (neg? pitch) "-" "+"))]
     (str sign formatted "%")))
 
+(def ^VirtualCdj virtual-cdj
+  "A convenient reference to the [Beat Link
+  `VirtualCdj`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/VirtualCdj.html)
+  singleton."
+  (VirtualCdj/getInstance))
+
 (defn describe-status
   "Builds a parameter map with useful information obtained from the
   latest status packet received from the specified device number."
   [^Long number]
-  (when-let [status (.getLatestStatusFor expr/virtual-cdj number)]
+  (when-let [status (.getLatestStatusFor virtual-cdj number)]
     (let [bpm       (.getBpm status)
           bpm-valid (not= bpm 65535)]
       (merge
@@ -305,15 +316,27 @@
      :frame-tenths     frame-tenths
      :display          (format "%02d:%02d:%02d.%d" minutes seconds frames frame-tenths)}))
 
+(def ^TimeFinder time-finder
+  "A convenient reference to the [Beat Link
+  `TimeFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TimeFinder.html)
+  singleton."
+  (TimeFinder/getInstance))
+
+(def ^org.deepsymmetry.beatlink.data.WaveformFinder waveform-finder
+  "A convenient reference to the [Beat Link
+  `WaveformFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/WaveformFinder.html)
+  singleton."
+  (org.deepsymmetry.beatlink.data.WaveformFinder/getInstance))
+
 (defn describe-times
   "Builds a parameter map with information about the playback and
   remaining time for the specified player, when available."
   [^Long number]
-  (when (.isRunning expr/time-finder)
-    (let [played (.getTimeFor expr/time-finder number)]
+  (when (.isRunning time-finder)
+    (let [played (.getTimeFor time-finder number)]
       (when-not (neg? played)
         (merge {:time-played (format-time played)}
-               (when-let [detail (.getLatestDetailFor expr/waveform-finder number)]
+               (when-let [detail (.getLatestDetailFor waveform-finder number)]
                  (let [remain (max 0 (- (.getTotalTime detail) played))]
                    {:time-remaining (format-time remain)})))))))
 
@@ -424,18 +447,24 @@
            (when (pos? master)
              {:master (get players master)}))))
 
+(def ^DeviceFinder device-finder
+  "A convenient reference to the [Beat Link
+  `DeviceFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/DeviceFinder.html)
+  singleton."
+  (DeviceFinder/getInstance))
+
 (defn build-params
   "Sets up the overlay template parameters based on the current playback
   state."
   []
-  (if (.isRunning expr/virtual-cdj)
+  (if (.isRunning virtual-cdj)
     (merge  ; We can return actual data.
      (reduce (fn [result device]
                (assoc-in result [(:kind device) (:number device)] device))
              {}
-             (map describe-device (.getCurrentDevices expr/device-finder)))
-     (when-let [master (.getTempoMaster expr/virtual-cdj)]
-       {:master (describe-device (.getLatestAnnouncementFrom expr/device-finder (.getDeviceNumber master)))}))
+             (map describe-device (.getCurrentDevices device-finder)))
+     (when-let [master (.getTempoMaster virtual-cdj)]
+       {:master (describe-device (.getLatestAnnouncementFrom device-finder (.getDeviceNumber master)))}))
     (:simulated-params @server)))
 
 (defn- build-overlay
@@ -487,6 +516,12 @@
         (response/content-type "font/ttf"))
     (response/not-found (str "Font " font " not found."))))
 
+(def ^org.deepsymmetry.beatlink.data.ArtFinder art-finder
+  "A convenient reference to the [Beat Link
+  `ArtFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/ArtFinder.html)
+  singleton."
+  (org.deepsymmetry.beatlink.data.ArtFinder/getInstance))
+
 (defn return-artwork
   "Returns the artwork associated with the track on the specified
   player, or a transparent image if there is none. If the query
@@ -496,8 +531,8 @@
   [^String player ^String icons]
   (let [player (Long/valueOf player)
         icons  (Boolean/valueOf icons)]
-    (if-let [^AlbumArt art (if (.isRunning expr/art-finder)
-                             (.getLatestArtFor expr/art-finder player)
+    (if-let [^AlbumArt art (if (.isRunning art-finder)
+                             (.getLatestArtFor art-finder player)
                              (get-in @sample-track-data [(get @simulated-players player) :art]))]
       (let [baos (ByteArrayOutputStream.)]
         (ImageIO/write (.getImage art) "jpg" baos)
@@ -506,7 +541,7 @@
             (response/content-type "image/jpeg")
             (response/header "Cache-Control" "max-age=1")))
       (let [missing-image-path (if icons
-                                 (if (.isRunning expr/virtual-cdj)
+                                 (if (.isRunning virtual-cdj)
                                    (util/generic-media-resource player)
                                    (rand-nth ["images/USB.png" "images/SD.png" "images/CD_data_logo.png"] ))
                                  "images/NoArt.png")]
@@ -568,13 +603,13 @@
   player. Renders at the specified size, unless it is smaller than the
   minimum. If omitted, uses default size of 408 by 56 pixels."
   [^String player width height]
-  (if (.isRunning expr/metadata-finder)
+  (if (.isRunning metadata-finder)
     (let [player   (Integer/valueOf player)  ; We can return real data.
           width    (safe-parse-int width 408)
           height   (safe-parse-int height 56)
-          track    (.getLatestMetadataFor expr/metadata-finder player)
-          position (.getLatestPositionFor expr/time-finder player)
-          preview  (.getLatestPreviewFor expr/waveform-finder player)]
+          track    (.getLatestMetadataFor metadata-finder player)
+          position (.getLatestPositionFor time-finder player)
+          preview  (.getLatestPreviewFor waveform-finder player)]
       (if preview  ; Only try to render when there is a waveform preview available.
         (let [component (WaveformPreviewComponent. preview track)
               min-size  (.getMinimumSize component)]
@@ -644,6 +679,12 @@
           (response/content-type "image/png")
           (response/header "Cache-Control" "max-age=1")))))
 
+(def ^org.deepsymmetry.beatlink.data.BeatGridFinder beatgrid-finder
+  "A convenient reference to the [Beat Link
+  `BeatGridFinder`](https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGridFinder.html)
+  singleton."
+  (org.deepsymmetry.beatlink.data.BeatGridFinder/getInstance))
+
 (defn return-wave-detail
   "Returns the waveform detail image associated with the specified
   player. Renders at the specified `width` and `height`, unless they
@@ -653,18 +694,18 @@
   in: 1 means full size, 2 is half size, and so on. The default scale
   is 4."
   [^String player ^String width ^String height ^String scale]
-  (if (.isRunning expr/metadata-finder)
+  (if (.isRunning metadata-finder)
     (let [player    (Integer/valueOf player)  ; We can return actual data.
           width     (safe-parse-int width 0)
           height    (safe-parse-int height 0)
           scale     (safe-parse-int scale 4)
-          track     (.getLatestMetadataFor expr/metadata-finder player)
-          position  (.getLatestPositionFor expr/time-finder player)
-          detail (.getLatestDetailFor expr/waveform-finder player)]
+          track     (.getLatestMetadataFor metadata-finder player)
+          position  (.getLatestPositionFor time-finder player)
+          detail (.getLatestDetailFor waveform-finder player)]
       (if detail  ; Only try to render when there is a waveform detail available.
         (let [component (WaveformDetailComponent. detail
                                                   (when track (.getCueList track))
-                                                  (.getLatestBeatGridFor expr/beatgrid-finder player))
+                                                  (.getLatestBeatGridFor beatgrid-finder player))
               min-size  (.getMinimumSize component)]
           (.setBounds component 0 0 (max width (.-width min-size)) (max height (.-height min-size)))
           (.setBackgroundColor component @wave-background-color)

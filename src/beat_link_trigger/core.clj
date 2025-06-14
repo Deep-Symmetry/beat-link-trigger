@@ -2,7 +2,6 @@
   "Top level organization for starting up the interface, logging, and
   managing online presence."
   (:require [beat-link-trigger.about :as about]
-            [beat-link-trigger.expressions :as expressions]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.logs :as logs]
             [beat-link-trigger.menus :as menus]
@@ -15,8 +14,7 @@
             [clojure.string :as str]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre])
-  (:import [javax.swing JFrame]
-           [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj]))
+  (:import [org.deepsymmetry.beatlink DeviceAnnouncement DeviceFinder VirtualCdj]))
 
 (def ^DeviceFinder device-finder
   "A convenient reference to the [Beat Link
@@ -213,9 +211,6 @@
      (menus/install-mac-about-handler)
      (menus/install-mac-settings-handler)
      (menus/install-mac-quit-handler)
-
-     ;; Add convenience aliases to the expressions namespace for easier authoring.
-     (expressions/alias-other-namespaces)
 
      ;; If we were given instructions to reset our preferences, try to do so.
      (when-not (str/blank? reset)

@@ -87,8 +87,20 @@ Generally, those databases start out using the same IDs for the same track, but 
 This can lead to problems recognizing tracks even if you are only using a single USB, although we hope that PSSI matching is robust enough to make that a rare occurrence.
 The <<potential-workaround,workaround described below>> will eliminate this problem if we can implement it.
 
+=== Built-In USB Network Problems
+The Opus Quad includes an embedded USB Ethernet adapter, so that you can connect it to your computer with just a USB cable, and have them send IP packets to each other that way.
+Unfortunately, this adapter seems to be unreliable.
+If you try to use that as the mechanism by which BLT talks to the Opus Quad, some users have reported that the connection drops from time to time.
+
+To avoid that, connect the Opus Quad to your computer with a real Ethernet cable instead of the USB cable.
+
+If you must also connect them via USB cable (for example, you want to use the USB audio interface in the Opus Quad), you will end up with multiple network paths for the Pro DJ Link packets, which is also a problem.
+So you will need to disable the USB network interface associated with the Opus Quad.
+On macOS you can do that by watching in the Network section of the System Settings, to see which interface activates and deactivates when you connect and disconnect the Opus Quad, and then using the *Make Inactive* context menu to disable that interface.
+On other operating systems you will need to perform the equivalent actions.
+
 [[potential-workaround]]
-== Potential Workaround
+== Potential Future Workaround
 
 As noted <<id-drift,above>>, the Opus Quad works with Device Library Plus, but Beat Link Trigger only knows how to parse classic Device Library databases.
 

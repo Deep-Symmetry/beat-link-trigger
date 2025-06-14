@@ -1,8 +1,7 @@
 (ns beat-link-trigger.players
   "Provides the user interface for seeing the status of active
   players, as well as telling players to load tracks."
-  (:require [beat-link-trigger.expressions :as expressions]
-            [beat-link-trigger.prefs :as prefs]
+  (:require [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.track-loader :as track-loader]
             [beat-link-trigger.simulator :as simulator]
             [beat-link-trigger.util :as util]
@@ -824,7 +823,7 @@
   [visible-players]
   (let [num-players     (count visible-players)
         default-columns (default-column-calculator num-players)]
-    (if-let [cols (:player-status-columns @expressions/globals)]
+    (if-let [cols (:player-status-columns @@(requiring-resolve 'beat-link-trigger.expressions.triggers/globals))]
       (cond
         (integer? cols)
         cols
