@@ -2453,6 +2453,7 @@
                              :file               file
                              :filesystem         filesystem
                              :contents           contents
+                             :uuid               (random-uuid)
                              :tracks             {}  ; Lots of info about each track, including loaded metadata.
                              :phrases            {}  ; Non-saved runtime state about each phrase trigger.
                              :panels             {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.

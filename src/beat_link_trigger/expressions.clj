@@ -1,7 +1,9 @@
 (ns beat-link-trigger.expressions
   "Support for compiling and invoking user expressions for the triggers
   window and show windows."
-  (:require [clojure.set]
+  (:require [clojure.java.io :as io]
+            [clojure.set]
+            [clojure.string :as str]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [clojure.walk])
@@ -333,12 +335,21 @@
 (defn expressions-namespace
   "Returns the symbol representing the namespace in which expressions
   should be compiled and run for the specified show, or for the
-  Triggers window if `show` is absent or `nil`. Makes sure the expression has been loaded"
+  Triggers window if `show` is absent or `nil`. Also makes sure the
+  namespace has been loaded, or created in the case of a show-specific
+  namespace."
   ([]
    (expressions-namespace nil))
   ([show]
    (if show
-     (throw (UnsupportedOperationException. "Don't yet support show namespaces."))
+     (let [ns-base "beat-link-trigger.expressions.show"
+           expr-ns (symbol (str ns-base "-" (:uuid show)))]
+       (when-not (find-ns expr-ns)
+         (let [src (-> (io/resource "beat_link_trigger/expressions/show.clj")
+                       slurp
+                       (str/replace-first ns-base (name expr-ns)))]
+           (load-string src)))   ; Load it.
+       expr-ns)
      (let [expr-ns 'beat-link-trigger.expressions.triggers]
        (when-not (find-ns expr-ns)
          (require expr-ns))  ; Make sure it's loaded

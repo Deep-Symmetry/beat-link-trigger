@@ -1045,3 +1045,29 @@
     (doseq [attachment (list-attachments attachments-root)]
       (when (str/ends-with? (str attachment) ".clj")
         (load-attachment show attachment)))))
+
+(defn in-show-ns
+  "Helper function for REPL users to switch to a show namespace by picking the show."
+  []
+  (let [shows @open-shows]
+    (if (not-empty shows)
+      (do
+        (println "Pick a show:")
+        (let [shows-by-index (loop [[[file show] & remaining] shows
+                                    index                1
+                                    choices              {}]
+                               (println (format "%3d: " index) (.getCanonicalPath file))
+                               (if (seq remaining)
+                                 (recur remaining
+                                        (inc index)
+                                        (assoc choices index show))
+                                 (assoc choices index show)))]
+          (print "Choice: ")
+          (flush)
+          (let [choice (read-line)]
+            (println)
+            (if-let [show (get shows-by-index (parse-long choice))]
+              (do (println "Switching to expressions namespace for show" (.getCanonicalPath (:file show)))
+                  (in-ns ((requiring-resolve 'beat-link-trigger.expressions/expressions-namespace) show)))
+              (println "No show selected.")))))
+      (println "No shows are open."))))

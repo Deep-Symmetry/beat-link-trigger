@@ -865,3 +865,17 @@
      (org.deepsymmetry.beatlink.Util/numberToBytes packet buffer 0xc8 4)
      (aset buffer 0xcc (byte 0x0f))
      (org.deepsymmetry.beatlink.CdjStatus. (create-device-update-packet buffer options)))))
+
+(defn in-triggers-ns
+  "Helper function for REPL users to switch to the namespace used by
+  Triggers windows expressions."
+  []
+  (println "Switching to expressions namespace for the Triggers window.")
+  (in-ns ((requiring-resolve 'beat-link-trigger.expressions/expressions-namespace) nil)))
+
+(defn in-core-ns
+  "Helper function for REPL users to switch back to the core namespace,
+  the default when opening a REPL into Beat Link Trigger."
+  []
+  (println "Switching to the default initial namespace.")
+  (in-ns 'beat-link-trigger.core))

@@ -1,4 +1,4 @@
-#_{:clj-kondo/ignore [:unused-namespace :unused-refer :unused-import :refer-all]}
+#_{:clj-kondo/ignore [:unused-namespace :unused-referred-var :unused-import :refer-all]}
 (ns beat-link-trigger.expressions.triggers
   "The namespace into which user-entered custom expressions for the
   Triggers window will be compiled, which provides support for making
@@ -16,11 +16,11 @@
             [beat-link-trigger.playlist-writer :as playlist-writer]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show :as show]
-            [beat-link-trigger.show-util :as su]
+            [beat-link-trigger.show-util :as su :refer [in-show-ns]]
             [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.socket-picker :as socket-picker]
             [beat-link-trigger.triggers :as triggers]
-            [beat-link-trigger.util :as util]
+            [beat-link-trigger.util :as util :refer [in-core-ns in-triggers-ns]]
             [cemerick.pomegranate :as pomegranate]
             [cemerick.pomegranate.aether :as aether]
             [http.async.client :as http]
@@ -37,9 +37,6 @@
            [java.awt Color]
            [java.net InetAddress InetSocketAddress DatagramPacket DatagramSocket]))
 
-
-
-;;; These first definitions are intended for use by user expressions and shared functions:
 
 (defonce ^{:doc "Provides a space for trigger expressions to store
   values they want to share across triggers. Visible to other

@@ -101,6 +101,9 @@ beats in the track in order to make it fit.
 keys are the track's signatures, and the values are the track maps
 described in the <<track,Track section>>.
 
+[[uuid]]
+`:uuid`:: A random UUID that gets assigned to the show when it is opened, used to identify the private namespace that will be created and used to compile its shared functions and expressions, so they don’t collide with any in the Triggers window, or in any other show.
+
 [[vis-phrases]]
 `:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the
 phrase triggers that are currently visible inthe show window, in the
