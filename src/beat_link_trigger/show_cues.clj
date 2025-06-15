@@ -455,12 +455,16 @@
   from the library, and when duplicating a cue."
   [context cue]
   (doseq [[kind expr] (:expressions cue)]
-    (let [editor-info (get @editors/show-cue-editors kind)]
+    (let [editor-info (get @editors/show-cue-editors kind)
+          show        (su/show-from-context context)]
       (try
-        (su/swap-context-runtime! nil context assoc-in [:cues :expression-fns (:uuid cue) kind]
+        (su/swap-context-runtime! show context assoc-in [:cues :expression-fns (:uuid cue) kind]
                                   (expressions/build-user-expression
-                                   expr (:bindings editor-info) (:nil-status? editor-info)
-                                   (editors/cue-editor-title kind context cue)))
+                                   expr (:bindings editor-info)
+                                   (merge {:description (editors/cue-editor-title kind context cue)
+                                           :fn-sym      (editors/cue-editor-symbol kind show context cue)
+                                           :show        show}
+                                          (select-keys editor-info [:nil-status?]))))
         (catch Exception e
           (timbre/error e (str "Problem parsing " (:title editor-info)
                                " when loading Show. Expression:\n" expr "\n"))

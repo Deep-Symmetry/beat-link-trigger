@@ -816,20 +816,25 @@
   ([trigger m]
    (load-trigger-from-map trigger m (seesaw/select trigger [:#gear])))
   ([trigger m gear]
-   (reset! (seesaw/user-data trigger) (initial-trigger-user-data))
-   (when-let [exprs (:expressions m)]
-     (swap! (seesaw/user-data trigger) assoc :expressions exprs)
-     (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
-       (let [editor-info (get editors/trigger-editors kind)]
-         (try
-           (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-                  (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                     (editors/triggers-editor-title kind trigger false)
-                                                     (:no-locals? editor-info)))
-           (catch Exception e
-             (swap! (seesaw/user-data trigger) assoc :expression-load-error true)
-             (timbre/error e (str "Problem parsing " (:title editor-info)
-                                  " when loading Triggers. Expression:\n" expr "\n")))))))
+   (let [show (when-let [file (:show-file @(seesaw/user-data trigger))] (get (show-util/get-open-shows) file))]
+     (reset! (seesaw/user-data trigger) (merge (initial-trigger-user-data)
+                                               (when show {:show-file (:file show)})))
+     (when-let [exprs (:expressions m)]
+       (swap! (seesaw/user-data trigger) assoc :expressions exprs)
+       (doseq [[kind expr] (editors/sort-setup-to-front exprs)]
+         (let [editor-info (get editors/trigger-editors kind)]
+           (try
+             (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
+                    (expressions/build-user-expression
+                     expr (:bindings editor-info)
+                     (merge {:description  (editors/triggers-editor-title kind trigger false)
+                             :fn-sym       (editors/triggers-editor-symbol kind trigger false)
+                             :raw-for-show show}
+                            (select-keys editor-info [:nil-status? :no-locals?]))))
+             (catch Exception e
+               (swap! (seesaw/user-data trigger) assoc :expression-load-error true)
+               (timbre/error e (str "Problem parsing " (:title editor-info)
+                                    " when loading Triggers. Expression:\n" expr "\n"))))))))
    (seesaw/value! trigger m)
    (swap! (seesaw/user-data trigger) dissoc :creating)
    (let [[_ exception] (run-trigger-function trigger :setup nil false)]
@@ -864,15 +869,23 @@
     (or (#{"Note" "CC"} message) (not (missing-expression? trigger event)))))
 
 (defn- create-trigger-row
-  "Create a row for watching a player in the trigger window. If `m` is
-  supplied, it is a map containing values to recreate the row from a
-  saved version. If `index` is supplied, it is the initial index to
-  assign the trigger (so exceptions logged during load can be
-  meaningful), otherwise 1 is assumed (and will get renumbered by
-  `adjust-triggers`)."
+  "Create a row for watching a player in the trigger window.
+
+  If `m` is supplied, it is a map containing values to recreate the
+  row from a saved version.
+
+  If `index` is supplied, it is the initial index to assign the
+  trigger (so exceptions logged during load can be meaningful),
+  otherwise 1 is assumed (and will get renumbered by
+  `adjust-triggers`).
+
+  If `show` is supplied, the trigger is being created as a raw trigger
+  belonging to the specified show."
   ([]
    (create-trigger-row nil 1))
   ([m index]
+   (create-trigger-row m index nil))
+  ([m index show]
    (let [outputs (util/get-midi-outputs)
          gear    (seesaw/button :id :gear :icon (seesaw/icon (prefs/gear-icon false)))
          panel   (mig/mig-panel
@@ -949,7 +962,7 @@
          editor-actions (fn []
                           (for [[kind spec] editors/trigger-editors]
                             (let [update-fn (fn []
-                                              (when (= kind :setup)  ; Clean up then run the new setup function
+                                              (when (= kind :setup) ; Clean up then run the new setup function
                                                 (run-trigger-function panel :shutdown nil true)
                                                 (reset! (:locals @(seesaw/user-data panel)) {})
                                                 (run-trigger-function panel :setup nil true))
@@ -1007,19 +1020,19 @@
      ;; chosen and the enabled filter expression is empty.
      (let [enabled-menu (seesaw/select panel [:#enabled])]
        (seesaw/listen enabled-menu
-        :action-performed (fn [_]
-                            (seesaw/repaint! (seesaw/select panel [:#state]))
-                            (when (and (= "Custom" (seesaw/selection enabled-menu))
-                                       (empty? (get-in @(seesaw/user-data panel) [:expressions :enabled])))
-                              (editors/show-trigger-editor :enabled panel #(update-gear-icon panel gear))))))
+                      :action-performed (fn [_]
+                                          (seesaw/repaint! (seesaw/select panel [:#state]))
+                                          (when (and (= "Custom" (seesaw/selection enabled-menu))
+                                                     (empty? (get-in @(seesaw/user-data panel) [:expressions :enabled])))
+                                            (editors/show-trigger-editor :enabled panel #(update-gear-icon panel gear))))))
 
      (seesaw/listen (seesaw/select panel [:#players])
-                    :item-state-changed (fn [_]  ; Update player status when selection changes
-                                          (seesaw/invoke-later  ; Make sure menu value cache update has happened.
-                                           (swap! (seesaw/user-data panel) dissoc :status)  ; Clear cached status.
-                                           (show-device-status panel))))
+                    :item-state-changed (fn [_] ; Update player status when selection changes
+                                          (seesaw/invoke-later ; Make sure menu value cache update has happened.
+                                            (swap! (seesaw/user-data panel) dissoc :status) ; Clear cached status.
+                                            (show-device-status panel))))
      (seesaw/listen (seesaw/select panel [:#outputs])
-                    :item-state-changed (fn [_]  ; Update output status when selection changes.
+                    :item-state-changed (fn [_] ; Update output status when selection changes.
                                           ;; We need to do this later to ensure the other item-state-changed
                                           ;; handler has had a chance to update the trigger data first.
                                           (seesaw/invoke-later (show-midi-status panel))))
@@ -1034,7 +1047,8 @@
      ;; Also swap channel and note values for start/stop options when Clock is chosen, and for bar alignment
      ;; and Link start/stop checkboxes when Link is chosen.
      (let [message-menu (seesaw/select panel [:#message])]
-       (seesaw/listen message-menu
+       (seesaw/listen
+        message-menu
         :action-performed (fn [_]
                             (let [choice                                (seesaw/selection message-menu)
                                   {:keys [note send channel-label start
@@ -1054,12 +1068,15 @@
                                 :else              (do (seesaw/show! [note channel-label channel])
                                                        (seesaw/hide! [send start stop bar start-stop])))))))
 
+     ;; If this trigger belongs to a show, record that fact.
+     (when show (swap! (seesaw/user-data panel) assoc :show-file (:file show)))
+
      (when (some? m) ; If there was a map passed to us to recreate our content, apply it now
        (load-trigger-from-map panel m gear))
      (swap! (seesaw/user-data panel) dissoc :creating)
      (show-device-status panel)
      (show-midi-status panel)
-     (cache-value gear)  ; Cache the initial values of the choice sections
+     (cache-value gear) ; Cache the initial values of the choice sections
      panel)))
 
 (defonce ^{:private true
@@ -1088,9 +1105,8 @@
          triggers-before (take-while #(not= (:file show) (:show-file @(seesaw/user-data %))) triggers)
          show-triggers   (get-triggers show)
          trigger-index   (+ (count triggers-before) (count show-triggers) 1)
-         new-trigger     (create-trigger-row m trigger-index)
+         new-trigger     (create-trigger-row m trigger-index show)
          triggers-after  (drop (dec trigger-index) triggers)]
-     (swap! (seesaw/user-data new-trigger) assoc :show-file (:file show))
      (when-let [show-hue (:show-hue (show/user-data show))]
        (swap! (seesaw/user-data new-trigger) assoc :show-hue show-hue))
      (seesaw/config! (seesaw/select @trigger-frame [:#triggers])
@@ -1232,20 +1248,22 @@
 
 (declare recreate-trigger-rows)
 
-(defn- check-for-parse-error
+(defn check-for-parse-error
   "Called after loading the triggers from a file or the preferences to
   see if there were problems parsing any of the custom expressions. If
   so, reports that to the user and clears the warning flags."
-  []
-  (let [failed (filter identity (for [trigger (get-triggers nil)]
-                                  (when (:expression-load-error @(seesaw/user-data trigger))
-                                    (swap! (seesaw/user-data trigger) dissoc :expression-load-error)
-                                    (editors/trigger-index trigger))))]
-    (when (seq failed)
-      (seesaw/alert (str "<html>Unable to use an expression for Trigger "
-                         (clojure.string/join ", " failed) ".<br><br>"
-                         "Check the log file for details.")
-                    :title "Exception during Clojure evaluation" :type :error))))
+  ([]
+   (check-for-parse-error nil))
+  ([show]
+   (let [failed (filter identity (for [trigger (get-triggers show)]
+                                   (when (:expression-load-error @(seesaw/user-data trigger))
+                                     (swap! (seesaw/user-data trigger) dissoc :expression-load-error)
+                                     (editors/trigger-index trigger))))]
+     (when (seq failed)
+       (seesaw/alert (str "<html>Unable to use an expression for Trigger "
+                          (clojure.string/join ", " failed) ".<br><br>"
+                          "Check the log file for details.")
+                     :title "Exception during Clojure evaluation" :type :error)))))
 
 (defonce ^{:private true
            :doc "The menu action which loads the configuration from a user-specified file."}
@@ -1469,9 +1487,11 @@
             (swap! trigger-prefs assoc-in [:expression-fns kind]
                    (if (= kind :shared)
                      (expressions/define-shared-functions expr (editors/triggers-editor-title kind nil true))
-                     (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                        (editors/triggers-editor-title kind nil true)
-                                                        (:no-locals? editor-info))))
+                     (expressions/build-user-expression
+                      expr (:bindings editor-info)
+                      (merge {:description (editors/triggers-editor-title kind nil true)
+                              :fn-sym      (editors/triggers-editor-symbol kind nil true)}
+                             (select-keys editor-info [:nil-status? :no-locals?])))))
             (catch Exception e
               (timbre/error e (str "Problem parsing " (:title editor-info)
                                    " when loading Triggers. Expression:\n" expr "\n"))

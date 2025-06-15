@@ -318,15 +318,15 @@
   `status` being `nil`. If `no-locals?` is `true`, this is a
   function (like a global setup function) which should have no
   `locals` binding available."
-  [body available-bindings nil-status? no-locals?]
+  [body fn-sym available-bindings nil-status? no-locals?]
   (let [bindings (gather-convenience-bindings body available-bindings nil-status?)]
     (if no-locals?
-      `(fn ~'[status trigger-data globals]
+      `(fn ~fn-sym ~'[status trigger-data globals]
          ~(if (seq bindings)
             `(let [~@bindings]
                ~body)
             body))
-      `(fn ~'[status {:keys [locals] :as trigger-data} globals]
+      `(fn ~fn-sym ~'[status {:keys [locals] :as trigger-data} globals]
          ~(if (seq bindings)
             `(let [~@bindings]
                ~body)
@@ -358,30 +358,52 @@
 (defn build-user-expression
   "Takes a string that a user has entered as a custom expression, adds
   bindings for any convenience symbols that were found in it, and
-  builds a function that accepts a status object, binds the
+  builds a function that accepts a `status` object, binds the
   convenience symbols based on the status, and returns the results of
   evaluating the user expression in that context.
 
-  If `nil-status?` is `true`, the bindings must be built in a way that
-  protects against the possibility of `status` being `nil`. The
-  `title` describes the expression and is reported as the file name in
-  any exception arising during parsing or execution of the expression.
+  The final argument is a map containing keyword arguments that modify
+  the way the expression is built.
 
-  If `no-locals?` is `true`, this is a function (like a global setup
+  The `:description` describes the purpose of the expression in a
+  human-oriented way and is reported as the file name in any exception
+  arising during parsing or execution of the expression.
+
+  The `:fn-sym` is the symbol provided to name the function at compile
+  time, which helps understand the origin of exceptions that occur
+  when the function is executing. It is similar to description, but
+  must be more terse and follow the rules of Clojure symbols.
+
+  If `:nil-status?` is `true`, the bindings must be built in a way that
+  protects against the possibility of `status` being `nil`.
+
+  If `:no-locals?` is `true`, this is a function (like a global setup
   function) which should have no `locals` binding available.
 
-  If `show` is `nil`, the expression is being built for the Triggers
+  If `:raw-for-show` is not `nil`, though this is an expression being
+  compiled for the Triggers window (and so `:show` must be `nil`), it
+  is for a raw trigger that belongs to the specified show, and the
+  expression should be given access to that show's namespace by
+  aliasing `show-shared` during compilation.
+
+  If `:show` is `nil`, the expression is being built for the Triggers
   window, otherwise it is built for the specified show."
-  ([expr available-bindings nil-status? title]
-   (build-user-expression expr available-bindings nil-status? title false nil))
-  ([expr available-bindings nil-status? title no-locals?]
-   (build-user-expression expr available-bindings nil-status? title no-locals? nil))
-  ([expr available-bindings nil-status? title no-locals? show]
-   (binding [*ns* (the-ns (expressions-namespace show))]
-     (let [reader (rt/indexing-push-back-reader expr 1 title)
-           eof (Object.)
-           forms (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
-       (eval `(wrap-user-expression (do ~@forms) ~available-bindings ~nil-status? ~no-locals?))))))
+
+  ;;was [expr available-bindings nil-status? title no-locals? show]
+  [expr available-bindings {:keys [description fn-sym nil-status? no-locals? raw-for-show show]
+                            :or   {description "Unknown Expression"
+                                   fn-sym      'unknown-expression
+                                   nil-status? false
+                                   no-locals?  false}}]
+  (binding [*ns* (the-ns (expressions-namespace show))]
+    (when raw-for-show (alias 'show-shared (expressions-namespace raw-for-show)))
+    (try
+      (let [reader (rt/indexing-push-back-reader expr 1 description)
+            eof    (Object.)
+            forms  (take-while #(not= % eof) (repeatedly #(r/read reader false eof)))]
+        (eval `(wrap-user-expression (do ~@forms) ~fn-sym ~available-bindings ~nil-status? ~no-locals?)))
+      (finally
+        (when raw-for-show (ns-unalias *ns* 'show-shared))))))
 
 (defn define-shared-functions
   "Takes a string that a user has entered as shared functions for

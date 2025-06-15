@@ -1210,11 +1210,15 @@
   `track` must be current."
   [show track]
   (doseq [[kind expr] (editors/sort-setup-to-front (get-in track [:contents :expressions]))]
-      (let [editor-info (get @editors/show-track-editors kind)]
+    (let [editor-info (get @editors/show-track-editors kind)]
         (try
           (swap-track! track assoc-in [:expression-fns kind]
-                       (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                          (editors/show-editor-title kind show track)))
+                       (expressions/build-user-expression
+                        expr (:bindings editor-info)
+                        (merge {:description (editors/show-editor-title kind show track)
+                                :fn-sym      (editors/show-editor-symbol kind show track)
+                                :show        show}
+                               (select-keys editor-info [:nil-status?]))))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
                                      " when loading Show. Expression:\n" expr "\n"))
@@ -2592,13 +2596,16 @@
             (try
               (swap-show! show assoc-in [:expression-fns kind]
                           (if (= kind :shared)
-                            (expressions/define-shared-functions expr (editors/show-editor-title kind show nil))
-                            (expressions/build-user-expression expr (:bindings editor-info) (:nil-status? editor-info)
-                                                               (editors/show-editor-title kind show nil)
-                                                               (:no-locals? editor-info))))
+                            (expressions/define-shared-functions expr (editors/show-editor-title kind show nil) show)
+                            (expressions/build-user-expression
+                             expr (:bindings editor-info)
+                             (merge {:description (editors/show-editor-title kind show nil)
+                                     :fn-sym      (editors/show-editor-symbol kind show nil)
+                                     :show        show}
+                                    (select-keys editor-info [:nil-status? :no-locals?])))))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
-                                     " when loading Show. Expression:\n" expr "\n"))
+                                     " when loading Show “" (fs/base-name (:file show)) "”. Expression:\n" expr "\n"))
                 (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))
@@ -2636,6 +2643,7 @@
         (seesaw/show! root)
         (doseq [trigger-map (:triggers contents)]
           ((requiring-resolve 'beat-link-trigger.triggers/create-trigger-for-show) show trigger-map))
+        (seesaw/invoke-later ((requiring-resolve 'beat-link-trigger.triggers/check-for-parse-error) show))
         (sim/recompute-track-models))
       (catch Throwable t
         (su/remove-file-from-open-shows! file)

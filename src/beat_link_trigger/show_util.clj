@@ -10,6 +10,7 @@
             [hiccup.util]
             [inspector-jay.core :as inspector]
             [overtone.midi :as midi]
+            [me.raynes.fs :as fs]
             [seesaw.chooser :as chooser]
             [seesaw.core :as seesaw]
             [taoensso.timbre :as timbre]
@@ -104,6 +105,13 @@
   [phrase-or-uuid]
   (let [uuid (if (instance? UUID phrase-or-uuid) phrase-or-uuid (:uuid phrase-or-uuid))]
     (get @open-shows (get @phrase-show-files uuid))))
+
+(defn show-from-context
+  "Looks up the show to which a track or phrase belongs."
+  [context]
+  (if (track? context)
+    (get @open-shows (:file context))
+    (show-from-phrase context)))
 
 (defn build-filesystem-path
   "Construct a path in the specified filesystem; translates from
@@ -1071,3 +1079,23 @@
                   (in-ns ((requiring-resolve 'beat-link-trigger.expressions/expressions-namespace) show)))
               (println "No show selected.")))))
       (println "No shows are open."))))
+
+(defn symbol-prefix-for-show
+  "Returns a string that can be used as a prefix for symbols used to
+  identify functions compiled for this show."
+  [show]
+  (str "show-" (-> (fs/base-name (:file show) true)
+                   str/lower-case
+                   (str/replace #"(\W|_)+" "-")) ; Turn all non-alphanumeric ranges into single hyphens.
+       "-"))
+
+(defn symbol-section-for-title
+  "returns a string that can be used to identify a title as part of
+  symbols used to identify functions compiled for a show."
+  [title]
+  (if (str/blank? title)
+    "untitled-"
+    (-> (str/lower-case title)
+        (str/replace-first #"^(\W|_)+" "") ; Get rid of any leading non-alphanumeric characters.
+        (str/replace-first #"(\W|_)+$" "") ; Get rid of any trailing non-alphanumeric characters.
+        (str/replace #"(\W|_)+" "-"))))    ; TUrna ll non-alphanumeric ranges into single hyphens.

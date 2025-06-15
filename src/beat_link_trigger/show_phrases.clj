@@ -13,6 +13,7 @@
             [clojure.math :as math]
             [clojure.set :as set]
             [clojure.string :as str]
+            [me.raynes.fs :as fs]
             [overtone.midi :as midi]
             [seesaw.core :as seesaw]
             [seesaw.mig :as mig]
@@ -626,12 +627,15 @@
     (let [editor-info (get @editors/show-phrase-editors kind)]
         (try
           (swap-phrase-runtime! show phrase assoc-in [:expression-fns kind]
-                                (expressions/build-user-expression expr (:bindings editor-info)
-                                                                   (:nil-status? editor-info)
-                                                                   (editors/show-editor-title kind show phrase)))
+                                (expressions/build-user-expression
+                                 expr (:bindings editor-info)
+                                 (merge {:description (editors/show-editor-title kind show phrase)
+                                         :fn-sym      (editors/show-editor-symbol kind show phrase)
+                                         :show        show}
+                                        (select-keys editor-info [:nil-status?]))))
               (catch Exception e
                 (timbre/error e (str "Problem parsing " (:title editor-info)
-                                     " when loading Show. Expression:\n" expr "\n"))
+                                     " when loading Show “" (fs/base-name (:file show)) "”. Expression:\n" expr "\n"))
                 (seesaw/alert (str "<html>Unable to use " (:title editor-info) ".<br><br>"
                                    "Check the log file for details.")
                               :title "Exception during Clojure evaluation" :type :error)))))

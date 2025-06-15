@@ -116,6 +116,7 @@
             conveniently edited using an IDE if you turn on the
             embedded nREPL server."}
    :setup {:title      "Global Setup Expression"
+           :fn-sym     'global-setup
            :tip        "Called once to set up any state your trigger expressions may need."
            :no-locals? true
            :description
@@ -127,6 +128,7 @@
            :bindings   nil}
 
    :online {:title      "Came Online Expression"
+            :fn-sym     'came-online
             :tip        "Called when BLT has succesfully joined a Pro DJ Link network."
             :no-locals? true
             :description
@@ -143,6 +145,7 @@
                                          :doc  "The IP address we are using to talk to DJ Link devices."}}}
 
    :offline {:title      "Going Offline Expression"
+             :fn-sym     'going-offline
              :tip        "Called when BLT is disconnecting from a Pro DJ Link network."
              :no-locals? true
              :description
@@ -155,6 +158,7 @@
              :bindings   nil}
 
    :shutdown {:title      "Global Shutdown Expression"
+              :fn-sym     'global-shutdown
               :tip        "Called once to release global resources."
               :no-locals? true
               :description
@@ -178,8 +182,9 @@
   expressions they edit. Created as an explicit array map to keep the
   keys in the order they are found here."
   (array-map
-   :setup {:title "Setup Expression"
-           :tip "Called once to set up any state your other expressions may need."
+   :setup {:title    "Setup Expression"
+           :fn-sym   'setup
+           :tip      "Called once to set up any state your other expressions may need."
            :description
            "Called once when the triggers are loaded, or when you update the
   expression. Set up any state (such as counters, flags, or network
@@ -188,8 +193,9 @@
   shutting down."
            :bindings (trigger-bindings-for-class nil)}
 
-   :enabled {:title "Enabled Filter Expression"
-             :tip "Called to see if the trigger should be enabled."
+   :enabled {:title    "Enabled Filter Expression"
+             :fn-sym   'enabled-filter
+             :tip      "Called to see if the trigger should be enabled."
              :description
              "Called whenever a status update packet is received from
   the watched player(s) and the trigger's Enabled mode is set to
@@ -202,8 +208,9 @@
   generally easier to use the convenience variables described below."
              :bindings (trigger-bindings-for-class CdjStatus)}
 
-   :activation {:title "Activation Expression"
-                :tip "Called when the trigger becomes enabled and tripped."
+   :activation {:title  "Activation Expression"
+                :fn-sym 'activation
+                :tip    "Called when the trigger becomes enabled and tripped."
                 :description
                 "Called when the trigger is enabled and the first device that it is
   watching starts playing. You can use this to trigger systems that do
@@ -222,8 +229,9 @@
                             (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
                                                     trigger compiled))}
 
-   :beat {:title "Beat Expression"
-          :tip "Called on each beat from the watched devices."
+   :beat {:title  "Beat Expression"
+          :fn-sym 'beat
+          :tip    "Called on each beat from the watched devices."
           :description
           "Called whenever a beat packet is received from the watched
   player(s). You can use this for beat-driven integrations with other
@@ -239,8 +247,9 @@
           :simulate (fn [_kind trigger compiled]
                       (simulate-trigger-event util/beat-for-simulation show-util/random-beat trigger compiled))}
 
-   :tracked {:title "Tracked Update Expression"
-             :tip "Called for each update from the player a trigger is tracking."
+   :tracked {:title    "Tracked Update Expression"
+             :fn-sym   'tracked-update
+             :tip      "Called for each update from the player a trigger is tracking."
              :description
              "Called whenever a status update packet is received from
   the player a trigger is tracking, after the Enabled Filter
@@ -261,8 +270,9 @@
                          (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
                                                  trigger compiled))}
 
-   :deactivation {:title "Deactivation Expression"
-                  :tip "Called when the trigger becomes disabled or idle."
+   :deactivation {:title  "Deactivation Expression"
+                  :fn-sym 'deactivation
+                  :tip    "Called when the trigger becomes disabled or idle."
                   :description
                   "Called when the trigger becomes disabled or when the last device it
   is watching stops playing, if it had been active. You can use this
@@ -283,14 +293,15 @@
   has disappeared or the trigger settings have been changed, so your
   expression must be able to cope with <code>nil</code> values for all
   the convenience variables that it uses."
-                  :bindings (trigger-bindings-for-class CdjStatus)
+                  :bindings    (trigger-bindings-for-class CdjStatus)
                   :nil-status? true
-                  :simulate (fn [_kind trigger compiled]
-                              (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
-                                                      trigger compiled))}
+                  :simulate    (fn [_kind trigger compiled]
+                                 (simulate-trigger-event util/time-for-simulation show-util/random-cdj-status
+                                                         trigger compiled))}
 
-   :shutdown {:title "Shutdown Expression"
-              :tip "Called once to release resources your trigger had been using."
+   :shutdown {:title    "Shutdown Expression"
+              :fn-sym   'shutdown
+              :tip      "Called once to release resources your trigger had been using."
               :description
               "Called when when the trigger is shutting down, either because it
   was deleted, the window was closed, or a new trigger file is being
@@ -1189,6 +1200,16 @@
       title
       (str "Trigger " (trigger-index trigger) " " title))))
 
+(defn triggers-editor-symbol
+  "Determines the symbol to use when compiling a function for a triggers
+  editor window. If it is from an individual trigger, identifies it as
+  such."
+  [kind trigger global?]
+  (let [sym (get-in (if global? global-trigger-editors trigger-editors) [kind :fn-sym] 'unknown-function)]
+    (if global?
+      sym
+      (symbol (str "trigger-" (trigger-index trigger) "-" (name sym))))))
+
 (defn update-triggers-expression
   "Called when a triggers window expression's editor is ending and the
   user has asked to update the expression with the value they have
@@ -1196,19 +1217,24 @@
   arguments."
   [kind trigger global? text update-fn]
   (swap! (seesaw/user-data trigger) update-in [:expression-fns] dissoc kind) ; In case parse fails, leave nothing there
-  (let [text (str/trim text)  ; Remove whitespace on either end
-        editor-info (get (if global? global-trigger-editors trigger-editors) kind)]
+  (let [text        (str/trim text)  ; Remove whitespace on either end
+        editor-info (get (if global? global-trigger-editors trigger-editors) kind)
+        show        (when-let [file (:show-file @(seesaw/user-data trigger))] (get (show-util/get-open-shows) file))]
     (try
-      (when (seq text)  ; If we got a new expression, try to compile it
+      (when (seq text) ; If we got a new expression, try to compile it
         (if (= kind :shared)
           (expressions/define-shared-functions text (triggers-editor-title kind trigger global?))
           (swap! (seesaw/user-data trigger) assoc-in [:expression-fns kind]
-                 (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                    (triggers-editor-title kind trigger global?) global?))))
+                 (expressions/build-user-expression text (:bindings editor-info)
+                                                    (merge {:description  (triggers-editor-title kind trigger global?)
+                                                            :fn-sym       (triggers-editor-symbol kind trigger global?)
+                                                            :no-locals?   global?
+                                                            :raw-for-show show}
+                                                           (select-keys editor-info [:nil-status?]))))))
       (when-let [editor (get-in @(seesaw/user-data trigger) [:expression-editors kind])]
-        (dispose editor)  ; Close the editor
+        (dispose editor)                ; Close the editor
         (swap! (seesaw/user-data trigger) update-in [:expression-editors] dissoc kind))
-      (swap! (seesaw/user-data trigger) assoc-in [:expressions kind] text)  ; Save the new text
+      (swap! (seesaw/user-data trigger) assoc-in [:expressions kind] text) ; Save the new text
       (catch Throwable e
         (timbre/error e "Problem parsing" (:title editor-info))
         (seesaw/alert (str "<html>Unable to use " (:title editor-info)
@@ -1268,6 +1294,27 @@
       :else
       (str "Show “" (fs/base-name (:file show) true) "” " title))))
 
+(defn show-editor-symbol
+  "Determines the symbol to use when compiling a function for a show for
+  a show expression editor window. If it is from an individual track
+  or phrase trigger, identifies it as such."
+  [kind show track-or-phrase]
+  (let [sym (get-in (cond (show-util/track? track-or-phrase)  @show-track-editors
+                          (show-util/phrase? track-or-phrase) @show-phrase-editors
+                          :else                               @global-show-editors)
+                    [kind :fn-sym] 'unknown-function)]
+    (symbol (str (show-util/symbol-prefix-for-show show)
+                 (cond
+                   (show-util/track? track-or-phrase)
+                   (str "track-" (show-util/symbol-section-for-title (get-in track-or-phrase [:metadata :title])) "-")
+
+                   (show-util/phrase? track-or-phrase)
+                   (str "phrase-" (show-util/symbol-section-for-title (show-util/display-title track-or-phrase)) "-")
+
+                   :else
+                   "")
+                 (name sym)))))
+
 (defn- update-show-expression
   "Called when an show window expression's editor is ending and the user
   has asked to update the expression with the value they have edited.
@@ -1289,12 +1336,15 @@
                                (:uuid track-or-phrase)      @show-phrase-editors
                                :else                        @global-show-editors) kind)]
     (try
-      (when (seq text)  ; If we got a new expression, try to compile it.
+      (when (seq text) ; If we got a new expression, try to compile it.
         (if (= kind :shared)
-          (expressions/define-shared-functions text (show-editor-title kind show track-or-phrase))
-          (let [compiled (expressions/build-user-expression text (:bindings editor-info) (:nil-status? editor-info)
-                                                            (show-editor-title kind show track-or-phrase)
-                                                            (:no-locals? editor-info))]
+          (expressions/define-shared-functions text (show-editor-title kind show track-or-phrase) show)
+          (let [compiled (expressions/build-user-expression
+                          text (:bindings editor-info)
+                          (merge {:description (show-editor-title kind show track-or-phrase)
+                                  :fn-sym      (show-editor-symbol kind show track-or-phrase)
+                                  :show        show}
+                                 (select-keys editor-info [:nil-status? :no-locals?])))]
             (cond
               (:signature track-or-phrase)
               (show-util/swap-track! track-or-phrase assoc-in [:expression-fns kind] compiled)
@@ -1305,7 +1355,7 @@
               :else
               (show-util/swap-show! show assoc-in [:expression-fns kind] compiled)))))
       (when-let [editor (find-show-expression-editor kind show track-or-phrase)]
-        (dispose editor)  ; Close the editor
+        (dispose editor)                ; Close the editor
         (cond
           (:signature track-or-phrase)
           (show-util/swap-track! track-or-phrase update :expression-editors dissoc kind)
@@ -1315,7 +1365,7 @@
 
           :else
           (show-util/swap-show! show update :expression-editors dissoc kind)))
-      (cond    ; Save the new text.
+      (cond                             ; Save the new text.
         (:signature track-or-phrase)
         (show-util/swap-track! track-or-phrase assoc-in [:contents :expressions kind] text)
 
@@ -1361,6 +1411,18 @@
       (str title " for Cue “" (or comment "[no title]")
            "” in " (name section) " of phrase “" (show-util/display-title context) "”" ))))
 
+(defn cue-editor-symbol
+  "Determines the symbol to use to identify an function compiled for a
+  track cue expression editor window."
+  [kind show context {:keys [comment section]}]
+  (let [sym (get-in @show-cue-editors [kind :fn-sym] 'unknown-function)]
+    (symbol (str (show-util/symbol-prefix-for-show show)
+                 (if (show-util/track? context) "track-" "phrase-")
+                 (show-util/symbol-section-for-title (show-util/display-title context))
+                 (when-not (show-util/track? context) (str "-section-" (name section)))
+                 "-cue-" (show-util/symbol-section-for-title (or comment "untitled"))
+                 "-" (name sym)))))
+
 (defn- update-cue-expression
   "Called when an cues editor window expression's editor is ending and
   the user has asked to update the expression with the value they have
@@ -1378,23 +1440,29 @@
     (let [text        (str/trim text) ; Remove whitespace on either end.
           editor-info (get @show-cue-editors kind)]
       (try
-        (when (seq text)  ; If we got a new expression, try to compile it.
+        (when (seq text) ; If we got a new expression, try to compile it.
           (if track?
             (show-util/swap-track! context assoc-in [:cues :expression-fns (:uuid cue) kind]
-                                   (expressions/build-user-expression text (:bindings editor-info)
-                                                                      (:nil-status? editor-info)
-                                                                      (cue-editor-title kind context cue)))
+                                   (expressions/build-user-expression
+                                    text (:bindings editor-info)
+                                    (merge {:description (cue-editor-title kind context cue)
+                                            :fn-sym      (cue-editor-symbol kind show context cue)
+                                            :show        show}
+                                           (select-keys editor-info [:nil-status? :no-locals?]))))
             (show-util/swap-phrase-runtime! show context  assoc-in [:cues :expression-fns (:uuid cue) kind]
-                                            (expressions/build-user-expression text (:bindings editor-info)
-                                                                               (:nil-status? editor-info)
-                                                                               (cue-editor-title kind context cue)))))
+                                            (expressions/build-user-expression
+                                             text (:bindings editor-info)
+                                             (merge {:description (cue-editor-title kind context cue)
+                                                     :fn-sym      (cue-editor-symbol kind show context cue)
+                                                     :show        show}
+                                                    (select-keys editor-info [:nil-status?]))))))
         (when-let [editor (find-cue-expression-editor kind context cue)]
-          (dispose editor)  ; Close the editor.
+          (dispose editor)              ; Close the editor.
           (if track?
             (show-util/swap-track! context update-in [:cues-editor :expression-editors (:uuid cue)] dissoc kind)
             (show-util/swap-phrase-runtime! show context update-in [:cues-editor :expression-editors (:uuid cue)]
                                             dissoc kind)))
-        (show-util/swap-cue! context cue assoc-in [:expressions kind] text)  ; Save the new text.
+        (show-util/swap-cue! context cue assoc-in [:expressions kind] text) ; Save the new text.
 
         (catch Throwable e
           (timbre/error e "Problem parsing" (:title editor-info))
@@ -1713,9 +1781,11 @@ a {
                                     compiled    (when-not (str/blank? source)
                                                   (try
                                                     (expressions/build-user-expression
-                                                     source (:bindings editor-info) (:nil-status? editor-info)
-                                                     (triggers-editor-title kind trigger global?)
-                                                     (:no-locals? editor-info))
+                                                     source (:bindings editor-info)
+                                                     (merge {:description (triggers-editor-title kind trigger global?)
+                                                            :fn-sym      (triggers-editor-symbol kind trigger global?)
+                                                            :no-locals? global?}
+                                                           (select-keys editor-info [:nil-status? :no-locals?])))
                                                     (catch Throwable e
                                                       (timbre/error e "Problem parsing" (:title editor-info))
                                                       (seesaw/alert editor
@@ -1894,9 +1964,11 @@ a {
                                     compiled    (when-not (str/blank? source)
                                                   (try
                                                     (expressions/build-user-expression
-                                                     source (:bindings editor-info) (:nil-status? editor-info)
-                                                     (show-editor-title kind show context)
-                                                     (:no-locals? editor-info))
+                                                     source (:bindings editor-info)
+                                                     (merge {:description (show-editor-title kind show context)
+                                                             :fn-sym      (show-editor-symbol kind show context)
+                                                             :show        show}
+                                                            (select-keys editor-info [:nil-status? :no-locals?])))
                                                     (catch Throwable e
                                                       (timbre/error e "Problem parsing" (:title editor-info))
                                                       (seesaw/alert editor
@@ -2075,9 +2147,11 @@ a {
                                     compiled    (when-not (str/blank? source)
                                                   (try
                                                     (expressions/build-user-expression
-                                                     source (:bindings editor-info) (:nil-status? editor-info)
-                                                     (cue-editor-title kind context cue)
-                                                     (:no-locals? editor-info))
+                                                     source (:bindings editor-info)
+                                                     (merge {:description (cue-editor-title kind context cue)
+                                                             :fn-sym      (cue-editor-symbol kind show context cue)
+                                                             :show        show}
+                                                            (select-keys editor-info [:nil-status? :no-locals?])))
                                                     (catch Throwable e
                                                       (timbre/error e "Problem parsing" (:title editor-info))
                                                       (seesaw/alert editor
