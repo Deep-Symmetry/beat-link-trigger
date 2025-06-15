@@ -533,6 +533,7 @@
             embedded nREPL server."}
 
     :setup {:title      "Global Setup Expression"
+            :fn-sym     'global-setup
             :tip        "Called once to set up any state your show expressions may need."
             :no-locals? true
             :description
@@ -544,6 +545,7 @@
             :bindings   (show-bindings-for-class nil)}
 
     :online {:title      "Came Online Expression"
+             :fn-sym     'came-online
              :tip        "Called when BLT has succesfully joined a Pro DJ Link network."
              :no-locals? true
              :description
@@ -561,6 +563,7 @@
                                            :doc  "The IP address we are using to talk to DJ Link devices."}})}
 
     :enabled {:title      "Default Enabled Filter Expression"
+              :fn-sym     'default-enabled-filter
               :tip        "Called to see if the tracks set to Default should be enabled."
               :no-locals? true
               :description
@@ -577,6 +580,7 @@
               :bindings   (show-bindings-for-class CdjStatus)}
 
     :offline {:title      "Going Offline Expression"
+              :fn-sym     'going-offline
               :tip        "Called when BLT is disconnecting from a Pro DJ Link network."
               :no-locals? true
               :description
@@ -588,6 +592,7 @@
               :bindings   (show-bindings-for-class nil)}
 
     :shutdown {:title      "Global Shutdown Expression"
+               :fn-sym     'global-shutdown
                :tip        "Called once to release global resources."
                :no-locals? true
                :description
@@ -615,6 +620,7 @@
   keys in the order they are found here."
   (delay (array-map
           :setup {:title    "Setup Expression"
+                  :fn-sym   'setup
                   :tip      "Called once to set up any state your other expressions may need."
                   :description
                   "Called once when the show is loaded, or when you update the
@@ -625,6 +631,7 @@
                   :bindings (show-bindings-for-track-and-class nil)}
 
           :enabled {:title    "Enabled Filter Expression"
+                    :fn-sym   'enabled-filter
                     :tip      "Called to see if the track should be enabled."
                     :description
                     "Called whenever a status update packet is received from
@@ -639,6 +646,7 @@
                     :bindings (show-bindings-for-track-and-class CdjStatus)}
 
           :loaded {:title    "Loaded Expression"
+                   :fn-sym   'loaded
                    :tip      "Called when a player loads this track, if enabled."
                    :description
                    "Called when the track is enabled and the first player loads
@@ -649,8 +657,9 @@
                    :simulate (fn [_kind context compiled]
                                (simulate-track-event (fn [] util/*simulating*) (constantly nil) context compiled))}
 
-          :playing {:title "Playing Expression"
-                    :tip   "Called when a player plays this track, if enabled."
+          :playing {:title  "Playing Expression"
+                    :fn-sym 'playing
+                    :tip    "Called when a player plays this track, if enabled."
                     :description
                     "Called when the track is enabled and the first player starts
   playing this track. You can use this to trigger systems that do
@@ -670,6 +679,7 @@
                                                       context compiled))}
 
           :beat {:title       "Beat Expression"
+                 :fn-sym      'beat
                  :tip         "Called on each beat from devices with the track loaded."
                  :description "Called whenever a beat packet is received from
   a player that is playing this track. You can use this for
@@ -692,6 +702,7 @@
                                                    context compiled))}
 
           :tracked {:title    "Tracked Update Expression"
+                    :fn-sym   'tracked-update
                     :tip      "Called for each update from a player with this track loaded, when enabled."
                     :description
                     "Called whenever a status update packet is received from
@@ -714,6 +725,7 @@
                                                       context compiled))}
 
           :stopped {:title       "Stopped Expression"
+                    :fn-sym      'stopped
                     :tip         "Called when all players stop playing the track, or the track is disabled."
                     :description "Called when the track becomes disabled or when the last
   player stops playing the track, if any had been. You can use this
@@ -737,21 +749,23 @@
                     :bindings    (show-bindings-for-track-and-class CdjStatus)
                     :simulate    (fn [_kind context compiled]
                                    (simulate-track-event util/time-for-simulation
-                                                      (fn [] (show-util/random-cdj-status {:f 0}))
-                                                      context compiled))
+                                                         (fn [] (show-util/random-cdj-status {:f 0}))
+                                                         context compiled))
                     :nil-status? true}
 
           :unloaded {:title       "Unloaded Expression"
+                     :fn-sym      'unloaded
                      :tip         "Called when all players unload the track, or the track is disabled."
                      :description "Called when the track becomes disabled or when the last
   player unloads the track, if any had it loaded. You can use this
   to trigger systems that do not respond to MIDI, or to send more
   detailed information than MIDI allows."
                      :bindings    (show-bindings-for-track-and-class nil)
-                     :simulate (fn [_kind context compiled]
-                                 (simulate-track-event (fn [] util/*simulating*) (constantly nil) context compiled))}
+                     :simulate    (fn [_kind context compiled]
+                                    (simulate-track-event (fn [] util/*simulating*) (constantly nil) context compiled))}
 
           :shutdown {:title    "Shutdown Expression"
+                     :fn-sym   'shutdown
                      :tip      "Called once to release resources your track had been using."
                      :description
                      "Called when when the track is shutting down, either
@@ -854,6 +868,7 @@
   keys in the order they are found here."
   (delay (array-map
           :setup {:title    "Setup Expression"
+                  :fn-sym   'setup
                   :tip      "Called once to set up any state your other expressions may need."
                   :description
                   "Called once when the show is loaded, or when you update the
@@ -864,6 +879,7 @@
                   :bindings (show-bindings-for-phrase-and-class nil)}
 
           :enabled {:title       "Enabled Filter Expression"
+                    :fn-sym      'enabled-filter
                     :tip         "Called to see if phrase trigger should be enabled, and what to use when picking it."
                     :description "Called whenever a new phrase starts playing on a
   player if the phrase trigger's Enabled mode has been set to
@@ -878,8 +894,9 @@
   generally easier to use the convenience variables described below."
                     :bindings    (show-bindings-for-phrase-and-class CdjStatus)}
 
-          :playing {:title "Playing Expression"
-                    :tip   "Called when a player starts playing a phrase matching this trigger, if it was chosen."
+          :playing {:title  "Playing Expression"
+                    :fn-sym 'playing
+                    :tip    "Called when a player starts playing a phrase matching this trigger, if it was chosen."
                     :description
                     "Called when the phrase trigger is enabled by a phrase
   that has just started to play, and this trigger was selected
@@ -902,6 +919,7 @@
                     :nil-status? true}
 
           :beat {:title       "Beat Expression"
+                 :fn-sym      'beat
                  :tip         "Called on each beat from devices playing the matched phrase."
                  :description "Called whenever a beat packet is received from
   a player that is playing the phrase that activated this trigger. You can use this for
@@ -924,6 +942,7 @@
                                                     context compiled))}
 
           :tracked {:title    "Tracked Update Expression"
+                    :fn-sym   'tracked-update
                     :tip      "Called for each update from a player playing the matched phrase."
                     :description
                     "Called whenever a status update packet is received from
@@ -942,6 +961,7 @@
                                                        context compiled))}
 
           :stopped {:title       "Stopped Expression"
+                    :fn-sym      'stopped
                     :tip         "Called when all players stop playing the matched phrase."
                     :description "Called when the last player stops
   playing the matched phrase, if any had been. You can use this
@@ -964,12 +984,13 @@
   the convenience variables that it uses."
                     :bindings    (show-bindings-for-phrase-and-class DeviceUpdate)
                     :simulate    (fn [_kind context compiled]
-                                (simulate-phrase-event util/time-for-simulation
-                                                       (fn [] (show-util/random-cdj-status {:f 0}))
-                                                       context compiled))
+                                   (simulate-phrase-event util/time-for-simulation
+                                                          (fn [] (show-util/random-cdj-status {:f 0}))
+                                                          context compiled))
                     :nil-status? true}
 
           :shutdown {:title    "Shutdown Expression"
+                     :fn-sym   'shutdown
                      :tip      "Called once to release resources your phrase trigger had been using."
                      :description
                      "Called when when the phrase trigger is shutting down, either
@@ -1021,6 +1042,7 @@
   order they are found here."
   (delay (array-map
           :entered {:title    "Entered Expression"
+                    :fn-sym   'entered
                     :tip      "Called when a player moves inside this cue, if the track is enabled."
                     :description
                     "Called when the track is enabled and the first player
@@ -1032,7 +1054,8 @@
                                 (simulate-cue-event util/beat-for-simulation show-util/random-beat-or-status
                                                     context cue compiled))}
 
-          :started-on-beat {:title "Started On-Beat Expression"
+          :started-on-beat {:title  "Started On-Beat Expression"
+                            :fn-sym 'started-on-beat
                             :tip
                             "Called when a player starts playing this cue from its first beat, if the track is enabled."
                             :description
@@ -1065,8 +1088,9 @@
                                            (let [beat-object (show-util/random-beat)]
                                              [beat-object (show-util/position-from-random-beat beat-object)]))
                                          context cue compiled))}
-          :started-late {:title "Started Late Expression"
-                         :tip   "Called when a player starts playing this cue later than its first beat, if the track is enabled."
+          :started-late {:title  "Started Late Expression"
+                         :fn-sym 'started-late
+                         :tip    "Called when a player starts playing this cue later than its first beat, if the track is enabled."
                          :description
                          "Called when the track is enabled and the first player
   starts playing the cue from somewhere other than the beginning of
@@ -1087,8 +1111,9 @@
                                      (simulate-cue-event util/time-for-simulation show-util/random-cdj-status
                                                          context cue compiled))}
 
-          :beat   {:title "Beat Expression"
-                   :tip   "Called on each beat from devices playing inside the cue."
+          :beat   {:title  "Beat Expression"
+                   :fn-sym 'beat
+                   :tip    "Called on each beat from devices playing inside the cue."
                    :description
                    "Called whenever a beat packet is received from a player
   that is playing this cue (other than for the beat that started the
@@ -1113,6 +1138,7 @@
                                                    context cue compiled))}
 
           :tracked {:title    "Tracked Update Expression"
+                    :fn-sym   'tracked-update
                     :tip      "Called for each update from a player that is positioned inside the cue, when the track is enabled."
                     :description
                     "Called whenever a status update packet is received from
@@ -1133,8 +1159,9 @@
                                 (simulate-cue-event util/time-for-simulation show-util/random-cdj-status
                                                     context cue compiled))}
 
-          :ended {:title "Ended Expression"
-                  :tip   "Called when all players stop playing this cue, if the track is enabled."
+          :ended {:title  "Ended Expression"
+                  :fn-sym 'ended
+                  :tip    "Called when all players stop playing this cue, if the track is enabled."
                   :description
                   "Called when the track is enabled and the last player that
   had been playing this cue leaves it or stops playing. You can use
@@ -1152,8 +1179,9 @@
                                                      context cue compiled))
                   :nil-status? true}
 
-          :exited {:title "Exited Expression"
-                   :tip   "Called when all players move outside this cue, if the track is enabled."
+          :exited {:title  "Exited Expression"
+                   :fn-sym 'exited
+                   :tip    "Called when all players move outside this cue, if the track is enabled."
                    :description
                    "Called when the track is enabled and the last player that
   had been inside this cue moves back out of it. You can use this to
