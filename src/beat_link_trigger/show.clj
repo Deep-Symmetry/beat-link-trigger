@@ -2573,7 +2573,8 @@
                                   (seesaw/invoke-later
                                     ;; Gives windows time to close first, so they don't recreate a broken show.
                                     (su/remove-file-from-open-shows! file)
-                                    (sim/recompute-track-models))
+                                    (sim/recompute-track-models)
+                                    (remove-ns (expressions/expressions-namespace show)))
                                   ;; Remove the instruction to reopen this window the next time the program runs,
                                   ;; unless we are closing it because the application is quitting.
                                   (when-not quitting? (swap! util/window-positions dissoc window-name))
