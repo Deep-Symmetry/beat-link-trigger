@@ -151,7 +151,7 @@
   (let [data @(seesaw/user-data trigger)]
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
-        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+        (binding [*ns* (the-ns (expressions/expressions-namespace))]
           [(custom-fn status data #_:clj-kondo/ignore expression-globals) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/triggers-editor-title kind trigger false) ":\n"
@@ -696,7 +696,7 @@
   (let [data @trigger-prefs]
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
-        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+        (binding [*ns* (the-ns (expressions/expressions-namespace))]
           [(custom-fn nil nil expression-globals) nil])
         (catch Throwable t
           (timbre/error t "Problem running global " kind " expression,"

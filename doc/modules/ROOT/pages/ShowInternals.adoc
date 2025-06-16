@@ -72,6 +72,9 @@ in that player.
 track, if any, currently loaded in that player, as long as that player
 is the current Tempo Master.
 
+[[namespace]]
+`:namespace`:: A unique (created by `gensym`) symbol that gets assigned to the show when it is opened, used to identify the private namespace that will be created and used to compile its shared functions and expressions, so they don’t collide with any in the Triggers window, or in any other show.
+
 `:on-air`:: A map from player numbers to track signatures showing
 which tracks are currently loaded into players that are on the air
 according to the mixer. (Requires a DJM mixer, and the players and
@@ -100,9 +103,6 @@ beats in the track in order to make it fit.
 `:tracks`:: A map holding information about all tracks in the show. The
 keys are the track's signatures, and the values are the track maps
 described in the <<track,Track section>>.
-
-[[uuid]]
-`:uuid`:: A random UUID that gets assigned to the show when it is opened, used to identify the private namespace that will be created and used to compile its shared functions and expressions, so they don’t collide with any in the Triggers window, or in any other show.
 
 [[vis-phrases]]
 `:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the

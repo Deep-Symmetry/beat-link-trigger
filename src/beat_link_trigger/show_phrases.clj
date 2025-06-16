@@ -147,7 +147,7 @@
         runtime-info  (su/phrase-runtime-info show phrase)]
     (when-let [expression-fn (get-in runtime-info [:expression-fns kind])]
       (try
-        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+        (binding [*ns* (the-ns (expressions/expressions-namespace show))]
           [(expression-fn status {:locals (:expression-locals runtime-info)
                                   :show   show
                                   :phrase phrase} (:expression-globals show)) nil])
@@ -490,7 +490,8 @@
   [show phrase]
   [(seesaw/action :name "Playing"
                   :enabled? (phrase-event-enabled? show phrase :playing)
-                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+                  :handler (fn [_] (binding [*ns*              (expressions/expressions-namespace show)
+                                             util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (let [[update-binding create-status]
                                            (phrase-random-status-for-simulation :playing)]
                                        (binding [util/*simulating* (update-binding)]
@@ -499,7 +500,8 @@
                                                         [(create-status)])))))))
    (seesaw/action :name "Beat"
                   :enabled? (not (phrase-missing-expression? show phrase :beat))
-                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+                  :handler (fn [_] (binding [*ns*              (expressions/expressions-namespace show)
+                                             util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (let [[update-binding create-status]
                                            (phrase-random-status-for-simulation :beat)]
                                        (binding [util/*simulating* (update-binding)]
@@ -507,14 +509,16 @@
                                           show phrase :beat (create-status) true))))))
    (seesaw/action :name "Tracked Update"
                   :enabled? (not (phrase-missing-expression? show phrase :tracked))
-                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+                  :handler (fn [_] (binding [*ns*              (expressions/expressions-namespace show)
+                                             util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (let [[update-binding create-status]
                                            (phrase-random-status-for-simulation :tracked)]
                                        (binding [util/*simulating* (update-binding)]
                                          (run-phrase-function show phrase :tracked (create-status) true))))))
    (seesaw/action :name "Stopped"
                   :enabled? (phrase-event-enabled? show phrase :stopped)
-                  :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+                  :handler (fn [_] (binding [*ns*              (expressions/expressions-namespace show)
+                                             util/*simulating* (util/data-for-simulation :phrases-required? true)]
                                      (let [[update-binding create-status]
                                            (phrase-random-status-for-simulation :stopped)]
                                        (binding [util/*simulating* (update-binding)]

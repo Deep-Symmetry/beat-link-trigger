@@ -1,6 +1,7 @@
 (ns beat-link-trigger.expression-report
   "Generates and supports the report of show expressions."
-  (:require [beat-link-trigger.show :as show]
+  (:require [beat-link-trigger.expressions :as expressions]
+            [beat-link-trigger.show :as show]
             [beat-link-trigger.show-cues :as cues]
             [beat-link-trigger.show-phrases :as phrases]
             [beat-link-trigger.show-util :as su]
@@ -172,20 +173,21 @@
   (if @@(requiring-resolve 'beat-link-trigger.triggers/report-actions-enabled?)
     (if-let [trigger ((requiring-resolve 'beat-link-trigger.triggers/find-trigger) (parse-uuid uuid))]
       (seesaw/invoke-now
-        (binding [util/*simulating* (util/data-for-simulation)]
+        (binding [*ns*              (expressions/expressions-namespace)
+                  util/*simulating* (util/data-for-simulation)]
           (case (keyword kind)
             :activation   (do ((requiring-resolve 'beat-link-trigger.triggers/report-activation)
-                             trigger (su/random-cdj-status) @(seesaw/user-data trigger) false)
-                            (expression-report-success-response))
+                               trigger (su/random-cdj-status) @(seesaw/user-data trigger) false)
+                              (expression-report-success-response))
             :beat         (do ((requiring-resolve 'beat-link-trigger.triggers/run-trigger-function)
-                             trigger :beat (su/random-beat) true)
-                            (expression-report-success-response))
+                               trigger :beat (su/random-beat) true)
+                              (expression-report-success-response))
             :tracked      (do ((requiring-resolve 'beat-link-trigger.triggers/run-trigger-function)
-                             trigger :tracked (su/random-cdj-status) true)
-                            (expression-report-success-response))
+                               trigger :tracked (su/random-cdj-status) true)
+                              (expression-report-success-response))
             :deactivation (do ((requiring-resolve 'beat-link-trigger.triggers/report-deactivation)
-                             trigger (su/random-cdj-status) @(seesaw/user-data trigger) false)
-                            (expression-report-success-response))
+                               trigger (su/random-cdj-status) @(seesaw/user-data trigger) false)
+                              (expression-report-success-response))
             (unrecognized-expression))))
       (trigger-not-found))
     (triggers-not-enabled)))
@@ -247,7 +249,8 @@
   (if-let [show (su/latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
-        (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+        (binding [*ns*              (expressions/expressions-namespace show)
+                  util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
           (if-let [[update-binding create-status] (show/track-random-status-for-simulation (keyword kind))]
             (binding [util/*simulating* (update-binding)]
               (show/run-track-function track (keyword kind) (create-status) true)
@@ -290,7 +293,8 @@
     (if (:actions-enabled show)
       (if-let [track (get-in show [:tracks signature])]
         (if-let [cue (su/find-cue track (UUID/fromString cue-uuid))]
-          (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+          (binding [*ns*              (expressions/expressions-namespace show)
+                    util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
             (if-let [[update-binding create-status] (cues/random-status-for-simulation (keyword kind))]
               (binding [util/*simulating* (update-binding)]
                 ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions
@@ -347,7 +351,8 @@
   (if-let [show (su/latest-show (io/file path))]
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
-        (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+        (binding [*ns*              (expressions/expressions-namespace show)
+                  util/*simulating* (util/data-for-simulation :phrases-required? true)]
           (if-let [[update-binding create-status] (phrases/phrase-random-status-for-simulation (keyword kind))]
             (binding [util/*simulating* (update-binding)]
               (phrases/run-phrase-function show phrase (keyword kind) (create-status) true)
@@ -390,7 +395,8 @@
     (if (:actions-enabled show)
       (if-let [phrase (get-in show [:contents :phrases (UUID/fromString uuid)])]
         (if-let [cue (su/find-cue phrase (UUID/fromString cue-uuid))]
-          (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+          (binding [*ns*              (expressions/expressions-namespace show)
+                    util/*simulating* (util/data-for-simulation :phrases-required? true)]
             (if-let [[update-binding create-status] (cues/random-status-for-simulation (keyword kind))]
               (binding [util/*simulating* (update-binding)]
                 ;; TODO: Set up :last-entry-event for :ended expression? see show-cues/cue-simulate-actions

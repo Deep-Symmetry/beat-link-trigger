@@ -40,7 +40,7 @@
           cue          (find-cue track cue)]
       (when-let [expression-fn (get-in track [:cues :expression-fns (:uuid cue) kind])]
         (try
-          (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+          (binding [*ns* (the-ns (expressions/expressions-namespace show))]
             [(expression-fn status-or-beat {:locals (:expression-locals track)
                                             :show   show
                                             :track  track
@@ -57,7 +57,7 @@
           cue                        (find-cue phrase cue)]
       (when-let [expression-fn (get-in runtime-info [:cues :expression-fns (:uuid cue) kind])]
        (try
-         (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+         (binding [*ns* (the-ns (expressions/expressions-namespace show))]
            [(expression-fn status-or-beat {:locals (:expression-locals runtime-info)
                                            :show   show
                                            :phrase phrase

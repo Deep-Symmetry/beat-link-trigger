@@ -342,12 +342,12 @@
    (expressions-namespace nil))
   ([show]
    (if show
-     (let [ns-base "beat-link-trigger.expressions.show"
-           expr-ns (symbol (str ns-base "-" (:uuid show)))]
+     (let [ns-base "beat-link-trigger.expressions."
+           expr-ns (symbol (str ns-base (:namespace show)))]
        (when-not (find-ns expr-ns)
          (let [src (-> (io/resource "beat_link_trigger/expressions/show.clj")
                        slurp
-                       (str/replace-first ns-base (name expr-ns)))]
+                       (str/replace-first (str ns-base "show") (name expr-ns)))]
            (load-string src)))   ; Load it.
        expr-ns)
      (let [expr-ns 'beat-link-trigger.expressions.triggers]

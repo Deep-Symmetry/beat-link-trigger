@@ -127,7 +127,7 @@
   (let [show (latest-show show)]
     (when-let [expression-fn (get-in show [:expression-fns kind])]
       (try
-        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+        (binding [*ns* (the-ns (expressions/expressions-namespace show))]
           [(expression-fn status {:show show} (:expression-globals show)) nil])
         (catch Throwable t
           (timbre/error t "Problem running show global " kind " expression,"
@@ -146,7 +146,7 @@
   (let [[show track] (latest-show-and-track track)]
     (when-let [expression-fn (get-in track [:expression-fns kind])]
       (try
-        (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+        (binding [*ns* (the-ns (expressions/expressions-namespace show))]
           [(expression-fn status {:locals (:expression-locals track)
                                   :show   show
                                   :track  track} (:expression-globals show)) nil])
@@ -2457,7 +2457,7 @@
                              :file               file
                              :filesystem         filesystem
                              :contents           contents
-                             :uuid               (random-uuid)
+                             :namespace          (gensym "SHOW__")
                              :tracks             {}  ; Lots of info about each track, including loaded metadata.
                              :phrases            {}  ; Non-saved runtime state about each phrase trigger.
                              :panels             {}  ; Maps from JPanel to track signature or phrase UUID, for resizing.

@@ -29,6 +29,7 @@ This change log follows the conventions of
 
 ### Fixed
 
+- A synchronization problem between the `DeviceFinder` and `VirtualCdj` would cause BLT to likely pick a device number that was already in use if you told it to self-assign and use a real device number, especially if you had a Player 1 on the network. It’s unclear how long this problem existed, but it was serious.
 - An error in interpreting database export file format by the Crate Digger library could lead to some rows that were actually present in tables not being found.
 - Phrase trigger section sizes were not being loaded correctly, the End section was always set to 1 bar and the Fill section to 2 bars when reopening a show.
 - Shows with phrase cues saved at illegal locations (which may have been caused by the above problem) would prevent the cues editor window from opening, so they could not be fixed.

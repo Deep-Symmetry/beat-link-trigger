@@ -171,7 +171,8 @@
 (defn- simulate-trigger-event
   "Helper function for simulating events in trigger editors."
   [update-binding simulate-status trigger compiled]
-  (binding [util/*simulating* (util/data-for-simulation)]
+  (binding [*ns*              (the-ns (expressions/expressions-namespace))
+            util/*simulating* (util/data-for-simulation)]
     (binding [util/*simulating* (update-binding)]
       (compiled (simulate-status) @(seesaw/user-data trigger)
                 @(requiring-resolve 'beat-link-trigger.expressions.triggers/globals)))))
@@ -605,7 +606,8 @@
   "Helper function for simulating events in show track editors."
   [update-binding simulate-status context compiled]
   (let [[show track] (show-util/latest-show-and-context context)]
-    (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+    (binding [*ns*              (expressions/expressions-namespace show)
+              util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
       (binding [util/*simulating* (update-binding)]
         (compiled (simulate-status)
                   {:locals (:expression-locals track)
@@ -854,7 +856,8 @@
   [update-binding simulate-status context compiled]
   (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
     (let [[show phrase runtime-info] (show-util/latest-show-and-context context)]
-      (binding [util/*simulating* (update-binding)]
+      (binding [*ns*              (expressions/expressions-namespace show)
+                util/*simulating* (update-binding)]
         (compiled (simulate-status)
                   {:locals (:expression-locals runtime-info)
                    :show   show
@@ -1015,7 +1018,8 @@
   (if (show-util/track? context)
     (let [[show track] (show-util/latest-show-and-context context)
           cue          (show-util/find-cue track cue)]
-      (binding [util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
+      (binding [*ns*              (expressions/expressions-namespace show)
+                util/*simulating* (util/data-for-simulation :entry [(:file show) (:signature track)])]
         (binding [util/*simulating* (update-binding)]
           (compiled (simulate-status)
                     {:locals (:expression-locals track)
@@ -1026,7 +1030,8 @@
     ;; The phrase trigger version.
     (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
           cue                        (show-util/find-cue phrase cue)]
-      (binding [util/*simulating* (util/data-for-simulation :phrases-required? true)]
+      (binding [*ns*              (expressions/expressions-namespace show)
+                util/*simulating* (util/data-for-simulation :phrases-required? true)]
         (binding [util/*simulating* (update-binding)]
           (compiled (simulate-status)
                     {:locals (:expression-locals runtime-info)
@@ -1236,7 +1241,7 @@
   (let [sym (get-in (if global? global-trigger-editors trigger-editors) [kind :fn-sym] 'unknown-function)]
     (if global?
       sym
-      (symbol (str "trigger-" (trigger-index trigger) "-" (name sym))))))
+      (symbol (str "trigger-" (seesaw/user-data (seesaw/select trigger [:#index])) "-" (name sym))))))
 
 (defn update-triggers-expression
   "Called when a triggers window expression's editor is ending and the
@@ -1811,9 +1816,9 @@ a {
                                                     (expressions/build-user-expression
                                                      source (:bindings editor-info)
                                                      (merge {:description (triggers-editor-title kind trigger global?)
-                                                            :fn-sym      (triggers-editor-symbol kind trigger global?)
-                                                            :no-locals? global?}
-                                                           (select-keys editor-info [:nil-status? :no-locals?])))
+                                                             :fn-sym      (triggers-editor-symbol kind trigger global?)
+                                                             :no-locals?  global?}
+                                                            (select-keys editor-info [:nil-status? :no-locals?])))
                                                     (catch Throwable e
                                                       (timbre/error e "Problem parsing" (:title editor-info))
                                                       (seesaw/alert editor
@@ -1826,7 +1831,7 @@ a {
                                                                     :type :error))))]
                                 (when compiled
                                   (try
-                                    (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+                                    (binding [*ns* (expressions/expressions-namespace)]
                                       (simulate-fn kind trigger compiled))
                                     (catch Throwable t
                                       (timbre/error t (str "Problem simulating expression:\n" t))
@@ -2009,7 +2014,7 @@ a {
                                                                     :type :error))))]
                                 (when compiled
                                   (try
-                                    (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+                                    (binding [*ns* (expressions/expressions-namespace show)]
                                       (simulate-fn kind context compiled))
                                     (catch Throwable t
                                       (timbre/error t (str "Problem simulating expression:\n" t))
@@ -2192,7 +2197,8 @@ a {
                                                                     :type :error))))]
                                 (when compiled
                                   (try
-                                    (binding [*ns* (the-ns 'beat-link-trigger.expressions)]
+                                    (binding [*ns* (expressions/expressions-namespace
+                                                    (show-util/show-from-context context))]
                                       (simulate-fn kind context cue compiled))
                                     (catch Throwable t
                                       (timbre/error t (str "Problem simulating expression:\n" t))
