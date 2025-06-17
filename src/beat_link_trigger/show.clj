@@ -2651,6 +2651,38 @@
         (.close filesystem)
         (throw t)))))
 
+(defn- with-trigger-globals-warning*
+  "Helper function that implements the functionality of
+  `with-trigger-globals-warning`, below."
+  [context parent f]
+  (reset! expressions/trigger-globals-used false)
+  (try
+    (f)
+    (finally
+      (when @expressions/trigger-globals-used
+        (seesaw/alert parent (str "<html>" context ", use of the deprecated convenience variable "
+                                  "<code>trigger-globals</code> was detected."
+                                  "<br/>It is now safer to have raw triggers from shows share data "
+                                  "with the parent show in the other direction, using "
+                                  "<code>show-shared</code> insead."
+                                  "<br/>Access via <code>trigger-globals</code> may be removed entirely "
+                                  "in a future release."
+                                  "<br/><br/>"
+                                  "Consult the show Expression Report to help figure out where this "
+                                  "is happening, and"
+                                  "<br/>search for “Sharing Show Data with Raw Triggers” "
+                                  "in the user guide for more details.</html>"))))))
+
+(defmacro ^:private with-trigger-globals-warning
+  "Executes its body in such a way that if any expression code compiled
+  within that body uses the `trigger-globals` convenience value, a
+  warning to the user is displayed that recommends changing to storing
+  such values in the show globals, and accessing those via
+  `show-shared` instead. This macro is not re-entrant; calls must not
+  be nested."
+  [context parent & body]
+  `(with-trigger-globals-warning* ~context ~parent (fn [] ~@body)))
+
 ;;; External API for creating, opening, reopening, and closing shows:
 
 (defn- open-internal
@@ -2661,8 +2693,9 @@
     (try
       (if-let [existing (latest-show file)]
         (.toFront ^JFrame (:frame existing))
-        (do (create-show-window file)
-            true))
+        (with-trigger-globals-warning (str "When opening the Show “" (fs/base-name file) "”") parent
+          (create-show-window file)
+          true))
       (catch Exception e
         (timbre/error e "Unable to open Show" file)
         (seesaw/alert parent (str "<html>Unable to Open Show " file "<br><br>" e)

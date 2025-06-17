@@ -322,9 +322,11 @@
                     "\">User Guide</a> for details.")}
 
    'trigger-globals {:code 'beat-link-trigger.expressions.triggers/globals
-                     :doc  "The expression globals in the Triggers
-  window, in case you want to share values with
-  them."}})
+                     :doc  (str "Deprecated: the expression globals in the Triggers window, "
+                                "which used to be the way to share values with raw triggers. "
+                                "This will likely be removed in a future release. See the <a href=\""
+                                (help/user-guide-link "Expressions_v8.html#sharing-show-data")
+                                "\">User Guide</a> for details.")}})
 
 (defn- show-bindings-for-class
   "Collects the set of bindings for a show editor which is called with a
@@ -1954,8 +1956,7 @@ a {
       (timbre/error e "Problem showing trigger" kind "editor"))))
 
 (defn- show-locals-globals
-  "Describes show locals and globals bindings when available
-  available."
+  "Describes show locals and globals bindings when available."
   [kind global?]
   (when-not (= kind :shared)
     (str/join (concat ["<p>The "
@@ -1963,9 +1964,7 @@ a {
   <code>locals</code> is available for use by all expressions on this
   track, and the ")
                        "atom <code>globals</code> is shared
-  across all expressions in this show. You can also use the atom
-  <code>trigger-globals</code> to share the expression globals of the
-  Triggers window."]))))
+  across all expressions in this show."]))))
 
 (defn- build-show-help
   "Create the help information for a show window editor with the

@@ -10,6 +10,7 @@
 ** xref:Expressions_ShowCue.adoc[Show Cue Expressions]
 ** xref:Expressions_PhraseTrigger.adoc[Phrase Trigger Expressions]
 ** xref:Expressions_Report.adoc[Expressions Report]
+** xref:Expressions_v8.adoc[Improvements in Version 8]
 ** xref:ShowInternals.adoc[Show Internal Structures]
 * xref:Players.adoc[The Player Status Window]
 * xref:Settings.adoc[Settings]

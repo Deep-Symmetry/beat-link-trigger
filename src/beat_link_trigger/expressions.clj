@@ -9,6 +9,11 @@
             [clojure.walk])
   (:import [org.deepsymmetry.beatlink DeviceUpdate Beat CdjStatus MixerStatus]))
 
+(def trigger-globals-used
+  "This value will be set to `true` when code using the
+  symbol `trigger-globals` is compiled, so that
+  `with-trigger-globals-warning` can issue its warning."
+  (atom false))
 
 (def convenience-bindings
   "Identifies symbols which can be used inside a user expression when
@@ -294,6 +299,9 @@
   (let [result (atom (sorted-map))]
     (clojure.walk/postwalk (fn [elem]
                              (when-let [binding (get available-bindings elem)]
+                               ;; Warn if people are using the deprecated trigger-globals
+                               (when (= elem 'trigger-globals) (reset! trigger-globals-used true))
+
                                (swap! result assoc elem (if nil-status?
                                                           `(when ~'status ~(:code binding))
                                                           (:code binding)))))
