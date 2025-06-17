@@ -1994,10 +1994,11 @@
              beat-grid           (when anlz (BeatGrid. data-ref anlz))
              preview             (find-waveform-preview data-ref anlz ext ex2)
              detail              (find-waveform-detail data-ref ext ex2)
+             detail-rgb          (find-waveform-detail data-ref ext nil)  ; For signature, if user is in 3-band mode.
              art                 (find-art database track-row)
              song-structure      (when ext (find-song-structure ext))
              signature           (.computeTrackSignature signature-finder (.getTitle metadata) (.getArtist metadata)
-                                                         (.getDuration metadata) detail beat-grid)]
+                                                         (.getDuration metadata) detail-rgb beat-grid)]
          (if (and signature (track-present? show signature))
            (if silent?
              (.getTitle metadata) ; Just return the track name rather than displaying an error about it.
