@@ -13,6 +13,23 @@ the Tempo Master. These features were inspired by creative uses that
 https://www.hospitalrecords.com/artist/camo-krooked[Camo & Krooked]
 were exploring.
 
+[IMPORTANT]
+====
+If you are working with CDJ-3000s and synchronizing to other audio, you may encounter a problematic amount of jitter.
+It seems that the high-precision position packets sent by these players are not as smooth as the beat packets we otherwise rely on.
+
+To fix this problem, you can tell the `TimeFinder` to ignore the high-precision position packets by <<Expressions.adoc#editing-expressions,adding>> this function call to your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>:
+
+[source,clojure]
+----
+(.setUsePrecisePositionPackets time-finder false)
+----
+
+This will prevent BLT from precisely following loops that are smaller than a beat, but will result in smoother audio sync until we can come up with a better de-jitter algorithm that lets you have the best of both worlds.
+
+To put things back the way they were, either change the `false` to `true` in the above function call, or remove it entirely and quit and restart Beat Link Trigger.
+====
+
 [[overview]]
 == Overview
 
