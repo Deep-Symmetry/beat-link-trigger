@@ -120,15 +120,15 @@
 (defn- run-global-function
   "Checks whether the show has a custom function of the specified kind
   installed, and if so runs it with the supplied status argument, and
-  the show and its globals. Returns a tuple of the function return
-  value and any thrown exception. If `alert?` is `true` the user will
-  be alerted when there is a problem running the function."
+  the show. Returns a tuple of the function return value and any
+  thrown exception. If `alert?` is `true` the user will be alerted
+  when there is a problem running the function."
   [show kind status alert?]
   (let [show (latest-show show)]
     (when-let [expression-fn (get-in show [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns (expressions/expressions-namespace show))]
-          [(expression-fn status {:show show} (:expression-globals show)) nil])
+          [(expression-fn status {:show show}) nil])
         (catch Throwable t
           (timbre/error t "Problem running show global " kind " expression,"
                         (get-in show [:contents :expressions kind]))
@@ -149,7 +149,8 @@
         (binding [*ns* (the-ns (expressions/expressions-namespace show))]
           [(expression-fn status {:locals (:expression-locals track)
                                   :show   show
-                                  :track  track} (:expression-globals show)) nil])
+                                  :track  track})
+           nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/show-editor-title kind show track) ":\n"
                                (get-in track [:contents :expressions kind])))
@@ -2296,6 +2297,11 @@
         (when-let [show-hue (:show-hue (user-data show))]
           (seesaw/config! ui :background (util/trigger-color 1 show-hue dark?)))))))
 
+(defn expression-globals
+  "Finds the atom that stores expression globals for the specified show."
+  [show]
+  @(requiring-resolve (symbol (str (name (expressions/expressions-namespace show)) "/globals"))))
+
 (defn global-editor-update-fn
   "The function called to propagate necessary changes when a show global
   expression has been updated."
@@ -2304,7 +2310,7 @@
     (when (util/online?)
       (run-global-function show :offline nil true))
     (run-global-function show :shutdown nil true)
-    (reset! (:expression-globals show) {})
+    (reset! (expression-globals show) {})
     (swap-show! show dissoc :cue-builders)
     (run-global-function show :setup nil true)
     (let [dark? (prefs/dark-mode?)]  ; In case the show hue was changed.
@@ -2345,14 +2351,14 @@
   (let [^File file       (:file show)
         title            (str "Expression Globals for Show " (util/trim-extension (.getPath file)))
         inspect-action   (seesaw/action :handler (fn [_] (try
-                                                           (inspector/inspect @(:expression-globals show)
+                                                           (inspector/inspect @(expression-globals show)
                                                                               :window-name title)
                                                            (catch StackOverflowError _
                                                              (util/inspect-overflowed))
                                                            (catch Throwable t
                                                              (util/inspect-failed t))))
                                         :name "Inspect Expression Globals"
-                                        :tip "Examine any values set as globals by any Track Expressions.")
+                                        :tip "Examine any values set as globals by any Track or Phrase Expressions.")
         ex-report-action (seesaw/action :handler (fn [_]
                                                    (when (help/help-server)
                                                      (clojure.java.browse/browse-url (su/expression-report-link file))))
@@ -2453,7 +2459,6 @@
             import-menu     (seesaw/menu :text "Import Track")
             show            {:creating           true
                              :frame              root
-                             :expression-globals (atom {})
                              :import-menu        import-menu
                              :file               file
                              :filesystem         filesystem

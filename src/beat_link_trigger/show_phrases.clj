@@ -138,10 +138,9 @@
 (defn run-phrase-function
   "Checks whether the phrase trigger has a custom function of the
   specified kind installed and if so runs it with the supplied status
-  argument and the track local and global atoms. Returns a tuple of
-  the function return value and any thrown exception. If `alert?` is
-  `true` the user will be alerted when there is a problem running the
-  function."
+  argument and the phrase local atom. Returns a tuple of the function
+  return value and any thrown exception. If `alert?` is `true` the
+  user will be alerted when there is a problem running the function."
   [show phrase kind status alert?]
   (let [[show phrase] (latest-show-and-phrase show phrase)
         runtime-info  (su/phrase-runtime-info show phrase)]
@@ -150,7 +149,8 @@
         (binding [*ns* (the-ns (expressions/expressions-namespace show))]
           [(expression-fn status {:locals (:expression-locals runtime-info)
                                   :show   show
-                                  :phrase phrase} (:expression-globals show)) nil])
+                                  :phrase phrase})
+           nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/show-editor-title kind show phrase) ":\n"
                                (get-in phrase [:expressions kind])))

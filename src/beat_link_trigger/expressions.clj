@@ -329,12 +329,12 @@
   [body fn-sym available-bindings nil-status? no-locals?]
   (let [bindings (gather-convenience-bindings body available-bindings nil-status?)]
     (if no-locals?
-      `(fn ~fn-sym ~'[status trigger-data globals]
+      `(fn ~fn-sym ~'[status trigger-data]
          ~(if (seq bindings)
             `(let [~@bindings]
                ~body)
             body))
-      `(fn ~fn-sym ~'[status {:keys [locals] :as trigger-data} globals]
+      `(fn ~fn-sym ~'[status {:keys [locals] :as trigger-data}]
          ~(if (seq bindings)
             `(let [~@bindings]
                ~body)

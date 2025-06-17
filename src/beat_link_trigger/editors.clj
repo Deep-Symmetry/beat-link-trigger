@@ -174,8 +174,7 @@
   (binding [*ns*              (the-ns (expressions/expressions-namespace))
             util/*simulating* (util/data-for-simulation)]
     (binding [util/*simulating* (update-binding)]
-      (compiled (simulate-status) @(seesaw/user-data trigger)
-                @(requiring-resolve 'beat-link-trigger.expressions.triggers/globals)))))
+      (compiled (simulate-status) @(seesaw/user-data trigger)))))
 
 (def trigger-editors
   "Specifies the kinds of editor which can be opened for a trigger,
@@ -614,8 +613,7 @@
         (compiled (simulate-status)
                   {:locals (:expression-locals track)
                    :show   show
-                   :track  track}
-                  (:expression-globals show))))))
+                   :track  track})))))
 
 (def show-track-editors
   "Specifies the kinds of editor which can be opened for a show track,
@@ -863,8 +861,7 @@
         (compiled (simulate-status)
                   {:locals (:expression-locals runtime-info)
                    :show   show
-                   :phrase phrase}
-                  (:expression-globals show))))))
+                   :phrase phrase})))))
 
 (def show-phrase-editors
   "Specifies the kinds of editor which can be opened for a show phrase
@@ -1027,8 +1024,7 @@
                     {:locals (:expression-locals track)
                      :show   show
                      :track  track
-                     :cue    cue}
-                    (:expression-globals show)))))
+                     :cue    cue}))))
     ;; The phrase trigger version.
     (let [[show phrase runtime-info] (show-util/latest-show-and-context context)
           cue                        (show-util/find-cue phrase cue)]
@@ -1039,8 +1035,7 @@
                     {:locals (:expression-locals runtime-info)
                      :show   show
                      :phrase phrase
-                     :cue    cue}
-                    (:expression-globals show)))))))
+                     :cue    cue}))))))
 
 (def show-cue-editors
   "Specifies the kinds of editor which can be opened for a show track cue,

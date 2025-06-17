@@ -13,13 +13,12 @@
             [beat-carabiner.core :as beat-carabiner]
             [beat-link-trigger.carabiner :as carabiner]
             [beat-link-trigger.expressions.triggers
-             :refer [globals default-repositories device-finder virtual-cdj metadata-finder art-finder
+             :refer [default-repositories device-finder virtual-cdj metadata-finder art-finder
                      beatgrid-finder signature-finder time-finder waveform-finder extract-device-update
                      add-library add-libraries extend-classpath track-source-slot track-type playback-time
                      current-beat current-bar extract-device-number extract-raw-cue-update
                      set-overlay-background-color set-overlay-indicator-color set-overlay-emphasis-color
-                     register-cue-builder unregister-cue-builder replace-artist-line]
-             :rename {globals trigger-globals}]
+                     register-cue-builder unregister-cue-builder replace-artist-line]]
             [beat-link-trigger.help :as help]
             [beat-link-trigger.overlay :as overlay]
             [beat-link-trigger.players :as players]

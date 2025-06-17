@@ -152,7 +152,7 @@
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns (expressions/expressions-namespace))]
-          [(custom-fn status data #_:clj-kondo/ignore expression-globals) nil])
+          [(custom-fn status data) nil])
         (catch Throwable t
           (timbre/error t (str "Problem running " (editors/triggers-editor-title kind trigger false) ":\n"
                                (get-in data [:expressions kind])))
@@ -338,7 +338,7 @@
   track has that BPM and calculate the effective tempo based on the
   player pitch."
   [trigger-data]
-  (let [bpm-override (:use-fixed-sync-bpm @expression-globals)
+  (let [bpm-override (:use-fixed-sync-bpm #_:clj-kondo/ignore expression-globals)
         base-tempo   (if-let [^CdjStatus cached-status (:status trigger-data)]
                        (if (= 65535 (.getBpm cached-status))
                          (or bpm-override 120.0) ; Default to 120 bpm if the player has not loaded a track.
@@ -697,7 +697,7 @@
     (when-let [custom-fn (get-in data [:expression-fns kind])]
       (try
         (binding [*ns* (the-ns (expressions/expressions-namespace))]
-          [(custom-fn nil nil expression-globals) nil])
+          [(custom-fn nil nil) nil])
         (catch Throwable t
           (timbre/error t "Problem running global " kind " expression,"
                         (get-in data [:expressions kind]))

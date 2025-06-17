@@ -44,8 +44,8 @@
             [(expression-fn status-or-beat {:locals (:expression-locals track)
                                             :show   show
                                             :track  track
-                                            :cue    cue}
-                            (:expression-globals show)) nil])
+                                            :cue    cue})
+             nil])
           (catch Throwable t
             (timbre/error t (str "Problem running " (editors/cue-editor-title kind track cue) ":\n"
                                  (get-in cue [:expressions kind])))
@@ -61,8 +61,8 @@
            [(expression-fn status-or-beat {:locals (:expression-locals runtime-info)
                                            :show   show
                                            :phrase phrase
-                                           :cue    cue}
-                           (:expression-globals show)) nil])
+                                           :cue    cue})
+            nil])
          (catch Throwable t
            (timbre/error t (str "Problem running " (editors/cue-editor-title kind phrase cue) ":\n"
                                 (get-in cue [:expressions kind])))
