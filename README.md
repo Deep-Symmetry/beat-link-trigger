@@ -121,16 +121,9 @@ Trigger, please add a page or two the Wiki to share them with others!
 
 ### Contributing
 
-First of all, we would *love* to hear from you! We have no way of
-knowing who has discovered, explored, downloaded and tried Beat Link
-Trigger. So if you have, please write a quick note in the [Zulip
-channel](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)
-to let us know! Even if it is only to explain why it didn&rsquo;t
-quite work for you.
+First of all, we would *love* to hear from you! We have no way of knowing who has discovered, explored, downloaded and tried Beat Link Trigger. So if you have, please write a quick note in the [Zulip channel](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger) to let us know! Even if it is only to explain why it didn’t quite work for you.
 
-If you run into specific problems or have ideas of ways Beat Link
-Trigger could be better, you can also [open an
-Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues).
+If you run into specific problems or have ideas of ways Beat Link Trigger could be better, you can also [open an Issue](https://github.com/Deep-Symmetry/beat-link-trigger/issues) once the community on Zulip agrees it is appropriate to do so.
 
 And if you think you've come up with new or better way to do
 something, terrific! Please take a look at our [guidelines for
