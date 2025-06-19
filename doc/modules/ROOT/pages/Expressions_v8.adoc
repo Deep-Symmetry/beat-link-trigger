@@ -4,26 +4,27 @@ include::partial$PagePreamble.adoc[]
 Significant and fundamental changes were made in the way expressions are compiled by Beat Link Trigger starting with version 8.
 These achieve goals that James had been seeking for years, but had not yet figured out a practical way to implement.
 
-Previously, all expression code was compiled into the Clojure namespace `beat-link-trigger.expressions`, which is the same place that some important plumbing used to compile the expressions themselves lived.
-Also, since Triggers window expressions as well as the expressions for any Show that was ever opened were compiled into the same namespace, you had to be careful to name shared functions in a long-winded way that they would never overwrite each other, regardless of where they lived.
+Previously, all expression code was compiled into the Clojure namespace `beat-link-trigger.expressions`, which is the same place that some important plumbing for compiling the expressions themselves lives.
+Also, since Triggers window expressions, as well as the expressions for any Show that was ever opened, were compiled into the same namespace, you had to be careful to name shared functions in a lengthy way in hopes they would never overwrite each other, regardless of where they came from.
 
-This also meant that you should not use `def` to create any of your own global variables in the Shared Functions block, and should stuff any data you might need to use in the separate `globals` atoms that BLT made available to the Triggers window and each show.
+This also meant that you should not use `def` to create any of your own variables in the Shared Functions block, and should instead put any data you might need in the separate `globals` atoms that BLT made available to the Triggers window and to each show.
 
-Now, Triggers window expressions get compiled into their own private namespace, `beat-link-trigger.expressions.triggers`, and each show gets a private namespace of its own with a unique name like `beat-link-trigger.expressions.SHOW__70112`. The `globals` atoms in each namespace are ordinary atoms defined in that namespace, and you can `def` your own atoms and other values in your Shared Expressions block, to make your own code more readable and more idiomatic Clojure.
+Now, Triggers window expressions get compiled into their own private namespace, `beat-link-trigger.expressions.triggers`, and each show that is opened gets a private namespace of its own with a unique name like `beat-link-trigger.expressions.SHOW__70112`.
+The `globals` atoms in each namespace are ordinary atoms defined in that namespace, and you can `def` your own atoms and other values in your Shared Expressions blocks. This will make your own code more readable and more idiomatic Clojure.
 
-NOTE: As part of this change, the integration examples have been updated, and are now simpler and easier to understand, as well as teaching more typical Clojure style. Some of them needed to be <<adapting,adapted>> in order to work in this new approach.
+NOTE: As part of this change, the integration examples have been updated, and are now simpler and easier to understand. They now teach a more typical Clojure style. Some of them needed to be <<adapting,adapted>> in order to work with this new approach to compilation.
 
 == The Triggers Window namespace
 
-This is now the place where all ordinary triggers, as well as shows’ raw triggers, get compiled.
+This is now the place where all ordinary triggers, as well as any shows’ raw triggers, get compiled.
 (Those show raw triggers can access shared functions and data from their show using a new <<accessing-show-from-raw,`show-shared/` alias described below>>.)
 
 Since this is now private, and no longer has any code used by Beat Link Trigger itself in it, you can be much more free about defining functions and vars for use by all your triggers in your Shared Functions code.
 (Raw triggers should only use functions and data defined in their show, using the `show-shared/` alias, and not mess with what is defined in this namespace.)
 
 You can find the source for the namespace on https://github.com/Deep-Symmetry/beat-link-trigger/blob/main/src/beat_link_trigger/expressions/triggers.clj[GitHub].
-This will also let you see all the convenience functions and namespace aliases that are pre-installed for your convenience.
-(You should still be a bit careful about replacing any of those functions, because some are used by the convenience bindings in the expression editor.)
+This will also let you see all the functions and namespace aliases that are pre-installed for use by your expressions.
+(You should still be careful about replacing any of those functions, because some are used by the convenience bindings in the expression editor.)
 
 == Show namespaces
 
@@ -34,7 +35,7 @@ Again, since this namespace is now private to your individual show, you can feel
 [[adapting]]
 == Adapting Existing Code
 
-Although most code should continue to work fine in this new, much safer, world, there are some things that used to be possible that are either no longer recommended (because there are now safere approaches), or that need to be tweaked slightly in order to continue to work.
+Although most code should continue to work fine in this new, much safer, world, there are some things that used to be possible that are either no longer recommended (because there are now safer approaches), or that need to be tweaked slightly in order to continue to work.
 
 [[accessing-show-from-raw]]
 === Accessing Show Shared Code from Raw Triggers
@@ -58,7 +59,7 @@ you now need to instead use:
 [[sharing-show-data]]
 === Sharing Show Data with Raw Triggers
 
-Prior to version 8, even when all expressions were compiled into the same namespace, it was still a challenge to share data between expressions that run in the context of the show, and expressions in raw triggers belnging to that show, since those run in the Triggers window, and in the old world, `globals` was a magic convenience variable, not an ordinary atom defined in a namespace.
+Prior to version 8, even when all expressions were compiled into the same namespace, it was still a challenge to share data between expressions that run in the context of the show, and expressions in raw triggers belonging to that show, since those run in the Triggers window, and in that old world, `globals` was a magic convenience variable, not an ordinary atom defined in a namespace.
 
 The old solution was another special convenience variable, `trigger-globals`, which was made available when compiling raw trigger expressions, and which provided access to the Triggers window globals.
 
