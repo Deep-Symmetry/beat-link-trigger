@@ -6,7 +6,10 @@ IgnoreDirs:
   - "0.6.2"
   - "0.6.3"
 IgnoreURLs:
-  - "//opensource.org/licenses/"
-  - "//liberapay.com/"
-  - "//unix.stackexchange.com/questions/405229/"
+  - "//www.allen-heath.com/"
   - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"
+  - "//liberapay.com/"
+  - "//opensource.org/licenses/"
+  - "//packetsender.com/"
+  - "//unix.stackexchange.com/questions/405229/"
+  - "//www.wireshark.org"
