@@ -1,73 +1,46 @@
 = Debugging and Sharing
 include::partial$PagePreamble.adoc[]
 
-Beat Link Trigger offers a few mechanisms to help you understand how
-your triggers are (or are not) working, and to save and restore
-versions of them, or share them with friends and colleagues (or on the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream] or
-https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]
-to either get help from others, or share and show them off). +++<img
+Beat Link Trigger offers a few mechanisms to help you understand how  your triggers are (or are not) working, and to save and restore  versions of them, or share them with friends and colleagues (or on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream] or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki] to either get help from others, or share and show them off).
++++<img
 src="_images/HelpMenu.png" width="250" height="205" alt="Help Menu"
 style="float:right"/>+++
 
-Help resources can be found in the menu:Help[] menu, along with an
-embedded copy of this User Guide, which can be used even if you are
-not connected to the Internet (although links to other sites will not
-work in that case).
+Help resources can be found in the menu:Help[] menu, along with an embedded copy of this User Guide, which can be used even if you are not connected to the Internet (although links to other sites will not work in that case).
 
-There’s no way for the author to know how many people are using the
-the program, or where they are, unless they choose to contact him.
-Many people have (especially on the Zulip stream), but if you have
-not, and would like to say hello and share how you are using Beat
-Link Trigger, it would be greatly appreciated! You can use
-menu:Help[Send User Greeting (email)] to make it easy.
+There’s no way for the author to know how many people are using the program, or where they are, unless they choose to contact him. Many people have (especially on the Zulip stream), but if you have  not, and would like to say hello and share how you are using Beat Link Trigger, it would be greatly appreciated! You can use menu:Help[Send User Greeting (email)] to make it easy, but it’s even better if you join Zulip.
 
 [[logs]]
 == Logs
 
-When Beat Link Trigger is running it reports events to a log file. As
-noted above, this includes full stack traces for compilation problems
-when you try to save an expression that isn’t quite right. If a
-problem occurs while trying to run your expression later, that will
-end up in the log too. So it can be a useful place to look when things
-are not working the way you expect.
+When Beat Link Trigger is running it reports events to a log file. As  noted above, this includes full stack traces for compilation problems when you try to save an expression that isn’t quite right. If a problem occurs while trying to run your expression later, that will end up in the log too. So it can be a useful place to look when things are not working the way you expect.
 
 TIP: You can find the log file for your current run by choosing menu:Help[Open Logs Folder] from most BLT windows, but see <<#finding-older-logs,below>> for how to find them if you can’t do that.
 
-Each time you launch Beat Link Trigger it creates a new log folder in
-a temporary directory, so that they can be cleaned up automatically
-sometime after it exits. It cycles through log files and limits their
-maximum length, which can be important if an error is being logged
-each time a packet comes in because of a problematic Enabled Filter
-expression.
+Each time you launch Beat Link Trigger it creates a new log folder in a temporary directory, so that they can be cleaned up automatically sometime after it exits. It cycles through log files and limits their maximum length, which can be important if an error is being logged each time a packet comes in because of a problematic Enabled Filter expression.
 
-Even if things are not crashing, you might want to log your own
-information to get a better understanding of what is happening inside
-one of your expressions. Beat Link Trigger uses
-https://github.com/ptaoussanis/timbre[timbre] to perform its logging,
-and so can you.
+Even if things are not crashing, you might want to log your own information to get a better understanding of what is happening inside one of your expressions. Beat Link Trigger uses https://github.com/ptaoussanis/timbre[timbre] to perform its logging, and so can you.
 
-For example, if you are trying to figure out exactly what you are
-receiving in your Beat expression, you could add this as its first
-line:
+For example, if you are trying to figure out exactly what you are receiving in your Beat expression, you could add this as its first line:
 
-```clojure
+[source,clojure]
+----
 (timbre/info "Received beat" status "master?" tempo-master?)
-```
+----
 
 Suddenly your logs will be growing steadily, filling with lines like these:
 
-```
+[source,text]
+----
 2016-Jun-05 00:12:10 Alacrity.local INFO [beat-link-trigger.expressions:?] -
   Received beat Beat: Device 2, name: CDJ-2000nexus, pitch: +0.00%,
   track BPM: 126.0, effective BPM: 126.0, beat within bar: 4 master? true
 2016-Jun-05 00:12:11 Alacrity.local INFO [beat-link-trigger.expressions:?] -
   Received beat Beat: Device 33, name: DJM-2000nexus, pitch: +0.00%,
   track BPM: 126.0, effective BPM: 126.0, beat within bar: 1 master? false
-```
+----
 
-[finding-older-logs]
+[[finding-older-logs]]
 === Finding Older Logs
 
 If you need to find log files for an older BLT session, you can usually find their log folders right next to the folder for your current session.
@@ -98,28 +71,24 @@ On other operating systems, hopefully you can find a similar set of tools.
 [[reporting-issues]]
 == Reporting Issues
 
-If you run into trouble and it seems likely the problem is in Beat Link Trigger itself rather than one of your own expressions (or even if you want help with your expressions), the best place to start is by asking on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+If you run into trouble, and it seems likely the problem is in Beat Link Trigger itself rather than one of your own expressions (or even if you want help with your expressions), the best place to start is by asking on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 channel].
 The entire (friendly) Beat Link Trigger community there can try to help you out, and people who run into similar problems in the future will be able to benefit by searching for the resulting discussion.
 
-As a last resort, you can use menu:Help[Report Issue (email)] to send an email to Deep Symmetry asking for help.
+As a last resort, you can use menu:Help[Report Issue (email)] to email Deep Symmetry asking for help.
 The message will start out populated with some information about the version of Beat Link Trigger you are running, along with the Java version and operating system, but the more details you can provide in the initial report (along with relevant logs), the
 more likely we will be able to figure out what is going on.
 
 The program may also offer to compose an issue pre-filled with details when it encounters unexpected messages sent by CDJs it is talking to.
 
 If the problem turns out to be trickier than can be understood from just logs, follow-up questions and experimentation may be needed.
-In such cases https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-options/[thread
-dumps] are often a valuable next step.
+In such cases https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-options/[thread dumps] are often a valuable next step.
 
-And if you contact us directly, we will probably ask you to direct your question to the Zulip channel unless there is some pressing reason why you absolutely can’t.
+And if you do contact us directly, we will probably ask you to direct your question to the Zulip channel unless there is some pressing reason why you absolutely can’t.
 
 [TIP]
 ====
-Thread dumps can be very useful, and yet tedious to create, especially
-in Windows, so here is a way to make them more easily. Add the
-following function to your <<Expressions.adoc#shared-functions,Shared
-Functions>>:
+Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily. Add the following function to your <<Expressions.adoc#shared-functions,Shared Functions>>:
 
 [source,clojure]
 ----
@@ -134,41 +103,22 @@ Functions>>:
   (timbre/info "----- End of thread dump"))
 ----
 
-This defines a new shared function called `log-thread-dump` which
-writes a thread dump to the BLT log file. Then you can trigger one by
-editing your
-<<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup
-Expression>> and adding:
+This defines a new shared function called `log-thread-dump` which writes a thread dump to the BLT log file. Then you can trigger one by editing your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>> and adding:
 
 [source,clojure]
 ----
 (log-thread-dump)
 ----
 
-When you Update the Global Setup Expression to contain this call, BLT
-will immediately log a thread dump to the log file. You can make it
-happen again by editing the Global Setup Expression, adding a space at
-the end, and Updating it again.
+When you Update the Global Setup Expression to contain this call, BLT will immediately log a thread dump to the log file. You can make it happen again by editing the Global Setup Expression, adding a space at the end, and Updating it again.
 
-You will want to remember to take the `log-thread-dump` call back out
-of your Global Setup Expression when you are done troubleshooting,
-though, or you will get a thread dump in the log every time you start
-up BLT.
+You will want to remember to take the `log-thread-dump` call back out of your Global Setup Expression when you are done troubleshooting, though, or you will get a thread dump in the log every time you start up BLT.
 
-If your user interface is getting locked up and preventing you from
-editing and saving the Global Setup expression (or you just find that
-too clumsy an approach), you can instead use a REPL connection to call
-`log-thread-dump`. First, install https://leiningen.org[Leiningen] on
-your system, then start up BLT's built-in nREPL server as described in
-<<#advanced-coding,Advanced Coding>>. Once the Run checkbox is active,
-open a command or terminal window, and type:
+If your user interface is getting locked up and preventing you from editing and saving the Global Setup expression, or you just find that too clumsy an approach, you can instead use a REPL connection to call`log-thread-dump`. First, install https://leiningen.org[Leiningen] on your system, then start up BLT's built-in nREPL server as described in<<#advanced-coding,Advanced Coding>>. Once the Run checkbox is active, open a command or terminal window, and type:
 
     lein repl :connect 17001
 
-(If you chose a different nREPL port in the nREPL Server window, enter
-that number instead, without any commas or punctuation.) This will
-open a REPL connection to the Clojure environment inside Beat Link
-Trigger:
+(If you chose a different nREPL port in the nREPL Server window, enter that number instead, without any commas or punctuation.) This will open a REPL connection to the Clojure environment inside Beat Link Trigger:
 
     Connecting to nREPL at 127.0.0.1:17001
     REPL-y 0.5.1, nREPL 0.9.0
