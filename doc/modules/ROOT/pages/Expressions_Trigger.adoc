@@ -314,6 +314,7 @@ disabled if it had been active. (This is when a Note Off message, or
 Control Change with value zero, is sent.) You can send your own custom
 messages here, much like the Activation Expression.
 
+[[beat-expression]]
 == Beat Expression
 
 This is called when the player currently being tracked reports the
