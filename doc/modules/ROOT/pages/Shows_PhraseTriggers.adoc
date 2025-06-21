@@ -364,7 +364,7 @@ expressions if they want to use it.
 As described above, this lets you specify the MIDI channel on which
 started/stopped messages are sent for this phrase trigger.
 
-[context-menu]
+[[context-menu]]
 === Context Menu
 
 Each phrase trigger row has a context menu attached to it, which can
