@@ -10,7 +10,7 @@ things like MIDI or OSC messages in response. They can recognize
 tracks and synchronize external systems to them using MIDI clock or
 Ableton Link.
 
-
+[[overview]]
 == Overview
 
 Each row in the Trigger window defines a single trigger, which watches

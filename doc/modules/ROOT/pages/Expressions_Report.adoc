@@ -1,17 +1,10 @@
 = Expressions Report
 include::partial$PagePreamble.adoc[]
 
-A show can end up containing a great many
-<<Expressions.adoc#,Expressions>> as it grows: they can be attached to
-the <<Expressions_ShowShared.adoc#,show itself>>,
-<<Expressions_ShowTrack.adoc#,tracks>>,
-<<Expressions_PhraseTrigger.adoc#,phrase triggers>>, and
-<<Expressions_ShowCue.adoc#,cues>> within the tracks and phrase
-triggers. Finding and keeping track of them all using only the editor
-windows accessed through context menus would be a significant
-challenge, which is why the Expressions Report was added.
+A show can end up containing a great many <<Expressions.adoc#,Expressions>> as it grows: they can be attached to the <<Expressions_ShowShared.adoc#,show itself>>, <<Expressions_ShowTrack.adoc#,tracks>>, <<Expressions_PhraseTrigger.adoc#,phrase triggers>>, and <<Expressions_ShowCue.adoc#,cues>> within the tracks and phrase  triggers.
+Finding and keeping track of them all using only the editor windows accessed through context menus would be a significant challenge, which is why the Expressions Report was added.
 
-NOTE: Though the expressions report mechanism was created for shows, it was later extended to the <<Triggers.adoc#,Triggers>> window as well.
+NOTE: Though the expressions report mechanism was created for shows, it proved so useful that it was later extended to the <<Triggers.adoc#,Triggers>> window as well.
 You can now create a report about that window's <<Expressions_TriggerGlobal.adoc#,global expressions>> and the expressions belonging to each <<Expressions_Trigger.adoc#,trigger>> through the Triggers window menu:File[] menu.
 It has the same features and capabilities as reports for shows.
 
@@ -23,63 +16,35 @@ Finally, any expressions belonging to <<Shows_RawTriggers.adoc#,Raw Triggers>> f
 
 image:ExpressionsReport.png[alt=Expressions Report,width=1200,height=880]
 
-Each expression in the report shows the expression type (if you hover
-the mouse pointer over the title, a description of the purpose of that
-expression is shown), followed by some action buttons, and the code of
-the expression as it existed when the report was generated. (The code
-is truncated for compactness, but if you hover the mouse over it, you
-can see the full content).
+For the Triggers window report, the top section is the global and shared expressions, followed by sections for each trigger.
 
-TIP: If an expression is currently being ignored because of the
-configuration of the show, a red note is shown beneath the title
-explaining this.
+Each expression in the report shows the expression type (if you hover the mouse pointer over the title, a description of the purpose of that expression is shown), followed by some action buttons, and the code of
+the expression as it existed when the report was generated.
+(The code is truncated for compactness, but if you hover the mouse over it, you can see the full content).
 
-The action buttons let you edit the expression (the pencil) or
-simulate it (the play button) if that makes sense for the expression
-type. Clicking the pencil will tell Beat Link Trigger to open the
-editor window for that expression, or bring it to the front if it was
-already open. (If you are editing a cue expression, the Cues Editor
-window for that track or phrase trigger will also be opened if it
-wasn’t already.)
+TIP: If an expression is currently being ignored because of the configuration of the show, a red note is shown beneath the title explaining this.
 
-NOTE: The action buttons will only work if you have enabled report
-actions in the <<Shows.adoc#show-menu-bar,show menu bar>>. The report
-will remind you of this if you try to use one and you haven’t yet
-enabled them.
+The action buttons let you edit the expression (the pencil) or simulate it (the play button) if that makes sense for the expression type.
+Clicking the pencil will tell Beat Link Trigger to open the editor window for that expression, or bring it to the front if it was already open.
+(If you are editing a cue expression, the Cues Editor window for that track or phrase trigger will also be opened if it wasn’t already.)
 
-The simulate (play) buttons will run the version of the expression
-that was most recently saved, which might be different from what is
-shown in the report if you haven’t refreshed it recently, and might be
-different from the expression editor window if that is open and
-contains unsaved changes.
+NOTE: The action buttons will only work if you have enabled report actions in the <<Shows.adoc#show-menu-bar,show menu bar>>.
+The report will remind you of this if you try to use one without first enabling them.
 
-## Navigation
+The simulate (play) buttons will run the version of the expression that was most recently saved, which might be different from what is shown in the report if you haven’t refreshed it recently, and might be different from the expression editor window if that is open and contains unsaved changes.
+This is different from the Simulate button in the expression editor window, which always runs the code as it is currently displayed in the editor.
 
-You can find expressions by using your browser’s text search feature
-(which is especially helpful if you are hunting for a piece of code
-you want to reuse in a different expression). But you can also jump to
-a particular section of the report using the
-menu:View in Expression Report[] option in any
-<<Expressions.adoc#editor-menus,expression
-editor context menu>>, and the context menus of
-<<Shows_Tracks.adoc#track-context-menu,tracks>>,
-<<Shows_PhraseTriggers.adoc#context-menu,phrase triggers>>, and
-<<Shows_Cues.adoc#cue-context-menu,cues>>.
-This offers a convenient way of seeing all the related expressions in
-one place, and simulating them in sequence to validate how they will
-behave in an actual performance.
+== Navigation
 
-You can also navigate the other direction by clicking the gear button
-that appears at the end of each section title in the report. That will
-bring the <<Shows.adoc#show-window-header-elements,show window>> to
-the front for the show-level expressions. For a track section, in
-addition to doing that, it will scroll that <<Shows_Tracks.adoc#,track
-row>> into view. For a phrase trigger section it will do the same with
-the <<Shows_PhraseTriggers.adoc#,phrase trigger row>>. And for a cue
-section, it will open (or bring to the front) the appropriate Cues
-Editor window, and scroll the right
-<<Shows_Cues.adoc#cue-row-elements,cue row>> into view.
+You can find expressions by using your browser’s text search feature (which is especially helpful if you are hunting for a piece of code you want to reuse in a different expression).
+But you can also jump to a particular section of the report using the menu:View in Expression Report[] option in any <<Expressions.adoc#editor-menus,expression editor context menu>>, and the context menus of <<Shows_Tracks.adoc#track-context-menu,tracks>>, <<Shows_PhraseTriggers.adoc#context-menu,phrase triggers>>, and <<Shows_Cues.adoc#cue-context-menu,cues>>.
+This offers a convenient way of seeing all the related expressions in one place, and simulating them in sequence to validate how they will behave in an actual performance.
 
-Navigating back and forth like this can turn the expressions report
-into a powerful way to build and validate a related set of
-expressions, even in a large show.
+You can also navigate the other direction by clicking the gear button that appears at the end of each section title in the report.
+That will bring the <<Shows.adoc#show-window-header-elements,show window>> to
+the front for the show-level expressions.
+For a track or raw trigger section (including trigger rows in the Triggers window report), in addition to doing that, it will scroll that <<Shows_Tracks.adoc#,track row>> or <<Triggers.adoc#overview,trigger>> into view.
+For a phrase trigger section it will do the same with the <<Shows_PhraseTriggers.adoc#,phrase trigger row>>.
+And for a cue section, it will open (or bring to the front) the appropriate Cues Editor window, and scroll the right <<Shows_Cues.adoc#cue-row-elements,cue row>> into view.
+
+Navigating back and forth like this can turn the expressions report into a powerful way to build and validate a related set of expressions, even in a large show.
