@@ -10,6 +10,6 @@ IgnoreURLs:
   - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"
   - "//liberapay.com/"
   - "//opensource.org/licenses/"
-  - "//packetsender.com/"
+  - "//packetsender.com"
   - "//unix.stackexchange.com/questions/405229/"
   - "//www.wireshark.org"
