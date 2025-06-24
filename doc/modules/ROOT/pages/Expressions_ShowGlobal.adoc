@@ -1,115 +1,75 @@
 = Show Global Expressions
 
-The Tracks menu at the top of a Show window lets you define
-expressions that can manage values you want to make available to all
-your other expressions within the Show. The
-<<Expressions_ShowShared.adoc#,previous section>> explained how to
-share functions with all the expressions in your show. Now we will
-look at how to manage values for them during the show lifecycle.
+The Tracks menu at the top of a Show window lets you define expressions that can manage values you want to make available to all your other expressions within the Show.
+The <<Expressions_ShowShared.adoc#,previous section>> explained how to share functions with all the expressions in your show. Now we will look at how to manage values for them during the show lifecycle.
 
-All Show expressions have access to a Clojure
-http://clojure.org/reference/atoms[atom] named `globals` that is
-shared with all other Show expressions, so that’s a great place to put
-things for them to find. The atom starts out holding an empty
-http://clojure.org/reference/data_structures#Maps[map], which allows
-you to add key/value pairs to organize the information you want to
-share across expressions. Show expressions also all have access to the
-Triggers window globals atom, under the name `trigger-globals`.
+All Show expressions have access to a Clojure http://clojure.org/reference/atoms[atom] named `globals` that is shared with all other expressions in the same Show (it is defined in the namespace that is created to comple the show’s expressions), so that’s a great place to put things for them to find.
+Starting with <<Expressions_v8.adoc#,version 8 of BLT>>, you are also welcome to define other vars and atoms within that namespace for the use of your expressions.
+The `globals` atom starts out holding an empty http://clojure.org/reference/data_structures#Maps[map], which allows you to add key/value pairs to organize the information you want to share across expressions.
 
-Also, all expressions that run in a show have access to a value `show`
-that contains everything Beat Link Trigger knows about the show, which
-can be <<ShowInternals.adoc#show,useful>>.
+NOTE: While Show expressions also all have access to the Triggers window globals atom, under the name `trigger-globals`, using this is now deprecated, because it risks shows interfering with each other and with triggers they don’t know about.
+If your show is contributing <<Shows_RawTriggers.adoc#,raw triggers>> to the Triggers window, the safer way to share data with them is for them to use the new <<Expressions_v8.adoc#accessing-show-from-raw,`show-shared` alias>> to access the namespace of the show they came from.
+
+Also, all expressions that run in a show have access to a value `show` that contains everything Beat Link Trigger knows about the show, which can be <<ShowInternals.adoc#show,useful>>.
+(And even though this does not include raw triggers that a show contributes to the Triggers window, those can indirectly access information about the show by calling show Shared Functions through the `show-shared` alias described above.)
 
 [[show-global-setup-expression]]
 == Global Setup Expression
 
-This is run when the Show file is opened, either because you
-explicitly opened it using the Triggers window menu:File[] menu, or
-because Beat Link Trigger automatically reopened it at launch because
-you had it open the last time you used the program. You can use it to
-open network connections or set up other values for your Track and Cue
-expressions to use.
+This is run when the Show file is opened, either because you explicitly opened it using the Triggers window menu:File[] menu, or because Beat Link Trigger automatically reopened it at launch (which it will do if you had it open the last time you quit the program).
+You can use this expression to open network connections or set up other values for your Track, Phrase Trigger, and Cue expressions to use.
 
-One very powerful use of this expression is to create a custom user
-interface for special integration shows that don't use tracks and
-phrase triggers, by calling `show/block-tracks` as described in the
-<<Debugging.adoc#wireshark,Wireshark debugging section>> and the
-<<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> and
-<<Integration_QLC.adoc#,QLC+ Lighting Cues>> integration examples. The
-last one also shows how to use `socket-picker/show` to present a
-user-friendly interface for configuring a host and port for an
-integration to communicate with.
+One very powerful—though advanced—use of this expression is to create a custom user interface for special integration shows that don't use tracks and phrase triggers, but can add totally new features to BLT.
+This is accomplished by calling `show/block-tracks` as described in the <<Debugging.adoc#wireshark,Wireshark debugging section>> and the <<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> and <<Integration_QLC.adoc#,QLC+ Lighting Cues>> integration examples (among others).
+The last one also shows how to use `socket-picker/show` to present a user-friendly interface for configuring a host and port for the integration to communicate with.
 
 [[show-came-online-expression]]
 == Came Online Expression
 
-This is run whenever the show is opened when Beat Link Trigger is
-already connected to a DJ Link network, or if you have told it
-manually to go online with the show already open. When opening the
-show it will run after the <<show-global-setup-expression,Global Setup
-expression>> as long as you are online. It runs by itself when you
-choose menu:Network[Online?] to successfully transition from an
-offline to an online state.
+This is run whenever the show is opened when Beat Link Trigger is already connected to a DJ Link network, or if you have told it manually to go online with the show already open.
+When opening the show it will run after the <<show-global-setup-expression,Global Setup expression>> as long as you are online.
+It runs by itself when you choose menu:Network[Online?] to successfully transition from an offline to an online state.
 
-You have access to the show and triggers globals if you need to use
-anything in them.
-
+You have access to the show globals if you need to use anything in them.
 
 [[show-default-enabled-filter-expression]]
 == Default Enabled Filter Expression
 
-The basic concept of an Enabled Filter is described in the
-<<Expressions.adoc#editing-expressions,introduction>> to the
-Expressions section; shows use them in a similar way. Each Track that
-you are watching in the Show can be enabled separately. If the track’s
-menu:Enabled[] menu is set to Default, that track will look to the
-show itself to decide whether it should be enabled. There is an
-Enabled Default menu at the top of the Show window that is used by all
-tracks whose Enabled mode is Default. If the Show’s Enabled Default is
-set to Custom, it will run your Default Enabled Filter Expression to
-decide what to do. If your expression returns a `true` value, all
-these tracks will be enabled; otherwise they will be disabled.
+The basic concept of an Enabled Filter is described in the <<Expressions.adoc#editing-expressions,introduction>> to the Expressions section; shows use them in a similar way.
+Each Track that you are watching in the Show can be enabled separately.
+If the track’s menu:Enabled[] menu is set to Default, that track will look to the show itself to decide whether it should be enabled.
+There is an Enabled Default menu at the top of the Show window that is used by all
+tracks whose Enabled mode is Default.
+If the Show’s Enabled Default is set to Custom, it will run your Default Enabled Filter Expression to decide what to do.
+If that expression returns a `true` value, all these tracks will be enabled; otherwise they will be disabled.
 
-Disabled Tracks do not respond to being played, and all of their
-configured cues are disabled.
+Disabled Tracks do not respond to being played, and all of their configured cues are disabled.
 
 [[show-enhanced-on-air-example]]
 === Enhanced On-Air Example
 
-As an example of a useful Default Enabled Filter Expression, one of
-the most convenient Default Enabled Filter options is `On-Air`, which
-will prevent your tracks from being inadvertently enabled when a DJ is
-just previewing tracks in his headphones, but will enable them once
-they are actually playing through the house speakers. But this setting
-runs into trouble if the DJ also likes to fade out tracks to coax the
-audience to sing along: your On-Air filter will interrupt your cues
-while the track is faded out completely.
+As an example of a useful Default Enabled Filter Expression, one of the most convenient Default Enabled Filter options is `On-Air`, which will prevent your tracks from being inadvertently enabled when a DJ is just previewing tracks in her headphones, but will enable them once they are actually playing through the house speakers.
+But this setting runs into trouble if the DJ also likes to fade out tracks to coax the
+audience to sing along: your On-Air filter will interrupt your cues while the track is faded out completely.
 
-To fix this, we can write a Default Enabled Filter expression that
-enables the tracks both when they are On-Air, and when they
-temporarily go off the air, as long as they are still playing, and
-were previously enabled. Here's a first draft of a Default Enabled
-Filter expression code that implements this goal (but read on before
-you use it, for an even better version):
+To fix this, we can write a Default Enabled Filter expression that enables the tracks both when they are On-Air, and when they temporarily go off the air, as long as they are still playing, and were previously enabled.
+Here's a first draft of some Default Enabled Filter expression code that implements this goal (but read on before you use it, for an even better version):
 
-```clojure
+[source,clojure]
+----
 (let [new-state (swap! globals update-in [:previously-enabled device-number]
                        (fn [was-enabled?]
                          (and playing? (or on-air? was-enabled?))))]
     (or (get-in new-state [:previously-enabled device-number])
         on-air?))
 
-```
+----
 
-This works pretty well under most circumstances, but you will discover
-that if the DJ happens to have the same track loaded into more than
-one player, this expression will get confused, and the track will
-flash between enabled and disabled when only one player is on-air. To
-fix that, we need to extend the expression so that we track the
-"on-air locked" state for each such player separately. Here is how we
-can do that:
+This works pretty well under most circumstances, but you will discover that if the DJ happens to have the same track loaded into more than one player, this expression will get confused, and the track will flash between enabled and disabled when only one player is on-air.
+To fix that, we need to extend the expression so that we track the "on-air locked" state for each such player separately. Here is how we can do that:
 
-```clojure
+[source,clojure]
+----
 (let [signature   (get-in show [:loaded device-number])
       any-on-air? ((set (vals (:on-air show))) signature)
       new-state   (swap! globals update :enable-locked
@@ -121,33 +81,26 @@ can do that:
                                (dissoc old-locks device-number)))))]
   (or (get-in new-state [:enable-locked device-number])
       any-on-air?))
-```
+----
 
-NOTE: These kinds of multi-player issues presented some of the biggest
-challenges when adding the Show feature to Beat Link Trigger.
-
+NOTE: These kinds of multi-player issues presented some of the biggest challenges when adding the Show feature to Beat Link Trigger.
 
 [[show-going-offline-expression]]
 == Going Offline Expression
 
-This is run whenever the show is open, Beat Link Trigger was online,
-and you manually take it offline by choosing menu:Network[Online?],
-when you close the Show file, or exit the program. In any of the
-situations where you are doing more than just going offline, it runs
-right before the <<show-global-shutdown-expression,Global Shutdown
-expression>>. It gives you a chance to gracefully close any
-connections and release any system resources you allocated in your
-<<show-came-online-expression,Came Online Expression>>.
+This is run whenever the show is open, Beat Link Trigger was online, and you:
 
-You have access to the show and triggers globals if you need to use
-anything in them.
+* manually take it offline by choosing menu:Network[Online?],
+* close the Show file, or
+* exit the program.
 
+In any of the situations where you are doing more than just going offline, it runs right before the <<show-global-shutdown-expression,Global Shutdown expression>>.
+It gives you a chance to gracefully close any connections and release any system resources you allocated in your <<show-came-online-expression,Came Online Expression>>.
+
+You have access to the show and triggers globals if you need to use anything in them.
 
 [[show-global-shutdown-expression]]
 == Global Shutdown Expression
 
-This is run when the Show file is closed, either because you closed
-the window, or because Beat Link Trigger is shutting down. You can use
-it to close any network connections or clean up any other resources
-your <<show-global-setup-expression,Global Setup Expression>>
-allocated.
+This is run when the Show file is closed, either because you closed the window, or because Beat Link Trigger is shutting down.
+You can use it to close any network connections or clean up any other resources your <<show-global-setup-expression,Global Setup Expression>> allocated.
