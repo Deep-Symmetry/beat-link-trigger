@@ -909,9 +909,9 @@
    (expression-report-link file nil))
   ([^File file anchor]
    (let [port           (help/help-server)
+         show-segment   (when file (str "?show="  (hiccup.util/url-encode (.getAbsolutePath file))))
          anchor-segment (when anchor (str "#" anchor))]
-     (str "http://127.0.0.1:" port "/show/reports/expressions?show=" (hiccup.util/url-encode (.getAbsolutePath file))
-          anchor-segment))))
+     (str "http://127.0.0.1:" port "/show/reports/expressions" show-segment anchor-segment))))
 
 (defn view-expressions-in-report-action
   "Creates a vector containing the menu action which opens the expression

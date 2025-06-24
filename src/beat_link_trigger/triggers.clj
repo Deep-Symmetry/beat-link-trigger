@@ -959,6 +959,15 @@
                                                             (util/inspect-failed t))))
                                        :name "Inspect Expression Locals"
                                        :tip "Examine any values set as Trigger locals by its Expressions.")
+         report-actions (fn []
+                          [(seesaw/action
+                            :handler (fn [_]
+                                       (when (help/help-server)
+                                         (clojure.java.browse/browse-url
+                                          (show-util/expression-report-link
+                                           (:show-file @(seesaw/user-data panel))
+                                           ((requiring-resolve 'beat-link-trigger.editors/triggers-report-tag) panel)))))
+                            :name "View Expressions in Report")])
          editor-actions (fn []
                           (for [[kind spec] editors/trigger-editors]
                             (let [update-fn (fn []
@@ -992,7 +1001,7 @@
                                           :handler (fn [_] (binding [util/*simulating* (util/data-for-simulation)]
                                                              (report-deactivation panel (show-util/random-cdj-status)
                                                                                   @(seesaw/user-data panel) false))))])
-         popup-fn       (fn [_] (concat (editor-actions)
+         popup-fn       (fn [_] (concat (report-actions) (editor-actions)
                                         [(seesaw/separator) (seesaw/menu :text "Simulate" :items (sim-actions))
                                          inspect-action (seesaw/separator) import-action export-action]
                                         (when (or (:show-file @(seesaw/user-data panel))

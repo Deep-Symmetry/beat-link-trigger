@@ -1762,9 +1762,6 @@ a {
                               (clojure.java.browse/browse-url (show-util/expression-report-link (:file show) tag))))
                  :name "View in Expression Report"
                  :key "menu E"))
-;; For reasons incomprehesible, adding a :key to the report action just results in a beep and not even
-;; running the first line in the handler! I would like menu-shift-V to run it, but so far that is not
-;; possible.
 
 (defn- build-menubar
   "Creates the menu bar for an editor window."
@@ -1850,6 +1847,14 @@ a {
   [editor dark? _preferences]
   (.apply ^org.fife.ui.rsyntaxtextarea.Theme (@editor-themes dark?) editor))
 
+(defn triggers-report-tag
+  "Determines the anchor that will scroll the expression report to the
+  section for the specified trigger."
+  [trigger]
+  (let [index   (seesaw/select trigger [:#index])
+        uuid    (seesaw/user-data index)]
+    (str "trigger-" uuid)))
+
 (defn- create-triggers-editor-window
   "Create and show a window for editing the Clojure code of a particular
   kind of Triggers window expression, with an update function to be
@@ -1865,7 +1870,9 @@ a {
         scroll-pane     (org.fife.ui.rtextarea.RTextScrollPane. editor)
         editor-panel    (org.fife.rsta.ui.CollapsibleSectionPanel.)
         status-label    (seesaw/label)
-        tools           (build-search-tools root editor status-label)
+        show            (show-util/latest-show (:show-file @(seesaw/user-data trigger)))
+        tools           (assoc (build-search-tools root editor status-label) :report-action
+                               (build-report-action show (triggers-report-tag trigger)))
         update-action   (build-update-action editor save-fn)
         simulate-action (build-trigger-simulate-action editor editors-map kind trigger global?)
         ^JTextPane help (seesaw/styled-text :id :help :wrap-lines? true)
