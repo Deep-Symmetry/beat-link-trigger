@@ -1,7 +1,7 @@
 = Show Cue Expressions
 include::partial$PagePreamble.adoc[]
 
-Each Cue you add to a show <<Shows_Tracks.adoc#,track>> (or <<Shows_PhraseTriggers.adoc#,phrase trigger>>) can have its own set of expressions which apply to that cue, allowing you to take actions when some player moves into or out of that cue, if the cue starts playing on its first beat or from some point later within the cue, or if it stops playing.
+Each Cue you add to a show xref:Shows_Tracks.adoc[track] (or xref:Shows_PhraseTriggers.adoc[phrase trigger]) can have its own set of expressions which apply to that cue, allowing you to take actions when some player moves into or out of that cue, if the cue starts playing on its first beat or from some point later within the cue, or if it stops playing.
 
 The cue expressions can be accessed from the cue’s context menu. Cues have access to the same `globals`, `trigger-globals`, and `locals` atoms, and `show` and `track` or `phrase` values that track expressions in the cue’s track or phrase trigger do. They also can use a `cue` value that contains everything Beat Link Trigger <<ShowInternals.adoc#cue,knows about the cue>>, and individual kinds of expressions will automatically have other values available to them which make sense in the context in which the expression is used.
 

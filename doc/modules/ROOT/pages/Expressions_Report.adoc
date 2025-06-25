@@ -1,18 +1,18 @@
 = Expressions Report
 include::partial$PagePreamble.adoc[]
 
-A show can end up containing a great many <<Expressions.adoc#,Expressions>> as it grows: they can be attached to the <<Expressions_ShowShared.adoc#,show itself>>, <<Expressions_ShowTrack.adoc#,tracks>>, <<Expressions_PhraseTrigger.adoc#,phrase triggers>>, and <<Expressions_ShowCue.adoc#,cues>> within the tracks and phrase  triggers.
+A show can end up containing a great many xref:Expressions.adoc[Expressions] as it grows: they can be attached to the xref:Expressions_ShowShared.adoc[show itself], xref:Expressions_ShowTrack.adoc[tracks], xref:Expressions_PhraseTrigger.adoc[phrase triggers], and xref:Expressions_ShowCue.adoc[cues] within the tracks and phrase  triggers.
 Finding and keeping track of them all using only the editor windows accessed through context menus would be a significant challenge, which is why the Expressions Report was added.
 
-NOTE: Though the expressions report mechanism was created for shows, it proved so useful that it was later extended to the <<Triggers.adoc#,Triggers>> window as well.
-You can now create a report about that window's <<Expressions_TriggerGlobal.adoc#,global expressions>> and the expressions belonging to each <<Expressions_Trigger.adoc#,trigger>> through the Triggers window menu:File[] menu.
+NOTE: Though the expressions report mechanism was created for shows, it proved so useful that it was later extended to the xref:Triggers.adoc[Triggers] window as well.
+You can now create a report about that window's xref:Expressions_TriggerGlobal.adoc[global expressions] and the expressions belonging to each xref:Expressions_Trigger.adoc[trigger] through the Triggers window menu:File[] menu.
 It has the same features and capabilities as reports for shows.
 
 The report is broken down into sections.
 At the top the expressions which apply to the show as a whole.
 These are followed by expressions at the track level for each track that has them, and then for each cue within that track that has expressions.
 Then any phrase triggers with expressions are listed, followed by any cues within the phrase triggers which have their own expressions.
-Finally, any expressions belonging to <<Shows_RawTriggers.adoc#,Raw Triggers>> from the show are listed, even though they appear in the Triggers window while the show is open.
+Finally, any expressions belonging to xref:Shows_RawTriggers.adoc[Raw Triggers] from the show are listed, even though they appear in the Triggers window while the show is open.
 
 image:ExpressionsReport.png[alt=Expressions Report,width=1200,height=880]
 
@@ -43,8 +43,8 @@ This offers a convenient way of seeing all the related expressions in one place,
 You can also navigate the other direction by clicking the gear button that appears at the end of each section title in the report.
 That will bring the <<Shows.adoc#show-window-header-elements,show window>> to
 the front for the show-level expressions.
-For a track or raw trigger section (including trigger rows in the Triggers window report), in addition to doing that, it will scroll that <<Shows_Tracks.adoc#,track row>> or <<Triggers.adoc#overview,trigger>> into view.
-For a phrase trigger section it will do the same with the <<Shows_PhraseTriggers.adoc#,phrase trigger row>>.
+For a track or raw trigger section (including trigger rows in the Triggers window report), in addition to doing that, it will scroll that xref:Shows_Tracks.adoc[track row] or xref:Triggers.adoc#overview[trigger] into view.
+For a phrase trigger section it will do the same with the xref:Shows_PhraseTriggers.adoc[phrase trigger row].
 And for a cue section, it will open (or bring to the front) the appropriate Cues Editor window, and scroll the right <<Shows_Cues.adoc#cue-row-elements,cue row>> into view.
 
 Navigating back and forth like this can turn the expressions report into a powerful way to build and validate a related set of expressions, even in a large show.

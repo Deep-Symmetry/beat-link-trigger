@@ -8,7 +8,7 @@ TIP: Between tracks, phrase triggers, and all the cues you might put inside them
 The Tracks menu at the top of a Show window lets you define expressions that can manage values you want to make available to all your other expressions within the Show. Most of them are described in the xref:Expressions_ShowGlobal.adoc[next section], but we will look at how to set up shared functions for use in all your show expressions here.
 
 Just like in the Triggers window, if you start writing complex expressions in your Show, you will find yourself repeating common pieces of code over and over again in multiple expressions.
-The best way to deal with that is to pull out the repetetive part and write it as a function, which can then be called from any expression that wants to use it.
+The best way to deal with that is to pull out the repetitive part and write it as a function, which can then be called from any expression that wants to use it.
 In Clojure, you use `defn` to define a function, and choosing menu:Tracks[Edit Shared Functions] brings up an editor window that is the place where you should organize all the shared functions you want your Show expressions to use.
 
 The Shared Functions will be loaded before any of your Show expressions are compiled.

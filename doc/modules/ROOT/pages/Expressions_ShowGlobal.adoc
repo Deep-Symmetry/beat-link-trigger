@@ -1,14 +1,14 @@
 = Show Global Expressions
 
 The Tracks menu at the top of a Show window lets you define expressions that can manage values you want to make available to all your other expressions within the Show.
-The <<Expressions_ShowShared.adoc#,previous section>> explained how to share functions with all the expressions in your show. Now we will look at how to manage values for them during the show lifecycle.
+The xref:Expressions_ShowShared.adoc[previous section] explained how to share functions with all the expressions in your show. Now we will look at how to manage values for them during the show lifecycle.
 
-All Show expressions have access to a Clojure http://clojure.org/reference/atoms[atom] named `globals` that is shared with all other expressions in the same Show (it is defined in the namespace that is created to comple the show’s expressions), so that’s a great place to put things for them to find.
-Starting with <<Expressions_v8.adoc#,version 8 of BLT>>, you are also welcome to define other vars and atoms within that namespace for the use of your expressions.
+All Show expressions have access to a Clojure http://clojure.org/reference/atoms[atom] named `globals` that is shared with all other expressions in the same Show (it is defined in the namespace that is created to compile the show’s expressions), so that’s a great place to put things for them to find.
+Starting with xref:Expressions_v8.adoc[version 8 of BLT], you are also welcome to define other vars and atoms within that namespace for the use of your expressions.
 The `globals` atom starts out holding an empty http://clojure.org/reference/data_structures#Maps[map], which allows you to add key/value pairs to organize the information you want to share across expressions.
 
 NOTE: While Show expressions also all have access to the Triggers window globals atom, under the name `trigger-globals`, using this is now deprecated, because it risks shows interfering with each other and with triggers they don’t know about.
-If your show is contributing <<Shows_RawTriggers.adoc#,raw triggers>> to the Triggers window, the safer way to share data with them is for them to use the new <<Expressions_v8.adoc#accessing-show-from-raw,`show-shared` alias>> to access the namespace of the show they came from.
+If your show is contributing xref:Shows_RawTriggers.adoc[raw triggers] to the Triggers window, the safer way to share data with them is for them to use the new <<Expressions_v8.adoc#accessing-show-from-raw,`show-shared` alias>> to access the namespace of the show they came from.
 
 Also, all expressions that run in a show have access to a value `show` that contains everything Beat Link Trigger knows about the show, which can be <<ShowInternals.adoc#show,useful>>.
 (And even though this does not include raw triggers that a show contributes to the Triggers window, those can indirectly access information about the show by calling show Shared Functions through the `show-shared` alias described above.)
@@ -20,7 +20,7 @@ This is run when the Show file is opened, either because you explicitly opened i
 You can use this expression to open network connections or set up other values for your Track, Phrase Trigger, and Cue expressions to use.
 
 One very powerful—though advanced—use of this expression is to create a custom user interface for special integration shows that don't use tracks and phrase triggers, but can add totally new features to BLT.
-This is accomplished by calling `show/block-tracks` as described in the <<Debugging.adoc#wireshark,Wireshark debugging section>> and the <<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> and <<Integration_QLC.adoc#,QLC+ Lighting Cues>> integration examples (among others).
+This is accomplished by calling `show/block-tracks` as described in the <<Debugging.adoc#wireshark,Wireshark debugging section>> and the xref:Integration_XoneOnAir.adoc[Xone:96 Channels on Air] and xref:Integration_QLC.adoc[QLC+ Lighting Cues] integration examples (among others).
 The last one also shows how to use `socket-picker/show` to present a user-friendly interface for configuring a host and port for the integration to communicate with.
 
 [[show-came-online-expression]]
@@ -55,7 +55,7 @@ audience to sing along: your On-Air filter will interrupt your cues while the tr
 To fix this, we can write a Default Enabled Filter expression that enables the tracks both when they are On-Air, and when they temporarily go off the air, as long as they are still playing, and were previously enabled.
 Here's a first draft of some Default Enabled Filter expression code that implements this goal (but read on before you use it, for an even better version):
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (let [new-state (swap! globals update-in [:previously-enabled device-number]
                        (fn [was-enabled?]
@@ -68,7 +68,7 @@ Here's a first draft of some Default Enabled Filter expression code that impleme
 This works pretty well under most circumstances, but you will discover that if the DJ happens to have the same track loaded into more than one player, this expression will get confused, and the track will flash between enabled and disabled when only one player is on-air.
 To fix that, we need to extend the expression so that we track the "on-air locked" state for each such player separately. Here is how we can do that:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (let [signature   (get-in show [:loaded device-number])
       any-on-air? ((set (vals (:on-air show))) signature)

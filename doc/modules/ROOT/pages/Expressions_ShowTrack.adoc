@@ -40,7 +40,7 @@ But this runs into trouble if the DJ also likes to fade out tracks to coax the a
 To fix this, we can write an Enabled Filter expression that enables the track both when it is On-Air, and when it temporarily goes off the air, as long as it is still playing, and was previously enabled.
 Here's the custom Enabled Filter expression code that implements this goal:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (let [signature   (get-in show [:loaded device-number])
       any-on-air? ((set (vals (:on-air show))) signature)
@@ -84,7 +84,7 @@ This expression is only called when the track is enabled (disabled tracks are no
 
 As an example, here is a Playing Expression that would do the exact same thing as setting the track's menu:Playing Message[] menu to menu:Note[]:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (when midi-output
   (midi/midi-note-on midi-output playing-note 127 (dec playing-channel)))
@@ -124,7 +124,7 @@ A track will also report stopping if it becomes disabled while it was playing.
 
 To complete the example introduced in the Playing Expression <<track-playing-expression,above>>, here is an expression that sends the same MIDI event when a track stops that you get by setting the menu:Playing Message[] menu to menu:Note[]:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (when midi-output
   (midi/midi-note-off midi-output playing-note (dec playing-channel)))

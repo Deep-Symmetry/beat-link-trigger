@@ -116,7 +116,7 @@ We want to send messages to Resolume only when the trigger is active--which mean
 <2> We need to do a little bit of silly math because Beat Link Trigger represents the current pitch multiplier in a fairly straightforward way (a range where 0.0 means stopped, 1.0 means normal speed, and 2.0 means double time), while Resolume squashes that whole range into 0.0 to 1.0, slightly off-center.
 
 <3> With that calculation accomplished, we can simply send the appropriate OSC message to tell it the speed at which it should be playing.
-(The OSC path was found by Editing the OSC Applicaton Map within Arena and clicking on the parameter I wanted to control, as described in the https://resolume.com/training/2/13/76[online training].)
+(The OSC path was found by Editing the OSC Application Map within Arena and clicking on the parameter I wanted to control, as described in the https://resolume.com/training/2/13/76[online training].)
 
 There is one more improvement we can make, though. Our code as it stands sends an OSC message to Resolume for every status packet from the watched player, even when the pitch is not changing.
 That’s inefficient; it puts needless traffic on the network, and makes Resolume waste time processing messages that don’t change anything.
@@ -163,7 +163,7 @@ If you want to watch this happening, you can add a log statement that will repor
 
 <1> Here is the log statement we are adding.
 
-With this expression in place, when the trigger is active and you fiddle with the Pitch fader on the CDJ that is playing the track, you will see entries like this in the <<Debugging.adoc#logs,log file>>:
+With this expression in place, when the trigger is active, and you fiddle with the Pitch fader on the CDJ that is playing the track, you will see entries like this in the <<Debugging.adoc#logs,log file>>:
 
 [source,text]
 ----

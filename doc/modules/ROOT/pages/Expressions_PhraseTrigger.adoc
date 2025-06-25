@@ -2,9 +2,9 @@
 include::partial$PagePreamble.adoc[]
 
 Each phrase trigger you add to a show can have its own set of expressions which apply to that phrase trigger, allowing you to take actions when the phrase trigger starts or stops playing (because it has been successfully matched to a playing phrase), or as part of deciding whether it should match a phrase, and how likely it should be chosen if is a Solo phrase trigger in competition with other matched phrase triggers.
-To react to more specific regions of the phrase trigger, see the <<Expressions_ShowCue.adoc#,Cue Expressions, above>>.
+To react to more specific regions of the phrase trigger, see the xref:Expressions_ShowCue.adoc[Cue Expressions, above].
 
-The phrase trigger expressions can be accessed from the phrase trigger’s <<Shows_PhraseTriggers.adoc#context-menu,context menu>>.
+The phrase trigger expressions can be accessed from the phrase trigger’s xref:Shows_PhraseTriggers.adoc#context-menu[context menu].
 In addition to the `globals` and `trigger-globals` atoms and `show` value described above, these have access to a very similar `locals` atom which can be used to share values across expressions within the phrase trigger itself (but not other phrase triggers; each gets its own `locals` map), a `phrase` value that contains everything Beat Link Trigger <<ShowInternals.adoc#phrase-contents,knows about the phrase trigger>>, and individual kinds of expressions will automatically have other values available to them which make sense in the context in which the expression is used.
 
 TIP: The help text below the expression editor will list and explain the values that are automatically available for use in that kind of expression.
@@ -65,7 +65,7 @@ NOTE: If you want this expression to run, make sure the phrase trigger’s menu:
 As an example, here is a Playing Expression that would do the exact same thing as setting the phrase trigger's menu:Playing Message[] menu
 to menu:Note[]:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (when midi-output
   (midi/midi-note-on midi-output note 127 (dec channel)))
@@ -110,7 +110,7 @@ A phrase trigger will also report stopping if it becomes disabled while it was p
 
 To complete the example introduced in the Playing Expression <<playing-expression,above>>, here is an expression that sends the same MIDI event when a phrase trigger stops that you get by setting the menu:Playing Message[] menu to menu:Note[]:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (when midi-output
   (midi/midi-note-off midi-output note (dec channel)))

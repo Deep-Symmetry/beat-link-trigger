@@ -15,7 +15,7 @@ https://www.maria.cloud[Maria] is a fun, interactive online workbook that progre
 It’s worth checking out.
 ====
 
-If you are working with the new Show interface, rather than the low-level Triggers that were first implemented, then the expressions you’ll be using are covered in <<Expressions_ShowShared.adoc#,later sections>>, but you should at  least skim the Triggers expression explanations too, because they introduce some important concepts that are useful everywhere.
+If you are working with the new Show interface, rather than the low-level Triggers that were first implemented, then the expressions you’ll be using are covered in xref:Expressions_ShowShared.adoc[later sections], but you should at  least skim the Triggers expression explanations too, because they introduce some important concepts that are useful everywhere.
 
 == With Great Power comes Great Responsibility
 
@@ -40,7 +40,7 @@ The easiest solution is to have your asynchronous code inside the `future` block
 That is a quick operation.
 So as long as your code works (even if it doesn’t yet do anything) while the answer is still missing, it can check for it without blocking other activity, and use the response as soon as it becomes available in the expression local or global.
 
-TIP: There is an example of this sort of background communication in the <<Integration_ShowXpress.adoc#,ShowXpress integration example>>, and if you have a situation where you think you might need one and would like help, ask in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream], and perhaps we can turn your needs into a new example for future releases.
+TIP: There is an example of this sort of background communication in the xref:Integration_ShowXpress.adoc[ShowXpress integration example], and if you have a situation where you think you might need one and would like help, ask in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream], and perhaps we can turn your needs into a new example for future releases.
 
 Also, note that it is only sending two-way network communications that you really need to worry about. Sending MIDI messages and short one-way UDP messages (like OSC and some lighting controllers use) should be no problem without resorting to asynchronous code, and you will find examples of doing just that throughout this guide.
 
@@ -71,13 +71,13 @@ Try entering that as the Enabled Filter expression for your filter, set the Enab
 
 image:EnabledExample.png[Enabled Example,631,400]
 
-Of course, if you want something to happen when a particular track reaches a particular beat, the <<Shows.adoc#,Show interface>> is now a much easier and more powerful way to arrange that.
+Of course, if you want something to happen when a particular track reaches a particular beat, the xref:Shows.adoc[Show interface] is now a much easier and more powerful way to arrange that.
 Still, read on to keep learning the basic expression editing concepts.
 
 [TIP]
 ====
 As you use the editor, you will notice that it provides syntax coloring and parenthesis-matching help.
-But if you end up making a mistake in your expression, Beat Link Trigger will likely report a compilation error when you click kbd:[Update], and you can check the <<Debugging.adoc#logs,log>> for a more detailed stack trace.
+But if you end up making a mistake in your expression, Beat Link Trigger will likely report a compilation error when you click kbd:[Update], and you can check the xref:Debugging.adoc#logs[log] for a more detailed stack trace.
 You can try searching the web for information about the error, or looking in
 the Clojure https://clojure.org/guides/getting_started[documentation], but you can also ask for help in the Beat Link Trigger https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream].
 
@@ -109,13 +109,13 @@ This is slightly different from the Simulate submenu in the context menu that op
 the editor.
 This menu:Simulate[] option will only be available for expressions that can be simulated--that is, expressions which do appear in the outer menu:Simulate[] submenu.
 
-(Keep in mind that even when you can simulate it, if you have written an expression that relies on deeper interaction with <<ShowInternals.adoc#,show internals>> or the Pro DJ Link environment, it can’t be practically simulated in this way: you’ll need to hook up actual player hardware and create the situation that the expression responds to.
+(Keep in mind that even when you can simulate it, if you have written an expression that relies on deeper interaction with xref:ShowInternals.adoc[show internals] or the Pro DJ Link environment, it can’t be practically simulated in this way: you’ll need to hook up actual player hardware and create the situation that the expression responds to.
 But for many expressions this is a valuable testing and troubleshooting tool.)
 ====
 
 Of course if there are any errors in the syntax or semantics of your expression, they will be revealed in the attempt to simulate it as well.
 
-Finally, menu:File[View in Expression Report] tells your system browser to open the <<Expressions_Report.adoc#>> for the Triggers or Show window and scroll it to the section that holds this expression.
+Finally, menu:File[View in Expression Report] tells your system browser to open the xref:Expressions_Report.adoc[expressions report] for the Triggers or Show window and scroll it to the section that holds this expression.
 This allows you to compare it to the related expressions (and copy in relevant parts if they are helpful), or simulate more than one in sequence to test how they will interact in a real performance.
 
 The menu:Edit[] menu gives you access to the standard editing capabilities that were formerly available in the context menu (which you can bring up by right-clicking or control-clicking anywhere inside the editor text area), and shows you their keyboard equivalents.
@@ -151,7 +151,7 @@ Expressions for the Triggers window are compiled into the `beat-link-triggers.ex
 
 If you need the same functions in both your Show and Triggers expressions, put copies in both places.
 (This was even necessary before the functions were given separate namespaces, to ensure the Triggers expressions would work even if the Show was never opened.)
-Having multiple copies of a function is harmless, though you may want make sure you have exactly the same definition in both places, or you might confuse yourself!
+Having multiple copies of a function is harmless, though you may want to make sure you have exactly the same definition in both places, or you might confuse yourself!
 ====
 
-For a detailed (and amusing) look at defining and using shared functions in a show, check out the <<Integration_BreakBuddy.adoc#,Break Buddy>> integration example.
+For a detailed (and amusing) look at defining and using shared functions in a show, check out the xref:Integration_BreakBuddy.adoc[Break Buddy] integration example.

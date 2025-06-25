@@ -92,7 +92,7 @@ And if you do contact us directly, we will probably ask you to direct your quest
 ====
 Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily.Add the following function to your <<Expressions.adoc#shared-functions,Shared Functions>>:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (defn log-thread-dump
   "Writes a thread dump to the BLT log."
@@ -216,7 +216,7 @@ Here is what that looks like after the example code shown in the xref:Expression
 image:ExpressionGlobals.png[Expression Globals,872,462]
 
 The inspector is a little messy, but right away you can see the three keys we created, and the corresponding Java objects stored under them.
-By clicking next to the blue diamond in the lower pane, you can expand each entry and dive down into the fields and values that make it up, which can be quite a powerful way to explore the objects.
+By clicking next to the blue diamond in the lower pane, you can expand each entry and dive into the fields and values that make it up, which can be quite a powerful way to explore the objects.
 
 Similarly, the locals for a trigger can be inspected by choosing menu:Inspect Expression Locals[] from that trigger’s context menu.
 Here’s the result of drilling down a little into the `:resolume` OSC client object created in that example’s trigger:
@@ -246,7 +246,7 @@ As mentioned in the <<Triggers.adoc#context-menu,Triggers Context Menu>> section
 [[writing-playlists]]
 == Writing Playlists
 
-If you are in a situation where it is important to keep detailed records of the music being played (for example, a radio station that needs to pay royalties), the built in Playlist Writer can help.
+If you are in a situation where it is important to keep detailed records of the music being played (for example, a radio station that needs to pay royalties), the built-in Playlist Writer can help.
 It builds on the ideas described in the <<Matching.adoc#writing-a-playlist,Matching Tracks Manually>> section to give you a robust, convenient solution.
 
 Start by choosing menu:File[Write Playlist]. This will bring up the Playlist Writer window.
@@ -273,7 +273,7 @@ When you are done recording the playlist you can either click kbd:[Stop] or clos
 [[automatically-starting]]
 === Automatically Starting the Playlist Writer
 
-If you want to be sure that playlsits are always being written, you can use the <<Settings.adoc#playlists,Settings window>>.
+If you want to be sure that playlists are always being written, you can use the <<Settings.adoc#playlists,Settings window>>.
 
 Before that existed, you could add a line to your Came Online Expression that starts the playlist writer as soon as Beat Link Trigger is connected to a DJ Link network.
 It's still worth illustrating how that worked, as an example of coding in BLT.
@@ -347,7 +347,7 @@ Once you have your Remote REPL configuration created, it appears in the menu at 
 image:Cursive.png[Cursive connected,535,550]
 
 Whatever expressions you type at the bottom of the REPL window are immediately evaluated, and the results shown above, and you can use Cursive's editor window features to send functions and files to the REPL.
-Cursive's built-in completion can be seen in action at the bottom of the above screen shot.
+Cursive's built-in completion can be seen in action at the bottom of the above screenshot.
 See the https://cursive-ide.com/userguide/[Cursive User Guide] for more information.
 
 
