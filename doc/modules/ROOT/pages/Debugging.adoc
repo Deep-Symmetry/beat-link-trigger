@@ -1,7 +1,8 @@
 = Debugging and Sharing
 include::partial$PagePreamble.adoc[]
 
-Beat Link Trigger offers a few mechanisms to help you understand how  your triggers are (or are not) working, and to save and restore  versions of them, or share them with friends and colleagues (or on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream] or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki] to either get help from others, or share and show them off).
+[[contact-channels]]
+Beat Link Trigger offers a few mechanisms to help you understand how  your triggers are (or are not) working, and to save and restore versions of them, or share them with friends and colleagues (or on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream] or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki] to either get help from others, or share and show them off).
 +++<img
 src="_images/HelpMenu.png" width="250" height="205" alt="Help Menu"
 style="float:right"/>+++
@@ -23,7 +24,7 @@ Even if things are not crashing, you might want to log your own information to g
 
 For example, if you are trying to figure out exactly what you are receiving in your Beat expression, you could add this as its first line:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (timbre/info "Received beat" status "master?" tempo-master?)
 ----
@@ -86,9 +87,10 @@ In such cases https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-o
 
 And if you do contact us directly, we will probably ask you to direct your question to the Zulip channel unless there is some pressing reason why you absolutely can’t.
 
+[[logging-thread-dumps]]
 [TIP]
 ====
-Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily. Add the following function to your <<Expressions.adoc#shared-functions,Shared Functions>>:
+Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily.Add the following function to your <<Expressions.adoc#shared-functions,Shared Functions>>:
 
 [source,clojure]
 ----
@@ -103,18 +105,18 @@ Thread dumps can be very useful, and yet tedious to create, especially in Window
   (timbre/info "----- End of thread dump"))
 ----
 
-This defines a new shared function called `log-thread-dump` which writes a thread dump to the BLT log file. Then you can trigger one by editing your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>> and adding:
+This defines a new shared function called `log-thread-dump` which writes a thread dump to the BLT log file.Then you can trigger one by editing your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>> and adding:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (log-thread-dump)
 ----
 
-When you Update the Global Setup Expression to contain this call, BLT will immediately log a thread dump to the log file. You can make it happen again by editing the Global Setup Expression, adding a space at the end, and Updating it again.
+When you Update the Global Setup Expression to contain this call, BLT will immediately log a thread dump to the log file.You can make it happen again by editing the Global Setup Expression, adding a space at the end, and Updating it again.
 
 You will want to remember to take the `log-thread-dump` call back out of your Global Setup Expression when you are done troubleshooting, though, or you will get a thread dump in the log every time you start up BLT.
 
-If your user interface is getting locked up and preventing you from editing and saving the Global Setup expression, or you just find that too clumsy an approach, you can instead use a REPL connection to call`log-thread-dump`. First, install https://leiningen.org[Leiningen] on your system, then start up BLT's built-in nREPL server as described in<<#advanced-coding,Advanced Coding>>. Once the Run checkbox is active, open a command or terminal window, and type:
+If your user interface is getting locked up and preventing you from editing and saving the Global Setup expression, or you just find that too clumsy an approach, you can instead use a REPL connection to call`log-thread-dump`.First, install https://leiningen.org[Leiningen] on your system, then start up BLT's built-in nREPL server as described in<<#advanced-coding,Advanced Coding>>.Once the Run checkbox is active, open a command or terminal window, and type:
 
     lein repl :connect 17001
 
@@ -127,55 +129,41 @@ If your user interface is getting locked up and preventing you from editing and 
     beat-link-trigger loaded.
     user=>
 
-At this point you can type Clojure expressions and have them
-immediately evaluated. Tab-completion should work to help make thigs
-faster. Assuming you installed `log-thread-dump` as a Shared Function
-as described above, you can run it by typing this in the REPL:
+At this point you can type Clojure expressions and have them immediately evaluated.
+Tab-completion should work to help make things faster.
+Assuming you installed `log-thread-dump` as a Shared Function as described <<logging-thread-dumps,above>>, you can run it by typing this in the REPL:
 
-    (beat-link-trigger.expressions/log-thread-dump)
+[source,clojure,opts=novalidate]
+----
+(beat-link-trigger.expressions/log-thread-dump)
+----
 
-You will want to have set up this REPL connection, as well as opening
-the BLT logs folder, before doing the experiments that lead to the
-problem you are trying to debug, so that they will be ready and
-available even if the BLT user interface becomes unresponsive.
+You will want to have set up this REPL connection, as well as opening the BLT logs folder, before doing the experiments that lead to the problem you are trying to debug, so that they will be ready and available even if the BLT user interface becomes unresponsive.
 ====
 
 [[wireshark]]
 === Wireshark Captures
 
-If you are helping investigate an issue involving communication with
-the DJ Link gear (especially when new products are released), it will
-be necessary for you to include a packet capture of what was happening
-on the network when you saw the problem or tried to use the gear. For
-that, download and install https://www.wireshark.org[Wireshark], then
-perform a capture and include the file in your report.
+If you are helping investigate an issue involving communication with the DJ Link gear (especially when new products are released), it will be necessary for you to include a packet capture of what was happening on the network when you saw the problem or tried to use the gear.
+For that, download and install https://www.wireshark.org[Wireshark], then perform a capture and include the file in your report.
 
-To make it easier to understand how the capture relates to an issue
-you are seeing, it is even better if you can include a movie of your
-screen showing when the problem happens, and also include the precise
-timestamp in that video. The easiest way to have timestamps appear in
-your video is to download and <<Shows.adoc#opening-shows,open>> the
-link:{attachmentsdir}/Timestamp.bls[Timestamp show] that is embedded
-in this guide, and position its window near the part of your screen
-where you are capturing the issue. The Timestamp show looks like this:
+To make it easier to understand how the capture relates to an issue you are seeing, it is even better if you can include a movie of your screen showing when the problem happens, and also include the precise timestamp in that video.
+The easiest way to have timestamps appear in your video is to download and <<Shows.adoc#opening-shows,open>> the link:{attachmentsdir}/Timestamp.bls[Timestamp show] that is embedded in this guide, and position its window near the part of your screen where you are capturing the issue.
+The Timestamp show looks like this:
 
 image:TimestampShow.png[Timestamp Show,477,244]
 
-The timestamps it displays are identical to the ones that Wireshark
-writes in the capture file, which makes it possible to correlate
-things happening on the screen with packets in the capture.
+The timestamps it displays are identical to the ones that Wireshark writes in the capture file, which makes it possible to correlate things happening on the screen with packets in the capture.
 
-If there is room to have the Wireshark capture window appear in your
-video also, great! That can be very helpful, but the timestamp window
-is easier to read at small movie sizes.
+If there is room to have the Wireshark capture window appear in your video also, great!
+That can be very helpful, but the timestamp window is easier to read at small movie sizes.
 
 [NOTE]
 ====
-In case you are curious, the code that implements this Timestamp show
-is very short:
+In case you are curious, the code that implements this Timestamp show is very short:
 
 .Global Setup Expression
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (show/require-version show "0.5.5")  ;; <1>
 (swap! globals assoc :running true)  ;; <2>
@@ -194,307 +182,214 @@ is very short:
 
 <1> Check that the version of BLT is new enough for this show to work.
 
-<2> Set a `:running` flag that we can use to stop the animation thread
-(below).
+<2> Set a `:running` flag that we can use to stop the animation thread (below).
 
-<3> Update the show window to reflect that it does not use tracks,
-also replacing the normal content of the window with the big timestamp
-label.
+<3> Update the show window to reflect that it does not use tracks, also replacing the normal content of the window with the big timestamp label.
 
-<4> Create a background animation thread to update the label 30 times
-each second.
+<4> Create a background animation thread to update the label 30 times each second.
 
-And when the window closes, we tell the animation thread to stop by
-removing the `:running` flag:
+And when the window closes, we tell the animation thread to stop by removing the `:running` flag:
 
 .Global Shutdown Expression
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (swap! globals dissoc :running)
 ----
 
-Since those are the only things in the show, the file is only 560
-bytes long.
+Since those are the only things in the show, the file is only 560 bytes long.
 ====
 
 === GitHub Issues
 
-You can also skip the email and open an
-https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue]
-directly on the project’s GitHub page.
+If you have discussed your issue in the Zulip community as described <<contact-channels,above>>, and been informed that you have found something worth tracking as an issue on GitHub, you can open that https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue] directly on the project’s GitHub page.
 
-In any case, even if Deep Symmetry is unable to investigate your
-report immediately (since this is free software developed during our
-spare time), we very much appreciate you taking the effort to send it.
+In any case, even if Deep Symmetry is unable to investigate your report immediately (since this is free software developed during our spare time), we very much appreciate you taking the effort to send it.
 
 [[inspecting]]
 == Inspecting Locals and Globals
 
-In addition to logging values to the log file, you can get a glimpse
-at what your expressions are up to by opening an inspector window on
-the Expression Globals or a particular trigger’s Expression Locals.
-The first is done by choosing menu:Triggers[Inspect Expression
-Globals]. This opens a window showing you all the keys and values that
-have been created in the `globals` atom shared by all triggers. Here
-is what that looks like after the example code shown in the
-<<Expressions_TriggerGlobal.adoc#,Global Expressions section>> has run:
+In addition to logging values to the log file, you can get a glimpse at what your expressions are up to by opening an inspector window on the Expression Globals or a particular trigger’s Expression Locals.
+The first is done by choosing menu:Triggers[Inspect Expression Globals].
+This opens a window showing you all the keys and values that have been created in the `globals` atom shared by all triggers.
+Here is what that looks like after the example code shown in the xref:Expressions_TriggerGlobal.adoc[Global Expressions section] has run:
 
 image:ExpressionGlobals.png[Expression Globals,872,462]
 
-The inspector is a little messy, but right away you can see the three
-keys we created, and the corresponding Java objects stored under them.
-by clicking next to the blue diamond in the lower pane, you can expand
-each entry and dive down into the fields and values that make it up,
-which can be quite a powerful way to explore the objects.
+The inspector is a little messy, but right away you can see the three keys we created, and the corresponding Java objects stored under them.
+By clicking next to the blue diamond in the lower pane, you can expand each entry and dive down into the fields and values that make it up, which can be quite a powerful way to explore the objects.
 
-Similarly, the locals for a trigger can be inspected by choosing
-menu:Inspect Expression Locals[] from that trigger’s context menu.
-Here’s the result of drilling down a little into the `:resolume` OSC
-client object created in that example’s trigger:
+Similarly, the locals for a trigger can be inspected by choosing menu:Inspect Expression Locals[] from that trigger’s context menu.
+Here’s the result of drilling down a little into the `:resolume` OSC client object created in that example’s trigger:
 
 image:ExpressionLocals.png[Expression Locals,789,626]
 
 [[saving-and-loading]]
 == Saving and Loading
 
-The entire trigger configuration can be saved to a text file by
-choosing menu:File[Save to File]. That file can be sent to another
-machine, shared with a colleague, or just kept around for future use
-after you are done with a different project. As you would expect,
-menu:File[Load from File] replaces the current trigger configuration
-with one loaded from a save file.
+The entire trigger configuration can be saved to a text file by choosing menu:File[Save to File]. That file can be sent to another machine, shared with a colleague, or just kept around for future use after you are done with a different project.
+As you would expect, menu:File[Load from File] replaces the current trigger configuration with one loaded from a save file.
 
 [CAUTION]
 ====
-
-Beat Link Trigger automatically saves your triggers when you exit the
-program normally. If you shut down your computer, or otherwise
-force-quit the Beat Link Trigger process, it may not have the chance
-to do this, and you might lose work. If you are concerned about that
-happening, you can periodically manually save your current trigger
-configuration by choosing menu:File[Save].
+Beat Link Trigger automatically saves your triggers when you exit the program normally.
+If you shut down your computer, or otherwise force-quit the Beat Link Trigger process, it may not have the chance to do this, and you might lose work.
+If you are concerned about that happening, you can periodically manually save your current trigger configuration by choosing menu:File[Save].
 
 image:Save.png[Save option,204,173]
-
 ====
 
 [[exporting-and-importing]]
 === Exporting and Importing Triggers
 
-As mentioned in the <<Triggers.adoc#context-menu,Triggers Context Menu>>
-section, individual triggers can be exported on their own, and
-imported into other trigger configurations.
+As mentioned in the <<Triggers.adoc#context-menu,Triggers Context Menu>> section, individual triggers can be exported on their own, and imported into other trigger configurations.
 
 [[writing-playlists]]
 == Writing Playlists
 
-If you are in a situation where it is important to keep detailed
-records of the music being played (for example, a radio station that
-needs to pay royalties), the built in Playlist Writer can help. It
-builds on the ideas described in the
-<<Matching.adoc#writing-a-playlist,Matching Tracks Manually>> section
-to give you a robust, convenient solution.
+If you are in a situation where it is important to keep detailed records of the music being played (for example, a radio station that needs to pay royalties), the built in Playlist Writer can help.
+It builds on the ideas described in the <<Matching.adoc#writing-a-playlist,Matching Tracks Manually>> section to give you a robust, convenient solution.
 
-Start by choosing menu:File[Write Playlist]. This will bring up the
-Playlist Writer window.
+Start by choosing menu:File[Write Playlist]. This will bring up the Playlist Writer window.
 
 image:PlaylistWriter.png[Playlist Writer,587,344]
 
-You can configure how long a track needs to be played for before it
-gets included in the playlist (the default is ten seconds) and whether
-you want to ignore players that are not reporting themselves as being
-on the air (very convenient to ignore DJs pre-screening tracks, as
-long as you are using a DJM mixer that supports this feature, and the
-players are configured and connected properly).
+You can configure how long a track needs to be played for before it gets included in the playlist (the default is ten seconds) and whether you want to ignore players that are not reporting themselves as being on the air (very convenient to ignore DJs pre-screening tracks, as long as you are using a DJM mixer that supports this feature, and the players are configured and connected properly).
 
-You can also specify that a new playlist file should be started if a
-track is played after all players have been stopped for a while, and
-configure how many minutes can pass with no player playing before such
-a new playlist file is created. The default threshold for this when
-the auto-split feature is enabled is 30 minutes. When creating new
-files because this New Playlist Threshold has been exceeded, the file
-names have timestamps added to them as described in the
-<<#automatically-starting,next section>>.
+You can also specify that a new playlist file should be started if a track is played after all players have been stopped for a while, and configure how many minutes can pass with no player playing before such a new playlist file is created.
+The default threshold for this when the auto-split feature is enabled is 30 minutes.
+When creating new files because this New Playlist Threshold has been exceeded, the file
+names have timestamps added to them as described in the <<#automatically-starting,next section>>.
 
-Once everything is set the way you want it, click kbd:[Start] and you
-will be prompted to choose where to save the file. Once you have done
-that, the window updates to show you that the playlist is being written:
+Once everything is set the way you want it, click kbd:[Start] and you will be prompted to choose where to save the file.
+Once you have done that, the window updates to show you that the playlist is being written:
 
 image:PlaylistWriterActive.png[Playlist Writer active,587,344]
 
-From this point on, all tracks that play longer than your configured
-minimum time will be written to the playlist, in Comma-Separated Value
-format (for convenient use in spreadsheet programs). The playlist will
-include track titles, artists, albums (when this information is
-available), as well as the player they were played on, the source
-player and media type, when they started and stopped playing, and the
-total time they played.
+From this point on, all tracks that play longer than your configured minimum time will be written to the playlist, in Comma-Separated Value format (for convenient use in spreadsheet programs).
+The playlist will include track titles, artists, albums (when this information is available), as well as the player they were played on, the source player and media type, when they started and stopped playing, and the total time they played.
 
-When you are done recording the playlist you can either click kbd:[Stop]
-or close the window, and the file will be closed out.
+When you are done recording the playlist you can either click kbd:[Stop] or close the window, and the file will be finished and closed.
 
 [[automatically-starting]]
 === Automatically Starting the Playlist Writer
 
-If you want to be sure that playlsits are always being written, you
-can use the <<Settings.adoc#playlists,Settings window>>.
+If you want to be sure that playlsits are always being written, you can use the <<Settings.adoc#playlists,Settings window>>.
 
 Before that existed, you could add a line to your Came Online Expression that starts the playlist writer as soon as Beat Link Trigger is connected to a DJ Link network.
 It's still worth illustrating how that worked, as an example of coding in BLT.
-You would call the function `playlist-writer/write-playlist` with three arguments, `folder` (which determines the directory in which the playlist should be written), `prefix` (which specifies the first part of the playlist's filename), and `append?` which controls what happens if the file already exists.
+You would call the function `playlist-writer/write-playlist` with three arguments:
 
-The filename will be built by adding ".csv" after `prefix`. If a file
-by that name already exists in the specified `folder`, then if
-`append?` is true, the existing file will be used, and new tracks will
-be added to the end. If the file exists and `append?` is false, then a
-timestamp will be added in between the prefix and the ".csv" extension
-so that a new playlist file will always be created.
+* `folder`, which determines the directory in which the playlist should be written,
+* `prefix`, which specifies the first part of the playlist's filename, and
+* `append?`, which controls what happens if the file already exists.
+
+The filename will be built by adding ".csv" after `prefix`.
+If a file by that name already exists in the specified `folder`, then if `append?` is true, the existing file will be used, and new tracks will be added to the end.
+If the file exists and `append?` is false, then a timestamp will be added in between the prefix and the “.csv” extension so that a new playlist file will always be created.
 
 For example, consider the following code:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (playlist-writer/write-playlist "/Users/james/playlists" "playlist" false)
 ----
 
-With this in the Came Online Expression, whenever BLT establishes
-connection to a DJ Link network, a new playlist will be created in the
-directory `/Users/james/playlists/`. If there is not already such a
-file present, it will be called `/Users/james/playlists/playlist.csv`.
-If that file already exists, then a file with a name like
-`/Users/james/playlists/playlist_2022_02_20T17_16_19.csv` will be
-created, using the year, month, day, hour, minute, and second to
-ensure it is unique.
+With this in the Came Online Expression, whenever BLT establishes connection to a DJ Link network, a new playlist will be created in the directory `/Users/james/playlists/`.
+If there is not already such a file present, it will be called `/Users/james/playlists/playlist.csv`.
+If that file already exists, then a file with a name like `/Users/james/playlists/playlist_2022_02_20T17_16_19.csv` will be created, using the year, month, day, hour, minute, and second to ensure it is unique.
 
-Alternately, a line like the following would always use the file
-`/tmp/played.csv`, creating it and writing the header line if it did
-not exist, and otherwise just adding new tracks to the end of the
-file:
+Alternately, a line like the following would always use the file `/tmp/played.csv`, creating it and writing the header line if it did not exist, and otherwise just adding new tracks to the end of the file:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (playlist-writer/write-playlist "/tmp" "played" true)
 ----
 
-
 [[advanced-coding]]
 == Advanced Coding
 
-The built in code editor gives you some basic help with writing
-Clojure, such as syntax coloring and parenthesis matching, but if you
-are going to write more than a few lines, or want help learning
-Clojure and testing ideas, you are much better off using a
-full-featured Clojure development environment, like
-https://cursive-ide.com[Cursive] or (if you already use the Emacs text
-editor) https://cider.mx[CIDER].
+The built-in code editor gives you some basic help with writing Clojure, such as syntax coloring and parenthesis matching, but if you are going to write more than a few lines, or want help learning Clojure and testing ideas, you are much better off using a
+full-featured Clojure development environment, like https://cursive-ide.com[Cursive] or (if you already use the Emacs text editor) https://cider.mx[CIDER].
 
-Much of the power of these environments comes from the way they
-interact with the live, running Clojure environment so that you can
-benefit from code-completion assistance, documentation popups, and
-even dive into the source code of your functions and the ones that
-make up Beat Link Trigger itself, making it easy to try things out,
-update your functions, examine values, and try again. This kind of
-instant feedback leads to a fertile learning experience and incredibly
-productive development workflow centered around the Clojure “REPL”
-(read-eval-print loop).
+Much of the power of these environments comes from the way they interact with the live, running Clojure environment so that you can benefit from code-completion assistance, documentation popups, and even dive into the source code of your functions and the ones that make up Beat Link Trigger itself.
+This makes it easy to try things out, update your functions, examine values, and try again.
+This kind of instant feedback leads to a fertile learning experience and incredibly productive development workflow centered around the Clojure “REPL”  (read-eval-print loop).
 
-Beat Link Trigger has features to support working in these editors. At
-a basic level, the built-in code editor can save your expression or
-function code to an external text file, which you can edit in one of
-these environments, and then have the built-in editor load the results
-back in. But you will get the best results if you turn on a network
-REPL server inside BLT so the external IDE can connect to it and
-operate at full power.
+Beat Link Trigger has features to support working in these editors.
+At a basic level, the built-in code editor can save your expression or function code to an external text file, which you can edit in one of these environments, and then have the built-in editor load the results back in.
+But you will get the best results if you turn on a network REPL server inside BLT so the external IDE can connect to it and operate at full power.
 
 To do this, choose menu:Network[nREPL: Clojure IDE connection]:
 
 image:ReplMenu.png[nREPL menu option,360,200]
 
-This will open a small window which allows you to configure and start
-the nREPL server the IDEs can use:
+This will open a small window which allows you to configure and start the nREPL server the IDEs can use:
 
 image:ReplWindow.png[nREPL Server window,372,222]
 
-The default port number was chosen to be different from the Carabiner
-port (in case you are using that), and unlikely to be otherwise used.
-If for some reason port 17,001 is in use on your computer, you can
-pick a different port. You just need to tell the IDE which port you
-are using when you have it connect to the nREPL server.
+The default port number was chosen to be different from the Carabiner port (in case you are using that), and unlikely to be otherwise used.
+If for some reason port 17,001 is in use on your computer, you can pick a different port.
+You just need to tell the IDE which port you are using when you have it connect to the nREPL server.
 
-If you are going to use Cursive, you can simply start the server by
-clicking the `Run` checkbox. If you are going to use CIDER, to make
-full use of CIDER's powerful features, click the `Inject` checkbox
-first, which will configure the nREPL server to add special CIDER
-middleware. (If you forgot to do this, you can uncheck the `Run`
-checkbox to stop the server, check `Inject`, and then `Run` it again.)
+If you are going to use Cursive, you can simply start the server by clicking the `Run` checkbox.
+If you are going to use CIDER, to make full use of CIDER's powerful features, click the `Inject` checkbox first, which will configure the nREPL server to add special CIDER
+middleware.
+(If you forgot to do this, you can uncheck the `Run` checkbox to stop the server, check `Inject`, and then `Run` it again.)
 
-Although it probably won't hurt to inject the CIDER handler when using
-a different editor, it's a little safer to leave it out of the loop if
-you don't need it.
+Although it probably won't hurt to inject the CIDER handler when using a different editor, it's a little safer to leave it out of the loop if you don't need it.
 
 === Connecting from Cursive
 
-Once you have the nREPL server running (without injecting the CIDER
-handler), you will want to follow the Cursive instructions for
-https://cursive-ide.com/userguide/repl.html#remote-repls[Remote
-REPLs], using the `Connect to server` radio button, entering
-`127.0.0.1` as the `Host` (assuming you are running Cursive on the
-same machine as Beat Link Trigger, although you don't have to!) and
-then set the `Port` value to the one you chose in Beat Link Trigger.
+Once you have the nREPL server running (without injecting the CIDER handler), you will want to follow the Cursive instructions for https://cursive-ide.com/userguide/repl.html#remote-repls[Remote REPLs], using the `Connect to server` radio button, entering `127.0.0.1` as the `Host` (assuming you are running Cursive on the same machine as Beat Link Trigger, although you don't have to!) and then set the `Port` value to the one you chose in Beat Link Trigger.
 
-Once you have your Remote REPL configuration created, it appears in
-the menu at the top right of the project window, and you can connect
-to it by pressing the green triangle (play button) to the right of it
-(I named my configuration BLT nREPL):
+Once you have your Remote REPL configuration created, it appears in the menu at the top right of the project window, and you can connect to it by pressing the green triangle (play button) to the right of it (I named my configuration BLT nREPL):
 
 image:Cursive.png[Cursive connected,535,550]
 
-Whatever expressions you type at the bottom of the REPL window are
-immediately evaluated, and the results shown above, and you can use
-Cursive's editor window features to send functions and files to the
-REPL. Cursive's built-in completion can be seen in action at the
-bottom of the above screen shot. See the
-https://cursive-ide.com/userguide/[Cursive User Guide] for more
-information.
+Whatever expressions you type at the bottom of the REPL window are immediately evaluated, and the results shown above, and you can use Cursive's editor window features to send functions and files to the REPL.
+Cursive's built-in completion can be seen in action at the bottom of the above screen shot.
+See the https://cursive-ide.com/userguide/[Cursive User Guide] for more information.
 
 
 === Connecting from CIDER
 
-Once you have the nREPL server running with the CIDER handler
-injected, you can tell CIDER to connect to it by typing kbd:[M-x]
-`cider-connect` kbd:[RET] and CIDER will prompt you for the host and
-port information. If you are running BLT on the same machine as CIDER,
-enter `localhost` or `127.0.0.1` for the host, and then enter the port
-number you chose in Beat Link Trigger.
+Once you have the nREPL server running with the CIDER handler injected, you can tell CIDER to connect to it by typing kbd:[M-x] `cider-connect` kbd:[RET] and CIDER will prompt you for the host and port information.
+If you are running BLT on the same machine as CIDER, enter `localhost` or `127.0.0.1` for the host, and then enter the port number you chose in Beat Link Trigger.
 
-The https://docs.cider.mx/cider/index.html[CIDER Docs] give you the
-details of how to work with it.
+The https://docs.cider.mx/cider/index.html[CIDER Docs] give you the details of how to work with it.
 
 === Using the Connection
 
-Regardless of the IDE you are using, you will probably want to switch
-your namespace to `beat-link-trigger.expressions` because this is
-where your Shared Functions live, and they are where you should put
-your most sophisticated coding, so that individual expressions can be
-short and sweet, using the Shared Functions for the heavy lifting.
-This namespace is also configured to include Clojure's
-developer-friendly functions like `doc` (to let you look at the
-documentation for a function or variable), `source` (to let you see
-the source code of a function), and so on. The
-https://clojure.org/reference/repl_and_main[Clojure documentation]
-mentions some of the things you can do at the REPL (although you can
-ignore the parts that talk about how to start Clojure; Beat Link
-Trigger has already done that for you). There is a page about
-https://clojure.org/guides/repl/basic_usage[basic usage],
-https://clojure.org/guides/repl/navigating_namespaces[navigating
-namespaces], and a
-https://clojure.org/guides/repl/annex_community_resources[collection
-of resources] describing REPLs and the mindset of using them
-effectively. (The navigation links on the left side and top of those
-pages can take you other good places for learning about the REPL,
-Clojure, troubleshooting, and so on.)
+Regardless of the IDE you are using, you will probably want to switch your namespace to the one in which your Shared Functions and expressions live.
+For the Triggers window, this is `beat-link-trigger.expressions.triggers`.
+You can get there by typing this expression into the REPL:
 
-For more ideas specifically about how to explore Beat Link Trigger
-from a Clojure IDE, mention you are doing it on the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+[source,clojure]
+----
+(in-ns 'beat-link-trigger.expressions.triggers)
+----
+
+This tells the REPL to switch to that namespace.
+With any luck, your IDE’s auto-complete features will help type that.
+
+
+This namespace is also configured to include Clojure's developer-friendly functions like `doc` (to let you look at the documentation for a function or variable), `source` (to let you see the source code of a function), and so on.
+
+[TIP]
+====
+BLT also adds some helper functions you can use to switch between important expression namespaces:
+
+* `(in-triggers-ns)`: Switch to the Triggers window expressions namespace just described.
+* `(in-show-ns)`: Displays a list of any show files that are currently open, and lets you type a number to switch to the private namespace that is used for that show’s expressions.
+* `(in-core-ns)`: Switch to the namespace in which BLT places you when you run it from source, which includes functions like `(start)` which tell it to start up.
+
+All of these namespaces include Clojure’s developer-friendly functions, and the above three special BLT namespace-switching functions to make it easy to jump around.
+====
+
+The https://clojure.org/reference/repl_and_main[Clojure documentation] mentions some of the things you can do at the REPL (although you can ignore the parts that talk about how to start Clojure; Beat Link Trigger has already done that for you).
+There is a page about https://clojure.org/guides/repl/basic_usage[basic usage], https://clojure.org/guides/repl/navigating_namespaces[navigating namespaces], and a
+https://clojure.org/guides/repl/annex_community_resources[collection of resources] describing REPLs and the mindset of using them effectively.
+(The navigation links on the left side and top of those pages can take you other good places for learning about the REPL, Clojure, troubleshooting, and so on.)
+
+For more ideas specifically about how to explore Beat Link Trigger from a Clojure IDE, mention you are doing it on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 channel]!
