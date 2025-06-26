@@ -7,6 +7,14 @@ collaboration with the former bass music producer Minnesota, which
 make it far easier to match tracks, and cause things to happen when
 particular beat ranges in those tracks are played.
 
+[IMPORTANT]
+====
+Version 7 of BLT takes this to a whole new level, by letting you work with the Phrase Analysis feature in rekordbox to design xref:Shows_PhraseTriggers.adoc[Phrase Trigger] cues that work with any track the DJ has performed phrase analysis on, even with older players that don't support the Lighting feature.
+This lets you offer a whole array of attractive, well-synchronized lighting looks even for DJs that you are unable to coordinate with ahead of time.
+
+If you thought you could skip over learning about Shows because you don’t plan to assign cues to specific tracks, think again! Phrase Triggers are a powerful, general purpose cue sequencer.
+====
+
 All of these things could be done before the Show interface (and
 several people put together quite sophisticated shows) using basic
 Triggers, but they involved writing a great many custom Expressions to
@@ -14,18 +22,10 @@ match the tracks and watch for the right beats, and were very tedious
 to figure out, requiring lots of time hooked up to CDJs during the
 design process.
 
-NOTE: Version 7 of BLT takes this to a whole new level, by letting you
-work with the Phrase Analysis feature in rekordbox to design
-<<Shows_PhraseTriggers.adoc#,Phrase Trigger>> cues that work with any
-track the DJ has performed phrase analysis on, even with older players
-that don't support the Lighting feature. This lets you offer a whole
-array of attractive, well-synchronized lighting looks even for DJs
-that you are unable to coordinate with ahead of time.
-
 Also, there is a practical limit to how many Triggers you can have in
 your file, because each one gets considered in sequence whenever a
 packet is received from a player. The limit may be a few dozen, or
-many more, but eventually your CPU will be get busy just evaluating
+many more, but eventually your CPU will get busy just evaluating
 triggers. The Show interface doesn’t have this limitation--it uses a
 sophisticated and efficient mechanism for recognizing tracks, and
 allows you to add thousands of tracks to your Shows. Tracks in a Show
@@ -37,7 +37,7 @@ the network, or by reading them directly from your rekordbox USB or SD
 media, you can set up your Shows, draw cues on the tracks’ beat grids,
 with reference to their waveforms, and configure the messages you want
 the cues to send, even in situations where you don’t have access to
-CDJs. Almost all of the Show interface features are fully functional
+CDJs. Almost all the Show interface features are fully functional
 when Beat Link Trigger is operating in Offline mode, and the ones that
 don’t make sense are simply hidden from view. This supports a flexible
 and convenient workflow.
@@ -46,7 +46,7 @@ TIP: If you are managing your own tracks rather than working with one
 or more DJs, and just need a few cues triggered by MIDI notes when
 particular tracks reach particular places, you might be able to do
 something even easier than creating a show. Check out how to
-<<Integration_MIDI_rekordbox.adoc#,translate rekordbox cues to MIDI>>.
+xref:Integration_MIDI_rekordbox.adoc[translate rekordbox cues to MIDI].
 
 [[creating]]
 == Creating a Show
@@ -134,8 +134,8 @@ time using menu:File[Save a Copy].
 image:ShowFileMenu.png[Show File Menu,264,179]
 
 Choosing menu:File[Expression Report] opens a browser window holding a
-<<Expressions_Report.adoc#,report>> that provides a powerful and
-convenient way of exploring, managing, and simulating all of the
+xref:Expressions_Report.adoc[report] that provides a powerful and
+convenient way of exploring, managing, and simulating all the
 expressions that you are using in the show. To use the full power of
 this report you need to choose menu:File[Enable Report Actions], but
 you should only do this on a trusted network, because any other
@@ -150,30 +150,31 @@ choose menu:File[Close].
 The menu:Tracks[] Menu allows you to add tracks to the show, as
 discussed in the <<Shows.adoc#adding-tracks,next section>>, and to
 edit expressions that customize the show as a whole, as described in
-the <<Expressions_ShowGlobal.adoc#,Expressions section>>.
+the xref:Expressions_ShowGlobal.adoc[Expressions section].
 
 image:ShowTracksMenu.png[Show Tracks Menu,320,200]
 
 The menu:Inspect Expression Locals[] option allows you to explore any
 values that have been set up by expressions to share across the entire
-Show. See <<Debugging.adoc#inspecting,Inspecting Locals and Globals>> for
+Show.See <<Debugging.adoc#inspecting,Inspecting Locals and Globals>> for
 more details.
 
 The menu:Help[] Menu is the same as in the Triggers window, providing
 a variety of helpful information and shortcuts for getting support.
 
+[#enabled-default]
 === Enabled Default
 
 Each track can have its own <<Shows_Tracks.adoc#enabled-menu,Enabled
 filter>>, which determines whether the show will react to players
-doing things with the track. Often, every track in the show will want
+doing things with the track.Often, every track in the show will want
 to follow the same rules, so you can configure those rules using the
 show's Enabled Default setting, and leave each track's Enabled filter
-set to `Default`. Any tracks which have more specific needs can switch
+set to `Default`.Any tracks which have more specific needs can switch
 their Enabled filter to a different setting.
 
 If the track's Enabled filter is set to `Default`, the value of the
-Show's Enabled Default filter is used. It has the following options:
+Show's Enabled Default filter is used.It has the following options:
 
 Never:: With this setting, the Track is disabled until you re-enable
 it.
@@ -198,8 +199,7 @@ is received from any player, your expressions are evaluated. If the
 last expression in your filter returns a `true` value, the Track will
 be enabled. This lets you apply sophisticated logic, like enabling the
 Track when another track is loaded into a different player, or only
-during particular times of day. Expressions are further explained in
-the
+during particular times of day. For details see the
 <<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,Expressions>>
 section. If you choose `Custom` and have not yet written an Enabled
 Default Filter expression, the expression editor will be opened to let
@@ -225,9 +225,9 @@ If you are currently Online, and there are any players on the network
 that have rekordbox tracks loaded that are not already part of the
 Show, you will see them as options in the menu. Choosing
 menu:Tracks[Import Track>from Player 2] (for example) will download
-that track from the player, and add everthing needed to work with the
+that track from the player, and add everything needed to work with
 it to the Show file (the elements of a Track row are explained
-<<Shows_Tracks.adoc#,below>>, after the other ways of adding
+xref:Shows_Tracks.adoc[below], after the other ways of adding
 them to a Show).
 
 image:FirstTrackLoaded.png[First track loaded into Show,1009,466]
@@ -259,9 +259,9 @@ track in your show into the new one, then remove the old version.
 
 To make it possible to set up your Show even when you don’t have
 access to your player network, you can also import Tracks directly
-from rekordbod USB or SD media. To do that, mount the media on your
-computer, and choose menu:Tracks[Import Track>from Offline Media]. An
-Choose Media dialog will appear, from which you can navigate to the
+from rekordbox USB or SD media. To do that, mount the media on your
+computer, and choose menu:Tracks[Import Track>from Offline Media]. A
+**Choose Media** dialog will appear, from which you can navigate to the
 media:
 
 image:ChooseMedia.png[Choose Media dialog,526,369]
@@ -285,7 +285,7 @@ To save time, once you have chosen media to load tracks from
 during a Beat Link Trigger session, your media choice is remembered
 (and the parsed database export is kept open), so the next time you
 choose to import from offline media, the media selection window is
-skipped and you are taken right to the track selection window. If you
+skipped, and you are taken right to the track selection window. If you
 want to import from different media, click the kbd:[Change Media]
 button at the bottom of the window. This also means you will not be
 able to eject the media on most operating systems because BLT has it
@@ -353,7 +353,7 @@ dialog because this is a destructive process which cannot be undone
 
 image:ReplaceTrackContent.png[Replace Track Content,740,240]
 
-If you click **OK**, all of the destination track's configuration (MIDI
+If you click **OK**, all the destination track's configuration (MIDI
 Output, Messages, Channel, and Enabled Default), its expressions, and
 its cues (including their own configuration and expressions) will be
 replaced by the ones that you copied earlier. Any cues that would

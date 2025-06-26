@@ -1,28 +1,17 @@
 = Integration Examples
 include::partial$PagePreamble.adoc[]
 
-When explaining the Beat Link Trigger interface and how to extend it
-with custom expressions, we showed some examples of ways to integrate
-other systems. This section builds on the concepts introduced there,
-to demonstrate useful and practical integrations with systems we (or
-our early adopters) use regularly.
+When explaining the Beat Link Trigger interface and how to extend it with custom expressions, we showed some examples of ways to integrate other systems.
+This section builds on the concepts introduced there, to demonstrate useful and practical integrations with systems we (or users who have reached out to us on https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip]) use regularly.
 
-You may be able to use some of these integrations as-is to help with
-your shows, or they may provide examples of how you can build your own
-integration with something new. If you do try that, please share your
-progress! We can help, and then we can share your results with other
-users.
+You may be able to use some of these integrations as-is to help with your shows, or they may provide examples of how you can build your own integration with something new.
+If you do try that, please share your progress! We can help, and then we can share your results with other users.
 
 == Outside Integrations
 
-Here are some links to integrations people have shared with me that
-exist as their own projects:
+Here are some links to integrations people have shared with us that exist as their own projects:
 
 * https://github.com/hfanieng/ProDJLink-to-SQL[Write Playlists to a SQL database]
 
-> And, even though it doesn't use Beat Link Trigger, I'd like to call
-  your attention to a really cool
-  https://cardinia.net/products/pro/[hardware project] that will
-  likely be of interest to the same people who like BLT. It allows you
-  to use the Touch Preview and Link Cue audio features of the newer
-  Pioneer players with any mixer.
+> And, even though it doesn't use Beat Link Trigger, I'd like to call your attention to a really cool https://cardinia.net/products/pro/[hardware project] that will likely be of interest to the same people who like BLT.
+> It allows you to use the Touch Preview and Link Cue audio features of the newer Pioneer players with any mixer.
