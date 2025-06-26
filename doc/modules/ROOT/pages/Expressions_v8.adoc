@@ -46,13 +46,13 @@ To solve that problem, when compiling code for a show’s raw triggers, that sho
 
 So, where you could previously call a function named `some-fancy-function` defined in the show Shared Expressions from a raw trigger by just invoking it as:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (some-fancy-function …)
 ----
 you now need to instead use:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (show-shared/some-fancy-function …)
 ----
