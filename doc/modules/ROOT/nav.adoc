@@ -30,6 +30,7 @@
 ** xref:Integration_BreakBuddy.adoc[Break Buddy “Robo DJ”]
 ** xref:Integration_ShowXpress.adoc[Chauvet ShowXpress Live, SweetLight, QuickDMX]
 ** xref:Integration_ExtendedOnAirV10.adoc[DJM-V10 Extended On-Air]
+** xref:Integration_Inbound_MIDI.adoc[Inbound MIDI Triggers]
 ** xref:Integration_GrandMA2.adoc[MA Lighting grandMA2]
 ** xref:Integration_MIDI_rekordbox.adoc[MIDI cues from rekordbox]
 ** xref:Integration_BeyondAdvanced.adoc[Pangolin BEYOND Advanced]
