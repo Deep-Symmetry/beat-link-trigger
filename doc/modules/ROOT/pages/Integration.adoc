@@ -2,10 +2,10 @@
 include::partial$PagePreamble.adoc[]
 
 When explaining the Beat Link Trigger interface and how to extend it with custom expressions, we showed some examples of ways to integrate other systems.
-This section builds on the concepts introduced there, to demonstrate useful and practical integrations with systems we (or users who have reached out to us on https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip]) use regularly.
+This section builds on the concepts introduced there, to demonstrate useful and practical integrations with systems we (or community members who have reached out to us on https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip]) use regularly.
 
 You may be able to use some of these integrations as-is to help with your shows, or they may provide examples of how you can build your own integration with something new.
-If you do try that, please share your progress! We can help, and then we can share your results with other users.
+If you do try that, please share your progress! We can help, and then we can share your results with other people using BLT.
 
 == Outside Integrations
 
