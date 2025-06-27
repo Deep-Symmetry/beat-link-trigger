@@ -356,7 +356,9 @@
          (let [src (-> (io/resource "beat_link_trigger/expressions/show.clj")
                        slurp
                        (str/replace-first (str ns-base "show") (name expr-ns)))]
-           (load-string src)))   ; Load it.
+           (load-string src)  ; Load it.
+           ;; Allow expressions in the show namespace to find the show as `show`.
+           (alter-var-root (ns-resolve (find-ns expr-ns) 'show) (constantly show))))
        expr-ns)
      (let [expr-ns 'beat-link-trigger.expressions.triggers]
        (when-not (find-ns expr-ns)

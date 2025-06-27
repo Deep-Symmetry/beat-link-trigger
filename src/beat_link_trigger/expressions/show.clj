@@ -50,3 +50,8 @@
 (defonce ^{:doc "Provides a space for the show expressions to store
   values they want to share across tracks, phrase triggers, and cues."}
   globals (atom {}))
+
+(defonce ^{:doc "Will be set to a copy of the current state of the
+  show when the namespace is created, so that shared functions can
+  easily reference it without any need to pass it around."}
+  show nil)

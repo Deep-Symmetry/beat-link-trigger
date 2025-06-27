@@ -1,0 +1,100 @@
+= Responding to Inbound MIDI Messages
+include::partial$PagePreamble.adoc[]
+
+This started out as a https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/MIDI.20Map.20to.20Beat.20Link.20Carabiner.20settings/with/516063824[pair] of https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/.E2.9C.94.20Receive.20OSC.20or.20MIDI.20in.20BLT.20.3F/with/524916168[requests] in the Zulip channel, from https://deep-symmetry.zulipchat.com/#user/903974[Matt cox] and https://deep-symmetry.zulipchat.com/#user/926900[Moloqoy], and turned into a nicely focused tool that could be a starting point that is useful to many people.
+
+== Using the Inbound MIDI Show
+
+If you just want to use the show to make BLT do something when it receives a MIDI message, start by downloading and opening the link:{attachmentsdir}/InboundMidiTrigger.bls[Inbound Midi Trigger show].
+You will end up with a user interface that looks like this:
+
+image:InboundMidi.png[Inbound MIDI Show,910,265]
+
+Your fresh copy will start out without any learned MIDI mappings, so we will start by explaining how to teach it how to work with your MIDI device.
+
+[NOTE]
+====
+As shipped, the show is configured to tell the Carabiner Connection window to set the Ableton Link session as the tempo master when it receives a particular MIDI message.
+Of course, that requires BLT to be posing as a player with a real player number, as explained in xref:Link.adoc#full-sync[Working with Ableton Link], and you can use the new xref:Settings.adoc[Settings window] to set up the necessary Full Sync mode when going online.
+
+After explaining how to learn the MIDI mapping you want to use, this example will discuss how you can change the show to do other things instead.
+The current behavior is reflected in the Description text field, which you can change when you customize the show for your own purposes.
+====
+
+=== Learning a MIDI Mapping
+
+Connect the MIDI controller you want to map to the Ableton Link Master button, then choose it in the MIDI Input dropdown.
+The Learn button should enable at that point, because an available MIDI input has been chosen.
+Click Learn, then press the button you want to use on your MIDI controller.
+This will populate the message, note number, and channel values for you.
+Then, whenever you press that button on your controller, it will be as if you pressed the Ableton Link Master radio button in the xref:Link.adoc[Carabiner Connection window].
+
+You probably also want to set the MIDI Output to the same device.
+Then whenever the Ableton Link master button is active, that button on the controller will be lit up, so you can tell by glancing at your controller too.
+If you don’t want that functionality, you can set the Message dropdown to None in the MIDI Output row.
+
+The little blue indicator to the right of the Learn button will flash whenever the chosen input message is seen.
+The mapping that you have learned is saved with the show, so you only need to learn it once.
+
+=== Changing What your Mapping Does
+
+Once you have the proper mapping learned, if you want to have it do something other than telling Carabiner to make Ableton Link the tempo master, you can edit the show’s Shared Functions and swap in the behavior you want instead.
+
+The first step is to figure out the Clojure code necessary to implement whatever action you want to take place upon receipt of the MIDI message.
+You may be able to find that code by browsing through this guide and all the other integration examples.
+If not, ask in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel] and we’ll help!
+
+There are two functions that you need to change, and they are right at the top of the Shared Functions, to make them easy to find and edit.
+
+[source,clojure,opts=novalidate]
+.Action Callback
+----
+(defn action-callback
+  "This function will be called when a MIDI message is received
+  that matches our mapping configuration."
+  [message]
+  ;; This is the code you replace to make the show do something other
+  ;; than telling Ableton Link to become the tempo master in response
+  ;; to your mapped MIDI message.
+  (when (pos? (:velocity message))  ;; <1>
+    (carabiner/appoint-ableton-master)))  ;; <2>
+----
+
+The `action-callback` function is called whenever the mapped MIDI message is received, so it’s your chance to do whatever you need to do.
+
+<1> This first part will likely stay the same, unless you want to use the MIDI velocity in a different way.
+As written, any value of the learned note or control other than zero will be interpreted as a signal to take the desired action.
+
+<2> This code is what will change. The function call that is there is what tells the Carabiner window to make the Ableton Link session in control of the tempo, as described xref:Link.adoc#appoint-ableton-master[here].
+
+[source,clojure,opts=novalidate]
+.Feedback Callback
+----
+(defn feedback-callback
+  "This is called frequently during UI updates. The truthiness of the
+  value it returns controls whether the feedback sent to the
+  configured MIDI output should be in its On or Off state."
+  []
+  ;; This is the code you replace to make the show reflect something
+  ;; other than the Ableton Link master state on your MIDI controller.
+  (carabiner/master-ableton))  <1>
+----
+
+The `feedback-callback` function is called regularly to ask whether the mapped MIDI output should be in an On or Off state, to let you visually check some Beat Link Trigger state without having to look at its user interface.
+In this case we call a function that returns a true value if Ableton Link is the current tempo master, meaning the button will light up only when that is true.
+You would replace this function call with whatever is necessary to achieve the same result for your mapping goals.
+
+Finally, once the show is working the way you want, don’t forget to change the Description field to reflect what it is now doing!
+This is especially important when you might want to have more than one mapping running at the same time, to let you keep track of which is which. Speaking of that…
+
+
+=== Responding to Multiple Mappings
+
+You can make multiple copies of the show file, and edit the above two functions in the Global Setup expression and the Description field to have each copy do different things in BLT.
+If you open all these shows at the same time, they will all be active and doing their own thing side by side.
+You can arrange them however is convenient on your screen.
+
+== Understanding the Example
+
+The rest of this section dives into the details of how the show is implemented, for those who want to learn how they can do similar things on their own.
+If that’s not you, feel free to wander off and just use it!

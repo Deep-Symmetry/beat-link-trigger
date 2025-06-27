@@ -448,6 +448,7 @@ Tempo Master.
 Passing a `false` argument frees Ableton Link to manage its tempo
 separately.
 
+[#appoint-ableton-master]]
 If Carabiner is in Full sync mode, you can also have the Ableton Link
 session tempo act as the Tempo Master for the Pioneer network. To
 activate that, call `appoint-ableton-master`:

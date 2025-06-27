@@ -15,3 +15,7 @@ Here are some links to integrations people have shared with us that exist as the
 
 > And, even though it doesn't use Beat Link Trigger, I'd like to call your attention to a really cool https://cardinia.net/products/pro/[hardware project] that will likely be of interest to the same people who like BLT.
 > It allows you to use the Touch Preview and Link Cue audio features of the newer Pioneer players with any mixer.
+
+== Embedded Integrations
+
+To learn about the examples that ship with BLT—both how to use them and how they work so you can build on them—read the next section, or choose a subsection that interests you even more from the left navigation menu.
