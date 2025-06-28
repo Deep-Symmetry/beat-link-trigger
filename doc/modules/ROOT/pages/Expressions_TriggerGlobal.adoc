@@ -6,7 +6,8 @@ The Triggers menu at the top of the window lets you define two categories of exp
 To support that, all Trigger expressions have access to a Clojure http://clojure.org/reference/atoms[atom] named `globals` that is shared with all other Trigger expressions, so that’s a great place to put things for them to find.
 The atom starts out holding an empty http://clojure.org/reference/data_structures#Maps[map], which allows you to add key/value pairs to organize the information you want to share across expressions.
 
-And, starting with BLT version 8, triggers expressions xref:Expressions_v8.adoc[now live in their own namespace], which is no longer shared with shows, nor with BLT’s expression-compilation machinery, so they can safely define other atoms and values to share, beyond the `globals` map that has always been provided.
+IMPORTANT: And, starting with BLT version 8, triggers expressions xref:Expressions_v8.adoc[now live in their own namespace], which is no longer shared with shows, nor with BLT’s expression-compilation machinery, so they can now safely define other atoms and values to share, beyond the `globals` atom that has always been provided.
+The `globals` atom will continue to exist, for backwards compatibility, but new code does not need to confine itself to using that, and can be written in a more natural Clojure style with as many ``var``s as are useful for clarity.
 
 [[global-setup-expression]]
 == Global Setup Expression
