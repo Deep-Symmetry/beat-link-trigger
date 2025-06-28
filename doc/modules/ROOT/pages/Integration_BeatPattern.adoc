@@ -485,32 +485,34 @@ It implements both the Learn button, and toggling the button in response to the 
       ;; First handle "Learn" mode if that is active.
       (when-let [mapper (:frame @(seesaw/user-data button))]  ;; <2>
         (let [learn (seesaw/select mapper [:#learn])]
-          (when (and (seesaw/value learn)  ;; <3>
-                     (#{:note-on :control-change} (:status message)))
-            (seesaw/invoke-later  ;; <4>
-             (let [note? (= :note-on (:status message))]  ;; <5>
-               (seesaw/value! (seesaw/select mapper [:#message])
-                              (if note? "Note" "CC"))
-               (seesaw/value! (seesaw/select mapper [:#feedback-message])
-                              (if note? "Note" "CC")))
-             (seesaw/value! (seesaw/select mapper [:#note])
-                            (long (:note message)))
-             (seesaw/value! (seesaw/select mapper [:#feedback-note])
-                            (long (:note message)))
-             (seesaw/value! (seesaw/select mapper [:#channel])
-                            (long (inc (:channel message))))
-             (seesaw/value! (seesaw/select mapper [:#feedback-channel])
-                            (long (inc (:channel message))))
-             (seesaw/value! learn false)  ;; <6>
-             (reset! learned true)))))
+          (timbre/info "in learn")
+          (when (and (seesaw/value learn) ;; <3>
+                     (#{:note-on :control-change} (:command message)))
+            (timbre/info "learning!")
+            (seesaw/invoke-later                          ;; <4>
+              (let [note? (= :note-on (:command message))] ;; <5>
+                (seesaw/value! (seesaw/select mapper [:#message])
+                               (if note? "Note" "CC"))
+                (seesaw/value! (seesaw/select mapper [:#feedback-message])
+                               (if note? "Note" "CC")))
+              (seesaw/value! (seesaw/select mapper [:#note])
+                             (long (:note message)))
+              (seesaw/value! (seesaw/select mapper [:#feedback-note])
+                             (long (:note message)))
+              (seesaw/value! (seesaw/select mapper [:#channel])
+                             (long (inc (:channel message))))
+              (seesaw/value! (seesaw/select mapper [:#feedback-channel])
+                             (long (inc (:channel message))))
+              (seesaw/value! learn false) ;; <6>
+              (reset! learned true)))))
       ;; Then, if we didn't just learn this message, see if it matches
       ;; the button mappings, and if so, toggle it.
       (when-not @learned  ;; <7>
         (let [mapping (get-in (show/user-data show)
                               [:mappings (seesaw/id-for button)])]
-          (when (and (or (and (= :note-on (:status message))
+          (when (and (or (and (= :note-on (:command message))
                               (= "Note" (:message mapping)))
-                         (and (= :control-change (:status message))
+                         (and (= :control-change (:command message))
                               (= "CC" (:message mapping))))
                      (pos? (:velocity message))
                      (= (:note message) (:note mapping 1))

@@ -107,6 +107,7 @@ You’ve already seen two of them, the <<callback-functions,callback functions>>
 
 Because the code is lengthy, rather than quoting it all here, I’ll just provide some key commentary.
 You may want to follow along by opening the Shared Functions editor for the show, or the Expressions Report.
+There is also a line-by-line discussion of some very similar code in the xref:Integration_BeatPattern.adoc#adding-mapping[Beat Pattern example].
 And please ask in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel] if you have any questions!
 
 [#close-input]

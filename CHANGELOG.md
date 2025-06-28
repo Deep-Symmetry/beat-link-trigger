@@ -39,6 +39,7 @@ This change log follows the conventions of
 - Phrase trigger section sizes were not being loaded correctly, the End section was always set to 1 bar and the Fill section to 2 bars when reopening a show.
 - Shows with phrase cues saved at illegal locations (which may have been caused by the above problem) would prevent the cues editor window from opening, so they could not be fixed.
 - A race condition could result in some menu options disappearing when shows blocked the Tracks interface.
+- The wrong keyword was being used for matching MIDI commands in a few integration examples and other places in BLT, which would cause them to not be recognized when received on any channel other than 1.
 - The QLC+ Cues integration example was broken, as a result of some enhancements I made that never got tested by actual QLC+ users until much later, sorry!
 - Some variables were incorrect in the phrase trigger expression examples in the user guide.
 - The value for `loaded-players` was not being simulated in a usable way when requesting a standalone simulation of the event.
@@ -46,7 +47,7 @@ This change log follows the conventions of
 - When using the embedded sample tracks with the shallow playback simulator, the tempo was always reported as zero.
 - An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
 - The code for handling an abrupt disconnection from the Carabiner daemon was trying to update the user interface on the wrong thread.
-- If the network changed while going online in a way that kicked BLT back offline right before checking whether there were any unreachable players (which could happen, for example, if you turned off WiFi while looking at the warning about there being multiple network interfaces that could see the Pro DJ Link network), this would cause an uncaught exception that would prevent the Triggers window from ever opening.
+- If the network changed while going online in a way that kicked BLT back offline right before checking whether there were any unreachable players (which could happen, for example, if you turned off Wi-Fi while looking at the warning about there being multiple network interfaces that could see the Pro DJ Link network), this would cause an uncaught exception that would prevent the Triggers window from ever opening.
 - Trying to create a metadata archive larger than 4 gigabytes would lock up the archive creation process.
 - We now suppress a lot of log noise that resulted from the fact that CDJ-3000s embed Kuvo gateways as virtual devices with number 25 and name NXS-GW, and fight over which player is hosting one.
 - When using the shallow playback simulator, Triggers window triggers that were configured to watch the Master player would not accept beat events even from the simulator that was acting as master, because the beat listener code in that window was not simulator-aware.
@@ -366,7 +367,7 @@ May the Fourth be with you!
   with CDJ-3000 setups.
 - You can also [change how many
   columns](https://blt-guide.deepsymmetry.org/beat-link-trigger/players#change-num-columns)
-  the Player Status window uses if you don't like the defaults.]
+  the Player Status window uses if you don't like the defaults.
 - Song structure (phrase analysis) is now displayed on waveforms when
   it is available, both in Player Status and in Show windows, where it
   can be helpful in deciding where to position cues.
