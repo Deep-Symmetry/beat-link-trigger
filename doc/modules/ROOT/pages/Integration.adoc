@@ -18,4 +18,4 @@ Here are some links to integrations people have shared with us that exist as the
 
 == Embedded Integrations
 
-To learn about the examples that ship with BLT—both how to use them and how they work so you can build on them—read the next section, or choose a subsection that interests you even more from the left navigation menu.
+To learn about the examples that ship with BLT—both how to use them and how they work so you can build on them—you can start with the next section, or choose a subsection that interests you even more from the left navigation menu.

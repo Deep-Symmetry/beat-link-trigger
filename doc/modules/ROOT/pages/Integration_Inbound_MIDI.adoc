@@ -44,6 +44,7 @@ The first step is to figure out the Clojure code necessary to implement whatever
 You may be able to find that code by browsing through this guide and all the other integration examples.
 If not, ask in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel] and we’ll help!
 
+[#callback-functions]
 There are two functions that you need to change, and they are right at the top of the Shared Functions, to make them easy to find and edit.
 
 [source,clojure,opts=novalidate]
@@ -98,3 +99,121 @@ You can arrange them however is convenient on your screen.
 
 The rest of this section dives into the details of how the show is implemented, for those who want to learn how they can do similar things on their own.
 If that’s not you, feel free to wander off and just use it!
+
+=== Shared Functions
+
+As is usually the case for shows that provide custom graphical interfaces, most of the code lives in the Shared Functions.
+You’ve already seen two of them, the <<callback-functions,callback functions>> at the top which you customize to change what happens when the learned MIDI message is received, and how MIDI feedback is sent.
+
+Because the code is lengthy, rather than quoting it all here, I’ll just provide some key commentary.
+You may want to follow along by opening the Shared Functions editor for the show, or the Expressions Report.
+And please ask in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel] if you have any questions!
+
+[#close-input]
+`close-input`:: checks the `:input` key in the show `globals` to see if there is an open MIDI input, and if so, closes it, removes it from the `globals`, and disables the Learn button in the user interface.
+
+`chosen-output`:: is called to look up the MIDI output associated with a choice in the dropdown menu, opening it if it has not already been.
+It returns the output, if it was found, or `nil` otherwise.
+
+`send-feedback`:: looks up the details of the MIDI output mapping, and sends an appropriate MIDI message to indicate the current on/off state being monitored by `feedback-function`.
+
+`update-devices`:: is called once when the show loads, and thereafter whenever CoreMidi4J tells us that something has changed about the MIDI environment (e.g. a device has been attached or detached).
+It is responsible for updating the MIDI Input and MIDI Output dropdown menus to reflect the currently-available set of choices (while also preserving whatever was configured the last time the show was used, in case it is temporarily unavailable).
+
+`attach-midi-handler`:: is called when a MIDI input is chosen that is presently available (including when the show loads, if its saved input is still valid).
+It creates and installs a function that will respond appropriately to MIDI messages received from that input.
++
+There are two different paths the handler can take when such a message comes in.
+Normally, it just compares it to the configured MIDI mapping, and only if the message matches the configured values, calls `action-callback`, to take whatever action you have decided the mapping should cause.
+But if the Learn button is active, the alternate path is taken, and any incoming message sets the mapping configuration to match it.
+In either case, the function also causes the blue “MIDI received” indicator to flash.
+
+[#animate-ui]
+`animate-ui`:: creates and starts a background thread that is responsible both for fading out the blue MIDI indicator over time, and checks whether the current MIDI feedback state desired by `feedback-function` matches the last MIDI that was sent to the configured output; if not, it sends an appropriate feedback message and records it.
+These operations happen 30 times per second, which is why the thread sleeps for 33 milliseconds between iterations of its loop.
+It loops until it sees the show is closing, which the Global Shutdown expression indicates by setting a `:shutdown` element in the show `globals`.
+
+`change-input`:: is called when a choice of MIDI input is made (including when the show is first opened).
+It first closes any previously-opened input, then tries to find the newly chosen one, and if it can, opens a connection to it and calls `attach-midi-handler` to handle MIDI messages from it.
+It also keeps track of the opened input under the key `:input` in the show `globals`, so it can be closed later.
+It updates the enabled state of the Learn button to reflect whether it was successful at opening the input.
++
+Finally, it spawns a background thread that waits for two seconds, and then forces a feedback message to be sent to the configured MIDI output.
+It does this because it can take a while for the MIDI environment to stabilize when the show is first opened or when a device is connected, so this maximizes the chance of the controller state settling on the right value shortly thereafter.
+`activity-color`:: is a helper function that is used to fade out the blue MIDI reception indicator over time.
+It calculates the appropriate level of transparency to be used in drawing it, given how much time has passed since a MIDI message was received.
+
+`midi-blue`:: is a `var` that holds the blue color used to draw that indicator.
+
+`paint-midi-state`:: is the function that draws the MIDI activity indicator.
+If the MIDI output device is connected, it uses `activity-color` to determine how to draw the indicator dot itself; if it’s not connected, it draws a gray dot instead.
+It always draws the outer ring, either in `midi-blue` if the MIDI input device is connected or in red otherwise.
+
+[#build-ui]
+`build-ui`:: is the function that puts a bunch of these things together, and creates all the user interface elements that make up the show.
+It starts by gathering the mapping configuration into `data`, the available MIDI inputs and outputs into `inputs` and `outputs`, and sets up two helper functions:
++
+* `save` updates the mapping data in the show from the current choices in the interface elements, and
+* `enable` sets the enabled state for one of the rows depending on whether the MIDI message of that row is set to menu:None[].
+
++
+Then it creates the `panel` that holds all the user interface elements and lays them out, and the elements themselves, attaching event listeners to respond appropriately to actions taken by the user.
+Finally, it tells the new user interface elements to update themselves to reflect the mapping information that was gathered in `data`.
+This is an area where the `seesaw` wrapper for Java Swing really simplifies matters.
+
+[#refresh-ui]
+`refresh-ui`:: is a much simpler function that is called whenever the MIDI environment changes (a device is attached or detached), and when the show is loaded, to update the interface state appropriately.
+
+[#midi-change-listener]
+`midi-change-listener`:: is a `var` that holds a Java object implementing the interface that can be registered with CoreMidi4J, acting as a bridge to the show and calling `refresh-ui` whenever CoreMidi4J notices a change in the MIDI environment.
+
+=== Global Setup Expression
+
+The Global Setup expression is much shorter, so we can go over the entire thing:
+
+[source,clojure,opts=novalidate]
+----
+;; Make sure BLT is recent enough for this show, then set up the UI.
+(show/require-version show "7.9")  ;; <1>
+(show/block-tracks show (build-ui))  ;; <2>
+
+;; Register our function to reconnect any mapped devices and refresh
+;; feedback state whenever the MIDI environment changes, in case a
+;; mapped controller has suddenly become available. Also, call the
+;; UI-refresh function once now to set things up as they should
+;; initially appear.
+(uk.co.xfactorylibrarians.coremidi4j.CoreMidiDeviceProvider/addNotificationListener
+   midi-change-listener)   ;; <3>
+(refresh-ui)  ;; <4>
+
+;; Finally, start the thread that updates the MIDI received indicator,
+;; and sends configured feedback.
+(animate-ui)  ;; <5>
+----
+
+<1> This makes sure the version of BLT is recent enough to run the show, since it depends on the xref:Expressions_v8.adoc[improved expression compilation] introduced in version 8.
+<2> As seen in other shows with graphical interfaces, this tells BLT to hide the normal track interface, and replace it with the one returned by <<build-ui,our interface builder function>>.
+<3> This is how our <<midi-change-listener,change listener object>> is registered with CoreMidi4J.
+<4> And here is the promised call to <<refresh-ui,interface update function>> as the show opens.
+<5> Not much to say beyond the comment in the file, except perhaps to link to the <<animate-ui,`animate-ui` description>>.
+
+=== Global Shutdown Expression
+
+And there is a bit of cleanup to do when closing the show.
+
+[source,clojure,opts=novalidate]
+----
+;; Stop reacting to changes to the MIDI environment.
+(uk.co.xfactorylibrarians.coremidi4j.CoreMidiDeviceProvider/removeNotificationListener
+  midi-change-listener)  ;; <1>
+
+;; Close any MIDI input we were using.
+(close-input)  ;; <2>
+
+;; Stop the thread that is animating the UI and sending feedback
+(swap! globals assoc :shutdown true)  ;; <3>
+----
+
+<1> This unregisters the <<midi-change-listener,change listener object>> so it will no longer be notified of changes to the MIDI environment.
+<2> We want to <<close-input,close the MIDI input>> if the show had one open.
+<3> And as noted <<animate-ui,above>>, this is how the interface animation thread knows to stop looping.
