@@ -39,7 +39,7 @@ This change log follows the conventions of
 - Phrase trigger section sizes were not being loaded correctly, the End section was always set to 1 bar and the Fill section to 2 bars when reopening a show.
 - Shows with phrase cues saved at illegal locations (which may have been caused by the above problem) would prevent the cues editor window from opening, so they could not be fixed.
 - A race condition could result in some menu options disappearing when shows blocked the Tracks interface.
-- The wrong keyword was being used for matching MIDI commands in a few integration examples and other places in BLT, which would cause them to not be recognized when received on any channel other than 1.
+- The wrong keyword was being used for matching MIDI commands in a few integration examples, which would cause them to not be recognized when received on any channel other than 1.
 - The QLC+ Cues integration example was broken, as a result of some enhancements I made that never got tested by actual QLC+ users until much later, sorry!
 - Some variables were incorrect in the phrase trigger expression examples in the user guide.
 - The value for `loaded-players` was not being simulated in a usable way when requesting a standalone simulation of the event.
