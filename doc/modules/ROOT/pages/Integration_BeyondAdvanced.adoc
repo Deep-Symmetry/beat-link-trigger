@@ -104,11 +104,11 @@ Once you have this expression saved, try playing a track on the Master Player, a
 == Triggering a Laser Cue
 
 With this framework in place, it is a small additional step to have a laser cue controlled by a trigger or cue.
-Create another new Trigger (or more likely a cue in a link:Shows_Tracks.adoc[Show Track] or link:Shows_PhraseTriggers.adoc[Prase Trigger], label it to describe the cue you want it to control, and set it up to be activated when an interesting track reaches an interesting beat.
+Create another new Trigger (or more likely a cue in a xref:Shows_Tracks.adoc[Show Track] or xref:Shows_PhraseTriggers.adoc[Prase Trigger], label it to describe the cue you want it to control, and set it up to be activated when an interesting track reaches an interesting beat.
 
 [NOTE]
 ====
-If you are doing this in the Triggers window, you’d use the techniques described link:Expressions_Trigger.adoc#enabled-filter-expression[above]. The only thing you’d need to do different is set the Message menu to Custom, so it will send its Activation message to Beyond’s Talk server rather than a MIDI message.
+If you are doing this in the Triggers window, you’d use the techniques described xref:Expressions_Trigger.adoc#enabled-filter-expression[above]. The only thing you’d need to do different is set the Message menu to Custom, so it will send its Activation message to Beyond’s Talk server rather than a MIDI message.
 
 And if you are using show cues to trigger laser cues, which makes the most sense today (they were not available when this example was first created), you need to copy the shared functions into the Show as well, so the cues there can use them. You’ll probably want to leave the BPM sync trigger in the Triggers window, since that is a feature that makes sense even in the absence of any show-specific cues.
 ====
