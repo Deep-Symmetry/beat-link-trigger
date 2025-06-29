@@ -503,7 +503,7 @@
   [beat]
   (let [from-grid (.getBpm ^BeatGrid (:grid util/*simulating*) beat)]
     (if (zero? from-grid)
-      (long (* (get-in util/*simulating* [:metadata :starting-tempo]) 100))
+      (long (* (get-in util/*simulating* [:metadata :starting-tempo] 120) 100))
       from-grid)))
 
 (defn random-beat

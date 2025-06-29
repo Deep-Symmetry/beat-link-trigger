@@ -1802,43 +1802,48 @@ a {
   trigger, if that is appropriate for the kind of expression."
   [^RSyntaxTextArea editor editors-map kind trigger global?]
   (when-let [simulate-fn (get-in editors-map [kind :simulate])]
-    (seesaw/action :handler (fn [_]
-                              (let [source      (.getText editor)
-                                    editor-info (get editors-map kind)
-                                    compiled    (when-not (str/blank? source)
-                                                  (try
-                                                    (expressions/build-user-expression
-                                                     source (:bindings editor-info)
-                                                     (merge {:description (triggers-editor-title kind trigger global?)
-                                                             :fn-sym      (triggers-editor-symbol kind trigger global?)
-                                                             :no-locals?  global?}
-                                                            (select-keys editor-info [:nil-status? :no-locals?])))
-                                                    (catch Throwable e
-                                                      (timbre/error e "Problem parsing" (:title editor-info))
-                                                      (seesaw/alert editor
-                                                                    (str "<html>Unable to use " (:title editor-info)
-                                                                         ".<br><br>" e
-                                                                         (when-let [cause (.getCause e)]
-                                                                           (str "<br>Cause: " (.getMessage cause)))
-                                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
-                                                                    :title "Exception during Clojure evaluation"
-                                                                    :type :error))))]
-                                (when compiled
-                                  (try
-                                    (binding [*ns* (expressions/expressions-namespace)]
-                                      (simulate-fn kind trigger compiled))
-                                    (catch Throwable t
-                                      (timbre/error t (str "Problem simulating expression:\n" t))
-                                      (seesaw/alert editor
-                                                    (str "<html>Problem simulating expression.<br><br>" t
-                                                         (when-let [cause (.getCause t)]
-                                                           (str "<br>Cause: " (.getMessage cause)))
-                                                         "<br><br>You may wish to check the log file for the detailed stack trace.")
-                                                    :title "Exception during Clojure evaluation"
-                                                    :type :error))))))
-                   :name "Simulate"
-                   :key "menu shift S"
-                   :enabled? false)))
+    (seesaw/action
+     :handler
+     (fn [_]
+       (let [source      (.getText editor)
+             editor-info (get editors-map kind)
+             show        (when-let [file (:show-file @(seesaw/user-data trigger))]
+                           (get (show-util/get-open-shows) file))
+             compiled    (when-not (str/blank? source)
+                           (try
+                             (expressions/build-user-expression
+                              source (:bindings editor-info)
+                              (merge {:description  (triggers-editor-title kind trigger global?)
+                                      :fn-sym       (triggers-editor-symbol kind trigger global?)
+                                      :no-locals?   global?
+                                      :raw-for-show show}
+                                     (select-keys editor-info [:nil-status? :no-locals?])))
+                             (catch Throwable e
+                               (timbre/error e "Problem parsing" (:title editor-info))
+                               (seesaw/alert editor
+                                             (str "<html>Unable to use " (:title editor-info)
+                                                  ".<br><br>" e
+                                                  (when-let [cause (.getCause e)]
+                                                    (str "<br>Cause: " (.getMessage cause)))
+                                                  "<br><br>You may wish to check the log file for the detailed stack trace.")
+                                             :title "Exception during Clojure evaluation"
+                                             :type :error))))]
+         (when compiled
+           (try
+             (binding [*ns* (expressions/expressions-namespace)]
+               (simulate-fn kind trigger compiled))
+             (catch Throwable t
+               (timbre/error t (str "Problem simulating expression:\n" t))
+               (seesaw/alert editor
+                             (str "<html>Problem simulating expression.<br><br>" t
+                                  (when-let [cause (.getCause t)]
+                                    (str "<br>Cause: " (.getMessage cause)))
+                                  "<br><br>You may wish to check the log file for the detailed stack trace.")
+                             :title "Exception during Clojure evaluation"
+                             :type :error))))))
+     :name "Simulate"
+     :key "menu shift S"
+     :enabled? false)))
 
 (defn- ui-theme-changed
   "Called whenever the user interface theme has been changed, or dark
