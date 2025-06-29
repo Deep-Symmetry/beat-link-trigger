@@ -1,13 +1,9 @@
 = Pangolin BEYOND Advanced
 include::partial$PagePreamble.adoc[]
 
-https://pangolin.com/collections/beyond-software[Pangolin BEYOND] is
-such flexible and powerful laser show software that Deep Symmetry
-invested in a Windows virtual machine purely to be able to use it to
-control our best laser projector. With an Advanced license, you can
-send it PangoScript commands over the network to achieve a deep level
-of integration with other systems. Here are some ways you can use it
-with Beat Link Trigger.
+https://pangolin.com/collections/beyond-software[Pangolin BEYOND] is such flexible and powerful laser show software that Deep Symmetry invested in a Windows virtual machine purely to be able to use it to control our best laser projector.
+With an Advanced license, you can send it PangoScript commands over the network to achieve a deep level of integration with other systems.
+Here are some ways you can use it with Beat Link Trigger.
 
 TIP: This section shows how to achieve tight integration using the
 PangoTalk UDP server, which requires BEYOND Advanced, but you can use
@@ -15,168 +11,134 @@ MIDI with BEYOND Essentials to get decent tempo tracking and basic cue
 triggers, as described <<Integration_BeyondEssentials#,its own
 section>>.
 
-To begin with, in the Shared Functions, we tell Beat Link Trigger how
-to communicate with BEYOND, by specifying the broadcast address of the
-network interface it is listening on, and the port on which the BEYOND
-Talk UDP server is listening. To determine these things, you can
-choose menu:Tools[Network Monitor...] within BEYOND to bring up a
-window like this:
+To begin with, in the Shared Functions, we tell Beat Link Trigger how to communicate with BEYOND, by specifying the broadcast address of the network interface it is listening on, and the port on which the BEYOND Talk UDP server is listening.
+To determine these things, you can choose menu:Tools[Network Monitor...] within BEYOND to bring up a window like this:
 
 image:BeyondNetworkMonitor.png[Network Monitor,584,461]
 
-By looking at the Adapter IP and Mask lines, we can determine that the
-broadcast address we want to use to reach the BEYOND Talk server is
-`172.16.1.255`.
+By looking at the Adapter IP and Mask lines, we can https://www.wikihow.com/Calculate-Network-and-Broadcast-Address[determine that the broadcast address] we want to use to reach the BEYOND Talk server is`172.16.1.255`.
 
-TIP: In versions of BEYOND prior to 2.1, it was possible to send UDP
-unicast messages directly to the Adapter IP address. however, starting
-with version 2.1, you must actually send UDP broadcast packets to the
-broadcast address of the subnet the server is attached to.
+TIP: In versions of BEYOND prior to 2.1, it was possible to send UDP unicast messages directly to the Adapter IP address.
+however, starting with version 2.1, you must actually send UDP broadcast packets to the broadcast address of the subnet the server is attached to.
 
-Then, make sure the BEYOND UDP Talk server is enabled
-(menu:Settings[Network > Network Settings...]):
+Then, make sure the BEYOND UDP Talk server is enabled (menu:Settings[Network > Network Settings...]):
 
 image:BeyondNetworkSettings.png[Network Settings,424,446]
 
-Choose a port that is not in use by anything else on your system (the
-default of `16062` is likely fine), check the Enable Talk Server check
-box, and click btn:[OK]. Make a note of the broadcast address and UDP
-port it is listening on, and then make sure the talk server is fully
-enabled by choosing menu:Settings[Network > BEYOND Talk server]:
+Choose a port that is not in use by anything else on your system (the default of `16062` is likely fine), check the Enable Talk Server check box, and click btn:[OK].
+Make a note of the broadcast address and UDP port it is listening on, and then make sure the talk server is fully enabled by choosing menu:Settings[Network > BEYOND Talk server]:
 
 image:BeyondTalkServer.png[Talk Server,720,479]
 
-TIP: In older versions of BEYOND, we sometimes had to quit and restart
-the program after making these configuration changes in order for them
-to take effect. That is probably no longer true, but we mention this
-as a potential trouleshooting step. You can also test connectivity
-using a tool like https://packetsender.com[Packet Sender] to send
-commands like `SetBpm 123.4\r\n` as UDP packets to the broadcast
-address and port you determined above, verifying that BEYOND’s BPM
-updates to the value that you sent. Packet Sender also has a Subnet
-Calculator found at menu:Tools[Subnet Calculator] that can help you
-determine the broadcast address.
+[TIP]
+====
+In older versions of BEYOND, we sometimes had to quit and restart the program after making these configuration changes in order for them to take effect.
+That is probably no longer true, but we mention this as a potential troubleshooting step.
 
-Once you have the UDP Talk server up and working, edit Beat Link
-Trigger’s Shared Functions to use the broadcast address and
-port to define a new function, `beyond-command`, that your other
-expressions will be able to use to send PangoScript commands to it:
+You can also test connectivity using a tool like https://packetsender.com[Packet Sender] to send commands like `SetBpm 123.4\r\n` as UDP packets to the broadcast address and port you determined above, verifying that BEYOND’s BPM updates to the value that you sent.
 
-```clojure
-(let [beyond-address (InetSocketAddress. (InetAddress/getByName "172.16.1.255")
-                                         16062)
-      send-socket    (DatagramSocket.)]
-   (defn beyond-command
-     "Sends a PangoScript command to the configured BEYOND Talk server."
-     [command]
-     (let [payload (str command \return \newline)
-           packet  (DatagramPacket. (.getBytes payload) (.length payload)
-                                    beyond-address)]
-       (.send send-socket packet))))
-```
+Packet Sender also has a Subnet Calculator found at menu:Tools[Subnet Calculator] that can help you determine the broadcast address.
+====
 
-TIP: Of course, replace the address and port in the first line with
-the correct values to use for your BEYOND UDP Talk server.
+[#beyond-command]
+Once you have the UDP Talk server up and working, edit Beat LinkTrigger’s Shared Functions to use the broadcast address and port to define a new function, `beyond-command`, that your other expressions will be able to use to send PangoScript commands to it:
 
-With that in place, we are ready to integrate laser shows. First,
-let’s see how to have the tempo within BEYOND always precisely match
-the tempo of your master player.
+[source,clojure,opts=novalidate]
+----
+(def beyond-address
+  "The broadcast address that the PangoTalk server in Beyond
+  is listening to."
+  (InetSocketAddress. (InetAddress/getByName "172.16.1.255") 16062))
+
+(def beyond-socket
+  "The socket we can use to send messages to Beyond."
+  (DatagramSocket.))
+
+(defn beyond-command
+  "Sends a PangoScript command to the configured BEYOND Talk server."
+  [command]
+  (let [payload (str command \return \newline)
+        packet  (DatagramPacket. (.getBytes payload) (.length payload)
+                                 beyond-address)]
+    (.send beyond-socket packet)))
+----
+
+TIP: Of course, replace the address and port in the first line with the correct values to use for your BEYOND UDP Talk server.
+
+With that in place, we are ready to integrate laser shows.
+First, let’s see how to have the tempo within BEYOND always precisely match the tempo of your master player.
 
 == Laser Show Tempo Synchronization
 
-Create a new Trigger in Beat Link Trigger (menu:Triggers[New Trigger])
-and label it something like &ldquo;Beyond BPM Sync&rdquo; in the
-Comment field. Configure it to Watch the Master Player, and give it a
-Custom Enabled Filter:
+Create a new Trigger in Beat Link Trigger (menu:Triggers[New Trigger]) and label it something like &ldquo;Beyond BPM Sync&rdquo; in the Comment field.
+Configure it to Watch the Master Player, and give it a menu:Custom[] Enabled Filter:
 
 image:BeyondBPMSync.png[Beyond BPM Sync,810,160]
 
-The Enabled Filter editor will pop open, so you can paste in the
-following code:
+The Enabled Filter editor will pop open, so you can paste in the following code:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (swap! locals update-in [:beyond-bpm]
        (fn [old-bpm]
          (when (not= effective-tempo old-bpm)
            (beyond-command (str "SetBpm " effective-tempo)))
          effective-tempo))
 nil  ;; Never need to actually activate.
-```
+----
 
-What this function will do is look at every status update packet that
-is received from the Master Player, and see if the BPM being reported
-is different from what we last told BEYOND to use (it tracks this in a
-value stored in the trigger `locals` map under the key `:beyond-bpm`,
-and the first time the expression is called, nothing will be found
-there, so it will always start by sending the current BPM value to
-BEYOND).
+What this function will do is look at every status update packet that is received from the Master Player, and see if the BPM being reported is different from what we last told BEYOND to use (it tracks this in a value stored in the trigger `locals` map under the key `:beyond-bpm`, and the first time the expression is called, nothing will be found there, so it will always start by sending the current BPM value to BEYOND).
 
-When the current tempo is different from what we have sent to BEYOND,
-we use the `beyond-command` function that we defined in the Shared
-Functions to send a `SetBpm` command to BEYOND, containing the current
-tempo at which the Master Player is playing. If there is no
-difference, we send nothing, because BEYOND is already at the right
-tempo. Either way, we record the current effective tempo in the
-`locals` map for use when the next update packet is received.
+When the current tempo is different from what we have sent to BEYOND, we use the `beyond-command` function that we <<beyond-command,defined in the Shared Functions>> to send a `SetBpm` command to BEYOND, containing the current tempo at which the Master Player is playing.
+If there is no difference, we send nothing, because BEYOND is already at the right
+tempo.
+Either way, we record the current effective tempo in the `locals` map for use when the next update packet is received.
 
-Finally, the expression always returns `nil`, because there is never
-any reason for it to be enabled. It is not actually triggering
-anything in response to a particular track playing, it is simply
-always keeping BEYOND’s tempo tied to the master player. (For the same
-reason, it doesn’t matter what you choose in the MIDI Output, Message,
-and Channel menus; they will never be sent.)
+Finally, the expression always returns `nil`, because there is never any reason for the trigger itself to be enabled: Its purpose is not actually triggering anything (sending MIDI events) in response to a particular track playing.
+All the work it needs to do to keep BEYOND’s tempo tied to the master player happens in the Enabled Filter expression we just entered.
+(For the same reason, it doesn’t matter what you choose in the MIDI Output, Message,
+and Channel menus; messages will never be sent.)
 
-Once you have this expression saved, try playing a track on the Master
-Player, adjust the pitch fader, and watch BEYOND smoothly and
-precisely track the BPM of the music being played.
+Once you have this expression saved, try playing a track on the Master Player, adjust the pitch fader, and watch BEYOND smoothly and precisely track the BPM of the music being played.
 
 == Triggering a Laser Cue
 
-With this framework in place, it is very easy to have a laser cue
-controlled by a trigger. Create another new Trigger, label it to
-describe the cue you want it to control, and set it up to be activated
-when an interesting track reaches an interesting beat, using the
-techniques described above. The only thing you need to do different is
-set the Message menu to Custom, so it will send its Activation message
-to Beyond’s Talk server rather than a MIDI message.
+With this framework in place, it is a small additional step to have a laser cue controlled by a trigger or cue.
+Create another new Trigger (or more likely a cue in a link:Shows_Tracks.adoc[Show Track] or link:Shows_PhraseTriggers.adoc[Prase Trigger], label it to describe the cue you want it to control, and set it up to be activated when an interesting track reaches an interesting beat.
 
-> Actually, you can map MIDI and OSC messages to BEYOND cues, so once
-> you have the BPM sync working, feel free to go that route if you
-> prefer. But since we already have a Talk server running, here is how
-> to use it.
+[NOTE]
+====
+If you are doing this in the Triggers window, you’d use the techniques described link:Expressions_Trigger.adoc#enabled-filter-expression[above]. The only thing you’d need to do different is set the Message menu to Custom, so it will send its Activation message to Beyond’s Talk server rather than a MIDI message.
 
-The easiest way to identify the proper PangoScript message to use to
-refer to a particular cue is to take advantage of a special mode of
-the BEYOND laser preview window that shows you all the internal
-PangoScript messages it is sending itself when you interact with its
-user interface. Choose menu:Settings[Configuration...] and click the
-Laser Preview tab. Check the Display Internal BEYOND Command check
-box, and click btn:[OK]:
+And if you are using show cues to trigger laser cues, which makes the most sense today (they were not available when this example was first created), you need to copy the shared functions into the Show as well, so the cues there can use them. You’ll probably want to leave the BPM sync trigger in the Triggers window, since that is a feature that makes sense even in the absence of any show-specific cues.
+====
+
+> Actually, you can map MIDI and OSC messages to BEYOND cues, so once you have the BPM sync working, feel free to go that route if you prefer.
+> But since we already have a Talk server running, here is how to use it.
+
+The easiest way to identify the proper PangoScript message to use to refer to a particular cue is to take advantage of a special mode of the BEYOND laser preview window that shows you all the internal PangoScript messages it is sending itself when you interact with its user interface.
+Choose menu:Settings[Configuration...] and click the Laser Preview tab.
+Check the Display Internal BEYOND Command check box, and click btn:[OK]:
 
 image:BeyondPreviewConfig.png[Beyond Laser Preview configuration,486,586]
 
-One that is done, as you interact with the interface, you will see
-small messages at the bottom left of the laser preview section showing
-you the equivalent PangoScript command for what you just did:
+One that is done, as you interact with the interface, you will see small messages at the bottom left of the laser preview section showing you the equivalent PangoScript command for what you just did:
 
 image:BeyondPreview.png[Beyond Laser Preview,336,282]
 
-In this case, I just activated cue 16, 20 (cue 20 on page 16). So in
-the trigger’s Activation Expression editor, I would use the following:
+In this case, I just activated cue 16, 20 (cue 20 on page 16). So in the trigger’s Activation Expression editor, I would use the following:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (beyond-command "StartCue 16,20")
-```
+----
 
-And finally, adding the corresponding Deactivation Expression rounds
-out the trigger:
+And finally, adding the corresponding Deactivation Expression rounds out the trigger:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (beyond-command "StopCue 16,20")
-```
+----
 
-With that in place, whenever this trigger activates, the specified
-BEYOND laser cue will start, and whenever the trigger deactivates, so
-will the laser cue. And when combined with the tempo synchronization
-set up in the previous section, the cue will look great with the
-music.
+With that in place, whenever this trigger activates, the specified BEYOND laser cue will start, and whenever the trigger deactivates, so will the laser cue.
+And when combined with the tempo synchronization set up in the previous section, the cue will look great with the music.
