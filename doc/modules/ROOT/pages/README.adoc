@@ -1,48 +1,36 @@
 = Beat Link Trigger User Guide
 James Elliott <james@deepsymmetry.org>
 
-This is an introduction to the Beat Link Trigger interface and
-expression programming environment. It shows some ways you can use it,
-but as an open-ended environment, the possibilities are endless. If
-you have questions or other approaches you’d like to share, please
-post to the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream].
+This is an introduction to the Beat Link Trigger interface and expression programming environment.
+It shows some ways you can use it, but as an open-ended environment, the possibilities are endless.
+If you have questions or other approaches you’d like to share, please post to the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip channel].
 
 To keep page sizes manageable, this guide is split into several pages.
-It is worth reading through this whole guide once if you are new to
-Beat Link Trigger. Once you know what you are looking for, you can
-also dive right into it by jumping to the page you want using the
-navigation menu on the left.
+It is worth reading through this whole guide once if you are new to Beat Link Trigger.
+Once you know what you are looking for, you can also dive right into it by jumping to the page you want using the navigation menu on the left.
+
+TIP: You can also use the “Search the docs” box at the top of the window to search the entire user guide, not just what is on the current page.
 
 .Versions
 ****
 ifdef::page-origin-worktree[]
-You are looking at the local (embedded) version of the User Guide. Its
-content will reflect exactly the version of the software that you are
+You are looking at the local (embedded) version of the User Guide.
+Its content will reflect exactly the version of the software that you are
 running, because it was built into it, and can be accessed even when
-you are disconnected from the Internet. Any links to external
-resources, however, will only work if you are online.
+you are disconnected from the Internet.
+Any links to external resources, however, will only work if you are online.
 endif::[]
 ifndef::page-origin-worktree[]
 ifeval::["{page-component-display-version}" == "main"]
-You are looking at the **main** branch of the User Guide. This tries
-to keep up with the latest in-progress changes to the software, which
-are frequently made available as preview builds.
+You are looking at the **main** branch of the User Guide.
+This tries to keep up with the latest in-progress changes to the software, which are frequently made available as preview builds.
 
-To look at a version of the Guide that corresponds to a specfic
-release, choose it in the versions menu either at the top right (just
-before the **Edit this Page** link), or at the bottom left.
+To look at a version of the Guide that corresponds to a specific release, choose it in the versions menu either at the top right (just before the **Edit this Page** link), or at the bottom left.
 endif::[]
 ifeval::["{page-component-display-version}" != "main"]
-You are looking at version *{page-component-version}* of the User
-Guide, which corresponds to that release of the software.
+You are looking at version *{page-component-version}* of the User Guide, which corresponds to that release of the software.
 
-To look at a different version (including the main branch, which
-reflects ongoing development that is available as a preview release
-but not yet officially released), choose it in the versions menu
-either at the top right (just before the **Edit this Page** link), or
-at the bottom left.
+To look at a different version (including the `main` branch, which reflects ongoing development that is available as a preview release but not yet frozen as a numbered release), choose it in the versions menu either at the top right (just before the **Edit this Page** link), or at the bottom left.
 endif::[]
 endif::[]
 ****
@@ -50,64 +38,38 @@ endif::[]
 [[startup]]
 == Startup
 
-When you first open Beat Link Trigger, it tries to find the Pro DJ
-Link devices that you want it to monitor. While it is watching the
-network for them, it displays a window like this:
+When you first open Beat Link Trigger, it tries to find the Pro DJ Link devices that you want it to monitor.
+While it is watching the network for them, it displays a window like this:
 
-image:FindingDevices.png[Looking for devices,512,512]
+image::FindingDevices.png[Looking for devices,512,512]
 
 NOTE: Your window may not look exactly like this, for reasons that go beyond host operating system differences.
-Starting with BLT version 8 you can choose different user interface themes in the <<Settings.adoc#,Settings>>, so be ready for variations from the screen shots.
+Starting with BLT version 8 you can choose different user interface themes in the xref:Settings.adoc[], so be ready for variations from the screenshots.
 
-If you just wanted to work on setting up your triggers, expressions,
-or shows, and don’t have any actual players handy, you can click
-kbd:[Continue Offline] to work in an offline mode. Your triggers won’t
-actually fire, but you can do all the configuration and editing that
-you need, and you can load tracks into your shows using rekordbox USB
-and SD media.
+If you just wanted to work on setting up your triggers, expressions, or shows, and don’t have any actual players handy, you can click kbd:[Continue Offline] to work in an offline mode.
+Your triggers won’t actually fire, but you can do all the configuration and editing that you need, and you can load tracks into your shows using rekordbox USB and SD media.
 
-If no DJ Link devices can be found after about twenty seconds of
-searching, it probably means something is misconfigured on your
-network, so Beat Link Trigger will replace the window with a
-troubleshooting version that looks like this:
+If no DJ Link devices can be found after about twenty seconds of searching, it probably means something is misconfigured on your network, so Beat Link Trigger will replace the window with a troubleshooting version that looks like this:
 
-image:NoDevices.png[No devices found,505,468]
+image::NoDevices.png[No devices found,505,468]
 
-If you were expecting to find devices, double-check that they are
-powered on, and properly networked with your computer (and that any
-hub or wireless router you are using is also properly turned on and
-configured). The window shows all network interfaces that were found
-in your computer, along with the IP address and net mask assigned to
-your computer on that interface. The devices will only be able to
-communicate with you if they have compatible IPv4 addresses. If you
-are not on a network with a DHCP server, for example, the players will
-assign themselves addresses of the form 169.254._x_._y_/16, so if none
-of your addresses match that pattern, you will not be able to
-communicate with them.
+If you were expecting to find devices, double-check that they are powered on, and properly networked with your computer (and that any hub or wireless router you are using is also properly turned on and configured).
+The window shows all network interfaces that were found in your computer, along with the IP address and net mask assigned to your computer on that interface.
+The devices will only be able to communicate with you if they have compatible IPv4 addresses.
+If you are not on a network with a DHCP server, for example, the players will assign themselves addresses of the form 169.254._x_._y_/16, so if none of your addresses match that pattern, you will not be able to communicate with them.
 
-While you work on making sure your network interfaces and cables are
-configured properly. Beat Link Trigger is continuing to watch for
-devices, so as soon as you get the issue sorted out, it will go
-online. And as noted above, if that isn't going to happen, you can
-click kbd:[Continue Offline] to work in an offline mode, or you can
-click kbd:[Quit] to give up and try again later, perhaps in a
-different setting.
+While you work on making sure your network interfaces and cables are configured properly, Beat Link Trigger is continuing to watch for devices, so as soon as you get the issue sorted out, it will go online.
+And as noted above, if that isn't going to happen, you can click kbd:[Continue Offline] to work in an offline mode, or you can click kbd:[Quit] to give up and try again later, perhaps in a different setting.
 
-Once a device is found, or you choose to continue offline, the
-Triggers window opens, in the same configuration that you left it the
-last time you used the program, and any Show files you had open will
-be reopened as well.
+Once a device is found, or you choose to continue offline, the xref:Triggers.adoc[] window opens, in the same configuration that you left it the last time you used the program, and any xref:Shows.adoc[Show files] you had open will be reopened as well.
 
-TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use most BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed <<OpusQuad.adoc#,here>>,
+TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use most BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed xref:OpusQuad.adoc[here],
 
 [[command-line-arguments]]
 === Command-Line Arguments
 
-If you launch BLT from a shell (either because you are using the Jar
-file with your own Java installation, or by running the launcher
-embedded in the application) you can control what it does at startup.
-Giving it the argument `-h` or `--help` causes it to print out all the
-available options and quit:
+If you launch BLT from a shell (either because you are using the Jar file with your own Java installation, or by running the launcher embedded in the application) you can control what it does at startup.
+Giving it the argument `-h` or `--help` causes it to print out all the available options and quit:
 
 ----
 java -jar beat-link-trigger.jar --help
@@ -124,297 +86,174 @@ Options:
 Please see https://github.com/Deep-Symmetry/beat-link-trigger for user guide.
 ----
 
-The `-o` or `--offline` option allows you to skip the attempt to find
-a DJ Link network, and go right into offline editing mode. You can
-connect later as described <<#connecting-later,below>> if desired.
+The `-o` or `--offline` option allows you to skip the attempt to find a DJ Link network, and go right into offline editing mode.
+You can connect later as described <<#connecting-later,below>> if desired.
 
-The `-s` or `--show` option can be combined with the path to a show
-file to tell BLT to open that show as well as any of the shows that
-were open when you last used it. You can use this option as many times
-as you like to open multiple new shows.
+The `-s` or `--show` option can be combined with the path to a show file to tell BLT to open that show as well as any of the shows that were open when you last used it.
+You can use this option as many times as you like to open multiple new shows.
 
-If you don't want the shows that were open during the last session to
-be reopened, you can prevent that by supplying the `-S` or
-`&#8209;&#8209;suppress` option. (This works whether or not you are
-listing shows that you do want opened.)
+If you don't want the shows that were open during the last session to be reopened, you can prevent that by supplying the `-S` or `--suppress` option.
+(This works whether or not you are listing shows that you do want opened.)
 
-If there is a problem with your saved configuration that is preventing
-BLT from starting properly, you can use the `&#8209;&#8209;reset`
-option along with a file path to tell BLT to write that configuration
-to the specified file (whose name must end with `.blt`), and then
-start up with an blank configuration. You can either try to manually
-edit the exported configuration file to fix the problem (it is saved
-as https://github.com/edn-format/edn[EDN], a text format), extract
-expressions and elements you want to save, or reopen it unchanged
-later if there is a fix to BLT itself that solves the problem.
+If there is a problem with your saved configuration that is preventing BLT from starting properly, you can use the `--reset` option along with a file path to tell BLT to write the current configuration to the specified file (whose name must end with `.blt`), and then start up with a blank configuration.
+You can either try to manually edit the exported configuration file to fix the problem (it is saved as https://github.com/edn-format/edn[EDN], a text format), extract expressions and elements you want to save, or reopen it unchanged later if there is a fix to BLT itself that solves the problem.
 
-Finally, if you want to start with a different configuration (which
-includes all your triggers, global expressions and shared functions,
-as well as window positions and set of open shows), you can use the
-`-c` or `&#8209;&#8209;config` option to specify the path to the
-exported configuration file you want to use. This will replace the
-current configuration, so if there is anything you want to preserve in
-that, be sure to do that with the `&#8209;&#8209;reset` option, unless
-you have already <<Debugging.adoc#saving-and-loading,saved it from
-within BLT>>.
+Finally, if you want to start with a different configuration (which includes all your triggers, global expressions and shared functions, as well as window positions and set of open shows), you can use the `-c` or `&#8209;&#8209;config` option to specify the path to the exported configuration file you want to use.
+This will replace the current configuration, so if there is anything you want to preserve in that, be sure to do that with the `--reset` option, unless you have already <<Debugging.adoc#saving-and-loading,saved it from within BLT>>.
 
 [TIP]
 ====
-If you are using the Mac application version of Beat Link
-Trigger, you can still give it command line arguments by opening a
-Terminal window and executing commands like:
+If you are using the Mac application version of Beat Link Trigger, you can still give it command line arguments by opening a Terminal window and executing commands like:
 
     Beat\ Link\ Trigger.app/Contents/MacOS/Beat\ Link\ Trigger --offline
 
-You can also use the macOS `open` command to achieve this without
-having to specify the path to and through the `.app` bundle, but this
-approach prevents any of the application's text output from appearing
-in the terminal:
+You can also use the macOS `open` command to achieve this without having to specify the path to and through the `.app` bundle, but this approach prevents any of the application's text output from appearing in the terminal:
 
     open -a "Beat Link Trigger" --args --offline
 
-In Windows you can pass command-line arguments by using the Command
-Prompt window to invoke `Beat Link Trigger.exe` as the command, adding
-any arguments you'd like after that. As with the macOS `open` command,
-however, you will not be able to see any output that BLT writes back
-to you.
+In Windows, you can pass command-line arguments by using the Command Prompt window to invoke `Beat Link Trigger.exe` as the command, adding any arguments you'd like after that.
+As with the macOS `open` command, however, you will not be able to see any output that BLT writes back to you.
 ====
 
 [[connecting-later]]
 === Connecting Later
 
-If you connect to a DJ Link network after a period of working on your
-shows and triggers in offline mode, you can take Beat Link Trigger
-online by checking menu:Network[Online?]
+If you connect to a DJ Link network after a period of working on your shows and triggers in offline mode, you can take Beat Link Trigger online by checking menu:Network[Online?]
 
-image:GoingOnline.png[Going Online,360,220]
+image::GoingOnline.png[Going Online,360,220]
 
 You can also go offline at any time by un-checking the menu option.
 
 [TIP]
 ====
-If there has been a disruption to the network, and you seem to have
-lost contact with the players, taking Beat Link Trigger offline and
-then going back online can often solve the problem. It will generally
-try to do this for you automatically when it loses contact with the
-last DJ Link device.
+If there has been a disruption to the network, and you seem to have lost contact with the players, taking Beat Link Trigger offline and then going back online can often solve the problem.
+It will generally try to do this for you automatically when it loses contact with the last DJ Link device.
 ====
 
 [[checking-player-number]]
 === Checking your Player Number
 
-Once you have successfully taken Beat Link Trigger online, you can
-see what Player Number it is using by looking at the menu:Network[Online?]
-menu option without toggling it again. Whenever it is checked, the
-Player Number being used by Beat Link is shown there.
+image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,200,float=right]
+Once you have successfully taken Beat Link Trigger online, you can see what Player Number it is using by looking at the menu:Network[Online?]menu option without toggling it again.
+Whenever it is checked, the Player Number being used by Beat Link is shown there.
 
-image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,200]
-
-Most of the time you will want to be using the self-assigned device
-number Player 7, as shown here, because that is compatible with big
-shows where there are four real players in use (or even six, if they
-are all CDJ-3000s). However, if you want to do things like letting an
-Ableton Link session become the Tempo Master and
-<<Link#full-sync,control the speed>> and beat sync of the players, or
-display metadata for CD and other non-rekordbox tracks, you will need
-to use a real player number in the range 1–4, which may require you
-to turn off one of the other players.
+Most of the time you will want to be using the self-assigned device number Player 7, as shown here, because that is compatible with big shows where there are four real players in use (or even six, if they are all CDJ-3000s).
+However, if you want to do things like letting an Ableton Link session become the Tempo Master and <<Link#full-sync,control the speed>> and beat sync of the players, or display metadata for CD and other non-rekordbox tracks, you will need to use a real player number in the range 1–4, which may require you to turn off one of the other players.
 
 [[fixing-network-problems]]
 == Fixing Network Problems
 
-If Beat Link Trigger reports that it can’t find any DJ Link devices
-when you try to take it online, this means there is a problem with
-your network. People often ask for a connection diagram, but there is
-really nothing to diagram: as long as you have your players and the
-computer running BLT on the same LAN, it will work.
+If Beat Link Trigger reports that it can’t find any DJ Link devices when you try to take it online, this means there is a problem with your network.
+People often ask for a connection diagram, but there is really nothing to diagram: as long as you have your players and the computer running BLT on the same LAN, it will work.
 
-That could mean anything from plugging a single player directly into
-the LAN adapter of your computer (with a modern Ethernet adapter with
-https://en.wikipedia.org/wiki/Medium-dependent_interface#Auto_MDI-X[Auto-MDI-X]),
-to plugging everything into a fast hub, switch (which most things
-called “hubs” really are today), or router.
+That could mean anything from plugging a single player directly into the LAN adapter of your computer (with a modern Ethernet adapter with https://en.wikipedia.org/wiki/Medium-dependent_interface#Auto_MDI-X[Auto-MDI-X]), to plugging everything into a fast hub, or switch (which most things called “hubs” really are today), or router.
 
-By far the most common problems involve configuration issues with the
-network adapter on the computer running Beat Link Trigger. So here is
-a list of things to think about and watch out for.
+By far the most common problems involve configuration issues with the network adapter on the computer running Beat Link Trigger.
+So here is a list of things to think about and watch out for.
 
-> If you are still stuck after following this advice, you can ask for
-> help on the
-> https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-> stream].
+TIP: If you are still stuck after following this advice, you can ask for help in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip channel].
 
 === Use a Separate Network for your DJ gear
 
-The best scenario is to have a completely separate switch for only
-your DJ gear, and a secondary network adapter on the computer running
-BLT. Connect all the DJ gear and that network adapter to that one
-switch. Make sure that switch isn’t connected to other
-switches/routers, this can make the Pro-DJ Link traffic go bananas.
+The best scenario is to have a completely separate switch for only your DJ gear, and a secondary network adapter on the computer running BLT.
+Connect all the DJ gear and that network adapter to that one switch.
+Make sure that switch isn’t connected to other switches/routers, this can make the Pro-DJ Link traffic go bananas.
 
-WARNING: Do not use WiFi for any of your network segments. I thought
-everyone would know this, but I end up spending a lot of time helping
-people in the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[discussion
-community] who are trying to figure out why nothing is working well,
-and who turn out to be using WiFi. You just can't do that with DJ
-Link. WiFi has latency and collision issues that destroy the ability
-to reliably interact with DJ gear. Don't try, especially not if you
-are performing with an audience. Use a good gigabit network switch and
-quality Ethernet cables.
+WARNING: Do not use Wi-Fi for any of your network segments.
+I thought everyone would know this, but I end up spending a lot of time helping people in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[discussion community] who are trying to figure out why nothing is working well, and who turn out to be using Wi-Fi.
+You just can't do that with DJ Link.
+Wi-Fi has latency and collision issues that destroy the ability to reliably interact with DJ gear.
+Don't try, especially not if you are performing with an audience.
+Use a good gigabit network switch and quality Ethernet cables.
 
-If you still want to be able to access the Internet from the computer
-running Beat Link Trigger, you can do so by connecting its primary
-network adapter to another switch or router that is connected to the
-Internet. This way you can use the primary network adapter on your BLT
-computer to do anything that requires global connectivity, and the
-secondary adapter for BLT and the DJ Link network.
+If you still want to be able to access the Internet from the computer running Beat Link Trigger, you can do so by connecting its primary network adapter to another switch or router that is connected to the Internet.
+This way you can use the primary network adapter on your BLT computer to do anything that requires global connectivity, and the secondary adapter for BLT and the DJ Link network.
 
-If your computer has only one network adapter, then it is best not to
-attempt Internet connectivity, and connect only to the DJ gear network
-while running shows.
+If your computer has only one network adapter, then it is best not to attempt Internet connectivity, and connect only to the DJ gear network while running shows.
+This is probably less true now with the CDJ-3000, since it has Internet-enabled features, but if you are running into trouble, it is one more variable to try removing.
 
 === IP Address Assignment
 
 
-The next major thing that needs to be correct for the players and Beat
-Link Trigger to be able to talk to each other is for them to have a
-shared understanding of what network they are on, and IP addresses and
-net masks that are mutually compatible.
+The next major thing that needs to be correct for the players and Beat Link Trigger to be able to talk to each other is for them to have a shared understanding of what network they are on, and IP addresses and net masks that are mutually compatible.
 
-> Of course, you should check that the adapter is active at all, it
-> might have been disabled at the OS level, or there may be a problem
-> with the hardware or the cable.
+TIP: Of course, you should check that the adapter is active at all, it might have been disabled at the OS level, or there may be a problem with the hardware or the cable.
 
 === Self-Assigned Addresses (APIPA, auto-IP)
 
-In the simplest case there is no DHCP server on the DJ gear network,
-so the players will self-assign a
-https://en.wikipedia.org/wiki/Link-local_address[Link-Local Address]
-(further details in https://tools.ietf.org/html/rfc3927[RFC-3927]).
-This is an address of the form 169.254._x_._y_, and if you have left
-the network adapter settings at their default DHCP mode in macOS or
-Windows (and probably Linux), it will self-assign a compatible address
-in the same range. Windows calls this
-https://en.wikipedia.org/wiki/Link-local_address#IPv4[APIPA]. You can
-verify this has happened by looking at the list of networks that Beat
-Link Trigger displays when it is reporting it can’t find DJ Link
-devices. If the network adapter is not using an address that is in
-this range, then you’ll need to fix its configuration.
+In the simplest case there is no DHCP server on the DJ gear network, so the players will self-assign a https://en.wikipedia.org/wiki/Link-local_address[Link-Local Address] (further details in https://tools.ietf.org/html/rfc3927[RFC-3927]).
+This is an address of the form 169.254._x_._y_, and if you have left the network adapter settings at their default DHCP mode in macOS or Windows (and probably Linux), it will self-assign a compatible address in the same range.
+Windows calls this https://en.wikipedia.org/wiki/Link-local_address#IPv4[APIPA].
+You can verify this has happened by looking at the list of networks that Beat Link Trigger displays when it is reporting it can’t find DJ Link devices.
+If the network adapter is not using an address that is in this range, then you’ll need to fix its configuration.
 
-* If the adapter is configured to a hard-coded address, either change
-  that address and net mask to match the Link-local network, or change
-  it to use DHCP so that it will fall back to using link-local
-  addressing when it finds no DHCP server.
+* If the adapter is configured to a hard-coded address, either change that address and net mask to match the Link-local network, or change it to use DHCP so that it will fall back to using link-local addressing when it finds no DHCP server.
 
-* If it is already configured to use DHCP, tell it to try to renew its
-  lease. (In Windows, `ipconfig /release` followed by `ipconfig
-  /renew`. In macOS, here are
-  https://support.apple.com/guide/mac-help/renew-ip-address-dhcp-server-mac-mchlp1545/10.15/mac/10.15[Apple’s
-  instructions] and a nice
-  https://osxdaily.com/2015/07/30/release-renew-dhcp-command-line-ipconfig/[osXdaily
-  article]. In Linux, you’ll generally want to
-  https://unix.stackexchange.com/questions/405229/how-to-release-and-renew-ip-address-from-dhcp-on-linux-systems[use
-  `dhclient`].)
+* If it is already configured to use DHCP, tell it to try to renew its lease.
+  (In Windows, `ipconfig /release` followed by `ipconfig /renew`.
+  In macOS, here are https://support.apple.com/guide/mac-help/renew-ip-address-dhcp-server-mac-mchlp1545/10.15/mac/10.15[Apple’s instructions] and a nice https://osxdaily.com/2015/07/30/release-renew-dhcp-command-line-ipconfig/[osXdaily
+  article].
+  In Linux, you’ll generally want to https://unix.stackexchange.com/questions/405229/how-to-release-and-renew-ip-address-from-dhcp-on-linux-systems[use `dhclient`].)
 
 === DHCP Managed Networks
 
-If you want to have more control over the IP address assignments and
-network parameters of your DJ network, and are running your own DHCP
-server, you will already know most of this information and
-troubleshooting steps. But:
+If you want to have more control over the IP address assignments and network parameters of your DJ network, and are running your own DHCP server, you will already know most of this information and troubleshooting steps. But:
 
-* Make sure the DHCP server has plenty of time to boot, and was ready
-  to respond before you power on the CDJs or attach the computer’s
-  network adapter. Otherwise they may time out waiting for the server
-  and self-assign IP addresses as described above.
+* Make sure the DHCP server has plenty of time to boot, and was ready to respond before you power on the CDJs or attach the computer’s network adapter.
+  Otherwise, they may time out waiting for the server and self-assign IP addresses as described above.
 
-* Turning the CDJ off for a few seconds and then back on once you know
-  the DHCP server is ready will give the player a chance to get the
-  address you intended for it.
+* Turning the CDJ off for a few seconds and then back on once you know the DHCP server is ready will give the player a chance to get the address you intended for it.
 
-* If the network adapter doesn’t show the correct address in Beat Link
-  Trigger’s troubleshooting window, follow the instructions in the
-  previous section for releasing and renewing your DHCP lease.
+* If the network adapter doesn’t show the correct address in Beat Link Trigger’s troubleshooting window, follow the instructions in the previous section for releasing and renewing your DHCP lease.
 
 === Firewall and Anti-Virus Software
 
-You need to be sure that there is no firewall or anti-virus software
-on the host computer blocking Beat Link Trigger from communicating on
-the network adapter. Either of those things can prevent it from
-joining the DJ Link network.
+You need to be sure that there is no firewall or antivirus software on the host computer blocking Beat Link Trigger from communicating on the network adapter.
+Either of those things can prevent it from joining the DJ Link network.
 
 === Other DJ Link Software (like rekordbox)
 
-Because of fundamental limitations in the design of the DJ Link
-protocol, only one program can connect to the DJ Link network on a
-given network adapter. So it is impossible to run Beat Link Trigger on
-the same computer as rekordbox, or any other software that wants to
-communicate with the DJ Link network.
+Because of fundamental limitations in the design of the DJ Link protocol, only one program can connect to the DJ Link network on a given network adapter.
+So it is impossible to run Beat Link Trigger on the same computer as rekordbox, or any other software that wants to communicate with the DJ Link network.
 
 === Other Port Conflicts
 
-If you are running any software that happens to randomly use the same
-ports as the DJ Link protocol (one culprit in Windows turns out to be
-the https://anydesk.com/[AnyDesk remote desktop software]) this will
-also prevent Beat Link Trigger (or rekordbox) from starting up
-properly. You will want to look for conflicts on ports 50000, 50001,
-and 50002 (and remember you need to check the UDP protocol, not just
-TCP).
+If you are running any software that happens to randomly use the same ports as the DJ Link protocol (one culprit in Windows turns out to be the https://anydesk.com/[AnyDesk remote desktop software]) this will also prevent Beat Link Trigger (or rekordbox) from starting up properly.
+You will want to look for conflicts on ports 50000, 50001, and 50002 (and remember you need to check the UDP protocol, not just TCP).
 
-* On macOS and Linux you can use, for example, `lsof -i :50000` to see
-  the process using port 50000. (You may need to install `lsof` using
-  your preferred package manager on Linux; it is preinstalled on
-  macOS. Other Linux alternatives are described
-  https://www.tecmint.com/find-out-which-process-listening-on-a-particular-port/[here].)
+* On macOS and Linux you can use, for example, `lsof -i :50000` to see the process using port 50000.
+  (You may need to install `lsof` using your preferred package manager on Linux; it is preinstalled on macOS.
+  Other Linux alternatives are described https://www.tecmint.com/find-out-which-process-listening-on-a-particular-port/[here].)
 
-* On Windows you can use the Resource Monitor GUI:
-  menu:Start menu[All Programs > Accessories > System Tools > Resource Monitor]
-  (or run `resmon.exe`). Remember to look for both UDP and TCP listeners and
-  connections.
+* On Windows you can use the Resource Monitor GUI: menu:Start menu[All Programs > Accessories > System Tools > Resource Monitor] (or run `resmon.exe`).
+  Remember to look for both UDP and TCP listeners and connections.
 
 == Learning More
 
 ****
 
-* Continue to <<Triggers#,Triggers>>
+* Continue to xref:Triggers.adoc[]]
 
 ****
 
 [[what-next]]
 == What Next?
 
-Hopefully this guide has been enough to get you started, and thinking
-about interesting ways you can synchronize your CDJs with other
-elements of your show. (If you have not yet read the other pages in
-the guide, please do so, either using the “Learning More” links in
-each page—like the one right above—or by exploring the navigation menu
-on the left.)
+Hopefully this guide has been enough to get you started, and thinking about interesting ways you can synchronize your CDJs with other elements of your show.
+(If you have not yet read the other pages in the guide, please do so, either using the “Learning More” links in each page—like the one right above—or by exploring the navigation menu on the left.)
 
-If you have any thoughts, questions, your own integration examples, or
-even crazy ideas, please share them in the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream] or
-https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki]!
+If you have any thoughts, questions, your own integration examples, or even crazy ideas, please share them in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip channel]!
 
-If you find what seems to be an actual problem with the software,
-please open an
-https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue], or at
-least check whether someone else already has.
+If you find what seems to be an actual problem with the software, please start by discussing it on https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip], and if the community there agrees that it’s appropriate to do so, open an https://github.com/Deep-Symmetry/beat-link-trigger/issues[Issue], or at least check whether someone else already has.
 
-Thanks for reading this, and have fun with Beat Link Trigger! I hope
-to hear from you.
+Thanks for reading this, and have fun with Beat Link Trigger! I hope to hear from you.
 
 === Funding
 
-Beat Link Trigger is, and will remain, completely free and
-open-source. If it has helped you, taught you something, or pleased
-you, let us know and share some of your discoveries and code as
-described above. If you’d like to financially support its ongoing
-development, you are welcome (but by no means obligated) to donate
-towards the hundreds of hours of research, development, and writing
-that have already been invested. Or perhaps to facilitate future
-efforts, tools, toys, and time to explore.
+Beat Link Trigger is, and will remain, completely free and open-source.
+If it has helped you, taught you something, or pleased you, let us know and share some of your discoveries and code as described above.
+If you’d like to financially support its ongoing development, you are welcome (but by no means obligated) to donate towards the hundreds of hours of research, development, and writing that have already been invested.
+Or perhaps to facilitate future efforts, tools, toys, and time to explore.
 
 +++
 <a href="https://liberapay.com/deep-symmetry/donate"><img style="vertical-align:middle" alt="Donate using Liberapay"
@@ -424,158 +263,88 @@ efforts, tools, toys, and time to explore.
     alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 +++
 
-> If enough people jump on board, we may even be able to get a newer
-> CDJ to experiment with, although that’s an unlikely stretch goal.
+> If enough people jump on board, we may even be able to get an XDJ-AZ to experiment with, although that’s an unlikely stretch goal.
 
 == License
 
-+++<a href="http://deepsymmetry.org"><img src="_images/DS-logo-bw-200.png" style="float:right;margin-left:1em" alt="Deep Symmetry logo" width="200" height="124"></a>+++
+image:DS-logo-bw-200.png[Deep Symmetry logo,200,124,float=right]
 Copyright &copy; {page-copyright} http://deepsymmetry.org[Deep Symmetry, LLC]
 
-Distributed under the https://opensource.org/licenses/EPL-2.0[Eclipse
-Public License 2.0]. By using this software in any fashion, you are
-agreeing to be bound by the terms of this license. You must not remove
-this notice, or any other, from this software. A copy of the license
-can be found in
-https://github.com/Deep-Symmetry/beat-link-trigger/blob/main/LICENSE[LICENSE]
-within this project.
+Distributed under the https://opensource.org/licenses/EPL-2.0[Eclipse Public License 2.0].
+By using this software in any fashion, you are agreeing to be bound by the terms of this license.
+You must not remove this notice, or any other, from this software. A copy of the license
+can be found in https://github.com/Deep-Symmetry/beat-link-trigger/blob/main/LICENSE[LICENSE] within this project.
 
 
 == Library Licenses
 
 === Remote Tea
 
-https://sourceforge.net/projects/remotetea/[Remote Tea] is used for
-communicating with the NFSv2 servers on players, licensed under the
-https://opensource.org/licenses/LGPL-2.0[GNU Library General Public
-License, version 2].
+https://sourceforge.net/projects/remotetea/[Remote Tea] is used for communicating with the NFSv2 servers on players, licensed under the https://opensource.org/licenses/LGPL-2.0[GNU Library General Public License, version 2].
 
 === Kaitai Struct
 
-The http://kaitai.io[Kaitai Struct] Java runtime is used for parsing
-rekordbox exports and media analysis files, licensed under the
-https://opensource.org/licenses/MIT[MIT License].
+The http://kaitai.io[Kaitai Struct] Java runtime is used for parsing rekordbox exports and media analysis files, licensed under the https://opensource.org/licenses/MIT[MIT License].
 
 === RSyntaxtTextArea
 
-https://github.com/bobbylight/RSyntaxTextArea[RSyntaxtTextArea] is
-used for editing Clojure expression code.
+https://github.com/bobbylight/RSyntaxTextArea[RSyntaxtTextArea] is used for editing Clojure expression code.
 
 Copyright © 2019, Robert Futrell.
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of the author nor the names of its contributors may
-  be used to endorse or promote products derived from this software
-  without specific prior written permission.
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+* Neither the name of the author nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 === https://github.com/bobbylight/RSTAUI[RSTAUI]
 
-Provides find/replace and other extended features to RSyntaxTextArea
-when editing Clojure expression code.
+Provides find/replace and other extended features to RSyntaxTextArea when editing Clojure expression code.
 
 Copyright © 2012, Robert Futrell.
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of the author nor the names of its contributors may
-  be used to endorse or promote products derived from this software
-  without specific prior written permission.
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+* Neither the name of the author nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 === https://github.com/timmolderez/inspector-jay[inspector-jay]
 
-Supports inspection of the atoms that store local and global values
-for trigger and show expressions.
+Supports inspection of the atoms that store local and global values for trigger and show expressions.
 
 Copyright © 2013-2015 Tim Molderez.
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the inspector-jay developer team nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE INSPECTOR-JAY DEVELOPER TEAM BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    * Neither the name of the inspector-jay developer team nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE INSPECTOR-JAY DEVELOPER TEAM BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 === https://github.com/kirill-grouchnikov/radiance[radiance]
 
 Provides the cool dark look-and-feel for the graphical user interface.
 
-Copyright © 2005-2019, Kirill Grouchnikov.
-All rights reserved.
+Copyright © 2005-2019, Kirill Grouchnikov. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+* Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

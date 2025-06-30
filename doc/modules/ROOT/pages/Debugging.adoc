@@ -3,9 +3,7 @@ include::partial$PagePreamble.adoc[]
 
 [[contact-channels]]
 Beat Link Trigger offers a few mechanisms to help you understand how  your triggers are (or are not) working, and to save and restore versions of them, or share them with friends and colleagues (or on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream] or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki] to either get help from others, or share and show them off).
-+++<img
-src="_images/HelpMenu.png" width="250" height="205" alt="Help Menu"
-style="float:right"/>+++
+image:HelpMenu.png[Help Menu,250,205,float=right]
 
 Help resources can be found in the menu:Help[] menu, along with an embedded copy of this User Guide, which can be used even if you are not connected to the Internet (although links to other sites will not work in that case).
 
