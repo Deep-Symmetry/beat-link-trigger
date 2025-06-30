@@ -8,8 +8,8 @@ Here are some ways you can use it with Beat Link Trigger.
 TIP: This section shows how to achieve tight integration using the
 PangoTalk UDP server, which requires BEYOND Advanced, but you can use
 MIDI with BEYOND Essentials to get decent tempo tracking and basic cue
-triggers, as described <<Integration_BeyondEssentials#,its own
-section>>.
+triggers, as described xref:Integration_BeyondEssentials.adoc[its own
+section].
 
 To begin with, in the Shared Functions, we tell Beat Link Trigger how to communicate with BEYOND, by specifying the broadcast address of the network interface it is listening on, and the port on which the BEYOND Talk UDP server is listening.
 To determine these things, you can choose menu:Tools[Network Monitor...] within BEYOND to bring up a window like this:
@@ -110,7 +110,9 @@ Create another new Trigger (or more likely a cue in a xref:Shows_Tracks.adoc[Sho
 ====
 If you are doing this in the Triggers window, you’d use the techniques described xref:Expressions_Trigger.adoc#enabled-filter-expression[above]. The only thing you’d need to do different is set the Message menu to Custom, so it will send its Activation message to Beyond’s Talk server rather than a MIDI message.
 
-And if you are using show cues to trigger laser cues, which makes the most sense today (they were not available when this example was first created), you need to copy the shared functions into the Show as well, so the cues there can use them. You’ll probably want to leave the BPM sync trigger in the Triggers window, since that is a feature that makes sense even in the absence of any show-specific cues.
+But now that Beat Link Trigger has xref:Shows.adoc[], you will likely want to use their xref:Shows_Cues.adoc[Cues] instead. The same techniques work there.
+To do that, you’ll need to copy the shared functions into the Show as well, so the cues there can use them.
+You’ll probably want to leave the BPM sync trigger in the Triggers window, since that is a feature that makes sense even in the absence of any show-specific cues.
 ====
 
 > Actually, you can map MIDI and OSC messages to BEYOND cues, so once you have the BPM sync working, feel free to go that route if you prefer.
