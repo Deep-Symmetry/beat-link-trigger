@@ -1,26 +1,17 @@
 = MA Lighting grandMA2
 include::partial$PagePreamble.adoc[]
 
-https://web.archive.org/web/20211204155543/https://lxhues.com/[Alex
-Hughes] inquired if it would be possible to use a trigger to
-synchronize a speed master for effects on a
-https://www.malighting.com/product-archive/products/grandma2/[grandMA2]
-lighting control system. With his help and pointers to the relevant
-documentation, we were able to achieve that. The approach is described
-and explained in detail below, or you can start by downloading the
-corresponding link:{attachmentsdir}/grandMA2.blt[configuration file]
-and loading that within Beat Link Trigger.
+https://web.archive.org/web/20211204155543/https://lxhues.com/[Alex Hughes] inquired if it would be possible to use a trigger to synchronize a speed master for effects on a https://www.malighting.com/product-archive/products/grandma2/[grandMA2] lighting control system.
+With his help and pointers to the relevant documentation, we were able to achieve that.
+The approach is described and explained in detail below, or you can start by downloading the corresponding link:{attachmentsdir}/grandMA2.blt[configuration file] and loading that within Beat Link Trigger.
 
-WARNING: If you already have triggers of your own that you want to
-keep, be sure to save your configuration before opening another one!
-In that case you may want to export your triggers, or manually cut and
-paste the relevant pieces of code into your Triggers window Shared
-Functions.
+WARNING: If you already have triggers of your own that you want to keep, be sure to save your configuration before opening another one!
+In that case you may want to export your triggers, or manually cut and paste the relevant pieces of code into your Triggers window Shared Functions.
 
-To begin with, paste this block of code into Beat Link Trigger’s
-Shared Functions:
+To begin with, paste this block of code into Beat Link Trigger’s Shared Functions:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (defn gm-response-handler
   "A loop that reads messages from grandMA2 and responds
   appropriately. (Currently we don’t respond in any way, but simply
@@ -79,12 +70,12 @@ Shared Functions:
   []
   (let [master (get-in @globals [:gm-connection :bpm-master])]
     (send-gm-command (str "Learn SpecialMaster " master))))
-```
+----
 
-Then paste this setup code in to the Global Setup Expression (notice
-how it builds on the Shared Functions we just created):
+Then paste this setup code in to the Global Setup Expression (notice how it builds on the Shared Functions we just created):
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 ;; Attempt to connect to the grandMA2 telnet command port.
 ;; Edit the variable definitions below to reflect your setup.
 (try
@@ -103,67 +94,43 @@ how it builds on the Shared Functions we just created):
     (send-gm-command (str "login \"" gm-user "\" \"" gm-password "\"")))
   (catch Exception e
     (timbre/error e "Unable to connect to grandMA2")))
-```
+----
 
-NOTE: You will want to edit the values assigned to `gm-address`,
-`gm-port`, `gm-user`, `gm-password`, and `gm-speedmaster` to match your
-setup. This code assumes that the lighting desk is already running and
-configured to listen on the specified port before you launch
-Beat Link Trigger. If nothing seems to be working, check the log file
-for error messages, and see if the login process was successful.
-Unfortunately, there is no friendly user interface to tell it to try
-again if it was not, but you can do so by editing the Global Setup
-Expression and saving it--even without making any changes, that will
-run both the shutdown and setup code again for you.
+NOTE: You will want to edit the values assigned to `gm-address`,`gm-port`, `gm-user`, `gm-password`, and `gm-speedmaster` to match your setup.
+This code assumes that the lighting desk is already running and configured to listen on the specified port before you launch Beat Link Trigger.
+If nothing seems to be working, check the log file for error messages, and see if the login process was successful.
+Unfortunately, there is no friendly user interface to tell it to try again if it was not, but you can do so by editing the Global Setup Expression and saving it--even without making any changes, that will run both the shutdown and setup code again for you.
 
-Also paste this smaller block of code into the Global Shutdown
-Expression:
+Also paste this smaller block of code into the Global Shutdown Expression:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 ;; Disconnect from the grandMA2 telnet command port.
 (when-let [socket (get-in @globals [:gm-connection :socket])]
   (.close socket)
   (swap! globals dissoc :gm-connection))
-```
+----
 
-With these in place, Beat Link Trigger will maintain a connection to
-the lighting desk command port while it runs, and make a new set of
-functions available to all your trigger expressions which make it easy
-to send tempo information and other commands.
+With these in place, Beat Link Trigger will maintain a connection to the lighting desk command port while it runs, and make a new set of functions available to all your trigger expressions which make it easy to send tempo information and other commands.
 
-If you want to control the speed master to match the tempo of the
-Pioneer network, it is probably easiest to set up a single trigger to
-Watch the Master Player, and set its Tracked Update Expression to:
+If you want to control the speed master to match the tempo of the Pioneer network, it is probably easiest to set up a single trigger to Watch the Master Player, and set its Tracked Update Expression to:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (when trigger-active? (set-gm-tempo effective-tempo))
-```
+----
 
-Whenever you have this trigger enabled, it will slave the value of the
-configured grandMA2 SpecialMaster to the tempo of the Master Player.
-To have the speed set to zero when playback stops, set the trigger’s
-Deactivation Expression to:
+Whenever you have this trigger enabled, it will slave the value of the configured grandMA2 SpecialMaster to the tempo of the Master Player.
+To have the speed set to zero when playback stops, set the trigger’s Deactivation Expression to:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (set-gm-tempo 0.0)
-```
+----
 
-If you have other things that you want to happen when particular
-tracks start or stop playing or reach particular sections, then you
-want to set up a <<Shows.adoc#,Show>>. If you really want to do it the
-older, more complicated way, then you can set up other triggers that
-send whatever commands you like in their Activation and Deactivation
-expressions using the `send-gm-command` function that was created by
-the Global Setup Expression, and configure them to be active only when
-a CDJ is playing a particular track, or is within a particular range
-of beats within that track, as shown in <<Matching.adoc#,Matching
-Tracks Manually>>. This allows you to have certain looks called up
-automatically when the right parts of the right tracks are played. But
-honestly, learn about Shows, they are so much easier to set up, and do
-all that work for you!
+If you have other things that you want to happen when particular tracks start or stop playing or reach particular sections, then you want to set up a xref:Shows.adoc[Show].
+If you really want to do it the older, more complicated way, then you can set up other triggers that send whatever commands you like in their Activation and Deactivation expressions using the `send-gm-command` function that was created by the Global Setup Expression, and configure them to be active only when a CDJ is playing a particular track, or is within a particular range of beats within that track, as shown in xref:Matching.adoc[Matching Tracks Manually].
+This allows you to have certain looks called up automatically when the right parts of the right tracks are played.
+But honestly, learn about Shows, they are so much easier to set up, and do all that work for you!
 
-TIP: If you jumped to this section to learn about how to integrate the
-lighting desk with CDJs, and you think it looks promising, you
-will want to go back and read this entire user guide to get a better
-understanding of how to make your triggers activate, and the other
-things you can do with Beat Link Trigger.
+TIP: If you jumped to this section to learn about how to integrate the lighting desk with CDJs, and you think it looks promising, you will want to go back and read this entire user guide to get a better understanding of how to make your triggers activate, and the other things you can do with Beat Link Trigger.
