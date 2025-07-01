@@ -1,86 +1,58 @@
-= Break Buddy "Robo DJ"
+= Break Buddy “Robo DJ”
 include::partial$PagePreamble.adoc[]
 
-One of my most enthusiastic users came up with an interesting question
-shortly after figuring out how to achieve dramatic synchronized
-lighting effects and pyro without having to follow a preset playlist.
-His question: since we can load tracks on the players, and start and
-stop playback, is there any way to have Beat Link Trigger perform a
-programmed automatic mix if the DJ needs to urgently leave the booth
-for a bit, such as for a bathroom break? I thought thiw was something
-the new Show interface could make possible, with some careful setup
-and an understanding of the limitations, so I built this example for
-him.
+One of my most enthusiastic users came up with an interesting question shortly after figuring out how to achieve dramatic synchronized lighting effects and pyro without having to follow a preset playlist.
+His question: since we can load tracks on the players, and start and stop playback, is there any way to have Beat Link Trigger perform a programmed automatic mix if the DJ needs to urgently leave the booth for a bit, such as for a bathroom break?
+I thought this was something the new Show interface could make possible, with some careful setup and an understanding of the limitations, so I built this example for him.
 
 [NOTE]
 ====
-This will never replace real mixing, because there is no way to
-control the crossfaders, EQ, or any effects. You will need to either
-pick tracks that can be harmonically mixed, or use hard cuts between
-tracks, stopping one player while simultaneously starting the next.
+This will never replace real mixing, because there is no way to control the crossfaders, EQ, or any effects.
+You will need to either pick tracks that can be harmonically mixed, or use hard cuts between tracks, stopping one player while simultaneously starting the next.
 
-But if you follow a few setup steps, this actually works better than I
-initially expected. If nothing else, it is a really fun demonstration
-of the power of the Show interface. Here's how to do it!
+But if you follow a few setup steps, this actually works better than I initially expected.
+If nothing else, it is a really fun demonstration of the power of the Show interface.
+Here's how to do it!
 ====
 
-Start by saving the link:{attachmentsdir}/BreakBuddy.bls[Break Buddy
-show] where you like to keep your Beat Link Trigger shows. It has all
-the necessary shared functions built in, and some example tracks
-showing how to configure your own, as described below.
+WARNING: It seems that peak support for the operations required to support Break Buddy happened with the nexus and nxs2 lines of CDJs.
+As discussed in <<Players.adoc#loading-playing,Loading and Playing Tracks>>, the CDJ-3000 will load tracks but doesn’t support Fader Start, so can’t be told to play them.
+All-in-one controllers like the XDJ-XZ and Opus Quad are even more limited.
+So in fundamental ways, this is an idea whose time came and passed.
+Check for support by your hardware before investing time in trying it!
 
-* Set up some tracks in rekordbox so their first cue or memory point
-  is where you want to mix into, put them all onto the same USB or SD
-  card (or leave them in rekordbox if you will be using it in export
-  mode), and <<Shows#adding-tracks,import them>> into the Break Buddy
-  show (<<Shows#opening-shows,opening it>> first if you haven't yet done so).
+If you have compatible hardware, start by saving the link:{attachmentsdir}/BreakBuddy.bls[Break Buddy show] where you like to keep your Beat Link Trigger shows.
+It has all the necessary shared functions built in, and some example tracks showing how to configure your own, as described below.
 
-* Make sure your CDJs are configured to Auto Cue to the first memory
-  cue (in menu:Preferences[My Settings] within rekordbox).
+* Set up some tracks in rekordbox so their first cue or memory point is where you want to mix into, put them all onto the same USB or SD card (or leave them in rekordbox if you will be using it in export mode), and <<Shows#adding-tracks,import them>> into the Break Buddy show (<<Shows#opening-shows,opening it>> first if you haven't yet done so).
 
-* If you are going to be adjusting the tempo of tracks, be sure that
-  the CDJs also have Master Tempo turned on, so the track pitches are
-  unaffected by the tempo changes, and configure BLT to use a standard
-  player number by checking menu:Network[Use Real Player Number] (you
-  will have to turn off one of your CDJs first, if you have four).
+* Make sure your CDJs are configured to Auto Cue to the first memory cue (in menu:Preferences[My Settings] within rekordbox).
+
+* If you are going to be adjusting the tempo of tracks, be sure that the CDJs also have Master Tempo turned on, so the track pitches are unaffected by the tempo changes, and configure BLT to use a standard player number by checking menu:Network[Use Real Player Number] (you will have to turn off one of your CDJs first, if you have four).
 +
 image:RealPlayerNumber.png[Using a Real Player Number,360,200]
 
-* It would not hurt to put the players into Sync mode when you are
-  about to start using the show, but the show's shared functions will
-  try to turn on Sync and Master as needed.
+* It would not hurt to put the players into Sync mode when you are about to start using the show, but the show's shared functions will try to turn on Sync and Master as needed.
 
-* Load and play one of the tracks in the show, and let the show take
-  it from there!
+* Load and play one of the tracks in the show, and let the show take it from there!
 
-The way it works is that the tracks in the show are chosen to mix well
-into each other, and have BLT cues painted on them so that each track
-loads the next one on the other player while it is playing, and then
-transitions to it at an appropriate point and in an appropriate way.
+The way it works is that the tracks in the show are chosen to mix well into each other, and have BLT cues painted on them so that each track loads the next one on the other player while it is playing, and then transitions to it at an appropriate point and in an appropriate way.
 
-TIP: The order in which the tracks appear in the show will be
-alphabetic by name, as always, not the order in which they will play.
-That is determined by the cues you create. So you will need some way
-to remind yourself the track you want to load and play first, such as
-by putting a comment in it.
+TIP: The order in which the tracks appear in the show will be alphabetic by name, as always, not the order in which they will play.
+That is determined by the cues you create. So you will need some way to remind yourself the track you want to load and play first, such as by putting a comment in it.
 
 == Break Buddy Shared Functions
 
-The show makes extensive use of Shared Functions to enable the cues to
-perform their tricky operations. They (and the variables they use) are
-all named starting with the prefix `bb-` (short for Break Buddy) so as
-not to conflict with shared functions used by other shows or the
-Triggers window. Here is a listing of all the shared functions, with a
-little additional explanation of how they work beyond the doc comments
-that are already part of them, to set the stage for the discussion of
-the cue library that uses them.
+NOTE: The show makes extensive use of Shared Functions to enable the cues to perform their tricky operations.
+They (and the variables they use) are all named starting with the prefix `bb-` (short for Break Buddy) because when this example was created, that was necessary so as not to conflict with shared functions used by other shows or the Triggers window.
+Version 8 of BLT xref:Expressions_v8.adoc[eliminated that worry], but the example was left as it is, since it is mostly of historical and instructional interest at this point.
 
-TIP: Don't panic if this seems a lot of code detail, you can just skim
-it to your level of comfort, and focus on the explanation of the cues
-themselves, which comes <<bb-cue-library,next>>.
+Here is a listing of all the shared functions, with a little additional explanation of how they work beyond the doc comments that are already part of them, to set the stage for the discussion of the cue library that uses them.
+
+TIP: Don't panic if this seems a lot of code detail, you can just skim it to your level of comfort, and focus on the explanation of the cues themselves, which comes <<bb-cue-library,next>>.
 
 .Shared Functions, part 1
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (def bb-players-for-mixing
   "The player numbers that will be swapped between when using the show
@@ -154,50 +126,36 @@ themselves, which comes <<bb-cue-library,next>>.
                            (.getTrackType status))))
 ----
 
-<1> The `bb-players-for-mixing` set is how the functions can determine
-the "other player" when you tell them to do something to it. As
-shipped, the show assumes you want it to mix between players 2 and 3.
-If you want it to use different player numbers, replace the `2` and/or
-`3` in this line with the numbers you actually want to use.
+<1> The `bb-players-for-mixing` set is how the functions can determine the "other player" when you tell them to do something to it.
+As shipped, the show assumes you want it to mix between players 2 and 3.
+If you want it to use different player numbers, replace the `2` and/or `3` in this line with the numbers you actually want to use.
 
-<2> The `bb-this-player` and `bb-other-player` are able to translate
-between whatever gets passed to a cue expression as the `status` value
-and the player number of the player that is playing the cue, or the
-other player that you want to mix to. They are primarily used by other
-functions as you will see below.
+<2> The `bb-this-player` and `bb-other-player` are able to translate between whatever gets passed to a cue expression as the `status` value and the player number of the player that is playing the cue, or the other player that you want to mix to.
+They are primarily used by other functions as you will see below.
 
-<3> You can call `bb-start-player` and `bb-stop-player` with a player
-number to start or stop that player. `bb-swap-players` takes the
-`status` value that was passed to a cue expression and stops the
-player that was playing the cue, and starts the other player, at the
-same instant. That allows you to perform a hard cut between tracks.
+<3> You can call `bb-start-player` and `bb-stop-player` with a player number to start or stop that player.
+`bb-swap-players` takes the `status` value that was passed to a cue expression and stops the player that was playing the cue, and starts the other player, at the
+same instant.
+That allows you to perform a hard cut between tracks.
 
-<4> You can call `bb-load-track-on-other-player` once you know the
-other player is stopped, to get it ready to mix into a new track. You
-need to pass it the rekordbox ID of the track as it exists in the
-media your show is working from.
+<4> You can call `bb-load-track-on-other-player` once you know the other player is stopped, to get it ready to mix into a new track.
+You need to pass it the rekordbox ID of the track as it exists in the media your show is working from.
 
-<5> Similarly, you can call `bb-load-track-on-this-player` with a cue
-`status` track ID when you know the player has just been stopped by
-the cue.
+<5> Similarly, you can call `bb-load-track-on-this-player` with a cue `status` track ID when you know the player has just been stopped by the cue.
 
 [[finding-track-id]]
-TIP: The easiest way to find the rekordbox IDs to use in your cues is
-to load the tracks into a player (using the same media or collection
-you will be using to run the Break Buddy show), and then look in the
-Triggers window at a trigger that is showing that player. It will show
-the Track ID in the blue Player Status Summary section (The Track ID
-is 81 in the figure below):
+TIP: The easiest way to find the rekordbox IDs to use in your cues is to load the tracks into a player (using the same media or collection you will be using to run the Break Buddy show), and then look in the Triggers window at a trigger that is showing that player.
+It will show the Track ID in the blue Player Status Summary section (The Track ID is 81 in the figure below):
 
 image:BreakBuddyTrackID.png[Finding a Track ID,905,286]
 
-The functions we've looked at so far enable basic automatic mixes. But
-sometimes you need to nudge the tempo before, during, and after
-the mix. The rest of the shared functions are more complicated, but
-they enable clever cues to do just that:
+The functions we’ve looked at so far enable basic automatic mixes.
+But sometimes you need to nudge the tempo before, during, and after
+the mix.
+The rest of the shared functions are more complicated, but they enable clever cues to do just that:
 
 .Shared Functions, part 2
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 ;; This last set of functions are when you want to be able to control tempo
 ;; during your mixes, and will only work when you have Beat Link Trigger
@@ -270,123 +228,86 @@ they enable clever cues to do just that:
          dissoc (:uuid cue)))
 ----
 
-<1> The `bb-prepare-for-tempo-adjustments` function is called by the
-show's Came Online Expression to warn you that the tempo-adjustment
-cues won't work if you don't have Beat Link Trigger configured to use
-a real player number. (It does nothing if you have things set up
-correctly.)
+<1> The `bb-prepare-for-tempo-adjustments` function is called by the show’s Came Online Expression to warn you that the tempo-adjustment cues won’t work if you don't have Beat Link Trigger configured to use a real player number.
+(It does nothing if you have things set up correctly.)
 
-<2> The `bb-tempo-adjust-step` function is called several time a
-second by cues that are adjusting tempo. It sets a new tempo, by
-seeing how much longer the cue lasts, and how far the tempo still
-needs to be changed.
+<2> The `bb-tempo-adjust-step` function is called several time a second by cues that are adjusting tempo.
+It sets a new tempo, by seeing how much longer the cue lasts, and how far the tempo still needs to be changed.
 
-<3> The `bb-start-tempo-adjust` function is called at the beginning of
-a cue that will be adjusting tempo. It sets up all the calculations
-that will be needed so `bb-tempo-adjust-step` can work, and then calls
-it for the first time.
+<3> The `bb-start-tempo-adjust` function is called at the beginning of a cue that will be adjusting tempo.
+It sets up all the calculations that will be needed so `bb-tempo-adjust-step` can work, and then calls it for the first time.
 
-<4> The `bb-continue-tempo-adjust` function is called by the cue's
-Tracked Update expression, finds the calculations that were made by
-`bb-start-tempo-adjust`, and passes them to `bb-tempo-adjust-step`.
+<4> The `bb-continue-tempo-adjust` function is called by the cue’s Tracked Update expression, finds the calculations that were made by`bb-start-tempo-adjust`, and passes them to `bb-tempo-adjust-step`.
 
-<5> Finally, the `bb-finish-tempo-adjust` function is called when the
-cue ends to clean things up and establish the final target tempo.
+<5> Finally, the `bb-finish-tempo-adjust` function is called when the cue ends, to clean things up and establish the final target tempo.
 
-Because the whole concept of Shared Functions did not exist in earlier
-versions of Beat Link Trigger, it is polite to give the user a warning
-of why their show won't work if they try to open it in an old version.
+Because the whole concept of Shared Functions did not exist in earlier versions of Beat Link Trigger, it is polite to give the user a warning of why their show won’t work if they try to open it in an old version.
 We can do that with this short expression:
 
 .Global Setup Expression
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 ;; Make sure we are running a new enough version of Beat Link Trigger
 ;; for this show to work correctly.
 (show/require-version show "0.5.5-SNAPSHOT-75")
 ----
 
-This code runs after the shared functions have been defined, when the
-show is starting up. It checks that it is running in a recent enough
-version of Beat Link Trigger to work properly. If not, a dialog
-explaining that problem is displayed, and the show is closed.
+This code runs after the shared functions have been defined, when the show is starting up.
+It checks that it is running in a recent enough version of Beat Link Trigger to work properly.
+If not, the shared functions won’t have run at all, and a dialog explaining that problem is displayed, and the show is closed.
 
-NOTE: If you are running an even older version of Beat Link Trigger,
-the `require-version` check will not exist, and you will see a
-compilation error reported instead. Either way, you should upgrade to
-a newer version, and things will be reported more nicely from now on.
+NOTE: If you are running an even older version of Beat Link Trigger, the `require-version` check will not exist, and you will see a compilation error reported instead.
+Either way, you should upgrade to a newer version, and things will be reported more nicely from now on.
 
-All right! With that, we have all the infrastructure we need in place
-to create tempo-adjusting mixes. But how do the Shared Functions know
-what tempo you want to get to? That's configured when you set up the
-tempo adjustment cue itself! Time to make this more concrete by
-looking at some actual cues.
+All right!
+With that, we have all the infrastructure we need in place to create tempo-adjusting mixes.
+But how do the Shared Functions know what tempo you want to get to?
+That's configured when you set up the tempo adjustment cue itself!
+Time to make this more concrete by looking at some actual cues.
 
 [[bb-cue-library]]
 == The Break Buddy Cue Library
 
-To make it easy to get all the pieces right, Break Buddy takes
-advantage of the <<Shows_CueLibrary#,Cue Library>> feature of Beat
-Link Trigger shows. It includes some cues that are already set up with
-the right code in their Expressions to make this magic work; you just
-need to paint them on your tracks, and then edit the track IDs or
-tempos in the expressions as needed for the details of your mix.
+To make it easy to get all the pieces right, Break Buddy takes advantage of the xref:Shows_CueLibrary.adoc[Cue Library] feature of Beat Link Trigger shows.
+It includes some cues that are already set up with the right code in their Expressions to make this magic work; you just need to paint them on your tracks, and then edit the track IDs or tempos in the expressions as needed for the details of your mix.
 
 image:BreakBuddyCueLibrary.png[Break Buddy Cue Library,912,712]
 
-See the <<Shows_CueLibrary.adoc#,Cue Library guide>> if you need a
-reminder of how to place such cues in a show track. This section
-describes how three of them are used to perform a smooth,
-tempo-adjusted mix between _Concrete Angel_ and _Transcendence_ in
-this sample show.
+See the xref:Shows_CueLibrary.adoc[Cue Library guide] if you need a reminder of how to place such cues in a show track.
+This section describes how three of them are used to perform a smooth, tempo-adjusted mix between _Concrete Angel_ and _Transcendence_ in this sample show.
 
-Because _Concrete Angel_ is designed to be the first track in the
-automatic mix, once playing it needs to load the track it is supposed
-to mix into. It uses the *Load track on other player* cue to
-accomplish that. The cue is positioned many measures before the mix
-happens, so that the other player has time to finish loading it and
-positioning itself at the first memory point before the mix needs to
-take place. This kind of cue is simple, and uses only the Entered
-expression.
+Because _Concrete Angel_ is designed to be the first track in the automatic mix, once playing it needs to load the track it is supposed to mix into.
+It uses the *Load track on other player* cue to accomplish that.
+The cue is positioned many measures before the mix happens, so that the other player has time to finish loading it and positioning itself at the first memory point before the mix needs to take place.
+This kind of cue is simple, and uses only the Entered expression.
 
-The contents of that expression use the
-`bb-load-track-on-other-player` function described in the previous
-section to tell the player that isn't currently playing the cue to
-load a track:
+The contents of that expression use the `bb-load-track-on-other-player` function described in the previous section to tell the player that isn’t currently playing the cue to load a track:
 
 ."Load Track on other player" cue's Entered expression
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 ;; Replace the number at the end with the ID of the track you want to load.
 (bb-load-track-on-other-player status 853)
 ----
 
-> See the tip <<finding-track-id,above>> for the easiest way to find
-> the ID of the track you want to load.
+> See the tip <<finding-track-id,above>> for the easiest way to find the ID of the track you want to load.
 
-So when playback of _Concrete Angel_ reaches this cue, the other
-player is told to load _Transcendence_. The tracks are very
-harmonically compatible, so this mix is going to be able to play out
-the end of _Concrete Angel_ on top of the beginning of
-_Transcendence_. They have different enough tempos that it's worth
-ramping from the 130 BPM of _Concrete Angel_ to the 127 BPM of
-_Transcendence_ during the mix. That is accomplished by painting an
-*Adjust Tempo* cue over four bars of _Concrete Angel_, and having
-the cue that starts the other player happen in the middle of that
+So when playback of _Concrete Angel_ reaches this cue, the other player is told to load _Transcendence_.
+The tracks are very harmonically compatible, so this mix is going to be able to play out
+the end of _Concrete Angel_ on top of the beginning of _Transcendence_.
+They have different enough tempos that it’s worth ramping from the 130 BPM of _Concrete Angel_ to the 127 BPM of _Transcendence_ during the mix.
+That is accomplished by painting an *Adjust Tempo* cue over four bars of _Concrete Angel_, and having the cue that starts the other player happen in the middle of that
 tempo ramp.
 
-The *Adjust Tempo* cue is a more complex cue, with three different
-expressions to make it work. The first is the Started On Beat
-expression (and also notice in the screen shot above that the cue is
-configured with `Same` as its Late Message, so that even if the cue
-starts a bit late, the Started On Beat expression is invoked. The
-Shared Function code handles that case smoothly).
+The *Adjust Tempo* cue is a more complex cue, with three different expressions to make it work.
+The first is the Started On Beat expression.
+(Also notice in the screenshot above that the cue is configured with menu:Same[] as its Late Message, so that even if the cue starts a bit late, the Started On Beat expression is invoked.
+The Shared Function code handles that case smoothly.)
 
-The Started On Beat expression is where you tell the cue what tempo
-you want to ramp towards:
+The Started On Beat expression is where you tell the cue what tempo you want to ramp towards:
 
-."Adjust Tempo" cue's Started On Beat expression
-[source,clojure]
+.“Adjust Tempo” cue’s Started On Beat expression
+[source,clojure,opts=novalidate]
 ----
 ;; Edit the number at the end of the next line to specify your desired tempo.
 ;; The cue will gradually move towards that tempo over however many beats you
@@ -394,112 +315,89 @@ you want to ramp towards:
 (bb-start-tempo-adjust status cue track 127)
 ----
 
-That `127` was the only thing we needed to configure for the cue,
-because we want to ramp to the 127 BPM that is the natural tempo of
-_Transcendence_. The tempo adjustment Shared Functions can figure out
-the current tempo, and how much time is left in the cue, to control
-how quickly (and in what direction) they need to ramp the tempo.
+That `127` was the only thing we needed to configure for the cue, because we want to ramp to the 127 BPM that is the natural tempo of_Transcendence_.
+The tempo adjustment Shared Functions can figure out the current tempo, and how much time is left in the cue, to control how quickly (and in what direction) they need to ramp the tempo.
 
-The cue's other expressions simply use the Shared Functions detailed
-in the previous section to make the adjustment happen as the cue
-plays:
+NOTE: When this example was created, manually editing the expressions in the cue after placing it from the cue library was the only option.
+If we were updating the example to take full advantage of BLT’s current features, we’d create a <<Shows_CueLibrary.adoc#cue-builders,Cue Builder>> to provide a little graphical interface to automate that!
+But since new player hardware no longer supports both loading tracks and Fader Start/Stop, we didn’t go to that effort.
 
-."Adjust Tempo" cue's Tracked Update expression
-[source,clojure]
+The cue’s other expressions simply use the Shared Functions detailed in the previous section to make the adjustment happen as the cue plays:
+
+.“Adjust Tempo” cue’s Tracked Update expression
+[source,clojure,opts=novalidate]
 ----
 (bb-continue-tempo-adjust status track cue)
 ----
 
-."Adjust Tempo" cue's Ended expression
-[source,clojure]
+.“Adjust Tempo” cue’s Ended expression
+[source,clojure,opts=novalidate]
 ----
 (bb-finish-tempo-adjust track cue)
 ----
 
-So with this setup, starting at beat 793 of _Concrete Angel_, and over
-a period of sixteen beats, the tempo of both players will smoothly
-adjust from 130 down to 127 BPM. And halfway through that process, we
-start _Transcendence_ playing, using a *Start other player* cue.
+With this setup, starting at beat 793 of _Concrete Angel_, and over a period of sixteen beats, the tempo of both players will smoothly adjust from 130 down to 127 BPM.
+And halfway through that process, we start _Transcendence_ playing, using a *Start other player* cue.
 
-This is another simple cue, with a single expression that you don't
-need to edit. It uses the Started On Beat expression to tell the other
-player to start playing:
+This is another simple cue, with a single expression that you don't need to edit.
+It uses the Started On Beat expression to tell the other player to start playing:
 
-."Start Other Player" cue's Started On Beat expression
-[source,clojure]
+.“Start Other Player” cue’s Started On Beat expression
+[source,clojure,opts=novalidate]
 ----
 (bb-start-player (bb-other-player status))
 ----
 
-It combines the `bb-start-player` and `bb-other-player` functions
-described in the previous section to make that happen.
+It combines the `bb-start-player` and `bb-other-player` functions described in the previous section to make that happen.
 
-These three cues combined perform a smooth tempo-adjusting mix between
-these two very harmonically compatible tracks. You could then use
-another *Load track on other player* cue in the new track to set up the
-next track that it wanted to mix into, and carry on from there.
+These three cues combined perform a smooth tempo-adjusting mix between these two very harmonically compatible tracks.
+You could then use another *Load track on other player* cue in the new track to set up the next track that it wanted to mix into, and carry on from there.
 
-Sometimes you need to do different kinds of mixes, though. Often you
-don't want to let your outgoing track play to completion, and the
-*Stop this player and load new track* cue is great in such situations.
-It accomplishes those tasks using two expressions. The Started On Beat
-expression stops the player that was playing the cue:
+Sometimes you need to do different kinds of mixes, though.
+Often you don't want to let your outgoing track play to completion, and the *Stop this player and load new track* cue is great in such situations.
+It accomplishes those tasks using two expressions.
+The Started On Beat expression stops the player that was playing the cue:
 
-."Stop this player and load new track" cue's Started On Beat expression
-[source,clojure]
+.“Stop this player and load new track” cue’s Started On Beat expression
+[source,clojure,opts=novalidate]
 ----
 (bb-stop-player (bb-this-player status))
 ----
 
-Much like the previous expression we looked at, this combines two
-Shared Functions to stop the player playing the track in which the cue
-was placed. As soon as the player stops, the cue's Ended expression
-will be run. Its content is functionally the same as the *Load track on
-this player* cue we have already seen:
+Much like the previous expression we looked at, this combines two Shared Functions to stop the player playing the track in which the cue was placed.
+As soon as the player stops, the cue’s Ended expression will be run.
+Its content is functionally the same as the *Load track on this player* cue we have already seen:
 
-."Stop this player and load new track" cue's Ended expression
-[source,clojure]
+.“Stop this player and load new track” cue’s Ended expression
+[source,clojure,opts=novalidate]
 ----
 ;; Replace the number at the end with the ID of the track you want to load once stopped.
 (bb-load-track-on-this-player status 93)
 ----
 
-And of course sometimes tracks are so incompatible with each other
-that you want to just do a hard cut between them, stopping the
-outgoing player simultaneously with starting the incoming player. The
-**Cut to other player and load track** cue lets you do exactly that.
-It is very similar to the *Stop this player and load new track* cue;
-the only difference is the function called in the Started On Beat
-expression:
+And of course sometimes tracks are so incompatible with each other that you want to just do a hard cut between them, stopping the outgoing player simultaneously with starting the incoming player.
+The **Cut to other player and load track** cue lets you do exactly that.
+It is very similar to the *Stop this player and load new track* cue; the only difference is the function called in the Started On Beat expression:
 
-."Cut to other player and load new track" cue's Started On Beat expression
-[source,clojure]
+.“Cut to other player and load new track” cue’s Started On Beat expression
+[source,clojure,opts=novalidate]
 ----
 (bb-swap-players status)
 ----
 
-This uses a Shared Function that knows how to stop the player that is
-playing the track holding the cue, and start the other one, in a
-single network message.
+This uses a Shared Function that knows how to stop the player that is playing the track holding the cue, and start the other one, in a single network message.
 
-As with the previous cue, you edit the Ended expression to put in the
-ID of the track you want to load once the player has stopped.
+As with the previous cue, you edit the Ended expression to put in the ID of the track you want to load once the player has stopped.
 
-."Cut to other player and load new track" cue's Ended expression
-[source,clojure]
+.“Cut to other player and load new track” cue’s Ended expression
+[source,clojure,opts=novalidate]
 ----
 ;; Replace the number at the end with the ID of the track you want to load once stopped.
 (bb-load-track-on-this-player status 852)
 ----
 == Going Further
 
-Hopefully you can see ways to combine these cues to create a variety
-of mixes between tracks to keep the dance floor alive as you take your
-desperately needed break! It is also possible to combine the Shared
-Functions in other ways to do slightly different mixes, for example
-turning off Sync before loading a track with a radically different
-tempo, and doing a hard cut over to it. Try experimenting! If you come
-up with great ideas (or just get stuck and want help), come talk about
-it on the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream].
+Hopefully you can see ways to combine these cues to create a variety of mixes between tracks to keep the dance floor alive as you take your desperately needed break!
+It is also possible to combine the Shared Functions in other ways to do slightly different mixes, for example turning off Sync before loading a track with a radically different tempo, and doing a hard cut over to it.
+Try experimenting! If you come up with great ideas (or just get stuck and want help), come talk about it in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+channel].
