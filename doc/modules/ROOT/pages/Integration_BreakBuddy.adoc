@@ -1,7 +1,7 @@
 = Break Buddy “Robo DJ”
 include::partial$PagePreamble.adoc[]
 
-One of my most enthusiastic users came up with an interesting question shortly after figuring out how to achieve dramatic synchronized lighting effects and pyro without having to follow a preset playlist.
+One of my most enthusiastic users at the time came up with an interesting question shortly after figuring out how to achieve dramatic synchronized lighting effects and pyro without having to follow a preset playlist.
 His question: since we can load tracks on the players, and start and stop playback, is there any way to have Beat Link Trigger perform a programmed automatic mix if the DJ needs to urgently leave the booth for a bit, such as for a bathroom break?
 I thought this was something the new Show interface could make possible, with some careful setup and an understanding of the limitations, so I built this example for him.
 
