@@ -1,282 +1,216 @@
 = QLC+ Cues
 include::partial$PagePreamble.adoc[]
 
-I heard from https://www.mixcloud.com/nicoj_music/[Nico J] (Cappiz on
-the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream]) with an interesting question about triggering cues in the
-QLC+ open-source lighting control software. While this could be done
-by MIDI, it would be nice to do it in a way that also allowed the same
-virtual button to be controlled by a physical MIDI controller, and to
-provide feedback on that controller to make it visible when Beat Link
-Trigger is activating cues.
+I heard from https://www.mixcloud.com/nicoj_music/[Nico J] (Cappiz in
+the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+channel]) with an interesting question about triggering cues in the QLC+ open-source lighting control software.
+While this could be done by MIDI, it would be nice to do it in a way that also allowed the same virtual button to be controlled by a physical MIDI controller, and to provide feedback on that controller to make it visible when Beat Link Trigger is activating cues.
 
 [TIP]
 ====
-This example was rebuilt to take advantage of a new feature in
-BLT version 7.3 that allows a package of low-level triggers and code
-to be distributed in a standalone, easy-to-use way. If all you're
-looking to do is work with QLC+, you can just download the
-link:{attachmentsdir}/QLC-Cues.bls[integration show], then
-<<Shows.adoc#opening-shows,open>> and use it as described next, and
-ignore the rest of the explanation of how it works until you are
-curious about that.
+This example was rebuilt to take advantage of a new feature in BLT version 7.3 that allows a package of low-level triggers and code to be distributed in a standalone, easy-to-use way.
+If all you’re looking to do is work with QLC+, you can just download the
+link:{attachmentsdir}/QLC-Cues.bls[integration show], then <<Shows.adoc#opening-shows,open>> and use it as described next, and ignore the rest of the explanation of how it works until you are curious about that.
 
 https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/QLC.2B.20cues.20WebSocket.20Issue/with/519925934[Ashton via Zulip] kindly let me know that my revisions were actually broken, so I fixed the example for the 8.0 release and cleaned it up the rest of the way.
+Then, towards the end of work on that release, I xref:Expressions_v8.adoc[improved] the way expressions are compiled, which enabled me to simplify the code even more.
 ====
 
 [[usage]]
 == Using the Standalone Show
 
-Once you've got the show (linked in the tip above) open, you may need
-to configure your connection to QLC+. If you had it already running,
-with its embedded web server enabled, on the same machine as BLT when
-you opened the show, the connection will already be successful, and
-you will see a window like this:
+Once you've got the show (linked in the tip above) open, you may need to configure your connection to QLC+.
+If you had it already running, with its embedded web server enabled, on the same machine as BLT when you opened the show, the connection will already be successful, and you will see a window like this:
 
 image:QLC_Connected.png[QLC+ Integration show connected,592,290]
 
-TIP: To have QLC+ start its
-https://docs.qlcplus.org/v4/advanced/web-interface[web API],
-you need to run it with the `-w` or `--web` option.
+[TIP]
+====
+To have QLC+ start its https://docs.qlcplus.org/v4/advanced/web-interface[web API], you need to run it with the `-w` or `--web` option.
+To do this on macOS, you need to type something like this from a Terminal window:
 
-If a connection with QLC+ could not be established, you'll see a red
-`No` for the `Connected:` status. Make sure QLC+ is running and has
-its web API enabled, then use the **Configure** button to try again:
+    /Applications/QLC+.app/Contents/MacOS/qlcplus -w
+====
+
+
+
+If a connection with QLC+ could not be established, you'll see a red `No` for the `Connected:` status.
+Make sure QLC+ is running and has its web API enabled, then use the **Configure** button to try again:
 
 image:QLC_Configure.png[QLC+ connection configuration,678,274]
 
-If you just had to properly launch QLC+ on the same machine as BLT,
-clicking **Configure** without changing anything should be enough to
-get connected. If you are running it on another machine, enter the
-hostname or IP address of that machine in the text field before
-clicking **Configure**.
+If you just had to properly launch QLC+ on the same machine as BLT, clicking **Configure** without changing anything should be enough to get connected.
+If you are running it on another machine, enter the hostname or IP address of that machine in the text field before clicking **Configure**.
 
-You generally won't need to change the port number field unless you
-are running QLC+ with a non-standard web API port through the `-wp` or
-`--web-port` option. In that case, make sure the port specified here
-matches the one you are using on the command line.
+You generally won’t need to change the port number field unless you are running QLC+ with a non-standard web API port through the `-wp` or `--web-port` option.
+In that case, make sure the port specified here matches the one you are using on the command line.
 
-WARNING: The expressions used by this integration tap into the Beat Link library at a deep level, so it is not compatible with the <<SimulatingPlayback.adoc#,Shallow Playback Simulator>>. Trying to use that with this show open will result in many exceptions in the log files.
+WARNING: The expressions used by this integration tap into the Beat Link library at a deep level, so it is not compatible with the xref:SimulatingPlayback.adoc[Shallow Playback Simulator].
+Trying to use that with this show open will result in many exceptions in the log files.
 
 === Triggering Cues
 
 Once you have the show open and connected, using it is pretty simple!
-You may have already noticed that the show has added a trigger at the
-bottom of any that existed in the Beat Link Triggers window:
+You may have already noticed that the show has added a trigger at the bottom of any that existed in the Beat Link Triggers window:
 
 image:QLC_Trigger.png[QLC+ Cue Trigger,905,447]
 
-This trigger will be present and active whenever you have this show
-open. Closing the show will cause it to disappear. The trigger watches
-for rekordbox memory points or hot cues with a recognizable pattern in
-their names, and translates those into commands to send to QLC+.
+This trigger will be present and active whenever you have this show open.
+Closing the show will cause it to disappear.
+The trigger watches for rekordbox memory points or hot cues with a recognizable pattern in their names (much like the xref:Integration_MIDI_rekordbox.adoc[] example), and translates those into commands to send to QLC+.
 
-Within rekordbox, create a memory point or hot cue at the beat where
-you want a QLC+ virtual console button to be pressed, and then put the
-string `QLC:` followed by the widget ID number of the button you want
-to be pressed when that beat is reached. For example, a hot cue with
-`QLC:5` somewhere in its name would “press” the virtual console button
-with widget ID 5 when that beat is reached. The memory point or hot
-cue needs to be on a beat for this to work.
+Within rekordbox, create a memory point or hot cue at the beat where you want a QLC+ virtual console button to be pressed, and then put the string `QLC:` followed by the widget ID number of the button you want to be pressed when that beat is reached in the name.
+For example, a hot cue with `QLC:5` somewhere in its name would “press” the virtual console button with widget ID 5 when that beat is reached.
+The memory point or hot cue needs to be on a beat for this to work.
 
-If you already have a hot cue or memory point at the beat where you
-want the button pressed, you can use it instead of creating another
-one there: just add the QLC button press request to its name.
+If you already have a hot cue or memory point at the beat where you want the button pressed, you can use it instead of creating another one there: just add the QLC button press request to its name.
 
-If you want more than one button to be pressed when that beat is
-reached, you can list multiple numbers separated by commas (but no
-spaces or other characters), like `QLC:5,42,100` which would press
-buttons 5, 42, and 100 when reached.
+If you want more than one button to be pressed when that beat is reached, you can list multiple numbers separated by commas (but no spaces or other characters), like `QLC:5,42,100` which would press buttons 5, 42, and 100 when reached.
 
 image:rbQLCTrack.png[Tracks with QLC cues,620,850]
 
-TIP: If you don't want to only respond to cues being played on the
-Master player, you can change the player being watched by the trigger
-using the <<Triggers.adoc#watch-menu,Watch menu>>, and you can use the
-trigger's <<Triggers.adoc#context-menu,gear or context menu>> to
-export it to a file, then <<Shows_RawTriggers.adoc#,create new raw
-triggers>> in the show and import that file into them, so you can have
-multiple copies watching different players. Changes to the
-configurations of these triggers are saved inside the show.
+TIP: If you don’t want to only respond to cues being played on the Master player, you can change the player being watched by the trigger using the <<Triggers.adoc#watch-menu,Watch menu>>, and you can use the trigger’s <<Triggers.adoc#context-menu,gear or context menu>> to export it to a file, then xref:Shows_RawTriggers.adoc[create new raw triggers] in the show and import that file into it, so you can have multiple copies watching different players.
+Changes to the configurations of these triggers are saved inside the show.
 
-And that is all you need to know in order to trigger QLC+ cues based
-on information encoded into tracks in rekordbox! Read on if you want
-to understand how this integration show works.
+And that is all you need to know in order to trigger QLC+ cues based on information encoded into tracks in rekordbox!
+Read on if you want to understand how this integration show works.
 
 == How it was Built: Stage One
 
-The first way we got an integration with QLC+ working was by having
-BLT Show Cue expressions run a shell script that talked to the QLC+
-API. That worked well enough that I may write up another integration
-example about how to run shell scripts in general someday. But since
-the script talked to the QLC+ API over a web socket, we wanted to
-reduce latency and complexity by having BLT talk directly to the web
-socket. And because this won't be the last time we want to talk to
-something using web sockets, I decided to embed a web socket client
-into BLT to make it even easier.
-
-=== Global Setup Expression
-
-With that library available, the first step is to create an HTTP
-client we can use to manage web socket connections. We will store it
-in the show globals under the key `:http`, by adding the following
-line to the Global Setup Expression:
-
-[source,clojure]
-----
-(swap! globals assoc :http (http/create-client))
-----
-
-At first we also opened the web socket connection in Global Setup, but
-I quickly realized this could cause problems if QLC+ was not already
-up with its web API running when the show opened: the attempt to open
-the web socket would fail, and none of the cues would work until the
-show was closed and reopened after getting QLC+ running in the right
-state.
+The first way we got an integration with QLC+ working was by having BLT Show Cue expressions run a shell script that talked to the QLC+ API.
+That worked well enough that I may write up another integration example about how to run shell scripts in general someday.
+But since the script talked to the QLC+ API over a web socket, we wanted to reduce latency and complexity by having BLT talk directly to the web socket.
+And because this won't be the last time we want to talk to something using web sockets, I decided to embed a web socket client into BLT to make it even easier.
 
 [[shared-functions]]
 === Shared Functions
 
-So I built a more robust approach, with the help of some new Shared
-Functions:
+With that library available, the first step is to create an HTTP client we can use to manage web socket connections.
+We will store it in the show namespace as `http-client`, by adding the following at the top of the Shared functions:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
+(def http-client
+  "Holds the HTTP client used to communicate with QLC+."
+  (http/create-client))
+----
+
+At first, we also opened the web socket connection immediately, but I quickly realized this could cause problems if QLC+ was not already up with its web API running when the show opened: the attempt to open the web socket would fail, and none of the cues would work until the show was closed and reopened after getting QLC+ running in the right state.
+
+So I built a more robust approach, with the help of some new atoms and Shared Functions:
+
+[source,clojure,opts=novalidate]
+----
+(def qlc-ws
+  "Holds the web socket used to communicate with QLC+ once a
+  connection has been established."
+  (atom nil))
+
 (defn find-qlc-web-socket  ;; <1>
   "Checks to see if there is already an open QLC+ web socket; if so,
   returns it. Otherwise, tries to create one, logging an error and
   returning `nil` if it fails."
-  [globals]  ;; <2>
-  (let [ws (:qlc-ws @globals)]  ;; <3>
+  []
+  (let [ws @qlc-ws]  ;; <2>
     (or ws
         (try  ; The web socket isn't already open, try creating it.
           (let [ws (http/websocket
-                    (:http @globals) "ws://127.0.0.1:9999/qlcplusWS"  ;; <4>
-                    :close (fn [_ws code reason]  ;; <5>
+                    http-client "ws://127.0.0.1:9999/qlcplusWS"  ;; <3>
+                    :close (fn [_ws code reason]  ;; <4>
                              (timbre/info "QLC+ web socket closed, code" code
                                           "reason" reason)
-                             (swap! globals dissoc :qlc-ws))
+                             (reset! qlc-ws nil))
                     :error (fn [_ws error]
                              (timbre/error "QLC+ web socket error:" error))
                     :text (fn [_ws message]
                             (timbre/info "QLC+ web socket received message:"
                                          message)))]
-            (swap! globals assoc :qlc-ws ws)  ;; <6>
+            (reset! qlc-ws ws)  ;; <5>
             ws)
           (catch Exception _e
             (timbre/error "Unable to open web socket connection to QLC+"))))))
 
-(defn send-qlc-message  ;; <7>
+(defn send-qlc-message  ;; <6>
   "Sends a web socket message to QLC+, opening the web socket connection
-  if it isn't already. Needs to be given the globals, so it can look
-  up the connection, or use the async http client to create it if
-  needed."
-  [globals message]
-  (when-let [ws (find-qlc-web-socket globals)]
+  if it isn't already."
+  [message]
+  (when-let [ws (find-qlc-web-socket)]
     (timbre/info "sending QLC message" message)
-    (http/send ws :text message)))  ;; <8>
+    (http/send ws :text message)))  ;; <7>
 ----
 
-<1> This function is used whenever we need to use the web socket to
-talk to QLC+.
+<1> This function is used whenever we need to use the web socket to talk to QLC+.
 
-<2> We need to pass `globals` to the function because, unlike a
-single-purpose expression where BLT can “magically” make this value
-available, shared functions are called from many different contexts,
-so we need to explicitly pass them any values they need to work with.
+<2> We first check if there is already an open QLC+ web socket recorded in the atom.
+If so, we simply return it.
+Otherwise, we proceed to open a new one.
 
-<3> We first check if there is already an open QLC+ web socket
-recorded in the globals. If so, we simply return it. Otherwise we
-proceed to open a new one.
+<3> This is the URL to talk to the QLC+ web socket on the same machine that BLT is running on.
+You would change the IP address from `127.0.0.1` (localhost) to the actual address of a different machine if you wanted to talk to a remote instance of QLC+.
 
-<4> This is the URL to talk to the QLC+ web socket on the same machine
-that BLT is running on. You would change the IP address from
-`127.0.0.1` (localhost) to the actual address of a different machine
-if you wanted to talk to a remote instance of QLC+.
+<4> This callback function is called whenever the web socket closes (including unexpectedly because QLC+ has quit), so we remove it from the atom and will know we need to try opening a new connection next time.
+The other two callbacks are called when there is an error with the socket, or we receive messages from QLC+.
+For the moment, we simply log them.
+We would do something fancier in the `:text` handler if we wanted to process responses.
 
-<5> This callback function is called whenever the web socket closes
-(including unexpectedly because QLC+ has quit), so we remove it from
-the globals and will know we need to try opening a new connection next
-time. The other two callbacks are called when there is an error with
-the socket, or we receive messages from QLC+. For the moment, we
-simply log them. We would do something fancier in the `:text` handler
-if we wanted to process responses.
+<5> We record the new web socket connection in the atom so we can find it in the future, and then return it.
 
-<6> We record the new web socket connection in the globals so we can
-find it and return it next time, and then return it.
+<6> This is the function we call when we want to send a message to QLC+.
 
-<7> This is the function we call when we want to send a message to
-QLC+. It takes `globals` so it can pass it along to
-`find-qlc-web-socket`, which does the work of finding or creating the
-web socket, as needed.
-
-<8> With all the hard work delegated, the actual sending of the message is simple once we have a web socket to use.
+<7> With all the hard work delegated, the actual sending of the message is simple once we have a web socket to use.
 (We also add a line to the log file, in the line above, noting the message had been sent, to help with troubleshooting)
 
-Although this last shared function is not strictly necessary, it makes
-the cue code more readable by setting up the message format needed to
-tell QLC+ to set a widget value:
+Although this last shared function is not strictly necessary, it makes the cue code more readable by setting up the message format needed to tell QLC+ to set a widget value:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (defn set-qlc-widget-value
   "Formats and sends a message to QLC+ telling it to set a specific
   virtual console widget to a particular value. If the widget is a
   button and the value is 255, QLC+ will act like that button has
   been pressed."
-  [globals widget-id value]
-  (send-qlc-message globals (str widget-id "|" value)))
+  [widget-id value]
+  (send-qlc-message (str widget-id "|" value)))
 ----
 
-This means that if a cue wants to tell QLC+ to simulate a button press
-on a virtual console button whose widget ID is 7, it can use code like
-this:
+This means that if a cue wants to tell QLC+ to simulate a button press on a virtual console button whose widget ID is 7, it can use code like this:
 
-```clojure
-(set-qlc-widget-value globals 7 255)
-```
+[source,clojure,opts=novalidate]
+----
+(set-qlc-widget-value 7 255)
+----
 
-We will probably want to set up functions like that for any of the
-kinds of messages we end up wanting to send to QLC+.
+We will probably want to set up functions like that for any of the kinds of messages we end up wanting to send to QLC+.
 
 === Global Shutdown Expression
 
-To clean up after ourselves, we want to close the web socket if it is
-open, and then the HTTP client, in the Global Shutdown Expression. We
-can do that by adding these lines:
+To clean up after ourselves, we want to close the web socket if it is open, and then the HTTP client, in the Global Shutdown Expression.
+We can do that by adding these lines:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
-(when-let [ws (:qlc-ws @globals)]
+(when-let [ws @qlc-ws]
   (.sendCloseFrame ws))
-(.close (:http @globals))
-(swap! globals dissoc :http :qlc-ws)
+(.close http-client)
 ----
 
 == Stage Two: No Show Cues
 
-With this in place, Nico J was able to create <<Shows_Cues#,track
-cues>> that used `set-qlc-widget-value` to trigger QLC+ lighting cues
-quickly and efficiently. But he wanted to be able to set those cues up
-directly in rekordbox, the way <<Integration_MIDI_rekordbox#,Netsky
-had done for MIDI>>. So we proceeded to build a variation on that approach.
+With this in place, Nico J was able to create xref:Shows_Cues.adoc[track cues] that used `set-qlc-widget-value` to trigger QLC+ lighting cues quickly and efficiently.
+But he wanted to be able to set those cues up directly in rekordbox, the way xref:Integration_MIDI_rekordbox.adoc[Netsky had done for MIDI].
+So we proceeded to build a variation on that approach.
 
-NOTE: In the version of this example from before BLT version 7.3
-enabled shows to manage own their own raw triggers, I had to write a
-lot of complicated instructions here about how to move code out of the
-show into the Triggers window, and how to coexist safely with other
-things you might have been doing with triggers. Life is much easier
-now!
+NOTE: In the version of this example from before BLT version 7.3 enabled shows to manage own their own raw triggers, I had to write a lot of complicated instructions here about how to move code out of the show into the Triggers window, and how to coexist safely with other things you might have been doing with triggers.
+Life is much easier now, and things got even better with the xref:Expressions_v8.adoc[improvements in expression compilation] in version 8!
 
 === New Shared Functions
 
-How does this all work? The first bit of magic happens by registering
-some code to watch for tracks to be loaded, and look for the special
-QLC widget markers in their cue lists. This is supported by a set of
-shared functions.
+How does this all work?
+The first bit of magic happens by registering some code to watch for tracks to be loaded, and look for the special QLC widget markers in their cue lists.
+This is supported by a set of shared functions.
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (defn find-qlc-cues  ;; <1>
   "Scans all the cues and loops found in the supplied track metadata
   looking for any that contain the string QLC: followed immediately
@@ -289,92 +223,76 @@ shared functions.
   (when md
     (when-let [cue-list (.getCueList md)]
       (reduce (fn [result cue]
-                (if-let [[_ ids] (re-find #"QLC:(\d+(,\d+)*)"
-                                            (.-comment cue))]
+                (if-let [[_ ids] (re-find #"QLC:(\d+(,\d+)*)" (.-comment cue))]
                   ;; Cue name matches.
                   (update result (.-cueTime cue) (fnil clojure.set/union #{})
                           (clojure.string/split ids #","))
-                  result))
+                  result))  ; No match, return result unchanged.
               {} (.-entries cue-list)))))
 
-(defn build-qlc-cue-indexer  ;; <2>
+(def qlc-cue-indexer  ;; <2>
   "Responds to the coming and going of track metadata, and updates our
   list of cue-defined beats on which QLC+ button presses need to be sent."
-  [globals]
   (reify org.deepsymmetry.beatlink.data.TrackMetadataListener
     (metadataChanged [this md-update]
-      (swap! globals assoc-in [:qlc-cue-times (.player md-update)]
+      (swap! qlc-cue-times assoc (.player md-update)
              (find-qlc-cues (.metadata md-update))))))
-
 
 (defn send-qlc-cues-near-time  ;; <3>
   "Finds all QLC cues close enough to the specified time for the
   specified device and sends the corresponding button press messages
-  to the QLC+ web socket, which we can look up through the globals."
-  [time device-number globals]
+  to the QLC+ web socket."
+  [time device-number]
   (doseq [[_ ids] (filter (fn [[cue-time]] (> 50 (Math/abs (- time cue-time))))
-                          (get-in @globals [:qlc-cue-times device-number]))]
+                          (get qlc-cue-times device-number))]
         (doseq [widget-id ids]
           ;; Send button presses for each id specified by
           ;; one of the cues we reached.
-          (set-qlc-widget-value globals widget-id 255))))
-```
+          (set-qlc-widget-value widget-id 255))))
+----
 
-<1> This takes the metadata that describes a track that has been
-loaded into a player, and scans through all the hot cues, memory
-points, and loops in that track, looking for the pattern that
-identifies a request for QLC button presses. It builds the index
-structure for that track.
+<1> This takes the metadata that describes a track that has been loaded into a player, and scans through all the hot cues, memory points, and loops in that track, looking for the pattern that identifies a request for QLC button presses.
+It builds the index structure for that track.
 
-<2> This creates an object that can be registered with the Beat Link library to update the QLC cue index whenever there is new information about a track loaded in a player by calling the functions above.
-The Global Setup Expression uses this function to create and register the indexer.
+<2> This is a Java object that can be registered with the Beat Link library to update the QLC cue index whenever there is new information about a track loaded in a player by calling the functions above.
+The Global Setup Expression registers this indexer.
 The cue index itself is a map indexed by player of any cues in that player's track whose name match the `QLC:` pattern, their position within the track, and the QLC+ widget IDs for which button presses should be sent when the beat at that position is reached.
 
-<3> This is a helper function called by the trigger whenever the track
-has moved to a new beat. It uses the index to see if it's supposed to
-send any QLC+ button presses, and sends them.
+<3> This is a helper function called by the trigger whenever the track has moved to a new beat.
+It uses the index to see if it's supposed to send any QLC+ button presses, and sends them.
 
-=== New in Global Setup
+=== Global Setup Expressions
 
 We had to make some fundamental changes here, because we now need to share information between the show and the Beat Link Triggers window, which does not have access to any show globals.
 So we now create and store everything in the Triggers window globals, which both windows have access to:
 
-```clojure
-(let [cue-indexer (build-qlc-cue-indexer trigger-globals)]  ;; <1>
-  (.addTrackMetadataListener metadata-finder cue-indexer)
-  (swap! trigger-globals assoc  ;; <2>
-         :http (http/create-client)
-         :qlc-cue-times {}
-         :qlc-cue-indexer cue-indexer))
+[source,clojure,opts=novalidate]
+----
+(.addTrackMetadataListener metadata-finder qlc-cue-indexer)  ;; <1>
 
 ;; Index cues for any tracks that were loaded when the show opened.
-(when (.isRunning metadata-finder)
+(when (.isRunning metadata-finder)  ;; <2>
   (doseq [entry (.entrySet (.getLoadedTracks metadata-finder))]
     (swap! trigger-globals assoc-in
            [:qlc-cue-times (.-player (.getKey entry))]
            (find-qlc-cues (.getValue entry)))))
-```
+----
 
-<1> When the show is loaded, this line and the next create an the indexer, giving it access to the trigger globals, and arrange for its indexing function to be run as tracks come and go.
+<1> When the show is loaded, this line arranges for the indexing function to be run as tracks come and go.
 
-<2> As explained above, we need to use the Triggers window globals, rather than the show globals, so the raw trigger can access the information it needs.
-We create and store an HTTP client, an empty cue times index, and store a reference to the cue indexer so we can unregister it when the show closes.
-
-The last bit of code handles the fact that there might already be some tracks loaded on players when the show first opens, so they need to be indexed as well.
+<2> The last chunk of code handles the fact that there might already be some tracks loaded on players when the show first opens, so they need to be indexed as well.
 
 === New in Global Shutdown
 
 When the show is closed, this cleans up the things it created:
 
-```clojure
-(.removeTrackMetadataListener metadata-finder  ;; <1>
-                              (:qlc-cue-indexer @trigger-globals))
-(when-let [ws (:qlc-ws @trigger-globals)]  ;; <2>
+[source,clojure,opts=novalidate]
+----
+(.removeTrackMetadataListener metadata-finder qlc-cue-indexer)  ;; <1>
+(when-let [ws @qlc-ws]  ;; <2>
   (.sendCloseFrame ws))
-(.close (:http @trigger-globals))  ;; <3>
-(swap! trigger-globals dissoc :qlc-ws :qlc-ws-url  ;; <4>
-       :qlc-cue-times :qlc-cue-indexer :http)
-```
+(.close http-client)  ;; <3>
+----
 
 <1> This unregisters the indexer object so that track changes no longer call it.
 
@@ -382,141 +300,142 @@ When the show is closed, this cleans up the things it created:
 
 <3> This closes the HTTP client we created.
 
-<4> Finally, this removes all the keys we added to the Triggers globals.
+The only new code here is the first line.
 
 == Trigger Code
 
-The rest of the code lives in the trigger itself, edited using the
-trigger's <<Triggers.adoc#context-menu,gear or context menu>>:
+The rest of the code lives in the trigger itself, edited using the trigger's <<Triggers.adoc#context-menu,gear or context menu>>:
 
 === Beat Expression
 
 This is run whenever a beat packet is received from the watched player, so it is a great place to check if it is time to send any QLC+ button presses using the helper function we looked at above (and remember, this is a raw trigger, so in this context, `globals` refers to the Triggers window globals):
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 ;; We can only run when the TimeFinder is running.
 (when track-time-reached
-  ;; Record that this beat has been handled, and the Tracked Update
-  ;; expression can ignore it.
-  (swap! globals assoc-in [:qlc-cue-times :sent device-number] beat-number)
+  ;; Record that this beat has been handled, and the Tracked Update expression
+  ;; can ignore it.
+  (swap! show-shared/qlc-cue-times assoc-in [:sent device-number] beat-number)
   ;; Send the MIDI cues, if any, falling on this beat.
-  (send-qlc-cues-near-time track-time-reached device-number globals))
-```
+  (show-shared/send-qlc-cues-near-time track-time-reached device-number))
+----
 
-If you read the comments in that code, they foreshadowed an issue: One
-thing that makes running shows based on the Pro DJ Link protocol
-challenging is that you don't always get beat messages when you want
-them. If you are playing through a track and pass over a beat, you're
-golden, you get the packet. But if you start the track at a beat, or
-jump to a hot cue that is at a beat, then sometimes you don't receive
-the beat packet, because the track was already a tiny bit past the
-precise beat moment.
+NOTE: This code illustrates a powerful new feature: raw triggers a show adds to the Triggers window can now access values and functions from their show’s Shared Functions, using the `show-shared/` prefix xref:Expressions_v8.adoc[introduced in version 8].
+This makes it much easier for the triggers and shows to work as a coherent unit, without interfering with the Triggers window namespace.
 
-So that is what led to the most tricky code here (and in the Show
-feature). Here's how we work around it.
+If you read the comments in that code, they foreshadowed an issue: one thing that makes running shows based on the Pro DJ Link protocol challenging is that you don't always get beat messages when you want them.
+If you are playing through a track and pass over a beat, you're golden, you get the packet. But if you start the track at a beat, or jump to a hot cue that is at a beat, then sometimes you don't receive the beat packet, because the track was already a tiny bit past the precise beat moment.
+
+So that is what led to the most tricky code here (and in the Show feature).
+Here's how we work around it.
 
 === Tracked Update Expression
 
-This is run whenever we get a status update from a player, which
-happens around five times per second. We can use it to see if we have
-started playing without getting a beat packet, or if we have jumped to
-a new beat because of a hot cue or memory point.
+This is run whenever we get a status update from a player, which happens around five times per second.
+We can use it to see if we have started playing without getting a beat packet, or if we have jumped to a new beat because of a hot cue or memory point.
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 ;; We can only run when playing and the TimeFinder is running.
 (when (and playing? track-time-reached)
   ;; Do nothing if the current beat has already been handled.
-  (when (not= beat-number (get-in @globals [:qlc-cue-times :sent device-number]))
+  (when (not= beat-number (get-in @show-shared/qlc-cue-times [:sent device-number]))
     ;; Note that this beat's been handled.
-    (swap! globals assoc-in [:qlc-cue-times :sent device-number] beat-number)
+    (swap! show-shared/qlc-cue-times assoc-in [:sent device-number] beat-number)
     ;; Press the QLC+ buttons, if any, for the point where playback began.
     ;; We assume playback began at the start of the current beat.
     (let [grid    (.getLatestBeatGridFor beatgrid-finder device-number)
           started (.getTimeWithinTrack grid beat-number)]
-      (send-qlc-cues-near-time started device-number globals))))
-```
+      (show-shared/send-qlc-cues-near-time started device-number))))
+----
 
-Both the Beat Expression and this Tracked Update expression make a
-special entry in the cue index map to report when they have handled a
-particular beat, so this code doesn't send that beat's QLC+ button
-presses more than once.
+Both the Beat Expression and this Tracked Update expression make a special entry in the cue index map to report when they have handled a particular beat, so this code doesn't send that beat's QLC+ button presses more than once.
 
-If the current beat hasn't been marked as already handled, this code
-finds the start time of the current beat, looks up any button presses
-that should be sent for it, and sends them in the same way the Beat
-Expression did.
+If the current beat hasn't been marked as already handled, this code finds the start time of the current beat, looks up any button presses that should be sent for it, and sends them in the same way the Beat Expression did.
 
-With those two expressions in place, it doesn't matter how a beat is
-reached, its button presses (if any) get sent.
+With those two expressions in place, it doesn't matter how a beat is reached, its button presses (if any) get sent.
 
 === Deactivation Expression
 
-One final nice touch: if the DJ stops the track, we want to clear out
-the notion of what beat was handled, so that when the track starts up
-again, cues can get sent for it:
+One final nice touch: if the DJ stops the track, we want to clear out the notion of what beat was handled, so that when the track starts up again, cues can get sent for it:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 ;; Clear record of last beat handled since the player is stopping.
 ;; If we restart in this same location, we should evaluate cues again.
-(swap! globals update-in [:qlc-cue-times :sent] dissoc device-number)
-```
+(swap! show-shared/qlc-cue-times update :sent dissoc device-number)
+----
 
-And that was all the code! Although there is a fair bit, considering how
-handy a new feature it implemented, I was happy to see how compact and
-clean it could be.
+And that was all the code!
+Although there is a fair bit, considering how handy a new feature it implemented, I was happy to see how compact and clean it could be.
 
-But when I was challenged while working on BLT 7.3 to make it even
-easier to share self-contained integrations like this, and came up
-with the idea of allowing shows to manage their own set of triggers, I
-realized that this example could be made even more user-friendly.
+But when I was challenged while working on BLT 7.3 to make it even easier to share self-contained integrations like this, and came up with the idea of allowing shows to manage their own set of triggers, I realized that this example could be made even more user-friendly.
 
 [[config-ui]]
 == Stage Three: Configuration UI
 
 BLT allows special integration shows like this, which don't need to work with tracks or phrase triggers, to create a custom user interface.
-This was first used in the <<Integration_XoneOnAir.adoc#,Xone:96 Channels on Air>> integration example, and could be put to good use here to offer a user interface for configuring how to connect to QLC+.
-(If you studied the first version of `find-qlc-web-socket` in the <<shared-functions,Shared Functions>>, you may have noticed it using a hardcoded address for QLC+, which didn't fit with the configuration interface described <<usage,above>>.
+This was first used in the xref:Integration_XoneOnAir.adoc[Xone:96 Channels on Air] integration example, and could be put to good use here to offer a user interface for configuring how to connect to QLC+.
+(If you studied the first version of `find-qlc-web-socket` in the <<shared-functions>>, you may have noticed it using a hardcoded address for QLC+, which didn’t fit with the configuration interface described <<usage,above>>.
 Indeed, there is a slightly fancier version present now, to take advantage of the new user interface.
 
 This allows people to use the QLC+ integration without having to edit any Clojure expressions, even if they need to run QLC+ on a different machine or port number.
-So how does it work? Let's look at the new and updated shared functions.
+So how does it work?
+Let’s look at the new and updated shared functions.
 
 [[ui-shared-functions]]
 === UI Shared Functions
 
-[source,clojure]
+[source,clojure,opts=novalidate]
+----
+(def status-label
+  "Holds a reference to the label that displays the status
+  of our connection to QLC+, so expressions can update it."
+  (atom nil))
+
+(def qlc-ws-url
+  "Holds the URL used to establish a connection to the QLC+
+  web socket."
+  (atom ""))
+----
+
+The first things we added, at the top of the file with the other value definitions, are a pair of atoms that will be used to track the user interface label that displays the current connection status, so expressions can easily update that, and a string holding that will be used to open the QLC+ web socket connection, based on what the user types in the configuration interface.
+
+These are then used in some new functions:
+
+[source,clojure,opts=novalidate]
 ----
 (defn update-qlc-connection-status  ;; <1>
   "Updates the user interface to show whether we have an active
   connection to QLC+"
-  [globals]
-  (let [{:keys [status-label qlc-ws]} @globals]
-    (when status-label
-      (seesaw/invoke-later
-        (seesaw/config! status-label :foreground (if qlc-ws :green :red))
-        (seesaw/text! status-label (if qlc-ws "Yes" "No"))))))
+  []
+  (when @status-label
+    (seesaw/invoke-later
+      (seesaw/config! @status-label :foreground (if @qlc-ws :green :red))
+      (seesaw/text! @status-label (if @qlc-ws "Yes" "No")))))
 
 (defn find-qlc-web-socket-internal  ;; <2>
   "Checks to see if there is already an open QLC+ web socket; if so,
   returns it. Otherwise, tries to create one, logging an error and
   returning `nil` if it fails."
-  [globals]
-  (let [ws (:qlc-ws @globals)]
+  []
+  (let [ws @qlc-ws]
     (or ws
         (try  ; The web socket isn't already open, try creating it.
           (let [ws (http/websocket
-                    (:http @globals) (:qlc-ws-url @globals)
+                    http-client @qlc-ws-url
                     :close (fn [_ws code reason]
                              (timbre/info "QLC+ web socket closed, code" code
                                           "reason" reason)
-                             (swap! globals dissoc :qlc-ws)
-                             (update-qlc-connection-status globals))  ;; <3>
+                             (reset! qlc-ws nil)
+                             (update-qlc-connection-status))  ;; <3>
                     :error (fn [_ws error]
                              (timbre/error "QLC+ web socket error:" error))
                     :text (fn [_ws message]
                             (timbre/info "QLC+ web socket received message:"
                                          message)))]
-                       (swap! globals assoc :qlc-ws ws)
+                       (reset! qlc-ws ws)
                        ws)
           (catch Exception _e
             (timbre/error "Unable to open web socket connection to QLC+"))))))
@@ -524,80 +443,60 @@ So how does it work? Let's look at the new and updated shared functions.
 (defn find-qlc-web-socket  ;; <4>
   "Augments the work of find-qlc-web-socket-internal by updating the
   connection status label in the UI appropriately."
-  [globals]
-  (let [result (find-qlc-web-socket-internal globals)]
-    (update-qlc-connection-status globals)
+  []
+  (let [result (find-qlc-web-socket-internal)]
+    (update-qlc-connection-status)
     result))
 ----
 
-<1> This function updates the Connected indicator in the user
-interface (which is built using functions that are coming up) to
-reflect whether there is currently an active web socket connection to
-QLC+.
+<1> This function updates the Connected indicator in the user interface (which is built using functions that are coming up) to reflect whether there is currently an active web socket connection to QLC+.
 
-<2> This should look familiar: it used to be called
-`find-qlc-web-socket`, but we renamed it so we can wrap it in
-additional code that will update the UI based on the results of trying
-to find or connect the socket. It is mostly unchanged, except we
-added:
+<2> This should look familiar: it used to be called`find-qlc-web-socket`, but we renamed it so we can wrap it in additional code that will update the UI based on the results of trying to find or connect the socket.
+It is mostly unchanged, except we added:
 
-<3> This line updates the UI to inform the user immediately if the
-connection is lost (most likely because QLC+ quit).
+<3> This line updates the UI to inform the user immediately if the connection is lost (most likely because QLC+ quit).
 
-<4> And this function is now called wherever `find-qlc-web-socket`
-used to be. In addition to trying to find or create the socket using
-`find-qlc-web-socket-internal`, it calls
-`update-qlc-connection-status` so the user interface can reflect the
-results.
+<4> And this function is now called wherever `find-qlc-web-socket` used to be. In addition to trying to find or create the socket using `find-qlc-web-socket-internal`, it calls `update-qlc-connection-status` so the user interface can reflect the results.
 
-You may have noticed that our socket-opening code now relies on a
-global that holds the URL to use to try to connect the QLC+ web
-socket. That global is set up by this next function:
+You may have noticed that our socket-opening code now relies on an atom that holds the URL to use to try to connect the QLC+ web socket.
+That atom is set up by this next function:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (defn configure-qlc-ws-url
-  "Sets up the global holding the URL used to connect to the QLC+ web
+  "Sets up the atom holding the URL used to connect to the QLC+ web
   socket, given the hostname and port number configured, then tries
   to open a connection to it."
-  [show globals]
+  []
   (let [{:keys [qlc-host qlc-port]  ;; <1>
          :or {qlc-host "localhost" qlc-port 9999}}
         (show/user-data show)]
-    (swap! globals assoc :qlc-ws-url  ;; <2>
-           (str "ws://" qlc-host ":" qlc-port "/qlcplusWS")))
-  (when-let [ws (:qlc-ws @globals)]  ;; <3>
+    (reset! qlc-ws-url  ;; <2>
+            (str "ws://" qlc-host ":" qlc-port "/qlcplusWS")))
+  (when-let [ws @qlc-ws]  ;; <3>
     (.sendCloseFrame ws)
-    (swap! globals dissoc :qlc-ws))
-  (find-qlc-web-socket globals))  ;; <4>
+    (reset! qlc-ws nil))
+  (find-qlc-web-socket))  ;; <4>
 ----
 
-<1> We start by pulling the current host and port configuration from
-the values saved in the show's user data. If no such values have yet
-been saved, we start with default values of port 9999 on the same
-machine that BLT is running on.
+<1> We start by pulling the current host and port configuration from the values saved in the show’s user data.
+If no such values have yet been saved, we start with default values of port 9999 on the same machine that BLT is running on.
 
-<2> We use those host and port values to build the corresponding
-WebSocket URL that would be able to communicate with an instance of
-QLC+ running on that host and port.
+<2> We use those host and port values to build the corresponding WebSocket URL that would be able to communicate with an instance of QLC+ running on that host and port.
 
 <3> If we previously had an open connection, we close it now.
 
-<4> Then we try to open a connection to the newly configured URL,
-which will also update the user interface to show whether we are now
-connected.
+<4> Then we try to open a connection to the newly configured URL, which will also update the user interface to show whether we are now connected.
 
-We also needed to add a function that can pop open the dialog that
-handles when the user presses the button to configure the connection
-to QLC+:
+We also needed to add a function that can pop open the dialog that handles when the user presses the button to configure the connection to QLC+:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (defn configure-qlc-socket
   "Action function for the UI's Configure button, pops up a dialog to
   allow the user to set the hostname and port on which to contact
   QLC+, and checks whether the connection now works."
-  [show globals button]
+  [button]
   (let [{:keys [qlc-host qlc-port]  ;; <1>
          :or   {qlc-host "localhost"
                 qlc-port 9999}} (show/user-data show)]
@@ -605,50 +504,40 @@ to QLC+:
                (socket-picker/show :host qlc-host :port qlc-port
                                    :parent (seesaw/to-root button)
                                    :title "Configure QLC+ Connection")]
-      (show/swap-user-data! show assoc :qlc-host new-host  ;; <3>
-                                       :qlc-port new-port)
+      (show/swap-user-data! show assoc :qlc-host new-host :qlc-port new-port)  ;; <3>
       (seesaw/text! (seesaw/select (:frame show) [:#host]) new-host)  ;; <4>
       (seesaw/text! (seesaw/select (:frame show) [:#port]) new-port)
-      (configure-qlc-ws-url show globals))))  ;; <5>
+      (configure-qlc-ws-url))))  ;; <5>
 ----
 
-<1> Again we start by pulling the current host and port configuration
-from the values saved in the show's user data. If no such values have
-yet been saved, we start with default values of port 9999 on the same
-machine that BLT is running on.
+<1> Again we start by pulling the current host and port configuration from the values saved in the show's user data.
+If no such values have yet been saved, we start with default values of port 9999 on the same machine that BLT is running on.
 
-<2> We pass these values to a helper function, `socket-picker/show`,
-which displays a user interface for picking a host and port. This is
-something that is likely to be useful in many shows like this one, so
-it has been built into BLT. We tell it to center itself on the show
-window, and give it a helpful title. It will either return `nil` if
-the user hit Cancel, or a vector containing the new hostname and port
-the user chose to configure.
+<2> We pass these values to a helper function, `socket-picker/show`, which displays a user interface for picking a host and port.
+This is something that is likely to be useful in many shows like this one, so it has been built into BLT.
+We tell it to center itself on the show window, and give it a helpful title.
+It will either return `nil` if the user hit Cancel, or a vector containing the new hostname and port the user chose to configure.
 
-<3> We only get into this block of code if the user did not cancel
-(thanks to the `when-let` above). So it's time to update the show's
-user data with the newly configured values. This will ensure they are
-saved along with the show when it closes.
+<3> We only get into this block of code if the user did not cancel (thanks to the `when-let` above).
+So it's time to update the show’s user data with the newly configured values.
+This will ensure they are saved along with the show when it closes.
 
-<4> Here we update the main show user interface (created in the next
-function below) to reflect the values that were just chosen as well.
+<4> Here we update the main show user interface (created in the next function below) to reflect the values that were just chosen as well.
 
-<5> And finally, we update the web socket URL we'll use to contact
-QLC+ to match these values, and try to reconnect.
+<5> And finally, we update the web socket URL we’ll use to contact QLC+ to match these values, and try to reconnect.
 
-With that all in place, we can write the function that creates the
-user interface for the show window:
+With that all in place, we can write the function that creates the user interface for the show window:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (defn build-qlc-config-ui
   "Creates the user interface that shows and allows configuration of the
   connection to QLC+."
-  [show globals]
+  []
   (let [{:keys [qlc-host qlc-port]  ;; <1>
          :or   {qlc-host "localhost" qlc-port 9999}} (show/user-data show)
         status (seesaw/label :id :status :text "No" :foreground :red)]  ;; <2>
-    (swap! globals assoc :status-label status)  ;; <3>
+    (reset! status-label status)  ;; <3>
     (seesaw.mig/mig-panel  ;; <4>
      :items (concat
              [["Connect to QLC+ Running on Host:" "align right"]  ;; <5>
@@ -661,52 +550,37 @@ user interface for the show window:
               [status "wrap"]
 
               [(seesaw/button :text "Configure"  ;; <8>
-                              :listen [:action (partial configure-qlc-socket
-                                                        show globals)])
+                              :listen [:action configure-qlc-socket])
                "gap unrelated, align right"]]))))
 ----
 
-<1> As we've seen multiple times now, we start by pulling the current
-host and port configuration from the values saved in the show's user
-data. If no such values have yet been saved, we start with default
-values of port 9999 on the same machine that BLT is running on.
+<1> As we’ve seen multiple times now, we start by pulling the current host and port configuration from the values saved in the show’s user data.
+If no such values have yet been saved, we start with default values of port 9999 on the same machine that BLT is running on.
 
-<2> We create the status label that will be updated to reflect
-connection status separately here, so it can also be made available to
-other functions that want to update it.
+<2> We create the status label that will be updated to reflect connection status separately here, so it can also be made available to other functions that want to update it.
 
-<3> That way, we can store a reference to it in show globals for them
-to use (as you may have already noticed at the start of the UI Shared
-Functions <<ui-shared-functions,section>>).
+<3> That way, we can store a reference to it in an atom for them to use (as you may have already noticed at the start of the UI Shared Functions <<ui-shared-functions,section>>).
 
-<4> And finally we create the layout panel that will hold the
-interface.
+<4> And finally we create the layout panel that will hold the interface.
 
-<5> This creates the row that displays the currently-configured host
-name.
+<5> This creates the row that displays the currently-configured host name.
 
 <6> Similarly, a row for the current port number.
 
-<7> And the row that holds our connection status, referencing the
-variable we bound the label to above.
+<7> And the row that holds our connection status, referencing the variable we bound the label to above.
 
-<8> Finally, the Configure button, which is wired up to call the
-`configure-qlc-socket` function we just saw.
+<8> Finally, the Configure button, which is wired up to call the `configure-qlc-socket` function we just saw.
 
 === Global Setup Additions
 
 Here is how we tell Beat Link Trigger that this show doesn’t use tracks, and has its own special user interface instead.
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
-(let [cue-indexer (build-qlc-cue-indexer trigger-globals)
-      ui          (build-qlc-config-ui show trigger-globals)]  ;; <1>
-
-  ;; [Previously discussed lines omitted…]
-
+(let [ui (build-qlc-config-ui)]  ;; <1>
   (show/swap-user-data! show assoc :show-hue 60.0)  ;; <2>
-  (show/block-tracks show ui)  ;; <3>
-  (configure-qlc-ws-url show trigger-globals)  ;; <4>
+  (show/block-tracks show ui)
+  (configure-qlc-ws-url))  ;; <3>
 ----
 
 <1> This calls our new shared function to build the configuration user interface.
@@ -715,19 +589,11 @@ Here is how we tell Beat Link Trigger that this show doesn’t use tracks, and h
 
 <3> This line gets rid of the user interface elements (and menu options) that relate to managing tracks and phrase triggers in the show, and by passing in the user interface we built, arranges for it to replace the show window contents.
 
-<4> This sets up a trigger global that holds the URL that should be used to contact QLC+, which is what the configuration interface will manage for the user.
-It starts with a reasonable default, if the user has not already edited it.
-
 === Conclusions
 
-So, we needed to add some more code, but we ended up with a system
-that can be used by people who don't want to look at Clojure code or
-edit expressions themselves. This approach is going to help building
-tools that are easy to share and extend the Beat Link Trigger
-ecosystem. I hope you found it interesting, and might even consider
-contributing such shows yourself!
+So, we needed to add some more code, but we ended up with a system that can be used by people who don’t want to look at Clojure code or edit expressions themselves.
+This approach is going to help building tools that are easy to share and extend the Beat Link Trigger ecosystem.
+I hope you found it interesting, and might even consider contributing such shows yourself!
 
-If you have any questions about using this, or ideas about new
-directions to take it, please raise them in the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+If you have any questions about using this, or ideas about new directions to take it, please raise them in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
 channel].
