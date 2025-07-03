@@ -38,6 +38,7 @@ This change log follows the conventions of
 - An error in interpreting database export file format by the Crate Digger library could lead to some rows that were actually present in tables not being found.
 - Phrase trigger section sizes were not being loaded correctly, the End section was always set to 1 bar and the Fill section to 2 bars when reopening a show.
 - Shows with phrase cues saved at illegal locations (which may have been caused by the above problem) would prevent the cues editor window from opening, so they could not be fixed.
+- Deleting a Phrase Trigger from a show could leave the show in an unusable state until it was closed and reopened.
 - A race condition could result in some menu options disappearing when shows blocked the Tracks interface.
 - The wrong keyword was being used for matching MIDI commands in a few integration examples, which would cause them to not be recognized when received on any channel other than 1.
 - The QLC+ Cues integration example was broken, as a result of some enhancements I made that never got tested by actual QLC+ users until much later, sorry!

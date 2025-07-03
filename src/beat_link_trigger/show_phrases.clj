@@ -1677,12 +1677,13 @@ editor windows, in their cue canvases as well."
   its weight should be in a lottery."
   [phrases show player status context unblocked]
   (reduce-kv (fn [info-map uuid runtime-info]
-               (assoc info-map uuid
-                      (let [weight (when unblocked (weight-if-eligible show status context
-                                                                       (get-in show [:contents :phrases uuid])))]
-                        (if weight
-                          (assoc-in runtime-info [:enabled player] weight)
-                          (update runtime-info :enabled dissoc player)))))
+               (if-let [phrase (get-in show [:contents :phrases uuid])]  ; Protect against deleted phrases
+                 (assoc info-map uuid
+                        (let [weight (when unblocked (weight-if-eligible show status context phrase))]
+                          (if weight
+                            (assoc-in runtime-info [:enabled player] weight)
+                            (update runtime-info :enabled dissoc player))))
+                 info-map))
              {}
              phrases))
 
