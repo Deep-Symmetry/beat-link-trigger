@@ -2183,6 +2183,7 @@ a {
     (seesaw/action :handler (fn [_]
                               (let [source      (.getText editor)
                                     editor-info (get @show-cue-editors kind)
+                                    show        (show-util/show-from-context context)
                                     compiled    (when-not (str/blank? source)
                                                   (try
                                                     (expressions/build-user-expression
@@ -2226,7 +2227,7 @@ a {
   [kind context cue parent-frame update-fn]
   (let [text            (find-cue-expression-text kind context cue)
         track?          (show-util/track? context)
-        [show]          (show-util/latest-show-and-context context)
+        show            (show-util/show-from-context context)
         ^JFrame root    (seesaw/frame :title (cue-editor-title kind context cue)
                                       :on-close :nothing
                                       :size [800 :by 600])

@@ -49,6 +49,7 @@ This change log follows the conventions of
 - An error in the helper code for user expressions caused an exception when attempting to use the `track-length` convenience variable with real (but not simulated) events.
 - The code for handling an abrupt disconnection from the Carabiner daemon was trying to update the user interface on the wrong thread.
 - If the network changed while going online in a way that kicked BLT back offline right before checking whether there were any unreachable players (which could happen, for example, if you turned off Wi-Fi while looking at the warning about there being multiple network interfaces that could see the Pro DJ Link network), this would cause an uncaught exception that would prevent the Triggers window from ever opening.
+- Trying to simulate a show cue expression from within the expression editor would not have access to the show.
 - Trying to create a metadata archive larger than 4 gigabytes would lock up the archive creation process.
 - We now suppress a lot of log noise that resulted from the fact that CDJ-3000s embed Kuvo gateways as virtual devices with number 25 and name NXS-GW, and fight over which player is hosting one.
 - When using the shallow playback simulator, Triggers window triggers that were configured to watch the Master player would not accept beat events even from the simulator that was acting as master, because the beat listener code in that window was not simulator-aware.
