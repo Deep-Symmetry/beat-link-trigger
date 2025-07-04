@@ -627,7 +627,7 @@ the normal scroll bar to choose the part you want to see, and the Zoom
 slider at the <<#cues-window,top of the window>> to control how much
 of the waveform is visible at once. But if you have a great many cues
 to enter or edit, you might want faster ways to get around without
-having to lose your context and focus. http://maddix.it[Nicholas
+having to lose your context and focus. https://linktr.ee/mddxmusic[Nicholas
 Maddix] inspired some features that can help a lot:
 
 * If you are using mouse with a vertical scroll wheel, rolling it
