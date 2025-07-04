@@ -1,93 +1,63 @@
 = TouchDesigner Phrase Information
 include::partial$PagePreamble.adoc[]
 
-I received an interesting query from a lighting designer who uses
-https://derivative.ca[TouchDesigner] to generate dynamic lighting
-looks, and who wanted a way to be able to feed song structure (phrase
-analysis) information into a TouchDesigner table so that the lights
-could respond to the nature of the music being currently played. He
-wanted the table to update on each beat from a master player with the
-master player device number, current tempo, the track bank and current
-phrase type from the song structure analysis, the track title, the
-beat within bar that was beginning, and whether the phrase was
-currently in a “fill” section, vamping until the start of the next
-phrase.
+I received an interesting query from a lighting designer who uses https://derivative.ca[TouchDesigner] to generate dynamic lighting looks, and who wanted a way to be able to feed song structure (phrase analysis) information into a TouchDesigner table so that the lights could respond to the nature of the music being currently played.
+He wanted the table to update on each beat from a master player with the master player device number, current tempo, the track bank and current phrase type from the song structure analysis, the track title, the beat within bar that was beginning, and whether the phrase was currently in a “fill” section, vamping until the start of the next phrase.
 
-While most of that information could be obtained in the Beat
-Expression of a Phrase Trigger, some of it would require a bit of
-complex code. This was kind of an “inside out” way of using song
-structure information in a phrase trigger than I had originally
-anticipated. But it was clearly a very useful approach, so I decided
-to add a few features and new convenience values in the expression to
-make it easier.
+While most of that information could be obtained in the Beat Expression of a Phrase Trigger, some of it would require a bit of complex code.
+This was kind of an “inside out” way of using song structure information in a phrase trigger than I had originally anticipated.
+But it was clearly a very useful approach, so I decided to add a few features and make some new convenience values available to expressions to make it easier.
 
-With those in place, a little back and fort discussion about how to
-convey the information led us to send it as UDP packets containing
-JSON-formatted data to TouchDesigner. I'll list all the required code
-here, but you can also download and open a
-link:{attachmentsdir}/TouchDesigner.bls[show file] that has them all
-in place for you; whenever it is open, on any beat from a master
-player that is playing a track with song structure analysis, JSON data
-describing that beat will be sent to TouchDesigner on the port
-configured in the show's Global Setup Expression.
+With those in place, a little back and forth discussion about how to convey the information led us to send it as UDP packets containing JSON-formatted data to TouchDesigner.
+I'll list all the required code here, but you can also download and open a link:{attachmentsdir}/TouchDesigner.bls[show file] that has them all in place for you; whenever it is open, on any beat from a master player that is playing a track with song structure analysis, JSON data describing that beat will be sent to TouchDesigner on the port configured in the show’s Global Setup Expression.
 
 Speaking of that, here is how we configure where to send the data:
 
 [[global-setup-expression]]
 .Global Setup Expression
-```clojure
+[source,clojure,opts=novalidate]
+----
 ;; Create a socket for sending UDP to TouchDesigner, and record the
 ;; address and port to which such UDP messages should be sent.
 (swap! globals assoc :td-socket (java.net.DatagramSocket.))
 (swap! globals assoc :td-address (java.net.InetAddress/getLocalHost))
 (swap! globals assoc :td-port 7000)
-```
+----
 
-If TouchDesigner is running on a different machine than Beat Link
-Trigger is, you would change the `:td-address` value to something like
-`(java.net.InetAddress/getByName "192.1.2.3")`, replacing the IP
-address string with the address of that machine.
+If TouchDesigner is running on a different machine than Beat Link Trigger is, you would change the `:td-address` value to something like `(java.net.InetAddress/getByName "192.1.2.3")`, replacing the IP address string with the address of that machine.
 
-And if the UDPIn DAT node in TouchDesigner is configured to listen on
-a port other than 7000, change the `:td-port` value in this expression
-to match your UDPIn configuration.
+And if the `UDPIn` DAT node in TouchDesigner is configured to listen on a port other than 7000, change the `:td-port` value in this expression to match your `UDPIn` configuration.
 
-The next step is to write a helper function in the Show's Shared
-Functions to format the desired song structure information as JSON,
-write it into a UDP packet, and send that to TouchDesigner:
+The next step is to write a helper function in the Show’s Shared Functions to format the desired song structure information as JSON, write it into a UDP packet, and send that to TouchDesigner:
 
 [[shared-functions]]
 .Shared Functions
-```clojure
+[source,clojure,opts=novalidate]
+----
 (defn send-json-to-touchdesigner
   "Encodes a map as JSON and sends it in a UDP packet
   to TouchDesigner."
-  [globals m]
+  [m]
   (let [message (str (cheshire.core/encode m) "\n")  ; Encode as JSON line.
        {:keys [td-address td-port td-socket]} @globals  ; Find where to send.
        data (.getBytes message)  ; Get JSON as raw byte array.
        packet (java.net.DatagramPacket. data (count data) td-address td-port)]
   (.send td-socket packet)))
-```
+----
 
-Then we need to create a Phrase Trigger that is enabled for the Master
-player, for all Phrase Types and Track Banks. I called this one Beats
-to TouchDesigner:
+Then we need to create a Phrase Trigger that is enabled for the Master player, for all Phrase Types and Track Banks.
+I called this one “Beats to TouchDesigner”:
 
 image::BeatsToTouchDesigner.png[Beats to TouchDesigner Phrase Trigger,1236,198]
 
-The final piece is to set up a Beat Expression in the Phrase Trigger
-to send information on each beat. (This is why I call this an “inside
-out” approach to a Phrase Trigger; where normally we would be painting
-cues within the Phrase Trigger canvas to make lights do things,
-instead on each beat the Beat Expression gives TouchDesigner the
-information it needs to decide what cues it wants to run.)
+The final piece is to set up a Beat Expression in the Phrase Trigger to send information on each beat.
+(This is why I call this an “inside out” approach to a Phrase Trigger; where normally we would be painting cues within the Phrase Trigger canvas to make lights do things, instead on each beat the Beat Expression gives TouchDesigner the information it needs to decide what cues it wants to run.)
 
-Here is a Beat Expression that sends the information that was useful
-to the lighting designer who inspired this integration:
+Here is a Beat Expression that sends the information that was useful to the lighting designer who inspired this integration:
 
 .Beat Expression
-```clojure
+[source,clojure, opts=novalidate]
+----
 (let [payload {"masterPlayerNumber" device-number # <1>
                "bpm"                effective-tempo
                "trackBank"          track-bank
@@ -95,31 +65,21 @@ to the lighting designer who inspired this integration:
                "trackTitle"         track-title
                "beat"               beat-within-bar
                "fill"               (= section :fill)}] # <2>
-  (send-json-to-touchdesigner globals payload)) # <3>
-```
+  (send-json-to-touchdesigner payload)) # <3>
+----
 
-<1> This sets up a map of the keys and values that we want to send to
-TouchDesigner.
+<1> This sets up a map of the keys and values that we want to send to TouchDesigner.
 
-<2> The new `section` convenience binding (added to Beat Link Trigger
-to support this integration) will have the value `:start`, `:loop`,
-`:end`, or `:fill` depending on which of the four sections of the
-Phrase Trigger is currently playing. By comparing it to `:fill` we can
-send a boolean flag that will be `true` only when we are in the
-Fill-In section of a phrase.
+<2> The new `section` convenience binding (added to Beat Link Trigger to support this integration) will have the value `:start`, `:loop`, `:end`, or `:fill` depending on which of the four sections of the Phrase Trigger is currently playing.
+By comparing it to `:fill` we can send a boolean flag that will be `true` only when we are in the Fill-In section of a phrase.
 
-<3> We pass the expression globals (so the values we
-<<#global-setup-expression,set up>> in the Global Setup Expression are
-available) and the payload we want to send to the
-`send-json-to-touchdesigner` function we added to the Shared Functions
-<<#shared-functions,above>>.
+<3> We pass the payload we want to send to the `send-json-to-touchdesigner` function we added to the Shared Functions <<shared-functions,above>>.
 
-On the TouchDesigner side, we create a UDPIn DAT node with a an
-`onReceive` callback that parses the JSON and puts it into a Table DAT
-for the use of the TouchDesigner show:
+On the TouchDesigner side, we create a UDPIn DAT node with a an `onReceive` callback that parses the JSON and puts it into a Table DAT for the use of the TouchDesigner show:
 
 .UDPIn DAT callbacks
-```python
+[source,python]
+----
 import json
 def onReceive(dat, rowIndex, message, bytes, peer):
 	data = json.loads(message)
@@ -128,14 +88,10 @@ def onReceive(dat, rowIndex, message, bytes, peer):
 	for key, value in data.items():
 		table.appendCol((key,value))
 	return
-```
+----
 
-<1> In this example, our target Table DAT is named `table1`. Change
-this string to match the name of the table that you actually want to
-be affected by these JSON UDP packets.
+<1> In this example, our target Table DAT is named `table1`. Change this string to match the name of the table that you actually want to be affected by these JSON UDP packets.
 
-This leads to table contents like the following, updated on each beat
-from a track for which phrase analysis information is available, that
-is playing on the current master player:
+This leads to table contents like the following, updated on each beat from a track for which phrase analysis information is available, that is playing on the current master player:
 
 image:TableFromJSON.png[Phrase information table,988,181]
