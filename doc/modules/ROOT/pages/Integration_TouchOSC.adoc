@@ -1,56 +1,65 @@
 = Track Information to TouchOSC
 include::partial$PagePreamble.adoc[]
 
-An https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger/topic/Sending.20track.20information.20to.20TouchOSC.20via.20Midi.20or.20OSC/near/436482289[interesting inquiry] from Toby Leo in the project Zulip discussion community requested some help sending messages to TouchOSC to replicate some of the Player Status interface on phones and tablets.
+An https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger/topic/Sending.20track.20information.20to.20TouchOSC.20via.20Midi.20or.20OSC/near/436482289[interesting inquiry] came in from Toby Leo in the project Zulip discussion community, requesting some help sending messages to TouchOSC, to replicate some of the Player Status interface on phones and tablets.
 That actually turned out to be a great idea for an integration example, because it is fairly simple and focused, so it offers an easy starting point that can be understood and tweaked and extended in a variety of directions.
 
 The idea was to have two text labels in the TouchOSC layout that would show information about the tracks loaded on two players, with buttons next to them that would indicate whether that track is currently playing.
-I upgraded to a version of TouchOSC that would work on my current macOS version (it had been a long time since I used it), figured out how to create such a layout:
+I upgraded to a version of TouchOSC that would work on my current macOS version (it had been a long time since I used it), and figured out how to create such a layout:
 
 image::TouchOSCTrackInfo.png[TouchOSC Track info layout,320,75]
 
-In this layout the objects are called `button1` and `label1` on the top row, and `button2` and `label2` on the second row. I changed the buttons from their default appearance of red squares to green circles to look more like BLT’s playback indicators, and made the label text a complementary blue color, getting rid of its background and outline.
+In this layout the objects are called `button1` and `label1` on the top row, and `button2` and `label2` on the second row.
+I changed the buttons from their default appearance of red squares to green circles to look more like BLT’s playback indicators, and made the label text a complementary blue color, getting rid of its background and outline.
 The most important functional thing I needed to do in TouchOSC was to add an OSC message to both labels so that BLT would be able to set the text.
 
 If you would like to use this layout as a starting point you can link:{attachmentsdir}/TouchOSCPlayerInfo.tosc[download it].
 
-Then I set about configuring triggers and writing expressions in BLT to make this work, taking the simplest approach, without worrying about setting up shared library code. If you would like to test this, and don’t have any existing triggers you are concerned about losing, you can download and open the link:{attachmentsdir}/TouchOscTrackInfo.blt[configuration file] (if you do have any trigger configuration you have been experimenting with be sure to <<Debugging.adoc#saving-and-loading,save that>> first).
+Then I set about configuring triggers and writing expressions in BLT to make this work, taking the simplest approach, without worrying about setting up shared library code.
+If you would like to test this, and don’t have any existing triggers you are concerned about losing, you can download and open the link:{attachmentsdir}/TouchOscTrackInfo.blt[configuration file] (if you do have any trigger configuration you have been experimenting with be sure to <<Debugging.adoc#saving-and-loading,save that>> first).
 Otherwise, you can follow the steps below to add the necessary expressions and triggers to your existing configuration:
 
 [[global-setup-expression]]
-## Global Setup Expression
+== Global Setup Expression
 
-We need to set up an OSC connection to TouchOSC that can be shared by all the triggers. The following expression worked when I was running it locally on the same machine as BLT and have it configured to use UDP port 9801, but you will need to update the address and port to reflect where you are actually running it:
+We need to set up an OSC connection to TouchOSC that can be shared by all the triggers.
+The following expression worked when I was running it locally on the same machine as BLT and have it configured to use UDP port 9801, but you will need to update the address and port to reflect where you are actually running it:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (swap! globals assoc :touch-osc (osc/osc-client "localhost" 9801))
-```
+----
 
 TIP: Be sure you’re using version 7.4.0 or later of Beat Link Trigger when trying this! In working on this integration example I discovered a problem working with trigger globals, which had probably been around since the Show interface was added.
 
 [[global-shutdown-expression]]
-## Global Shutdown Expression
+== Global Shutdown Expression
 
 We want to gracefully close our TouchOSC connection when shutting down or otherwise changing trigger configurations. Here’s the code to do that:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (osc/osc-close (:touch-osc @globals))
 (swap! globals dissoc :touch-osc)
-```
+----
 
 [[triggers]]
-## Triggers
+== Triggers
 
-Then create two triggers. Label the first “Send OSC track info /button1 and /label1” and the second “Send OSC track info /button2 and /label2”. Configure their **Watch** menus to watch each of the two players you want status information for, set their **Enabled** filters to **Always**, and their **Message** menus to **Custom**. When you make that last change, it will pop open an expression editor for the Activation expression (unless you already had something in there), which is a good opportunity to create that.
+Then create two triggers.
+Label the first “Send OSC track info /button1 and /label1” and the second “Send OSC track info /button2 and /label2”.
+Configure their menu:Watch[] menus to watch each of the two players you want status information for, set their menu:Enabled[] filters to menu:Always[], and their menu:Message[] menus to menu:Custom[].
+When you make that last change, BLT will pop open an expression editor for the Activation expression (unless you already had something in there), which is a good opportunity to create that.
 
 [[activation-expressions]]
-## Activation Expressions
+== Activation Expressions
 
 The first trigger will use code like this:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (osc/osc-send (:touch-osc @globals) "/button1" (float 1.0))
-```
+----
 
 This turns on the “playing” indicator button in the top row when the trigger row detects that the player is playing a track.
 
@@ -61,22 +70,27 @@ The code for the second trigger is the same, except the message path is `"/butto
 And at this point you can probably see how you could create up to six rows to track six players (if you are using CDJ-3000s), and have six triggers watching those players and updating the correct rows in TouchOSC.
 
 [[deactivation-expressions]]
-## Deactivation Expressions
+== Deactivation Expressions
 
 To turn the indicator button back off when its watched player stops playing, the first trigger needs code like this:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (osc/osc-send (:touch-osc @globals) "/button1" (float 0.0))
-```
+----
 
 Again, use similar code for the second trigger, but alter the OSC message path to `"/button2"`.
 
 [[tracked-update-expressions]]
-## Tracked Update Expressions
+== Tracked Update Expressions
 
-The last piece we need is to display track title and artist information as tracks get loaded. We could do fancy things by registering a listener with the `MetadataFinder`, but the goal of this integration example is to show you the simplest approach. And that is to check whenever we get a status update from the player we are watching, and see if the information has changed since we last sent it to OSC, sending an update when needed. Here is the code we can put in the first trigger’s Tracked Update Expression to do that:
+The last piece we need is to display track title and artist information as tracks get loaded.
+We could do fancy things by registering a listener with the `MetadataFinder`, but the goal of this integration example is to show you the simplest approach.
+And that is to check whenever we get a status update from the player we are watching, and see if the information has changed since we last sent it to OSC, sending an update when needed.
+Here is the code we can put in the first trigger’s Tracked Update Expression to do that:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (let [info (if track-title  ;; <1>
              (str (or track-artist "[no artist]") " - " track-title)
              "[no track]")]
@@ -84,25 +98,26 @@ The last piece we need is to display track title and artist information as track
     (osc/osc-send (:touch-osc @globals) "/label1"  ;; <3>
                   (str "Player " device-number ": " info))
     (swap! locals assoc :last-info info)))  ;; <4>
-```
+----
 
 <1> This expression formats the title and (if available) artist for the track.
 If there is no title, that means no track is loaded, so we set `info` to `"[no track]"`.
 Otherwise, we prepend the artist name (or `"[no artist]"` if we don’t know it) and a hyphen to the title.
 
-<2> If this information is different from what we last sent to TouchOSC, which we are tracking in the trigger expression locals so each trigger can keep track of its own informatin separately, then we send an update to TouchOSC.
+<2> If this information is different from what we last sent to TouchOSC, which we are tracking in the trigger expression locals so each trigger can keep track of its own information separately, then we send an update to TouchOSC.
 
 <3> Here we send the actual update, including the player number.
 This code works regardless of what player number the trigger is watching because it figures that out from the status update it is processing.
 So the only thing that needs to change here for the second trigger is the OSC path: use `"/label2"` for its expression.
 
-<4> Finally we store the information we sent, so on the next update we can see if anything has changed that requires a new message to TouchOSC.
+<4> Finally, we store the information we sent, so on the next update we can see if anything has changed that requires a new message to TouchOSC.
 
-With this all in place, everything should be working! The triggers window will look something like this:
+With this all in place, everything should be working!
+The triggers window will look something like this:
 
 image::TouchOSCTriggers.png[TouchOSC Track Info Triggers,916,417]
 
-## Next Steps
+== Next Steps
 
 My normal instincts would be to create some shared functions to reduce duplication of code between the triggers, and make it easier to add new ones, changing a single parameter.
 It would also be possible to package this up in a show file, using the new mechanism that allows shows to contribute raw triggers to the Triggers window while they are open, and add a simple GUI for configuring the TouchOSC hostname and port number.
