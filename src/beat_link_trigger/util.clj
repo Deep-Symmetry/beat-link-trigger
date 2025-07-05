@@ -485,8 +485,9 @@
                RekordboxAnlz$TrackBank/WARM    :warm
                (timbre/error "Unrecognized track bank" (.bank (.body tag))))
     (catch NullPointerException e
-      (timbre/error e "Unable to determine track bank! tag:" tag "body:" (.body tag)
-                    "bank:" (.bank (.body tag))))))
+      (timbre/error e "Unable to determine track bank! tag:" tag
+                    "body:" (when tag (.body tag))
+                    "bank:" (when (and tag (.body tag)) (.bank (.body tag)))))))
 
 (defn track-mood-name
   "Given a song structure tag parsed from a track, returns the mood that

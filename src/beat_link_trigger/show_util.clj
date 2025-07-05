@@ -783,7 +783,7 @@
       (if (= section next-section)
         ;; We are looping back to the start of this section, fade to transparent over the beat.
         (let [alpha  (.getAlpha playback-marker-color)
-              scaled (int (* alpha (- 1.0 fraction)))]
+              scaled (int (* alpha (- 1.0 (max 0.0 (min 1.0 fraction)))))]
           (Util/buildColor (phrase-section-colors section) (Color. 255 255 255 scaled)))
         ;; We are moving to another section, interpolate between the colors over the beat.
         (let [current (color/as-rgba (color/int32 (Color/.getRGB (phrase-section-colors section))))
