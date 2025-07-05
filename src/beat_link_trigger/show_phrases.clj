@@ -1148,7 +1148,7 @@
 
                                 ["Playing:" "gap unrelated"]
                                 [(seesaw/canvas :id :state :size [18 :by 18] :opaque? false
-                                                :tip "Outer ring shows track enabled, inner light when loaded."
+                                                :tip "Outer ring shows trigger enabled, inner light when playing."
                                                 :paint (partial paint-phrase-state show uuid))]
                                 ["Message:"]
                                 [(seesaw/combobox :id :message :model ["None" "Note" "CC" "Custom"]
