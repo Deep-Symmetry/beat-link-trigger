@@ -746,21 +746,25 @@
    :high-outro-1  "Outro 1"
    :high-outro-2  "Outro 2"})
 
+(def known-phrase-type-keys
+  "The set of all keywords for known phrase types."
+  (set (keys phrase-types)))
+
 (defn- update-phrase-type-label
   "Changes the text of the phrase types label in a phrase trigger row to
   reflect how many are enabled."
   [show phrase types-label]
   (when-not (:enabled-phrase-types (latest-phrase show phrase))
-      ;; This must be a newly created phrase, and the set does not yet
-      ;; exist. Initialize it to contain all possible phrase types.
-      (swap-phrase! show phrase assoc :enabled-phrase-types (set (keys phrase-types))))
+    ;; This must be a newly created phrase, and the set does not yet
+    ;; exist. Initialize it to contain all possible phrase types.
+    (swap-phrase! show phrase assoc :enabled-phrase-types known-phrase-type-keys))
   (let [phrase        (latest-phrase show phrase)
         enabled-count (count (:enabled-phrase-types phrase))]
     (seesaw/text! types-label
-                  (case enabled-count
-                    0  "[None]"
-                    26 "[All]"
-                    (str "[" enabled-count "]")))))
+                  (cond
+                    (zero? enabled-count)                            "[None]"
+                    (= enabled-count (count known-phrase-type-keys)) "[All]"
+                    :else                                            (str "[" enabled-count "]")))))
 
 (defn- build-phrase-type-checkbox
   "Creates a checkbox that reflects and manages the enabled state of a
@@ -899,14 +903,18 @@
    :club-1  "Club 1"
    :club-2  "Club 2"})
 
+(def known-track-bank-keys
+  "The set of all keywords for known track bank types."
+  (set (keys track-banks)))
+
 (defn- update-track-bank-label
   "Changes the text of the track banks label in a phrase trigger row to
   reflect how many are enabled."
   [show phrase banks-label]
   (when-not (:enabled-track-banks (latest-phrase show phrase))
-      ;; This must be a newly created phrase, and the set does not yet
-      ;; exist. Initialize it to contain all possible track banks.
-      (swap-phrase! show phrase assoc :enabled-track-banks (set (keys track-banks))))
+    ;; This must be a newly created phrase, and the set does not yet
+    ;; exist. Initialize it to contain all possible track banks.
+    (swap-phrase! show phrase assoc :enabled-track-banks known-track-bank-keys))
   (let [phrase        (latest-phrase show phrase)
         enabled-count (count (:enabled-track-banks phrase))]
     (seesaw/text! banks-label
@@ -1476,28 +1484,43 @@ editor windows, in their cue canvases as well."
   called in the context of a `swap!` operation with the most current
   values of `show` and `phrase-trigger`."
   [show ^CdjStatus status context phrase-trigger]
-  (case (:enabled phrase-trigger)
+  (let [enabled-banks   (:enabled-track-banks phrase-trigger)
+        track-bank      (:bank context)
+        enabled-phrases (:enabled-phrase-types phrase-trigger)
+        phrase-type     (:phrase-type context)]
+    (case (:enabled phrase-trigger)
 
-    "Custom"
-    (let [result (run-phrase-function show phrase-trigger :custom-enabled status false)]
-      (if (number? result)
-        (let [weight (min (math/round result) 1000)]
-          (when (pos? weight) weight))
-        (when result 1)))
+      "Custom"
+      (let [result (run-phrase-function show phrase-trigger :custom-enabled status false)]
+        (if (number? result)
+          (let [weight (min (math/round result) 1000)]
+            (when (pos? weight) weight))
+          (when result 1)))
 
-    "See Below"
-    (when (and
-           ((:enabled-track-banks phrase-trigger) (:bank context))
-           ((:enabled-phrase-types phrase-trigger) (:phrase-type context))
-           (or (not (:max-bars? phrase-trigger)) (<= (:bars context) (:max-bars phrase-trigger)))
-           (or (not (:min-bars? phrase-trigger)) (>= (:bars context) (:min-bars phrase-trigger)))
-           (or (not (:max-bpm? phrase-trigger)) (<= (.getEffectiveTempo status) (:max-bpm phrase-trigger)))
-           (or (not (:min-bpm? phrase-trigger)) (>= (.getEffectiveTempo status) (:min-bpm phrase-trigger)))
-           (case (:players phrase-trigger)
-             "Any"    true
-             "Master" (.isTempoMaster status)
-             "On-Air" (.isOnAir status)))
-      (:weight phrase-trigger))))
+      "See Below"
+      (when (and
+             context  ; Make sure there is actually a phrase playing.
+
+             ;; Even if we don't recognize the track bank, consider it a match if we are configured to allow
+             ;; all known bank types.
+             (or (and (nil? track-bank) (= enabled-banks known-track-bank-keys))
+                 (enabled-banks track-bank))
+
+             ;; Similarly handle unknown phrase types as matching if we allow all known phrase types.
+             (or (and (nil? phrase-type) (= enabled-phrases known-phrase-type-keys))
+                 (enabled-phrases phrase-type))
+
+             ;; Apply remainder of constraints only when they are active.
+             (or (not (:max-bars? phrase-trigger)) (<= (:bars context) (:max-bars phrase-trigger)))
+             (or (not (:min-bars? phrase-trigger)) (>= (:bars context) (:min-bars phrase-trigger)))
+             (or (not (:max-bpm? phrase-trigger)) (<= (.getEffectiveTempo status) (:max-bpm phrase-trigger)))
+             (or (not (:min-bpm? phrase-trigger)) (>= (.getEffectiveTempo status) (:min-bpm phrase-trigger)))
+
+             (case (:players phrase-trigger)
+               "Any"    true
+               "Master" (.isTempoMaster status)
+               "On-Air" (.isOnAir status)))
+        (:weight phrase-trigger)))))
 
 (defn current-phrase-trigger-weight
   "Given the current state of the shows (with updated phrase trigger

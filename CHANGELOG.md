@@ -13,6 +13,7 @@ This change log follows the conventions of
 - User expressions are now compiled into private namespaces, so triggers and show shared functions are no longer in danger of colliding with each other, or with functions used by BLT itself.
   This also allows the Shared Functions to safely define other vars (including other atoms) for the use of the triggers and shows, which will simplify integration examples and make them more idiomatic Clojure.
   This is a **backwards-incompatible change** for any raw triggers in a show that need to reference the show shared functions: there is a new virtual namespace alias, `show-shared/` that will need to be prefixed to them in the context of those raw trigger expressions.
+- We try to handle unexpected (new) track banks and phrase types in rekordbox phrase analysis gracefully, by allowing them to match phrase triggers that are configured to accept all known track banks or phrase types.
 - Updated to Clojure 1.12, which enables a great many simplifications and improvements in Java interop syntax.
   In the process, also eliminated any avoidable reflective Java method invocations to improve performance.
 - The Java runtime embedded in the macOS and Windows releases has been updated from Java 17 to Java 21, the current long-term support release.
