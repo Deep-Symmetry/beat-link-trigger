@@ -33,7 +33,7 @@
   "Recalculates the current set of on-air channels, given an updated
   state of channel fader and cross-fader positions and channel x-y
   assignments. Updates the user interface and the CDJs accordingly."
-  [state globals]
+  [state]
   (let [on-air (clojure.set/difference (xone-on-air-via-channel-faders state)
                                        (xone-blocked-by-cross-fader state))]
     ;; Store the computed on-air states and update the UI to reflect them.
@@ -58,49 +58,49 @@
   "Handles a change in one of the tiny XY slider values, with `channel`
   holding the channel number controlled by the slider, and `v` is the
   new position."
-  [show globals channel v]
-  (let [current (show/user-data show)        ; Find state of X, Y assignments.
-        x       (:x-channels current #{1 2}) ; Apply defaults if none found.
+  [channel v]
+  (let [current (show/user-data show)        ; Find the current state of the X and Y channel assignments.
+        x       (:x-channels current #{1 2}) ; Apply the default assignments if they haven't yet been stored.
         y       (:y-channels current #{3 4})
         ;; Update assignments based on the new slider value, and store in show.
         new-x   (if (neg? v) (conj x channel) (disj x channel))
         new-y   (if (pos? v) (conj y channel) (disj y channel))
         state   (show/swap-user-data! show assoc :x-channels new-x
                                       :y-channels new-y)]
-    (xone-recompute-on-air state globals)))
+    (xone-recompute-on-air state)))
 
 (defn xone-build-xy-sliders  ;; <2>
   "Creates the vector of four tiny horizontal sliders that specify which
   side of the cross fader, if any, each channel fader is assigned."
-  [show globals]
+  []
   (apply concat
          (for [i (range 1 5)]
            (let [state       (show/user-data show)
-                 saved-value (cond  ; Find show saved position for slider.
-                               ((:x-channels state #{1 2}) i) -1 ; Defaults.
+                 saved-value (cond  ; See if the show has a saved position for this slider.
+                               ((:x-channels state #{1 2}) i) -1 ; Apply default positions if not found.
                                ((:y-channels state #{3 4}) i) 1
                                :else 0)]
              [["X" "split 3, gapright 0"]
-              [(seesaw/slider :orientation :horizontal  ; Build UI object.
+              [(seesaw/slider :orientation :horizontal ; Build the slider UI object itself.
                               :min -1
                               :max 1
                               :value saved-value
                               :listen [:state-changed
                                        #(xone-react-to-xy-change
-                                         show globals i (seesaw/value %))])
+                                          i (seesaw/value %))])
                "width 45, gapright 0"]
               ["Y" (when (= i 4) "wrap")]]))))
 
 (defn- xone-react-to-slider-change  ;; <1>
   "Handles a change in slider value, where `k` identifies the slider and
   `v` is the new value."
-  [show globals k v]
-  (xone-recompute-on-air (show/swap-user-data! show assoc k v) globals))
+  [k v]
+  (xone-recompute-on-air (show/swap-user-data! show assoc k v)))
 
 (defn- xone-build-channel-sliders  ;; <2>
   "Creates the vector of four vertical sliders that represent the mixer
   channel faders."
-  [show globals]
+  []
   (vec (for [i (range 4)]
          ;; Build the keyword identifying the slider.
          (let [k (keyword (str "channel-" (inc i)))]
@@ -112,9 +112,9 @@
                           :value (k (show/user-data show) 63)
                           :listen [:state-changed
                                    #(xone-react-to-slider-change
-                                     show globals k (seesaw/value %))])))))
+                                      k (seesaw/value %))])))))
 
-(defn xone-wrap-channel-element
+(defn- xone-wrap-channel-element
   "Creates the MIG Layout decription for one of the channel elements,
   given its index. We want to wrap to the next line after the fourth
   one."
@@ -122,22 +122,22 @@
   [element (when (= 3 index) "wrap")])
 
 (def xone-near-black
-  "A gray that is close to black."
-  (java.awt.Color. 20 20 20))
+  "A red that is close to black."
+  (java.awt.Color. 20 0 0))
 
 (defn- xone-paint-on-air-state
   "Draws an indication of whether a channel is considered to currently
   be on the air based on the mixer fader states. Arguments are the
   show globals, channel number, the component being drawn, and the
   graphics context in which drawing is taking place."
-  [globals channel c g]
+  [channel c g]
   (let [w       (double (seesaw/width c))
         center  (/ w 2.0)
         h       (double (seesaw/height c))
         outline (java.awt.geom.RoundRectangle2D$Double. 1.0 1.0 (- w 2.0) (- h 2.0) 10.0 10.0)]
     (.setRenderingHint g java.awt.RenderingHints/KEY_ANTIALIASING java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
     (.setStroke g (java.awt.BasicStroke. 2.0))
-    (.setPaint g (if ((:on-air @globals #{}) channel) java.awt.Color/RED xone-near-black))
+    (.setPaint g (if ((:on-air @globals #{}) channel) Color/red xone-near-black))
     (.draw g outline)
     (.setFont g (util/get-display-font :teko java.awt.Font/BOLD 18))
     (let [frc    (.getFontRenderContext g)
@@ -147,9 +147,9 @@
 (defn- xone-build-channel-on-air-indicators
   "Builds the vector of canvases that draw the on-air states of the
   mixer channels."
-  [globals]
+  []
   (vec (for [i (range 4)]
-         (seesaw/canvas :size [55 :by 20] :opaque? false :paint (partial xone-paint-on-air-state globals (inc i))))))
+         (seesaw/canvas :size [55 :by 20] :opaque? false :paint (partial xone-paint-on-air-state (inc i))))))
 
 (defn- midi-activity-color
   "Calculates the color to be used to draw the center of a MIDI activity
@@ -168,12 +168,12 @@
 
 (defn- xone-paint-midi-state
   "Draws an indication of MIDI activity for a particular slider,
-  including whether the MIDI connection is online, and a grblueeen dot for
+  including whether the MIDI connection is online, and a blue dot for
   half a second after the receipt of each message. `k` is the keyword
   associated with the slider, so we can check when the last message
   was received from it. `c` is the canvas in which we are doing our
   drawing, and `g` is the graphics context."
-  [show globals k c g]
+  [k c g]
   (let [w       (double (seesaw/width c))
         h       (double (seesaw/height c))
         outline (java.awt.geom.Ellipse2D$Double. 1.0 1.0 (- w 2.5) (- h 2.5))
@@ -198,24 +198,23 @@
   "Bulds a canvas that draws the MIDI state of a particular slider. `k`
   is the keyword that identifies the slider in the MIDI timestamps
   map, so it can tell when there has been recent activity."
-  [show globals k]
+  [k]
   (seesaw/canvas :size [18 :by 18] :opaque? false
                  :tip "Outer ring shows online state, inner light when MIDI received within half a second."
-                 :paint (partial xone-paint-midi-state show globals k)))
+                 :paint (partial xone-paint-midi-state k)))
 
 (defn- xone-build-channel-midi-indicators
   "Builds the vector of canvases that draw the MIDI states of the
   channel sliders."
-  [show globals]
+  []
   (vec (for [i (range 4)]
-         (xone-build-midi-indicator show globals (keyword (str "channel-" (inc i)))))))
+         (xone-build-midi-indicator (keyword (str "channel-" (inc i)))))))
 
 (defn- xone-repaint-midi-indicators
   "Tells all the MIDI indicators to repaint themselves because we have
   received interesting MIDI data or because our timer thread is
-  telling us it is time for a UI update.
-  called)."
-  [globals]
+  telling us it is time for a UI update."
+  []
   (seesaw/repaint! (:channel-indicators @globals))
   (seesaw/repaint! (:cross-indicator @globals)))
 
@@ -224,29 +223,28 @@
   Displays the known fader positions, flashes indicators when MIDI
   messages are received (and makes clear when the MIDI connection is
   offline), and displays the calculated on-air results."
-  [show globals]
-  (let [xy-sliders      (xone-build-xy-sliders show globals)
-        channel-sliders (xone-build-channel-sliders show globals)
-        channel-midi    (xone-build-channel-midi-indicators show globals)
-        channel-on-air  (xone-build-channel-on-air-indicators globals)
-        cross-midi      (xone-build-midi-indicator show globals :cross-fader)
+  []
+  (let [xy-sliders      (xone-build-xy-sliders)
+        channel-sliders (xone-build-channel-sliders)
+        channel-midi    (xone-build-channel-midi-indicators)
+        channel-on-air  (xone-build-channel-on-air-indicators)
+        cross-midi      (xone-build-midi-indicator :cross-fader)
         cross-fader     (seesaw/slider :orientation :horizontal :min 0 :max 127
                                        :value (:cross-fader (show/user-data show) 63)
                                        :listen [:state-changed #(xone-react-to-slider-change
-                                                                 show globals :cross-fader (seesaw/value %))])
-        panel           (seesaw.mig/mig-panel :background "#aad"
-                                              :constraints ["" "[center][center][center][center]"]
+                                                                  :cross-fader (seesaw/value %))])
+        panel           (seesaw.mig/mig-panel :constraints ["" "[center][center][center][center]"]
                                               :items (concat
-                                                      (map-indexed xone-wrap-channel-element channel-on-air)
-                                                      [["" "wrap 20"]]
-                                                      xy-sliders
-                                                      (xone-build-channel-labels)
-                                                      (map-indexed xone-wrap-channel-element channel-midi)
-                                                      (map-indexed xone-wrap-channel-element channel-sliders)
-                                                      [[cross-midi "span 4, wrap"]
-                                                       ["X" "span 4, split 3"]
-                                                       [cross-fader]
-                                                       ["Y" "wrap"]]))]
+                                                       (map-indexed xone-wrap-channel-element channel-on-air)
+                                                       [["" "wrap 20"]]
+                                                       xy-sliders
+                                                       (xone-build-channel-labels)
+                                                       (map-indexed xone-wrap-channel-element channel-midi)
+                                                       (map-indexed xone-wrap-channel-element channel-sliders)
+                                                       [[cross-midi "span 4, wrap"]
+                                                        ["X" "span 4, split 3"]
+                                                        [cross-fader]
+                                                        ["Y" "wrap"]]))]
     (swap! globals assoc :channel-on-air channel-on-air :channel-indicators channel-midi
            :channel-sliders channel-sliders :cross-slider cross-fader :cross-indicator cross-midi)
     panel))
@@ -255,7 +253,7 @@
   "Update one of the sliders to a new position we have received from the
   mixer. `k` is the keyword identifying the slider, and `v` is the new
   position value."
-  [globals k v]
+  [k v]
   (let [slider (case k
                  :cross-fader (:cross-slider @globals)
                  :channel-1 (nth (:channel-sliders @globals) 0)
@@ -268,7 +266,7 @@
   "This function is called with each MIDI message received from the mixer,
   and also given access to the show globals so that it can update the known
   mixer state and determine the resulting on-air channels."
-  [show globals msg]
+  [msg]
   (try
     ;; Default Xone configuration sends faders as CC on MIDI Channel 16.
     (when (and (= :control-change (:command msg)) (= 15 (:channel msg)))
@@ -286,11 +284,11 @@
                                              (xone-blocked-by-cross-fader state))]
 
           ;; Update the UI slider to reflect the new fader position.
-          (xone-update-slider globals recognized (:velocity msg))
+          (xone-update-slider recognized (:velocity msg))
 
           ;; Update our MIDI indicators to show the user we have received MIDI data.
           (swap! globals assoc-in [:midi-timestamps recognized] (System/currentTimeMillis))
-          (xone-repaint-midi-indicators globals))))
+          (xone-repaint-midi-indicators))))
     (catch Throwable t
       (timbre/error t "Problem handling MIDI event from Xone:96 mixer"))))
 
@@ -299,10 +297,10 @@
   over time. Also periodically sends device-on-air updates like a DJM
   does even when there is no change. Exits when the Going Offline
   expression closes the mixer connection."
-  [show globals]
+  []
   (future
     (loop []
-      (xone-repaint-midi-indicators globals)
+      (xone-repaint-midi-indicators)
       (when (.isRunning virtual-cdj)  ; Send on-air updates every half second.
         (let [last-sent-on-air (:on-air-timestamp @globals 0)
               now              (System/currentTimeMillis)]
