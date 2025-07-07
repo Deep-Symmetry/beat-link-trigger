@@ -29,6 +29,7 @@ This change log follows the conventions of
 - A link to Ineffable's great video tutorial for synchronizing videos in Resolume.
 - The `looping?` convenience variable is exposed for Beat expressions as well, even though they don't have direct access to `CdjStatus` objects, because it is likely to be useful there (using the same approach as the `on-air?` variable).
 - When we unexpectedly are unable to route a message to a CDJ, we now log extensive troubleshooting information about the address we are trying to send to and the state of the network interfaces at that moment.
+- There is now a mechanism by which very repetitive log entries can be throttled (defaulting to once per minute). This has been used for reports about problematic track bank/phrase values, and can be propagated to other logs as we notice ones that deserve it. Let us know on Zulip if you see any!
 
 ### Fixed
 

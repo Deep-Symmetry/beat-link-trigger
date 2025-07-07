@@ -20,6 +20,7 @@
            [java.io File]
            [javax.sound.midi Sequencer Synthesizer]
            [javax.swing JDialog JFrame]
+           [java.util.concurrent TimeUnit]
            [jiconfont.icons.font_awesome FontAwesome]
            [jiconfont.swing IconFontSwing]
            [uk.co.xfactorylibrarians.coremidi4j CoreMidiDestination CoreMidiDeviceProvider CoreMidiSource]))
@@ -62,6 +63,53 @@
           (let [manifest   (java.util.jar.Manifest. stream)
                 attributes (.getMainAttributes manifest)]
             (.getValue attributes "Build-Timestamp")))))))
+
+(def ^:private throttle-timestamps
+  "Keeps track of the last time we logged about a particular context,
+  for the purpose of throttling it. A map from contexts to timestamps."
+  (atom {}))
+
+(defn- expire-old-timestamps
+  "Called whenever we throttle something, to get rid of entries in our
+  timestamp cache for things we haven't seen in an hour, so it does
+  not expand forever."
+  []
+  (swap! throttle-timestamps
+         (fn [timestamps]
+           (let [now       (System/nanoTime)
+                 threshold (.toNanos TimeUnit/HOURS 1)]
+             (reduce-kv (fn [acc k v]
+                          (if (> (- now v) threshold)
+                            (dissoc acc k)
+                            acc))
+                        timestamps
+                        timestamps)))))
+
+(defn throttle
+  "Provides a way to avoid spamming logs with something that is likely
+  to happen often but is only interesting to hear about once every
+  fifteen minutes. `context` is used to uniquely identify the event,
+  so it makes sense to provide something like a vector of a keyword
+  describing the place in the code and an object that is being
+  complained about. Returns truthy if the logging should proceed.
+
+  If provided, `interval` is the number of nanoseconds for which we
+  will suppress logging of the same event; the default is one minute.
+  In any event, intervals longer than an hour will be treated as an
+  hour because the timestamp cache ages out entries older than that."
+  ([context]
+   (throttle context (.toNanos TimeUnit/MINUTES 1)))
+  ([context interval]
+   (expire-old-timestamps)
+   (let [now     (System/nanoTime)
+         updated (swap! throttle-timestamps update context
+                        (fn [then]
+                          (if (or (nil? then)  ; First we've seen this.
+                                  (> (- now then) interval))
+                            now
+                            then)))]
+     (= (get updated context) now))))  ; We are not throttling this time.q
+
 
 (def ^:private file-types
   "A map from keywords identifying the kinds of files we work with to
@@ -485,9 +533,10 @@
                RekordboxAnlz$TrackBank/WARM    :warm
                (timbre/error "Unrecognized track bank" (.bank (.body tag))))
     (catch NullPointerException e
-      (timbre/error e "Unable to determine track bank! tag:" tag
-                    "body:" (when tag (.body tag))
-                    "bank:" (when (and tag (.body tag)) (.bank (.body tag)))))))
+      (when (throttle [:bad-track-bank tag])
+        (timbre/error e "Unable to determine track bank! tag:" tag
+                      "body:" (when tag (.body tag))
+                      "bank:" (when (and tag (.body tag)) (.bank (.body tag))))))))
 
 (defn track-mood-name
   "Given a song structure tag parsed from a track, returns the mood that
@@ -518,7 +567,9 @@
         RekordboxAnlz$MoodLowPhrase/BRIDGE   :low-bridge
         RekordboxAnlz$MoodLowPhrase/CHORUS   :low-chorus
         RekordboxAnlz$MoodLowPhrase/OUTRO    :low-outro
-        (timbre/error "Unrecognized low-mood phrase type" kind)))
+
+        (when (throttle [:bad-track-phrase entry])
+          (timbre/error "Unrecognized low-mood phrase type" kind))))
 
     RekordboxAnlz$TrackMood/MID
     (let [^RekordboxAnlz$PhraseMid kind (.kind entry)]
@@ -533,7 +584,9 @@
         RekordboxAnlz$MoodMidPhrase/BRIDGE  :mid-bridge
         RekordboxAnlz$MoodMidPhrase/CHORUS  :mid-chorus
         RekordboxAnlz$MoodMidPhrase/OUTRO   :mid-outro
-        (timbre/error "Unrecognized mid-mood phrase type" kind)))
+
+        (when (throttle [:bad-track-phrase entry])
+          (timbre/error "Unrecognized mid-mood phrase type" kind))))
 
     RekordboxAnlz$TrackMood/HIGH
     (let [^RekordboxAnlz$PhraseHigh kind (.kind entry)]
@@ -545,9 +598,12 @@
         RekordboxAnlz$MoodHighPhrase/DOWN   :high-down
         RekordboxAnlz$MoodHighPhrase/CHORUS (if (= 1 (.k1 entry)) :high-chorus-1 :high-chorus-2)
         RekordboxAnlz$MoodHighPhrase/OUTRO  (if (= 1 (.k1 entry)) :high-outro-1 :high-outro-2)
-        (timbre/error "Unrecognized high-mood phrase type" kind)))
 
-    (timbre/error "Unrecognized track mood phrase type" (.mood (._parent entry)))))
+        (when (throttle [:bad-track-phrase entry])
+          (timbre/error "Unrecognized high-mood phrase type" kind))))
+
+    (when (throttle [:bad-track-phrase entry])
+      (timbre/error "Unrecognized track mood phrase type" (.mood (._parent entry))))))
 
 (defn players-signature-set
   "Given a map from player number to signature, returns the the set of
