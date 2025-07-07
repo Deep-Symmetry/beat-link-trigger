@@ -89,7 +89,7 @@
   containing the item. May return `nil` if we do not recognize the
   menu item type code."
   ^Message$MenuItemType [^Message item]
-  (.get Message/MENU_ITEM_TYPE_MAP (.getValue ^NumberField (nth (.arguments item) 6))))
+  (.getMenuItemType item))
 
 (defn- menu-item-label
   "Retrieve the label to be displayed on a menu item given the response
@@ -139,11 +139,11 @@
 ;; Creates a menu item node for unrecognized entries.
 (defmethod menu-item-node :default unrecognized-item-node
   [^Message item ^SlotReference slot-reference]
-  (let [kind (or (menu-item-kind item)
-                 (format "0x%x" (.getValue ^NumberField (nth (.arguments item) 6))))]  ; Show number if can't name it.
+  (let [kind (menu-item-kind item)
+        num  (format "0x%x" (.getValue ^NumberField (nth (.arguments item) 6)))]
     (DefaultMutableTreeNode.
      (proxy [Object IMenuEntry] []
-       (toString [] (str (menu-item-label item) " [unrecognized (" kind ")" "]"))
+       (toString [] (str (menu-item-label item) " [unrecognized (" num ", " kind ")" "]"))
        (getId [] (int -1))
        (getSlot [] slot-reference)
        (getTrackType [] nil)

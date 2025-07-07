@@ -41,8 +41,10 @@
                  [selmer "1.12.62"]
                  [thi.ng/color "1.5.1"]
                  [uk.co.xfactory-librarians/coremidi4j "1.6"]]
-  :repositories {"sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"
-                 "jitpack"            "https://jitpack.io"}
+  :repositories {"central-portal-snapshots" "https://central.sonatype.com/repository/maven-snapshots/"
+                 "jitpack"                  "https://jitpack.io"
+                 ;; This last one can go away once all project snapshots are migrated.
+                 "sonatype-snapshots"       "https://oss.sonatype.org/content/repositories/snapshots"}
 
   :profiles {:dev     {:repl-options {:init-ns beat-link-trigger.core
                                       :welcome (println "beat-link-trigger loaded.")}
