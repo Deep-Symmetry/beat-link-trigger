@@ -1,114 +1,81 @@
 = Matching Tracks
 include::partial$PagePreamble.adoc[]
 
-As described in the <<Triggers.adoc#player-status-summary,Player Status
-Summary>> discussion, the most convenient way to match a track is
-using metadata obtained from the players, so Beat Link Trigger asks
-the player hosting the track for details like its title, artist, and
-so on. You can use this information to automatically write out a
-playlist during a performance, as described
-<<writing-a-playlist,below>>.
+As described in the xref:Triggers.adoc#player-status-summary[Player Status Summary] discussion, the most convenient way to match a track is using metadata obtained from the players, so Beat Link Trigger asks the player hosting the track for details like its title, artist, and so on.
+You can use this information to automatically write out a playlist during a performance, as described <<writing-a-playlist,below>>.
 
-In earlier releases of Beat Link Trigger, automatically matching
-tracks was not nearly so easy or reliable, and required more tricky
-and elaborate efforts. This section describes them, for historical
-reference, and in case you want to understand more about what BLT
-is doing for you automatically.
+In earlier releases of Beat Link Trigger, automatically matching tracks was not nearly so easy or reliable, and required more tricky and elaborate efforts.
+This section describes them, for historical reference, and in case you want to understand more about what BLT is doing for you automatically.
 
-TIP: Rather than using the low-level approaches described in this
-section, you will almost always want to use the new, convenient
-<<Shows.adoc#,Show interface>> introduced in version 0.5. It gives you
-an incredibly powerful graphical interface for matching tracks and
-defining cues on beat ranges within those tracks.
+TIP: Rather than using the low-level approaches described in this section, you will almost always want to use the new, convenient xref:Shows.adoc[Show interface] introduced in version 0.5.
+It gives you an incredibly powerful graphical interface for matching tracks and defining cues on beat ranges within those tracks.
 
 
 == Manual Track Matching
 
-The simplest approach is to configure your triggers to Watch Any
-Player, and use a custom Enabled Filter expression to activate them
-when any player has loaded the track that the trigger cares about. For
-example, in the following screen shot we have two triggers watching
-for two specific tracks:
+The simplest approach is to configure your triggers to Watch Any Player, and use a custom Enabled Filter expression to activate them when any player has loaded the track that the trigger cares about.
+For example, in the following screenshot we have two triggers watching for two specific tracks:
 
 image:MatchTracksMeta.png[Matching Tracks,884,411]
 
 The Enabled Filter expression for the first trigger is as follows:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (and
   (= track-title "Ember (Original Mix)")
   (= track-artist "Camo & Krooked"))
-```
+----
 
-This activates the trigger whenever a player has loaded a track with
-the specified exact title and artist. The values available for
-matching are listed in the expression documentation you can scroll
-through in the bottom half of the expression editor window, and other
-metadata-based values include `track-comment`, `track-genre`,
-`track-key`, and `track-length`. The entire
-https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackMetadata.html[`TrackMetadata`]
-object is available as `track-metadata`, if you want to use
-http://clojure.org/reference/java_interop[Clojure Java Interop] to
-work with it.
+This activates the trigger whenever a player has loaded a track with the specified exact title and artist.
+The values available for matching are listed in the expression documentation you can scroll through in the bottom half of the expression editor window, and other metadata-based values include `track-comment`, `track-genre`, `track-key`, and `track-length`.
+The entire https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/TrackMetadata.html[`TrackMetadata`] object is available as `track-metadata`, if you want to use http://clojure.org/reference/java_interop[Clojure Java Interop] to work with it.
 
-In addition to using `=` to match entire strings, you can use
-http://clojuredocs.org/clojure.core/re-matches[`re-matches`] with
-regular expressions for more flexible, loose matching. In addition to
-the basic http://clojuredocs.org/clojure.core/re-matches[Clojure
-documentation], the Java
-https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html[Pattern]
-documentation provides details of how you can construct your regular
-expressions. For example, to match any track whose title begins with
-"Ember" you would use an expression like this:
+In addition to using `=` to match entire strings, you can use http://clojuredocs.org/clojure.core/re-matches[`re-matches`] with regular expressions for more flexible, loose matching.
+In addition to the basic http://clojuredocs.org/clojure.core/re-matches[Clojure documentation], the Java https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html[Pattern] documentation provides details of how you can construct your regular expressions.
+For example, to match any track whose title begins with “Ember” you would use an expression like this:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (re-matches #"Ember.*" track-title)
-```
+----
 
-Of course, you might also want the trigger to activate only when
-playback reaches a particular beat. You can combine as many different
-kinds of rules and logic as you need in your Enabled expression to
-achieve your goals:
+Of course, you might also want the trigger to activate only when playback reaches a particular beat.
+You can combine as many different
+kinds of rules and logic as you need in your Enabled expression to achieve your goals:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (and
   (= track-title "Sunset Lover")
   (= track-artist "Petit Biscuit")
   (>= beat-number 17))
-```
+----
 
-To have the trigger active within a specific range of beats, you can
-express that in a single expression like so:
+To have the trigger active within a specific range of beats, you can express that in a single expression like so:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (and
   (re-matches #"Ember.*" track-title)
   (= track-artist "Camo & Krooked")
   (<= 65 beat-number 192))
-```
+----
 
-Including that within the trigger will enable it when a player that
-has loaded that specific track, and playback is positioned anywhere
-from beat 65 to 192, inclusive.
+Including that within the trigger will enable it when a player that has loaded that specific track, and playback is positioned anywhere from beat 65 to 192, inclusive.
 
 [[writing-a-playlist]]
 == Writing a Playlist
 
-Another way to take advantage of metadata support is to write out a
-file that logs all the tracks that were played during a DJ set. Here
-is a simple example of how to do that, although you can certainly get
-fancier in terms of how you format the timestamps and what information
-you log.
+Another way to take advantage of metadata support is to write out a file that logs all the tracks that were played during a DJ set.
+Here is a simple example of how to do that, although you can certainly get fancier in terms of how you format the timestamps and what information you log.
 
-TIP: Starting with version 0.4.0, Beat Link Trigger has a built-in
-<<Debugging.adoc#writing-playlists,Playlist Writer window>> that does all
-this for you, and more. This discussion has been left in as an example
-of the kinds of things you can do with your expression code.
+TIP: Starting with version 0.4.0, Beat Link Trigger has a built-in xref:Debugging.adoc#writing-playlists[Playlist Writer window] that does all this for you, and more.
+This discussion has been left in as an example of the kinds of things you can do with your expression code.
 
-Set up a Trigger that is configured to watch the Master Player, and
-install the following Tracked Update Expression:
+Set up a Trigger that is configured to watch the Master Player, and install the following Tracked Update Expression:
 
-[source,clojure,subs=attributes+]
+[source,clojure,opts=novalidate,subs=attributes+]
 ----
 (when trigger-active?  ;; <1>
   (when (not= track-metadata (:last-track @locals))  ;; <2>
@@ -122,35 +89,25 @@ install the following Tracked Update Expression:
        (spit "/Users/james/Desktop/playlist.txt" log-entry :append true)))))  ;; <6>
 ----
 
-<1> Only proceed into the expression when there is a Master Player,
-and it is currently playing a track (because we configured the Trigger
-to Watch the Master Player).
+<1> Only proceed into the expression when there is a Master Player, and it is currently playing a track (because we configured the Trigger to Watch the Master Player).
 
-<2> Only proceed deeper into the expression if we have not yet written
-a playlist entry for this track metadata value (see step 3 for how
-this works).
+<2> Only proceed deeper into the expression if we have not yet written a playlist entry for this track metadata value (see step 3 for how this works).
 
-<3> Make a note of the metadata for the current track, because we are
-about to write a playlist entry for it, and only want to do it once.
+<3> Make a note of the metadata for the current track, because we are about to write a playlist entry for it, and only want to do it once.
 
-<4> Only proceed deeper into the expression if we actually have
-metadata, because otherwise we can’t create a meaningful playlist
-entry.
+<4> Only proceed deeper into the expression if we actually have metadata, because otherwise we can’t create a meaningful playlist entry.
 
 <5> Format the lines of the playlist entry.
 
 <6> Append the formatted lines to the specified file.
 
-TIP: This version creates a file called `playlist.txt` on my desktop;
-change the file path in the `spit` call to match where you want the
-file created.
+NOTE: This version creates a file called `playlist.txt` on my desktop; change the file path in the `spit` call to match where you actually want the file created.
 
-Whenever this trigger is enabled, as soon as a new track is being
-played by whatever player is currently the tempo master, a new entry
-will be written to the playlist log. The file content will look like
-this:
+Whenever this trigger is enabled, as soon as a new track is being played by whatever player is currently the tempo master, a new entry will be written to the playlist log.
+The file content will look like this:
 
-```
+[source,text,opts=novalidate]
+----
 Timestamp: 2017-03-18T18:21:43.705
    Artist: Exige & EJR
     Title: Escape ft. Zoë Phillips (Bazarro Remix)
@@ -162,4 +119,4 @@ Timestamp: 2017-03-18T18:21:56.170
 Timestamp: 2017-03-18T18:22:07.713
    Artist: Faithless
     Title: insomnia 2008 (a1 electro mix)
-```
+----
