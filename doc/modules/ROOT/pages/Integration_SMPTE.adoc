@@ -17,7 +17,7 @@ If you are willing to do a little hardware tinkering, this is a much more polish
 
 However, if you really want to experiment with SMPTE right now, have a Mac, and can live with these limitations, read on to see how.
 
-[[smpte-max]]
+[#smpte-max]
 == LTC using Max/MSP
 
 [NOTE]
@@ -123,7 +123,7 @@ Again, I hope this is useful to intrepid explorers who want to try working with 
 If you can help do that, please let us know in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel]!
 
 
-[[smpte-orange-pi]]
+[#smpte-orange-pi]
 == LTC using an Orange Pi
 
 [NOTE]

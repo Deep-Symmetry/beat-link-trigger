@@ -35,7 +35,7 @@ endif::[]
 endif::[]
 ****
 
-[[startup]]
+[#startup]
 == Startup
 
 When you first open Beat Link Trigger, it tries to find the Pro DJ Link devices that you want it to monitor.
@@ -65,7 +65,7 @@ Once a device is found, or you choose to continue offline, the xref:Triggers.ado
 
 TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use most BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed xref:OpusQuad.adoc[here],
 
-[[command-line-arguments]]
+[#command-line-arguments]
 === Command-Line Arguments
 
 If you launch BLT from a shell (either because you are using the Jar file with your own Java installation, or by running the launcher embedded in the application) you can control what it does at startup.
@@ -115,7 +115,7 @@ In Windows, you can pass command-line arguments by using the Command Prompt wind
 As with the macOS `open` command, however, you will not be able to see any output that BLT writes back to you.
 ====
 
-[[connecting-later]]
+[#connecting-later]
 === Connecting Later
 
 If you connect to a DJ Link network after a period of working on your shows and triggers in offline mode, you can take Beat Link Trigger online by checking menu:Network[Online?]
@@ -130,7 +130,7 @@ If there has been a disruption to the network, and you seem to have lost contact
 It will generally try to do this for you automatically when it loses contact with the last DJ Link device.
 ====
 
-[[checking-player-number]]
+[#checking-player-number]
 === Checking your Player Number
 
 image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,200,float=right]
@@ -140,7 +140,7 @@ Whenever it is checked, the Player Number being used by Beat Link is shown there
 Most of the time you will want to be using the self-assigned device number Player 7, as shown here, because that is compatible with big shows where there are four real players in use (or even six, if they are all CDJ-3000s).
 However, if you want to do things like letting an Ableton Link session become the Tempo Master and <<Link#full-sync,control the speed>> and beat sync of the players, or display metadata for CD and other non-rekordbox tracks, you will need to use a real player number in the range 1–4, which may require you to turn off one of the other players.
 
-[[fixing-network-problems]]
+[#fixing-network-problems]
 == Fixing Network Problems
 
 If Beat Link Trigger reports that it can’t find any DJ Link devices when you try to take it online, this means there is a problem with your network.
@@ -236,7 +236,7 @@ You will want to look for conflicts on ports 50000, 50001, and 50002 (and rememb
 
 ****
 
-[[what-next]]
+[#what-next]
 == What Next?
 
 Hopefully this guide has been enough to get you started, and thinking about interesting ways you can synchronize your CDJs with other elements of your show.

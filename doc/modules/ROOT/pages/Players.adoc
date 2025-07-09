@@ -170,7 +170,7 @@ players on the network, you will also have to turn one of them off and
 leave it off, unfortunately.
 
 
-[[loading-playing]]
+[#loading-playing]
 == Loading and Playing Tracks
 
 [WARNING]
@@ -275,7 +275,7 @@ image:LoadTrackSearch2.png[Load Track: Searching,785,667]
 [.right]
 image:MySettings.png[My Settings window,465,915]
 
-[[loading-settings]]
+[#loading-settings]
 == Loading Player Settings
 
 If you would like to apply a standard group of settings to a player,
@@ -299,7 +299,7 @@ choose a currently-connected player in the menu:Load on:[] menu, and
 click the kbd:[Load] button to tell it to load them. The player will
 instantly apply any of the settings that it understands.
 
-[[auto-open]]
+[#auto-open]
 == Automatically Opening Player Status
 
 If you always want the Player Status window to open when you launch

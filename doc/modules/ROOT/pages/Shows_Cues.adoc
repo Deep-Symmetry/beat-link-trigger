@@ -62,7 +62,7 @@ when Beat Link Trigger is Online (or you are
 make sense in the context of being able to detect that a player has
 loaded the track.
 
-[[adding-cues]]
+[#adding-cues]
 == Adding Cues to a Track
 
 The Cues window doesn’t do much until you add at least one Cue. As
@@ -94,10 +94,10 @@ the chosen beats:
 
 image:FirstCue.png[First cue added,912,461]
 
-[[cue-row-elements]]
+[#cue-row-elements]
 == Cue Row Elements
 
-[[start-end-spinners]]
+[#start-end-spinners]
 === Start and End Spinners
 
 You can see and adjust the beats on which the Cue starts and ends
@@ -108,7 +108,7 @@ the edges of the cue in the waveform, which also works.
 The End must always be at least one beat past the Start, and neither
 can extend outside the beat grid of the Track.
 
-[[cue-name]]
+[#cue-name]
 === Cue Name
 
 To help understand the purpose of the cue, you can give it a name. The
@@ -123,7 +123,7 @@ pointer over the cue in the waveform:
 
 image:CueNamed.png[Cue named,790,278]
 
-[[cue-hue]]
+[#cue-hue]
 === Cue Hue
 
 Cues are assigned distinct hues when they are created to help you tell
@@ -153,7 +153,7 @@ In both waveforms, <<entered-status,Entered>> Cues are whitened
 slightly and <<started-status,Started>> Cues are whitened even
 more as a visual indicator of their state.
 
-[[cue-context-menu-button]]
+[#cue-context-menu-button]
 === Context Menu Button
 
 Below the first row of cue configuration elements there is a gear
@@ -162,7 +162,7 @@ mouse click. The gear will be filled in if any Expressions have been
 added to the Cue, and hollow otherwise. The contents of the menu
 itself are described <<cue-context-menu,below>>.
 
-[[entered-status]]
+[#entered-status]
 === Entered Status
 
 To the right of the context menu button there is an Entered Status
@@ -191,7 +191,7 @@ ring:
 
 |===
 
-[[entered-message]]
+[#entered-message]
 === Entered Message Menu
 
 The menu:Entered Message[] Menu determines what kind of MIDI message
@@ -257,7 +257,7 @@ If you choose `Custom` and have not yet written a Entered expression,
 the expression editor will be opened to let you do that. You can
 also open that editor using the <<cue-context-menu,cue context menu>>.
 
-[[entered-note-spinner]]
+[#entered-note-spinner]
 ==== Entered Note/Controller Spinner
 
 Found immediately to the right of the menu:Entered Message[] Menu (unless
@@ -267,7 +267,7 @@ controller number used for Control Change-based entered and exited
 messages. The value is also available to your Cue expressions if they
 want to use it.
 
-[[entered-channel-spinner]]
+[#entered-channel-spinner]
 ==== Entered Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which

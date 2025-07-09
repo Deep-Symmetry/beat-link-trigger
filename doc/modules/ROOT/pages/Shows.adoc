@@ -48,7 +48,7 @@ particular tracks reach particular places, you might be able to do
 something even easier than creating a show. Check out how to
 xref:Integration_MIDI_rekordbox.adoc[translate rekordbox cues to MIDI].
 
-[[creating]]
+[#creating]
 == Creating a Show
 
 To use the Show interface, you start by choosing menu:File[New Show]
@@ -74,7 +74,7 @@ open based on which hardware is being used for a given performance.
 
 image:NewShowWindow.png[Empty Show window,793,418]
 
-[[opening-shows]]
+[#opening-shows]
 .Opening Shows
 [TIP]
 ====
@@ -89,7 +89,7 @@ downloaded, you can open it by choosing menu:File[Open Show] in the
 Beat Link Triggers window and navigating to the show file.
 ====
 
-[[show-window-header-elements]]
+[#show-window-header-elements]
 == Show Window Header Elements
 
 At the top of the Show window, above any Tracks or Phrase Triggers
@@ -119,7 +119,7 @@ is Online (or you are <<SimulatingPlayback.adoc#,simulating
 playback>>), because otherwise there is no way tracks could be
 identified as loaded.
 
-[[show-menu-bar]]
+[#show-menu-bar]
 === Show Menu Bar
 
 The Show window has its own menu bar with commands that apply to the
@@ -209,7 +209,7 @@ Menu, described <<show-menu-bar,above>>.
 Always:: With this setting, the Track is enabled until you disable
 it.
 
-[[adding-tracks]]
+[#adding-tracks]
 == Adding Tracks to a Show
 
 Shows don’t do anything until they include at least one Track. There
@@ -239,7 +239,7 @@ explanation is added:
 
 image:ImportTrackAlready.png[Track already in Show,990,435]
 
-[[disconnected-tracks]]
+[#disconnected-tracks]
 [TIP]
 ====
 You should finish making any adjustments to your tracks in rekordbox,
@@ -317,7 +317,7 @@ image:CopyTrack.png[Copy Track to Show,995,645]
 TIP: If you don’t see an open Show in the `Copy to` list, that means
 the Track is already present in the other Show.
 
-[[copying-track-contents]]
+[#copying-track-contents]
 === Copying Track Contents
 
 Although the cues you have created in a track are likely to be very

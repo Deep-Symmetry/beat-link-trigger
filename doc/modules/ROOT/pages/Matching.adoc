@@ -64,7 +64,7 @@ To have the trigger active within a specific range of beats, you can express tha
 
 Including that within the trigger will enable it when a player that has loaded that specific track, and playback is positioned anywhere from beat 65 to 192, inclusive.
 
-[[writing-a-playlist]]
+[#writing-a-playlist]
 == Writing a Playlist
 
 Another way to take advantage of metadata support is to write out a file that logs all the tracks that were played during a DJ set.

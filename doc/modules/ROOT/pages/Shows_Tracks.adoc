@@ -10,12 +10,12 @@ is a column that shows the track title, artist, a comment field, and
 information about which players have the track loaded, and which are
 currently playing it.
 
-[[track-row-elements]]
+[#track-row-elements]
 == Track Row Elements
 
 image:ShowTrack.png[A Track row,900,165]
 
-[[track-comment]]
+[#track-comment]
 === Comment Field
 
 The comment field starts out holding whatever comment the DJ entered
@@ -23,7 +23,7 @@ about the track in rekordbox, but you are free to edit it however you
 like, to help you remember things about the track or to make it easy
 to find using the `Filter` field.
 
-[[track-preview]]
+[#track-preview]
 === Waveform Preview
 
 The waveform preview section shows the overall intensity and dominant
@@ -38,7 +38,7 @@ tick marks along the bottom each represent one minute of playback time.
 Along the bottom of the track row you find the controls that let you
 configure how you want the Show to respond to the track.
 
-[[track-context-menu-button]]
+[#track-context-menu-button]
 === Context Menu Button
 
 This allows you to access the track Context Menu with a regular mouse
@@ -47,7 +47,7 @@ any Cues or Expressions added to the Track, and hollow otherwise. The
 contents of the menu itself are described
 <<track-context-menu,below>>.
 
-[[track-midi-output]]
+[#track-midi-output]
 === MIDI Output Menu
 
 The menu:MIDI Output[] Menu lets you choose the MIDI device to which
@@ -67,7 +67,7 @@ that Track’s menu, but the Enabled section of the Track will be
 replaced with the message “Not found.” Once the output reappears, or a
 different output is chosen, the Track will become operational again.
 
-[[loaded-status]]
+[#loaded-status]
 === Loaded Status
 
 To the right of the MIDI Output menu there is a Loaded Status
@@ -102,7 +102,7 @@ Link, which allows them to be efficiently detected and indexed within
 the Show, and means that even if you have a variety of remixes of the
 same track, they should all be recognized correctly.
 
-[[loaded-message]]
+[#loaded-message]
 === Loaded Message Menu
 
 The menu:Loaded Message[] Menu determines what kind of MIDI message is
@@ -150,7 +150,7 @@ If you choose `Custom` and have not yet written a Loaded expression,
 the expression editor will be opened to let you do that. You can
 also open that editor using the <<track-context-menu,track context menu>>.
 
-[[loaded-note-spinner]]
+[#loaded-note-spinner]
 ==== Loaded Note/Controller Spinner
 
 Found immediately to the right of the menu:Loaded Message[] Menu (unless
@@ -160,13 +160,13 @@ controller number used for Control Change-based loaded and unloaded
 messages. The value is also available to your Track expressions if they
 want to use it.
 
-[[loaded-channel-spinner]]
+[#loaded-channel-spinner]
 ==== Loaded Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which
 loaded/unloaded messages are sent for this Track.
 
-[[playing-status]]
+[#playing-status]
 === Playing Status
 
 To the right of the Loaded Message section there is a Playing Status
@@ -206,7 +206,7 @@ Unfortunately, the first beat packet can cause your Playing message
 (and Cues' Started messages) to be sent prematurely, followed within a
 fraction of a second by Stopped messages.
 
-[[playing-message]]
+[#playing-message]
 === Playing Message Menu
 
 The menu:Playing Message[] Menu determines what kind of MIDI message is
@@ -249,7 +249,7 @@ the expression editor will be opened to let you do that. You can
 also open that editor using the <<track-context-menu,track
 context menu>>.
 
-[[playing-note-spinner]]
+[#playing-note-spinner]
 ==== Playing Note/Controller Spinner
 
 Found immediately to the right of the menu:Playing Message[] Menu (unless
@@ -259,7 +259,7 @@ controller number used for Control Change-based started and stopped
 messages. The value is also available to your Track expressions if they
 want to use it.
 
-[[playing-channel-spinner]]
+[#playing-channel-spinner]
 ==== Playing Channel Spinner
 
 As described above, this lets you specify the MIDI channel on which

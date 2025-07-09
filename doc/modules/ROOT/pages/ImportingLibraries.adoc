@@ -68,7 +68,7 @@ If you need to load a dependency from a repository other than Clojars or Maven C
 
 Of course, you would replace the example repository name and URL with the actual name and URL of the repository you want to add.
 
-[[local-libraries]]
+[#local-libraries]
 == Local Libraries
 
 If you have a library already downloaded as a standalone Jar file (or directory hierarchy of class files and resources), you can use it by adding it to the Beat Link Trigger class path, like in this example:

@@ -22,7 +22,7 @@ This will prevent BLT from precisely following loops that are smaller than a bea
 To put things back the way they were, either change the `false` to `true` in the above function call, or remove it entirely and quit and restart Beat Link Trigger.
 ====
 
-[[overview]]
+[#overview]
 == Overview
 
 As long as you are running Beat Link Trigger on one of the common operating systems and processor architectures that are supported by https://github.com/Deep-Symmetry/lib-carabiner#lib-carabiner[lib-carabiner], there is nothing else you need to install or run, and a built-in copy of Carabiner will be started when you need it.
@@ -55,7 +55,7 @@ Once connected, you can no longer adjust the port value, but you can tweak the l
 
 The current tempo of the Link session is shown, as well as the number of other Link-enabled programs (Link Peers) visible on the network.
 
-[[syncing-triggers]]
+[#syncing-triggers]
 == Syncing with Triggers
 
 IMPORTANT: Although in the past Triggers were the only way that you could synchronize an Ableton Link session, newer Sync modes like <<passive-sync,Passive>> and <<full-sync,Full>> are much simpler to use, don't require you to set up any Triggers, and solve most common synchronization needs.
@@ -105,7 +105,7 @@ When you are using Triggers as your Sync mode, if a Link trigger is currently ac
 
 |===
 
-[[passive-sync]]
+[#passive-sync]
 == Passive Sync Mode
 
 Sometimes you simply want to tie the Ableton Link session to whatever is playing on the CDJs, without having to set up a trigger to manage it.
@@ -158,7 +158,7 @@ This Sync Mode is called `Passive` because Ableton Link can only follow the Pion
 That is why the `Master` radio button in the Ableton Link session remains disabled.
 To enable that, you need to take the Sync Mode all the way up to `Full`, which is our next topic.
 
-[[full-sync]]
+[#full-sync]
 == Full Sync Mode
 
 If you want the Ableton Link session to be a full participant on the Pioneer network, and able to become Tempo Master, choose menu:Sync Mode[Full] in the Carabiner window.

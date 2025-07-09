@@ -6,7 +6,7 @@ implement shows. Because some of the elements can be useful when
 writing your own expressions, they are made available to those
 expressions.
 
-[[show]]
+[#show]
 == The Show
 
 This map contains everything Beat Link Trigger needs to know about a
@@ -14,7 +14,7 @@ show in order to be able to display and run it. Some of the elements
 are not suitable for use by expressions, but some can be quite useful.
 It is passed to all show expressions as the value `show`.
 
-[[track-signatures]]
+[#track-signatures]
 .Track Signatures
 NOTE: The discussion below often mentions track _signatures_. These
 are strings that uniquely identify a track that can be loaded on a
@@ -72,7 +72,7 @@ in that player.
 track, if any, currently loaded in that player, as long as that player
 is the current Tempo Master.
 
-[[namespace]]
+[#namespace]
 `:namespace`:: A unique (created by `gensym`) symbol that gets assigned to the show when it is opened, used to identify the private namespace that will be created and used to compile its shared functions and expressions, so they don’t collide with any in the Triggers window, or in any other show.
 
 `:on-air`:: A map from player numbers to track signatures showing
@@ -80,7 +80,7 @@ which tracks are currently loaded into players that are on the air
 according to the mixer. (Requires a DJM mixer, and the players and
 mixer must be configured to offer the on-air feature.)
 
-[[phrases-map]]
+[#phrases-map]
 `:phrases`:: A map holding runtime (not saved) information about all
 <<phrase-triggers,phrase triggers>> in the show, such as the user
 interface panels which display them. The keys are
@@ -99,12 +99,12 @@ of the active phrase triggers (only the ones from this show), and
 whose values identify how the sections of the phrase trigger map to
 beats in the track in order to make it fit.
 
-[[tracks-map]]
+[#tracks-map]
 `:tracks`:: A map holding information about all tracks in the show. The
 keys are the track's signatures, and the values are the track maps
 described in the <<track,Track section>>.
 
-[[vis-phrases]]
+[#vis-phrases]
 `:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the
 phrase triggers that are currently visible inthe show window, in the
 order in which they appear. This can be affected by the **Filter**
@@ -117,7 +117,7 @@ currently visible in the show window, in the order in which they
 appear. This can be affected by the **Filter** text field at the top
 of the window as well as the **Loaded Only** checkbox next to it.
 
-[[show-contents]]
+[#show-contents]
 === Show Contents
 
 The `:contents` map contains information that can be directly saved
@@ -146,7 +146,7 @@ currently loaded in a player to be visible in the window.
 order in which the phrase triggers should appear in the window,
 regardless of their current visibility.
 
-[[phrases-contents-map]]
+[#phrases-contents-map]
 `:phrases`:: A map holding persistent (saved) information about all
 phrase triggers in the show. The keys are <<phrase-uuid,UUIDs>>
 randomly assigned to the phrase triggers when they are created, and
@@ -163,7 +163,7 @@ screen, and its height and width, for use in restoring the window when
 the show is opened again.
 
 
-[[track]]
+[#track]
 == Tracks
 
 Each track map contains everything Beat Link Trigger needs to know
@@ -238,7 +238,7 @@ will be a green dot showing in the <<Shows_Tracks.adoc#loaded-status,**Loaded
 Status** indicator>> of the track row).
 
 
-[[track-contents]]
+[#track-contents]
 === Track Contents
 
 The `:contents` map contains information that can be directly saved

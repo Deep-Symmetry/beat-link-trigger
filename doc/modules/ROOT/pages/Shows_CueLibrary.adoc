@@ -9,7 +9,7 @@ in any track by adding it to the Cue Library. To do that, choose
 menu:Add Cue to Library[] from the Cue
 <<Shows_Cues.adoc#cue-context-menu,context menu.>>
 
-[[cue-library-button]] As soon as you have a cue in the show's
+[#cue-library-button] As soon as you have a cue in the show's
 library, a kbd:[Library ▾] button appears next to the kbd:[New Cue]
 button in any Cue Editor windows you have open for tracks in the show
 (and any existing cue rows also get new link buttons just below their
@@ -53,7 +53,7 @@ The new cue will share any of the MIDI message configurations and
 Expressions that were present in the cue that was added to the show
 library.
 
-[[linked-cues]]
+[#linked-cues]
 == Linked Cues
 
 The linked chain in the Link button towards the bottom left of the cue
@@ -107,7 +107,7 @@ explore next. If you are ambitious, you can even write some code to
 build a user interface to <<cue-builders,automate the process>> of
 building new cues from your library cue.
 
-[[configuring-cues]]
+[#configuring-cues]
 == Configuring Library Cues
 
 The normal behavior when placing a new cue based on a library cue is
@@ -144,7 +144,7 @@ image:ConfigureUnlink.png[Configure Unlink,480,260]
 Read on to see how you can get even fancier about using a library cue
 as a factory for building individualized cues.
 
-[[cue-builders]]
+[#cue-builders]
 === Cue Builders
 
 Continuing the previous example, suppose our ”Red Wash“ cue uses a
@@ -291,7 +291,7 @@ will replace the cue definition with the results of the choices you
 made in the builder this time. The start and end positions of the cue
 being rebuilt are preserved in case you have fine-tuned them manually.
 
-[[renaming-cues]]
+[#renaming-cues]
 == Renaming Library Cues
 
 As noted above, if you change your mind about what a library cue

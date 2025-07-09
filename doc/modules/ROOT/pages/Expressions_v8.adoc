@@ -32,12 +32,12 @@ These are based on a template as well, which can also be found on https://github
 
 Again, since this namespace is now private to your individual show, you can feel much more free to create functions and vars in your Shared Functions code, without worrying about conflicting with other shows or the Triggers window.
 
-[[adapting]]
+[#adapting]
 == Adapting Existing Code
 
 Although most code should continue to work fine in this new, much safer, world, there are some things that used to be possible that are either no longer recommended (because there are now safer approaches), or that need to be tweaked slightly in order to continue to work.
 
-[[accessing-show-from-raw]]
+[#accessing-show-from-raw]
 === Accessing Show Shared Code from Raw Triggers
 
 Shows can contribute triggers to the Triggers window when they are open, and those triggers need to work in a coordinated way with the show.
@@ -56,7 +56,7 @@ you now need to instead use:
 ----
 (show-shared/some-fancy-function …)
 ----
-[[sharing-show-data]]
+[#sharing-show-data]
 === Sharing Show Data with Raw Triggers
 
 Prior to version 8, even when all expressions were compiled into the same namespace, it was still a challenge to share data between expressions that run in the context of the show, and expressions in raw triggers belonging to that show, since those run in the Triggers window, and in that old world, `globals` was a magic convenience variable, not an ordinary atom defined in a namespace.

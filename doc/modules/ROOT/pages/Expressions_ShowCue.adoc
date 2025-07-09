@@ -7,7 +7,7 @@ The cue expressions can be accessed from the cue’s context menu. Cues have acc
 
 TIP: The help text below the expression editor will list and explain the values that are automatically available for use in that kind of expression.
 
-[[cue-entered-expression]]
+[#cue-entered-expression]
 == Entered Expression
 
 Called when the cue’s track or phrase trigger is enabled, and the first player moves inside the cue (in other words, the playback position of at least one player that has the cue’s track loaded--or that is playing a phrase matched by the cue's phrase trigger--is within the beat range that defines the cue).
@@ -18,7 +18,7 @@ There can be multiple players inside the cue at any given moment, but this expre
 
 If the track or phrase trigger is disabled, no players will be considered to be inside any of its cues.
 
-[[cue-started-on-beat-expression]]
+[#cue-started-on-beat-expression]
 == Started On-Beat Expression
 
 Called when the first player that is playing the track or phrase moves into the cue, as long as it does so right at the beginning of the cue, and hits the start of the first beat that defines the cue.

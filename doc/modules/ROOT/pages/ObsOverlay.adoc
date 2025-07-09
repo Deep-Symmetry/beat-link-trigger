@@ -1,171 +1,87 @@
 = OBS Overlays for Twitch Streaming
 include::partial$PagePreamble.adoc[]
 
-For some time now people have been using Beat Link Trigger to add fun
-elements to mixes streamed on Twitch by creatively screen-grabbing
-parts of the <<Players.adoc#,Player Status window>> (and the
-<<Players.adoc#waveform-windows,large waveform windows>> feature was
-added to support that). But for even longer, there has been a request
-to enable custom overlays based on data from Beat Link, and this is
-finally possible.
+For some time now people have been using Beat Link Trigger to add fun elements to mixes streamed on Twitch by creatively screen-grabbing parts of the xref:Players.adoc[Player Status window] (and the xref:Players.adoc#waveform-windows[large waveform windows] feature was added to support that).
+But for even longer, there has been a request to enable custom overlays based on data from Beat Link, and this is finally possible.
 
-By opening menu:Network[OBS Overlay Web Server] you can configure and
-launch an embedded web server that renders an HTML template that can
-contain the content of your choice, arranged and styled however you
-like, to work with the Browser Plugin that is bundled with
-https://obsproject.com[OBS Studio].
+By opening menu:Network[OBS Overlay Web Server] you can configure and launch an embedded web server that renders an HTML template containing the content of your choice, arranged and styled however you like, to work with the Browser Plugin that is bundled with https://obsproject.com[OBS Studio].
 
 image:ObsOverlay.png[OBS Overlay Server Window,560,250]
 
-The **Server Port** spinner allows you to choose the port on which the
-web server will operate. You can pick any port that is not in use; the
-default of 17,081 is likely to work just fine. The **Run** checkbox
-starts and stops the server. Once it is running you can click **Open
-in Browser** to take a look at how the configured template renders the
-current player state, and to give you an easy way to copy the overlay
-URL from the browser address bar for pasting into OBS Studio.
+The **Server Port** spinner allows you to choose the port on which the web server will operate.
+You can pick any port that is not in use; the default of 17,081 is likely to work just fine.
+The **Run** checkbox starts and stops the server.
+Once it is running you can click **Open in Browser** to take a look at how the configured template renders the current player state, and to give you an easy way to copy the overlay URL from the browser address bar for pasting into OBS Studio.
 
-Beat Link Trigger ships with a default template that is served unless
-you specify your own templates folder, which you can do by clicking
-**Choose** on the **Templates Folder** row. It will allow you to
-navigate to and select any folder your system, as long as there is a
-readable `overlay.html` file in that folder. This file will be used as
-the template rendered by the overlay server. It can reference other
-templates in that folder using whatever names you give them, either by
-<<tag-extends,extending>> or <<tag-include,including>> them, as
-discussed below.
+Beat Link Trigger ships with a default template that is served unless you specify your own templates folder, which you can do by clicking **Choose** on the **Templates Folder** row.
+It will allow you to navigate to and select any folder your system, as long as there is a
+readable `overlay.html` file in that folder.
+This file will be used as the template rendered by the overlay server.
+It can reference other templates in that folder using whatever names you give them, either by <<tag-extends,extending>> or <<tag-include,including>> them, as discussed below.
 
-Once you have chosen a templates folder, that is stored in your
-preferences, and it will automatically be used the next time you run
-Beat Link Trigger (unless the folder no longer contains a readable
-`overlay.html`, in which case a warning will be displayed when you
-open this window, and the default template will be used again).
+Once you have chosen a templates folder, that choice is stored in your preferences, and it will automatically be used the next time you run Beat Link Trigger (unless the folder no longer contains a readable`overlay.html`, in which case a warning will be displayed when you open this window, and the default template will be used again).
 
-In designing your template, you are likely to want to use graphics,
-fonts, CSS, and possibly scripts and other resources. If these are
-already on the Internet, you can reference them using URLs in your
-template. But if you want to access them locally, you can gather them
-all into any folder, and configure that as a **Public Folder** for the
-overlay server by clicking the **Choose** button in that row, and
-navigating to and selecting that folder. Once you have done that, any
-file in that folder can be referenced from your template simply by
-using a URL of the format `/public/` followed by the filename. So for
-example if you have a file `logo.png` in your public folder, a
-template can use it by referencing the URL `/public/logo.png`.
+In designing your template, you are likely to want to use graphics, fonts, CSS, and possibly scripts and other resources.
+If these are already on the Internet, you can reference them using URLs in your
+template.
+But if you want to access them locally, you can gather them all into any folder, and configure that as a **Public Folder** for the overlay server by clicking the **Choose** button in that row, and navigating to and selecting that folder.
+Once you have done that, any file in that folder can be referenced from your template simply by using a URL of the format `/public/` followed by the filename.
+So for example if you have a file `logo.png` in your public folder, a template can use it by referencing the URL `/public/logo.png`.
 
-Just like the templates folder, your chosen public folder is stored in
-the preferences, and will be used on subsequent runs of Beat Link
-Trigger until you choose a different folder, or it can no longer be
-found.
+Just like the templates folder, your chosen public folder is stored in the preferences, and will be used on subsequent runs of Beat Link Trigger until you choose a different folder, or it can no longer be found.
 
-NOTE: Although you can set the same folder as your Templates Folder
-and Public Folder, this is not recommended, because it will expose
-your raw templates. In that configuration, accessing
-`/public/overlay.html` will serve the overlay template without
-performing any of the variable substitutions that add information
-about the tracks currently playing. Beat Link Trigger will let you set
-things up this way, but will warn you when you do.
+NOTE: Although you can set the same folder as your Templates Folder and Public Folder, this is not recommended, because it will expose your raw templates.
+In that configuration, accessing `/public/overlay.html` will serve the overlay template without performing any of the variable substitutions that add information about the tracks currently playing.
+Beat Link Trigger will let you set things up this way, but will warn you when you do.
 
 [#writing-template]
 == Writing Templates
 
-You can find the source for the latest version of the basic template
-that is built in to Beat Link Trigger
-https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/resources/beat_link_trigger/templates/overlay.html[on
-GitHub].
+You can find the source for the latest version of the basic template that is built in to Beat Link Trigger https://github.com/Deep-Symmetry/beat-link-trigger/blob/master/resources/beat_link_trigger/templates/overlay.html[on GitHub].
 
-Templates developed or modified by other users can be found on the
-https://github.com/Deep-Symmetry/beat-link-trigger/wiki[Wiki], and you
-can download them to use or modify using your favorite text editor.
-Overlay templates are HTML files that get processed by
-https://github.com/yogthos/Selmer#selmer[Selmer], so you can
-interpolate all kinds of information about the current tracks being
-played.
+Templates developed or modified by other users can be found on the https://github.com/Deep-Symmetry/beat-link-trigger/wiki[Wiki], and you can download them to use or modify using your favorite text editor.
+Overlay templates are HTML files that get processed by https://github.com/yogthos/Selmer#selmer[Selmer], so you can interpolate all kinds of information about the current tracks being played.
 
 [TIP]
 ====
-Don't worry too much about the details of the templating language,
-because it turns out that trying to render the whole page up front
-doesn't work well in the OBS browser plugin anyway. Configuring the
-page to refresh itself periodically, which would re-render the
-templates, was the original plan for this feature, but the OBS browser
-plugin does not use double-buffering, so that approach caused the
-overlay to flicker in a very unpleasant way. To get a nice-looking
-overlay that updates itself smoothly, write JavaScript code that
-periodically fetches the current player state as
-<<#json-parameters,JSON parameters>>, and then updates any changed
-elements using DOM manipulation by ID. That is how templates,
-including the built-in one, are working today.
+Don’t worry too much about the details of the templating language, because it turns out that trying to render the whole page up front doesn’t work well in the OBS browser plugin anyway.
+Configuring the page to refresh itself periodically, which would re-render the templates, was the original plan for this feature, but the OBS browser plugin does not use double-buffering, so that approach caused the overlay to flicker in a very unpleasant way.
+To get a nice-looking overlay that updates itself smoothly, write JavaScript code that
+periodically fetches the current player state as <<#json-parameters,JSON parameters>>, and then updates any changed elements using DOM manipulation by ID. That is how templates, including the built-in one, are working today.
 
-If you still want to have the original page contents render correctly,
-before the first JavaScript update changes them, you can learn how the
-Selmer templates work. (Or, if you are rendering the template in a
-context that does use double-buffering, or some other mechanism where
-you can refresh the entire page without flicker, using the template
-syntax directly with no JavaScript DOM updates will be a lot simpler.)
+If you still want to have the original page contents render correctly, before the first JavaScript update changes them, you can learn how the Selmer templates work.
+(Or, if you are rendering the template in a context that does use double-buffering, or some other mechanism where you can refresh the entire page without flicker, using the template syntax directly with no JavaScript DOM updates will be a lot simpler.)
 
-Either way, you will want to read the template language variable
-documentation, because that explains all the values available to you,
-whether you get them through Selmer or as JSON parameters.
+Either way, you will want to read the template language variable documentation, because that explains all the values available to you, whether you get them through Selmer or as JSON parameters.
 
-While these instructions cover most of the
-features that will be useful in the context of Beat Link Trigger, you
-can learn more about the basics of the templating language by looking
-at the
-https://docs.djangoproject.com/en/3.0/ref/templates/language/[Django
-documentation], but keep in mind some details are quite different in
-Selmer and Beat Link Trigger. You can also consult the
-https://github.com/yogthos/Selmer#selmer[Selmer] documentation for
-details about how its template language differs from Django, and to
-learn about filters and tags that didn't make the cut for explaining
-here, but that document is aimed at Clojure programmers adding Selmer
-to their projects, so it might be a little hard to follow.
+While these instructions cover most of the features that will be useful in the context of Beat Link Trigger, you can learn more about the basics of the templating language by looking at the https://docs.djangoproject.com/en/3.0/ref/templates/language/[Django documentation], but keep in mind some details are quite different in Selmer and Beat Link Trigger.
+You can also consult the https://github.com/yogthos/Selmer#selmer[Selmer] documentation for details about how its template language differs from Django, and to learn about filters and tags that didn't make the cut for explaining here, but that document is aimed at Clojure programmers adding Selmer to their projects, so it might be a little hard to follow.
 ====
 
 [#variables]
 == Variables
 
-Variables allow you to insert information from the current state of
-your players into the template.
+Variables allow you to insert information from the current state of your players into the template.
 
-Template variables look like this: `{{ variable }}`. When Selmer
-encounters a variable like this, it looks up the value of that
-variable, and inserts the value into the template in place of the
-variable. There are many variables available to you, which are
-described just below, and you can also examine their actual values for
-the current state of your players by clicking the **Inspect Template
-Parameters** button when the overlay server is running:
+Template variables look like this: `{{ variable }}`.
+When Selmer encounters a variable like this, it looks up the value of that variable, and inserts the value into the template in place of the variable.
+There are many variables available to you, which are described just below, and you can also examine their actual values for the current state of your players by clicking the **Inspect Template Parameters** button when the overlay server is running:
 
 image:ObsParams.png[OBS Overlay Template Parameters,530,890]
 
-Notice that the variables are grouped into a hierarchy. You specify
-the value you want by starting at the outer name, and separating names
-at each level with `.`, so at the moment captured by the above screen
-shot, if your template contained `{{ players.2.pitch-display }}` the
-value `- 3.40%` is what would appear in the overlay, showing the
-current pitch value displayed on Player 2.
+Notice that the variables are grouped into a hierarchy.
+You specify the value you want by starting at the outer name, and separating names at each level with `.`, so at the moment captured by the above screenshot, if your template contained `{{ players.2.pitch-display }}` the value `- 3.40%` is what would appear in the overlay, showing the current pitch value displayed on Player 2.
 
-You can expand sections of the parameter inspector by clicking on the
-kbd:[+] buttons, and collapse them by clicking on the kbd:[-] buttons,
-or simply double-click on those rows to toggle the expanded state.
+You can expand sections of the parameter inspector by clicking on the kbd:[+] buttons, and collapse them by clicking on the kbd:[-] buttons, or simply double-click on those rows to toggle the expanded state.
 
-Some variables may not be in the exact format that you want to display
-them, but you can use <<filters,Filters>> to reformat them in flexible
-ways. And other variables may not be something you want to display at
-all, but you can use them to control which sections of your template
-are displayed using <<tags,Tags>>.
+Some variables may not be in the exact format that you want to display them, but you can use <<filters,Filters>> to reformat them in flexible ways.
+And other variables may not be something you want to display at all, but you can use them to control which sections of your template are displayed using <<tags,Tags>>.
 
-TIP: You can start the overlay server even if Beat Link Trigger is not
-currently online with a DJ Link network. When you do that, it will
-serve simulated data for two players, with Gareth Emery’s _Concrete
-Angel_ loaded in player 1 and Lindsey Stirling’s _Transcendence_ in
-player 2, so you can work on your template design even when you don’t
-have actual player hardware handy. Even though those are the only two
-simulated tracks available, you can configure them to be in more or
-different players if your template design requires; ask for help on
-the
-https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
-stream] if you are interested in doing that.
+TIP: You can start the overlay server even if Beat Link Trigger is not currently online with a DJ Link network.
+When you do that, it will serve simulated data for two players, with Gareth Emery’s _Concrete Angel_ loaded in player 1 and Lindsey Stirling’s _Transcendence_ in player 2, so you can work on your template design even when you don’t have actual player hardware handy.
+Even though those are the only two simulated tracks available, you can configure them to be in more or different players if your template design requires; ask for help on
+the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
+channel] if you are interested in doing that.
 
 .Top Level Variables
 [cols="1l,4",options="header"]
@@ -174,20 +90,27 @@ stream] if you are interested in doing that.
 |Value
 
 |collections
-|Present when there are any computers or mobile devices running rekordbox on the network, this holds the device numbers assigned to each, and under each device number, the <<player-state,Player State>> of that rekordbox instance. Values are accessed like `{{ collections.17.name }}`.
+|Present when there are any computers or mobile devices running rekordbox on the network,this holds the device numbers assigned to each, and under each device number, the <<player-state,Player State>> of that rekordbox instance.
+Values are accessed like `{{ collections.17.name }}`.
 
 |master
-|Present if there is currently a Tempo Mater on the network, this holds the <<player-state,Player State>> of that player. Values are accessed like `{{ master.track.title }}`.
+|Present if there is currently a Tempo Mater on the network, this holds the <<player-state,Player State>> of that player.
+Values are accessed like `{{ master.track.title }}`.
 
 |mixers
-|Present if there are any DJM mixers (or an XDJ-XZ) on the network, this holds the device numbers of each mixer, and under each device number, the <<player-state,Player State>> of that mixer. Values are accessed like `{{ mixers.33.name }}`.
+|Present if there are any DJM mixers (or an XDJ-XZ) on the network, this holds the device numbers of each mixer, and under each device number, the <<player-state,Player State>> of that mixer.
+Values are accessed like `{{ mixers.33.name }}`.
 
 |players
-|Holds the device numbers of player on the network, and under each device number, the <<player-state,Player State>> of that player. Values are accessed like `{{ players.1.track.title }}`.
+|Holds the device numbers of player on the network, and under each device number, the <<player-state,Player State>> of that player.
+Values are accessed like `{{ players.1.track.title }}`.
 
 |===
 
-NOTE: Not all values will always be present. Some devices (like mixers and rekordbox) provide very little information, and even CDJs will only provide full details when a reordbox-analyzed track is loaded. Even then, most DJs do not fill in all details about tracks. When information is not available, an entry may be entirely missing, or it may simply have an empty value.
+NOTE: Not all values will always be present.
+Some devices (like mixers and rekordbox) provide very little information, and even CDJs will only provide full details when a rekordbox-analyzed track is loaded.
+Even then, many DJs do not fill in all details about tracks.
+When information is not available, an entry may be entirely missing, or it may simply have an empty value.
 
 [#player-state]
 === Player State
@@ -202,17 +125,24 @@ NOTE: Not all values will always be present. Some devices (like mixers and rekor
 |The IP address at which the player can be found on the network.
 
 |beat-number
-|The beat currently playing, if known. The first beat of the track is beat 1, and they increment steadily from there.
+|The beat currently playing, if known.
+The first beat of the track is beat 1, and they increment steadily from there.
 
 
 |beat-within-bar
-|Tracks progress through measures of the song. The first (down) beat of a measure has the value 1, then it grows to 4 before jumping back to 1 at the start of the next bar.
+|Tracks progress through measures of the song.
+The first beat of a measure (downbeat) has the value 1, then it grows to 4 before jumping back to 1 at the start of the next bar.
 
 |cue-countdown
-|Tracks how many beats remain until the next hot cue or memory point in the track. If there are no cues left in the track, or if the next one is more than 64 bars from now, this has the value `511`. If there is a cue coming up within 64 bars (256 beats), this will count down those beats, from the value 256 to 0, meaning we have reached the cue. As soon as the next beat arrives, it will start tracking the next hot cue or memory point.
+|Tracks how many beats remain until the next hot cue or memory point in the track.
+If there are no cues left in the track, or if the next one is more than 64 bars from now, this has the value `511`.
+If there is a cue coming up within 64 bars (256 beats), this will count down those beats, from the value 256 to 0, meaning we have reached the cue.
+As soon as the next beat arrives, it will start tracking the next hot cue or memory point.
 
 |cue-countdown-display
-|This interprets the value of the `cue-countdown` reported by the player, showing how it appears on the player display. The value `511` is displayed as “`--.-`” (meaning “no information”), while values representing a countdown show two digits of bars, a decimal point, and the number of beats (1 through 4). So it starts at “`63.4`” at the furthest possible distance, then counts down to “`00.1`” on the final beat before the cue, and “`00.0`” when it is reached.
+|This interprets the value of the `cue-countdown` reported by the player, showing how it appears on the player display.
+The value `511` is displayed as “`--.-`” (meaning “no information”), while values representing a countdown show two digits of bars, a decimal point, and the number of beats (1 through 4).
+So it starts at “`63.4`” at the furthest possible distance, then counts down to “`00.1`” on the final beat before the cue, and “`00.0`” when it is reached.
 
 |firmware-version
 |Reports the version of the firmware running the player.
@@ -233,7 +163,8 @@ NOTE: Not all values will always be present. Some devices (like mixers and rekor
 |Indicates whether the player is repeating a loop.
 
 |is-on-air
-|Indicates that the player is attached to a live mixer channel (one that is currently audible in the mix). This works only with DJM mixers, and when properly configured.
+|Indicates that the player is attached to a live mixer channel (one that is currently audible in the mix).
+This works only with DJM mixers, and when properly configured (or if you are using an xref:Integration_XoneOnAir.adoc[integration example that adds the feature to another mixer]).
 
 |is-paused
 |Indicates that the player is waiting for the DJ to start playback.
@@ -275,25 +206,34 @@ p
 |The channel number assigned to the player.
 
 |pitch
-|The current playback pitch adjustment. Zero means normal speed, 100 means double speed (100% faster), -100 means slowed to a stop. This is a floating point value, so you will probably want to <<filter-double-format,format it>>.
+|The current playback pitch adjustment.
+Zero means normal speed, 100 means double speed (100% faster), -100 means slowed to a stop.
+This is a floating point value, so you will probably want to <<filter-double-format,format it>>.
 
 |pitch-display
-|Reflects the way the current `pitch` value is displayed on the player: a `+` or `-` sign followed by a formatted percentage, with 1 or 2 digits after the decimal point. (Normal speed is shown without a sign, as “0.00%”.)
+|Reflects the way the current `pitch` value is displayed on the player: a `+` or `-` sign followed by a formatted percentage, with 1 or 2 digits after the decimal point.
+(Normal speed is shown without a sign, as “0.00%”.)
 
 |pitch-multiplier
-|A convenient way to relate the playback pitch to track tempo. Normal speed is 1.0, and multiplying this value by `track-bpm` is how `tempo` is calculated.
+|A convenient way to relate the playback pitch to track tempo.
+Normal speed is 1.0, and multiplying this value by `track-bpm` is how `tempo` is calculated.
 
 |tempo
-|The current effective tempo of the track: the natural track tempo adjusted by the current playback pitch. Can be calculated by multiplying `track-bpm` and `pitch-multiplier`.
+|The current effective tempo of the track: the natural track tempo adjusted by the current playback pitch.
+Can be calculated by multiplying `track-bpm` and `pitch-multiplier`.
 
 |time-played
-|How much time of the track has been played. (This reflects distance into the track when played at normal speed; it will move slower or faster than real time if the playback pitch has been adjusted.) This is a <<time-value,Time Value>> with multiple parts used like `{{ master.time-played.minutes }}` or `{{ players.3.time-played.display }}`.
+|How much time of the track has been played.
+(This reflects distance into the track when played at normal speed; it will move slower or faster than real time if the playback pitch has been adjusted.)
+This is a <<time-value,Time Value>> with multiple parts used like `{{ master.time-played.minutes }}` or `{{ players.3.time-played.display }}`.
 
 |time-remaining
-|How much time of the track is left to play. (This reflects how long it would take when played at normal speed; it will move slower or faster than real time if the playback pitch has been adjusted.) This is a <<time-value,Time Value>> with multiple parts used like `{{ master.time-remaining.raw-milliseconds }}` or `{{ players.2.time-played.frames }}`.
+|How much time of the track is left to play.
+(This reflects how long it would take when played at normal speed; it will move slower or faster than real time if the playback pitch has been adjusted.)
+This is a <<time-value,Time Value>> with multiple parts used like `{{ master.time-remaining.raw-milliseconds }}` or `{{ players.2.time-played.frames }}`.
 
 |track
-|Another multi-part value, holding <<track-details,Track Details>> about the currently loaded rekordbox track.
+|Another multipart value, holding <<track-details,Track Details>> about the currently loaded rekordbox track.
 
 |track-bpm
 |The natural tempo of the current section of the track; this is how many beats per minute would be heard when played at normal speed.
@@ -320,7 +260,8 @@ p
 |The full time details as displayed on a player, formatted as mm:ss:ff.f (`minutes`, `seconds`, `frames`, and `frame-tenths`).
 
 |frame-tenths
-|The current half-frame being played. (There are 75 frames played per second, and the players track position by half-frame, so this alternates between the values `0` and `5`.)
+|The current half-frame being played.
+(There are 75 frames played per second, and the players track position by half-frame, so this alternates between the values `0` and `5`.)
 
 |frames
 |How many frames have been played (or remain) in the current second, ranges from `0` to `74`.
@@ -329,7 +270,9 @@ p
 |How many minutes have been played (or remain).
 
 |raw-milliseconds
-|This is the value that is used to compute all the others. It starts at zero at the beginning of the track, and counts up by a thousand for each second played. (For remaining time, it counts down from the length of the track to zero.)
+|This is the playback position value that is used to compute all the others.
+It starts at zero at the beginning of the track, and counts up by a thousand for each second played.
+(For remaining time, it counts down from the length of the track to zero.)
 
 |seconds
 |How many seconds have been played (or remain) in the current minute, ranges from `0` to `59`.
@@ -411,126 +354,106 @@ p
 
 You can change the way variables are displayed by using filters.
 
-Template filters look like this: `{{ master.track.title|lower }}`. Use
-a vertical bar (`|`) between a value and the filter you want to apply
-to it. This example displays the value of the `master.track.title`
-variable modified by the <<filter-lower,`lower` filter>>, which
-converts text to lower-case.
+Template filters look like this: `{{ master.track.title|lower }}`.
+Use a vertical bar (`|`) between a value and the filter you want to apply
+to it.
+This example displays the value of the `master.track.title` variable modified by the <<filter-lower,`lower` filter>>, which converts text to lower-case.
 
-Some filters take arguments that adjust their behavior. Use a colon
-(`:`) to introduce a filter argument. The
-<<filter-abbreviate,`abbreviate` filter>> makes sure a value fits in a
-maximum number of characters. Suppose the master player is playing the
-Skrillex track _With You, Friends (Long Drive)_. We can make sure it
-fits in twenty characters in our template like so:
+Some filters take arguments that adjust their behavior. Use a colon (`:`) to introduce a filter argument.
+The <<filter-abbreviate,`abbreviate` filter>> makes sure a value fits in a maximum number of characters.
+Suppose the master player is playing the Skrillex track _With You, Friends (Long Drive)_.
+We can make sure it fits in twenty characters in our template like so:
 
     {{ master.track.title|abbreviate:20 }}
 
-This would insert `With You, Friends...` into the template.
+This would insert “With You, Friends...” into the template.
 
-Filters can take multiple arguments, in which case you will have
-multiple colons in between them.
+Filters can take multiple arguments, in which case you will have multiple colons in between them.
 
-Filters can also be “chained”: you can apply another filter to the
-result of the previous one. Just add another `|` and type the next
-filter. So, with the same track playing, we could write:
+Filters can also be “chained”: you can apply another filter to the result of the previous one.
+Just add another `|` and type the next filter.
+So, with the same track playing, we could write:
 
     {{ master.track.title|lower|abbreviate:20 }}
 
-And this would insert `with you, friends...` into the template.
+And this would insert “with you, friends...” into the template.
 
 TIP: If your filter argument is a string, and it has any spaces in it,
-you need to quote it. See the <<filter-default,`default` filter>> for
-an example.
+you need to quote it.
+See the <<filter-default,`default` filter>> for an example.
 
-Here are the filters you are most likely fo find useful. The full list
-can be found in the
-https://github.com/yogthos/Selmer#built-in-filters-1[Selmer
+Here are the filters you are most likely fo find useful.
+The full list
+can be found in the https://github.com/yogthos/Selmer#built-in-filters-1[Selmer
 documentation].
 
 [#filter-abbreviate]
 === abbreviate
 
-Abbreviate the input string to given width if it exceeds a maxium
-width. If only a maximum width is given, abbreviated and maximum width
-are the same. The first parameter is the maximum width, the optional
-second parameter the abbreviated width.
+Abbreviate the input string to given width if it exceeds a maximum width.
+If only a maximum width is given, abbreviated and maximum width are the same.
+The first parameter is the maximum width, the optional second parameter the abbreviated width.
 
-You can control where the abbreviation happens by putting an
-`abbr-left`, `abbr-middle`, or `abbr-right` filter before the
-`abbreviate` filter. You can also use something other than `...` as
-the abbreviation indicator by putting and `abbr-ellipsis` filter with
-an argument containing the indicator you want to use in front of the
-`abbreviate` filter. These special `abbr-` filters can only be used
-just before an `abbreviate` filter.
+You can control where the abbreviation happens by putting an `abbr-left`, `abbr-middle`, or `abbr-right` filter before the `abbreviate` filter.
+You can also use something other than `...` as the abbreviation indicator by putting an `abbr-ellipsis` filter with an argument containing the indicator you want to use in front of the `abbreviate` filter.
+These special `abbr-` filters can only be used just before an `abbreviate` filter.
 
 [#filter-add]
 === add
 
-Adds the value and all the filter's arguments together. If they are
-all numbers, calculates their sums. If any is a non-numeric string,
-concatenates the arguments. There are also `multiply` and `divide`
-filters which take only a single argument, and perform the
-corresponding arithmetic operation on the value (they only work with
-numbers).
+Adds the value and all the filter's arguments together.
+If they are all numbers, calculates their sums.
+If any is a non-numeric string, concatenates the arguments.
+There are also `multiply` and `divide` filters which take only a single argument, and perform the corresponding arithmetic operation on the value (they only work with numbers).
 
 [#filter-count]
 === count, count-is
 
-`count` counts the letters in a string, or the number of elements in a
-collection (such as the players). `count-is` checks whether that count
-matches its argument. You can use it with the <<tag-if,`if` tag>> to
-conditionally display content if there are a certain number of players
-on the network, for example:
+`count` counts the letters in a string, or the number of elements in a collection (such as the players).
+`count-is` checks whether that count matches its argument.
+You can use it with the <<tag-if,`if` tag>> to conditionally display content if there are a certain number of players on the network, for example:
 
-```html
+[source,html]
+----
 {% if players|count-is:4 %}
 <p>All Players are in use!</p>
 {% endif %}
-```
+----
 
 [#filter-default]
 === default
 
-Allows you to specify a value to display when a variable is empty or
-missing. Normally, in such situations the variable just disappears
-from the template (it is replaced by an empty string). If there is no
-track loaded on player 2, this expression will result in the string
+Allows you to specify a value to display when a variable is empty or missing.
+Normally, in such situations the variable just disappears from the template (it is replaced by an empty string).
+If there is no track loaded on player 2, this expression will result in the string
 `No track`:
 
     {{ players.2.track.title|default:"No track" }}
 
-Notice that we had to quote the filter's argument because our value
-had a space in it.
+Notice that we had to quote the filter's argument because our value had a space in it.
 
 [#filter-double-format]
 === double-format
 
-Rounds a number to a specified number of decimal places. This is
-useful when working with pitch values, since we usually only want two
-places after the decimal point:
+Rounds a number to a specified number of decimal places.
+This is useful when working with pitch values, since we usually only want two places after the decimal point:
 
     {{ master.pitch|double-format:2 }}
 
-There is also a `round` filter which rounds all the way to the nearest
-integer, and `number-format` which lets you use a
-https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Formatter.html#syntax[Java
-format string] to get full control of the way you format the number,
-even specifying an ISO-639 two-letter locale specifier as its second
-argument.
+There is also a `round` filter which rounds all the way to the nearest integer, and `number-format` which lets you use a https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Formatter.html#syntax[Java format string] to get full control of the way you format the number, even specifying an https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes[ISO-639 two-letter locale specifier] as its second argument.
 
 [#filter-empty]
 === empty?, not-empty
 
-Check whether the specified value is empty or not (both filters return
-`true` or `false`). These are again useful combined with the
-<<tag-if,`if` tag>> to conditionally render content:
+Check whether the specified value is empty or not (both filters return `true` or `false`).
+These are again useful combined with the <<tag-if,`if` tag>> to conditionally render content:
 
-```html
+[source,html]
+----
 {% if players|empty? %}
 <p>No Players Found!</p>
 {% endif %}
-```
+----
 
 [#filter-lower]
 === lower
@@ -540,38 +463,30 @@ Convert a value to lower-case.
 [#filter-upper]
 === upper
 
-Convert a value to upper-case. (There are also two variants:
-`capitalize` converts only the first character to upper-case, while
-`title` converts the first letter of each word to upper-case.)
+Convert a value to upper-case.
+(There are also two variants: `capitalize` converts only the first character to upper-case, while `title` converts the first letter of each word to upper-case.)
 
 [#filter-replace]
 === replace
 
-Takes two string arguments, and replaces any instances of the first
-string found in the value with the second string.
+Takes two string arguments, and replaces any instances of the first string found in the value with the second string.
 
 [#filter-sort]
 === sort
 
-Sorts the elements of the value. You will generally want to apply this
-filter when you are <<tag-for,looping>> over the values in `players`
-because they are otherwise not going to necessarily be in numerical
+Sorts the elements of the value.
+You will generally want to apply this filter when you are <<tag-for,looping>> over the values in `players` because they are otherwise not going to necessarily be in numerical
 order.
 
 
 [#tags]
 == Tags
 
-Tags allow you to get fairly sophisticated with your templates,
-supporting things like looping and conditionals. There are two
-fundamental variants: simple, inline tags like `include` or `extends`,
-which exist on their own, and more complex tags which affect text in
-between them (and may include intermediate tags), like `if`, `else`,
-and `endif`.
+Tags allow you to get fairly sophisticated with your templates, supporting things like looping and conditionals.
+There are two fundamental variants: simple, inline tags like `include` or `extends`, which exist on their own, and more complex tags which affect text in between them (and may include intermediate tags), like `if`, `else`, and `endif`.
 
-Here are the tags you are most likely fo find useful. The full list
-can be found in the
-https://github.com/yogthos/Selmer#built-in-tags-1[Selmer
+Here are the tags you are most likely fo find useful.
+The full list can be found in the https://github.com/yogthos/Selmer#built-in-tags-1[Selmer
 documentation].
 
 [#tag-if]
@@ -585,52 +500,35 @@ Conditionally renders the body only if the argument is true.
     <img src="/public/off-air.png">
     {% endif %}
 
-You can reverse the meaning of the conditional argument by preceding
-it with the `not` operator, or combine multiple conditional arguments
-with the `all` or `any` operators. You can also perform numeric
-comparisons using the `=`, `<`, `>`, `\<=`, and `>=` operators, or
-string comparison using `=`.
+You can reverse the meaning of the conditional argument by preceding it with the `not` operator, or combine multiple conditional arguments with the `all` or `any` operators.
+You can also perform numeric comparisons using the `=`, `<`, `>`, `\<=`, and `>=` operators, or string comparison using `=`.
 
     {% if players|count < 4 %}Another player can be connected!{% endif %}
 
-(Notice that the above example shows that <<filters,filters>> can be
-applied to the conditions.)
+(Notice that the above example shows that <<filters,filters>> can be applied to the conditions.)
 
-In addition to the `if`, `else` and `endif` tags, you can have as many
-`elif` tags as you need between the `else` and `endif`, meaning “else
-if”. For more examples, see the
-https://github.com/yogthos/Selmer#if[Selmer documentation].
+In addition to the `if`, `else` and `endif` tags, you can have as many `elif` tags as you need between the `else` and `endif`, meaning “else if”.
+For more examples, see the https://github.com/yogthos/Selmer#if[Selmer documentation].
 
 [#tag-for]
 === for
 
-Loops over each item in an array or map, making the item available in
-a variable of your choice inside the loop. Beat Link Trigger uses
-nested maps rather than arrays for its template parameters, and you
-can loop over entries in the map assigning the key and value of each
-entry to separate variables:
+Loops over each item in an array or map, making the item available in a variable of your choice inside the loop.
+Beat Link Trigger uses nested maps rather than arrays for its template parameters, and you can loop over entries in the map assigning the key and value of each entry to separate variables:
 
     {% for number, player in players|sort %}
     <p>{{ number }}: {{ player.track.title }}--{{player.track.artist }}</p>
     {% endfor %}
 
-The above example loops over all the players that are found on the
-network. Each time through the loop, `number` is set to the channel
-number of the player and `player` is set to the map of parameters
-describing the state of that player, so the loop outputs a paragraph
-for each player, showing the channel number, a colon, the title of the
-track being played on that player, and the artist that recorded it.
+The above example loops over all the players that are found on the network.
+Each time through the loop, `number` is set to the channel number of the player and `player` is set to the map of parameters describing the state of that player.
+So the loop outputs a paragraph for each player, showing the channel number, a colon, the title of the track being played on that player, and the artist that recorded it.
 
-Notice that the body of the loop is ended by an `endfor` tag, and that
-we were able to use the `sort` filter on the `players` map to make
-sure we got them in order of increasing channel number.
+Notice that the body of the loop is ended by an `endfor` tag, and that we were able to use the `sort` filter on the `players` map to make sure we got them in order of increasing channel number.
 
-After the `endfor` tag, the `number` and `player` variables introduced
-by the loop go away.
+After the `endfor` tag, the `number` and `player` variables introduced by the loop go away.
 
-You can also place an `empty` tag between `for` and `endfor`, and the
-content within that section will be rendered if the variable you were
-trying to loop over had no values:
+You can also place an `empty` tag between `for` and `endfor`, and the content within that section will be rendered if the variable you were trying to loop over had no values:
 
     {% for number, player in players|sort %}
     <p>{{ number }}: {{ player.track.title }}--{{ player.track.artist }}</p>
@@ -638,9 +536,7 @@ trying to loop over had no values:
     <p>No players found!</p>
     {% endfor %}
 
-In addition to the variables you requested, the `for` tag always adds
-several others that allow you to respond to or display additional
-information about the looping process:
+In addition to the variables you requested, the `for` tag always adds several others that allow you to respond to or display additional information about the looping process:
 
 .Special Loop Variables
 [cols="3l,7",options="header"]
@@ -658,7 +554,7 @@ information about the looping process:
 |Starts at `forloop.length` and counts down to 1 for each iteration of the loop.
 
 |forloop.revcounter0
-|Starts at `forloop.length`−1 and counts down to 0 for each iteration of the loop.
+|Starts at `forloop.length`–1 and counts down to 0 for each iteration of the loop.
 
 |forloop.first
 |Is `true` if this is the first iteration of the loop.
@@ -678,10 +574,7 @@ information about the looping process:
 === cycle
 
 Picks the next value from a list of values each time through a loop.
-Here is an example of this tag combined with the <<tag-for,`for` tag>>
-to create a list item for the player number and track title of each
-player found on the network, and alternating the CSS classes of each
-between `blue` and `white`:
+Here is an example of this tag combined with the <<tag-for,`for` tag>> to create a list item for the player number and track title of each player found on the network, and alternating the CSS classes of each between `blue` and `white`:
 
     <ul>
     {% for number, player in players|sort %}
@@ -701,196 +594,127 @@ Replaces itself with the contents of the referenced template.
 [#tag-block]
 === block
 
-Specifies a block of content that can be overwritten using
-https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritance[template
-inheritance].
+Specifies a block of content that can be overwritten using https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritance[template inheritance].
 
     {% block track-information %}This will be replaced.{% endblock %}
 
 [#tag-extends]
 === extends
 
-This tag is used to reference a parent template, which provides the
-outer structure that gets rendered. The <<tag-block,blocks>> in the
-parent are recursively overridden by the blocks from child templates,
-using
-https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritance[template
-inheritance].
+This tag is used to reference a parent template, which provides the outer structure that gets rendered.
+The <<tag-block,blocks>> in the parent are recursively overridden by the blocks from child templates, using https://docs.djangoproject.com/en/3.0/ref/templates/language/#template-inheritance[template inheritance].
 
 
 
 [#json-parameters]
 == JSON Parameters
 
-As noted above, it turns out that using elaborate template expressions
-to render custom and conditional content doesn't make a lot of sense
-in the context of the OBS browser plugin, because of flickering when
-you try to re-render the whole page to get updated values. So a better
-approach, as shown by the built-in template, is to simply render the
-page once using a simple template, and assign IDs to the elements that
-will change over time, so you can use JavaScript code to periodically
-poll the BLT overlay server for the current player state, and update
-the page accordingly.
+As noted above, it turns out that using elaborate template expressions to render custom and conditional content doesn’t make a lot of sense in the context of the OBS browser plugin, because of flickering when you try to re-render the whole page to get updated values.
+So a better approach, as shown by the built-in template, is to simply render the page once using a simple template, and assign IDs to the elements that will change over time, so you can use JavaScript code to periodically poll the BLT overlay server for the current player state, and update the page accordingly.
 
-In order to support this approach, whenever your page requests the URL
-`/params.json`, BLT sends a JSON response containing all the current
-template parameters. You can set up a timeout function to retrieve
-them at whatever frame rate you would like to update your overlay,
-and your code can process the results and render itself as desired.
+In order to support this approach, whenever your page requests the URL `/params.json`, BLT sends a JSON response containing all the current template parameters.
+You can set up a timeout function to retrieve them at whatever frame rate you would like to update your overlay, and your code can process the results and render itself as desired.
 
-The content and meaning of the JSON response is detailed in the
-<<#variables,Variables>> section above, but ignore the discussion of
-how to use Selmer syntax to navigate the variables; you will be using
-normal JavaScript syntax once you have parsed the JSON. You can see
-the exact details of the current JSON value being returned by using
-the **Open in Browser** button in the OBS Overlay Server window, and
-then adding `/params.json` at the end of your browser's URL bar. The
-**Inspect Template Parameters** button also offers a nice hierarchical
-way to explore them.
+The content and meaning of the JSON response is detailed in the <<#variables,Variables>> section above, but ignore the discussion of how to use Selmer syntax to navigate the variables; you will be using normal JavaScript syntax once you have parsed the JSON.
+You can see the exact details of the current JSON value being returned by using the **Open in Browser** button in the OBS Overlay Server window, and then adding `/params.json` at the end of your browser's URL bar.
+The **Inspect Template Parameters** button also offers a nice hierarchical way to explore them.
 
 
 [#graphics-resources]
 == Graphics Resources
 
-In addition to the template itself, there are a variety of URLs you
-can use with `<img>` tags in your template (or from your JavaScript
-update code) to display things like the album artwork or track
-waveforms associated with a player.
+In addition to the template itself, there are a variety of URLs you can use with `<img>` tags in your template (or from your JavaScript update code) to display things like the album artwork or track waveforms associated with a player.
 
 === Album Art
 
-You can look up the album art for the track loaded in a particular
-player using a URL like `/art/1` (replace the `1` with another number
-to get the art for the player on a different channel). If there is
-artwork, this will return an 80x80 pixel JPEG image. If there is no
-art, or no track loaded, it will return an 80x80 transparent PNG
-image.
+You can look up the album art for the track loaded in a particular player using a URL like `/art/1` (replace the `1` with another number to get the art for the player on a different channel).
+If there is artwork, this will return an 80x80 pixel JPEG image. If there is no art, or no track loaded, it will return an 80x80 transparent PNG image.
 
 [TIP]
 ====
-If you are using a <<tag-for,for loop>> to display your players, you
-can use template substitution to set up your URL:
+If you are using a <<tag-for,for loop>> to display your players, you can use template substitution to set up your URL:
 
     <img src="/art/{{ number }}" width="80" height="80">
 ====
 
-If you would like to display more information about why there is no
-artwork, the way Beat Link Trigger does, you can add a query string to
-the request: `/art/3?icons=true`. With `icons` set to `true`, when the
-art is missing, you will receive a PNG image that describes why. If
-there is no track loaded, it will read "No Track". Otherwise, it will
-be an icon describing where the track was loaded from: USB, SD, CD
-Digital Audio, CD Data, or rekordbox.
+If you would like to display more information about why there is no artwork, the way Beat Link Trigger does, you can add a query string to the request: `/art/3?icons=true`.
+With `icons` set to `true`, when the art is missing, you will receive a PNG image that describes why.
+If there is no track loaded, it will read "No Track".
+Otherwise, it will be an icon describing where the track was loaded from: USB, SD, CD Digital Audio, CD Data, or rekordbox.
 
-NOTE: The missing-artwork icons returned are larger than 80x80 pixels
-so they can be displayed in higher resolution on high-DPI displays, so
-you should be sure to render your artwork at a fixed width and height
-of 80 pixels using the HTML or CSS of your template, so the layout
-doesn't change depending on whether artwork is present.
+NOTE: The missing-artwork icons returned are larger than 80x80 pixels so they can be displayed in higher resolution on high-DPI displays, so you should be sure to render your artwork at a fixed width and height of 80 pixels using the HTML or CSS of your template, so the layout doesn't change depending on whether artwork is present.
 
 === Waveform Previews
 
-You can access the whole-waveform preview (as is displayed at the
-bottom of a CDJ screen) for the track loaded on a particular player
-using a URL like `/wave-preview/2`. If you request it that way, it
-will be rendered at a default width and height, but you can specify
-the size you want using query parameters:
+You can access the whole-waveform preview (as is displayed at the bottom of a CDJ screen) for the track loaded on a particular player using a URL like `/wave-preview/2`.
+If you request it that way, it will be rendered at a default width and height, but you can specify the size you want using query parameters:
 
     <img src="/wave-preview/{{ number }}?width=500&height=100">
 
-This image will show the current playback position of the player as a
-bar moving along the image, and will have small triangles marking hot
-cues and memory points.
+This image will show the current playback position of the player as a bar moving along the image, and will have small triangles marking hot cues and memory points, and colored stripes indicating phrase boundaries.
 
-If there is no waveform available for the specified player, a
-transparent image will be returned.
+If there is no waveform available for the specified player, a transparent image will be returned.
 
-NOTE: The lack of waveform data will result in a smaller image being
-returned, so as with album art you should always make sure your image
-is rendered at a fixed size using the HTML or CSS of your template, to
-avoid layout changes when data availability changes.
+NOTE: The lack of waveform data will result in a smaller image being returned, so as with album art you should always make sure your image is rendered at a fixed size using the HTML or CSS of your template, to avoid layout changes when data availability changes.
 
 [#custom-colors]
 ==== Custom Background Colors
 
-If you are creating a lighter interface, you might want the background
-behind the waveform to be drawn in a color other than black. You can
-achieve that by adding a line like this to your
-<<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup
-Expression>>:
+If you are creating a lighter interface, you might want the background behind the waveform to be drawn in a color other than black.
+You can achieve that by adding a line like this to your xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression]:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (set-overlay-background-color (Color/white))
-```
+----
 
-That will set the background color to white, using the constant color
-value in the
-https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/java/awt/Color.html[`java.awt.Color`
-class]. You can use any of the other constants defined in that class,
-or construct your own color. Here is another way to get white:
+That will set the background color to white, using the constant color value in the https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/java/awt/Color.html[`java.awt.Color` class].
+You can use any of the other constants defined in that class, or construct your own color.
+Here is another way to get white:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (set-overlay-background-color (Color. 255 255 255))
-```
+----
 
-That sets the background color by constructing a color whose red,
-green, and blue components are all 255 (out of 255), so it is white.
+That sets the background color by constructing a color whose red, green, and blue components are all 255 (out of 255), so it is white.
 
-You can also use the constructor with four arguments to make your
-color partly (or completely) transparent by passing an alpha value
-from 0 (transparent) to 255 (opaque). This would use a
-fully-transparent background color (so the first three numbers don't
-matter):
+You can also use the constructor with four arguments to make your color partly (or completely) transparent by passing an alpha value from 0 (transparent) to 255 (opaque).
+The next example would use a fully-transparent background color (so the first three numbers don't matter):
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (set-overlay-background-color (Color. 0 0 0 0))
-```
+----
 
-If you change the background from black to white, you will almost
-certainly also want to change the color used to draw the playback
-position and tick marks (which is normally white, and so they will be
-invisible on your new background). You can do that with
-`set-overlay-indicator-color`. A black indicator color works well with
-a white background:
+If you change the background from black to white, you will almost certainly also want to change the color used to draw the playback position and tick marks (which is normally white, and so they will be invisible on your new background).
+You can do that with `set-overlay-indicator-color`.
+A black indicator color works well with a white background:
 
-```clojure
+[source,clojure,opts=novalidate]
+----
 (set-overlay-background-color (Color/white))
 (set-overlay-indicator-color (Color/black))
-```
+----
 
-You can even change the color used to draw down beats and active
-playback position markers (which are normally red) using
-`set-overlay-emphasis-color`.
+You can even change the color used to draw downbeats and active playback position markers (which are normally red) using `set-overlay-emphasis-color`.
 
 
 === Scrolling Waveform Details
 
-You can access the scrolling detailed waveform (as is displayed at the
-top of a CDJ screen) for the track loaded on a particular player using
-a URL like `/wave-detail/4`. If you request it that way, it will be
-rendered at a default width and height, but you can request a specific
-width and height using query parameters like with the waveform
-preview. You can also control the scale (zoom level) with which the
-waveform is rendered. The default scale is 4, meaning each column of
-the image is an average of four half-frames of audio. Setting scale to
-1 shows the full detail available, while larger values let you see
-more of the waveform at once.
+You can access the scrolling detailed waveform (as is displayed at the top of a CDJ screen) for the track loaded on a particular player using a URL like `/wave-detail/4`.
+If you request it that way, it will be rendered at a default width and height, but you can request a specific width and height using query parameters like with the waveform preview.
+You can also control the scale (zoom level) with which the waveform is rendered.
+The default scale is 4, meaning each column of the image is an average of four half-frames of audio.
+Setting scale to 1 shows the full detail available, while larger values let you see more of the waveform at once.
 
     <img src="/wave-detail/{{ number }}?width=800&scale=2">
 
-The image will show the current playback position of the player as a
-bar centered in the image, and the waveform will scroll as playback
-occurs. Hot cues and memory points will be drawn (including their
-labels and if they have been assigned), and loops will be visible.
+The image will show the current playback position of the player as a bar centered in the image, and the waveform will scroll as playback occurs.
+Hot cues, memory points, and phrase rectangles will be drawn (including their labels and if they have been assigned), and loops will be visible.
 
-If there is no waveform available for the specified player, a
-transparent image will be returned.
+If there is no waveform available for the specified player, a transparent image will be returned.
 
-NOTE: The lack of waveform data will result in a smaller image being
-returned, so as with album art you should always make sure your image
-is rendered at a fixed size using the HTML or CSS of your template, to
-avoid layout changes when data availability changes.
+NOTE: The lack of waveform data will result in a smaller image being returned, so as with album art you should always make sure your image is rendered at a fixed size using the HTML or CSS of your template, to avoid layout changes when data availability changes.
 
-As noted above, if you are creating an overlay with a light
-background, you might want to <<custom-colors,change the waveform
-background color>>.
+As noted above, if you are creating an overlay with a light background, you might want to <<custom-colors,change the waveform background color>>.

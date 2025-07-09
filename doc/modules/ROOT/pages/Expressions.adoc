@@ -45,7 +45,7 @@ TIP: There is an example of this sort of background communication in the xref:In
 Also, note that it is only sending two-way network communications that you really need to worry about. Sending MIDI messages and short one-way UDP messages (like OSC and some lighting controllers use) should be no problem without resorting to asynchronous code, and you will find examples of doing just that throughout this guide.
 
 
-[[editing-expressions]]
+[#editing-expressions]
 == Editing Expressions
 
 The expression you are first likely to want to use with low-level Triggers is the Enabled Filter, which is found in each trigger’s <<Triggers.adoc#context-menu,context menu>>.
@@ -91,7 +91,7 @@ And if you want to really get serious about learning Clojure and editing it in a
 ====
 
 
-[[editor-menus]]
+[#editor-menus]
 === The Editor Menus
 
 Beat Link Trigger now offers a menu bar inside the expression editor to access more powerful editing features.
@@ -134,7 +134,7 @@ windows, giving you access to this guide along with other helpful
 tools and information.
 
 
-[[shared-functions]]
+[#shared-functions]
 == Shared Functions
 
 Once you start writing more complex expressions, you may find yourself repeating common pieces of code over and over again in multiple expressions.

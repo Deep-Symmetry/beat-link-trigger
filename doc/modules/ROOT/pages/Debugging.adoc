@@ -1,7 +1,7 @@
 = Debugging and Sharing
 include::partial$PagePreamble.adoc[]
 
-[[contact-channels]]
+[#contact-channels]
 Beat Link Trigger offers a few mechanisms to help you understand how  your triggers are (or are not) working, and to save and restore versions of them, or share them with friends and colleagues (or on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream] or https://github.com/Deep-Symmetry/beat-link-trigger/wiki[project Wiki] to either get help from others, or share and show them off).
 image:HelpMenu.png[Help Menu,250,205,float=right]
 
@@ -9,7 +9,7 @@ Help resources can be found in the menu:Help[] menu, along with an embedded copy
 
 There’s no way for the author to know how many people are using the program, or where they are, unless they choose to contact him. Many people have (especially on the Zulip stream), but if you have  not, and would like to say hello and share how you are using Beat Link Trigger, it would be greatly appreciated! You can use menu:Help[Send User Greeting (email)] to make it easy, but it’s even better if you join Zulip.
 
-[[logs]]
+[#logs]
 == Logs
 
 When Beat Link Trigger is running it reports events to a log file. As  noted above, this includes full stack traces for compilation problems when you try to save an expression that isn’t quite right. If a problem occurs while trying to run your expression later, that will end up in the log too. So it can be a useful place to look when things are not working the way you expect.
@@ -39,7 +39,7 @@ Suddenly your logs will be growing steadily, filling with lines like these:
   track BPM: 126.0, effective BPM: 126.0, beat within bar: 1 master? false
 ----
 
-[[finding-older-logs]]
+[#finding-older-logs]
 === Finding Older Logs
 
 If you need to find log files for an older BLT session, you can usually find their log folders right next to the folder for your current session.
@@ -67,7 +67,7 @@ If you’re not on a Mac, but are on another Unix system, the `find` command may
 (You can find that out by running BLT again and noting the path name of its log folder.)
 On other operating systems, hopefully you can find a similar set of tools.
 
-[[reporting-issues]]
+[#reporting-issues]
 == Reporting Issues
 
 If you run into trouble, and it seems likely the problem is in Beat Link Trigger itself rather than one of your own expressions (or even if you want help with your expressions), the best place to start is by asking on the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip
@@ -85,7 +85,7 @@ In such cases https://blog.fastthread.io/2016/06/06/how-to-take-thread-dumps-7-o
 
 And if you do contact us directly, we will probably ask you to direct your question to the Zulip channel unless there is some pressing reason why you absolutely can’t.
 
-[[logging-thread-dumps]]
+[#logging-thread-dumps]
 [TIP]
 ====
 Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily.Add the following function to your <<Expressions.adoc#shared-functions,Shared Functions>>:
@@ -139,7 +139,7 @@ Assuming you installed `log-thread-dump` as a Shared Function as described <<log
 You will want to have set up this REPL connection, as well as opening the BLT logs folder, before doing the experiments that lead to the problem you are trying to debug, so that they will be ready and available even if the BLT user interface becomes unresponsive.
 ====
 
-[[wireshark]]
+[#wireshark]
 === Wireshark Captures
 
 If you are helping investigate an issue involving communication with the DJ Link gear (especially when new products are released), it will be necessary for you to include a packet capture of what was happening on the network when you saw the problem or tried to use the gear.
@@ -203,7 +203,7 @@ If you have discussed your issue in the Zulip community as described <<contact-c
 
 In any case, even if Deep Symmetry is unable to investigate your report immediately (since this is free software developed during our spare time), we very much appreciate you taking the effort to send it.
 
-[[inspecting]]
+[#inspecting]
 == Inspecting Locals and Globals
 
 In addition to logging values to the log file, you can get a glimpse at what your expressions are up to by opening an inspector window on the Expression Globals or a particular trigger’s Expression Locals.
