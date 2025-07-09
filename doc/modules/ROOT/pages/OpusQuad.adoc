@@ -3,9 +3,9 @@ include::partial$PagePreamble.adoc[]
 
 Even though the Opus Quad does not attempt to truly implement the Pro DJ Link protocol, it is now possible to use many Beat Link Trigger features with that hardware thanks to a lot of work by https://github.com/cprepos[@cprepos] and https://github.com/kyleawayan[Kyle Awayan].
 
-The key to getting useful results with the Opus Quad, since it is unable to send most of the metadata that BLT needs, is to create metadata archive files for any USBs that you want to use, and attach them to the appropriate USB slots in the <<Players.adoc#,Player Status window>>.
+The key to getting useful results with the Opus Quad, since it is unable to send most of the metadata that BLT needs, is to create metadata archive files for any USBs that you want to use, and attach them to the appropriate USB slots in the xref:Players.adoc[Player Status window].
 
-NOTE: We can't yet support running BLT and an Opus Quad with tracks loaded over Link from Rekordbox or Rekordbox Mobile.
+NOTE: We can’t yet support running BLT and an Opus Quad with tracks loaded over Link from Rekordbox or Rekordbox Mobile.
 We hope this can be solved someday, but it will require some additional technical breakthroughs.
 
 I’m frankly amazed that we can do this at all, but if you want to work with this hardware you need to understand that it is not going to be seamless or automatic the way working with Pro DJ Link hardware is; you have to do some prep work in advance, update that work as you add more tracks that you want to work with, and understand <<limitations,limitations>> and make choices about which tradeoffs you want to make.
@@ -33,19 +33,21 @@ That opens a new window where you can choose where to save the archive:
 image::ArchiveCreate.png[Create metadata archive,630,466]
 
 Navigate to where you would like to save it, choose a name for it, and click kbd:[Create Metadata Archive].
-The archive will be created, which may take a while, depending on how many tracks are in the USB.
+The archive will be created, which may take a while, depending on how many tracks are on the USB drive.
 A progress bar will allow you to see how the export is going, and cancel it if you change your mind:
 
 image::ArchiveProgress.png[Archive creation progress,412,252]
 
 Once you have archives created for all the USBs you want to use with your Opus Quad, you can proceed to the next step.
 
-TIP: You will need to update your metadata archives whenever you add or edit tracks on the USB. To do that, follow the same steps above, choose the existing archive that you want to update at the step where you are specifying where it should be saved, and respond **Yes** to the dialog that asks you if you want to replace the existing file.
+IMPORTANT: You will need to update your metadata archives whenever you add or edit tracks on the USB.
+To do that, follow the same steps above, choose the existing archive that you want to update at the step where you are specifying where it should be saved, and respond **Yes** to the dialog that asks you if you want to replace the existing file.
 
 
 == Attaching Metadata Archives
 
-Whenever you insert a USB into the Opus Quad, you need to attach the corresponding metadata archive for that slot number. To do that, use the gear popup menu corresponding to that slot in the <<Players.adoc#,Player Status window>> (this uses the same user interface elements that would be used to tell players to <<Players.adoc#loading-playing,load or play tracks>> with other hardware):
+Whenever you insert a USB into the Opus Quad, you need to attach the corresponding metadata archive for that slot number.
+To do that, use the gear popup menu corresponding to that slot in the xref:Players.adoc[Player Status window] (this uses the same user interface elements that would be used to tell players to xref:Players.adoc#loading-playing[load or play tracks] with other hardware):
 
 image:ArchiveAttach.png[Attach metadata archive,498,338]
 
@@ -54,15 +56,16 @@ Navigate to where you saved your metadata archives, choose the correct one, and 
 image::ArchiveAttach2.png[Choose metadata archive to attach,640,466]
 
 This will enable Beat Link Trigger features to operate when you play tracks from that USB.
-If you ever swap the USB in the slot, you will need to go through this process to switch to the correct archive for the new USB that you have inserted.
+If you ever swap out the USB in the Opus Quad’s slot, you will need to go through this process to switch to the correct archive for the new USB that you have inserted.
 If you have removed a USB and do not plan to insert a new one, choose menu:Remove Metadata Archive[] in the gear menu for that slot.
 
 TIP: Make sure you are using the gear menu for the correct slot that you are inserting or removing USBs in the Opus Quad, and that you choose correct and up-to-date metadata archives for those USBs, or track matching will not work correctly!
 And as noted <<usb-slot-limitations,below>> you are best limiting yourself to putting no more than one USB at a time into the Opus Quad.
 
+[#limitations]
 == Limitations
 
-There are some fundamental ways in which working with the Opus Quad can't be as good as working with a system designed to interoperate over Pro DJ Link.
+There are some fundamental ways in which working with the Opus Quad can’t be as good as working with a system designed to interoperate over Pro DJ Link.
 
 === Lack of Beat Packets
 
@@ -71,13 +74,13 @@ This means that BLT is can be up to 200 milliseconds ahead of or behind the actu
 This is the same problem faced during reverse play with players older than the CDJ-3000, but it is a problem even during normal play on the Opus Quad.
 
 IMPORTANT: This also means that Beat Expressions will never run with an Opus Quad, nor will Started On-Time expressions in show cues, all cues will always be considered to have started late.
-And if you are using Carabiner to sync to Ableton Link, only tempo can be synced, it is not possible to align beats or bars. We are <<potential-workaround,working on this>>.
+And if you are using Carabiner to sync to Ableton Link, only tempo can be synced, it is not possible to align beats or bars.We are <<potential-workaround,working on this>>.
 
 [#usb-slot-limitations]
 === USB Slot Limitations
 Unfortunately, the Opus Quad does not report the USB slot that a track was loaded from, so we have to infer that by comparing PSSI (phrase analysis) data between what was received through rekordbox lighting packets and what is in the Metadata Archive.
-We hope that tracks will not share identical PSSI data, but can’t guarantee that.
-For this reason, it is safest to only use a single USB in an Opus Quad while working with Beat Link Trigger.
+We hope that different tracks will not ever have identical PSSI data, but can’t guarantee that.
+For this reason, it is safest to only use a single USB at a time in an Opus Quad while working with Beat Link Trigger.
 
 [#id-drift]
 === ID Drift
@@ -96,7 +99,7 @@ To avoid that, connect the Opus Quad to your computer with a real Ethernet cable
 
 If you must also connect them via USB cable (for example, you want to use the USB audio interface in the Opus Quad), you will end up with multiple network paths for the Pro DJ Link packets, which is also a problem.
 So you will need to disable the USB network interface associated with the Opus Quad.
-On macOS you can do that by watching in the Network section of the System Settings, to see which interface activates and deactivates when you connect and disconnect the Opus Quad, and then using the *Make Inactive* context menu to disable that interface.
+On macOS, you can do that by watching in the Network section of the System Settings to see which interface activates and deactivates when you connect and disconnect the Opus Quad, and then using the *Make Inactive* context menu to disable that interface.
 On other operating systems you will need to perform the equivalent actions.
 
 [#potential-workaround]
@@ -105,7 +108,7 @@ On other operating systems you will need to perform the equivalent actions.
 As noted <<id-drift,above>>, the Opus Quad works with Device Library Plus, but Beat Link Trigger only knows how to parse classic Device Library databases.
 
 We think that by using the SQLite Device Library Plus database to reliably match track IDs to track metadata will allow us to go back to the normal BLT approach of posing as a CDJ, rather than rekordbox, and obtain high priority position packets from the Opus Quad.
-(Using the newer database is a requirement, because in this mode we no longer receive the rekordbox lighting packets which allow track-matching by PSSI data.)
+(Using the newer database is a requirement, because in this mode we no longer receive the rekordbox lighting packets which enable track matching through PSSI data.)
 This would allow us to follow the player position closely enough that we could fake the beat packets, and enable some important Beat Link Trigger features like beat expressions and beat/bar sync with Ableton Link.
 
 This is an area of active research, but is not far enough along to make it into the 8.0 release.
@@ -123,7 +126,7 @@ Please do not ask for help on this or discuss ideas about it in the project chat
 
 To tell BLT to use the Device Library Plus databases in your metadata exports, add a line like this to your Global Setup expression:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (.setDatabaseKey
  (org.deepsymmetry.beatlink.data.OpusProvider/getInstance)
