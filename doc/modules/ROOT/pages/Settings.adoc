@@ -1,9 +1,7 @@
 = Settings
 James Elliott <james@deepsymmetry.org>
 
-The Settings window allows you to customize elements of the user
-interface, as well as configuring some windows to open automatically
-when Beat Link Trigger goes online.
+The Settings window allows you to customize elements of the user interface, as well as configuring some windows to open automatically when Beat Link Trigger goes online.
 
 .Settings Window
 image::Settings.png[Settings Window,472,618]
@@ -41,10 +39,10 @@ Until you have installed and configured them, as described next, choosing this i
 ==== Configuring Custom Themes
 
 To keep the Beat Link Trigger application from growing any faster than it is, only the standard themes are packaged with it.
-You don't need to be limited by that, however, thanks to BLT's ability to load libraries at runtime.
+You don’t need to be limited by that, however, thanks to BLT’s ability to load libraries at runtime.
 For example, to use the IntelliJ Platform Themes shown lower on the https://www.formdev.com/flatlaf/themes/[FlatLaf Themes page], you could put code like this in your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>:
 
-[source,clojure]
+[source,clojure,opts=novalidate]
 ----
 (add-library '[com.formdev/flatlaf-intellij-themes "3.6"])
 (prefs/register-custom-theme true
@@ -79,7 +77,7 @@ The default is to draw Nexus 2000 style RGB waveforms, but you can now also choo
 .Player Status window showing three-band waveforms
 image::PlayerStatus3band.png[Player Status window showing three-band waveforms,600,832]
 
-You can also use the older monochrome blue waveforms (this was previously possible using a <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>, but it is now exposed in the Settings window).
+You can also use the older monochrome blue waveforms (this was previously possible using a xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression], but it is now exposed in the Settings window).
 
 If your preferred waveform style is not available for a track because rekordbox did not export it, then the best available waveform will be displayed instead.
 When tracks are imported into shows, the waveform style that is in effect at that time will determine how the track looks in the show.
@@ -91,23 +89,24 @@ The remainder of the Settings window allows you to configure additional things t
 [#player-status]
 === Player Status
 
-If you want the <<Players.adoc#,Player Status window>> to open automatically, check the box next to **Show Player Status?**
-This previously required adding code to the <<Expressions_TriggerGlobal.adoc#came-online-expression,Came Online Expression>>.
+If you want the xref:Players.adoc[Player Status window] to open automatically, check the box next to **Show Player Status?**
+This previously required adding code to the xref:Expressions_TriggerGlobal.adoc#came-online-expression[Came Online Expression].
 
 [#carabiner]
 === Carabiner (Ableton Link)
 
 If you automatically want to synchronize with Ableton Link once Beat Link Trigger comes online, choose an option other than **Off** in the menu:Carabiner Sync Mode[] menu.
-This will open the <<Link.adoc#,Carabiner Connection window>> and try to establish the mode you requested.
-See the mode descriptions in that window's description for details about what the choices mean.
+This will open the xref:Link.adoc[Carabiner Connection window] and try to establish the mode you requested.
+See the mode descriptions in that window’s description for details about what the choices mean.
 
-If you have chosen a compatible sync mode, and you want the Ableton Link session to be tied to the tempo and beats of the CDJs as soon as you go online, check the **Sync Ableton Link?** box. And if you want the sync to be performed at the level of entire measures, rather than individual beats, check the **Sync at bar level?** box.
+If you have chosen a compatible sync mode, and you want the Ableton Link session to be tied to the tempo and beats of the CDJs as soon as you go online, check the **Sync Ableton Link?** box.
+And if you want the sync to be performed at the level of entire measures, rather than individual beats, check the **Sync at bar level?** box.
 (All of these options made up the most complex Came Online expression example before the Settings window was added.)
 
 [#playlists]
 === Writing Playlists
 
-If you want to automatically start <<Debugging.adoc#writing-playlists,writing to a playlist file>> as soon as you go online, you first need to choose a folder where they can be written, using the **Choose** button.
+If you want to automatically start xref:Debugging.adoc#writing-playlists[writing to a playlist file] as soon as you go online, you first need to choose a folder where they can be written, using the **Choose** button.
 With that done, and text entered in the **Prefix** text box, you can check the **Write automatically?** box to tell BLT to always start writing a playlist when it goes online.
 
 If you want a single file to be used, with later runs appending to the same file, then check the **Append to existing file?** box.
@@ -119,5 +118,5 @@ In this state, if the playlist file already exists, a unique new filename will b
 [#obs-overlays]
 === OBS Overlays
 
-If you want the <<ObsOverlay.adoc#,OBS overlay server>> to automatically start once Beat Link Trigger comes online, check the box next to **Run web server?**
+If you want the xref:ObsOverlay.adoc[OBS overlay server] to automatically start once Beat Link Trigger comes online, check the box next to **Run web server?**
 (This also previously required Came Online expression code.)
