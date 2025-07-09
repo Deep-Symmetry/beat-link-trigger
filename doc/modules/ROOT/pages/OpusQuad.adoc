@@ -44,6 +44,7 @@ IMPORTANT: You will need to update your metadata archives whenever you add or ed
 To do that, follow the same steps above, choose the existing archive that you want to update at the step where you are specifying where it should be saved, and respond **Yes** to the dialog that asks you if you want to replace the existing file.
 
 
+[#attaching-metadata-archives]
 == Attaching Metadata Archives
 
 Whenever you insert a USB into the Opus Quad, you need to attach the corresponding metadata archive for that slot number.
