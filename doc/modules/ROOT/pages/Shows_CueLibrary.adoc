@@ -9,7 +9,8 @@ in any track by adding it to the Cue Library. To do that, choose
 menu:Add Cue to Library[] from the Cue
 <<Shows_Cues.adoc#cue-context-menu,context menu.>>
 
-[#cue-library-button] As soon as you have a cue in the show's
+[#cue-library-button]
+As soon as you have a cue in the show's
 library, a kbd:[Library ▾] button appears next to the kbd:[New Cue]
 button in any Cue Editor windows you have open for tracks in the show
 (and any existing cue rows also get new link buttons just below their
@@ -147,8 +148,8 @@ as a factory for building individualized cues.
 [#cue-builders]
 === Cue Builders
 
-Continuing the previous example, suppose our ”Red Wash“ cue uses a
-<<Expressions_ShowShared.adoc#,shared function>> we created to send an
+Continuing the previous example, suppose our “Red Wash” cue uses a
+xref:Expressions_ShowShared.adoc[shared function] we created to send an
 OSC message to our lighting software containing the name of a light
 group, and a DMX level. To save a lot of editing different expressions
 and comments to adjust that code for each cue we place, we can
@@ -224,7 +225,7 @@ it to the user's specifications. We update the comment to describe the
 specific wash that was requeste, then generate appropriate Started On
 Beat and Ended expressions for the cue. The modified value we return
 gets inserted into the Cues Editor. (For this example, we are assuming
-we have already created <<Expressions_ShowShared#,shared functions>>
+we have already created xref:Expressions_ShowShared.adoc[shared functions]
 named `run-red-wash` and `end-red-wash` for these expressions to use.)
 
 WARNING: When you manipulate cues being created with code in this way,
