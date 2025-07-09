@@ -6,7 +6,7 @@ It shows some ways you can use it, but as an open-ended environment, the possibi
 If you have questions or other approaches you’d like to share, please post to the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip channel].
 
 To keep page sizes manageable, this guide is split into several pages.
-It is worth reading through this whole guide once if you are new to Beat Link Trigger.
+It is worth at least skimming through this whole guide once if you are new to Beat Link Trigger.
 Once you know what you are looking for, you can also dive right into it by jumping to the page you want using the navigation menu on the left.
 
 TIP: You can also use the “Search the docs” box at the top of the window to search the entire user guide, not just what is on the current page.
@@ -59,11 +59,11 @@ The devices will only be able to communicate with you if they have compatible IP
 If you are not on a network with a DHCP server, for example, the players will assign themselves addresses of the form 169.254._x_._y_/16, so if none of your addresses match that pattern, you will not be able to communicate with them.
 
 While you work on making sure your network interfaces and cables are configured properly, Beat Link Trigger is continuing to watch for devices, so as soon as you get the issue sorted out, it will go online.
-And as noted above, if that isn't going to happen, you can click kbd:[Continue Offline] to work in an offline mode, or you can click kbd:[Quit] to give up and try again later, perhaps in a different setting.
+And as noted above, if that isn’t going to happen, you can click kbd:[Continue Offline] to work in an offline mode, or you can click kbd:[Quit] to give up and try again later, perhaps in a different setting.
 
 Once a device is found, or you choose to continue offline, the xref:Triggers.adoc[] window opens, in the same configuration that you left it the last time you used the program, and any xref:Shows.adoc[Show files] you had open will be reopened as well.
 
-TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use most BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed xref:OpusQuad.adoc[here],
+TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use some BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed xref:OpusQuad.adoc[here],
 
 [#command-line-arguments]
 === Command-Line Arguments
@@ -87,18 +87,18 @@ Please see https://github.com/Deep-Symmetry/beat-link-trigger for user guide.
 ----
 
 The `-o` or `--offline` option allows you to skip the attempt to find a DJ Link network, and go right into offline editing mode.
-You can connect later as described <<#connecting-later,below>> if desired.
+You can connect later as described <<connecting-later,below>> if desired.
 
 The `-s` or `--show` option can be combined with the path to a show file to tell BLT to open that show as well as any of the shows that were open when you last used it.
 You can use this option as many times as you like to open multiple new shows.
 
 If you don't want the shows that were open during the last session to be reopened, you can prevent that by supplying the `-S` or `--suppress` option.
-(This works whether or not you are listing shows that you do want opened.)
+(This works regardless of whether you are listing shows that you do want opened.)
 
 If there is a problem with your saved configuration that is preventing BLT from starting properly, you can use the `--reset` option along with a file path to tell BLT to write the current configuration to the specified file (whose name must end with `.blt`), and then start up with a blank configuration.
 You can either try to manually edit the exported configuration file to fix the problem (it is saved as https://github.com/edn-format/edn[EDN], a text format), extract expressions and elements you want to save, or reopen it unchanged later if there is a fix to BLT itself that solves the problem.
 
-Finally, if you want to start with a different configuration (which includes all your triggers, global expressions and shared functions, as well as window positions and set of open shows), you can use the `-c` or `&#8209;&#8209;config` option to specify the path to the exported configuration file you want to use.
+Finally, if you want to start with a different configuration (which includes all your triggers, global expressions and shared functions, as well as window positions and set of open shows), you can use the `-c` or `--config` option to specify the path to the exported configuration file you want to use.
 This will replace the current configuration, so if there is anything you want to preserve in that, be sure to do that with the `--reset` option, unless you have already <<Debugging.adoc#saving-and-loading,saved it from within BLT>>.
 
 [TIP]
@@ -107,11 +107,11 @@ If you are using the Mac application version of Beat Link Trigger, you can still
 
     Beat\ Link\ Trigger.app/Contents/MacOS/Beat\ Link\ Trigger --offline
 
-You can also use the macOS `open` command to achieve this without having to specify the path to and through the `.app` bundle, but this approach prevents any of the application's text output from appearing in the terminal:
+You can also use the macOS `open` command to achieve this without having to specify the path to and through the `.app` bundle, but this approach prevents any of the application’s text output from appearing in the terminal:
 
     open -a "Beat Link Trigger" --args --offline
 
-In Windows, you can pass command-line arguments by using the Command Prompt window to invoke `Beat Link Trigger.exe` as the command, adding any arguments you'd like after that.
+In Windows, you can pass command-line arguments by using the Command Prompt window to invoke `Beat Link Trigger.exe` as the command, adding any arguments you’d like after that.
 As with the macOS `open` command, however, you will not be able to see any output that BLT writes back to you.
 ====
 
@@ -134,11 +134,11 @@ It will generally try to do this for you automatically when it loses contact wit
 === Checking your Player Number
 
 image:CarabinerConnectionMenu.png[Ableton Link: Carabiner Connection menu,360,200,float=right]
-Once you have successfully taken Beat Link Trigger online, you can see what Player Number it is using by looking at the menu:Network[Online?]menu option without toggling it again.
+Once you have successfully taken Beat Link Trigger online, you can see what Player Number it is using by looking at the menu:Network[Online?] menu option without toggling it again.
 Whenever it is checked, the Player Number being used by Beat Link is shown there.
 
 Most of the time you will want to be using the self-assigned device number Player 7, as shown here, because that is compatible with big shows where there are four real players in use (or even six, if they are all CDJ-3000s).
-However, if you want to do things like letting an Ableton Link session become the Tempo Master and <<Link#full-sync,control the speed>> and beat sync of the players, or display metadata for CD and other non-rekordbox tracks, you will need to use a real player number in the range 1–4, which may require you to turn off one of the other players.
+However, if you want to do things like letting an Ableton Link session become the Tempo Master and xref:Link.adoc#full-sync[control the speed] and beat sync of the players, or display metadata for CD and other non-rekordbox tracks, you will need to use a real player number in the range 1–4, which may require you to turn off one of the other players.
 
 [#fixing-network-problems]
 == Fixing Network Problems
@@ -173,7 +173,6 @@ If your computer has only one network adapter, then it is best not to attempt In
 This is probably less true now with the CDJ-3000, since it has Internet-enabled features, but if you are running into trouble, it is one more variable to try removing.
 
 === IP Address Assignment
-
 
 The next major thing that needs to be correct for the players and Beat Link Trigger to be able to talk to each other is for them to have a shared understanding of what network they are on, and IP addresses and net masks that are mutually compatible.
 
@@ -232,7 +231,7 @@ You will want to look for conflicts on ports 50000, 50001, and 50002 (and rememb
 
 ****
 
-* Continue to xref:Triggers.adoc[]]
+* Continue to xref:Triggers.adoc[]
 
 ****
 
@@ -240,7 +239,7 @@ You will want to look for conflicts on ports 50000, 50001, and 50002 (and rememb
 == What Next?
 
 Hopefully this guide has been enough to get you started, and thinking about interesting ways you can synchronize your CDJs with other elements of your show.
-(If you have not yet read the other pages in the guide, please do so, either using the “Learning More” links in each page—like the one right above—or by exploring the navigation menu on the left.)
+(If you have not yet read the other pages in the guide, please do so, either using the navigation links in each page—like the “Learning More” link right above—or by exploring the navigation menu on the left.)
 
 If you have any thoughts, questions, your own integration examples, or even crazy ideas, please share them in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip channel]!
 
@@ -286,9 +285,9 @@ https://sourceforge.net/projects/remotetea/[Remote Tea] is used for communicatin
 
 The http://kaitai.io[Kaitai Struct] Java runtime is used for parsing rekordbox exports and media analysis files, licensed under the https://opensource.org/licenses/MIT[MIT License].
 
-=== RSyntaxtTextArea
+=== RSyntaxTextArea
 
-https://github.com/bobbylight/RSyntaxTextArea[RSyntaxtTextArea] is used for editing Clojure expression code.
+https://github.com/bobbylight/RSyntaxTextArea[RSyntaxTextArea] is used for editing Clojure expression code.
 
 Copyright © 2019, Robert Futrell.
 All rights reserved.
