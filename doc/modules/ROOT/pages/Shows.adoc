@@ -1,76 +1,47 @@
 = Shows
 include::partial$PagePreamble.adoc[]
 
-Version 0.5 of Beat Link Trigger introduced a major new set of user
-interface features called the Show interface, developed in
-collaboration with the former bass music producer Minnesota, which
-make it far easier to match tracks, and cause things to happen when
-particular beat ranges in those tracks are played.
+Version 0.5 of Beat Link Trigger introduced a major new set of user interface features called the Show interface, developed in collaboration with the former bass music producer Minnesota, which make it far easier to match tracks, and cause things to happen when particular beat ranges in those tracks are played.
 
 [IMPORTANT]
 ====
-Version 7 of BLT takes this to a whole new level, by letting you work with the Phrase Analysis feature in rekordbox to design xref:Shows_PhraseTriggers.adoc[Phrase Trigger] cues that work with any track the DJ has performed phrase analysis on, even with older players that don't support the Lighting feature.
+Version 7 of BLT takes this to a whole new level, by letting you work with the Phrase Analysis feature in rekordbox to design xref:Shows_PhraseTriggers.adoc[Phrase Trigger] cues that work with any track the DJ has performed phrase analysis on, even with older players that don’t support the Lighting feature.
 This lets you offer a whole array of attractive, well-synchronized lighting looks even for DJs that you are unable to coordinate with ahead of time.
 
 If you thought you could skip over learning about Shows because you don’t plan to assign cues to specific tracks, think again! Phrase Triggers are a powerful, general purpose cue sequencer.
 ====
 
-All of these things could be done before the Show interface (and
-several people put together quite sophisticated shows) using basic
-Triggers, but they involved writing a great many custom Expressions to
-match the tracks and watch for the right beats, and were very tedious
-to figure out, requiring lots of time hooked up to CDJs during the
-design process.
+All of these things could be done before the Show interface (and several people put together quite sophisticated shows) using basic Triggers, but they involved writing a great many custom Expressions to match the tracks and watch for the right beats, and were very tedious to figure out, requiring lots of time hooked up to CDJs during the design process.
 
-Also, there is a practical limit to how many Triggers you can have in
-your file, because each one gets considered in sequence whenever a
-packet is received from a player. The limit may be a few dozen, or
-many more, but eventually your CPU will get busy just evaluating
-triggers. The Show interface doesn’t have this limitation--it uses a
-sophisticated and efficient mechanism for recognizing tracks, and
-allows you to add thousands of tracks to your Shows. Tracks in a Show
-will not put any load on your CPU until they are actually loaded in a
-player.
+Also, there is a practical limit to how many Triggers you can have in your file, because each one gets considered in sequence whenever a packet is received from a player.
+The limit may be a few dozen, or many times more, but eventually your CPU will get busy just evaluating triggers.
+The Show interface doesn’t have this limitation—it uses a sophisticated and efficient mechanism for recognizing tracks, and allows you to add thousands of tracks to your Shows.
+Tracks in a Show will not put any load on your CPU until they are actually loaded in a player.
 
-Finally, because tracks can be added to a Show either from players on
-the network, or by reading them directly from your rekordbox USB or SD
-media, you can set up your Shows, draw cues on the tracks’ beat grids,
-with reference to their waveforms, and configure the messages you want
-the cues to send, even in situations where you don’t have access to
-CDJs. Almost all the Show interface features are fully functional
-when Beat Link Trigger is operating in Offline mode, and the ones that
-don’t make sense are simply hidden from view. This supports a flexible
-and convenient workflow.
+Finally, because tracks can be added to a Show either from players on the network, or by reading them directly from your rekordbox USB or SD media, you can set up your Shows, draw cues on the tracks’ beat grids, with reference to their waveforms, and configure the messages you want the cues to send, even in situations where you don’t have access to
+CDJs.
+Almost all the Show interface features are fully functional when Beat Link Trigger is operating in Offline mode, and the ones that don’t make sense are simply hidden from view.
+This supports a flexible and convenient workflow.
 
-TIP: If you are managing your own tracks rather than working with one
-or more DJs, and just need a few cues triggered by MIDI notes when
-particular tracks reach particular places, you might be able to do
-something even easier than creating a show. Check out how to
-xref:Integration_MIDI_rekordbox.adoc[translate rekordbox cues to MIDI].
+TIP: If you are managing your own tracks rather than working with one or more DJs, and just need a few cues triggered by MIDI notes when particular tracks reach particular places, you might be able to do something even easier than creating a show.
+Check out how to xref:Integration_MIDI_rekordbox.adoc[translate rekordbox cues to MIDI].
 
 [#creating]
 == Creating a Show
 
-To use the Show interface, you start by choosing menu:File[New Show]
-in the Beat Link Triggers window.
+To use the Show interface, you start by choosing menu:File[New Show] in the Beat Link Triggers window.
 
 image:NewShow.png[New Show option,204,173]
 
-This opens a Save dialog where you choose the location and name of
-your new Show file. Navigate to where you would like to keep it, type
-a name, and click kbd:[Save].
+This opens a Save dialog where you choose the location and name of your new Show file.
+Navigate to where you would like to keep it, type a name, and click kbd:[Save].
 
 image:NewShow2.png[New Show Save dialog,660,460]
 
-Beat Link Trigger will create a new, empty Show file for you with your
-chosen name, and open its window. If you quit with a Show window open,
-it will automatically be reopened the next time you start the program.
-You can have multiple Show windows open at the same time, in case you
-want to organize your cues into separate groups for controlling
-different kinds of integrations (such as perhaps laser cues in one
-Show, and video cues in another) and each one will be reopened
-automatically and run independently. You can tailor which Shows you
-open based on which hardware is being used for a given performance.
+Beat Link Trigger will create a new, empty Show file for you with your chosen name, and open its window.
+If you quit with a Show window open, it will automatically be reopened the next time you start the program.
+You can have multiple Show windows open at the same time, in case you want to organize your cues into separate groups for controlling different kinds of integrations (such as perhaps laser cues in one Show, and video cues in another) and each one will be reopened automatically and run independently.
+You can tailor which Shows you open based on which hardware is being used for a given performance.
 
 image:NewShowWindow.png[Empty Show window,793,418]
 
@@ -78,274 +49,167 @@ image:NewShowWindow.png[Empty Show window,793,418]
 .Opening Shows
 [TIP]
 ====
-Whenever a show is open, it is active (although if your tracks'
-Enabled Filters are configured to their `Default` setting, then you
-can turn them all off by choosing menu:Enabled Default[Never] at the
-top of the show). You can deactivate it by closing the window. Beat
-Link Trigger will automatically reopen any shows that were open the
-last time you quit. If you manually closed a show window but want to
-activate it now, or you want to open a new show that you received or
-downloaded, you can open it by choosing menu:File[Open Show] in the
-Beat Link Triggers window and navigating to the show file.
+Whenever a show is open, it is active (although if your tracks’ Enabled Filters are configured to their menu:Default[] setting, then you can turn them all off by choosing menu:Enabled Default[Never] at the top of the show).
+You can deactivate the show completely by closing the window.
+Beat Link Trigger will automatically reopen any shows that were open the last time you quit.
+If you manually closed a show window but want to activate it now, or you want to open a new show that you received or downloaded, you can open it by choosing menu:File[Open Show] in the Beat Link Triggers window and navigating to the show file.
 ====
 
 [#show-window-header-elements]
 == Show Window Header Elements
 
-At the top of the Show window, above any Tracks or Phrase Triggers
-that you have added to it, is a header that allows you to configure
-the default Enabled filter (explained
-<<#enabled-default,below>>), and to filter which Tracks
-and Phrase Triggers are currently visible, which is helpful when you
-have added a lot of them to the Show.
+At the top of the Show window, above any Tracks or Phrase Triggers that you have added to it, is a header that allows you to configure the default Enabled filter (explained
+<<#enabled-default,below>>), and to filter which Tracks and Phrase Triggers are currently visible, which is helpful when you have added a lot of them to the Show.
 
-If you type any text in the `Filter` box, only tracks and phrase
-triggers that match that text will be visible. If you want to restrict
-your view to only tracks, you can enter `track:` as the start of your
-filter text, and any phrase triggers will disappear. (You can further
-narrow the search by typing additional text, and only tracks which
-match that text will be visible). To see only phrase triggers, enter
-`phrase:` as the start of your filter text.
+=== Filtering by Tracks or Phrase Triggers
+If you type any text in the *Filter* box, only tracks and phrase triggers that match that text will be visible.
+If you want to restrict your view to only tracks, you can enter `track:` as the start of your filter text, and any phrase triggers will disappear.
+(You can further narrow the search by typing additional text, and only tracks which match that text will be visible).
+To see only phrase triggers, enter `phrase:` as the start of your filter text.
 
-Similarly, if you check the `Loaded Only` checkbox, only tracks that
-are currently loaded on a player on the network will be visible, and
-only phrase triggers that match a playing phrase and have been chosen
-for activation will be visible. This is a great way to narrow down
-your focus to watch what is going on with tracks the DJ is currently
-playing.
+=== Filtering by Loaded State
 
-TIP: The `Loaded Only` checkbox is only visible when Beat Link Trigger
-is Online (or you are <<SimulatingPlayback.adoc#,simulating
-playback>>), because otherwise there is no way tracks could be
-identified as loaded.
+Similarly, if you check the *Loaded Only* checkbox, only tracks that are currently loaded on a player on the network will be visible, and only phrase triggers that match a playing phrase and have been chosen for activation will be visible.
+This is a great way to narrow down your focus to watch what is going on with tracks the DJ is currently playing.
+
+TIP: The *Loaded Only* checkbox is only visible when Beat Link Trigger is Online (or you are xref:SimulatingPlayback.adoc[simulating playback]), because otherwise there is no way tracks could be identified as loaded.
 
 [#show-menu-bar]
 === Show Menu Bar
 
-The Show window has its own menu bar with commands that apply to the
-Show as a whole.
+The Show window has its own menu bar with commands that apply to the Show as a whole.
 
-Beat Link Trigger automatically saves the Show when you exit normally,
-but if you are concerned that your computer might crash and want to
-avoid the risk of losing data, you can manually save it by choosing
-menu:File[Save]. You can also save a copy to a different file at any
-time using menu:File[Save a Copy].
+Beat Link Trigger automatically saves the Show when you exit normally, but if you are concerned that your computer might crash and want to avoid the risk of losing data, you can manually save it by choosing menu:File[Save].
+You can also save a copy to a different file at any time using menu:File[Save a Copy].
 
 image:ShowFileMenu.png[Show File Menu,264,179]
 
-Choosing menu:File[Expression Report] opens a browser window holding a
-xref:Expressions_Report.adoc[report] that provides a powerful and
-convenient way of exploring, managing, and simulating all the
-expressions that you are using in the show. To use the full power of
-this report you need to choose menu:File[Enable Report Actions], but
-you should only do this on a trusted network, because any other
-machine on the network will then be able to trigger simulations of
-your expressions, or manipulate the Beat Link Trigger interface in the
-ways the report can.
+Choosing menu:File[Expression Report] opens a browser window holding a xref:Expressions_Report.adoc[report] that provides a powerful and convenient way of exploring, managing, and simulating all the expressions that you are using in the show.
+To use the full power of this report you need to choose menu:File[Enable Report Actions], but you should only do this on a trusted and private network, because any other machine on the network will then be able to trigger simulations of your expressions, or manipulate the Beat Link Trigger interface in the ways the report can.
 
-If you want to stop working with a show, and don’t want Beat Link
-Trigger to automatically open it the next time you launch the program,
-choose menu:File[Close].
+If you want to stop working with a show, and don’t want Beat Link Trigger to automatically open it the next time you launch the program, choose menu:File[Close].
 
-The menu:Tracks[] Menu allows you to add tracks to the show, as
-discussed in the <<Shows.adoc#adding-tracks,next section>>, and to
-edit expressions that customize the show as a whole, as described in
-the xref:Expressions_ShowGlobal.adoc[Expressions section].
+The menu:Tracks[] Menu allows you to add tracks to the show, as discussed in the <<adding-tracks,next section>>, and to edit expressions that customize the show as a whole, as described in the xref:Expressions_ShowGlobal.adoc[Expressions section].
 
 image:ShowTracksMenu.png[Show Tracks Menu,320,200]
 
-The menu:Inspect Expression Locals[] option allows you to explore any
-values that have been set up by expressions to share across the entire
-Show.See <<Debugging.adoc#inspecting,Inspecting Locals and Globals>> for
-more details.
+The menu:Inspect Expression Locals[] option allows you to explore any values that have been set up by expressions to share across the entire Show.See xref:Debugging.adoc#inspecting[Inspecting Locals and Globals] for more details.
 
-The menu:Help[] Menu is the same as in the Triggers window, providing
-a variety of helpful information and shortcuts for getting support.
+The menu:Help[] Menu is the same as in the Triggers window, providing a variety of helpful information and shortcuts for getting support.
 
 [#enabled-default]
 === Enabled Default
 
-Each track can have its own <<Shows_Tracks.adoc#enabled-menu,Enabled
-filter>>, which determines whether the show will react to players
-doing things with the track.Often, every track in the show will want
-to follow the same rules, so you can configure those rules using the
-show's Enabled Default setting, and leave each track's Enabled filter
-set to `Default`.Any tracks which have more specific needs can switch
-their Enabled filter to a different setting.
+Each track can have its own xref:Shows_Tracks.adoc#enabled-menu[Enabled filter], which determines whether the show will react to players doing things with the track.
+Often, every track in the show will want to follow the same rules, so you can configure those rules using the show’s Enabled Default setting, and leave each track’s Enabled filter set to menu:Default[].
+Any tracks which have more specific needs can switch their Enabled filter to a different setting.
 
-If the track's Enabled filter is set to `Default`, the value of the
-Show's Enabled Default filter is used.It has the following options:
+If the track’s Enabled filter is set to menu:Default[], the value of the Show’s Enabled Default filter is used.
+It has the following options:
 
-Never:: With this setting, the Track is disabled until you re-enable
-it.
+Never:: With this setting, all such tracks are disabled until you re-enable them.
 
-On-Air:: With this setting, the Track is enabled whenever it is loaded
-by at least one player that reports that it is On the Air. (For that
-to work, the player must be connected via Ethernet to a Pioneer mixer
-that is from the Nexus generation or later, and must have the feature
-turned on.)
+On-Air:: With this setting, the tracks are enabled whenever they are loaded by at least one player that reports that it is On the Air.
+(For that to work, the player must be connected via Ethernet to a Pioneer mixer that is from the Nexus generation or later, and must have the feature turned on, or if the mixer supports MIDI, you can use an xref:Integration_XoneOnAir.adoc[integration show] to add this feature.)
 +
-TIP: If you work with a DJ who likes to fade out his tracks to coax
-the audience into singing along, you might be interested in using the
-<<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,example
-Custom Default Enabled Filter Expression>> rather than this setting.
+TIP: If you work with a DJ who likes to fade out his tracks to coax the audience into singing along, you might be interested in using the xref:Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression[example Custom Default Enabled Filter Expression] rather than this setting.
 
-Master:: With this setting, the Track is enabled whenever it is loaded
-by the player that is the current Tempo Master.
+Master:: With this setting, the tracks are enabled whenever they are loaded by the player that is the current Tempo Master.
 
-Custom:: With this setting, the Track is controlled by an Enabled
-Filter, Clojure code that you write yourself. Whenever a status update
-is received from any player, your expressions are evaluated. If the
-last expression in your filter returns a `true` value, the Track will
-be enabled. This lets you apply sophisticated logic, like enabling the
-Track when another track is loaded into a different player, or only
-during particular times of day. For details see the
-<<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,Expressions>>
-section. If you choose `Custom` and have not yet written an Enabled
-Default Filter expression, the expression editor will be opened to let
-you do that. You can always open that editor using the Tracks
-Menu, described <<show-menu-bar,above>>.
+Custom:: With this setting, the tracks are controlled by an Enabled Filter Expression, some Clojure code that you write yourself (or receive from someone).
+Whenever a status update is received from any player, your filter expressions are evaluated.
+If the last expression in your filter returns a `true` value, the tracks will be enabled.
+This lets you apply sophisticated logic, like enabling the tracks when another track is loaded into a different player, or only during particular times of day.
+For details see the xref:Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression[Expressions] section.
+If you choose `Custom` and have not yet written an Enabled Default Filter expression, the expression editor will be opened to let you do that.
+You can also always open that editor using the Tracks Menu, described <<show-menu-bar,above>>.
 
-Always:: With this setting, the Track is enabled until you disable
-it.
+Always:: With this setting, the tracks are enabled until you disable them.
 
 [#adding-tracks]
 == Adding Tracks to a Show
 
-Shows don’t do anything until they include at least one Track. There
-are a number of different ways you can add Tracks to your Show. Most
-of them can be found by choosing menu:Tracks[Import Track] in the Show
-window menu bar:
+Shows don’t do anything until they include at least one Track or Phrase Trigger.
+There are a number of different ways you can add Tracks to your Show.
+Most of them can be found by choosing menu:Tracks[Import Track] in the Show window menu bar:
 
 image:ImportTrack.png[Import Track menu,790,568]
 
 === Adding Tracks from a Player
 
-If you are currently Online, and there are any players on the network
-that have rekordbox tracks loaded that are not already part of the
-Show, you will see them as options in the menu. Choosing
-menu:Tracks[Import Track>from Player 2] (for example) will download
-that track from the player, and add everything needed to work with
-it to the Show file (the elements of a Track row are explained
-xref:Shows_Tracks.adoc[below], after the other ways of adding
-them to a Show).
+If you are currently Online, and there are any players on the network that have rekordbox tracks loaded that are not already part of the Show, you will see them as options in the menu.
+Choosing menu:Tracks[Import Track>from Player 2] (for example) will download that track from the player, and add everything needed to work with it to the Show file (the elements of a Track row are explained xref:Shows_Tracks.adoc[below], after the other ways of adding them to a Show).
 
 image:FirstTrackLoaded.png[First track loaded into Show,1009,466]
 
-To help avoid confusion, rather than simply having the player
-disappear from the list of import choices if the track it has loaded
-is already part of the Show, the menu option is disabled and an
-explanation is added:
+To help avoid confusion, rather than simply having the player disappear from the list of import choices if the track it has loaded is already part of the Show, the menu option is disabled and an explanation is added:
 
 image:ImportTrackAlready.png[Track already in Show,990,435]
 
 [#disconnected-tracks]
-[TIP]
+[IMPORTANT]
 ====
-You should finish making any adjustments to your tracks in rekordbox,
-including fine-tuning their beat grids, _before_ you add them to your
-show. Beat Link Trigger recognizes tracks by
-https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/SignatureFinder.html[calculating
-a “signature”] that includes such details. If you change any of these
-things after importing the track, it will no longer be recognized, and
-your cues and other expressions will not work.
+You should finish making any adjustments to your tracks in rekordbox, including fine-tuning their beat grids, _before_ you add them to your show.
+Beat Link Trigger recognizes tracks by https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/SignatureFinder.html[calculating a “signature”] that includes such details.
+If you change any of these things after importing the track, it will no longer be recognized, and your cues and other expressions will not work.
 
-If this happens, you can import the new version of the track,
-<<copying-track-contents,copy the contents>> of the old version of the
-track in your show into the new one, then remove the old version.
+If this happens, you can import the new version of the track, <<copying-track-contents,copy the contents>> of the old version of the track in your show into the new one, then remove the old version.
 ====
 
 === Adding Tracks from Offline Media
 
-To make it possible to set up your Show even when you don’t have
-access to your player network, you can also import Tracks directly
-from rekordbox USB or SD media. To do that, mount the media on your
-computer, and choose menu:Tracks[Import Track>from Offline Media]. A
-**Choose Media** dialog will appear, from which you can navigate to the
-media:
+To make it possible to set up your Show even when you don’t have access to your player network, you can also import Tracks directly from rekordbox USB or SD media.
+To do that, mount the media on your computer, and choose menu:Tracks[Import Track>from Offline Media].
+A *Choose Media* dialog will appear, from which you can navigate to the media:
 
 image:ChooseMedia.png[Choose Media dialog,526,369]
 
-Once you click kbd:[Choose Media], the exported database is parsed,
-and a Choose Track window is presented, which is very similar to the
-<<Players.adoc#loading-playing,Loading and Playing Tracks>> interface
-offered by the Player Status window (see that section for details
-about how to navigate the interface and use the Search feature):
+Once you click kbd:[Choose Media], the exported database is parsed, and a Choose Track window is presented, which is very similar to the xref:Players.adoc#loading-playing[Loading and Playing Tracks] interface offered by the Player Status window (see that section for details about how to navigate the interface and use the Search feature):
 
 image:ShowChooseTrack.png[Choose Track dialog,720,518]
 
-Once you have found the Track you are looking for, click kbd:[Choose
-Track] to add it to the Show.
+Once you have found the Track you are looking for, click *Choose Track* to add it to the Show.
 
 image:SecondTrackLoaded.png[Second track loaded into Show,1005,589]
 
 [TIP]
 ====
-To save time, once you have chosen media to load tracks from
-during a Beat Link Trigger session, your media choice is remembered
-(and the parsed database export is kept open), so the next time you
-choose to import from offline media, the media selection window is
-skipped, and you are taken right to the track selection window. If you
-want to import from different media, click the kbd:[Change Media]
-button at the bottom of the window. This also means you will not be
-able to eject the media on most operating systems because BLT has it
-open; if you do need to eject it without quitting BLT, choose
-menu:Tracks[Import Track>from Offline Media], click kbd:[Change
-Media], and it will be closed so you can eject it. At that point you
-can click kbd:[Cancel] if you did not actually want to import a Track.
+To save time, once you have chosen media to load tracks from during a Beat Link Trigger session, your media choice is remembered (and the parsed database export is kept open), so the next time you choose to import from offline media, the media selection window is skipped, and you are taken right to the track selection window.
+If you want to import from different media, click the *Change Media* button at the bottom of the window.
+This also means you will not be able to eject the media on most operating systems because BLT has it open; if you do need to eject it without quitting BLT, choose menu:Tracks[Import Track>from Offline Media], click *Change Media*, and it will be closed so you can eject it.
+At that point you can click *Cancel* if you did not actually want to import a Track.
 
-If you have an entire playlist of tracks that you want to import into
-a show, you can use the kbd:[Import Playlist] button to switch to an
-interface which shows only playlists and allows you to choose one. If
-you do so, a progress bar will provide feedback as the tracks from
-that playlist are imported, and allow you to stop the process. If you
-decide you only want to import a single track after all, prior to
-choosing a playlist you can click kbd:[Import Single Track] to return
-to the normal track selection interface.
+If you have an entire playlist of tracks that you want to import into a show, you can use the *Import Playlist* button to switch to an interface which shows only playlists and allows you to choose one.
+If you do so, a progress bar will provide feedback as the tracks from that playlist are imported, and allow you to stop the process.
+If you decide you only want to import a single track after all, prior to choosing a playlist you can click *Import Single Track* to return to the normal track selection interface.
 ====
 
 === Copying Tracks between Shows
 
-The final way to add a Track to a Show is to copy it from another
-Show. When you have multiple Show windows open, you can copy Tracks
-from one to another by finding the Track in the open Show that already
-contains it, then choosing menu:Copy to Show “<name>”[] in the Track’s
-context menu:
+The final way to add a Track to a Show is to copy it from another Show.
+When you have multiple Show windows open, you can copy Tracks from one to another by finding the Track in the open Show that already contains it, then choosing menu:Copy to Show “<name>”[] in the Track’s context menu:
 
 image:CopyTrack.png[Copy Track to Show,995,645]
 
-TIP: If you don’t see an open Show in the `Copy to` list, that means
-the Track is already present in the other Show.
+TIP: If you don’t see an open Show in the *Copy to* list, that means the Track is already present in the other Show.
 
 [#copying-track-contents]
 === Copying Track Contents
 
-Although the cues you have created in a track are likely to be very
-specific to that track, there are times you might want to copy all the
-configuration, expressions, and cues you have set up in one track to
-another.
+Although the cues you have created in a track are likely to be very specific to that track, there are times you might want to copy all the configuration, expressions, and cues you have set up in one track to another.
 
-One situation where this is certain to be useful is if you have made
-changes to your track after you imported it into the show, and this
-has caused it to <<disconnected-tracks,stop being recognized>>. In
-that case, you can import the track again, and copy the content from
-the old version to the new version before deleting the old version.
+One situation where this is certain to be useful is if you have made changes to your track after you imported it into the show, and this has caused it to <<disconnected-tracks,stop being recognized>>.
+In that case, you can import the track again, and copy the content from the old version to the new version before deleting the old version.
 
-There are other situations where this might be useful as well. Even if
-the tracks are different enough that you will need to move the cues
-around a lot, copying the overall track configuration, expressions, and
-sometimes even cues can save you time.
+There are other situations where this might be useful as well.
+Even if the tracks are different enough that you will need to move the cues around a lot, copying the overall track configuration, expressions, and sometimes even cues can save you time.
 
-To copy the contents of a track, hold down the kbd:[Shift] key while
-bringing up the Track context menu (clicking on the gear icon or
-right-clicking in the track row outside the waveform). This will bring
-up a special menu:
+To copy the contents of a track, hold down the kbd:[Shift] key while bringing up the Track context menu (clicking on the gear icon or right-clicking in the track row outside the waveform).
+This will bring up a special menu:
 
 image:CopyTrackContent.png[Copy Track Content,515,196]
 
-Once you have chosen menu:Copy Track Content[] on a track, when you
-use kbd:[Shift] to bring up this menu again on a track (in this show
-or any other), the option to paste that content will be enabled.
+Once you have chosen menu:Copy Track Content[] on a track, when you use kbd:[Shift] to bring up this menu again on a track (in this show or any other), the option to paste that content will be enabled.
 
 Choosing menu:Paste Track Content[] will bring up a confirmation
 dialog because this is a destructive process which cannot be undone
@@ -353,13 +217,7 @@ dialog because this is a destructive process which cannot be undone
 
 image:ReplaceTrackContent.png[Replace Track Content,740,240]
 
-If you click **OK**, all the destination track's configuration (MIDI
-Output, Messages, Channel, and Enabled Default), its expressions, and
-its cues (including their own configuration and expressions) will be
-replaced by the ones that you copied earlier. Any cues that would
-extend past the end of the new track will be cropped to end on its
-final beat, and any which would have started after the end of the
-track will simply be removed.
+If you click *OK*, all the destination track’s configuration (MIDI Output, Messages, Channel, and Enabled Default), its expressions, and its cues (including their own configuration and expressions) will be replaced by the ones that you copied earlier.
+Any cues that would extend past the end of the new track will be cropped to end on its final beat, and any which would have started after the end of the track will simply be removed.
 
-You can then proceed to adjust the cue positions if needed, and tweak
-other details to make the track work the way you want it to.
+You can then proceed to adjust the cue positions if needed, and tweak other details to make the track work the way you want it to.
