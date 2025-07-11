@@ -2,95 +2,57 @@
 include::partial$PagePreamble.adoc[]
 :page-toclevels: 3
 
-Tracks have settings and expressions that allow you to make things
-happen when they load or start and stop playing, but you will often be
-interested in more specific _parts_ of the track being played. That’s
-where Cues come in. To add Cues to a Track, choose
-menu:Edit Track Cues[] in the Track’s context menu, as described in the
-previous section. That will open a new window for viewing and editing
-details about that Track’s Cues:
+Tracks (and now, xref:Shows_PhraseTriggers.adoc[phrases]) have settings and expressions that allow you to make things happen when they load or start and stop playing, but you will often be interested in more specific _parts_ of the track being played.
+That’s where Cues come in.
+To add Cues to a Track, choose menu:Edit Track Cues[] in the Track’s context menu, as described in the xref:Shows_Tracks.adoc#track-context-menu[previous section].
+That will open a new window for viewing and editing details about that Track’s Cues:
 
 [#cues-window]
 image:CuesWindow.png[Cues Window,912,461]
 
-Before introducing the various ways to add Cues to the track, let’s
-explore the features available at the top of the window.
+Before introducing the various ways to add Cues to the track, let’s explore the features available at the top of the window.
 
-NOTE: This kind of window is also used for editing cues within
-<<Shows_PhraseTriggers.adoc#,phrase triggers>>, although it has a
-slightly different appearance and set of features
-<<Shows_PhraseTriggers.adoc#editing-cues,in that context>>.
+NOTE: This kind of window is also used for editing cues within xref:Shows_PhraseTriggers.adoc[], although it has a slightly different appearance and set of features xref:Shows_PhraseTriggers.adoc#editing-cues[in that context].
 
 == Cues Window Header Elements
 
-At the top of the Cues window, above any Cues that you have added to
-it, is a header that shows a scrollable and zoomable view of the track
-waveform and beat grid, much like the one that appears in the
-<<Players.adoc#,Player Status Window>>, except that you can manually
-scroll this one to the section you want to see regardless of whether
-any players are currently playing it. If any are, you will see their
-playback position(s) marked on the waveform as illustrated above, but
-they will not cause the waveform to scroll to follow them unless you
-check the `Auto-Scroll` checkbox. Although you won’t want to do that
-when you are editing cues, it can be nice when running a show, as it
-makes it easy to follow along as Cues approach and run.
+At the top of the Cues window, above any Cues that you have added to it, is a header that shows a scrollable and zoomable view of the track waveform and beat grid, much like the one that appears in xref:Players.adoc[], except that you can manually scroll this one to the section you want to see regardless of whether any players are currently playing it.
+If any are, you will see their playback position(s) marked on the waveform as illustrated above, but they will not cause the waveform to scroll to follow them unless you
+check the `Auto-Scroll` checkbox.
+Although you won’t want to do that when you are editing cues, it can be nice when running a show, as it makes it easy to follow along as Cues approach and run.
 
-You can also interact with cues in this window. Hovering the mouse
-pointer over a cue displays information about it. Clicking on one with
-your mouse will scroll its configuration row into view in the lower
-section of the window if it was not already visible. Dragging an edge
-left or right will adjust the beat on which the cue begins or ends.
-Right-clicking or control-clicking a cue brings up the
-<<cue-context-menu,cue context menu>> which gives you many other
-options, and clicking on a cue with the kbd:[Option] or kbd:[Alt] key
-held down is a quick way to <<cue-simulate,simulate>> its Started
-On-Beat and Ended events.
+You can also interact with cues in this window.
+Hovering the mouse pointer over a cue displays information about it.
+Clicking on one with your mouse will scroll its configuration row into view in the lower
+section of the window if it was not already visible.
+Dragging an edge left or right will adjust the beat on which the cue begins or ends.
+Right-clicking or control-clicking a cue brings up the <<cue-context-menu,cue context menu>> which gives you many other options, and clicking on a cue with the kbd:[Option] or kbd:[Alt] key held down is a quick way to <<cue-simulate,simulate>> its Started On-Beat and Ended events.
 
-The kbd:[New Cue] button creates a new cue on the first beat of the
-Track, unless you have selected a beat range first as described below.
+The *New Cue* button creates a new cue on the first beat of the Track, unless you have selected a beat range first as described below.
 
-As with the Show window, if you type any text in the `Filter` box,
-only Cues that match that text will be visible. Similarly, if you
-check the `Entered Only` checkbox, only Cues that currently have a
-player positioned inside them will be visible. This is a great way to
-narrow down your focus to watch what is going on with cues the DJ is
-currently playing.
+As with the Show window, if you type any text in the *Filter* box, only Cues that match that text will be visible.
+Similarly, if you check the *Entered Only* checkbox, only Cues that currently have a player positioned inside them will be visible.
+This is a great way to narrow down your focus to watch what is going on with cues the DJ is currently playing.
 
-TIP: The `Entered Only` and `Auto-Scroll` checkboxes are only visible
-when Beat Link Trigger is Online (or you are
-<<SimulatingPlayback.adoc#,simulating playback>>), because they only
-make sense in the context of being able to detect that a player has
-loaded the track.
+TIP: The *Entered Only* and *Auto-Scroll* checkboxes are only visible when Beat Link Trigger is Online (or you are xref:SimulatingPlayback.adoc[]), because they only make sense in the context of being able to detect that a player has loaded the track.
 
 [#adding-cues]
 == Adding Cues to a Track
 
-The Cues window doesn’t do much until you add at least one Cue. As
-mentioned above, you can use the kbd:[New Cue] button to do this, and
-then edit the cue to position it where you want it, but it is easier
-to specify where you want it on the beat grid first. To do that,
-you can click and drag in the waveform view to highlight the beats
-that you want the Cue to run for. Dragging over the eight beats
-past where the player was cued in the above example sets up a
-selection like this:
+The Cues window doesn’t do much until you add at least one Cue.
+As mentioned above, you can use the *New Cue* button to do this, and then edit the cue to position it where you want it, but it is easier to specify where you want it on the beat grid first.
+To do that, you can click and drag in the waveform view to highlight the beats that you want the Cue to run for.
+Dragging over the eight beats past where the player was cued in the above example sets up a selection like this:
 
 image:DraggingCue.png[Cues Window,793,166]
 
-If your aim was slightly off, you can drag the edges of the selection
-to adjust them, as suggested by the cursor in the image above, or you
-can shift-click to grow or shrink the cue, perhaps after scrolling
-the wavform to a different section. Also remember that you can adjust
-the Zoom slider to make it easier to position your cue.
+If your aim was slightly off, you can drag the edges of the selection to adjust them, as suggested by the cursor in the image above, or you can shift-click to grow or shrink the cue, perhaps after scrolling the waveform to a different section.
+Also remember that you can adjust the Zoom slider to make it easier to position your cue.
 
-Alternately, you can click to select a single beat, then shift-click
-another to specify the entire range without dragging. If you created a
-beat selection by accident and want to get rid of it, you can either
-drag it back down to nothing, or click a single beat outside the
-selection and then shift-click it to deselect it.
+Alternately, you can click to select a single beat, then shift-click another to specify the entire range without dragging.
+If you created a beat selection by accident and want to get rid of it, you can either drag it back down to nothing, or click a single beat outside the selection and then shift-click it to deselect it.
 
-Regardless of how you do it, once you have the right beats selected,
-clicking the kbd:[New Cue] button will create a new cue covering
-the chosen beats:
+Regardless of how you do it, once you have the right beats selected, clicking the *New Cue* button will create a new cue covering the chosen beats:
 
 image:FirstCue.png[First cue added,912,461]
 
@@ -100,77 +62,53 @@ image:FirstCue.png[First cue added,912,461]
 [#start-end-spinners]
 === Start and End Spinners
 
-You can see and adjust the beats on which the Cue starts and ends
-using these two fields, either by typing new values, or clicking the
-arrows. However, it is probably even more convenient to simply drag
-the edges of the cue in the waveform, which also works.
+You can see and adjust the beats on which the Cue starts and ends using these two fields, either by typing new values, or clicking the arrows.
+However, it is probably even more convenient to simply drag the edges of the cue in the waveform, which also works.
 
-The End must always be at least one beat past the Start, and neither
-can extend outside the beat grid of the Track.
+The End must always be at least one beat past the Start, and neither can extend outside the beat grid of the Track.
 
 [#cue-name]
 === Cue Name
 
-To help understand the purpose of the cue, you can give it a name. The
-default is `Untitled` (with a numeric suffix if needed to keep it
-distinct), but as soon as the cue is created, the Name field is
-selected and ready for you to type something more meaningful. For this
-example, we’ll type "First two measures", since we placed the cue at
-the point where this track begins playback after being loaded.
+To help understand the purpose of the cue, you can give it a name.
+The default is `Untitled` (with a numeric suffix if needed to keep it distinct), but as soon as the cue is created, the Name field is selected and ready for you to type something more meaningful.
+For this example, we’ll type “First two measures”, since we placed the cue at the point where this track begins playback after being loaded.
 
-The cue name also appears as a tool tip when you hover the mouse
-pointer over the cue in the waveform:
+The cue name also appears as a tool tip when you hover the mouse pointer over the cue in the waveform:
 
 image:CueNamed.png[Cue named,790,278]
 
 [#cue-hue]
 === Cue Hue
 
-Cues are assigned distinct hues when they are created to help you tell
-them apart (and to tie the cue in the waveform to the corresponding
-detail row below), but you can also assign each cue a specific hue if
-that helps organize your show by clicking the `Hue` swatch in the Cue
-row. That will bring up a color picker window wher you can choose the
-exact hue you want.
+Cues are assigned distinct hues when they are created to help you tell them apart (and to tie the cue in the waveform to the corresponding detail row below), but you can also assign each cue a specific hue if that helps organize your show, by clicking the *Hue* swatch in the Cue row.
+That will bring up a color picker window where you can choose the exact hue you want.
 
-If cues overlap each other, Beat Link Trigger draws them in separate
-lanes to make it easier to tell where each begins and ends. It can
-handle even very complex sets of overlapping cues, adjusting them
-into a minimal set of lanes. Here’s an example of what it would look
-like if we added a second cue called “Video Clip 1” that overlaps
-part of our first cue:
+If cues overlap each other, Beat Link Trigger draws them in separate lanes to make it easier to tell where each begins and ends.
+It can handle even very complex sets of overlapping cues, adjusting them into a minimal set of lanes.
+Here’s an example of what it would look like if we added a second cue called “Video Clip 1” that overlaps part of our first cue:
 
 image:SecondCue.png[Overlapping cues,791,389]
 
-Cues are also visible, and show their names as tool tips, in the
-waveform preview drawn in Track rows in the Show window, so you don’t
-even need to open the Cues Editor for a quick reminder of what cues
-are coming up:
+Cues are also visible, and show their names as tool tips, in the waveform preview drawn in Track rows in the Show window, so you don’t even need to open the Cues Editor for a quick reminder of what cues are coming up:
 
 image:CuesInShowWindow.png[Overlapping cues,886,218]
 
-In both waveforms, <<entered-status,Entered>> Cues are whitened
-slightly and <<started-status,Started>> Cues are whitened even
-more as a visual indicator of their state.
+In both waveforms, <<entered-status,Entered>> Cues are whitened slightly and <<started-status,Started>> Cues are whitened even more as a visual indicator of their state.
 
 [#cue-context-menu-button]
 === Context Menu Button
 
-Below the first row of cue configuration elements there is a gear
-button that allows you to access the cue’s Context Menu with a regular
-mouse click. The gear will be filled in if any Expressions have been
-added to the Cue, and hollow otherwise. The contents of the menu
-itself are described <<cue-context-menu,below>>.
+Below the first row of cue configuration elements there is a gear button that allows you to access the cue’s Context Menu with a regular mouse click.
+The gear will be filled in if any Expressions have been added to the Cue, and hollow otherwise.
+The contents of the menu itself are described <<cue-context-menu,below>>.
 
 [#entered-status]
 === Entered Status
 
-To the right of the context menu button there is an Entered Status
-indicator which has two parts. The outer ring indicates whether the
-Cue’s Track is currently enabled (a green circle) or disabled (a red
-circle with a slash). If any player is currently positioned anywhere
-inside the Cue, there is a filled circle inside the enabled indicator
-ring:
+To the right of the context menu button there is an Entered Status indicator which has two parts.
+The outer ring indicates whether the Cue’s Track is currently enabled (a green circle) or disabled (a red circle with a slash).
+If any player is currently positioned anywhere inside the Cue, there is a filled circle inside the enabled indicator ring:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
@@ -194,94 +132,56 @@ ring:
 [#entered-message]
 === Entered Message Menu
 
-The menu:Entered Message[] Menu determines what kind of MIDI message
-is sent when the first player moves into the cue (as long as the Cue’s
-Track is Enabled), or when the last player that had been positioned
-inside the cue moves out of it.
+The menu:Entered Message[] Menu determines what kind of MIDI message is sent when the first player moves into the cue (as long as the Cue’s Track is Enabled), or when the last player that had been positioned inside the cue moves out of it.
 
-As a shortcut for testing your Entered Message configuration, clicking
-on the *Message* label with the kbd:[Option] or kbd:[Alt] key held
-down is a quick way to <<cue-simulate,simulate>> the Entered and
-Exited events.
+As a shortcut for testing your Entered Message configuration, clicking on the *Message* label with the kbd:[Option] or kbd:[Alt] key held down is a quick way to <<cue-simulate,simulate>> the Entered and Exited events.
 
 [NOTE]
 ====
-The player does not need to actually be playing for
-Entered/Exited messages to be sent: if the track loads and the player
-auto-cues within the Cue, or the DJ uses cue/loop call, needle jump,
-the jog wheel, or search to move into or out of the cue, its state
-will update and the appropriate messages will be sent.
+The player does not need to actually be playing for Entered/Exited messages to be sent: if the track loads and the player auto-cues within the Cue, or the DJ uses cue/loop call, needle jump, the jog wheel, or search to move into or out of the cue, its state will update and the appropriate messages will be sent.
 
-For cues within phrase triggers the situation is different because the
-phrase trigger will only ever be active if the underlying phrase (and
-track) are actually playing.
+For cues within phrase triggers the situation is different because the phrase trigger will only ever be active if the underlying phrase (and track) are actually playing.
 ====
 
 image:EnteredMessageMenu.png[Entered Message Menu,912,554]
 
-None:: With this setting, which is the default, nothing is sent when
-the Track loads or unloads.footnote:none[Note that this is different
-from low-level Triggers, which always send something--you need to
-remember to pick the kind of message to be sent for any Show events
-that you want to respond to.] When `None` is chosen, there are no
-interface elements visible to configure the message. They will appear
-once you choose a message type to send.
+None:: With this setting, which is the default, nothing is sent when the Track loads or unloads.footnote:none[Note that this is different from low-level Triggers, which always send something—you need to remember to pick the kind of message to be sent for any Show events that you want to respond to.]
+When menu:None[] is chosen, there are no interface elements visible to configure the message.
+They will appear once you choose a message type to send.
 
-Note:: With this setting, the Show sends a Note On message, with
-velocity 127 and the note number shown to the right of the menu, when
-the first player moves inside the Cue (as long as the Cue’s Track is
-enabled), and a Note Off message when the last player that had been
-inside the Cue moves back out of it, or the Track is disabled.
+Note:: With this setting, the Show sends a Note On message, with velocity 127 and the note number shown to the right of the menu, when the first player moves inside the Cue (as long as the Cue’s Track is enabled), and a Note Off message when the last player that had been inside the Cue moves back out of it, or the Track is disabled.
 +
 image:EnteredNote.png[Entered Note parameters,792,113]
 +
-The Channel on which the Entered/Exited messages are sent is
-configured just to the right of the note selector.
+The Channel on which the Entered / Exited messages are sent is configured just to the right of the note selector.
 
-CC:: With this setting, the Show sends a Control Change message, with
-value 127 and the note number shown to the right of the menu, when the
-first player moves inside the Cue (as long as the Cue’s Track is
-enabled), and a CC with value 0 when the last player that had been
-inside the Cue moves back out of it, or the Track is disabled.
+CC:: With this setting, the Show sends a Control Change message, with value 127 and the note number shown to the right of the menu, when the first player moves inside the Cue (as long as the Cue’s Track is enabled), and a CC with value 0 when the last player that had been inside the Cue moves back out of it, or the Track is disabled.
 
-Custom:: When this option is chosen, you can send any kind of message
-you want when the Cue is entered and/or exited, by writing code as
-described in the <<Expressions_ShowCue.adoc#,Expressions>>
-section. This gives you the most flexibility because in addition to
-MIDI messages, you can send arbitrary UDP packets, HTTP requests, or
-whatever you might need. The expression editors for the Entered
-Expression and Exited Expression are accessed through the
-<<cue-context-menu,cue context menu>>.
+Custom:: When this option is chosen, you can send any kind of message you want when the Cue is entered and/or exited, by writing code as described in the xref:Expressions_ShowCue.adoc[Expressions section].
+This gives you the most flexibility because in addition to MIDI messages, you can send arbitrary UDP packets, HTTP requests, or whatever you might need.
+The expression editors for the Entered Expression and Exited Expression are accessed through the <<cue-context-menu,cue context menu>>.
 +
-If you choose `Custom` and have not yet written a Entered expression,
-the expression editor will be opened to let you do that. You can
-also open that editor using the <<cue-context-menu,cue context menu>>.
+If you choose menu:Custom[] and have not yet written an Entered expression, the expression editor will be opened to let you do that.
+You can also open that editor using the <<cue-context-menu,cue context menu>>.
 
 [#entered-note-spinner]
-==== Entered Note/Controller Spinner
+==== Entered Note / Controller Spinner
 
-Found immediately to the right of the menu:Entered Message[] Menu (unless
-`None` is chosen as the Message type), this field lets you set the MIDI
-note number used for Note-based  entered and exited messages, or the
-controller number used for Control Change-based entered and exited
-messages. The value is also available to your Cue expressions if they
-want to use it.
+Found immediately to the right of the menu:Entered Message[] Menu (unless menu:None[] is chosen as the Message type), this field lets you set the MIDI note number used for Note-based  entered and exited messages, or the controller number used for Control Change-based entered and exited messages.
+The value is also available to your Cue expressions if they want to use it.
 
 [#entered-channel-spinner]
 ==== Entered Channel Spinner
 
-As described above, this lets you specify the MIDI channel on which
-entered/exited messages are sent for this Cue.
+As described above, this lets you specify the MIDI channel on which entered/exited messages are sent for this Cue.
 
 [[started-status]]
 === Started Status
 
-Below the Entered Status indicator there is an Started Status
-indicator. Like the Entered Status indicator, it has two parts. The
-outer ring indicates whether the Cue’s Track is currently enabled (a
-green circle) or disabled (a red circle with a slash). If any player
-is currently playing inside the Cue, there is a filled circle inside
-the enabled indicator ring:
+Below the Entered Status indicator there is a Started Status indicator.
+Like the Entered Status indicator, it has two parts.
+The outer ring indicates whether the Cue’s Track is currently enabled (a green circle) or disabled (a red circle with a slash).
+If any player is currently playing inside the Cue, there is a filled circle inside the enabled indicator ring:
 
 [width="50%",cols=".^,^.^",options="header"]
 |===
@@ -305,356 +205,193 @@ the enabled indicator ring:
 [[started-on-beat-menu]]
 === Started On-Beat Message Menu
 
-The menu:Started On-Beat Message[] Menu determines what kind of MIDI
-message is sent when the first player begins playing the Cue, as long
-as it does so from the very first beat of the Cue (and as long as the
-Cue’s Track is enabled), or when the last player that had been playing
-inside the cue moves out of it or the Track becomes disabled, if it
-was started on its first beat.
+The menu:Started On-Beat Message[] Menu determines what kind of MIDI message is sent when the first player begins playing the Cue, as long as it does so from the very first beat of the Cue (and as long as the Cue’s Track is enabled), or when the last player that had been playing inside the cue moves out of it or the Track becomes disabled, if it was started on its first beat.
 
-TIP: As a shortcut for testing your Started On-Beat Message
-configuration, clicking on the *On-Beat Message* label with the
-kbd:[Option] or kbd:[Alt] key held down is a quick way to
-<<cue-simulate,simulate>> the Started On-Beat and corresponding Ended
-events.
+TIP: As a shortcut for testing your Started On-Beat Message configuration, clicking on the *On-Beat Message* label with the kbd:[Option] or kbd:[Alt] key held down is a quick way to <<cue-simulate,simulate>> the Started On-Beat and corresponding Ended events.
 
 image:StartedOnBeatMenu.png[Started On-Beat Message Menu,912,554]
 
-None:: With this setting, which is the default, nothing is sent when
-the Cue starts on its first beat or ends after having started that
-way.footnote:none[] When `None` is chosen, there are no interface
-elements visible to configure the message. They will appear once you
-choose a message type to send.
+None:: With this setting, which is the default, nothing is sent when the Cue starts on its first beat or ends after having started that way.footnote:none[]
+When menu:None[] is chosen, there are no interface elements visible to configure the message.
+They will appear once you choose a message type to send.
 
-Note:: With this setting, the Show sends a Note On message, with
-velocity 127 and the note number shown to the right of the menu, when
-the first player starts playing the Cue from its first beat (as long
-as the Cue’s Track is enabled), and a Note Off message when the last
-player that had been playing the Cue stops doing so, or the Track is
-disabled (as long as the Cue started playing from its first beat).
+Note:: With this setting, the Show sends a Note On message, with velocity 127 and the note number shown to the right of the menu, when the first player starts playing the Cue from its first beat (as long as the Cue’s Track is enabled), and a Note Off message when the last player that had been playing the Cue stops doing so, or the Track is disabled (as long as the Cue started playing from its first beat).
 +
 image:StartedOnBeatNote.png[Started On-Beat Note parameters,792,109]
 +
-The Channel on which the Started On-Beat/Ended messages are sent is
-configured just to the right of the note selector.
+The Channel on which the Started On-Beat / Ended messages are sent is configured just to the right of the note selector.
 
-CC:: With this setting, the Show sends a Control Change message, with
-value 127 and the note number shown to the right of the menu, when the
-first player starts playing the Cue from its first beat (as long as
-the Cue’s Track is enabled), and a CC with value 0 when the last
-player that had been playing the Cue stops doing so, or the Track is
-disabled (as long as the Cue started playing from its first beat).
+CC:: With this setting, the Show sends a Control Change message, with value 127 and the note number shown to the right of the menu, when the first player starts playing the Cue from its first beat (as long as the Cue’s Track is enabled), and a CC with value 0 when the last player that had been playing the Cue stops doing so, or the Track is disabled (as long as the Cue started playing from its first beat).
 
-Custom:: When this option is chosen, you can send any kind of message
-you want when the Cue is started on-beat and/or ended from that state,
-by writing code as described in the
-<<Expressions_ShowCue.adoc#,Expressions>> section. This gives
-you the most flexibility because in addition to MIDI messages, you can
-send arbitrary UDP packets, HTTP requests, or whatever you might need.
-The expression editors for the Started Expression and Ended Expression
-are accessed through the <<cue-context-menu,cue context menu>>.
+Custom:: When this option is chosen, you can send any kind of message you want when the Cue is started on-beat and/or ended from that state, by writing code as described in the xref:Expressions_ShowCue.adoc[Expressions section].
+This gives you the most flexibility because in addition to MIDI messages, you can send arbitrary UDP packets, HTTP requests, or whatever you might need.
+The expression editors for the Started Expression and Ended Expression are accessed through the <<cue-context-menu,cue context menu>>.
 +
-If you choose `Custom` and have not yet written a Started On-Beat
-expression, the expression editor will be opened to let you do that.
-You can also open that editor using the <<cue-context-menu,cue
-context menu>>.
+If you choose *Custom* and have not yet written a Started On-Beat expression, the expression editor will be opened to let you do that.
+You can also open that editor using the <<cue-context-menu,cue context menu>>.
 
 [[started-on-beat-note-spinner]]
-==== Started On-Beat Note/Controller Spinner
+==== Started On-Beat Note / Controller Spinner
 
-Found immediately to the right of the menu:Started On-Beat Message[]
-Menu (unless `None` is chosen as the Message type), this field lets
-you set the MIDI note number used for Note-based started on-beat and
-ended messages, or the controller number used for Control Change-based
-started on-beat and ended messages. The value is also available to
-your Cue expressions if they want to use it.
+Found immediately to the right of the menu:Started On-Beat Message[] Menu (unless menu:None[] is chosen as the Message type), this field lets you set the MIDI note number used for Note-based started on-beat and ended messages, or the controller number used for Control Change-based started on-beat and ended messages.
+The value is also available to your Cue expressions if they want to use it.
 
 [[started-on-beat-channel-spinner]]
 ==== Started On-Beat Channel Spinner
 
-As described above, this lets you specify the MIDI channel on which
-started on-beat/ended messages are sent for this Cue.
+As described above, this lets you specify the MIDI channel on which started on-beat/ended messages are sent for this Cue.
 
 [[started-late-menu]]
 === Started Late Message Menu
 
-The menu:Started Late Message[] Menu determines what kind of MIDI
-message is sent when the first player begins playing the Cue, as long
-as it missed playing the very first beat of the Cue (and as long as the
-Cue’s Track is enabled), or when the last player that had been playing
-inside the cue moves out of it or the Track becomes disabled, if it
-was started somewhere after its first beat.
+The menu:Started Late Message[] Menu determines what kind of MIDI message is sent when the first player begins playing the Cue, as long as it missed playing the very first beat of the Cue (and as long as the Cue’s Track is enabled), or when the last player that had been playing inside the cue moves out of it or the Track becomes disabled, if it was started somewhere after its first beat.
 
-TIP: As a shortcut for testing your Started Late Message
-configuration, clicking on the *Late Message* label with the
-kbd:[Option] or kbd:[Alt] key held down is a quick way to
-<<cue-simulate,simulate>> the Started Late and corresponding Ended
-events.
+TIP: As a shortcut for testing your Started Late Message configuration, clicking on the *Late Message* label with the kbd:[Option] or kbd:[Alt] key held down is a quick way to
+<<cue-simulate,simulate>> the Started Late and corresponding Ended events.
 
 image:StartedLateMenu.png[Started Late Message Menu,912,554]
 
-Same:: With this setting, which is the default, cues which start late
-will be treated as if they had started playing with the initial beat
-of the cue, so the settings of the menu:Started On-Beat Message[] Menu
-will be used, and there are no separate interface elements visible to
-configure the Late Message.
+Same:: With this setting, which is the default, cues which start late will be treated as if they had started playing with the initial beat of the cue, so the settings of the menu:Started On-Beat Message[] Menu will be used, and there are no separate interface elements visible to configure the Late Message.
 +
 [TIP]
 ====
-
-Most of the time you will want to leave the Late Message set to
-`Same`. Unless you have a memory point or hot cue positioned precisely
-at the beat, the only way you can be certain that the cue will be
-detected as starting on-beat is if you are playing into it. And unless
-it is a long cue, and you expect to have loops or memory points that
-jump to later beats inside it that you want to treat differently, the
-difference between starting on-beat and starting just after the beat
-is not generally visible in the results triggered in the system you
-are controlling via Beat Link Trigger.
-
+Most of the time you will want to leave the Late Message set to menu:Same[].
+Unless you have a memory point or hot cue positioned precisely at the beat, the only way you can be certain that the cue will be detected as starting on-beat is if you are playing into it.
+And unless it is a long cue, and you expect to have loops or memory points that jump to later beats inside it that you want to treat differently, the difference between starting on-beat and starting just after the beat is not generally visible in the results triggered in the system you are controlling via Beat Link Trigger.
 ====
 
-None:: With this setting nothing is sent when the Cue starts after its
-first beat or ends after having started that way.footnote:none[] When
-`None` is chosen, there are no interface elements visible to configure
-the message. They will appear once you choose a specific message type
-to send.
+None:: With this setting nothing is sent when the Cue starts after its first beat or ends after having started that way.footnote:none[]
+When
+menu:None[] is chosen, there are no interface elements visible to configure the message.
+They will appear once you choose a specific message type to send.
 
-Note:: With this setting, the Show sends a Note On message, with
-velocity 127 and the note number shown to the right of the menu, when
-the first player starts playing the Cue from somewhere past its first
-beat (as long as the Cue’s Track is enabled), and a Note Off message
-when the last player that had been playing the Cue stops doing so, or
-the Track is disabled (as long as the Cue started playing after its
-first beat).
+Note:: With this setting, the Show sends a Note On message, with velocity 127 and the note number shown to the right of the menu, when the first player starts playing the Cue from somewhere past its first beat (as long as the Cue’s Track is enabled), and a Note Off message when the last player that had been playing the Cue stops doing so, or the Track is disabled (as long as the Cue started playing after its first beat).
 +
 image:StartedLateNote.png[Started Late Note parameters,789,110]
 +
-The Channel on which the Started Late/Ended messages are sent is
-configured just to the right of the note selector.
+The Channel on which the Started Late / Ended messages are sent is configured just to the right of the note selector.
 
-CC:: With this setting, the Show sends a Control Change message, with
-value 127 and the note number shown to the right of the menu, when the
-first player starts playing the Cue from somewhere past its first beat
-(as long as the Cue’s Track is enabled), and a CC with value 0 when
-the last player that had been playing the Cue stops doing so, or the
-Track is disabled (as long as the Cue started playing after its first
-beat).
+CC:: With this setting, the Show sends a Control Change message, with value 127 and the note number shown to the right of the menu, when the first player starts playing the Cue from somewhere past its first beat (as long as the Cue’s Track is enabled), and a CC with value 0 when the last player that had been playing the Cue stops doing so, or the Track is disabled (as long as the Cue started playing after its first beat).
 
-Custom:: When this option is chosen, you can send any kind of message
-you want when the Cue is started late and/or ended from that state, by
-writing code as described in the
-<<Expressions_ShowCue.adoc#,Expressions>> section. This gives you the
-most flexibility because in addition to MIDI messages, you can send
-arbitrary UDP packets, HTTP requests, or whatever you might need. The
-expression editors for the Started Expression and Ended Expression are
-accessed through the <<cue-context-menu,cue context menu>>.
+Custom:: When this option is chosen, you can send any kind of message you want when the Cue is started late and/or ended from that state, by writing code as described in the
+xref:Expressions_ShowCue.adoc[Expressions section].
+This gives you the most flexibility because in addition to MIDI messages, you can send arbitrary UDP packets, HTTP requests, or whatever you might need.
+The expression editors for the Started Expression and Ended Expression are accessed through the <<cue-context-menu,cue context menu>>.
 +
-If you
-choose `Custom` and have not yet written a Started Late expression,
-the expression editor will be opened to let you do that. You can also
-open that editor using the <<cue-context-menu,cue context menu>>.
+If you choose menu:Custom[] and have not yet written a Started Late expression, the expression editor will be opened to let you do that.
+You can also open that editor using the <<cue-context-menu,cue context menu>>.
 
 [[started-late-note-spinner]]
 ==== Started Late Note/Controller Spinner
 
-Found immediately to the right of the menu:Started Late Message[] Menu
-(unless `Same` or `None` is chosen as the Message type), this field
-lets you set the MIDI note number used for Note-based started late and
-ended messages, or the controller number used for Control Change-based
-started late and ended messages. The value is also available to your
-Cue expressions if they want to use it.
+Found immediately to the right of the menu:Started Late Message[] Menu (unless menu:Same[] or menu:None[] is chosen as the Message type), this field lets you set the MIDI note number used for Note-based started late and ended messages, or the controller number used for Control Change-based started late and ended messages.
+The value is also available to your Cue expressions if they want to use it.
 
 [[started-late-channel-spinner]]
 ==== Started Late Channel Spinner
 
-As described above, this lets you specify the MIDI channel on which
-started late/ended messages are sent for this Cue.
+As described above, this lets you specify the MIDI channel on which started late/ended messages are sent for this Cue.
 
 [[cue-context-menu]]
 === Cue Context Menu
 
-Each Cue row has a context menu attached to it, which can be accessed
-by right-clicking (or control-clicking) anywhere on the row’s
-background, but you can also open the context menu with a regular
-mouse click on the button with a gear icon in it. Most of the menu is
-devoted to editing various expressions to customize the Cue, as
-described in the <<Expressions_ShowCue.adoc#,Expressions section>>.
-The gear icon next to an expression will be filled in if that
-expression has a value, and the gear in the button will be filled in
-if any expression associated with the Cue has a value.
+Each Cue row has a context menu attached to it, which can be accessed by right-clicking (or control-clicking) anywhere on the row’s background, but you can also open the context menu with a regular mouse click on the button with a gear icon in it.
+Most of the menu is devoted to editing various expressions to customize the Cue, as described in the xref:Expressions_ShowCue.adoc[Expressions section].
+The gear icon next to an expression will be filled in if that expression has a value, and the gear in the button will be filled in if any expression associated with the Cue has a value.
 
 image:CueContextMenu.png[Context Menu,912,673]
 
-The menu starts with the expression-related options, allowing you to
-open editors to create or edit Clojure code that runs at well-defined
-moments to customize the behavior of the Cue. If you have created any
-expressions for the cue, the menu:View Expressions in Report[] option
-will be present at the top of the menu. Selecting it tells your system
-browser to open the <<Expressions_Report.adoc#>> and scroll it to the
-section that holds this cue’s expressions.
+The menu starts with the expression-related options, allowing you to open editors to create or edit Clojure code that runs at well-defined moments to customize the behavior of the Cue.
+If you have created any expressions for the cue, the menu:View Expressions in Report[] option will be present at the top of the menu.
+Selecting it tells your system browser to open the xref:Expressions_Report.adoc[] and scroll it to the section that holds this cue’s expressions.
 
-The expression-related options are followed by the menu:Simulate[]
-submenu, which allows you to test your MIDI mappings and custom
-expressions as described in the <<cue-simulate,next section>>.
+The expression-related options are followed by the menu:Simulate[] submenu, which allows you to test your MIDI mappings and custom expressions as described in the <<cue-simulate,next section>>.
 
-The menu:Inspect Expression Locals[] option allows you to explore any
-values that have been set up by expressions in any Cue or the Track
-itself to re-use or share with each other. See
-<<Debugging.adoc#inspecting,Inspecting Locals and Globals>> for more
-details.
+The menu:Inspect Expression Locals[] option allows you to explore any values that have been set up by expressions in any Cue or the Track itself to re-use or share with each other.
+See xref:Debugging.adoc#inspecting[Inspecting Locals and Globals] for more details.
 
-Choosing menu:Scroll Waveform to This Cue[] does just what it sounds
-like, ensuring that the cue is visible in the waveform display at the
-top of the window. You can zoom the waveform out if you want to be
-able to see more cues and context, or in if you want to see more
-detail. See <<navigating-cues,Navigating Cues>> below for more
-ways to find what you are looking for.
+Choosing menu:Scroll Waveform to This Cue[] does just what it sounds like, ensuring that the cue is visible in the waveform display at the top of the window.
+You can zoom the waveform out if you want to be able to see more cues and context, or in if you want to see more detail.
+See <<navigating-cues,Navigating Cues>> below for more ways to find what you are looking for.
 
-The menu:Duplicate Cue[] option makes a copy of the chosen Cue,
-appending the word “Copy” (and possibly a number) to its name to keep
-it unique. You can use this if you need to create several cues that
-have common elements.
+The menu:Duplicate Cue[] option makes a copy of the chosen Cue, appending the word “Copy” (and possibly a number) to its name to keep it unique.
+You can use this if you need to create several cues that have common elements.
 
-The menu:Add Cue to Library[] option adds the cue contents to the show
-cue library, making it easy to create other cues in any track which
-send the same messages. See <<Shows_CueLibrary.adoc#,The Cue Library>>
-for more details.
+The menu:Add Cue to Library[] option adds the cue contents to the show cue library, making it easy to create other cues in any track or phrase trigger which send the same messages.
+See xref:Shows_CueLibrary.adoc[] for more details.
 
 ****
-If the cue is already in the library, this menu option will be
-different. There are two separate cases:
+If the cue is already in the library, this menu option will be different.
+There are two separate cases:
 
-* If the cue is exactly the same as when it was added to the library,
-  then the menu option will be menu:Remove Cue from Library[], and
-  will do exactly that.
-* If the cue has been changed since it was added to the library, or
-  you have created a new cue with the same name as one in the library
-  but different content, the menu option will be
-  menu:Update Cue in Library[], and choosing it will redefine the
-  library cue to match the current one.
+* If the cue is exactly the same as when it was added to the library, then the menu option will be menu:Remove Cue from Library[], and will do exactly that.
+* If the cue has been changed since it was added to the library, or you have created a new cue with the same name as one in the library but different content, the menu option will be menu:Update Cue in Library[], and choosing it will redefine the library cue to match the current one.
 ****
 
-Finally, the menu:Delete Cue[] option does just what it sounds like,
-after confirming that you want to discard any expressions and settings
-you have configured for that Cue.
+Finally, the menu:Delete Cue[] option does just what it sounds like, after confirming that you want to discard any expressions and settings you have configured for that Cue.
 
-TIP: In addition to accessing the context menu from the cue row, you
-can bring it up by right-clicking or control-clicking on the cue in
-the waveform at the top of the window.
+TIP: In addition to accessing the context menu from the cue row, you can bring it up by right-clicking or control-clicking on the cue in the waveform at the top of the window.
 
 [[cue-simulate]]
 === Simulating Cue Events
 
-The menu:Simulate[] submenu allows you to pretend that an Entered,
-Exited, Started, Ended, Beat or Tracked Update event has occurred, and
-send the corresponding MIDI messages and/or run the custom Expressions
-you have configured for those situations.
+The menu:Simulate[] submenu allows you to pretend that an Entered, Exited, Started, Ended, Beat or Tracked Update event has occurred, and send the corresponding MIDI messages and/or run the custom Expressions you have configured for those situations.
 
 image:CueSimulate.png[Cue Simulate Menu,435,352]
 
 [TIP]
 ====
-
-This can allow you to set up MIDI mappings in other software, like
-Ableton Live, that requires actual MIDI messages in order to learn
-them, even when you are working in offline mode because you don't
-currently have access to your CDJs.
-
+This can allow you to set up MIDI mappings in other software, like Ableton Live, that requires actual MIDI messages in order to learn them, even when you are working in offline mode because you don’t currently have access to your CDJs.
 ====
 
-The corresponding option will be disabled if there is no MIDI message
-or Expression configured for that event.
+The corresponding option will be disabled if there is no MIDI message or Expression configured for that event.
 
-As a shortcut to simulating the most common pair of cue events
-(Started On-Beat and Ended), you can hold down the kbd:[Option] (or
-kbd:[Alt]) key while clicking and releasing the mouse over the cue
-rectangle in the track waveform at the top of the window.
+As a shortcut to simulating the most common pair of cue events (Started On-Beat and Ended), you can hold down the kbd:[Option] (or kbd:[Alt]) key while clicking and releasing the mouse over the cue rectangle in the track waveform at the top of the window.
 
-You also can use the kbd:[Option]/kbd:[Alt]-click shortcut to simulate
-events from a cue's editor row using the message labels.
-Option/Alt-clicking and releasing on the *Message* label in the
-*Entered* row simulates Entered/Exited events.
-kbd:[Option]/kbd:[Alt]-clicking on the *On-Beat Message* label in the
-*Started* row simulates Started On-Beat and corresponding Ended
-events, and kbd:[Option]/kbd:[Alt]-clicking on the *Late Message*
-label simulates Started Late and corresponding Ended events.
+You also can use the kbd:[Option] / kbd:[Alt]-click shortcut to simulate events from a cue’s editor row using the message labels.
+Option / Alt-clicking and releasing on the *Message* label in the *Entered* row simulates Entered / Exited events.
+kbd:[Option] / kbd:[Alt]-clicking on the *On-Beat Message* label in the *Started* row simulates Started On-Beat and corresponding Ended events, and kbd:[Option] / kbd:[Alt]-clicking on the *Late Message* label simulates Started Late and corresponding Ended events.
 
-If you need to make sure a set of related cues work properly together
-when a track plays, and you don’t have any actual player hardware
-handy to go online with, you can <<SimulatingPlayback.adoc#,simulate
-playback>>.
+If you need to make sure a set of related cues work properly together when a track plays, and you don’t have any actual player hardware handy to go online with, you can xref:SimulatingPlayback.adoc[Simulate Playback], as long as any code in your cues does not need to interact too deeply with an actual Pro DJ Link network.
 
 [[navigating-cues]]
 == Navigating Cues
 
-Beat Link Trigger tries to make it easy for you to find the cue you
-want to work with. Here are some of the things that it does
-automatically, and others you will likely find helpful to try when
-working with a large number of cues.
+Beat Link Trigger tries to make it easy for you to find the cue you want to work with.
+Here are some of the things that it does automatically, and others you will likely find helpful to try when working with a large number of cues.
 
-* The list of cues is kept sorted by their start and end beats (and
-  then their names, if you have multiple cues starting and ending on
-  the same beat).
+* The list of cues is kept sorted by their start and end beats (and then their names, if you have multiple cues starting and ending on the same beat).
 
-* You can type text in the `Filter` box at the top of the window to
-  narrow the display to only cues whose name contain the text you
-  typed.
+* You can type text in the *Filter* box at the top of the window to narrow the display to only cues whose name contain the text you typed.
 
-* You can click the `Entered Only` check box to only show the cues
-  that currently have players posititoned in them. This can be handy
-  when you are running a show.
+* You can click the *Entered Only* check box to only show the cues that currently have players positioned in them.
+This can be handy when you are running a show.
 
-* When you create a new Cue, the list of cues is automatically
- scrolled to ensure the new cue is visible. (If your new cue is hidden
- by the `Filter` or `Entered Only` settings, Beat Link Trigger will
- pop up a dialog to remind you why you are not seeing it.) If needed,
- the track waveform at the top of the window is also scrolled to show
- the new cue.
+* When you create a new Cue, the list of cues is automatically scrolled to ensure the new cue is visible.
+(If your new cue is hidden by the *Filter* or *Entered Only* settings, Beat Link Trigger will pop up a dialog to remind you why you are not seeing it.)
+If needed, the track waveform at the top of the window is also scrolled to show the new cue.
 
-* You can also scroll a Cue’s configuration row into view by clicking
-  on the cue in the waveform display at the top of the window.
+* You can also scroll a Cue’s configuration row into view by clicking on the cue in the waveform display at the top of the window.
 
-* Finally, as noted in the Context Menu section above, you can use a
-  Cue’s context menu to scroll the waveform to reveal the cue within
-  the track beat grid.
+* Finally, as noted in the Context Menu section <<cue-context-menu,above>>, you can use a Cue’s context menu to scroll the waveform to reveal the cue within the track beat grid.
 
 === Scrolling and Zooming
 
-Unless you happen to be using Auto-Scroll mode to have the cues editor
-waveform follow the track's playback on a CDJ, you can of course use
-the normal scroll bar to choose the part you want to see, and the Zoom
-slider at the <<#cues-window,top of the window>> to control how much
-of the waveform is visible at once. But if you have a great many cues
-to enter or edit, you might want faster ways to get around without
-having to lose your context and focus. https://linktr.ee/mddxmusic[Nicholas
+Unless you happen to be using Auto-Scroll mode to have the cues editor waveform follow the track’s playback on a CDJ, you can of course use the normal scroll bar to choose the part you want to see, and the Zoom slider at the <<cues-window,top of the window>> to control how much of the waveform is visible at once.
+But if you have a great many cues to enter or edit, you might want faster ways to get around without having to lose your context and focus. https://linktr.ee/mddxmusic[Nicholas
 Maddix] inspired some features that can help a lot:
 
-* If you are using mouse with a vertical scroll wheel, rolling it
-  while the mouse is inside the cues editor waveform will zoom the
-  track in or out, keeping the same section under the mouse pointer if
-  possible.
+* If you are using mouse with a vertical scroll wheel, rolling it while the mouse is inside the cues editor waveform will zoom the track in or out, keeping the same section under the mouse pointer if possible.
 
-* If you are using a multi-touch track pad, you can use the vertical
-  scroll gesture to zoom in and out while keeping the context under
-  the mouse pointer fixed in the same way as with a scroll wheel.
+* If you are using a multitouch trackpad, you can use the vertical scroll gesture to zoom in and out while keeping the context under the mouse pointer fixed in the same way as with a scroll wheel.
 
-* A horizontal scroll wheel (less common), or trackpad horizontal
-  scrolling gesture, can be used to scroll the waveform left or right
-  without moving out of the waveform down to the scroll bar.
+* A horizontal scroll wheel (less common), or trackpad horizontal scrolling gesture, can be used to scroll the waveform left or right without moving out of the waveform down to the scroll bar.
 
-* Finally, whenever there is a cues editor open on a track (as long as
-  it is not in Auto-Scroll mode), the section of that track's waveform
-  that is currently visible in the cues editor is highlighted with a
-  white outline on the track overview in the Show window:
+* Finally, whenever there is a cues editor open on a track (as long as it is not in Auto-Scroll mode), the section of that track’s waveform that is currently visible in the cues editor is highlighted with a white outline on the track overview in the Show window:
 +
 image:CuesViewportOutline.png[Cues viewport outline,700,160]
 +
-When you click anywhere in this full-track preview, the cues editor
-waveform will scroll to center the section you clicked on. Dragging to
-the left or right will scroll the cues editor waveform to the
-corresponding point, and dragging up or down will zoom the cues editor
-waveform out and in.
+When you click anywhere in this full-track preview, the cues editor waveform will scroll to center the section you clicked on.
+Dragging to the left or right will scroll the cues editor waveform to the corresponding point, and dragging up or down will zoom the cues editor waveform out and in.
 
-Learning these options will enable you to quickly get to exactly the
-part of the waveform where you want to work on cues.
+Learning these options will enable you to quickly get to exactly the part of the waveform where you want to work on cues.
