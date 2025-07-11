@@ -9,7 +9,12 @@ To keep page sizes manageable, this guide is split into several pages.
 It is worth at least skimming through this whole guide once if you are new to Beat Link Trigger.
 Once you know what you are looking for, you can also dive right into it by jumping to the page you want using the navigation menu on the left.
 
-TIP: You can also use the “Search the docs” box at the top of the window to search the entire user guide, not just what is on the current page.
+[TIP]
+====
+You can also use the “Search the docs” box at the top of the window to search the entire user guide, not just what is on the current page.
+
+If you are looking at this guide over the Internet, you can only search the most recent finalized release. If you open the copy that is embedded inside a running copy of BLT, the search will reflect exactly the version you are running.
+====
 
 .Versions
 ****
