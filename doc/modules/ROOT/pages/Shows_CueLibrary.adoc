@@ -6,8 +6,8 @@ Once you have set up a cue that sends the proper messages to achieve that look, 
 To do that, choose menu:Add Cue to Library[] from the Cue xref:Shows_Cues.adoc#cue-context-menu[context menu].
 
 [#cue-library-button]
-As soon as you have a cue in the show’s library, a *Library ▾* button appears next to the *New Cue* button in any Cue Editor windows you have open for tracks in the show (and any existing cue rows also get new link buttons just below their gear buttons, described <<linked-cues,below>>).
-Clicking *Library ▾* gives you a menu of all the cues that you have added to the show’s library, and choosing one creates a new cue (in the same location that the *New Cue* button would), based on the template cue that you put in the library:
+As soon as you have a cue in the show’s library, a btn:[Library ▾] button appears next to the btn:[New Cue] button in any Cue Editor windows you have open for tracks in the show (and any existing cue rows also get new link buttons just below their gear buttons, described <<linked-cues,below>>).
+Clicking btn:[Library ▾] gives you a menu of all the cues that you have added to the show’s library, and choosing one creates a new cue (in the same location that the btn:[New Cue] button would), based on the template cue that you put in the library:
 
 image:CueLibraryButton.png[Cue Library Button,900,425]
 
@@ -139,7 +139,7 @@ We will use it later to position our dialog over that window, so it is easy to s
 We then create the dialog itself.
 
 <5> This line sizes the dialog window to just fit the user interface elements we have laid out inside it, and the next line positions it on the screen centered over the cues editor where we are placing a cue, using the `parent` value we captured in step 1.
-Then we show the window, and if we get back a truthy result from that, we know the user has not clicked the *Cancel* button.
+Then we show the window, and if we get back a truthy result from that, we know the user has not clicked the btn:[Cancel] button.
 
 <6> The last step is to take the incoming xref:ShowInternals.adoc#cue[cue map] that is about to be placed in the Cues Editor window, and modify it to the user’s specifications.
 We update the comment to describe the specific wash that was requested, then generate appropriate Started On Beat and Ended expressions for the cue.
@@ -161,8 +161,8 @@ Once we have applied this configuration to the “Red Wash” library cue, the n
 
 image:BuildRedWash.png[Configure Unlink,500,260]
 
-If we click *Cancel* here, no cue is created, and the selection we had made in the Cues Editor window remains in place.
-If we type a fixture group name, choose a level, and click *OK*, the customized cue is created, and as usual its description is selected for editing in case we want to make any further tweaks:
+If we click btn:[Cancel] here, no cue is created, and the selection we had made in the Cues Editor window remains in place.
+If we type a fixture group name, choose a level, and click btn:[OK], the customized cue is created, and as usual its description is selected for editing in case we want to make any further tweaks:
 
 image:CueBuilt.png[Red Wash Cue Built,900,425]
 

@@ -28,7 +28,7 @@ section of the window if it was not already visible.
 Dragging an edge left or right will adjust the beat on which the cue begins or ends.
 Right-clicking or control-clicking a cue brings up the <<cue-context-menu,cue context menu>> which gives you many other options, and clicking on a cue with the kbd:[Option] or kbd:[Alt] key held down is a quick way to <<cue-simulate,simulate>> its Started On-Beat and Ended events.
 
-The *New Cue* button creates a new cue on the first beat of the Track, unless you have selected a beat range first as described below.
+The btn:[New Cue] button creates a new cue on the first beat of the Track, unless you have selected a beat range first as described below.
 
 As with the Show window, if you type any text in the *Filter* box, only Cues that match that text will be visible.
 Similarly, if you check the *Entered Only* checkbox, only Cues that currently have a player positioned inside them will be visible.
@@ -40,7 +40,7 @@ TIP: The *Entered Only* and *Auto-Scroll* checkboxes are only visible when Beat 
 == Adding Cues to a Track
 
 The Cues window doesn’t do much until you add at least one Cue.
-As mentioned above, you can use the *New Cue* button to do this, and then edit the cue to position it where you want it, but it is easier to specify where you want it on the beat grid first.
+As mentioned above, you can use the btn:[New Cue] button to do this, and then edit the cue to position it where you want it, but it is easier to specify where you want it on the beat grid first.
 To do that, you can click and drag in the waveform view to highlight the beats that you want the Cue to run for.
 Dragging over the eight beats past where the player was cued in the above example sets up a selection like this:
 
@@ -52,7 +52,7 @@ Also remember that you can adjust the Zoom slider to make it easier to position 
 Alternately, you can click to select a single beat, then shift-click another to specify the entire range without dragging.
 If you created a beat selection by accident and want to get rid of it, you can either drag it back down to nothing, or click a single beat outside the selection and then shift-click it to deselect it.
 
-Regardless of how you do it, once you have the right beats selected, clicking the *New Cue* button will create a new cue covering the chosen beats:
+Regardless of how you do it, once you have the right beats selected, clicking the btn:[New Cue] button will create a new cue covering the chosen beats:
 
 image:FirstCue.png[First cue added,912,461]
 
@@ -227,7 +227,7 @@ Custom:: When this option is chosen, you can send any kind of message you want w
 This gives you the most flexibility because in addition to MIDI messages, you can send arbitrary UDP packets, HTTP requests, or whatever you might need.
 The expression editors for the Started Expression and Ended Expression are accessed through the <<cue-context-menu,cue context menu>>.
 +
-If you choose *Custom* and have not yet written a Started On-Beat expression, the expression editor will be opened to let you do that.
+If you choose menu:Custom[] and have not yet written a Started On-Beat expression, the expression editor will be opened to let you do that.
 You can also open that editor using the <<cue-context-menu,cue context menu>>.
 
 [[started-on-beat-note-spinner]]

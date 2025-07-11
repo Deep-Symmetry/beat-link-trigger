@@ -35,12 +35,12 @@ To do this on macOS, you need to type something like this from a Terminal window
 
 
 If a connection with QLC+ could not be established, you'll see a red `No` for the `Connected:` status.
-Make sure QLC+ is running and has its web API enabled, then use the **Configure** button to try again:
+Make sure QLC+ is running and has its web API enabled, then use the btn:[Configure] button to try again:
 
 image:QLC_Configure.png[QLC+ connection configuration,678,274]
 
-If you just had to properly launch QLC+ on the same machine as BLT, clicking **Configure** without changing anything should be enough to get connected.
-If you are running it on another machine, enter the hostname or IP address of that machine in the text field before clicking **Configure**.
+If you just had to properly launch QLC+ on the same machine as BLT, clicking btn:[Configure] without changing anything should be enough to get connected.
+If you are running it on another machine, enter the hostname or IP address of that machine in the text field before clicking btn:[Configure].
 
 You generally won’t need to change the port number field unless you are running QLC+ with a non-standard web API port through the `-wp` or `--web-port` option.
 In that case, make sure the port specified here matches the one you are using on the command line.

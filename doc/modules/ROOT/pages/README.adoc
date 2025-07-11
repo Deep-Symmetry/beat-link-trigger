@@ -22,15 +22,15 @@ Any links to external resources, however, will only work if you are online.
 endif::[]
 ifndef::page-origin-worktree[]
 ifeval::["{page-component-display-version}" == "main"]
-You are looking at the **main** branch of the User Guide.
+You are looking at the *main* branch of the User Guide.
 This tries to keep up with the latest in-progress changes to the software, which are frequently made available as preview builds.
 
-To look at a version of the Guide that corresponds to a specific release, choose it in the versions menu either at the top right (just before the **Edit this Page** link), or at the bottom left.
+To look at a version of the Guide that corresponds to a specific release, choose it in the versions menu either at the top right (just before the *Edit this Page* link), or at the bottom left.
 endif::[]
 ifeval::["{page-component-display-version}" != "main"]
 You are looking at version *{page-component-version}* of the User Guide, which corresponds to that release of the software.
 
-To look at a different version (including the `main` branch, which reflects ongoing development that is available as a preview release but not yet frozen as a numbered release), choose it in the versions menu either at the top right (just before the **Edit this Page** link), or at the bottom left.
+To look at a different version (including the `main` branch, which reflects ongoing development that is available as a preview release but not yet frozen as a numbered release), choose it in the versions menu either at the top right (just before the *Edit this Page* link), or at the bottom left.
 endif::[]
 endif::[]
 ****
@@ -46,7 +46,7 @@ image::FindingDevices.png[Looking for devices,512,512]
 NOTE: Your window may not look exactly like this, for reasons that go beyond host operating system differences.
 Starting with BLT version 8 you can choose different user interface themes in the xref:Settings.adoc[], so be ready for variations from the screenshots.
 
-If you just wanted to work on setting up your triggers, expressions, or shows, and don’t have any actual players handy, you can click kbd:[Continue Offline] to work in an offline mode.
+If you just wanted to work on setting up your triggers, expressions, or shows, and don’t have any actual players handy, you can click btn:[Continue Offline] to work in an offline mode.
 Your triggers won’t actually fire, but you can do all the configuration and editing that you need, and you can load tracks into your shows using rekordbox USB and SD media.
 
 If no DJ Link devices can be found after about twenty seconds of searching, it probably means something is misconfigured on your network, so Beat Link Trigger will replace the window with a troubleshooting version that looks like this:
@@ -59,7 +59,7 @@ The devices will only be able to communicate with you if they have compatible IP
 If you are not on a network with a DHCP server, for example, the players will assign themselves addresses of the form 169.254._x_._y_/16, so if none of your addresses match that pattern, you will not be able to communicate with them.
 
 While you work on making sure your network interfaces and cables are configured properly, Beat Link Trigger is continuing to watch for devices, so as soon as you get the issue sorted out, it will go online.
-And as noted above, if that isn’t going to happen, you can click kbd:[Continue Offline] to work in an offline mode, or you can click kbd:[Quit] to give up and try again later, perhaps in a different setting.
+And as noted above, if that isn’t going to happen, you can click btn:[Continue Offline] to work in an offline mode, or you can click btn:[Quit] to give up and try again later, perhaps in a different setting.
 
 Once a device is found, or you choose to continue offline, the xref:Triggers.adoc[] window opens, in the same configuration that you left it the last time you used the program, and any xref:Shows.adoc[Show files] you had open will be reopened as well.
 

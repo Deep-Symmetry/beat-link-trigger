@@ -27,12 +27,12 @@ This brings up a window where you can navigate to the mounted USB drive:
 
 image::ArchiveChooseMedia.png[Choose media to archive,644,452]
 
-Once you have selected the mounted media, click kbd:[Choose Rekordbox Media].
+Once you have selected the mounted media, click btn:[Choose Rekordbox Media].
 That opens a new window where you can choose where to save the archive:
 
 image::ArchiveCreate.png[Create metadata archive,630,466]
 
-Navigate to where you would like to save it, choose a name for it, and click kbd:[Create Metadata Archive].
+Navigate to where you would like to save it, choose a name for it, and click btn:[Create Metadata Archive].
 The archive will be created, which may take a while, depending on how many tracks are on the USB drive.
 A progress bar will allow you to see how the export is going, and cancel it if you change your mind:
 
@@ -41,7 +41,7 @@ image::ArchiveProgress.png[Archive creation progress,412,252]
 Once you have archives created for all the USBs you want to use with your Opus Quad, you can proceed to the next step.
 
 IMPORTANT: You will need to update your metadata archives whenever you add or edit tracks on the USB.
-To do that, follow the same steps above, choose the existing archive that you want to update at the step where you are specifying where it should be saved, and respond **Yes** to the dialog that asks you if you want to replace the existing file.
+To do that, follow the same steps above, choose the existing archive that you want to update at the step where you are specifying where it should be saved, and respond btn:[Yes] to the dialog that asks you if you want to replace the existing file.
 
 
 [#attaching-metadata-archives]
@@ -52,7 +52,7 @@ To do that, use the gear popup menu corresponding to that slot in the xref:Playe
 
 image:ArchiveAttach.png[Attach metadata archive,498,338]
 
-Navigate to where you saved your metadata archives, choose the correct one, and click kbd:[Attach Metadata Archive]:
+Navigate to where you saved your metadata archives, choose the correct one, and click btn:[Attach Metadata Archive]:
 
 image::ArchiveAttach2.png[Choose metadata archive to attach,640,466]
 
@@ -100,7 +100,7 @@ To avoid that, connect the Opus Quad to your computer with a real Ethernet cable
 
 If you must also connect them via USB cable (for example, you want to use the USB audio interface in the Opus Quad), you will end up with multiple network paths for the Pro DJ Link packets, which is also a problem.
 So you will need to disable the USB network interface associated with the Opus Quad.
-On macOS, you can do that by watching in the Network section of the System Settings to see which interface activates and deactivates when you connect and disconnect the Opus Quad, and then using the *Make Inactive* context menu to disable that interface.
+On macOS, you can do that by watching in the Network section of the System Settings to see which interface activates and deactivates when you connect and disconnect the Opus Quad, and then using the menu:Make Inactive[] context menu to disable that interface.
 On other operating systems you will need to perform the equivalent actions.
 
 [#potential-workaround]

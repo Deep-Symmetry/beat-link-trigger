@@ -8,12 +8,12 @@ By opening menu:Network[OBS Overlay Web Server] you can configure and launch an 
 
 image:ObsOverlay.png[OBS Overlay Server Window,560,250]
 
-The **Server Port** spinner allows you to choose the port on which the web server will operate.
+The *Server Port* spinner allows you to choose the port on which the web server will operate.
 You can pick any port that is not in use; the default of 17,081 is likely to work just fine.
-The **Run** checkbox starts and stops the server.
-Once it is running you can click **Open in Browser** to take a look at how the configured template renders the current player state, and to give you an easy way to copy the overlay URL from the browser address bar for pasting into OBS Studio.
+The *Run* checkbox starts and stops the server.
+Once it is running you can click btn:[Open in Browser] to take a look at how the configured template renders the current player state, and to give you an easy way to copy the overlay URL from the browser address bar for pasting into OBS Studio.
 
-Beat Link Trigger ships with a default template that is served unless you specify your own templates folder, which you can do by clicking **Choose** on the **Templates Folder** row.
+Beat Link Trigger ships with a default template that is served unless you specify your own templates folder, which you can do by clicking btn:[Choose] on the *Templates Folder* row.
 It will allow you to navigate to and select any folder your system, as long as there is a
 readable `overlay.html` file in that folder.
 This file will be used as the template rendered by the overlay server.
@@ -24,7 +24,7 @@ Once you have chosen a templates folder, that choice is stored in your preferenc
 In designing your template, you are likely to want to use graphics, fonts, CSS, and possibly scripts and other resources.
 If these are already on the Internet, you can reference them using URLs in your
 template.
-But if you want to access them locally, you can gather them all into any folder, and configure that as a **Public Folder** for the overlay server by clicking the **Choose** button in that row, and navigating to and selecting that folder.
+But if you want to access them locally, you can gather them all into any folder, and configure that as a *Public Folder* for the overlay server by clicking the btn:[Choose] button in that row, and navigating to and selecting that folder.
 Once you have done that, any file in that folder can be referenced from your template simply by using a URL of the format `/public/` followed by the filename.
 So for example if you have a file `logo.png` in your public folder, a template can use it by referencing the URL `/public/logo.png`.
 
@@ -65,7 +65,7 @@ Variables allow you to insert information from the current state of your players
 
 Template variables look like this: `{{ variable }}`.
 When Selmer encounters a variable like this, it looks up the value of that variable, and inserts the value into the template in place of the variable.
-There are many variables available to you, which are described just below, and you can also examine their actual values for the current state of your players by clicking the **Inspect Template Parameters** button when the overlay server is running:
+There are many variables available to you, which are described just below, and you can also examine their actual values for the current state of your players by clicking the btn:[Inspect Template Parameters] button when the overlay server is running:
 
 image:ObsParams.png[OBS Overlay Template Parameters,530,890]
 
@@ -616,8 +616,8 @@ In order to support this approach, whenever your page requests the URL `/params.
 You can set up a timeout function to retrieve them at whatever frame rate you would like to update your overlay, and your code can process the results and render itself as desired.
 
 The content and meaning of the JSON response is detailed in the <<#variables,Variables>> section above, but ignore the discussion of how to use Selmer syntax to navigate the variables; you will be using normal JavaScript syntax once you have parsed the JSON.
-You can see the exact details of the current JSON value being returned by using the **Open in Browser** button in the OBS Overlay Server window, and then adding `/params.json` at the end of your browser's URL bar.
-The **Inspect Template Parameters** button also offers a nice hierarchical way to explore them.
+You can see the exact details of the current JSON value being returned by using the btn:[Open in Browser] button in the OBS Overlay Server window, and then adding `/params.json` at the end of your browser's URL bar.
+The btn:[Inspect Template Parameters] button also offers a nice hierarchical way to explore them.
 
 
 [#graphics-resources]

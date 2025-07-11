@@ -23,7 +23,7 @@ In addition to the current track time (position) and remaining time, the current
 === Precise Position
 
 The CDJ-3000 sends https://djl-analysis.deepsymmetry.org/djl-analysis/beats.html#absolute-position-packets[additional information], much more frequently, which allows BLT 7.3.0 or later to track its location much more accurately, even when the DJ is moving around but not playing, or jumping or looping inside individual beats.
-When this information is available, the time display will read **Precise Time**:
+When this information is available, the time display will read *Precise Time*:
 
 image:PreciseTime.png[Precise Time Tracking,496,340]
 
@@ -127,15 +127,15 @@ And if you are not using a real player number, the sections available are a simp
 
 You can click on the `+` icon to expand a section, or double-click anywhere in that row of the tree.
 The same actions will collapse an already-expanded section (although the icon will be labeled `-` in that case).
-Selecting a row that corresponds to an individual track enables the kbd:[Load] button:
+Selecting a row that corresponds to an individual track enables the btn:[Load] button:
 
 image:LoadTrackButton.png[Load Track Button,633,484]
 
 Clicking that button tells the player chosen in the menu:Load on[] menu to load the selected track.
 (The button will also be disabled, with an explanation next to it, if that player is currently playing a track, or the hardware does not support the feature.)
 
-If the chosen player is currently stopped at the Cue point, the kbd:[Play if Cued] button will be enabled; pressing it tells that player to start playing.
-If the player is currently playing, the button will be labeled kbd:[Stop and Cue], and clicking it will tell the player to stop and return to the Cue point, so it will be ready to start playing again.
+If the chosen player is currently stopped at the Cue point, the btn:[Play if Cued] button will be enabled; pressing it tells that player to start playing.
+If the player is currently playing, the button will be labeled btn:[Stop and Cue], and clicking it will tell the player to stop and return to the Cue point, so it will be ready to start playing again.
 
 NOTE: Limitations in the Fader Start protocol, which is used to start and stop players, make it impossible to start a player that is stopped anywhere other than the current Cue point.
 
@@ -147,7 +147,7 @@ Once you can see what you are looking for, you can expand and load it.
 image:LoadTrackSearch.png[Load Track: Searching,672,648]
 
 If there are more than 25 results matching your search string, only the first 25 will be loaded and shown to begin with.
-You can use the kbd:[Load] button to load more, in larger and larger batches, although your best bet is probably to use a longer and more selective search string instead:
+You can use the btn:[Load] button to load more, in larger and larger batches, although your best bet is probably to use a longer and more selective search string instead:
 
 image:LoadTrackSearch2.png[Load Track: Searching,785,667]
 
@@ -164,7 +164,7 @@ This window displays all the DJ preference settings that can be configured on a 
 
 Beat Link Trigger remembers the settings you have chosen as part of the Triggers window configuration, so they will persist between times you run the program.
 
-Once you have the settings configured the way you want them, you can choose a currently-connected player in the menu:Load on:[] menu, and click the kbd:[Load] button to tell it to load them.
+Once you have the settings configured the way you want them, you can choose a currently-connected player in the menu:Load on:[] menu, and click the btn:[Load] button to tell it to load them.
 The player will instantly apply any of the settings that it understands.
 
 [#auto-open]

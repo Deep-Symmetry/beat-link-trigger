@@ -11,7 +11,7 @@ In this case, beyond sending out channels-on-air packets to the DJ Link network,
 In this case, there is a great deal of code that I wrote for the integration example, so I don’t plan to show and explain it all here unless someone specifically requests that.
 I will instead provide a walk-through of how to use the user interface provided by the link:{attachmentsdir}/ExtendedOnAirV10.bls[show file], which you can download and open whenever you want to use it.
 
-NOTE: Because this integration requires MIDI messages from the mixer to determine a richer notion of which channels are on the air, you will need to connect a USB cable from the mixer to the computer on which BLT is running, and turn on MIDI by activating the **On** button below the USB/MIDI ports.
+NOTE: Because this integration requires MIDI messages from the mixer to determine a richer notion of which channels are on the air, you will need to connect a USB cable from the mixer to the computer on which BLT is running, and turn on MIDI by activating the btn:[On] button below the USB/MIDI ports.
 If the mixer is not connected this way, the show will display an error dialog when you go online, explaining that its features are disabled because the mixer could not be found.
 
 == DJM-V10 Interface
@@ -56,4 +56,4 @@ image::ExtendedOnAirV10Messages.png[Message configuration window,950,731]
 
 For any device that you want managed this way, find the rows corresponding to its mixer channel number and channel input selector position, and select whether you want to send a Note or Control Change (CC) message when it goes on and/or off-air, the note or controller number you want sent, and the MIDI channel and MIDI Output you want it sent on.
 
-Once all the rows you want to use are set up the way you need, click kbd:[OK] to dismiss the window. The settings you choose will be saved within the show when you save or close it.
+Once all the rows you want to use are set up the way you need, click btn:[OK] to dismiss the window. The settings you choose will be saved within the show when you save or close it.

@@ -62,10 +62,10 @@ The keys are the track's signatures, and the values are the track maps described
 
 [#vis-phrases]
 `:vis-phrases`:: A vector of the <<phrase-uuid,UUIDs>> of all the phrase triggers that are currently visible in the show window, in the order in which they appear.
-This can be affected by the **Filter** text field at the top of the window (filtering on the phrase triggers’ comments), as well as the **Loaded Only** checkbox next to it (showing only currently-active phrase triggers).
+This can be affected by the *Filter* text field at the top of the window (filtering on the phrase triggers’ comments), as well as the *Loaded Only* checkbox next to it (showing only currently-active phrase triggers).
 
 `:visible`:: A vector of the signatures of all the tracks that are currently visible in the show window, in the order in which they appear.
-This can be affected by the **Filter** text field at the top of the window as well as the **Loaded Only** checkbox next to it.
+This can be affected by the *Filter* text field at the top of the window as well as the *Loaded Only* checkbox next to it.
 
 [#show-contents]
 === Show Contents
@@ -75,13 +75,13 @@ Some elements that might be useful include:
 
 `:cue-library`:: Holds the definitions of any cues that have been added to the show’s library.
 
-`:enabled`:: The value chosen in the show's menu:Enabled Default[] menu, one of `"Never"`, `"On-Air"`, `"Master"`, `"Custom"`, or `"Always"`.
+`:enabled`:: The value chosen in the show's menu:Enabled Default[] menu, one of menu:Never[], menu:On-Air[], menu:Master[], menu:Custom[], or menu:Always[].
 
 `:expressions`:: A map holding the source text of any show-level expressions that have been created, indexed by the keyword identifying the expression type.
 
 `:filter`:: The filter text that has been entered at the top of the show window, if any, causing only matching tracks to be visible.
 
-`:loaded-only`:: Indicates whether the **Loaded Only** checkbox at the top of the show window has been checked, causing only tracks that are currently loaded in a player to be visible in the window.
+`:loaded-only`:: Indicates whether the *Loaded Only* checkbox at the top of the show window has been checked, causing only tracks that are currently loaded in a player to be visible in the window.
 
 `:phrase-order`:: A vector of <<phrase-uuid,UUIDs>> that maintains the order in which the phrase triggers should appear in the window, regardless of their current visibility.
 
@@ -118,7 +118,7 @@ The information you are more likely to use is found in the <<cues-editor,cues ed
 
 `:file`:: The Java https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/File.html[`File`] object holding the show to which the track belongs.
 
-`:filter`:: A string containing all the track-related text which can be matched by the **Filter** text field at the top of the show window, so filtering can be performed efficiently.
+`:filter`:: A string containing all the track-related text which can be matched by the *Filter* text field at the top of the show window, so filtering can be performed efficiently.
 
 `:grid`:: The Beat Link https://deepsymmetry.org/beatlink/apidocs/org/deepsymmetry/beatlink/data/BeatGrid.html[`Beat Grid`] object that lists where each beat in the track falls.
 
@@ -134,7 +134,7 @@ The information you are more likely to use is found in the <<cues-editor,cues ed
 
 `:song-structure`:: If there is phrase analysis information available for the track, this holds the https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureTag.html[`SongStructureTag`] that describes it.
 
-`:tripped`:: Will be `true` when the track is currently enabled and loaded on at least one player (the same conditions under which there will be a green dot showing in the xref:Shows_Tracks.adoc#loaded-status[**Loaded Status** indicator] of the track row).
+`:tripped`:: Will be `true` when the track is currently enabled and loaded on at least one player (the same conditions under which there will be a green dot showing in the xref:Shows_Tracks.adoc#loaded-status[*Loaded Status* indicator] of the track row).
 
 
 [#track-contents]
@@ -209,20 +209,20 @@ Units are beats per hundred minutes, so a track that begins at 128.5 BPM would h
 The track’s cues editor information map contains the information needed to manage the Cues Editor window that can be opened for a track.
 Its keys and values are:
 
-`:auto-scroll`:: Will be `true` when the **Auto-Scroll** checkbox at the top of the window is checked.
+`:auto-scroll`:: Will be `true` when the *Auto-Scroll* checkbox at the top of the window is checked.
 
 [[cues-map]]
 `:cues`:: A map holding information about all cues in the track.
 The keys are the cues' <<cue-uuid,UUIDs>>, and the values are the cue maps described in the <<cue,Cue section>>.
 
-`:entered-only`:: Will be `true` when the **Entered-Only** checkbox at the top of the window is checked.
+`:entered-only`:: Will be `true` when the *Entered-Only* checkbox at the top of the window is checked.
 
 `:hue`:: A floating-point number representing the angle around the color wheel that was chosen for the last cue created; used to assign each new cue a visibly distinct hue.
 
 `:filter`:: The filter text that has been entered at the top of the cues editor window, if any, causing only matching cues to be visible.
 
 `:visible`:: A vector of the <<cue-uuid,UUIDs>> of all the cues that are currently visible in the cues editor window, in the order in which they appear.
-This can be affected by the **Filter** text field at the top of the window, as well as the **Entered Only** checkbox next to it.
+This can be affected by the *Filter* text field at the top of the window, as well as the *Entered Only* checkbox next to it.
 
 `:window`:: The top left coordinates of the cues editor window on the screen, and its height and width, for use in restoring the window when it is opened again.
 
@@ -295,7 +295,7 @@ The information you are more likely to use is found inside the `:contents` map, 
 [[phrase-uuid]]
 `:uuid`:: The unique identifier (a Java https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/UUID.html[UUID] object) that identifies this phrase trigger within the show, so it can be recognized in the <<vis-phrases,list of which are currently visible>>, and referenced in other ways.
 
-`:tripped`:: Will be `true` when the phrase trigger is currently enabled and was chosen in response to a phrase playing on at least one player (the same conditions under which there will be a green dot showing in the xref:Shows_PhraseTriggers.adoc#playing-status[**Playing Status** indicator] of the phrase trigger row).
+`:tripped`:: Will be `true` when the phrase trigger is currently enabled and was chosen in response to a phrase playing on at least one player (the same conditions under which there will be a green dot showing in the xref:Shows_PhraseTriggers.adoc#playing-status[*Playing Status* indicator] of the phrase trigger row).
 
 
 [[phrase-contents]]
@@ -385,20 +385,20 @@ This is configured using the xref:Shows_PhraseTriggers.adoc#enabling-weighting[*
 The phrase trigger’s cues editor information map contains the information needed to manage the Cues Editor window that can be opened for a phrase trigger.
 Its keys and values are:
 
-`:auto-scroll`:: Will be `true` when the **Auto-Scroll** checkbox at the top of the window is checked.
+`:auto-scroll`:: Will be `true` when the *Auto-Scroll* checkbox at the top of the window is checked.
 
 [[phrase-cues-map]]
 `:cues`:: A map holding information about all cues in the phrase trigger.
 The keys are the cues' <<cue-uuid,UUIDs>>, and the values are the cue maps described in the <<cue,Cue section>>.
 
-`:entered-only`:: Will be `true` when the **Entered-Only** checkbox at the top of the window is checked.
+`:entered-only`:: Will be `true` when the *Entered-Only* checkbox at the top of the window is checked.
 
 `:hue`:: A floating-point number representing the angle around the color wheel that was chosen for the last cue created; used to assign each new cue a visibly distinct hue.
 
 `:filter`:: The filter text that has been entered at the top of the cues editor window, if any, causing only matching cues to be visible.
 
 `:visible`:: A vector of the <<cue-uuid,UUIDs>> of all the cues that are currently visible in the cues editor window, in the order in which they appear.
-This can be affected by the **Filter** text field at the top of the window, as well as the **Entered Only** checkbox next to it.
+This can be affected by the *Filter* text field at the top of the window, as well as the *Entered Only* checkbox next to it.
 
 `:window`:: The top left coordinates of the cues editor window on the screen, and its height and width, for use in restoring the window when it is opened again.
 

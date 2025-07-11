@@ -77,7 +77,7 @@ Still, read on to keep learning the basic expression editing concepts.
 [TIP]
 ====
 As you use the editor, you will notice that it provides syntax coloring and parenthesis-matching help.
-But if you end up making a mistake in your expression, Beat Link Trigger will likely report a compilation error when you click kbd:[Update], and you can check the xref:Debugging.adoc#logs[log] for a more detailed stack trace.
+But if you end up making a mistake in your expression, Beat Link Trigger will likely report a compilation error when you click btn:[Update], and you can check the xref:Debugging.adoc#logs[log] for a more detailed stack trace.
 You can try searching the web for information about the error, or looking in
 the Clojure https://clojure.org/guides/getting_started[documentation], but you can also ask for help in the Beat Link Trigger https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip stream].
 

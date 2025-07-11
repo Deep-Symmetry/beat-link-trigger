@@ -34,7 +34,7 @@ To use the Show interface, you start by choosing menu:File[New Show] in the Beat
 image:NewShow.png[New Show option,204,173]
 
 This opens a Save dialog where you choose the location and name of your new Show file.
-Navigate to where you would like to keep it, type a name, and click kbd:[Save].
+Navigate to where you would like to keep it, type a name, and click btn:[Save].
 
 image:NewShow2.png[New Show Save dialog,660,460]
 
@@ -164,24 +164,24 @@ A *Choose Media* dialog will appear, from which you can navigate to the media:
 
 image:ChooseMedia.png[Choose Media dialog,526,369]
 
-Once you click kbd:[Choose Media], the exported database is parsed, and a Choose Track window is presented, which is very similar to the xref:Players.adoc#loading-playing[Loading and Playing Tracks] interface offered by the Player Status window (see that section for details about how to navigate the interface and use the Search feature):
+Once you click btn:[Choose Media], the exported database is parsed, and a Choose Track window is presented, which is very similar to the xref:Players.adoc#loading-playing[Loading and Playing Tracks] interface offered by the Player Status window (see that section for details about how to navigate the interface and use the Search feature):
 
 image:ShowChooseTrack.png[Choose Track dialog,720,518]
 
-Once you have found the Track you are looking for, click *Choose Track* to add it to the Show.
+Once you have found the Track you are looking for, click btn:[Choose Track] to add it to the Show.
 
 image:SecondTrackLoaded.png[Second track loaded into Show,1005,589]
 
 [TIP]
 ====
 To save time, once you have chosen media to load tracks from during a Beat Link Trigger session, your media choice is remembered (and the parsed database export is kept open), so the next time you choose to import from offline media, the media selection window is skipped, and you are taken right to the track selection window.
-If you want to import from different media, click the *Change Media* button at the bottom of the window.
-This also means you will not be able to eject the media on most operating systems because BLT has it open; if you do need to eject it without quitting BLT, choose menu:Tracks[Import Track>from Offline Media], click *Change Media*, and it will be closed so you can eject it.
-At that point you can click *Cancel* if you did not actually want to import a Track.
+If you want to import from different media, click the btn:[Change Media] button at the bottom of the window.
+This also means you will not be able to eject the media on most operating systems because BLT has it open; if you do need to eject it without quitting BLT, choose menu:Tracks[Import Track>from Offline Media], click btn:[Change Media], and it will be closed so you can eject it.
+At that point you can click btn:[Cancel] if you did not actually want to import a Track.
 
-If you have an entire playlist of tracks that you want to import into a show, you can use the *Import Playlist* button to switch to an interface which shows only playlists and allows you to choose one.
+If you have an entire playlist of tracks that you want to import into a show, you can use the btn:[Import Playlist] button to switch to an interface which shows only playlists and allows you to choose one.
 If you do so, a progress bar will provide feedback as the tracks from that playlist are imported, and allow you to stop the process.
-If you decide you only want to import a single track after all, prior to choosing a playlist you can click *Import Single Track* to return to the normal track selection interface.
+If you decide you only want to import a single track after all, prior to choosing a playlist you can click btn:[Import Single Track] to return to the normal track selection interface.
 ====
 
 === Copying Tracks between Shows
@@ -217,7 +217,7 @@ dialog because this is a destructive process which cannot be undone
 
 image:ReplaceTrackContent.png[Replace Track Content,740,240]
 
-If you click *OK*, all the destination track’s configuration (MIDI Output, Messages, Channel, and Enabled Default), its expressions, and its cues (including their own configuration and expressions) will be replaced by the ones that you copied earlier.
+If you click btn:[OK], all the destination track’s configuration (MIDI Output, Messages, Channel, and Enabled Default), its expressions, and its cues (including their own configuration and expressions) will be replaced by the ones that you copied earlier.
 Any cues that would extend past the end of the new track will be cropped to end on its final beat, and any which would have started after the end of the track will simply be removed.
 
 You can then proceed to adjust the cue positions if needed, and tweak other details to make the track work the way you want it to.

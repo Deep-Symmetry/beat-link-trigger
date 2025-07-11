@@ -11,7 +11,7 @@ To make it easy to turn this feature on and off along with other things you are 
 If you have that show open, it tries to translate mixer MIDI into CDJ on-air messages, and if you close it, it stops.
 The show looks a little strange because it has no tracks, but it doesn't need any, all the action happens in the Shared Functions and the Came Online and Going Offline Expressions.
 
-> As soon as this was working, it got me thinking about some simple things I could add to Beat Link Trigger that could make non-track-oriented "shows" like this **a lot** more powerful, which led to the <<xone-v2,second version>> below.
+> As soon as this was working, it got me thinking about some simple things I could add to Beat Link Trigger that could make non-track-oriented "shows" like this *a lot* more powerful, which led to the <<xone-v2,second version>> below.
 But understanding this much simpler version is a good idea before diving into how we can add a graphical interface to it!
 
 To try it out, start by saving the link:{attachmentsdir}/XoneOnAirNoUI.bls[Xone On Air show] where you like to keep your Beat Link Trigger shows, then open it.

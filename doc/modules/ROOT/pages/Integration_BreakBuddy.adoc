@@ -376,7 +376,7 @@ Its content is functionally the same as the *Load track on this player* cue we h
 ----
 
 And of course sometimes tracks are so incompatible with each other that you want to just do a hard cut between them, stopping the outgoing player simultaneously with starting the incoming player.
-The **Cut to other player and load track** cue lets you do exactly that.
+The *Cut to other player and load track* cue lets you do exactly that.
 It is very similar to the *Stop this player and load new track* cue; the only difference is the function called in the Started On Beat expression:
 
 .“Cut to other player and load new track” cue’s Started On Beat expression
