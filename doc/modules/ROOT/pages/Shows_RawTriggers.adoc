@@ -1,34 +1,19 @@
 = Raw Triggers
 include::partial$PagePreamble.adoc[]
 
-Starting in version 7.3, Shows gained the ability to add “raw
-triggers”, which are low-level triggers that appear in the
-<<Triggers.adoc#,Triggers window>>, even though they belong to a show.
-Opening the show will add its raw triggers to the Triggers Window, and
-closing it will remove them again. This allows a coherent set of
-behavior to be organized in a Show file, regardless of the kinds of
-triggers it needs. This is especially convenient for offering
-<<Integration.adoc#,integration examples>> as self-contained Show
-files that can simply be downloaded, opened, and used.
+Starting in version 7.3, Shows gained the ability to add “raw triggers”, which are low-level triggers that appear in the xref:Triggers.adoc[Triggers window], even though they belong to a show.
+Opening the show will add its raw triggers to the Triggers Window, and closing it will remove them again.
+This allows a coherent set of behavior to be organized in a Show file, regardless of the kinds of triggers it needs.
+This is especially convenient for offering xref:Integration.adoc[integration examples] as self-contained Show files that can simply be downloaded, opened, and used.
 
-To add a raw trigger to a show, chose menu:File[New Raw Trigger] in
-the show menu bar, or type kbd:[⌘+R] (on the Mac) or kbd:[Ctrl+R] (on
-other platforms) while that show has keyboard focus.
+To add a raw trigger to a show, chose menu:File[New Raw Trigger] in the show menu bar, or type kbd:[⌘+R] (on the Mac) or kbd:[Ctrl+R] (on other platforms) while that show has keyboard focus.
 
 image:NewRawTrigger.png[New Raw Trigger,264,179]
 
-When there are triggers from shows in the Triggers window, they appear
-below all independent triggers. The first trigger from a particular
-show has a header line that explains what show the next set of
-triggers belong to. Triggers that do not belong to shows have gray
-backrounds, while triggers from each show share a distinct background
-color tint:
+When there are triggers from shows in the Triggers window, they appear below all independent triggers.
+The first trigger from a particular show has a header line that explains what show the next set of triggers belong to.
+Triggers that do not belong to shows have gray backgrounds, while triggers from each show can share a distinct background color tint:
 
 image:TriggerFromShow.png[Triggers window with a show trigger,850.420]
 
-For details about how to configure the trigger itself, see the
-<<Triggers.adoc#,Triggers section>> (but keep in mind that any shared
-functions, setup, and shutdown expressions that are necessary for the
-trigger to operate should be added to the show, not the Triggers
-window, so they travel along with the trigger, and can be run at
-appropriate times when the show is opened and closed).
+For details about how to configure the trigger itself, see xref:Triggers.adoc[] (but keep in mind that any shared functions, setup, and shutdown expressions that are necessary for the trigger to operate should be added to the show, not the Triggers window, so they travel along with the trigger, and can be run at appropriate times when the show is opened and closed).
