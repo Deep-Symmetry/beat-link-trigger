@@ -14,6 +14,7 @@ Before introducing the various ways to add Cues to the track, let’s explore th
 
 NOTE: This kind of window is also used for editing cues within xref:Shows_PhraseTriggers.adoc[], although it has a slightly different appearance and set of features xref:Shows_PhraseTriggers.adoc#editing-cues[in that context].
 
+[#cues-window-header-elements]
 == Cues Window Header Elements
 
 At the top of the Cues window, above any Cues that you have added to it, is a header that shows a scrollable and zoomable view of the track waveform and beat grid, much like the one that appears in xref:Players.adoc[], except that you can manually scroll this one to the section you want to see regardless of whether any players are currently playing it.
