@@ -1,11 +1,13 @@
 {
   "private": true,
   "description": "Used to build the documentation site, not the project itself.",
-  "dependencies": {},
+  "dependencies": {
+    "@antora/pdf-extension": "^1.0.0-beta.3"
+  },
   "devDependencies": {
-    "@antora/cli": "3.1.5",
-    "@antora/site-generator": "3.1.5",
-    "@antora/lunr-extension": "^1.0.0-alpha.8"
+    "@antora/cli": "3.1.10",
+    "@antora/lunr-extension": "^1.0.0-alpha.10",
+    "@antora/site-generator": "3.1.10"
   },
   "scripts": {
     "local-docs": "npx antora --fetch doc/embedded.yml",

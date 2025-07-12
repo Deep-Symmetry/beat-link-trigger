@@ -11,6 +11,7 @@ content:
 antora:
   extensions:
   - '@antora/lunr-extension'
+  - '@antora/pdf-extension'
 ui:
   bundle:
     url: https://deepsymmetry.org/media/antora/ui-bundle-3-self.zip
