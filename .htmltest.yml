@@ -11,6 +11,7 @@ IgnoreURLs:
   - "//liberapay.com/"
   - "//opensource.org/licenses/"
   - "//packetsender.com"
+  - "//secure.chamsys.co.uk/"
   - "//unix.stackexchange.com/questions/405229/"
   - "//www.miglayout.com"
   - "//www.wireshark.org"
