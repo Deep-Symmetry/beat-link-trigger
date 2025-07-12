@@ -10,6 +10,7 @@ pom.xml
 pom.xml.asc
 *.jar
 *.class
+/.bundle
 /.clj-kondo/.cache
 /.lein-*
 /.nrepl-port

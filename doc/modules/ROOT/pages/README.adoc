@@ -68,7 +68,7 @@ And as noted above, if that isn’t going to happen, you can click btn:[Continue
 
 Once a device is found, or you choose to continue offline, the xref:Triggers.adoc[] window opens, in the same configuration that you left it the last time you used the program, and any xref:Shows.adoc[Show files] you had open will be reopened as well.
 
-TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use some BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed xref:OpusQuad.adoc[here],
+TIP: If you want to use Opus Quad hardware, even though it doesn’t really support the Pro DJ Link protocol, you can now use some BLT features with it as long as you create and attach metadata archives of any USBs you are using, as discussed xref:OpusQuad.adoc[here].
 
 [#command-line-arguments]
 === Command-Line Arguments

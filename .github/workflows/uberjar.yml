@@ -29,15 +29,6 @@ jobs:
     - name: Check out main branch
       uses: actions/checkout@v4
 
-    - name: Install SSH Key
-      env:
-        found_ssh_key: ${{ secrets.GUIDE_SSH_KEY }}
-      if: ${{ env.found_ssh_key != '' }}
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.GUIDE_SSH_KEY }}
-        known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfnL8k99MCOHLciHb7czxFCCvF3lbmY2ase2VhdvCTN'
-
     - name: Prepare Java
       uses: actions/setup-java@v4
       with:
@@ -91,16 +82,34 @@ jobs:
       if: success()
       run: bash .github/scripts/create_release.sh
 
-    - name: Cache htmltest results
-      uses: actions/cache@v4
-      with:
-        path: tmp/.htmltest
-        key: ${{ runner.os }}-htmltest
 
-    - name: Build and publish user guide
-      env:
-        GUIDE_SSH_KEY: ${{ secrets.GUIDE_SSH_KEY }}
-      run: bash .github/scripts/build_guide.sh
+  build_online_guide:
+    name: Build and publish user guide
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main branch
+        uses: actions/checkout@v4
+
+      - name: Install SSH Key
+        env:
+          found_ssh_key: ${{ secrets.GUIDE_SSH_KEY }}
+        if: ${{ env.found_ssh_key != '' }}
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.GUIDE_SSH_KEY }}
+          known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfnL8k99MCOHLciHb7czxFCCvF3lbmY2ase2VhdvCTN'
+
+      - name: Cache htmltest results
+        uses: actions/cache@v4
+        with:
+          path: tmp/.htmltest
+          key: ${{ runner.os }}-htmltest
+
+      - name: Build and publish user guide
+        env:
+          GUIDE_SSH_KEY: ${{ secrets.GUIDE_SSH_KEY }}
+        run: bash .github/scripts/build_guide.sh
 
 
   build_msi:
