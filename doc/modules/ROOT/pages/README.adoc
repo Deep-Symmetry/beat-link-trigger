@@ -259,6 +259,7 @@ If it has helped you, taught you something, or pleased you, let us know and shar
 If you’d like to financially support its ongoing development, you are welcome (but by no means obligated) to donate towards the hundreds of hours of research, development, and writing that have already been invested.
 Or perhaps to facilitate future efforts, tools, toys, and time to explore.
 
+ifndef::loader-assembler[]
 +++
 <a href="https://liberapay.com/deep-symmetry/donate"><img style="vertical-align:middle" alt="Donate using Liberapay"
     src="https://liberapay.com/assets/widgets/donate.svg"></a> using Liberapay, or
@@ -266,13 +267,20 @@ Or perhaps to facilitate future efforts, tools, toys, and time to explore.
     style="vertical-align:middle"
     alt="Donate" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif"></a> using PayPal
 +++
+endif::[]
+
+ifdef::loader-assembler[]
+[.text-center]
+https://liberapay.com/deep-symmetry/donate[Donate] using Liberapay, or https://www.paypal.com/donate/?hosted_button_id=J26G6ULJKV8RL[Donate] using PayPal.
+endif::[]
+
 
 > If enough people jump on board, we may even be able to get an XDJ-AZ to experiment with, although that’s an unlikely stretch goal.
 
 == License
 
 image:DS-logo-bw-200.png[Deep Symmetry logo,200,124,float=right]
-Copyright &copy; {page-copyright} http://deepsymmetry.org[Deep Symmetry, LLC]
+Copyright © {page-copyright} http://deepsymmetry.org[Deep Symmetry, LLC]
 
 Distributed under the https://opensource.org/licenses/EPL-2.0[Eclipse Public License 2.0].
 By using this software in any fashion, you are agreeing to be bound by the terms of this license.

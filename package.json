@@ -11,7 +11,8 @@
   },
   "scripts": {
     "local-docs": "npx antora --fetch doc/embedded.yml",
-    "hosted-docs": "npx antora --fetch doc/github-actions.yml"
+    "hosted-docs": "npx antora --fetch doc/github-html.yml",
+    "pdf-docs": "npx antora --fetch doc/github-pdf.yml"
   },
   "repository": {
     "type": "git",

@@ -70,7 +70,7 @@ First, let’s see how to have the tempo within BEYOND always precisely match th
 
 == Laser Show Tempo Synchronization
 
-Create a new Trigger in Beat Link Trigger (menu:Triggers[New Trigger]) and label it something like &ldquo;Beyond BPM Sync&rdquo; in the Comment field.
+Create a new Trigger in Beat Link Trigger (menu:Triggers[New Trigger]) and label it something like “Beyond BPM Sync” in the Comment field.
 Configure it to Watch the Master Player, and give it a menu:Custom[] Enabled Filter:
 
 image:BeyondBPMSync.png[Beyond BPM Sync,810,160]
