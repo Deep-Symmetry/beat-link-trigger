@@ -52,7 +52,7 @@ if  [ "$IDENTITY_PASSPHRASE" != "" ]; then
     jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
              --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
-             --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version $build_version \
+             --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version "$build_version" \
              --mac-sign --mac-package-signing-prefix "org.deepsymmetry.beat-link-trigger." \
              --mac-signing-key-user-name  "Deep Symmetry, LLC (9M6LKU948Y)" \
              --mac-entitlements  .github/resources/Clojure.entitlements
@@ -77,7 +77,7 @@ else
     jpackage --name "$blt_name" --input Input --add-modules "$blt_java_modules" \
              --icon .github/resources/BeatLink.icns --main-jar beat-link-trigger.jar \
              --description "$blt_description" --copyright "$blt_copyright" --vendor "$blt_vendor" \
-             --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version $build_version
+             --mac-package-identifier "org.deepsymmetry.beat-link-trigger" --app-version "$build_version"
 fi
 
 # Rename the disk image to the name we like to use for the release artifact.
@@ -87,5 +87,5 @@ mv "$dmg_name" "$artifact_name"
 if [ "$release_snapshot" = true ] ; then
     gh release upload latest-preview "$artifact_name#$artifact_description"
 else
-    gh release upload $release_tag "$artifact_name#$artifact_description"
+    gh release upload "$release_tag" "$artifact_name#$artifact_description"
 fi
