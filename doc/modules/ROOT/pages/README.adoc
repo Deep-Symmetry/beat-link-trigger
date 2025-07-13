@@ -5,10 +5,21 @@ This is an introduction to the Beat Link Trigger interface and expression progra
 It shows some ways you can use it, but as an open-ended environment, the possibilities are endless.
 If you have questions or other approaches you’d like to share, please post to the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[Zulip channel].
 
+ifndef::loader-assembler[]
 To keep page sizes manageable, this guide is split into several pages.
+endif::[]
 It is worth at least skimming through this whole guide once if you are new to Beat Link Trigger.
 Once you know what you are looking for, you can also dive right into it by jumping to the page you want using the navigation menu on the left.
 
+ifdef::loader-assembler[]
+.Version
+****
+[.text-center]
+This guide corresponds to Beat Link Trigger {release-tag}.
+****
+endif::[]
+
+ifndef::loader-assembler[]
 [TIP]
 ====
 You can also use the “Search the docs” box at the top of the window to search the entire user guide, not just what is on the current page.
@@ -39,6 +50,9 @@ To look at a different version (including the `main` branch, which reflects ongo
 endif::[]
 endif::[]
 ****
+
+endif::[]
+
 
 [#startup]
 == Startup
@@ -270,8 +284,10 @@ ifndef::loader-assembler[]
 endif::[]
 
 ifdef::loader-assembler[]
+****
 [.text-center]
 https://liberapay.com/deep-symmetry/donate[Donate] using Liberapay, or https://www.paypal.com/donate/?hosted_button_id=J26G6ULJKV8RL[Donate] using PayPal.
+****
 endif::[]
 
 

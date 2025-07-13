@@ -26,14 +26,14 @@ fi
 echo "Building PDF user guide."
 bundle config --local path .bundle/gems
 bundle
-npm run pdf-docs
+npm run pdf-docs -- --attribute "release-tag=$release_tag"
 
 # Rename the disk image to the name we like to use for the release artifact.
 mv doc/build/assembler-pdf/beat-link-trigger/_exports/index.pdf BLT-guide.pdf
 
 # Upload the disk image as a release artifact
 if [ "$release_snapshot" = true ] ; then
-    gh release upload latest-preview "BLT-guide.pdf#User Guide"
+    gh release upload latest-preview "BLT-guide.pdf#User Guide (PDF)"
 else
-    gh release upload "$release_tag" "BLT-guide.pdf#User Guide"
+    gh release upload "$release_tag" "BLT-guide.pdf#User Guide (PDF)"
 fi
