@@ -1,0 +1,17 @@
+site:
+  title: Beat Link Trigger User Guide
+  url: /guide
+  start_page: beat-link-trigger::README.adoc
+content:
+  edit_url: false
+  sources:
+  - url: ./..
+    branches: HEAD
+    start_path: doc
+antora:
+  extensions:
+  - '@antora/pdf-extension'
+ui:
+  bundle:
+    url: https://deepsymmetry.org/media/antora/ui-bundle-3-self.zip
+    snapshot: true

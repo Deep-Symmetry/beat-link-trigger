@@ -1,0 +1,2 @@
+build:
+  command: bundle exec asciidoctor-pdf -a source-highlighter=rouge

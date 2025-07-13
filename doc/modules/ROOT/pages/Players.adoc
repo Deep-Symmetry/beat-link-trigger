@@ -38,7 +38,7 @@ beat packets are sent.
 And if the track is looping, the correct position can not be detected except if and when the loop happens to cross a beat boundary, causing a beat packet to be sent.
 So you can not assume time information is accurate for such players during reverse or loop playback, especially for small loops that start or end in the middle of beats.
 
-This also means that if the DJ uses the touch strip to &ldquo;needle jump&rdquo; to an arbitrary point in the track on an older player, the time may start out slightly wrong, since we can only assume playback started at the beginning of the beat that was landed on.
+This also means that if the DJ uses the touch strip to “needle jump” to an arbitrary point in the track on an older player, the time may start out slightly wrong, since we can only assume playback started at the beginning of the beat that was landed on.
 But after that (or once the DJ changes back to playing forward without a loop), as soon as the player reaches the next beat marker, the time will resynchronize, and stay tracked well as long as normal playback continues.
 
 None of these situations are a problem with the CDJ-3000, however, where we can track the playback position wonderfully using the precise position packets the players send with great frequency.
