@@ -94,6 +94,20 @@ jobs:
       - name: Check out main branch
         uses: actions/checkout@v4
 
+      - name: Determine version being built
+        uses: Deep-Symmetry/github-version-action@v1
+        with:
+          tag-var-name: release_tag
+
+      - name: Determine snapshot status
+        run: |
+          if [[ $release_tag =~ .*-SNAPSHOT ]]
+          then
+            echo "release_snapshot=true" >> $GITHUB_ENV
+          else
+            echo "release_snapshot=false" >> $GITHUB_ENV
+          fi
+
       - name: Install SSH Key
         env:
           found_ssh_key: ${{ secrets.GUIDE_SSH_KEY }}
