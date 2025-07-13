@@ -103,6 +103,11 @@ jobs:
           key: ${{ secrets.GUIDE_SSH_KEY }}
           known_hosts: 'deepsymmetry.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfnL8k99MCOHLciHb7czxFCCvF3lbmY2ase2VhdvCTN'
 
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
+        with:
+          ruby-version: '3.2.2'
+
       - name: Cache htmltest results
         uses: actions/cache@v4
         with:
