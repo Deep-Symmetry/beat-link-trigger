@@ -82,6 +82,10 @@ In this case we are modifying the map in `globals` by using http://clojure.githu
 
 <5> and the actual command packets are created as https://docs.oracle.com/javase/8/docs/api/java/net/DatagramPacket.html[`DatagramPacket`] objects preconfigured with the correct command bytes and destination address and port, in `:chamsys-on` and `:chamsys-off`.
 
+NOTE: This code uses an older version of the protocol, with no `CREP` header, for simplicity.
+As discussed in the https://docs.chamsys.co.uk/magicq/network-control/remote_control_network.html#crep[MagicQ manual] you will need to configure MagicQ so the ChamSys Remote protocol uses no Rx headers for this to work.
+If you want help figuring out how to send packets in the newer, more rigorous format with headers, reach out in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel].
+
 The <<Expressions_ShowTrack.adoc#track-beat-expression,Beat Expression>> below shows how these globals are actually used.
 
 [[came-online-expression]]
