@@ -13,10 +13,10 @@ In this layout the objects are called `button1` and `label1` on the top row, and
 I changed the buttons from their default appearance of red squares to green circles to look more like BLT’s playback indicators, and made the label text a complementary blue color, getting rid of its background and outline.
 The most important functional thing I needed to do in TouchOSC was to add an OSC message to both labels so that BLT would be able to set the text.
 
-If you would like to use this layout as a starting point you can link:{attachmentsdir}/TouchOSCPlayerInfo.tosc[download it].
+If you would like to use this layout as a starting point you can xref:attachment$/TouchOSCPlayerInfo.tosc[download it].
 
 Then I set about configuring triggers and writing expressions in BLT to make this work, taking the simplest approach, without worrying about setting up shared library code.
-If you would like to test this, and don’t have any existing triggers you are concerned about losing, you can download and open the link:{attachmentsdir}/TouchOscTrackInfo.blt[configuration file] (if you do have any trigger configuration you have been experimenting with be sure to <<Debugging.adoc#saving-and-loading,save that>> first).
+If you would like to test this, and don’t have any existing triggers you are concerned about losing, you can download and open the xref:attachment$/TouchOscTrackInfo.blt[configuration file] (if you do have any trigger configuration you have been experimenting with be sure to <<Debugging.adoc#saving-and-loading,save that>> first).
 Otherwise, you can follow the steps below to add the necessary expressions and triggers to your existing configuration:
 
 [[global-setup-expression]]

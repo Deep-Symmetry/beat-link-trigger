@@ -9,7 +9,7 @@ After a bunch of discussion and brainstorming, I decided the way to handle this 
 In this case, beyond sending out channels-on-air packets to the DJ Link network, our code would directly generate configurable MIDI messages to notify the lighting controller of the big-picture state of all the devices that might be connected to the mixer.
 
 In this case, there is a great deal of code that I wrote for the integration example, so I don’t plan to show and explain it all here unless someone specifically requests that.
-I will instead provide a walk-through of how to use the user interface provided by the link:{attachmentsdir}/ExtendedOnAirV10.bls[show file], which you can download and open whenever you want to use it.
+I will instead provide a walk-through of how to use the user interface provided by the xref:attachment$ExtendedOnAirV10.bls[show file], which you can download and open whenever you want to use it.
 
 NOTE: Because this integration requires MIDI messages from the mixer to determine a richer notion of which channels are on the air, you will need to connect a USB cable from the mixer to the computer on which BLT is running, and turn on MIDI by activating the btn:[On] button below the USB/MIDI ports.
 If the mixer is not connected this way, the show will display an error dialog when you go online, explaining that its features are disabled because the mixer could not be found.

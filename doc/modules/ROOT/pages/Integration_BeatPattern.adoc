@@ -4,7 +4,7 @@ include::partial$PagePreamble.adoc[]
 This started out as a request for assistance and grew into a tool that may be useful to many people.
 https://github.com/Kevinnns[@Kevinnns] built some chases that he wanted Beat Link Trigger to advance on appropriate beats, and of course found that different tracks looked better when different beats were used (some looked good advancing on
 even beats, others on odd beats, others on all beats).
-Looking for ways to help automate this, first we set up a link:{attachmentsdir}/BeatSender.bltx[BeatSender trigger] that uses a global entry to control the beats on which a message is sent to the lighting software to advance the chase.
+Looking for ways to help automate this, first we set up a xref:attachment$/BeatSender.bltx[BeatSender trigger] that uses a global entry to control the beats on which a message is sent to the lighting software to advance the chase.
 Then Kevin could configure tracks in a show to set those variables appropriately when they were playing as tempo master, by configuring the track to be Enabled when Master, and setting the Playing expression to something like this:
 
 .Track Playing Expression to configure BeatSender
@@ -30,7 +30,7 @@ The trigger is configured to watch the menu:Master[] Player, and to send a menu:
 image:BeatSender.png[Configurable Beat Sender trigger,758,104]
 
 The “brains” of the trigger are in its Beat Expression, which we will examine now, although this is just to explain how it works.
-You can link:{attachmentsdir}/BeatSender.bltx[download] the trigger and import it using menu:Import Trigger[] in a Trigger context (gear) menu to get all the code and configuration in one easy step.
+You can xref:attachment$/BeatSender.bltx[download] the trigger and import it using menu:Import Trigger[] in a Trigger context (gear) menu to get all the code and configuration in one easy step.
 
 TIP: If you do import this trigger, and then later move on to working with the more full-featured shows that are developed in this example, you will want to delete the imported trigger, because the shows provide their own improved version, and you don’t want both running at the same time.
 This is just a heads-up for now, there will be a reminder next to the show download link too.
@@ -112,7 +112,7 @@ So that’s what I built, taking advantage of Beat Link Trigger's ability for sh
 WARNING: As noted <<standalone-trigger,above>>, before opening this show, you should delete the standalone Beat Sender Trigger if you imported it into your Triggers window.
 You do that using the gear or context menu in that trigger’s configuration row.
 
-Here’s a detailed look at how the resulting link:{attachmentsdir}/BeatPattern.bls[BeatPattern show] looks and works.
+Here’s a detailed look at how the resulting xref:attachment$/BeatPattern.bls[BeatPattern show] looks and works.
 
 image:BeatPattern.png[Beat Pattern Show,479,317]
 
@@ -126,7 +126,7 @@ Or you can use the fancier version of the show described <<adding-mapping,below>
 The buttons also react when other code changes the beat pattern (for example if a track in another show is configured to change the `:beat-pattern` trigger global when it starts playing as tempo master).
 So this window gives you a good look at what beats are going to advance your chase when the Beat Sender trigger is enabled, and lets you quickly change them to better suit what you are hearing and seeing while a track plays.
 
-You can read on to see exactly how this was done, or you can just link:{attachmentsdir}/BeatPattern.bls[download] the show and open it whenever you want to use it.
+You can read on to see exactly how this was done, or you can just xref:attachment$/BeatPattern.bls[download] the show and open it whenever you want to use it.
 
 [[shared-functions]]
 === Shared Functions
@@ -340,7 +340,7 @@ Putting this all together makes for a very nice user interface for managing beat
 == Adding MIDI Mapping
 
 Clicking big buttons on a computer screen is fine, but it's nicer to be able to control shows using physical buttons.
-To support that, I built link:{attachmentsdir}/BeatPatternMapped.bls[an extended version] of the show which adds another layer of interface allowing each button to be mapped to a physical MIDI controller button.
+To support that, I built xref:attachment$/BeatPatternMapped.bls[an extended version] of the show which adds another layer of interface allowing each button to be mapped to a physical MIDI controller button.
 To set up that mapping, just right-click (or control-click on a Mac) in the button, and a MIDI mapping interface for that button will appear:
 
 image:BeatPatternMap.png[MIDI mapping interface,909,227]
@@ -374,7 +374,7 @@ Once you are happy with your MIDI mapping for a button, you can simply close the
 The configuration is automatically saved inside the show.
 
 > If all you want is to use the show, that's all you need to know.
-> Go ahead, link:{attachmentsdir}/BeatPatternMapped.bls[download] and open it.
+> Go ahead, xref:attachment$/BeatPatternMapped.bls[download] and open it.
 > But if you want to understand how it works on the inside, read on!
 
 [[midi-shared-functions]]

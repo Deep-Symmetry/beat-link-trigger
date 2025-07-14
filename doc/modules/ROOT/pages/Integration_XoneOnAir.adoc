@@ -14,7 +14,7 @@ The show looks a little strange because it has no tracks, but it doesn't need an
 > As soon as this was working, it got me thinking about some simple things I could add to Beat Link Trigger that could make non-track-oriented "shows" like this *a lot* more powerful, which led to the <<xone-v2,second version>> below.
 But understanding this much simpler version is a good idea before diving into how we can add a graphical interface to it!
 
-To try it out, start by saving the link:{attachmentsdir}/XoneOnAirNoUI.bls[Xone On Air show] where you like to keep your Beat Link Trigger shows, then open it.
+To try it out, start by saving the xref:attachment$/XoneOnAirNoUI.bls[Xone On Air show] where you like to keep your Beat Link Trigger shows, then open it.
 Assuming your mixer is plugged into a USB port, it should start working.
 Move channel faders up and down, and move the cross-fader back and forth, and your CDJs should change color appropriately (as long as you have the On Air feature enabled on the CDJs themselves, and Beat Link Trigger is online and talking to them).
 
@@ -124,7 +124,7 @@ This code runs when Beat Link Trigger is being taken offline (or the show is clo
 
 I don’t actually have a Xone:96, so to develop this code I had to make
 a “fake one” based on its https://www.allen-heath.com/content/uploads/2023/06/X96_MIDI-Control-Overview.pdf[MIDI mapping manual], which I did in the form of a Max patch.
-If you have Max, you can link:{attachmentsdir}/XoneSimulator.maxpat[save it] and play with it too.
+If you have Max, you can xref:attachment$/XoneSimulator.maxpat[save it] and play with it too.
 It has four simulated channel faders and a cross fader:
 
 image::XoneSimulator.png[Xone:96 Simulator,674,659]
@@ -158,7 +158,7 @@ If the show’s channel faders are not in the right place (because the mixer was
 Finally, at the bottom is the MIDI indicator and GUI representation of the cross-fader position, which works the same way.
 The positions of the X-Y selectors and faders are saved when you close the show, so they will appear in the same place as you left them, and you will rarely need to tweak anything by editing expression code.
 
-Save the link:{attachmentsdir}/XoneOnAir.bls[full-featured GUI version] where you keep your shows, and you can start using it, but for those of you who want to know how it works, let's take a tour of the code!
+Save the xref:attachment$/XoneOnAir.bls[full-featured GUI version] where you keep your shows, and you can start using it, but for those of you who want to know how it works, let's take a tour of the code!
 
 The <<xone-shared-v2,Shared Functions>> are much larger in this version, because that is where all the GUI elements are constructed, so we will save them for last.
 The Global Setup Expression is actually simpler here:
@@ -284,4 +284,4 @@ The MIDI messages used are very similar, just using different CC numbers.
 But I also changed the UI to reflect the fact that DJMs use A-B to describe their cross faders, rather than X-Y, and have their cross-fader assignment switches below the channel faders rather than above them.
 A few other changes to properly recognize the mixer MIDI device, and remove Xone references from the code, resulted in something worth sharing here too.
 
-Save the link:{attachmentsdir}/DJMOnAir.bls[DJM version] where you keep your shows, and you can use it whenever you need to.
+Save the xref:attachment$/DJMOnAir.bls[DJM version] where you keep your shows, and you can use it whenever you need to.
