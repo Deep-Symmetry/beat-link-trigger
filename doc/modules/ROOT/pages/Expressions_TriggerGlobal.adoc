@@ -51,9 +51,9 @@ In this case we ask the Beat Link `VirtualCdj` object if it is running, which is
 
 But there is an even better way to do this.
 Version 0.5.4 added the <<came-online-expression>> which runs once Beat Link Trigger has successfully connected to a DJ Link network.
-Using that expression to show the Player Status window means it will always be safe to try, and--even better--the window will be reopened every time you go back online, not just when initially starting the program.footnote:[Version 8 made this even easier, thanks to the new <<Settings.adoc#player-status,Settings window>>]
+Using that expression to show the Player Status window means it will always be safe to try, and--even better--the window will be reopened every time you go back online, not just when initially starting the program. And version 8 made this even easier, thanks to the new xref:Settings.adoc#player-status[Settings window].
 
-Here is an even more sophisticated example that creates a https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`] for sending a remote trigger command to the ChamSys MagicQ lighting control software using its https://secure.chamsys.co.uk/help/documentation/magicq/udp.html#_chamsys_remote_ethernet_protocol[remote ethernet protocol]:
+Here is an even more sophisticated example that creates a https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`] for sending a remote trigger command to the ChamSys MagicQ lighting control software using its https://docs.chamsys.co.uk/magicq/network-control/remote_control_network.html#crep[remote ethernet protocol]:
 
 [source,clojure,subs=attributes+,opts=novalidate]
 ----
