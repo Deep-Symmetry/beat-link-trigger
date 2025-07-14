@@ -14,7 +14,7 @@ There’s no way for the author to know how many people are using the program, o
 
 When Beat Link Trigger is running it reports events to a log file. As  noted above, this includes full stack traces for compilation problems when you try to save an expression that isn’t quite right. If a problem occurs while trying to run your expression later, that will end up in the log too. So it can be a useful place to look when things are not working the way you expect.
 
-TIP: You can find the log file for your current run by choosing menu:Help[Open Logs Folder] from most BLT windows, but see <<#finding-older-logs,below>> for how to find them if you can’t do that.
+TIP: You can find the log file for your current run by choosing menu:Help[Open Logs Folder] from most BLT windows, but see <<finding-older-logs,below>> for how to find them if you can’t do that.
 
 Each time you launch Beat Link Trigger it creates a new log folder in a temporary directory, so that they can be cleaned up automatically sometime after it exits. It cycles through log files and limits their maximum length, which can be important if an error is being logged each time a packet comes in because of a problematic Enabled Filter expression.
 
@@ -114,7 +114,7 @@ When you Update the Global Setup Expression to contain this call, BLT will immed
 
 You will want to remember to take the `log-thread-dump` call back out of your Global Setup Expression when you are done troubleshooting, though, or you will get a thread dump in the log every time you start up BLT.
 
-If your user interface is getting locked up and preventing you from editing and saving the Global Setup expression, or you just find that too clumsy an approach, you can instead use a REPL connection to call`log-thread-dump`.First, install https://leiningen.org[Leiningen] on your system, then start up BLT's built-in nREPL server as described in<<#advanced-coding,Advanced Coding>>.Once the Run checkbox is active, open a command or terminal window, and type:
+If your user interface is getting locked up and preventing you from editing and saving the Global Setup expression, or you just find that too clumsy an approach, you can instead use a REPL connection to call`log-thread-dump`.First, install https://leiningen.org[Leiningen] on your system, then start up BLT's built-in nREPL server as described in<<advanced-coding,Advanced Coding>>.Once the Run checkbox is active, open a command or terminal window, and type:
 
     lein repl :connect 17001
 
@@ -256,7 +256,7 @@ You can configure how long a track needs to be played for before it gets include
 You can also specify that a new playlist file should be started if a track is played after all players have been stopped for a while, and configure how many minutes can pass with no player playing before such a new playlist file is created.
 The default threshold for this when the auto-split feature is enabled is 30 minutes.
 When creating new files because this New Playlist Threshold has been exceeded, the file
-names have timestamps added to them as described in the <<#automatically-starting,next section>>.
+names have timestamps added to them as described in the <<automatically-starting,next section>>.
 
 Once everything is set the way you want it, click btn:[Start] and you will be prompted to choose where to save the file.
 Once you have done that, the window updates to show you that the playlist is being written:

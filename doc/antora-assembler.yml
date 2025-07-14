@@ -1,2 +1,2 @@
 build:
-  command: bundle exec asciidoctor-pdf -a source-highlighter=rouge
+  command: bundle exec asciidoctor-pdf -a source-highlighter=rouge --theme default-with-font-fallbacks

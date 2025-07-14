@@ -58,7 +58,7 @@ This is called when the phrase trigger activates because it was enabled and chos
 (The same phrase trigger might be activated for phrases that are playing on multiple players at the same time; this expression is called only when the first phrase activates it.
 The phrase trigger will continue to be considered playing until the final phrase it is activated for ends, stops playing, or stops matching the Enabled Filter expression.)
 
-The convenience variables <<#phrase-convenience-variables,listed above>> are available here as well.
+The convenience variables <<phrase-convenience-variables,listed above>> are available here as well.
 
 NOTE: If you want this expression to run, make sure the phrase trigger’s menu:Playing Message[] menu is set to menu:Custom[].
 
@@ -86,7 +86,7 @@ The Stopped discussion <<stopped-expression,below>> shows what you’d need to s
 
 Called whenever a beat packet is received from a player that is playing a phrase that activated this phrase trigger.
 
-The convenience variables <<#phrase-convenience-variables,listed above>> are available here as well.
+The convenience variables <<phrase-convenience-variables,listed above>> are available here as well.
 
 
 [[tracked-update-expression]]
@@ -94,7 +94,7 @@ The convenience variables <<#phrase-convenience-variables,listed above>> are ava
 
 Called whenever a status update packet is received from a player that is playing a phrase that activated this phrase trigger, after the <<enabled-filter-expression,Enabled Filter Expression>>, if any, has had a chance to decide that the phrase trigger is (still) enabled, and after the <<playing-expression,Playing expression>>, if appropriate.
 
-The convenience variables <<#phrase-convenience-variables,listed
+The convenience variables <<phrase-convenience-variables,listed
 above>> are available here as well.
 
 

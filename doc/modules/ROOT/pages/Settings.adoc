@@ -40,7 +40,7 @@ Until you have installed and configured them, as described next, choosing this i
 
 To keep the Beat Link Trigger application from growing any faster than it is, only the standard themes are packaged with it.
 You don’t need to be limited by that, however, thanks to BLT’s ability to load libraries at runtime.
-For example, to use the IntelliJ Platform Themes shown lower on the https://www.formdev.com/flatlaf/themes/[FlatLaf Themes page], you could put code like this in your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>:
+For example, to use the IntelliJ Platform Themes shown lower on the https://www.formdev.com/flatlaf/themes/[FlatLaf Themes page], you could put code like this in your xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression]:
 
 [source,clojure,opts=novalidate]
 ----

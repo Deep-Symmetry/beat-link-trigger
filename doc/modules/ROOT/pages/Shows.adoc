@@ -59,7 +59,7 @@ If you manually closed a show window but want to activate it now, or you want to
 == Show Window Header Elements
 
 At the top of the Show window, above any Tracks or Phrase Triggers that you have added to it, is a header that allows you to configure the default Enabled filter (explained
-<<#enabled-default,below>>), and to filter which Tracks and Phrase Triggers are currently visible, which is helpful when you have added a lot of them to the Show.
+<<enabled-default,below>>), and to filter which Tracks and Phrase Triggers are currently visible, which is helpful when you have added a lot of them to the Show.
 
 === Filtering by Tracks or Phrase Triggers
 If you type any text in the *Filter* box, only tracks and phrase triggers that match that text will be visible.
