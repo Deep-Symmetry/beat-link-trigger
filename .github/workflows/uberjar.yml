@@ -271,6 +271,7 @@ jobs:
 
     needs:
       - build_dmg
+      - build_online_guide
       - build_intel_dmg
       - build_msi
 
