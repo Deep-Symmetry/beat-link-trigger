@@ -86,7 +86,7 @@ NOTE: This code uses an older version of the protocol, with no `CREP` header, fo
 As discussed in the https://docs.chamsys.co.uk/magicq/network-control/remote_control_network.html#crep[MagicQ manual] you will need to configure MagicQ so the ChamSys Remote protocol uses no Rx headers for this to work.
 If you want help figuring out how to send packets in the newer, more rigorous format with headers, reach out in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel].
 
-The <<Expressions_ShowTrack.adoc#track-beat-expression,Beat Expression>> below shows how these globals are actually used.
+The xref:Expressions_ShowTrack.adoc#track-beat-expression[Beat Expression] below shows how these globals are actually used.
 
 [[came-online-expression]]
 == Came Online Expression
@@ -98,7 +98,7 @@ It runs by itself when you choose menu:Network[Online?] to successfully transiti
 You have access to the expression globals if you need to use anything in them.
 
 This is the perfect place to take actions that can only succeed when Beat Link Trigger is online.
-This used to include actions such as opening the xref:Players.adoc[Player Status window], however the <<Settings.adoc#player-status,Settings window>> can now take care of this for you.
+This used to include actions such as opening the xref:Players.adoc[Player Status window], however the xref:Settings.adoc#player-status,Settings window] can now take care of this for you.
 The old code-based approach described <<global-setup-expression,above>> is always safe to use in this expression, unlike in the Global Setup expression:
 
 [source,clojure]
@@ -109,7 +109,7 @@ The old code-based approach described <<global-setup-expression,above>> is alway
 With this in place, every time you successfully go online, either at startup or using menu:Network[Online?], the Player Status window will open for you.
 But again, you can just use the Settings window now.
 
-Similarly, if you want the xref:ObsOverlay.adoc[OBS overlay server] to automatically start once Beat Link Trigger is online, you can use the <<Settings.adoc#obs-overlays,Settings window>>.
+Similarly, if you want the xref:ObsOverlay.adoc[OBS overlay server] to automatically start once Beat Link Trigger is online, you can use the xref:Settings.adoc#obs-overlays[Settings window].
 The old way was to add this to your Came Online expression:
 
 [source,clojure,opts=novalidate]
@@ -118,7 +118,7 @@ The old way was to add this to your Came Online expression:
 ----
 
 Another example came up in the https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger[community chat room], from a user who wanted to set up a turn-key lighting system that automatically started Beat Link Trigger and Carabiner.
-If you are in a situation like that, you can now use the <<Settings.adoc#carabiner,Settings window>> to accomplish your goals, but previously you'd set up a Came Online Expression to automatically open the Carabiner window and connect to it:
+If you are in a situation like that, you can now use the xref:Settings.adoc#carabiner[Settings window] to accomplish your goals, but previously you’d set up a Came Online Expression to automatically open the Carabiner window and connect to it:
 
 [source,clojure,subs=attributes+,opts=novalidate]
 ----
@@ -133,8 +133,8 @@ If you are in a situation like that, you can now use the <<Settings.adoc#carabin
 
 <2> Tries to connect to the Carabiner daemon.
 
-<3> <<Link.adoc#passive-sync,Allows>> the DJ Link network to become Tempo Master for Ableton Link. Other choices are `:off`, <<Link.adoc#syncing-triggers,`:triggers`>>, and
-<<Link.adoc#full-sync,`:full`>>.
+<3> xref:Link.adoc#passive-sync[Allows] the DJ Link network to become Tempo Master for Ableton Link. Other choices are `:off`, xref:Link.adoc#syncing-triggers[`:triggers`], and
+xref:Link.adoc#full-sync[`:full`].
 
 <4> Causes Ableton Link to actually follow the DJ Link Tempo Master.
 

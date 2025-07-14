@@ -28,7 +28,7 @@ The action buttons let you edit the expression (the pencil) or simulate it (the 
 Clicking the pencil will tell Beat Link Trigger to open the editor window for that expression, or bring it to the front if it was already open.
 (If you are editing a cue expression, the Cues Editor window for that track or phrase trigger will also be opened if it wasn’t already.)
 
-NOTE: The action buttons will only work if you have enabled report actions in the <<Shows.adoc#show-menu-bar,show menu bar>>.
+NOTE: The action buttons will only work if you have enabled report actions in the xref:Shows.adoc#show-menu-bar[show menu bar].
 The report will remind you of this if you try to use one without first enabling them.
 
 The simulate (play) buttons will run the version of the expression that was most recently saved, which might be different from what is shown in the report if you haven’t refreshed it recently, and might be different from the expression editor window if that is open and contains unsaved changes.
@@ -37,14 +37,14 @@ This is different from the Simulate button in the expression editor window, whic
 == Navigation
 
 You can find expressions by using your browser’s text search feature (which is especially helpful if you are hunting for a piece of code you want to reuse in a different expression).
-But you can also jump to a particular section of the report using the menu:View in Expression Report[] option in any <<Expressions.adoc#editor-menus,expression editor context menu>>, and the context menus of <<Shows_Tracks.adoc#track-context-menu,tracks>>, <<Shows_PhraseTriggers.adoc#context-menu,phrase triggers>>, and <<Shows_Cues.adoc#cue-context-menu,cues>>.
+But you can also jump to a particular section of the report using the menu:View in Expression Report[] option in any xref:Expressions.adoc#editor-menus[expression editor context menu], and the context menus of xref:Shows_Tracks.adoc#track-context-menu[tracks], xref:Shows_PhraseTriggers.adoc#context-menu[phrase triggers], and xref:Shows_Cues.adoc#cue-context-menu[cues].
 This offers a convenient way of seeing all the related expressions in one place, and simulating them in sequence to validate how they will behave in an actual performance.
 
 You can also navigate the other direction by clicking the gear button that appears at the end of each section title in the report.
-That will bring the <<Shows.adoc#show-window-header-elements,show window>> to
+That will bring the xref:Shows.adoc#show-window-header-elements[show window] to
 the front for the show-level expressions.
 For a track or raw trigger section (including trigger rows in the Triggers window report), in addition to doing that, it will scroll that xref:Shows_Tracks.adoc[track row] or xref:Triggers.adoc#overview[trigger] into view.
 For a phrase trigger section it will do the same with the xref:Shows_PhraseTriggers.adoc[phrase trigger row].
-And for a cue section, it will open (or bring to the front) the appropriate Cues Editor window, and scroll the right <<Shows_Cues.adoc#cue-row-elements,cue row>> into view.
+And for a cue section, it will open (or bring to the front) the appropriate Cues Editor window, and scroll the right xref:Shows_Cues.adoc#cue-row-elements[cue row] into view.
 
 Navigating back and forth like this can turn the expressions report into a powerful way to build and validate a related set of expressions, even in a large show.

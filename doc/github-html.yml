@@ -14,7 +14,7 @@ urls:
   redirect_facility: httpd
 content:
   sources:
-  - url: ./.. # https://github.com/Deep-Symmetry/beat-link-trigger.git
+  - url: https://github.com/Deep-Symmetry/beat-link-trigger.git
     branches: [main, guide-*]
     start_path: doc
 antora:

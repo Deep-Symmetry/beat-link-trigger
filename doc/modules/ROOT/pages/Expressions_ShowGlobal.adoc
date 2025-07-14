@@ -10,7 +10,7 @@ The `globals` atom starts out holding an empty http://clojure.org/reference/data
 NOTE: While Show expressions also all have access to the Triggers window globals atom, under the name `trigger-globals`, using this is now deprecated, because it risks shows interfering with each other and with triggers they don’t know about.
 If your show is contributing xref:Shows_RawTriggers.adoc[raw triggers] to the Triggers window, the safer way to share data with them is for them to use the new <<Expressions_v8.adoc#accessing-show-from-raw,`show-shared` alias>> to access the namespace of the show they came from.
 
-Also, all expressions that run in a show have access to a value `show` that contains everything Beat Link Trigger knows about the show, which can be <<ShowInternals.adoc#show,useful>>.
+Also, all expressions that run in a show have access to a value `show` that contains everything Beat Link Trigger knows about the show, which can be xref:ShowInternals.adoc#show[useful].
 (And even though this does not include raw triggers that a show contributes to the Triggers window, those can indirectly access information about the show by calling show Shared Functions through the `show-shared` alias described above.)
 
 [[show-global-setup-expression]]
@@ -20,7 +20,7 @@ This is run when the Show file is opened, either because you explicitly opened i
 You can use this expression to open network connections or set up other values for your Track, Phrase Trigger, and Cue expressions to use.
 
 One very powerful—though advanced—use of this expression is to create a custom user interface for special integration shows that don't use tracks and phrase triggers, but can add totally new features to BLT.
-This is accomplished by calling `show/block-tracks` as described in the <<Debugging.adoc#wireshark,Wireshark debugging section>> and the xref:Integration_XoneOnAir.adoc[Xone:96 Channels on Air] and xref:Integration_QLC.adoc[QLC+ Lighting Cues] integration examples (among others).
+This is accomplished by calling `show/block-tracks` as described in the xref:Debugging.adoc#wireshark[Wireshark debugging] section and the xref:Integration_XoneOnAir.adoc[Xone:96 Channels on Air] and xref:Integration_QLC.adoc[QLC+ Lighting Cues] integration examples (among others).
 The last one also shows how to use `socket-picker/show` to present a user-friendly interface for configuring a host and port for the integration to communicate with.
 
 [[show-came-online-expression]]
@@ -35,7 +35,7 @@ You have access to the show globals if you need to use anything in them.
 [[show-default-enabled-filter-expression]]
 == Default Enabled Filter Expression
 
-The basic concept of an Enabled Filter is described in the <<Expressions.adoc#editing-expressions,introduction>> to the Expressions section; shows use them in a similar way.
+The basic concept of an Enabled Filter is described in the xref:Expressions.adoc#editing-expressions[introduction] to the Expressions section; shows use them in a similar way.
 Each Track that you are watching in the Show can be enabled separately.
 If the track’s menu:Enabled[] menu is set to Default, that track will look to the show itself to decide whether it should be enabled.
 There is an Enabled Default menu at the top of the Show window that is used by all

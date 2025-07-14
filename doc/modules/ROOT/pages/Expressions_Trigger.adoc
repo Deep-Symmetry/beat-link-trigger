@@ -1,7 +1,7 @@
 = Trigger Expressions
 include::partial$PagePreamble.adoc[]
 
-Each trigger has its own set of expressions which can be accessed from its <<Triggers.adoc#context-menu,context menu>>.
+Each trigger has its own set of expressions which can be accessed from its xref:Triggers.adoc#context-menu[context menu].
 In addition to the `globals` atom described xref:Expressions_TriggerGlobal.adoc[above], these have access to a very similar `locals` atom which can be used to share values across expressions within the trigger itself (but not other triggers; each gets its own `locals` map), and individual kinds of expressions will automatically have other values available to them which make sense in the context in which the expression is used.
 
 TIP: The help text below the expression editor will list and explain the values that are automatically available for use in that kind of expression.
@@ -9,7 +9,7 @@ TIP: The help text below the expression editor will list and explain the values 
 [#setup-expression]
 == Setup Expression
 
-This is like the Global Setup Expression described <<Expressions_TriggerGlobal.adoc#global-setup-expression,above>>, but it is used to set up the `locals` atom, which is shared only with other expressions on the same trigger.
+This is like the Global Setup Expression described xref:Expressions_TriggerGlobal.adoc#global-setup-expression[above], but it is used to set up the `locals` atom, which is shared only with other expressions on the same trigger.
 It is called when the trigger is loaded, and when Beat Link Trigger starts up, after the xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression].
 
 To illustrate how different expressions in a trigger can work together using `locals`, suppose you have a single trigger that wants to send pitch information to https://resolume.com[Resolume] Arena so that a clip you are triggering runs at the same speed as the track playing on the CDJ.
@@ -48,7 +48,7 @@ Continuing our example, here is how we would clean up the OSC client we created 
 [[enabled-filter-expression]]
 == Enabled Filter Expression
 
-As described in the <<Expressions.adoc#editing-expressions,introduction>> to this section, this is used when you set a trigger’s menu:Enabled[] menu to Custom.
+As described in the xref:Expressions.adoc#editing-expressions[introduction] to this section, this is used when you set a trigger’s menu:Enabled[] menu to Custom.
 It is called whenever a status update packet is received from a watched player, and tells Beat Link Trigger if the trigger should be enabled or not.
 Often you will want a trigger to be enabled when a DJ has loaded a particular track, and a variety of strategies for achieving that are described in their own xref:Matching.adoc[section], see that for lots of great ideas.
 Following some of its suggestions, our Resolume example could enable its trigger with a custom Enabled Filter along the lines of:
@@ -64,7 +64,7 @@ But because it is called to decide which player to track when your trigger is se
 == Tracked Update Expression
 
 This is similar to the Enabled Filter Expression, but even when a trigger is configured to potentially watch multiple players, it is called only for the player that is currently being tracked, which will be the one that is considered “best” as described in the
-<<Triggers.adoc#watch-menu,Watch Menu>> section above.
+xref:Triggers.adoc#watch-menu[Watch Menu] section above.
 Players which enable the trigger are better than ones that don’t; within that group, it is better to be playing, and as a tie-breaker the lowest numbered player is chosen.
 
 TIP: The Tracked Update expression is the ideal place to adjust the track description displayed in the Player Status section of the trigger by storing values in the `:track-description` and/or `:metadata-summary` keys of the trigger locals, although you almost never need to do that now that we can get track metadata from the players.
@@ -163,7 +163,7 @@ If you want to watch this happening, you can add a log statement that will repor
 
 <1> Here is the log statement we are adding.
 
-With this expression in place, when the trigger is active, and you fiddle with the Pitch fader on the CDJ that is playing the track, you will see entries like this in the <<Debugging.adoc#logs,log file>>:
+With this expression in place, when the trigger is active, and you fiddle with the Pitch fader on the CDJ that is playing the track, you will see entries like this in the xref:Debugging.adoc#logs[log file]:
 
 [source,text]
 ----
@@ -208,7 +208,7 @@ You can send your own custom messages here, much like the <<activation-expressio
 == Beat Expression
 
 This is called when the player currently being tracked reports the start of a new beat.
-Continuing the example started in the <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>, here is how you could synchronize the BPM of your ChamSys MagicQ console to the beats coming from your CDJs.
+Continuing the example started in the xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression], here is how you could synchronize the BPM of your ChamSys MagicQ console to the beats coming from your CDJs.
 Set the trigger to watch the Master Player, and enter the following code in the Beat Expression editor:
 
 [source,clojure,subs=attributes+,opts=novalidate]

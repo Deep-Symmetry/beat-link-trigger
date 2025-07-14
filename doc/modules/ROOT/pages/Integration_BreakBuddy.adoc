@@ -16,7 +16,7 @@ Here's how to do it!
 ====
 
 WARNING: It seems that peak support for the operations required to support Break Buddy happened with the nexus and nxs2 lines of CDJs.
-As discussed in <<Players.adoc#loading-playing,Loading and Playing Tracks>>, the CDJ-3000 will load tracks but doesn’t support Fader Start, so can’t be told to play them.
+As discussed in xref:Players.adoc#loading-playing[Loading and Playing Tracks], the CDJ-3000 will load tracks but doesn’t support Fader Start, so can’t be told to play them.
 All-in-one controllers like the XDJ-XZ and Opus Quad are even more limited.
 So in fundamental ways, this is an idea whose time came and passed.
 Check for support by your hardware before investing time in trying it!
@@ -319,7 +319,7 @@ That `127` was the only thing we needed to configure for the cue, because we wan
 The tempo adjustment Shared Functions can figure out the current tempo, and how much time is left in the cue, to control how quickly (and in what direction) they need to ramp the tempo.
 
 NOTE: When this example was created, manually editing the expressions in the cue after placing it from the cue library was the only option.
-If we were updating the example to take full advantage of BLT’s current features, we’d create a <<Shows_CueLibrary.adoc#cue-builders,Cue Builder>> to provide a little graphical interface to automate that!
+If we were updating the example to take full advantage of BLT’s current features, we’d create a xref:Shows_CueLibrary.adoc#cue-builders[Cue Builder] to provide a little graphical interface to automate that!
 But since new player hardware no longer supports both loading tracks and Fader Start/Stop, we didn’t go to that effort.
 
 The cue’s other expressions simply use the Shared Functions detailed in the previous section to make the adjustment happen as the cue plays:

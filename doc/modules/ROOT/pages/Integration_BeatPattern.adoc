@@ -100,7 +100,7 @@ Or, you may not want to use MIDI at all. In fact, in Kevin’s case, it was easi
 <1> We no longer need to worry about the selected MIDI device in our `when` condition, all we care about is that the beat is one we’re supposed to respond to.
 
 <2> This sends an OSC message to the OSC client found at the key `:magic` in the trigger globals.
-The OSC client needs to be created and opened in the trigger Global Setup Expression, and closed in the Global Shutdown Expression, like in the examples shown in the <<Expressions_Trigger.adoc#setup-expression,Trigger Expressions>> section, which demonstrate how to configure a client to talk to Resolume Arena and store it under the key `:resolume`.
+The OSC client needs to be created and opened in the trigger Global Setup Expression, and closed in the Global Shutdown Expression, like in the examples shown in the xref:Expressions_Trigger.adoc#setup-expression[Trigger Expressions] section, which demonstrate how to configure a client to talk to Resolume Arena and store it under the key `:resolume`.
 
 == Adding a beat pattern configuration interface
 

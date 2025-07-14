@@ -88,7 +88,7 @@ And if you do contact us directly, we will probably ask you to direct your quest
 [#logging-thread-dumps]
 [TIP]
 ====
-Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily.Add the following function to your <<Expressions.adoc#shared-functions,Shared Functions>>:
+Thread dumps can be very useful, and yet tedious to create, especially in Windows, so here is a way to make them more easily.Add the following function to your xref:Expressions.adoc#shared-functions[Shared Functions]:
 
 [source,clojure,opts=novalidate]
 ----
@@ -103,7 +103,7 @@ Thread dumps can be very useful, and yet tedious to create, especially in Window
   (timbre/info "----- End of thread dump"))
 ----
 
-This defines a new shared function called `log-thread-dump` which writes a thread dump to the BLT log file.Then you can trigger one by editing your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>> and adding:
+This defines a new shared function called `log-thread-dump` which writes a thread dump to the BLT log file.Then you can trigger one by editing your xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression] and adding:
 
 [source,clojure,opts=novalidate]
 ----
@@ -146,7 +146,7 @@ If you are helping investigate an issue involving communication with the DJ Link
 For that, download and install https://www.wireshark.org[Wireshark], then perform a capture and include the file in your report.
 
 To make it easier to understand how the capture relates to an issue you are seeing, it is even better if you can include a movie of your screen showing when the problem happens, and also include the precise timestamp in that video.
-The easiest way to have timestamps appear in your video is to download and <<Shows.adoc#opening-shows,open>> the xref:attachment$/Timestamp.bls[Timestamp show] that is embedded in this guide, and position its window near the part of your screen where you are capturing the issue.
+The easiest way to have timestamps appear in your video is to download and xref:Shows.adoc#opening-shows[open] the xref:attachment$/Timestamp.bls[Timestamp show] that is embedded in this guide, and position its window near the part of your screen where you are capturing the issue.
 The Timestamp show looks like this:
 
 image:TimestampShow.png[Timestamp Show,477,244]
@@ -239,13 +239,13 @@ image:Save.png[Save option,204,173]
 [[exporting-and-importing]]
 === Exporting and Importing Triggers
 
-As mentioned in the <<Triggers.adoc#context-menu,Triggers Context Menu>> section, individual triggers can be exported on their own, and imported into other trigger configurations.
+As mentioned in the xref:Triggers.adoc#context-menu[Triggers Context Menu] section, individual triggers can be exported on their own, and imported into other trigger configurations.
 
 [[writing-playlists]]
 == Writing Playlists
 
 If you are in a situation where it is important to keep detailed records of the music being played (for example, a radio station that needs to pay royalties), the built-in Playlist Writer can help.
-It builds on the ideas described in the <<Matching.adoc#writing-a-playlist,Matching Tracks Manually>> section to give you a robust, convenient solution.
+It builds on the ideas described in the xref:Matching.adoc#writing-a-playlist[Matching Tracks Manually] section to give you a robust, convenient solution.
 
 Start by choosing menu:File[Write Playlist]. This will bring up the Playlist Writer window.
 
@@ -271,7 +271,7 @@ When you are done recording the playlist you can either click btn:[Stop] or clos
 [[automatically-starting]]
 === Automatically Starting the Playlist Writer
 
-If you want to be sure that playlists are always being written, you can use the <<Settings.adoc#playlists,Settings window>>.
+If you want to be sure that playlists are always being written, you can use the xref:Settings.adoc#playlists[Settings window].
 
 Before that existed, you could add a line to your Came Online Expression that starts the playlist writer as soon as Beat Link Trigger is connected to a DJ Link network.
 It's still worth illustrating how that worked, as an example of coding in BLT.

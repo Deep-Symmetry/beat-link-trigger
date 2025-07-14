@@ -24,7 +24,7 @@ This gives you great power, but it also means you can completely lock up the pro
 It’s important to start simple, and to keep in mind that your expressions run as part of processing network updates from players and mixers, so they need to finish fast.
 
 Beat Link Trigger tries to protect against many kinds of things that can go wrong in your expressions.
-If one throws an exception, it will be logged so you can view it in the <<Debugging.adoc#logs,log file>>, and that instance of running your expression will be abruptly cancelled, but the next expression or activity will get a chance to run.
+If one throws an exception, it will be logged so you can view it in the xref:Debugging.adoc#logs[log file], and that instance of running your expression will be abruptly cancelled, but the next expression or activity will get a chance to run.
 
 The real problem is when your code does something that takes a long time, or even worse, gets stuck in an infinite loop.
 If that happens, nothing else that is supposed to respond to the event that caused your expression to run will get a chance to, and events can pile up behind your stuck expression, freezing user interface updates, and blocking the MIDI or other messages you are supposed to be sending.
@@ -48,7 +48,7 @@ Also, note that it is only sending two-way network communications that you reall
 [#editing-expressions]
 == Editing Expressions
 
-The expression you are first likely to want to use with low-level Triggers is the Enabled Filter, which is found in each trigger’s <<Triggers.adoc#context-menu,context menu>>.
+The expression you are first likely to want to use with low-level Triggers is the Enabled Filter, which is found in each trigger’s xref:Triggers.adoc#context-menu[context menu].
 In fact, as soon as you set a trigger’s menu:Enabled[] menu to Custom, Beat Link Trigger will pop open the editor for that expression for you, if you have not yet created it:
 
 image:Editor.png[Enabled Filter Editor,912,828]
@@ -87,7 +87,7 @@ Clicking the box again (which will show as a kbd:[\+] sign now) will expand it a
 If you hover the mouse over the kbd:[+] without clicking on it, you can also peek at the collapsed content as a tooltip.
 This feature can also be activated using the menu:Folding[] submenu of the context menu, which appears when you right-click or control-click in the editor text area.
 
-And if you want to really get serious about learning Clojure and editing it in a powerful way, consider <<Debugging.adoc#advanced-coding,connecting an IDE>>.
+And if you want to really get serious about learning Clojure and editing it in a powerful way, consider xref:Debugging.adoc#advanced-coding[connecting an IDE].
 ====
 
 

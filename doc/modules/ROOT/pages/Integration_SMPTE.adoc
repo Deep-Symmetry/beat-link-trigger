@@ -155,7 +155,7 @@ You will need to edit line 1 of the `Came Online` expression to match the IP add
 If you have changed the host name of your Orange Pi, you will need to edit line 3 of the `Shared Functions` to reflect the name you chose.
 
 The example track that’s in the show, _A Heavy Abacus_, is just a placeholder so you can copy its `Loaded` and `Unloaded` expressions into the tracks that you actually want to use.
-So start by <<Shows.adoc#adding-tracks,importing>> your actual tracks into the show, either from a player on the network, or from a rekordbox USB or SD card.
+So start by xref:Shows.adoc#adding-tracks[importing] your actual tracks into the show, either from a player on the network, or from a rekordbox USB or SD card.
 Once your tracks are added, copy and paste the content of the `Loaded` and `Unloaded` expressions in _A Heavy Abacus_ to the corresponding expressions in your own tracks.
 Once that's done, you can delete _A Heavy Abacus_.
 

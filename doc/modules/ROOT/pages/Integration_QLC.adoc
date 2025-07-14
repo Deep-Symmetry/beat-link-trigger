@@ -10,7 +10,7 @@ While this could be done by MIDI, it would be nice to do it in a way that also a
 ====
 This example was rebuilt to take advantage of a new feature in BLT version 7.3 that allows a package of low-level triggers and code to be distributed in a standalone, easy-to-use way.
 If all you’re looking to do is work with QLC+, you can just download the
-xref:attachment$/QLC-Cues.bls[integration show], then <<Shows.adoc#opening-shows,open>> and use it as described next, and ignore the rest of the explanation of how it works until you are curious about that.
+xref:attachment$/QLC-Cues.bls[integration show], then xref:Shows.adoc#opening-shows[open] and use it as described next, and ignore the rest of the explanation of how it works until you are curious about that.
 
 https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/QLC.2B.20cues.20WebSocket.20Issue/with/519925934[Ashton via Zulip] kindly let me know that my revisions were actually broken, so I fixed the example for the 8.0 release and cleaned it up the rest of the way.
 Then, towards the end of work on that release, I xref:Expressions_v8.adoc[improved] the way expressions are compiled, which enabled me to simplify the code even more.
@@ -69,7 +69,7 @@ If you want more than one button to be pressed when that beat is reached, you ca
 
 image:rbQLCTrack.png[Tracks with QLC cues,620,850]
 
-TIP: If you don’t want to only respond to cues being played on the Master player, you can change the player being watched by the trigger using the <<Triggers.adoc#watch-menu,Watch menu>>, and you can use the trigger’s <<Triggers.adoc#context-menu,gear or context menu>> to export it to a file, then xref:Shows_RawTriggers.adoc[create new raw triggers] in the show and import that file into it, so you can have multiple copies watching different players.
+TIP: If you don’t want to only respond to cues being played on the Master player, you can change the player being watched by the trigger using the xref:Triggers.adoc#watch-menu[Watch menu], and you can use the trigger’s xref:Triggers.adoc#context-menu[gear or context menu] to export it to a file, then xref:Shows_RawTriggers.adoc[create new raw triggers] in the show and import that file into it, so you can have multiple copies watching different players.
 Changes to the configurations of these triggers are saved inside the show.
 
 And that is all you need to know in order to trigger QLC+ cues based on information encoded into tracks in rekordbox!
@@ -332,7 +332,7 @@ The only new code here is the first line.
 
 == Trigger Code
 
-The rest of the code lives in the trigger itself, edited using the trigger's <<Triggers.adoc#context-menu,gear or context menu>>:
+The rest of the code lives in the trigger itself, edited using the trigger's xref:Triggers.adoc#context-menu[gear or context menu]:
 
 === Beat Expression
 

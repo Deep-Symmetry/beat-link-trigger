@@ -118,7 +118,7 @@ If there is a problem with your saved configuration that is preventing BLT from 
 You can either try to manually edit the exported configuration file to fix the problem (it is saved as https://github.com/edn-format/edn[EDN], a text format), extract expressions and elements you want to save, or reopen it unchanged later if there is a fix to BLT itself that solves the problem.
 
 Finally, if you want to start with a different configuration (which includes all your triggers, global expressions and shared functions, as well as window positions and set of open shows), you can use the `-c` or `--config` option to specify the path to the exported configuration file you want to use.
-This will replace the current configuration, so if there is anything you want to preserve in that, be sure to do that with the `--reset` option, unless you have already <<Debugging.adoc#saving-and-loading,saved it from within BLT>>.
+This will replace the current configuration, so if there is anything you want to preserve in that, be sure to do that with the `--reset` option, unless you have already xref:Debugging.adoc#saving-and-loading[saved it from within BLT].
 
 [TIP]
 ====

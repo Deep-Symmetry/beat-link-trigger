@@ -4,13 +4,13 @@ include::partial$PagePreamble.adoc[]
 Each track you add to a show can have its own set of expressions which apply to that track, allowing you to take actions when the track is loaded on a player, starts or stops playing, and so on.
 To react to more specific regions of the track, see the xref:Expressions_ShowCue.adoc[Cue Expressions section].
 
-The track expressions can be accessed from the track’s <<Shows_Tracks.adoc#track-context-menu,context menu>>.
+The track expressions can be accessed from the track’s xref:Shows_Tracks.adoc#track-context-menu[context menu].
 In addition to the `globals` atom and the `show` value described xref:Expressions_ShowGlobal.adoc[earlier], and any functions and other values created in the show’s xref:Expressions_ShowShared.adoc[Shared Functions], these have access to:
 
 * a `locals` atom which can be used to share values across expressions within the track
 itself (but not other tracks; each gets its own `locals` map),
 * a `track` value that contains everything Beat Link Trigger
-<<ShowInternals.adoc#track,knows about the track>>.
+xref:ShowInternals.adoc#track[knows about the track].
 
 Also, individual kinds of expressions will automatically have other values available to them which make sense in the context in which the expressions are used.
 
@@ -25,7 +25,7 @@ You can use it to open network connections or set up other values for this Track
 [[track-enabled-filter-expression]]
 == Enabled Filter Expression
 
-The basic concept of an Enabled Filter is described in the <<Expressions.adoc#editing-expressions,introduction>> to the Expressions section; tracks use them in a similar way.
+The basic concept of an Enabled Filter is described in the xref:Expressions.adoc#editing-expressions[introduction] to the Expressions section; tracks use them in a similar way.
 If the track’s menu:Enabled[] menu is set to Custom, it will run its Enabled Filter Expression to decide what to do.
 If this expression returns a `true` value, this track will be enabled; otherwise it will be disabled.
 
@@ -55,9 +55,9 @@ Here's the custom Enabled Filter expression code that implements this goal:
       any-on-air?))
 ----
 
-NOTE: You can also set the menu:Enabled[] menu to Default in order to run the Show-level Default Enabled Filter as described <<Shows_Tracks.adoc#enabled-menu,above>>.
-This expression probably deserves to <<Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression,live at the Show level>>, and then you can tweak individual tracks that should behave differently.
-The expression explanation  <<Expressions_ShowGlobal.adoc#show-enhanced-on-air-example,found there>> also walks through an earlier, simpler version of the expression, and explains why it was not quite enough.
+NOTE: You can also set the menu:Enabled[] menu to Default in order to run the Show-level Default Enabled Filter as described xref:Shows_Tracks.adoc#enabled-menu[above].
+This expression probably deserves to xref:Expressions_ShowGlobal.adoc#show-default-enabled-filter-expression[live at the Show level], and then you can tweak individual tracks that should behave differently.
+The expression explanation xref:Expressions_ShowGlobal.adoc#show-enhanced-on-air-example[found there] also walks through an earlier, simpler version of the expression, and explains why it was not quite enough.
 
 [[track-loaded-expression]]
 == Loaded Expression

@@ -10,7 +10,7 @@ These features were inspired by creative uses that https://www.hospitalrecords.c
 If you are working with CDJ-3000s and synchronizing to other audio, you may encounter a problematic amount of jitter.
 It seems that the high-precision position packets sent by these players are not as smooth as the beat packets we otherwise rely on.
 
-As a workaround until we develop a better solution to this problem, if you encounter it you can tell the `TimeFinder` to ignore the high-precision position packets by <<Expressions.adoc#editing-expressions,adding>> this function call to your <<Expressions_TriggerGlobal.adoc#global-setup-expression,Global Setup Expression>>:
+As a workaround until we develop a better solution to this problem, if you encounter it you can tell the `TimeFinder` to ignore the high-precision position packets by xref:Expressions.adoc#editing-expressions[adding] this function call to your xref:Expressions_TriggerGlobal.adoc#global-setup-expression[Global Setup Expression]:
 
 [source,clojure,opts=novalidate]
 ----
@@ -38,7 +38,7 @@ This will open the Carabiner Connection window (the set of devices you see at th
 
 image:CarabinerWindow.png[Carabiner Connection window,396,447]
 
-NOTE: This window will also open whenever you choose `Link` in a trigger’s <<Triggers.adoc#message-menu,Message Menu>>, or load a trigger that is configured that way, if Carabiner is not already connected.
+NOTE: This window will also open whenever you choose `Link` in a trigger’s xref:Triggers.adoc#message-menu[Message Menu], or load a trigger that is configured that way, if Carabiner is not already connected.
 
 Set the `Carabiner Port` value to match the port on which your Carabiner daemon should listen (or, if you are running your own independent copy, the port on which you have that Carabiner configured to listen).
 The default value of 17000 will work unless you need to explicitly tell it to use a different port because some other program is using port 17000 on your system.

@@ -5,7 +5,7 @@ Each phrase trigger you add to a show can have its own set of expressions which 
 To react to more specific regions of the phrase trigger, see the xref:Expressions_ShowCue.adoc[Cue Expressions, above].
 
 The phrase trigger expressions can be accessed from the phrase trigger’s xref:Shows_PhraseTriggers.adoc#context-menu[context menu].
-In addition to the `globals` and `trigger-globals` atoms and `show` value described above, these have access to a very similar `locals` atom which can be used to share values across expressions within the phrase trigger itself (but not other phrase triggers; each gets its own `locals` map), a `phrase` value that contains everything Beat Link Trigger <<ShowInternals.adoc#phrase-contents,knows about the phrase trigger>>, and individual kinds of expressions will automatically have other values available to them which make sense in the context in which the expression is used.
+In addition to the `globals` and `trigger-globals` atoms and `show` value described above, these have access to a very similar `locals` atom which can be used to share values across expressions within the phrase trigger itself (but not other phrase triggers; each gets its own `locals` map), a `phrase` value that contains everything Beat Link Trigger xref:ShowInternals.adoc#phrase-contents[knows about the phrase trigger], and individual kinds of expressions will automatically have other values available to them which make sense in the context in which the expression is used.
 
 TIP: The help text below the expression editor will list and explain the values that are automatically available for use in that kind of expression.
 
@@ -18,7 +18,7 @@ You can use it to open network connections or set up other values for this phras
 [[enabled-filter-expression]]
 == Enabled Filter Expression
 
-The basic concept of an Enabled Filter is described in the <<Expressions.adoc#editing-expressions,introduction>> to the Expressions section; phrase triggers use them in a similar way.
+The basic concept of an Enabled Filter is described in the xref:Expressions.adoc#editing-expressions[introduction] to the Expressions section; phrase triggers use them in a similar way.
 If the phrase trigger’s menu:Enabled[] menu is set to Custom, it will run its Enabled Filter Expression to decide what to do.
 If your expression returns a `true` value, this phrase trigger will be enabled as a candidate to activate during the current phrase; otherwise it will be disabled and not considered.
 
@@ -33,7 +33,7 @@ Disabled phrase triggers do not activate, and all of their configured cues are d
 In your Enabled Filter expression, if you want to build logic on top of the kind of decisions that the phrase trigger UI offers, there are some convenience variables made available to you (in phrase trigger expressions other than the Setup, Stopped and Shutdown) which describe the phrase that is currently playing:
 
 [[phrase-convenience-variables]]
-`phrase-type`:: A keyword which identifies the type of phrase it has been analyzed to be, corresponding to the options you can choose in the <<Shows_PhraseTriggers.adoc#phrase-picker,phrase picker>>.
+`phrase-type`:: A keyword which identifies the type of phrase it has been analyzed to be, corresponding to the options you can choose in the xref:Shows_PhraseTriggers.adoc#phrase-picker[phrase picker].
 For tracks in a “low” mood, this will be one of `:low-intro`, `:low-verse-1`, `:low-verse-2`, `:low-bridge`, `:low-chorus`, or `:low-outro`.
 +
 If the track was analyzed as a “mid” mood, it will be one of `:mid-intro`, `:mid-verse-1`, `:mid-verse-2`, `:mid-verse-3`, `:mid-verse-4`, `:mid-verse-5`, `:mid-verse-6`, `:mid-bridge`, `:mid-chorus`, or `:mid-outro`.
@@ -44,7 +44,7 @@ And if the track has a “high” mood, it will be one of `:high-intro-1`, `:hig
 
 `phrase-structure`:: The https://deepsymmetry.org/cratedigger/apidocs/org/deepsymmetry/cratedigger/pdb/RekordboxAnlz.SongStructureEntry.html[`SongStructureEntry`] object describing everything we have been able to decode about the phrase.
 
-`track-bank`:: A keyword identifying the lighting bank the DJ assigned to the track, corresponding to the options you can choose in the <<Shows_PhraseTriggers.adoc#bank-picker,bank picker>>.
+`track-bank`:: A keyword identifying the lighting bank the DJ assigned to the track, corresponding to the options you can choose in the xref:Shows_PhraseTriggers.adoc#bank-picker[bank picker].
 Will be one of `:club-1`, `:club-2`, `:cool`, `:hot`, `:natural`, `:subtle`, `:vivid`, or `:warm`.
 
 `section`:: A keyword identifying which part of the phrase trigger is currently playing.

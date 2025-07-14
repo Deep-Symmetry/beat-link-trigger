@@ -33,7 +33,7 @@ If you enter a number that is not a valid MIDI note (less than 1 or greater than
 
 image:rbMidiTrack.png[Tracks with MIDI cues,620,850]
 
-TIP: If you don't want to only respond to cues being played on the Master player, you can change the player being watched by the trigger using the <<Triggers.adoc#watch-menu,Watch menu>>, and you can use the trigger's <<Triggers.adoc#context-menu,gear or context menu>> to export it to a file, then xref:Triggers.adoc[create new triggers] and import that file into them, so you can have multiple copies watching different players.
+TIP: If you don’t want to only respond to cues being played on the Master player, you can change the player being watched by the trigger using the xref:Triggers.adoc#watch-menu[Watch menu], and you can use the trigger’s xref:Triggers.adoc#context-menu[gear or context menu] to export it to a file, then xref:Triggers.adoc[create new triggers] and import that file into them, so you can have multiple copies watching different players.
 
 == Shared Code
 
@@ -161,7 +161,7 @@ TIP: You can close the Activation Expression editor that gets opened up without 
 But we still want to have menu:Message[] set to menu:Custom[], as shown <<trigger-window,above>>. because we don’t want stray MIDI messages being sent just because the track started or stopped.
 
 Set the menu:MIDI Output[] and menu:Channel[] to where you want the MIDI messages to go. And then it’s time for the final expressions that tie this all together.
-These are edited using the trigger’s <<Triggers.adoc#context-menu,gear or context menu>>:
+These are edited using the trigger’s xref:Triggers.adoc#context-menu[gear or context menu]:
 
 === Beat Expression
 
