@@ -26,7 +26,8 @@ This change log follows the conventions of
 - A setting has been added to the `TimeFinder` to prevent it from using precise position packets sent by CDJ-3000s.
   They help keep tighter synchronization with playback position, but currently seem to exhibit too much jitter for use when synchronizing with audio sources over Ableton Link.
   This setting is a workaround until a smoothing solution is developed.- You can now import entire playlists of tracks into shows from offline media.
-- A link to Ineffable's great video tutorial for synchronizing videos in Resolume.
+- When we are processing precise position packets, though, we are now able to track the playback of even unanalyzed tracks on the CDJ-3000 pretty well.
+- The user guide now includes link to Ineffable's great video tutorial for synchronizing videos in Resolume.
 - The `looping?` convenience variable is exposed for Beat expressions as well, even though they don't have direct access to `CdjStatus` objects, because it is likely to be useful there (using the same approach as the `on-air?` variable).
 - When we unexpectedly are unable to route a message to a CDJ, we now log extensive troubleshooting information about the address we are trying to send to and the state of the network interfaces at that moment.
 - There is now a mechanism by which very repetitive log entries can be throttled (defaulting to once per minute). This has been used for reports about problematic track bank/phrase values, and can be propagated to other logs as we notice ones that deserve it. Let us know on Zulip if you see any!

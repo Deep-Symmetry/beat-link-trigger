@@ -221,7 +221,10 @@
   [n]
   (let [result (and (.isRunning time-finder)
                     (when-let [^TrackPositionUpdate update (.getLatestPositionFor time-finder (int n))]
-                      (.getBeatWithinBar update)))]
+                      (.getBeatWithinBar update)))
+        coarse (when-let [^CdjStatus status (.getLatestStatusFor virtual-cdj (int n))]
+                 (.getBeatWithinBar status))  ; CDJ-3000 sends precise position even with no beat grid.
+        result (if (and result (pos? result)) result coarse)]
     (when (and result (<= 1 result 4))
       result)))
 
