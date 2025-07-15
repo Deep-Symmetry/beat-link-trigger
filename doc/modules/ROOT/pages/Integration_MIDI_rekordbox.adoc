@@ -5,7 +5,7 @@ http://www.netskymusic.com[Netsky] was setting up a xref:Shows.adoc[show] to run
 
 Indeed, now that we know how to read cue names from the track analysis files, this can be done, and offers a very nice shortcut!
 Here's how it works.
-You can start by downloading the xref:attachment$/cueMidiSender.blt[configuration file] I created for him and opening that within Beat Link Trigger.
+You can start by downloading the xref:attachment$cueMidiSender.blt[configuration file] I created for him and opening that within Beat Link Trigger.
 That will set up a single trigger called "Cue-driven MIDI Sender" that watches the current Master player.
 
 WARNING: If you already have triggers of your own that you want to keep, be sure to save your configuration before opening another one!
@@ -240,7 +240,7 @@ We heard from a performer who was working with TouchDesigner and who was not eve
 seeing the effects of the Note On messages in that situation, so he wanted a way to have the Note Off messages come a beat later than the Note On messages.
 That requires slightly more sophisticated code, but is easy enough to accomplish.
 
-As before, if you have no other triggers and functions you are worried about preserving, you can start by loading a fully-implemented xref:attachment$/cueMidiSender2.blt[configuration file].
+As before, if you have no other triggers and functions you are worried about preserving, you can start by loading a fully-implemented xref:attachment$cueMidiSender2.blt[configuration file].
 Otherwise, follow the instructions above to set up the trigger expressions and shared functions for the first version of this integration, and then make the following changes:
 
 [[revised-shared-functions]]

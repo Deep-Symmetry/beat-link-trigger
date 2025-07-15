@@ -9,7 +9,7 @@ This was kind of an “inside out” way of using song structure information in 
 But it was clearly a very useful approach, so I decided to add a few features and make some new convenience values available to expressions to make it easier.
 
 With those in place, a little back and forth discussion about how to convey the information led us to send it as UDP packets containing JSON-formatted data to TouchDesigner.
-I'll list all the required code here, but you can also download and open a xref:attachment$/TouchDesigner.bls[show file] that has them all in place for you; whenever it is open, on any beat from a master player that is playing a track with song structure analysis, JSON data describing that beat will be sent to TouchDesigner on the port configured in the show’s Global Setup Expression.
+I'll list all the required code here, but you can also download and open a xref:attachment$TouchDesigner.bls[show file] that has them all in place for you; whenever it is open, on any beat from a master player that is playing a track with song structure analysis, JSON data describing that beat will be sent to TouchDesigner on the port configured in the show’s Global Setup Expression.
 
 Speaking of that, here is how we configure where to send the data:
 

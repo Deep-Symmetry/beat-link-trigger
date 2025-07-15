@@ -145,7 +145,7 @@ You can check it out https://github.com/Deep-Symmetry/beat-link-trigger/wiki/Gui
 
 === Controlling the Pi using a Show
 
-Once you have the Pi built and working, you can load this xref:attachment$/OrangePiSMPTE.bls[show file] in Beat Link Trigger.
+Once you have the Pi built and working, you can load this xref:attachment$OrangePiSMPTE.bls[show file] in Beat Link Trigger.
 
 TIP: Even if you are more accustomed to using the older, low-level Triggers approach to working with Beat Link Trigger, a xref:Shows.adoc[Show] makes more sense for working with timecode, because it's going to be very track-specific.
 So this is a good chance to learn how this new feature can make your life easier in other contexts too!
@@ -173,7 +173,7 @@ If you would like help doing that, please ask in the https://deep-symmetry.zulip
 
 === Controlling the Pi using a Trigger
 
-If you really do want to use an older Triggers-based approach, you can load this xref:attachment$/OrangePiSMPTE.blt[configuration file] in Beat Link Trigger, configure it to talk to the IP address of the Pi, and it will generate timecode that tracks the on-air master player.
+If you really do want to use an older Triggers-based approach, you can load this xref:attachment$OrangePiSMPTE.blt[configuration file] in Beat Link Trigger, configure it to talk to the IP address of the Pi, and it will generate timecode that tracks the on-air master player.
 
 WARNING: Because it is a full configuration file, it will replace any triggers you have defined in Beat Link Trigger, so if you care about any of them, be sure to save your existing configuration to a separate file so you can reload them when you are done working with the Pi.
 You can also export individual triggers to files so you can import them into the Orange Pi configuration if you like.

@@ -10,7 +10,7 @@ While this could be done by MIDI, it would be nice to do it in a way that also a
 ====
 This example was rebuilt to take advantage of a new feature in BLT version 7.3 that allows a package of low-level triggers and code to be distributed in a standalone, easy-to-use way.
 If all you’re looking to do is work with QLC+, you can just download the
-xref:attachment$/QLC-Cues.bls[integration show], then xref:Shows.adoc#opening-shows[open] and use it as described next, and ignore the rest of the explanation of how it works until you are curious about that.
+xref:attachment$QLC-Cues.bls[integration show], then xref:Shows.adoc#opening-shows[open] and use it as described next, and ignore the rest of the explanation of how it works until you are curious about that.
 
 https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/QLC.2B.20cues.20WebSocket.20Issue/with/519925934[Ashton via Zulip] kindly let me know that my revisions were actually broken, so I fixed the example for the 8.0 release and cleaned it up the rest of the way.
 Then, towards the end of work on that release, I xref:Expressions_v8.adoc[improved] the way expressions are compiled, which enabled me to simplify the code even more.

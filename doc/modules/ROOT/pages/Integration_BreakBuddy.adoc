@@ -21,7 +21,7 @@ All-in-one controllers like the XDJ-XZ and Opus Quad are even more limited.
 So in fundamental ways, this is an idea whose time came and passed.
 Check for support by your hardware before investing time in trying it!
 
-If you have compatible hardware, start by saving the xref:attachment$/BreakBuddy.bls[Break Buddy show] where you like to keep your Beat Link Trigger shows.
+If you have compatible hardware, start by saving the xref:attachment$BreakBuddy.bls[Break Buddy show] where you like to keep your Beat Link Trigger shows.
 It has all the necessary shared functions built in, and some example tracks showing how to configure your own, as described below.
 
 * Set up some tracks in rekordbox so their first cue or memory point is where you want to mix into, put them all onto the same USB or SD card (or leave them in rekordbox if you will be using it in export mode), and xref:Shows.adoc#adding-tracks[import them] into the Break Buddy show (xref:Shows.adoc#opening-shows[opening it] first if you haven't yet done so).

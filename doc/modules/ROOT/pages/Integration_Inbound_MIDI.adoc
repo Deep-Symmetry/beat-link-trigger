@@ -5,7 +5,7 @@ This started out as a https://deep-symmetry.zulipchat.com/#narrow/channel/275322
 
 == Using the Inbound MIDI Show
 
-If you just want to use the show to make BLT do something when it receives a MIDI message, start by downloading and opening the xref:attachment$/InboundMidiTrigger.bls[Inbound Midi Trigger show].
+If you just want to use the show to make BLT do something when it receives a MIDI message, start by downloading and opening the xref:attachment$InboundMidiTrigger.bls[Inbound Midi Trigger show].
 You will end up with a user interface that looks like this:
 
 image:InboundMidi.png[Inbound MIDI Show,910,265]

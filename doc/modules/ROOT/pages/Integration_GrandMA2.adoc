@@ -3,7 +3,7 @@ include::partial$PagePreamble.adoc[]
 
 https://web.archive.org/web/20211204155543/https://lxhues.com/[Alex Hughes] inquired if it would be possible to use a trigger to synchronize a speed master for effects on a https://www.malighting.com/product-archive/products/grandma2/[grandMA2] lighting control system.
 With his help and pointers to the relevant documentation, we were able to achieve that.
-The approach is described and explained in detail below, or you can start by downloading the corresponding xref:attachment$/grandMA2.blt[configuration file] and loading that within Beat Link Trigger.
+The approach is described and explained in detail below, or you can start by downloading the corresponding xref:attachment$grandMA2.blt[configuration file] and loading that within Beat Link Trigger.
 
 WARNING: If you already have triggers of your own that you want to keep, be sure to save your configuration before opening another one!
 In that case you may want to export your triggers, or manually cut and paste the relevant pieces of code into your Triggers window Shared Functions.
