@@ -12,6 +12,7 @@ if [ "$GUIDE_SSH_KEY" != "" ]; then
     echo "Building the online and PDF user guides."
     sudo apt-get update
     sudo apt-get install graphicsmagick
+    sudo apt-get install libgraphicsmagick1-dev
     bundle config --local path .bundle/gems
     bundle
     npm run hosted-docs -- --attribute "release-tag=$release_tag"
