@@ -3,12 +3,12 @@ include::partial$PagePreamble.adoc[]
 
 Beat Link Trigger can take advantage of track metadata and related information from the players to provide you a rich view of what is happening right now on all the decks; to see this, choose menu:Network[Show Player Status] once you are online with a DJ Link network.
 
+image:PlayerStatus.png[Player Status Window,599,842]
+
 BLT can also tell the decks to load tracks from media found anywhere on the network (in one of the player slots, or on a computer or mobile device running rekordbox in export mode). The Player Status window offers a shortcut for doing this from the media loaded in each player, or you can choose menu:Network[Load Track on Player] to find tracks anywhere.
 You can also adjust many player settings, for example to establish a standard configuration in between DJ sets, by choosing menu:Network[Load Settings on Player]. These options are described in more depth later in this section
 
-As shown in the example view below, the Player Status window can be a valuable resource on its own for running visuals for a show, even if you don’t have any triggers set up:
-
-image:PlayerStatus.png[Player Status Window,599,842]
+As shown in the example view above, the Player Status window can be a valuable resource on its own for running visuals for a show, even if you don’t have any triggers set up.
 
 Only players currently visible on the network will appear in this window.
 The player number will be bright green if it is currently playing, and gray if it is stopped.
