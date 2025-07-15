@@ -10,6 +10,8 @@ if [ "$GUIDE_SSH_KEY" != "" ]; then
 
     # Build the cloud version of the documentation site and PDF artifact.
     echo "Building the online and PDF user guides."
+    sudo apt-get update
+    sudo apt-get install graphicsmagick
     bundle config --local path .bundle/gems
     bundle
     npm run hosted-docs -- --attribute "release-tag=$release_tag"
