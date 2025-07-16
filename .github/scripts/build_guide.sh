@@ -25,7 +25,7 @@ if [ "$GUIDE_SSH_KEY" != "" ]; then
     rsync -avz doc/build/site/ guides@deepsymmetry.org:/var/www/guides/beat-link-trigger/
 
     # Rename the PDF to the name we like to use for the release artifact.
-    mv doc/build/assembler-pdf/beat-link-trigger/_exports/index.pdf BLT-guide.pdf
+    mv doc/build/assembler-pdf/beat-link-trigger/next/_exports/index.pdf BLT-guide.pdf
 
     # Upload the PDF as a release artifact
     if [ "$release_snapshot" = true ] ; then
