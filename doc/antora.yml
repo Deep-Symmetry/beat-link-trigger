@@ -1,6 +1,6 @@
 name: beat-link-trigger
 title: Beat Link Trigger User Guide
-version: ~
+version: 'next'
 display_version: 'main'
 prerelease: true
 start_page: ROOT:README.adoc
