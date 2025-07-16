@@ -2,7 +2,7 @@
   "private": true,
   "description": "Used to build the documentation site, not the project itself.",
   "dependencies": {
-    "@antora/pdf-extension": "^1.0.0-beta.3"
+    "@antora/pdf-extension": "^1.0.0-beta.4"
   },
   "devDependencies": {
     "@antora/cli": "3.1.10",
@@ -10,9 +10,9 @@
     "@antora/site-generator": "3.1.10"
   },
   "scripts": {
-    "local-docs": "npx antora --fetch doc/embedded.yml",
-    "hosted-docs": "npx antora --fetch doc/github-html.yml",
-    "pdf-docs": "npx antora --fetch doc/github-pdf.yml"
+    "local-docs": "npx antora --fetch doc/antora-playbook-embedded.yml",
+    "hosted-docs": "npx antora --fetch doc/antora-playbook-hosted.yml",
+    "test-docs": "npx antora --fetch doc/antora-playbook-test.yml"
   },
   "repository": {
     "type": "git",
