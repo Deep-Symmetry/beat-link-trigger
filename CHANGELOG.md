@@ -1292,7 +1292,7 @@ will enable a ton of very compelling new use cases!
   > found.&rdquo; in red, just as you would see if the device was
   > unplugged:
   >
-  > <img src="doc/modules/ROOT/assets/images/MissingDevice.png" alt="Missing Device" width="800">
+  > <img src="doc/modules/ROOT/images/MissingDevice.png" alt="Missing Device" width="800">
 
 - The embedded Beat Link library which communicates with the Pioneer
   network has been updated to handle creating metadata caches from

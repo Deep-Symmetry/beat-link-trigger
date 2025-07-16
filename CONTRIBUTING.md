@@ -100,7 +100,7 @@ Beat Link Trigger is primarily maintained by [@brunchboy][brunchboy].
 ## License
 
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
- src="doc/modules/ROOT/assets/images/DS-logo-github.png" width="250" height="150"></a>
+ src="doc/modules/ROOT/images/DS-logo-github.png" width="250" height="150"></a>
 
 Copyright © 2016&ndash;2025 [Deep Symmetry, LLC][deep-symmetry]
 

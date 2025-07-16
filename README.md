@@ -2,7 +2,7 @@
 
 [![project chat](https://img.shields.io/badge/chat-on%20zulip-brightgreen)](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)
  <img align="right" width="275" height="250" alt="Beat Link Trigger"
-      src="doc/modules/ROOT/assets/images/BeatLink-logo-padded-left.png">
+      src="doc/modules/ROOT/images/BeatLink-logo-padded-left.png">
 
 An integration environment for DJ performances focused on bridging
 Pioneer DJ professional equipment to lighting, video, laser, and
@@ -13,11 +13,11 @@ directions thanks to requests from touring artists who wanted to do
 new and interesting things in their shows. Built using
 [beat-link](https://github.com/Deep-Symmetry/beat-link#beat-link).
 
-> ”It's a shame Pioneer doesn't support this project, even
+> “It's a shame Pioneer doesn’t support this project, even
 > unofficially. It's such a huge value add for them. When I was
 > looking to buy my XDJ-XZ, lots of people were trying to sell me nice
-> Denon gear but I'm locked into Pioneer because of BLT despite Denon
-> being just as good if not a little better feature-wise.“
+> Denon gear, but I'm locked into Pioneer because of BLT despite Denon
+> being just as good if not a little better feature-wise.”
 >
 > —[Nicholas Maddix](http://maddix.it) on the project Gitter channel
 > (where we discussed the project before we moved to the [Zulip
@@ -59,7 +59,7 @@ guide](https://blt-guide.deepsymmetry.org/).
 ## Getting Help
 
 <a href="http://zulip.com"><img align="right" alt="Zulip logo"
- src="doc/modules/ROOT/assets/images/zulip-icon-circle.svg"
+ src="doc/modules/ROOT/images/zulip-icon-circle.svg"
  width="128" height="128"></a>
 
 Deep Symmetry&rsquo;s projects are generously sponsored with hosting by [Zulip](https://zulip.com), an open-source modern team chat app designed to keep both live and asynchronous conversations organized.
@@ -83,25 +83,25 @@ A trigger window will open, in which you can choose the players you
 want to watch, the kind of MIDI message to send when they start and
 stop, and when the triggers are enabled:
 
-<img src="doc/modules/ROOT/assets/images/TriggerWindow.png" alt="Trigger window" width="793" height="637">
+<img src="doc/modules/ROOT/images/TriggerWindow.png" alt="Trigger window" width="793" height="637">
 
 There is also an
 [interface](https://blt-guide.deepsymmetry.org/beat-link-trigger/Players.html)
 for monitoring the status of each player found on the network, which
 you can access by choosing `Show Player Status` in the `Network` menu:
 
-<img src="doc/modules/ROOT/assets/images/PlayerStatus.png" alt="Player Status window" width="599" height="842">
+<img src="doc/modules/ROOT/images/PlayerStatus.png" alt="Player Status window" width="599" height="842">
 
 And starting with version 0.5.0, there is a [Show
 interface](https://blt-guide.deepsymmetry.org/beat-link-trigger/Shows.html)
 with which you can paint cues on track beat grids, to automate away
 the complexities of manually managing triggers.
 
-<img src="doc/modules/ROOT/assets/images/SecondCue.png" alt="Show interface snippet" width="791" height="389">
+<img src="doc/modules/ROOT/images/SecondCue.png" alt="Show interface snippet" width="791" height="389">
 
 ### Going Further
 
-**This page is just a quick introduction!** Please see the the full
+**This page is just a quick introduction!** Please see the full
 [:notebook: user guide](https://blt-guide.deepsymmetry.org/)
 for many more details, including:
 
@@ -127,7 +127,7 @@ If you run into specific problems or have ideas of ways Beat Link Trigger could 
 
 And if you think you've come up with new or better way to do
 something, terrific! Please take a look at our [guidelines for
-contributing](CONTRIBUTING.md) and we can't wait to hear from you!
+contributing](CONTRIBUTING.md), and we can't wait to hear from you!
 
 > Please be mindful of our [Code of Conduct](CODE_OF_CONDUCT.md) to make
 > sure everyone feels welcome in the community.
@@ -165,7 +165,7 @@ This is in no way a sanctioned implementation of the protocols. It should be cle
 > the XDJ-RX does not actually implement the protocol:
 >
 > &ldquo;The LINK on the RX [and RX2] is ONLY for linking to rekordbox
-> on your computer or a router with WiFi to connect rekordbox mobile.
+> on your computer or a router with Wi-Fi to connect rekordbox mobile.
 > It can not exchange LINK data with other CDJs or DJMs.&rdquo;
 
 While these techniques appear to work for us so far, there are many
@@ -224,7 +224,7 @@ made programs like Beat Link Trigger possible.
 ## Startup Issues
 
 If you downloaded the `.jar` version and are using a recent Java
-distribution, double-clicking doesn&rsquo;t open up the application,
+distribution, double-clicking doesn’t open up the application,
 so open a terminal window and run it from the command line:
 
     java -jar beat-link-trigger.jar
@@ -241,8 +241,8 @@ releases with [Amazon Corretto
 
 If you see a long exception stack trace similar to the one
 in
-[this discussion](https://github.com/Deep-Symmetry/beat-link-trigger/issues/21) and
-you have your computer language set to one that uses an alphabet which
+[this discussion](https://github.com/Deep-Symmetry/beat-link-trigger/issues/21),
+and you have your computer language set to one that uses an alphabet which
 is substantially different from English, you may be encountering what
 seems to be a bug in the GUI library (or maybe even in Java itself).
 Try setting your system language to US English, and see if that at
@@ -258,7 +258,7 @@ it for other purposes. It is code-signed and notarized by Deep
 Symmetry, so your Mac should be happy to install and run it without
 complaint.
 
-<img src="doc/modules/ROOT/assets/images/DMG-Installer.png" width="640" height="435"
+<img src="doc/modules/ROOT/images/DMG-Installer.png" width="640" height="435"
      alt="Installer window">
 
 If you already have your own Java runtime installed and want to use
@@ -267,7 +267,7 @@ then the first time you try to launch the downloaded
 jar file by double-clicking it you will see an error like this because
 it is not a Mac-specific application:
 
-<img src="doc/modules/ROOT/assets/images/Unsigned.png" alt="Unsigned jar" width="492" height="299">
+<img src="doc/modules/ROOT/images/Unsigned.png" alt="Unsigned jar" width="492" height="299">
 
 You can fix that by control-clicking on the Jar and choosing
 &ldquo;Open&rdquo; at the top of the contextual menu that pops up. You
@@ -275,7 +275,7 @@ will be asked to confirm that you really want to run it. Click the
 &ldquo;Open&rdquo; button in that confirmation dialog, and from then
 on, you will be able to run that copy by just double-clicking it.
 
-<img src="doc/modules/ROOT/assets/images/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
+<img src="doc/modules/ROOT/images/ReallyOpen.png" alt="Confirmation dialog" width="492" height="303">
 
 > You will need to repeat this process for each version that you
 > download. Also, current versions of OpenJDK no longer support
@@ -285,7 +285,7 @@ on, you will be able to run that copy by just double-clicking it.
 ## Licenses
 
 <a href="http://deepsymmetry.org"><img align="right" alt="Deep Symmetry"
- src="doc/modules/ROOT/assets/images/DS-logo-github.png" width="250" height="150"></a>
+ src="doc/modules/ROOT/images/DS-logo-github.png" width="250" height="150"></a>
 
 Copyright © 2016&ndash;2025 [Deep Symmetry, LLC](http://deepsymmetry.org)
 

@@ -24,14 +24,6 @@
                :online "(triggers/show-player-status)"},
  :beat-link-trigger-version "0.6.2-SNAPSHOT-60-0x63c4-DIRTY",
  :window-positions {:triggers [32 70 826 185],
-                    "show-/Users/jim/git/beat-link-trigger/doc/non-git/Shows/Test.bls" [27
-                                                                                        402
-                                                                                        1293
-                                                                                        754],
-                    "show-/Users/jim/git/beat-link-trigger/doc/modules/ROOT/assets/attachments/OrangePiSMPTE.bls" [506
-                                                                                                                   897
-                                                                                                                   900
-                                                                                                                   600],
                     :nrepl [284 95],
                     :player-status [892 54],
                     :carabiner [676 268],
