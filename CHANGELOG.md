@@ -8,6 +8,8 @@ This change log follows the conventions of
 
 ### Changed
 
+- We can now obtain track metadata including the waveform and beat grid even for tracks that have not been analyzed by rekordbox when talking to a CDJ-3000 and using a real player number.
+  This means that such tracks can interact usefully with almost all BLT features.
 - Works with the 8.x version of Beat Link, to offer support for the Opus Quad, as long as you build and attach metadata archives for the USBs you are using, or are loading them from rekordbox or rekordbox mobile on a different computer than where BLT is running.
 - The aging (and no-longer-maintained) user interface look-and-feel has been replaced with a newer one, which also supports user choice of light and dark mode (including adopting the system-wide setting for that, if desired), and allows custom look-and-feels to be installed and used.
 - User expressions are now compiled into private namespaces, so triggers and show shared functions are no longer in danger of colliding with each other, or with functions used by BLT itself.
