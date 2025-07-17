@@ -36,7 +36,8 @@
            [java.io File]
            [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JPanel JRadioButtonMenuItem UIManager]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener Util VirtualCdj]
+            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
+            Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AnalysisTagFinder ArtFinder BeatGridFinder CrateDigger MetadataFinder
             SearchableItem SignatureFinder TimeFinder TrackMetadata WaveformFinder]
            [beat_link_trigger.util MidiChoice]
@@ -1638,6 +1639,17 @@
         (do (.setSendingStatus virtual-cdj true)      ; We can do it.
             (.setPassive metadata-finder false))))))
 
+(defn- actively-request-metadata-from-cdj-3000s
+  "Even if we are not using a real player number, if the only other
+  players on the network are CDJ-3000s, we can still actively request
+  metadata using the dbserver protocol."
+  []
+  (when (every? (fn [^DeviceAnnouncement device]
+                  (or (> (.getDeviceNumber device) 6)
+                      (= (.getDeviceName device) "CDJ-3000")))
+                (.getCurrentDevices device-finder))
+    (.setPassive metadata-finder false)))
+
 (declare go-online)
 
 (defn expression-report-link
@@ -1906,7 +1918,9 @@
     (when (util/online?)
       (start-other-finders)
       (.addLifecycleListener virtual-cdj vcdj-lifecycle-listener))  ; React when VirtualCdj shuts down unexpectedly.
-    (when (real-player?) (actively-send-status))
+    (if (real-player?)
+      (actively-send-status)
+      (actively-request-metadata-from-cdj-3000s))
     (when (util/online?)
       (run-global-function :online)
       (settings/run-online-actions @trigger-frame expression-globals)

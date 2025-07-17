@@ -481,6 +481,7 @@
        (seesaw/config! title-label :text title)
        (seesaw/config! artist-label :text "n/a")
        (when (and status
+                  (not= "CDJ-3000" (.getDeviceName status))
                   (not (#{CdjStatus$TrackType/NO_TRACK CdjStatus$TrackType/REKORDBOX} (.getTrackType status)))
                   (not (sending-status?)))
          (report-limited-metadata @player-window player))))))
