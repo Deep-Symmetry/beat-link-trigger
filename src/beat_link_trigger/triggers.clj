@@ -1646,7 +1646,7 @@
   []
   (when (every? (fn [^DeviceAnnouncement device]
                   (or (> (.getDeviceNumber device) 6)
-                      (= (.getDeviceName device) "CDJ-3000")))
+                      (#{"CDJ-3000" "XDJ-AZ"} (.getDeviceName device))))
                 (.getCurrentDevices device-finder))
     (.setPassive metadata-finder false)))
 
