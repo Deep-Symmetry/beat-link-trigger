@@ -36,7 +36,7 @@
            [java.io File]
            [javax.swing JFrame JMenu JMenuItem JCheckBoxMenuItem JPanel JRadioButtonMenuItem UIManager]
            [org.deepsymmetry.beatlink BeatFinder BeatListener CdjStatus CdjStatus$TrackSourceSlot
-            DeviceAnnouncement DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
+            DeviceAnnouncementListener DeviceFinder DeviceUpdateListener LifecycleListener
             Util VirtualCdj]
            [org.deepsymmetry.beatlink.data AnalysisTagFinder ArtFinder BeatGridFinder CrateDigger MetadataFinder
             SearchableItem SignatureFinder TimeFinder TrackMetadata WaveformFinder]
@@ -182,7 +182,7 @@
   Works both when online and when simulated playback is happening."
   [^Long device-number]
   (or (:latest-status (sim/for-player device-number))
-      (when (util/online?) (when (util/online?) (.getLatestStatusFor virtual-cdj device-number)))))
+      (when (util/online?) (.getLatestStatusFor virtual-cdj device-number))))
 
 (defn- is-better-match?
   "Checks whether the current status packet represents a better
@@ -1335,10 +1335,20 @@
 (defn- rebuild-all-device-status
   "Updates all player status descriptions to reflect the devices
   currently found on the network. Called when the set of available
-  devices changes."
+  devices changes.
+
+  Also potentially change whether the MetadataFinder is allowed to use
+  dbserver queries for metadata when we are not using a real player
+  number, based on whether we now see any players unable to handle
+  that."
   []
   (doseq [trigger (get-triggers)]
-    (show-device-status trigger)))
+    (show-device-status trigger))
+  (try
+    (when-not (real-player?)
+      (.setPassive metadata-finder (.isAnyDeviceLimitedToThreeDatabaseClients device-finder)))
+    (catch Throwable t
+      (timbre/error t "Problem setting metadata passive mode"))))
 
 (defonce ^{:private true
            :doc "Responds to player status packets and updates the
@@ -1644,10 +1654,7 @@
   players on the network are CDJ-3000s, we can still actively request
   metadata using the dbserver protocol."
   []
-  (when (every? (fn [^DeviceAnnouncement device]
-                  (or (> (.getDeviceNumber device) 6)
-                      (#{"CDJ-3000" "XDJ-AZ"} (.getDeviceName device))))
-                (.getCurrentDevices device-finder))
+  (when (not (.isAnyDeviceLimitedToThreeDatabaseClients device-finder))
     (.setPassive metadata-finder false)))
 
 (declare go-online)
