@@ -1,0 +1,151 @@
+= ArtNet Timecode Sender
+include::partial$PagePreamble.adoc[]
+
+This started as a https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger/topic/ART-NET.20integration/with/470772127[discussion in the Zulip Channel] with Kris Prep, who contributed the initial research and code for supporting the Opus Quad.
+He had just bought some lasers, and wanted a way to send ArtNet timecode to QuickShow, based on the playback position of the tempo master player.
+We threw around some ideas, and he ended up finding a Java library that could send ArtNet directly and easily, and it turned into this integration example.
+
+You can just xref:attachment$ArtNetTimecode.bls[download] the show file and use it, or read on to see how it works.
+
+It’s packaged up as a show for ease of sharing, and independently starting and stopping, but it does not offer a user interface (it’s simple enough not to really need one).
+In fact, as you will see below, you may want to add tracks to the show, so they can set the `artnet-offset` key in the show `globals` atom when they are playing.
+
+== Shared Functions
+
+[source,clojure,opts=novalidate]
+----
+(add-library '[ch.bildspur/artnet4j "0.6.2"])  ;; <1>
+(import ch.bildspur.artnet.ArtNet)
+(import ch.bildspur.artnet.packets.ArtTimePacket)
+(import java.util.concurrent.TimeUnit)
+
+(defn send-artnet-timecode  ;; <2>
+  "Sends SMPTE-style ArtNet Timecode to a specified ArtNet node by hostname."
+  [hours minutes seconds frames frame-rate artnet-server hostname]
+  (let [packet (ArtTimePacket.)]  ;; <3>
+    (.setMinutes packet (byte minutes))
+    (.setSeconds packet (byte seconds))
+    (.setFrames packet (byte frames))
+    (.setFrameType packet
+      (case frame-rate  ;; <4>
+            24 0
+            25 1
+            30 3
+            (throw (ex-info "Invalid framerate, only support 24, 25, and 30 fps"
+                            {:frame-rate frame-rate}))))
+    (.unicastPacket artnet-server packet hostname)))  ;; <5>
+
+(defn artnet-sender-task  ;; <6>
+  "Computes the current timecode for the tempo master, adjusted by
+  any configured offset, and sends it. Will be called at the proper
+  interval by our Executor, passing in the current contents of the
+  show globals atom."
+  [{:keys [artnet-framerate artnet-offset artnet-server artnet-target]}]
+  (try
+    (let [master   (.getTempoMaster virtual-cdj)
+          total-ms (+ (if master  ;; <7>
+                        (.getTimeFor time-finder (.getDeviceNumber master))
+                        0)
+                      artnet-offset)
+          hours    (.toHours TimeUnit/MILLISECONDS total-ms)  ;; <8>
+          minutes  (mod (.toMinutes TimeUnit/MILLISECONDS total-ms) 60)
+          seconds  (mod (.toSeconds TimeUnit/MILLISECONDS total-ms) 60)
+          millis   (mod total-ms 1000)
+          frames   (long (/ millis (/ 1000 artnet-framerate)))]
+      (send-artnet-timecode hours minutes seconds frames artnet-framerate
+                            artnet-server artnet-target))
+    (catch Throwable t
+      (timbre/info t "Problem running artnet-sender-task"))))
+----
+
+<1> This uses BLT’s ability to xref:ImportingLibraries.adoc[import libraries] to download (if necessary) and load the Java library we need for sending ArtNet messages on the network.
+The `import` statements then allow us to use some key classes without spelling out their full names.
+
+<2> This is the main function we use for sending ArtNet. It takes a bunch of arguments that specify the exact moment of timecode we want to send, the frame-rate at which we are sending (in frames per second), the server object we will use to send the timecode (see below), and the hostname to which we are sending.
+
+<3> We construct an object that represents an ArtNet timecode packet, and then fill in its properties from the parameters we were supplied.
+
+<4> Here we translate from the more human-readable frames per second representation of our frame rate to the numeric codes that are actually used to represent them in the ArtNet protocol (and throw an exception if the caller is trying to use a frame rate that the protocol does not support).
+
+<5> And finally the function asks the server to send the packet to the specified host.
+
+<6> The last shared function is the one we will call repeatedly, at the interval required by our desired frame rate, to figure out the current time code based on the player that is the tempo master, and send it.
+This function is called with a single argument, the current value of the show’s `globals` atom, and we destructure the keys that we are interested in.
++
+`artnet-offset` is a mechanism that allows different tracks to send different ranges of timecode.
+It is a number of milliseconds that will be added to the current playback time when sending the timecode.
+The value at this key in the show `globals` atom can be updated by tracks’ xref:Expressions_ShowTrack.adoc#track-playing-expression[Playing Expressions].
+
+<7> This code checks if there is a current tempo master; if so, the current playback position (in milliseconds) is added to `artnet-offset` to compute the current timecode position.
+If there is no tempo master, then zero is added to `artnet-offset`.
+
+<8> The next chunk of code does the arithmetic to split that number of milliseconds into the pieces that make up an ArtNet timecode message: hours, minutes, seconds, and the number of frames we have advanced into that second (which depends on the frame rate at which we are sending).
++
+Once that is all calculated, we use the first function to create and send the corresponding ArtNet timecode packet.
+
+This turned out to be a fairly clean implementation.
+Of course, it relies on some setup work:
+
+== Global Setup Expression
+
+[source,clojure,opts=novalidate]
+----
+(swap! globals assoc
+         :artnet-offset    (.toMillis TimeUnit/MINUTES 5)
+         :artnet-framerate 30
+         :artnet-target    "localhost")
+----
+
+In this example, we are choosing an ArtNet offset of five minutes (which we need to convert to milliseconds, as discussed above), a frame rate of 30 per second, and we are sending packets to the same machine BLT is running on.
+You would change any or all of these values to meet your actual needs.
+
+=== Changing offsets
+
+And as described above, you can change the offset when different tracks play, by adding those tracks to the show and putting something like this in their xref:Expressions_ShowTrack.adoc#track-playing-expression[Playing Expression]:
+
+[source,clojure,opts=novalidate]
+----
+(swap! globals assoc :artnet-offset (.toMillis TimeUnit/MINUTES 10))
+----
+
+IMPORTANT: You can’t change the frame rate on the fly because the executor is running at a fixed frame rate that has to match it. So if you want a different frame rate, you need to edit the value in the Global Setup expression, then close and reopen the show so it can properly take effect.
+
+We don’t actually create the ArtNet server object or start sending packets until BLT is taken online.
+
+== Came Online Expression
+
+[source,clojure,opts=novalidate]
+----
+(let [executor (java.util.concurrent.Executors/newScheduledThreadPool 1)
+      server   (ArtNet.)]  ;; <1>
+  (swap! globals assoc :artnet-executor executor :artnet-server server)
+  (.start server)  ;; <2>
+  (.scheduleAtFixedRate executor #(artnet-sender-task @globals) 0  ;; <3>
+    (quot 1000 (:artnet-framerate @globals)) TimeUnit/MILLISECONDS))
+----
+
+<1> First we create the thread pool executor object that we’ll use to send ArtNet timecode packets at the desired frame rate, and the ArtNet server object that will do that for us.
+Then we store them under the keys in the show `globals` atom where our shared functions will find them.
+
+<2> We get the ArtNet server object ready to work for us.
+
+<3> And we tell the executor to call our sender task function at the proper interval for our desired frame rate, passing in the current state of the show `globals` atom on each call.
+
+At this point, the ArtNet packets are being sent.
+You can use a tool like https://txl20.com/product/timecode-monitor/[Timecode Monitor] to verify this (or, it’s likely that the system you are sending the timecode to has its own way of monitoring it; for example, Pangolin BEYOND does).
+
+And all that remains now is to clean up after ourselves.
+
+== Going Offline Expression
+
+[source,clojure,opts=novalidate]
+----
+(.shutdown (:artnet-executor @globals))
+(.stop (:artnet-server @globals))
+(swap! globals dissoc :artnet-executor :artnet-server)
+----
+
+This is basically the reverse of what we did in Came Online.
+We shut down the executor that is repeatedly calling our packet sender function, and the ArtNet server object that it was using, and remove those entries from the show `globals` atom.
+
+If you have any questions about how this works, or ideas to take it further, please share them in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel].
