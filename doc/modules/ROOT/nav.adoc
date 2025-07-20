@@ -26,6 +26,7 @@
 * xref:ObsOverlay.adoc[OBS Streaming Overlays]
 * xref:Debugging.adoc[Debugging and Sharing]
 * xref:Integration.adoc[Integration Examples]
+** xref:Integration_ArtNetTimecode.adoc[ArtNet Timecode Sender]
 ** xref:Integration_BeatPattern.adoc[Beat Pattern UI]
 ** xref:Integration_BreakBuddy.adoc[Break Buddy “Robo DJ”]
 ** xref:Integration_ShowXpress.adoc[Chauvet ShowXpress Live, SweetLight, QuickDMX]
