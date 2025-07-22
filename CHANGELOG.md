@@ -6,6 +6,11 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+Nothing so far.
+
+
+## [8.0.0] - 2025-07-21
+
 ### Changed
 
 - We can now obtain track metadata including the waveform and beat grid even for tracks that have not been analyzed by rekordbox when talking to CDJ-3000s, regardless of whether we are using a real player number, and even if we have to wait for analysis to complete.
@@ -64,6 +69,7 @@ This change log follows the conventions of
 ### Removed
 
 - The help menu option to open the project wiki has been removed, since that is not an active community. Zulip is where all the action is now.
+
 
 ## [7.4.1] - 2024-06-01
 
@@ -1614,7 +1620,8 @@ support.
 - Selector to choose MIDI output as trigger destination.
 
 
-[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.1...HEAD
+[unreleased]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v8.0.0...HEAD
+[8.0.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.1...v8.0.0
 [7.4.1]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.4.0...v7.4.1
 [7.4.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Deep-Symmetry/beat-link-trigger/compare/v7.2.1...v7.3.0
