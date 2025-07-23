@@ -15,7 +15,7 @@ ifdef::loader-assembler[]
 .Version
 ****
 [.text-center]
-This guide corresponds to Beat Link Trigger {release-tag}.
+This guide corresponds to Beat Link Trigger {git-version}.
 ****
 endif::[]
 

@@ -15,7 +15,7 @@ if [ "$GUIDE_SSH_KEY" != "" ]; then
     sudo apt-get install libgraphicsmagick1-dev
     bundle config --local path .bundle/gems
     bundle
-    npm run hosted-docs -- --attribute "release-tag=$release_tag"
+    npm run hosted-docs -- --attribute "git-version=$git_version"
 
     # Make sure there are no broken links in the versions we care about.
     curl https://htmltest.wjdp.uk | bash
@@ -25,7 +25,7 @@ if [ "$GUIDE_SSH_KEY" != "" ]; then
     rsync -avz doc/build/site/ guides@deepsymmetry.org:/var/www/guides/beat-link-trigger/
 
     # Rename the PDF to the name we like to use for the release artifact.
-    mv doc/build/assembler-pdf/beat-link-trigger/next/_exports/index.pdf BLT-guide.pdf
+    mv doc/build/assembler-pdf/beat-link-trigger/main/_exports/index.pdf BLT-guide.pdf
 
     # Upload the PDF as a release artifact
     if [ "$release_snapshot" = true ] ; then
