@@ -1,4 +1,4 @@
 build:
   command: bundle exec asciidoctor-pdf -a source-highlighter=rouge --theme default-with-font-fallbacks
 component_version_filter:
-  names: 'next@*'
+  names: 'main@*'
