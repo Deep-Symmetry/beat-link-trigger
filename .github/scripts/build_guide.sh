@@ -15,6 +15,10 @@ if [ "$GUIDE_SSH_KEY" != "" ]; then
     sudo apt-get install libgraphicsmagick1-dev
     bundle config --local path .bundle/gems
     bundle
+
+    if [ ! "$release_snapshot" = true ] ; then  # Build PDF from release branch?
+        sed -i.bu "s/main/$git_version/" doc/antora-assembler.yml
+    fi
     npm run hosted-docs -- --attribute "git-version=$git_version"
 
     # Make sure there are no broken links in the versions we care about.
