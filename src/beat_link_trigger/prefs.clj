@@ -237,9 +237,10 @@
    (dark-mode? (get-preferences)))
   ([preferences]
    (case (:ui-mode preferences)
-     :light false
-     :dark  true
-     (.isDark theme-detector))))  ; Using system setting.
+     :light  false
+     :dark   true
+     :system (.isDark theme-detector)
+     true)))  ; Default to dark if the user never set anything.
 
 
 (defn gear-icon
