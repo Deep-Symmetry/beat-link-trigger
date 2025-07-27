@@ -6,7 +6,10 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
-Nothing so far.
+### Fixed
+
+- Changed the build workflow in GitHub Actions to go back to using Java 17 because of a [bug in the Clojure compiler](https://clojure.atlassian.net/browse/CLJ-2838) that would cause BLT to crash when running on any Java version older than Java 21 if it was compiled under Java 21.
+  Once that compiler bug is fixed, we can go back to compiling under Java 21.
 
 
 ## [8.0.0] - 2025-07-21
