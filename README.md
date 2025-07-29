@@ -232,10 +232,16 @@ so open a terminal window and run it from the command line:
 If that does not work, at least you will be able to see a detailed
 report of what went wrong, which can help you troubleshoot the issue.
 
-Make sure you have a current OpenJDK distribution installed (we build
+Make sure you have a current OpenJDK distribution installed (we compile
 releases with [Amazon Corretto
-11](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html)).
-
+17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
+for backwards compatibility, though we currently bundle it with [Amazon Corretto 21](https://docs.aws.amazon.com/corretto/latest/corretto-21-ug/downloads-list.html)).
+The oldest Java version expected to work with recent builds of BLT is Java 17, but
+note that BLT 8.0.0 was compiled with Java 21, and because of a
+[bug in the Clojure compiler](https://clojure.atlassian.net/browse/CLJ-2838), it needs Java 21 or newer to run. This bug is
+why we dropped back to compiling with Java 17 for now; once it is fixed, we will
+both compile with and bundle Java 21, but you should continue to be able to use
+Java as old as 17.
 
 ### Font-Related Bugs
 

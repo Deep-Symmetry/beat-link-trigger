@@ -504,39 +504,40 @@
   "Given a song structure tag parsed from a track, returns the bank that
   was assigned to the track in a nicely formatted way."
   [^RekordboxAnlz$SongStructureTag tag]
-  (case-enum (.bank (.body tag))
-    RekordboxAnlz$TrackBank/CLUB_1  "Club 1"
-    RekordboxAnlz$TrackBank/CLUB_2  "Club 2"
-    RekordboxAnlz$TrackBank/COOL    "Cool"
-    RekordboxAnlz$TrackBank/DEFAULT "(Cool)"
-    RekordboxAnlz$TrackBank/HOT     "Hot"
-    RekordboxAnlz$TrackBank/NATURAL "Natural"
-    RekordboxAnlz$TrackBank/SUBTLE  "Subtle"
-    RekordboxAnlz$TrackBank/VIVID   "Vivid"
-    RekordboxAnlz$TrackBank/WARM    "Warm"
+  (if-let [bank (.bank (.body tag))]
+    (case-enum bank
+      RekordboxAnlz$TrackBank/CLUB_1  "Club 1"
+      RekordboxAnlz$TrackBank/CLUB_2  "Club 2"
+      RekordboxAnlz$TrackBank/COOL    "Cool"
+      RekordboxAnlz$TrackBank/DEFAULT "(Cool)"
+      RekordboxAnlz$TrackBank/HOT     "Hot"
+      RekordboxAnlz$TrackBank/NATURAL "Natural"
+      RekordboxAnlz$TrackBank/SUBTLE  "Subtle"
+      RekordboxAnlz$TrackBank/VIVID   "Vivid"
+      RekordboxAnlz$TrackBank/WARM    "Warm"
+      "Unknown?")
     "Unknown?"))
 
 (defn track-bank-keyword
   "Given a song structure tag parsed from a track, returns the bank that
-  was assigned to the track as a keyword for matching in code."
+  was assigned to the track as a keyword for matching in code. Will return
+  `nil` for unrecognized bank values, logging a throttled error about it."
   [^RekordboxAnlz$SongStructureTag tag]
-  (try
-    (case-enum (.bank (.body tag))
-               RekordboxAnlz$TrackBank/CLUB_1  :club-1
-               RekordboxAnlz$TrackBank/CLUB_2  :club-2
-               RekordboxAnlz$TrackBank/COOL    :cool
-               RekordboxAnlz$TrackBank/DEFAULT :cool
-               RekordboxAnlz$TrackBank/HOT     :hot
-               RekordboxAnlz$TrackBank/NATURAL :natural
-               RekordboxAnlz$TrackBank/SUBTLE  :subtle
-               RekordboxAnlz$TrackBank/VIVID   :vivid
-               RekordboxAnlz$TrackBank/WARM    :warm
-               (timbre/error "Unrecognized track bank" (.bank (.body tag))))
-    (catch NullPointerException e
+  (if-let [bank (.bank (.body tag))]
+    (case-enum bank
+      RekordboxAnlz$TrackBank/CLUB_1  :club-1
+      RekordboxAnlz$TrackBank/CLUB_2  :club-2
+      RekordboxAnlz$TrackBank/COOL    :cool
+      RekordboxAnlz$TrackBank/DEFAULT :cool
+      RekordboxAnlz$TrackBank/HOT     :hot
+      RekordboxAnlz$TrackBank/NATURAL :natural
+      RekordboxAnlz$TrackBank/SUBTLE  :subtle
+      RekordboxAnlz$TrackBank/VIVID   :vivid
+      RekordboxAnlz$TrackBank/WARM    :warm
       (when (throttle [:bad-track-bank tag])
-        (timbre/error e "Unable to determine track bank! tag:" tag
-                      "body:" (when tag (.body tag))
-                      "bank:" (when (and tag (.body tag)) (.bank (.body tag))))))))
+        (timbre/error "Unrecognized track bank" bank)))
+    (when (throttle [:bad-track-bank tag])
+      (timbre/error "Unable to determine track bank! Raw bank byte:" (.rawBank (.body tag))))))
 
 (defn track-mood-name
   "Given a song structure tag parsed from a track, returns the mood that
