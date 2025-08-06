@@ -1346,7 +1346,8 @@
     (show-device-status trigger))
   (try
     (when-not (real-player?)
-      (.setPassive metadata-finder (.isAnyDeviceLimitedToThreeDatabaseClients device-finder)))
+      (.setPassive metadata-finder (and (> (.getDeviceNumber virtual-cdj) 4)
+                                        (.isAnyDeviceLimitedToThreeDatabaseClients device-finder))))
     (catch Throwable t
       (timbre/error t "Problem setting metadata passive mode"))))
 
@@ -1654,7 +1655,8 @@
   players on the network are CDJ-3000s, we can still actively request
   metadata using the dbserver protocol."
   []
-  (when (not (.isAnyDeviceLimitedToThreeDatabaseClients device-finder))
+  (when (or (< (.getDeviceNumber virtual-cdj) 5)
+            (not (.isAnyDeviceLimitedToThreeDatabaseClients device-finder)))
     (.setPassive metadata-finder false)))
 
 (declare go-online)
