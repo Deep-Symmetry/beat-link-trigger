@@ -11,7 +11,7 @@
             [thi.ng.color.core :as color])
   (:import [org.deepsymmetry.beatlink CdjStatus CdjStatus$TrackType CdjStatus$TrackSourceSlot
             DeviceAnnouncement DeviceFinder MediaDetails VirtualCdj]
-           [org.deepsymmetry.beatlink.data TimeFinder SignatureFinder]
+           [org.deepsymmetry.beatlink.data BeatGrid TimeFinder SignatureFinder WaveformPreviewComponent]
            [org.deepsymmetry.cratedigger.pdb RekordboxAnlz$PhraseLow RekordboxAnlz$PhraseMid RekordboxAnlz$PhraseHigh
             RekordboxAnlz$MoodLowPhrase RekordboxAnlz$MoodMidPhrase RekordboxAnlz$MoodHighPhrase
             RekordboxAnlz$SongStructureEntry RekordboxAnlz$SongStructureTag
@@ -428,8 +428,8 @@
     (if (or (nil? x)
             (empty? (filter (fn [^java.awt.GraphicsDevice device]
                               (let [bounds (.. device getDefaultConfiguration getBounds)]
-                                (and (.contains bounds x y)
-                                     (.contains bounds mid-x mid-y))))
+                                (and (.contains bounds (int x) (int  y))
+                                     (.contains bounds (int mid-x) (int mid-y)))))
                             (.. java.awt.GraphicsEnvironment getLocalGraphicsEnvironment getScreenDevices))))
       (.setLocationRelativeTo window parent)
       (if (nil? width)
@@ -787,7 +787,7 @@
             track-root       ((requiring-resolve 'beat-link-trigger.show-util/build-track-path) show signature)]
         (merge (select-keys track [:grid :metadata :song-structure])
                {:cue-list          ((requiring-resolve 'beat-link-trigger.show-util/read-cue-list) track-root)
-                :preview           (.getWaveformPreview ((:preview track)))
+                :preview           (WaveformPreviewComponent/.getWaveformPreview ((:preview track)))
                 :detail            ((requiring-resolve 'beat-link-trigger.show-util/read-detail) track-root)
                 :phrases-required? (boolean phrases-required?)})))))
 
@@ -796,9 +796,10 @@
   for a track with phrase analysis, returns the beats at which the
   analysis starts and ends."
   []
-  (let [body       (.body (:song-structure *simulating*))
-        start-beat (.beat (first (sort-by (fn [^RekordboxAnlz$SongStructureEntry entry] (.beat entry))
-                                          (.entries body))))
+  (let [body       (RekordboxAnlz$SongStructureTag/.body (:song-structure *simulating*))
+        start-beat (RekordboxAnlz$SongStructureEntry/.beat
+                    (first (sort-by (fn [entry] (RekordboxAnlz$SongStructureEntry/.beat entry))
+                                    (.entries body))))
         end-beat   (.endBeat body)]
     [start-beat end-beat]))
 
@@ -808,7 +809,7 @@
   created, and adds it to the map. If phrases are required, ensures
   the time falls within a track phrase."
   []
-  (let [{:keys [metadata grid phrases-required?]} *simulating*]
+  (let [{:keys [metadata ^BeatGrid grid phrases-required?]} *simulating*]
     (if phrases-required?
       (let [[start-beat end-beat] (phrase-beat-range)
             start-ms              (.getTimeWithinTrack grid start-beat)
@@ -823,11 +824,11 @@
   map. If phrases are required, ensures the beat falls within a track
   phrase."
   []
-  (let [{:keys [grid phrases-required?]} *simulating*
-        beat                             (if phrases-required?
-                                           (let [[start-beat end-beat] (phrase-beat-range)]
-                                             (+ start-beat (rand-int (- end-beat start-beat))))
-                                           (inc (rand-int (.findBeatAtTime grid Long/MAX_VALUE))))]
+  (let [{:keys [^BeatGrid grid phrases-required?]} *simulating*
+        beat                                       (if phrases-required?
+                                                     (let [[start-beat end-beat] (phrase-beat-range)]
+                                                       (+ start-beat (rand-int (- end-beat start-beat))))
+                                                     (inc (rand-int (.findBeatAtTime grid Long/MAX_VALUE))))]
     (merge *simulating*
            {:beat beat
             :time (.getTimeWithinTrack grid beat)})))
