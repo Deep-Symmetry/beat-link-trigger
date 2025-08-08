@@ -796,16 +796,16 @@
 
 (defn- update-slot-labels
   "Updates the USB/SD labels of a player cell in case the device is an
-  XDJ-XZ, which has two USB slots instead."
+  XDJ-XZ or -AZ, which have two USB slots instead."
   [cell ^DeviceAnnouncement device]
   (seesaw/invoke-soon
-   (if (= "XDJ-XZ" (.getDeviceName device))
-     (do
-       (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
-       (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
-     (do
-       (seesaw/value! (seesaw/select cell [:#sd-label]) "SD:")
-       (seesaw/value! (seesaw/select cell [:#usb-label]) "USB:")))))
+    (if (or (= "XDJ-XZ" (.getDeviceName device)) (.isXdjAz device))
+      (do
+        (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
+        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
+      (do
+        (seesaw/value! (seesaw/select cell [:#sd-label]) "SD:")
+        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB:")))))
 
 (defn- default-column-calculator
   "The function to use to calculate the number of columns the player
