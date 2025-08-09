@@ -801,8 +801,8 @@
   (seesaw/invoke-soon
     (if (or (= "XDJ-XZ" (.getDeviceName device)) (.isXdjAz device))
       (do
-        (seesaw/value! (seesaw/select cell [:#sd-label]) "USB 1:")
-        (seesaw/value! (seesaw/select cell [:#usb-label]) "USB 2:"))
+        (seesaw/value! (seesaw/select cell [:#sd-label]) (if (.isXdjAz device) "USB 2:" "USB 1:"))
+        (seesaw/value! (seesaw/select cell [:#usb-label]) (if (.isXdjAz device) "USB 1:" "USB 2:")))
       (do
         (seesaw/value! (seesaw/select cell [:#sd-label]) "SD:")
         (seesaw/value! (seesaw/select cell [:#usb-label]) "USB:")))))

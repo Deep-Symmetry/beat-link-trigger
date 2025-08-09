@@ -89,7 +89,7 @@ For this reason, it is safest to only use a single USB at a time in an Opus Quad
 The IDs that the Opus Quad reports for tracks are Device Library Plus IDs, but Beat Link can only read the classic Device Library.
 Generally, those databases start out using the same IDs for the same track, but over time as you edit your collection, they can drift apart.
 This can lead to problems recognizing tracks even if you are only using a single USB, although we hope that PSSI matching is robust enough to make that a rare occurrence.
-The <<potential-workaround,workaround described below>> will eliminate this problem if we can implement it.
+The <<potential-workaround,workaround described below>> will eliminate this problem if you are able to use it.
 
 === Built-In USB Network Problems
 The Opus Quad includes an embedded USB Ethernet adapter, so that you can connect it to your computer with just a USB cable, and have them send IP packets to each other that way.
@@ -104,7 +104,7 @@ On macOS, you can do that by watching in the Network section of the System Setti
 On other operating systems you will need to perform the equivalent actions.
 
 [#potential-workaround]
-== Potential Future Workaround
+== A Potential Workaround
 
 As noted <<id-drift,above>>, the Opus Quad works with Device Library Plus, but Beat Link Trigger only knows how to parse classic Device Library databases.
 
@@ -114,16 +114,15 @@ This would allow us to follow the player position closely enough that we could f
 
 This is an area of active research, but is not far enough along to make it into the 8.0 release.
 
-ifdef::db-passphrase-ready[]
 === Working With Device Library Plus
 
 Device Library Plus uses SQLite, an open-source database, so we should be able to work with it, but the database is encrypted, which prevents that.
 
 If you know the passphrase needed to decrypt the exported database, you can provide that to Beat Link, allowing it to access the database that the Opus Quad is actually using, and improving its track matching abilities.
-The future work described <<potential-workaround,below>> also depends on access to this database.
+The future work we are exploring to synthesize fake beat events, by putting the Opus Quad in a mode where it sends precise position packets, also depends on access to this database.
 
 IMPORTANT: If you don’t know the database passphrase, the Deep Symmetry projects are not able to help you find it.
-Please do not ask for help on this or discuss ideas about it in the project chat; those are violations of the code of conduct.
+Please do not ask for help on this or discuss ideas about it in the project discussion areas; those are violations of the community code of conduct.
 
 To tell BLT to use the Device Library Plus databases in your metadata exports, add a line like this to your Global Setup expression:
 
@@ -148,4 +147,7 @@ you will instead see this version (note the replacement of DeviceSQL by SQLite):
 Attached SQLite metadata archive /Users/fred/usb.blm for slot 1.
 
 ----
-endif::[]
+
+After you have done this, if you were online with the Opus Quad at the time, you should take BLT offline for at least twenty seconds, because when you go back online it will use a different mechanism to communicate with the Opus Quad, and it takes some time offline for the Quad to be ready to do that.
+
+Once the key has been set, even if you take that line out of your Global Setup expression, or open a different trigger configuration, the setting will remain, because the `OpusProvider` stores it in its own preferences. To turn off this mode of operation, use a similar expression, but pass `nil` as an argument instead of a passphrase string.
