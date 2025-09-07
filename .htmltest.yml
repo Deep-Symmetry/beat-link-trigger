@@ -9,6 +9,7 @@ IgnoreURLs:
   - "//www.allen-heath.com/"
   - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"
   - "//liberapay.com/"
+  - "//linktr.ee/"
   - "//opensource.org/licenses/"
   - "//packetsender.com"
   - "//unix.stackexchange.com/questions/405229/"
