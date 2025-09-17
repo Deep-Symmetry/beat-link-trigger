@@ -54,7 +54,7 @@ GEM
       pdf-reader (~> 2.0)
       prawn (~> 2.2)
     public_suffix (6.0.2)
-    rexml (3.4.1)
+    rexml (3.4.2)
     rouge (4.5.2)
     ruby-rc4 (0.1.5)
     treetop (1.6.14)
@@ -64,6 +64,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-24
+  x86_64-linux
 
 DEPENDENCIES
   asciidoctor-pdf!
