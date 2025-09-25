@@ -53,7 +53,7 @@ But there is an even better way to do this.
 Version 0.5.4 added the <<came-online-expression>> which runs once Beat Link Trigger has successfully connected to a DJ Link network.
 Using that expression to show the Player Status window means it will always be safe to try, and--even better--the window will be reopened every time you go back online, not just when initially starting the program. And version 8 made this even easier, thanks to the new xref:Settings.adoc#player-status[Settings window].
 
-Here is an even more sophisticated example that creates a https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`] for sending a remote trigger command to the ChamSys MagicQ lighting control software using its https://docs.chamsys.co.uk/magicq/network-control/remote_control_network.html#crep[remote ethernet protocol]:
+Here is an even more sophisticated example that creates a https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`] for sending a remote trigger command to the ChamSys MagicQ lighting control software using its https://docs.chamsys.co.uk/magicq/manual/remote_control_network.html#crep[remote ethernet protocol]:
 
 [source,clojure,subs=attributes+,opts=novalidate]
 ----
@@ -83,7 +83,7 @@ In this case we are modifying the map in `globals` by using http://clojure.githu
 <5> and the actual command packets are created as https://docs.oracle.com/javase/8/docs/api/java/net/DatagramPacket.html[`DatagramPacket`] objects preconfigured with the correct command bytes and destination address and port, in `:chamsys-on` and `:chamsys-off`.
 
 NOTE: This code uses an older version of the protocol, with no `CREP` header, for simplicity.
-As discussed in the https://docs.chamsys.co.uk/magicq/network-control/remote_control_network.html#crep[MagicQ manual] you will need to configure MagicQ so the ChamSys Remote protocol uses no Rx headers for this to work.
+As discussed in the https://docs.chamsys.co.uk/magicq/manual/remote_control_network.html#crep[MagicQ manual] you will need to configure MagicQ so the ChamSys Remote protocol uses no Rx headers for this to work.
 If you want help figuring out how to send packets in the newer, more rigorous format with headers, reach out in the https://deep-symmetry.zulipchat.com/#narrow/channel/275322-beat-link-trigger[Zulip channel].
 
 The xref:Expressions_ShowTrack.adoc#track-beat-expression[Beat Expression] below shows how these globals are actually used.
