@@ -65,7 +65,7 @@ Here is an even more sophisticated example that creates a
 https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html[`DatagramSocket`]
 for sending a remote trigger command to the ChamSys MagicQ lighting
 control software using its
-https://docs.chamsys.co.uk/magicq/network-control/remote_control_network.html#crep[remote
+https://docs.chamsys.co.uk/magicq/manual/remote_control_network.html#crep[remote
 ethernet protocol]:
 
 [source,clojure,subs=attributes+]
