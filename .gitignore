@@ -12,6 +12,7 @@ pom.xml.asc
 *.class
 /.bundle
 /.clj-kondo/.cache
+/.clj-kondo/imports
 /.lein-*
 /.nrepl-port
 /.op
