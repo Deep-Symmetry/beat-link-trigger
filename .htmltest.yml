@@ -7,6 +7,7 @@ IgnoreDirs:
   - "0.6.3"
 IgnoreURLs:
   - "//www.allen-heath.com/"
+  - "//anydesk.com/"
   - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"
   - "//liberapay.com/"
   - "//linktr.ee/"
