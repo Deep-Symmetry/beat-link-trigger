@@ -13,6 +13,7 @@ IgnoreURLs:
   - "//linktr.ee/"
   - "//opensource.org/licenses/"
   - "//packetsender.com"
+  - "//txl20.com"
   - "//unix.stackexchange.com/questions/405229/"
   - "//www.miglayout.com"
   - "//www.wireshark.org"
