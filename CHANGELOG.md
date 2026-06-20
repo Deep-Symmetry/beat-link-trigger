@@ -6,6 +6,12 @@ This change log follows the conventions of
 
 ## [Unreleased][unreleased]
 
+### Added
+
+- The Beat Link library now allows packets to be ignored by device name, so for example you can try to coexist with ShowKontrol by adding the following code to your Global Setup Expression:
+
+        (.addIgnoredDeviceName (DeviceFinder/getInstance) "TCS-SHOWKONTROL")
+
 ### Fixed
 
 - It turns out that the XDJ-AZ always uses Device Library Plus IDs, so we can’t use the DeviceSQL downloads safely. We are working on supporting Device Library Plus when we can’t make DBServer queries.
