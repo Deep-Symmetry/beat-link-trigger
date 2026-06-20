@@ -1,7 +1,7 @@
 = MIDI Cues from rekordbox
 include::partial$PagePreamble.adoc[]
 
-http://www.netskymusic.com[Netsky] was setting up a
+https://www.netskymusic.com[Netsky] was setting up a
 <<Shows.adoc#,show>> to run lights during his live streams and came up
 with a terrific idea: might it be possible to have Beat Link Trigger
 send simple MIDI cues to his lighting controller based on hot cues
