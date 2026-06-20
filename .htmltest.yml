@@ -11,6 +11,7 @@ IgnoreURLs:
   - "//github.com/Deep-Symmetry/beat-link-trigger/edit/"
   - "//liberapay.com/"
   - "//linktr.ee/"
+  - "//www.netskymusic.com"
   - "//opensource.org/licenses/"
   - "//packetsender.com"
   - "//txl20.com"
