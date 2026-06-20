@@ -10,7 +10,7 @@ specialized needs), or you can add Link as its own “player” that can
 become Tempo Master to the CDJs. Even without enabling Carabiner, you
 can <<sync-control,control>> which players are Synced, and which is
 the Tempo Master. These features were inspired by creative uses that
-https://www.hospitalrecords.com/artist/camo-krooked[Camo & Krooked]
+https://en.wikipedia.org/wiki/Camo_%26_Krooked[Camo & Krooked]
 were exploring.
 
 [[overview]]
