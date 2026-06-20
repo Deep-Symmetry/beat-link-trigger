@@ -220,7 +220,7 @@ jobs:
 
   build_intel_dmg:
     name: Build macOS Intel Disk Image
-    runs-on: macos-13
+    runs-on: macos-15-intel
 
     needs:
       build_uberjar
