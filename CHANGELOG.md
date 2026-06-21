@@ -10,7 +10,7 @@ This change log follows the conventions of
 
 - The Beat Link library now allows packets to be ignored by device name, so for example you can try to coexist with ShowKontrol by adding the following code to your Global Setup Expression:
 
-        (.addIgnoredDeviceName (DeviceFinder/getInstance) "TCS-SHOWKONTROL")
+        (.addIgnoredDeviceName device-finder "TCS-SHOWKONTROL")
 
 ### Fixed
 
