@@ -12,6 +12,9 @@ This change log follows the conventions of
 
         (.addIgnoredDeviceName device-finder "TCS-SHOWKONTROL")
 
+  Note that we don't test against this combination and still recommend that you choose to work with either Beat Link Trigger or ShowKontrol, but not both.
+
+
 ### Fixed
 
 - It turns out that the XDJ-AZ always uses Device Library Plus IDs, so we can’t use the DeviceSQL downloads safely. We are working on supporting Device Library Plus when we can’t make DBServer queries.
