@@ -628,13 +628,15 @@ In addition to the template itself, there are a variety of URLs you can use with
 === Album Art
 
 You can look up the album art for the track loaded in a particular player using a URL like `/art/1` (replace the `1` with another number to get the art for the player on a different channel).
-If there is artwork, this will return an 80x80 pixel JPEG image. If there is no art, or no track loaded, it will return an 80x80 transparent PNG image.
+If there is artwork, this will return a JPEG image (if the track was imported by a vaguely recent version of rekordbox, this will have the dimension 240x240 pixels; if it was from a much older version of rekordbox, it will be 80x80 pixels). If there is no art, or no track loaded, this will return an 80x80 transparent PNG image.
 
 [TIP]
 ====
 If you are using a <<tag-for,for loop>> to display your players, you can use template substitution to set up your URL:
 
-    <img src="/art/{{ number }}" width="80" height="80">
+    <img src="/art/{{ number }}" width="240" height="240">
+
+If you have any tracks that are old enough to lack high-resolution artwork, this will result in them being scaled up and looking jagged; a compromise might be to choose 120 for your width and height, which will require less upscaling, and might even take advantage of high-DPI displays to render the full-quality art in less space.
 ====
 
 If you would like to display more information about why there is no artwork, the way Beat Link Trigger does, you can add a query string to the request: `/art/3?icons=true`.
@@ -642,7 +644,7 @@ With `icons` set to `true`, when the art is missing, you will receive a PNG imag
 If there is no track loaded, it will read "No Track".
 Otherwise, it will be an icon describing where the track was loaded from: USB, SD, CD Digital Audio, CD Data, or rekordbox.
 
-NOTE: The missing-artwork icons returned are larger than 80x80 pixels so they can be displayed in higher resolution on high-DPI displays, so you should be sure to render your artwork at a fixed width and height of 80 pixels using the HTML or CSS of your template, so the layout doesn't change depending on whether artwork is present.
+NOTE: The missing-artwork icons returned are larger than 80x80 pixels so they can be displayed in higher resolution on high-DPI displays, and in fact vary in size, so you should be sure to render your artwork at a fixed width and height using the HTML or CSS of your template, so the layout doesn't change depending on whether artwork is present, or what size artwork is available.
 
 === Waveform Previews
 
