@@ -4,7 +4,7 @@
   :scm {:name "git" :url "https://github.com/Deep-Symmetry/beat-link-trigger"}
   :license {:name "Eclipse Public License 2.0"
             :url  "https://www.eclipse.org/legal/epl-2.0/"}
-  :dependencies [[org.clojure/clojure "1.12.5"]
+  :dependencies [[org.clojure/clojure "1.12.6"]
                  [org.clojure/core.async "1.9.865"]
                  [org.clojure/data.csv "1.1.1"]
                  [org.clojure/tools.cli "1.4.256"]
@@ -12,7 +12,7 @@
                  [org.deepsymmetry/beat-link "8.1.0-SNAPSHOT"]
                  [beat-carabiner "8.1.0-SNAPSHOT"]
                  [cheshire "6.2.0"]
-                 [cider/cider-nrepl "0.62.2"]
+                 [cider/cider-nrepl "0.63.1"]
                  [clj-commons/pomegranate "1.2.25"]
                  [com.cemerick/url "0.1.1"]
                  [com.fifesoft/rstaui "3.3.2"]
@@ -31,7 +31,7 @@
                  [inspector-jay "0.3" :exclusions [org.clojure/core.memoize]]
                  [javax.servlet/servlet-api "2.5"]
                  [me.raynes/fs "1.4.6"]
-                 [nrepl "1.7.0"]
+                 [nrepl "1.8.0"]
                  [org.apache.maven/maven-artifact "3.9.11"]
                  [overtone/midi-clj "0.5.0" :exclusions [overtone/at-at]]
                  [overtone/osc-clj "0.9.0"]

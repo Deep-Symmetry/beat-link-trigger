@@ -8,7 +8,7 @@ This change log follows the conventions of
 
 ### Added
 
-- The Beat Link library now supports getting metadata for Beatport Link Streaming tracks. If you are using other streaming services, you can help us add support by capturing the byte values that are sent in CDJ status packets, please contact us on [Zulip](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)!.
+- The Beat Link library now supports getting metadata for Beatport Link Streaming tracks. If you are using other streaming services, you can help us add support by capturing the byte values that are sent in CDJ status packets, please contact us on [Zulip](https://deep-symmetry.zulipchat.com/#narrow/stream/275322-beat-link-trigger)!
 - The beat-carabiner library now allows the Ableton Link timeline to be nudged by tempo to keep it close to the CDJs for small adjustments, which can provide much cleaner-sounding synchronization. This still needs to be documented! The show-file based configuration GUI can go in the documentation too.
 - Work is beginning towards better supporting the new CDJ-3000x players.
 - The Beat Link library now allows packets to be ignored by device name, so for example you can try to coexist with ShowKontrol by adding the following code to your Global Setup Expression:
