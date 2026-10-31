@@ -59,6 +59,19 @@ Again, an enabled trigger is chosen at random, taking the weighting into account
 
 * Finally, for each open show, all “Blend” triggers that are enabled for the phrase are activated; they run regardless of other triggers.
 
+=== Providing a Backup Trigger
+
+If you are using phrase triggers to provide automated cues based on analyzed tracks, you might want to have some default thing happen when no phrase trigger can run (for example, if the playing track has no phrase analysis).
+You can accomplish this using an <<Triggers.adoc#,ordinary trigger>> whose <<Expressions_Trigger.adoc#enabled-filter-expression,Enabled Filter Expression>> is set to:
+```clojure
+(no-phrase-running?)
+```
+
+If your show also includes tracks with specific cues that prevent phrase triggers from running, you will probably want this backup trigger disabled if any of those tracks are playing as well. To accomplish that, the enabled filter expression would be:
+```clojure
+(and (no-phrase-running?) (no-track-blocking? device-number))
+```
+
 [[enabling-weighting]]
 == Enabling and Weighting
 

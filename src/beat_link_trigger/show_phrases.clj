@@ -1763,7 +1763,7 @@ editor windows, in their cue canvases as well."
                          phrases
                          phrases)))))
 
-(defn- track-unblocked?
+(defn track-unblocked?
   "Makes sure that any show which contains the track playing on the
   player has marked that track as allowing phrase triggers to run."
   [^Long player]

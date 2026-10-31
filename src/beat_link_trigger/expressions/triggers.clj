@@ -16,6 +16,7 @@
             [beat-link-trigger.playlist-writer :as playlist-writer]
             [beat-link-trigger.prefs :as prefs]
             [beat-link-trigger.show :as show]
+            [beat-link-trigger.show-phrases :as show-phrases]
             [beat-link-trigger.show-util :as su :refer [in-show-ns]]
             [beat-link-trigger.simulator :as sim]
             [beat-link-trigger.socket-picker :as socket-picker]
@@ -260,3 +261,17 @@
   string to be displayed."
   [f]
   (reset! @(requiring-resolve 'beat-link-trigger.players/artist-label-fn) f))
+
+(defn no-phrase-running?
+  "Returns true if there is not currently a phrase trigger running. Can
+  be used as an Enabled Expression for a trigger outside of a show
+  that wants to run only for tracks that have no phrase triggers."
+  []
+  (empty? (show-phrases/all-phrase-triggers-playing (su/get-open-shows))))
+
+(defn no-track-blocking?
+  "Returns true if the track playing on the specified player does not
+  match any show track that is configured to block phrase triggers
+  from running."
+  [device-number]
+  (show-phrases/track-unblocked? (long device-number)))
