@@ -12,6 +12,7 @@ This change log follows the conventions of
 - The beat-carabiner library now allows the Ableton Link timeline to be nudged by tempo to keep it close to the CDJs for small adjustments, which can provide much cleaner-sounding synchronization. This still needs to be documented! The show-file based configuration GUI can go in the documentation too.
 - Work is beginning towards better supporting the new CDJ-3000x players.
 - The Beat Link library now allows packets to be ignored by device name, so for example you can try to coexist with ShowKontrol by adding the following code to your Global Setup Expression:
+- The Playlist Writer can now be configured to only consider the tempo master player.
 
         (.addIgnoredDeviceName device-finder "TCS-SHOWKONTROL")
 

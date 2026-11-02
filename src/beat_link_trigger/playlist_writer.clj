@@ -42,6 +42,11 @@
   player must be On-Air for it to contribute to a playlist."
   :playlist-on-air-only)
 
+(def master-pref-key
+  "The key used to store the global preference that controls whether a
+  player must be the tempo master for it to contribute to a playlist."
+  :playlist-master-only)
+
 (def split-pref-key
   "The key used to store the global preference that controls whether a
   new playlist file is automatically created when all players have
@@ -238,7 +243,7 @@
   consisting of that listener and a function that can be called to
   write out playlist entries for any tracks that have currently been
   playing long enough because the playlist file is being closed."
-  [time-spinner on-air-checkbox split-checkbox threshold-spinner status-label state-atom]
+  [time-spinner on-air-checkbox master-checkbox split-checkbox threshold-spinner status-label state-atom]
   (let [playing-tracks (atom {})]
     [(reify DeviceUpdateListener
        (received [_this device-update]
@@ -249,6 +254,7 @@
                  player-number    (.getDeviceNumber cdj-status)
                  min-play-seconds (seesaw/value time-spinner)
                  on-air-required? (seesaw/value on-air-checkbox)
+                 master-required? (seesaw/value master-checkbox)
                  split?           (seesaw/value split-checkbox)
                  playlist-file    (:file @state-atom)]
 
@@ -273,7 +279,8 @@
                     (fn [old-entry]
                       (if (and
                            (.isPlaying cdj-status)
-                           (or (.isOnAir cdj-status) (not on-air-required?)))
+                           (or (.isOnAir cdj-status) (not on-air-required?))
+                           (or (.isTempoMaster cdj-status) (not master-required?)))
                         (if (track-changed? cdj-status old-entry)
                           (do  ; Write out old entry if it had played enough, and swap in our new one.
                             (write-entry-if-played-enough min-play-seconds playlist-file player-number old-entry)
@@ -319,6 +326,17 @@
             (timbre/error e "Problem parsing playlist on-air preference value:" pref))))
       false))
 
+(defn- master-pref
+  "Retrieve the preference setting for filtering out players that are
+  not the tempo master."
+  []
+  (or (when-let [pref (master-pref-key (prefs/get-preferences))]
+        (try
+          (Boolean/valueOf pref)
+          (catch Exception e
+            (timbre/error e "Problem parsing playlist tempo master preference value:" pref))))
+      false))
+
 (defn- split-pref
   "Retrieve the preference setting for automatically switching to a new
   playlist file when all players have been stopped for a threshold
@@ -357,6 +375,7 @@
                                       :prefix prefix}))
            time-spinner      (seesaw/spinner :id :time :model (seesaw/spinner-model (min-time-pref) :from 0 :to 60))
            on-air-checkbox   (seesaw/checkbox :id :on-air :selected? (on-air-pref))
+           master-checkbox   (seesaw/checkbox :id :master :selected? (master-pref))
            split-checkbox    (seesaw/checkbox :id :split :selected? (split-pref))
            threshold-spinner (seesaw/spinner :id :time :model (seesaw/spinner-model (new-playlist-threshold-pref)
                                                                                     :from 1 :to 720)
@@ -370,6 +389,10 @@
 
                                       [(seesaw/label :text "On-Air Players Only?") "align right"]
                                       [on-air-checkbox]
+                                      [(seesaw/label :text "") "wrap unrelated"]
+
+                                      [(seesaw/label :text "Tempo Master Only?") "align right"]
+                                      [master-checkbox]
                                       [(seesaw/label :text "") "wrap unrelated"]
 
                                       [(seesaw/label :text "Auto-Split When Idle?") "align right"]
@@ -389,8 +412,8 @@
                                          :content panel
                                          :on-close :dispose)
            [update-listener
-            close-handler] (build-update-listener time-spinner on-air-checkbox split-checkbox threshold-spinner
-                                                  status-label playlist-state)
+            close-handler] (build-update-listener time-spinner on-air-checkbox master-checkbox split-checkbox
+                                                  threshold-spinner status-label playlist-state)
            stop-listener   (reify LifecycleListener
                              (started [_this _sender])  ; Nothing to do, we exited as soon as stop happened anyway.
                              (stopped [_this _sender]   ; Close window if VirtualCdj gets shut down (we went offline).
@@ -408,6 +431,7 @@
                                          (assoc (prefs/get-preferences)
                                                 min-time-pref-key (seesaw/value time-spinner)
                                                 on-air-pref-key (seesaw/value on-air-checkbox)
+                                                master-pref-key (seesaw/value master-checkbox)
                                                 split-pref-key (seesaw/value split-checkbox)
                                                 new-playlist-threshold-pref-key (seesaw/value threshold-spinner))))
                       :component-moved (fn [_] (util/save-window-position root :playlist-writer true)))
